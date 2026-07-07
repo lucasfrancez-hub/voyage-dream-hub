@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plane, MapPin, Phone, Mail, Instagram, MessageCircle, Star, Compass, ShieldCheck, Headphones, Menu, X, CreditCard, Landmark, QrCode, Heart, Sparkles, Globe2 } from "lucide-react";
+import { Plane, MapPin, Phone, Mail, Instagram, MessageCircle, Star, Compass, ShieldCheck, Headphones, Menu, X, CreditCard, Landmark, QrCode, Heart, Sparkles, Globe2, Briefcase, Clock, Receipt, Users } from "lucide-react";
 import heroCollage from "@/assets/hero-collage.png.asset.json";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import ceoPhoto from "@/assets/ceo-viaair.jpg.asset.json";
