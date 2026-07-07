@@ -89,6 +89,17 @@ function Home() {
               <p className="mt-4 text-base md:text-lg text-muted-foreground max-w-xl">
                 Passagens aéreas, pacotes, hotéis e experiências sob medida&nbsp;
               </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <a
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-6 py-3 text-sm md:text-base font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
+                >
+                  <MessageCircle className="h-5 w-5" /> Falar agora no WhatsApp
+                </a>
+                <span className="text-xs md:text-sm text-muted-foreground">Atendimento humano · resposta rápida</span>
+              </div>
             </div>
           </div>
         </div>
