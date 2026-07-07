@@ -1,24 +1,251 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { Plane, MapPin, Phone, Mail, Instagram, MessageCircle, Star, Compass, ShieldCheck, Headphones, Menu, X } from "lucide-react";
+import heroImg from "@/assets/hero-travel.jpg";
+import destBeach from "@/assets/dest-beach.jpg";
+import destEurope from "@/assets/dest-europe.jpg";
+import destMountain from "@/assets/dest-mountain.jpg";
+import { FlightSearchWidget } from "@/components/FlightSearchWidget";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: Home,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+const nav = [
+  { href: "#buscar", label: "Buscar" },
+  { href: "#destinos", label: "Destinos" },
+  { href: "#servicos", label: "Serviços" },
+  { href: "#sobre", label: "Sobre" },
+  { href: "#contato", label: "Contato" },
+];
+
+function Home() {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Header */}
+      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-background/70 border-b border-border">
+        <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
+          <a href="#" className="flex items-center gap-2 font-display text-xl font-semibold">
+            <Plane className="h-5 w-5 text-primary" strokeWidth={2.2} />
+            <span>Voar Bem</span>
+          </a>
+          <nav className="hidden md:flex items-center gap-8 text-sm">
+            {nav.map((n) => (
+              <a key={n.href} href={n.href} className="text-muted-foreground hover:text-primary transition">
+                {n.label}
+              </a>
+            ))}
+          </nav>
+          <a
+            href="#contato"
+            className="hidden md:inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-medium text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
+          >
+            Fale conosco
+          </a>
+          <button className="md:hidden text-foreground" onClick={() => setOpen((v) => !v)} aria-label="Menu">
+            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+        {open && (
+          <div className="md:hidden border-t border-border bg-background/95 px-6 py-4 space-y-3">
+            {nav.map((n) => (
+              <a key={n.href} href={n.href} onClick={() => setOpen(false)} className="block text-muted-foreground hover:text-primary">
+                {n.label}
+              </a>
+            ))}
+            <a href="#contato" onClick={() => setOpen(false)} className="inline-flex rounded-full bg-gradient-brand px-5 py-2 text-sm font-medium text-primary-foreground">
+              Fale conosco
+            </a>
+          </div>
+        )}
+      </header>
+
+      {/* Hero */}
+      <section id="buscar" className="relative pt-16 min-h-screen flex items-center overflow-hidden">
+        <img
+          src={heroImg}
+          alt="Vista aérea de nuvens e ilhas ao pôr do sol"
+          width={1920}
+          height={1280}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
+        <div className="absolute inset-0 bg-background/40" />
+
+        <div className="relative mx-auto max-w-7xl px-6 py-24 w-full">
+          <div className="max-w-3xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-background/40 px-4 py-1.5 text-xs uppercase tracking-widest text-primary">
+              <Star className="h-3.5 w-3.5" /> Agência de viagens premium
+            </span>
+            <h1 className="mt-6 font-display text-5xl md:text-7xl font-semibold leading-[1.05]">
+              Sua próxima <span className="text-gradient-brand">viagem</span> começa com um clique.
+            </h1>
+            <p className="mt-6 text-lg text-muted-foreground max-w-xl">
+              Passagens aéreas, pacotes completos, hotéis e experiências sob medida — com atendimento humano do começo ao fim.
+            </p>
+          </div>
+
+          {/* Widget slot */}
+          <div className="mt-10 rounded-2xl border border-border bg-card/80 backdrop-blur-xl p-4 md:p-6 shadow-[var(--shadow-card)]">
+            <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+              <Plane className="h-4 w-4 text-primary" />
+              Encontre sua passagem
+            </div>
+            <FlightSearchWidget />
+          </div>
+        </div>
+      </section>
+
+      {/* Diferenciais */}
+      <section className="py-24 bg-background">
+        <div className="mx-auto max-w-7xl px-6 grid md:grid-cols-3 gap-8">
+          {[
+            { icon: Headphones, title: "Atendimento humano", desc: "Consultores dedicados, do orçamento ao pós-viagem, por WhatsApp." },
+            { icon: ShieldCheck, title: "Segurança e confiança", desc: "Emitimos com as principais companhias e operadoras do mercado." },
+            { icon: Compass, title: "Roteiros sob medida", desc: "Montamos experiências pensadas para o seu estilo e orçamento." },
+          ].map((f) => (
+            <div key={f.title} className="rounded-2xl border border-border bg-card p-8 hover:border-primary/50 transition group">
+              <div className="h-12 w-12 rounded-xl bg-gradient-brand flex items-center justify-center mb-6 shadow-[var(--shadow-glow)]">
+                <f.icon className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold">{f.title}</h3>
+              <p className="mt-3 text-muted-foreground leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Destinos */}
+      <section id="destinos" className="py-24 bg-accent/30">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="flex items-end justify-between mb-12 flex-wrap gap-4">
+            <div>
+              <span className="text-primary text-sm uppercase tracking-widest">Destinos em destaque</span>
+              <h2 className="mt-2 text-4xl md:text-5xl font-semibold">Inspire-se para a próxima aventura</h2>
+            </div>
+            <a href="#contato" className="text-primary hover:underline">Ver todos os destinos →</a>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { img: destBeach, name: "Caribe & Nordeste", tag: "A partir de R$ 2.890" },
+              { img: destEurope, name: "Europa Clássica", tag: "A partir de R$ 5.490" },
+              { img: destMountain, name: "Neve & Aventura", tag: "A partir de R$ 6.190" },
+            ].map((d) => (
+              <a key={d.name} href="#contato" className="group relative rounded-2xl overflow-hidden aspect-[4/5] block">
+                <img src={d.img} alt={d.name} loading="lazy" width={1024} height={1280} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+                <div className="absolute bottom-0 p-6">
+                  <div className="flex items-center gap-2 text-xs text-primary uppercase tracking-widest">
+                    <MapPin className="h-3.5 w-3.5" /> {d.tag}
+                  </div>
+                  <h3 className="mt-2 text-2xl font-semibold">{d.name}</h3>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Serviços */}
+      <section id="servicos" className="py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="max-w-2xl">
+            <span className="text-primary text-sm uppercase tracking-widest">O que fazemos</span>
+            <h2 className="mt-2 text-4xl md:text-5xl font-semibold">Tudo para sua viagem em um só lugar</h2>
+          </div>
+          <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { t: "Passagens aéreas", d: "Nacionais e internacionais com as melhores tarifas." },
+              { t: "Pacotes completos", d: "Aéreo + hotel + traslados + passeios." },
+              { t: "Hotéis e resorts", d: "Curadoria de hospedagens em todo o mundo." },
+              { t: "Cruzeiros", d: "As principais operadoras marítimas do mundo." },
+              { t: "Lua de mel", d: "Roteiros românticos e experiências únicas." },
+              { t: "Viagens corporativas", d: "Gestão completa para empresas." },
+              { t: "Seguro viagem", d: "Cobertura internacional com as melhores seguradoras." },
+              { t: "Assessoria de vistos", d: "Orientação e apoio na documentação." },
+            ].map((s) => (
+              <div key={s.t} className="rounded-xl border border-border bg-card p-6 hover:border-primary/50 transition">
+                <h3 className="font-semibold">{s.t}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{s.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Sobre */}
+      <section id="sobre" className="py-24 bg-accent/30">
+        <div className="mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <span className="text-primary text-sm uppercase tracking-widest">Sobre nós</span>
+            <h2 className="mt-2 text-4xl md:text-5xl font-semibold">Feita por quem ama viajar, para quem quer viver a experiência.</h2>
+            <p className="mt-6 text-muted-foreground leading-relaxed">
+              Somos uma agência de viagens especializada em transformar sonhos em roteiros reais. Cada cliente é único — e cada viagem é planejada com carinho, atenção aos detalhes e o suporte que só uma equipe apaixonada pode oferecer.
+            </p>
+            <div className="mt-8 grid grid-cols-3 gap-6">
+              {[
+                { n: "10+", l: "anos de estrada" },
+                { n: "5K+", l: "clientes felizes" },
+                { n: "80+", l: "destinos" },
+              ].map((s) => (
+                <div key={s.l}>
+                  <div className="text-3xl font-display font-semibold text-primary">{s.n}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{s.l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="relative aspect-square rounded-3xl overflow-hidden">
+            <img src={destBeach} alt="Destino" loading="lazy" width={1024} height={1280} className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 ring-1 ring-inset ring-border rounded-3xl" />
+          </div>
+        </div>
+      </section>
+
+      {/* Contato / CTA */}
+      <section id="contato" className="py-24">
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <span className="text-primary text-sm uppercase tracking-widest">Fale com a gente</span>
+          <h2 className="mt-2 text-4xl md:text-6xl font-semibold">Pronto para embarcar?</h2>
+          <p className="mt-6 text-lg text-muted-foreground">
+            Envie sua ideia de viagem e nosso time monta um orçamento personalizado para você.
+          </p>
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <a
+              href="https://wa.me/5500000000000"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-8 py-4 font-medium text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
+            >
+              <MessageCircle className="h-5 w-5" /> Falar no WhatsApp
+            </a>
+            <a
+              href="mailto:contato@voarbem.com.br"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-8 py-4 font-medium hover:border-primary transition"
+            >
+              <Mail className="h-5 w-5" /> Enviar e-mail
+            </a>
+          </div>
+          <div className="mt-12 grid sm:grid-cols-3 gap-6 text-sm">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Phone className="h-4 w-4 text-primary" /> (00) 0000-0000</div>
+            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Mail className="h-4 w-4 text-primary" /> contato@voarbem.com.br</div>
+            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Instagram className="h-4 w-4 text-primary" /> @voarbem</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-10">
+        <div className="mx-auto max-w-7xl px-6 flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Plane className="h-4 w-4 text-primary" />
+            <span className="font-display text-foreground">Voar Bem Viagens</span>
+          </div>
+          <div>© {new Date().getFullYear()} Voar Bem. Todos os direitos reservados.</div>
+        </div>
+      </footer>
     </div>
   );
 }
