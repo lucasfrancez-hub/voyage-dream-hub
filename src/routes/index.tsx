@@ -61,8 +61,8 @@ function Home() {
                 {n.label}
               </a>
             ))}
-            <a href="#contato" onClick={() => setOpen(false)} className="inline-flex rounded-full bg-gradient-brand px-5 py-2 text-sm font-medium text-primary-foreground">
-              Fale conosco
+            <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" onClick={() => setOpen(false)} className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-medium text-primary-foreground">
+              <MessageCircle className="h-4 w-4" /> Falar no WhatsApp
             </a>
           </div>
         )}
