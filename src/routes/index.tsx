@@ -263,7 +263,7 @@ function Home() {
                   <p.icon className="h-5 w-5 text-brand-orange" />
                 </div>
                 <h3 className="font-semibold text-foreground">{p.t}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{p.d}</p>
+                <p className="mt-2 text-sm text-muted-foreground whitespace-pre-line">{p.d}</p>
               </div>
             ))}
           </div>
