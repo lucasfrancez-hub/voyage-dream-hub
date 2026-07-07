@@ -69,7 +69,7 @@ function Home() {
       </header>
 
       {/* Hero */}
-      <section id="buscar" className="relative pt-16">
+      <section id="buscar" className="relative pt-28 md:pt-24">
         {/* Cover image — proporção controlada */}
         <div className="relative w-full h-[45vh] min-h-[280px] max-h-[520px] overflow-hidden">
           <img
