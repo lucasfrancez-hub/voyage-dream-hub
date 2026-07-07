@@ -217,7 +217,7 @@ function Home() {
             </p>
             <div className="mt-8 grid grid-cols-3 gap-6">
               {[
-                { n: "10+", l: "anos de estrada" },
+                { n: "4+", l: "anos de estrada" },
                 { n: "5K+", l: "clientes felizes" },
                 { n: "80+", l: "destinos" },
               ].map((s) => (
