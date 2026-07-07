@@ -124,7 +124,7 @@ function Home() {
           <div className="flex items-end justify-between mb-12 flex-wrap gap-4">
             <div>
               <span className="text-primary text-sm uppercase tracking-widest">Destinos em destaque</span>
-              <h2 className="mt-2 text-4xl md:text-5xl font-bold">Inspire-se para a próxima aventura</h2>
+              <h2 className="mt-2 text-4xl md:text-5xl font-bold text-primary">Inspire-se para a próxima aventura</h2>
             </div>
             <a href="#contato" className="text-primary hover:underline">Ver todos os destinos →</a>
           </div>
@@ -154,7 +154,7 @@ function Home() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="max-w-2xl">
             <span className="text-primary text-sm uppercase tracking-widest">O que fazemos</span>
-            <h2 className="mt-2 text-4xl md:text-5xl font-bold">Tudo para sua viagem em um só lugar</h2>
+            <h2 className="mt-2 text-4xl md:text-5xl font-bold text-primary">Tudo para sua viagem em um só lugar</h2>
           </div>
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
