@@ -82,7 +82,7 @@ function Home() {
                 Sua próxima <span className="text-gradient-brand">viagem</span> começa aqui.
               </h1>
               <p className="mt-4 text-base md:text-lg text-muted-foreground max-w-xl">
-                Passagens aéreas, pacotes, hotéis e experiências sob medida — com atendimento humano de ponta a ponta.
+                Passagens aéreas, pacotes, hotéis e experiências sob medida&nbsp;
               </p>
             </div>
           </div>
