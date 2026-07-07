@@ -255,7 +255,7 @@ function Home() {
             {[
               { icon: QrCode, t: "Pix", d: "Pagamento instantâneo com confirmação imediata." },
               { icon: CreditCard, t: "Cartão de crédito", d: "Parcele sua viagem no cartão sem juros." },
-              { icon: Landmark, t: "Boleto com análise de crédito", d: "Parcele em boletos após análise de crédito." },
+              { icon: Landmark, t: "Boleto com análise de crédito", d: "Parcele em boletos sem juros após análise de crédito, em até 12x\n\nEmbarque permitido antes da quitação" },
               { icon: Landmark, t: "Boleto até a data da viagem", d: "Divida em boletos até embarcar, sem análise de crédito." },
             ].map((p) => (
               <div key={p.t} className="rounded-2xl border border-border bg-card p-6">
@@ -263,7 +263,7 @@ function Home() {
                   <p.icon className="h-5 w-5 text-brand-orange" />
                 </div>
                 <h3 className="font-semibold text-foreground">{p.t}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{p.d}</p>
+                <p className="mt-2 text-sm text-muted-foreground whitespace-pre-line">{p.d}</p>
               </div>
             ))}
           </div>
