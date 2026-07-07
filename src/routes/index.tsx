@@ -195,6 +195,67 @@ function Home() {
         </div>
       </section>
 
+      {/* Corporativo */}
+      <section id="corporativo" className="py-24 bg-brand-blue/5 border-y border-brand-blue/20">
+        <div className="mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <span className="inline-flex items-center gap-2 text-brand-orange text-sm uppercase tracking-widest">
+              <Briefcase className="h-4 w-4" /> Viagens corporativas
+            </span>
+            <h2 className="mt-2 text-4xl md:text-5xl font-bold text-foreground">
+              Sua empresa voando com <span className="text-gradient-brand">eficiência</span> e economia.
+            </h2>
+            <p className="mt-6 text-muted-foreground leading-relaxed">
+              Gestão completa de viagens a negócios: emissão ágil, política de viagem personalizada,
+              faturamento mensal e atendimento dedicado 24/7 — inclusive fora do horário comercial.
+            </p>
+            <div className="mt-8 grid sm:grid-cols-2 gap-4">
+              {[
+                { icon: Clock, t: "Atendimento 24/7", d: "Suporte a qualquer hora, inclusive em imprevistos de última hora." },
+                { icon: Receipt, t: "Faturamento mensal", d: "Consolidação de despesas com relatórios detalhados." },
+                { icon: Users, t: "Consultor dedicado", d: "Um ponto único de contato que conhece sua empresa." },
+                { icon: ShieldCheck, t: "Política de viagem", d: "Regras e aprovações sob medida para o seu time." },
+              ].map((c) => (
+                <div key={c.t} className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-center gap-2">
+                    <c.icon className="h-4 w-4 text-brand-orange" />
+                    <h3 className="font-semibold text-foreground text-sm">{c.t}</h3>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">{c.d}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href="https://wa.me/5544999514838?text=Ol%C3%A1%21%20Quero%20falar%20sobre%20viagens%20corporativas%20para%20a%20minha%20empresa."
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-6 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
+              >
+                <MessageCircle className="h-4 w-4" /> Solicitar proposta corporativa
+              </a>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-border bg-card p-8">
+            <h3 className="text-xl font-semibold text-foreground">Por que empresas escolhem a Via Air</h3>
+            <ul className="mt-6 space-y-4">
+              {[
+                "Emissão de passagens em minutos, com as principais companhias.",
+                "Hotéis, transfer e locação de carros em um único orçamento.",
+                "Reembolsos e remarcações resolvidos pelo nosso time.",
+                "Fretamento aéreo para eventos, convenções e delegações.",
+                "Relatórios mensais para controle de gastos e compliance.",
+              ].map((item) => (
+                <li key={item} className="flex gap-3 text-sm text-muted-foreground">
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-orange" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* Pilares Via Air */}
       <section className="py-24 bg-card/40 border-y border-border">
         <div className="mx-auto max-w-7xl px-6">
