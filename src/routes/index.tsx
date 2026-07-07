@@ -79,7 +79,7 @@ function Home() {
           />
           <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
           <div className="absolute inset-0 flex items-end">
-            <div className="mx-auto max-w-7xl px-6 pb-10 w-full">
+            <div className="mx-auto max-w-7xl px-6 pb-10 pt-8 w-full">
               <span className="inline-flex items-center gap-2 rounded-full border border-brand-orange/40 bg-background/50 px-4 py-1.5 text-xs uppercase tracking-widest text-brand-orange">
                 <Star className="h-3.5 w-3.5" /> Agência de viagens
               </span>
@@ -105,7 +105,7 @@ function Home() {
         </div>
 
         {/* Widget slot */}
-        <div className="mx-auto max-w-7xl px-6 -mt-10 relative z-10">
+        <div className="mx-auto max-w-7xl px-6 -mt-4 relative z-10">
           <div className="rounded-2xl border border-border bg-card/95 backdrop-blur-xl p-4 md:p-6 shadow-[var(--shadow-card)]">
             <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
               <Plane className="h-4 w-4 text-brand-orange" />
