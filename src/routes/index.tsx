@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plane, MapPin, Phone, Mail, Instagram, MessageCircle, Star, Compass, ShieldCheck, Headphones, Menu, X } from "lucide-react";
-import heroImg from "@/assets/hero-travel.jpg";
+import heroCollage from "@/assets/hero-collage.png.asset.json";
+import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import destBeach from "@/assets/dest-beach.jpg";
 import destEurope from "@/assets/dest-europe.jpg";
 import destMountain from "@/assets/dest-mountain.jpg";
@@ -27,9 +28,8 @@ function Home() {
       {/* Header */}
       <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-background/70 border-b border-border">
         <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-          <a href="#" className="flex items-center gap-2 font-display text-xl font-semibold">
-            <Plane className="h-5 w-5 text-primary" strokeWidth={2.2} />
-            <span>Voar Bem</span>
+          <a href="#" className="flex items-center gap-3">
+            <img src={viaAirLogo.url} alt="Via Air" className="h-9 w-auto" />
           </a>
           <nav className="hidden md:flex items-center gap-8 text-sm">
             {nav.map((n) => (
@@ -63,32 +63,33 @@ function Home() {
       </header>
 
       {/* Hero */}
-      <section id="buscar" className="relative pt-16 min-h-screen flex items-center overflow-hidden">
-        <img
-          src={heroImg}
-          alt="Vista aérea de nuvens e ilhas ao pôr do sol"
-          width={1920}
-          height={1280}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
-        <div className="absolute inset-0 bg-background/40" />
-
-        <div className="relative mx-auto max-w-7xl px-6 py-24 w-full">
-          <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-background/40 px-4 py-1.5 text-xs uppercase tracking-widest text-primary">
-              <Star className="h-3.5 w-3.5" /> Agência de viagens premium
-            </span>
-            <h1 className="mt-6 font-display text-5xl md:text-7xl font-semibold leading-[1.05]">
-              Sua próxima <span className="text-gradient-brand">viagem</span> começa com um clique.
-            </h1>
-            <p className="mt-6 text-lg text-muted-foreground max-w-xl">
-              Passagens aéreas, pacotes completos, hotéis e experiências sob medida — com atendimento humano do começo ao fim.
-            </p>
+      <section id="buscar" className="relative pt-16">
+        {/* Cover image — proporção controlada */}
+        <div className="relative w-full h-[45vh] min-h-[280px] max-h-[520px] overflow-hidden">
+          <img
+            src={heroCollage.url}
+            alt="Colagem de destinos de viagem Via Air"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
+          <div className="absolute inset-0 flex items-end">
+            <div className="mx-auto max-w-7xl px-6 pb-10 w-full">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-background/50 px-4 py-1.5 text-xs uppercase tracking-widest text-primary">
+                <Star className="h-3.5 w-3.5" /> Agência de viagens
+              </span>
+              <h1 className="mt-4 font-display text-4xl md:text-6xl font-extrabold leading-[1.05] max-w-3xl">
+                Sua próxima <span className="text-gradient-brand">viagem</span> começa aqui.
+              </h1>
+              <p className="mt-4 text-base md:text-lg text-muted-foreground max-w-xl">
+                Passagens aéreas, pacotes, hotéis e experiências sob medida — com atendimento humano de ponta a ponta.
+              </p>
+            </div>
           </div>
+        </div>
 
-          {/* Widget slot */}
-          <div className="mt-10 rounded-2xl border border-border bg-card/80 backdrop-blur-xl p-4 md:p-6 shadow-[var(--shadow-card)]">
+        {/* Widget slot */}
+        <div className="mx-auto max-w-7xl px-6 -mt-10 relative z-10">
+          <div className="rounded-2xl border border-border bg-card/95 backdrop-blur-xl p-4 md:p-6 shadow-[var(--shadow-card)]">
             <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
               <Plane className="h-4 w-4 text-primary" />
               Encontre sua passagem
@@ -123,7 +124,7 @@ function Home() {
           <div className="flex items-end justify-between mb-12 flex-wrap gap-4">
             <div>
               <span className="text-primary text-sm uppercase tracking-widest">Destinos em destaque</span>
-              <h2 className="mt-2 text-4xl md:text-5xl font-semibold">Inspire-se para a próxima aventura</h2>
+              <h2 className="mt-2 text-4xl md:text-5xl font-bold">Inspire-se para a próxima aventura</h2>
             </div>
             <a href="#contato" className="text-primary hover:underline">Ver todos os destinos →</a>
           </div>
@@ -153,7 +154,7 @@ function Home() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="max-w-2xl">
             <span className="text-primary text-sm uppercase tracking-widest">O que fazemos</span>
-            <h2 className="mt-2 text-4xl md:text-5xl font-semibold">Tudo para sua viagem em um só lugar</h2>
+            <h2 className="mt-2 text-4xl md:text-5xl font-bold">Tudo para sua viagem em um só lugar</h2>
           </div>
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
@@ -179,10 +180,10 @@ function Home() {
       <section id="sobre" className="py-24 bg-accent/30">
         <div className="mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <span className="text-primary text-sm uppercase tracking-widest">Sobre nós</span>
-            <h2 className="mt-2 text-4xl md:text-5xl font-semibold">Feita por quem ama viajar, para quem quer viver a experiência.</h2>
+            <span className="text-primary text-sm uppercase tracking-widest">Sobre a Via Air</span>
+            <h2 className="mt-2 text-4xl md:text-5xl font-bold">Feita por quem ama viajar, para quem quer viver a experiência.</h2>
             <p className="mt-6 text-muted-foreground leading-relaxed">
-              Somos uma agência de viagens especializada em transformar sonhos em roteiros reais. Cada cliente é único — e cada viagem é planejada com carinho, atenção aos detalhes e o suporte que só uma equipe apaixonada pode oferecer.
+              A Via Air é uma agência de viagens especializada em transformar sonhos em roteiros reais. Cada cliente é único — e cada viagem é planejada com carinho, atenção aos detalhes e o suporte que só uma equipe apaixonada pode oferecer.
             </p>
             <div className="mt-8 grid grid-cols-3 gap-6">
               {[
@@ -191,7 +192,7 @@ function Home() {
                 { n: "80+", l: "destinos" },
               ].map((s) => (
                 <div key={s.l}>
-                  <div className="text-3xl font-display font-semibold text-primary">{s.n}</div>
+                  <div className="text-3xl font-display font-bold text-primary">{s.n}</div>
                   <div className="text-sm text-muted-foreground mt-1">{s.l}</div>
                 </div>
               ))}
@@ -208,7 +209,7 @@ function Home() {
       <section id="contato" className="py-24">
         <div className="mx-auto max-w-4xl px-6 text-center">
           <span className="text-primary text-sm uppercase tracking-widest">Fale com a gente</span>
-          <h2 className="mt-2 text-4xl md:text-6xl font-semibold">Pronto para embarcar?</h2>
+          <h2 className="mt-2 text-4xl md:text-6xl font-bold">Pronto para embarcar?</h2>
           <p className="mt-6 text-lg text-muted-foreground">
             Envie sua ideia de viagem e nosso time monta um orçamento personalizado para você.
           </p>
@@ -222,7 +223,7 @@ function Home() {
               <MessageCircle className="h-5 w-5" /> Falar no WhatsApp
             </a>
             <a
-              href="mailto:contato@voarbem.com.br"
+              href="mailto:contato@viaair.com.br"
               className="inline-flex items-center gap-2 rounded-full border border-border px-8 py-4 font-medium hover:border-primary transition"
             >
               <Mail className="h-5 w-5" /> Enviar e-mail
@@ -230,8 +231,8 @@ function Home() {
           </div>
           <div className="mt-12 grid sm:grid-cols-3 gap-6 text-sm">
             <div className="flex items-center justify-center gap-2 text-muted-foreground"><Phone className="h-4 w-4 text-primary" /> (00) 0000-0000</div>
-            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Mail className="h-4 w-4 text-primary" /> contato@voarbem.com.br</div>
-            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Instagram className="h-4 w-4 text-primary" /> @voarbem</div>
+            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Mail className="h-4 w-4 text-primary" /> contato@viaair.com.br</div>
+            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Instagram className="h-4 w-4 text-primary" /> @viaair</div>
           </div>
         </div>
       </section>
@@ -240,10 +241,9 @@ function Home() {
       <footer className="border-t border-border py-10">
         <div className="mx-auto max-w-7xl px-6 flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Plane className="h-4 w-4 text-primary" />
-            <span className="font-display text-foreground">Voar Bem Viagens</span>
+            <img src={viaAirLogo.url} alt="Via Air" className="h-6 w-auto" />
           </div>
-          <div>© {new Date().getFullYear()} Voar Bem. Todos os direitos reservados.</div>
+          <div>© {new Date().getFullYear()} Via Air. Todos os direitos reservados.</div>
         </div>
       </footer>
     </div>
