@@ -120,7 +120,7 @@ function Home() {
       </section>
 
       {/* Destinos */}
-      <section id="destinos" className="py-24 bg-background">
+      <section id="destinos" className="py-24 bg-card/40 border-y border-border">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex items-end justify-between mb-12 flex-wrap gap-4">
             <div>
@@ -142,7 +142,7 @@ function Home() {
                   <div className="flex items-center gap-2 text-xs text-brand-orange uppercase tracking-widest">
                     <MapPin className="h-3.5 w-3.5" /> {d.tag}
                   </div>
-                  <h3 className="mt-2 text-2xl font-semibold text-brand-orange">{d.name}</h3>
+                  <h3 className="mt-2 text-2xl font-semibold text-foreground">{d.name}</h3>
                 </div>
               </a>
             ))}
@@ -167,6 +167,8 @@ function Home() {
               { t: "Viagens corporativas", d: "Gestão completa para empresas." },
               { t: "Seguro viagem", d: "Cobertura internacional com as melhores seguradoras." },
               { t: "Assessoria de vistos", d: "Orientação e apoio na documentação." },
+              { t: "Locação de carros", d: "Aluguel no Brasil e exterior com as melhores locadoras." },
+              { t: "Fretamento aéreo", d: "Voos exclusivos para grupos, eventos e ocasiões especiais." },
             ].map((s) => (
               <div key={s.t} className="rounded-xl border border-border bg-card p-6 hover:border-brand-orange/50 transition">
                 <h3 className="font-semibold text-foreground">{s.t}</h3>
@@ -176,6 +178,33 @@ function Home() {
           </div>
         </div>
       </section>
+
+      {/* Pilares Via Air */}
+      <section className="py-24 bg-card/40 border-y border-border">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="max-w-2xl mb-12">
+            <span className="text-brand-orange text-sm uppercase tracking-widest">Nossos pilares</span>
+            <h2 className="mt-2 text-4xl md:text-5xl font-bold text-foreground">O que sustenta cada viagem Via Air</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: Heart, t: "Paixão por viajar", d: "Amamos o que fazemos — e isso se reflete em cada detalhe do seu roteiro." },
+              { icon: Sparkles, t: "Experiência premium", d: "Curadoria refinada, parceiros selecionados e um padrão de excelência." },
+              { icon: ShieldCheck, t: "Confiança", d: "Transparência, segurança e clareza do primeiro contato ao pós-viagem." },
+              { icon: Globe2, t: "Mundo sem limites", d: "Conectamos você a destinos, culturas e experiências únicas ao redor do mundo." },
+            ].map((p) => (
+              <div key={p.t} className="rounded-2xl border border-border bg-card p-8">
+                <div className="h-12 w-12 rounded-xl bg-muted/50 border border-border flex items-center justify-center mb-6">
+                  <p.icon className="h-6 w-6 text-brand-orange" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">{p.t}</h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{p.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
 
       {/* Sobre */}
       <section id="sobre" className="py-24 bg-brand-blue/10 border-y border-brand-blue/20">
