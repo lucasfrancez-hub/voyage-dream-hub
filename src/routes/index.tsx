@@ -74,7 +74,7 @@ function Home() {
           <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
           <div className="absolute inset-0 flex items-end">
             <div className="mx-auto max-w-7xl px-6 pb-10 w-full">
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-background/50 px-4 py-1.5 text-xs uppercase tracking-widest text-brand-orange">
+              <span className="inline-flex items-center gap-2 rounded-full border border-brand-orange/40 bg-background/50 px-4 py-1.5 text-xs uppercase tracking-widest text-brand-orange">
                 <Star className="h-3.5 w-3.5" /> Agência de viagens
               </span>
               <h1 className="mt-4 font-display text-4xl md:text-6xl font-extrabold leading-[1.05] max-w-3xl">
