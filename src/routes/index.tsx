@@ -17,9 +17,12 @@ const nav = [
   { href: "#buscar", label: "Buscar" },
   { href: "#destinos", label: "Destinos" },
   { href: "#servicos", label: "Serviços" },
+  { href: "#corporativo", label: "Corporativo" },
   { href: "#sobre", label: "Sobre" },
   { href: "#contato", label: "Contato" },
 ];
+
+const WHATSAPP_URL = "https://wa.me/5544999514838?text=Ol%C3%A1%21%20Quero%20planejar%20minha%20pr%C3%B3xima%20viagem%20com%20a%20Via%20Air.";
 
 function Home() {
   const [open, setOpen] = useState(false);
