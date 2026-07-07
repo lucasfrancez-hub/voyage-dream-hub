@@ -43,10 +43,12 @@ function Home() {
             ))}
           </nav>
           <a
-            href="#contato"
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
             className="hidden md:inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-medium text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
           >
-            Fale conosco
+            <MessageCircle className="h-4 w-4" /> WhatsApp
           </a>
           <button className="md:hidden text-foreground" onClick={() => setOpen((v) => !v)} aria-label="Menu">
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
