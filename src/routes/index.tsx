@@ -255,8 +255,8 @@ function Home() {
             {[
               { icon: QrCode, t: "Pix", d: "Pagamento instantâneo com confirmação imediata." },
               { icon: CreditCard, t: "Cartão de crédito", d: "Parcele sua viagem no cartão sem juros." },
-              { icon: Landmark, t: "Boleto com análise de crédito", d: "Parcele em boletos sem juros após análise de crédito, em até 12x\n\nEmbarque permitido antes da quitação" },
-              { icon: Landmark, t: "Boleto até a data da viagem", d: "Divida em boletos até embarcar, sem análise de crédito." },
+              { icon: Landmark, t: "Boleto com análise de crédito", d: "Parcele em boletos sem juros após análise de crédito, em até 12x.\n\nEmbarque permitido antes da quitação." },
+              { icon: Landmark, t: "Boleto até a data da viagem", d: "Divida em boletos sem juros até embarcar, sem análise de crédito.\n\nNecessário quitação 30 dias antes do embarque" },
             ].map((p) => (
               <div key={p.t} className="rounded-2xl border border-border bg-card p-6">
                 <div className="h-11 w-11 rounded-xl bg-muted/50 border border-border flex items-center justify-center mb-4">
