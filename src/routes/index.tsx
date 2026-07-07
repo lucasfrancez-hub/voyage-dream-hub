@@ -226,7 +226,7 @@ function Home() {
               href="mailto:contato@viaair.com.br"
               className="inline-flex items-center gap-2 rounded-full border border-border px-8 py-4 font-medium hover:border-brand-orange transition"
             >
-              <Mail className="h-5 w-5" /> Enviar e-mail
+              <Mail className="h-5 w-5 text-brand-orange" /> Enviar e-mail
             </a>
           </div>
           <div className="mt-12 grid sm:grid-cols-3 gap-6 text-sm">
