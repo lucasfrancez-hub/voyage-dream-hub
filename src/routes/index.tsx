@@ -108,10 +108,10 @@ function Home() {
             { icon: Compass, title: "Roteiros sob medida", desc: "Montamos experiências pensadas para o seu estilo e orçamento." },
           ].map((f) => (
             <div key={f.title} className="rounded-2xl border border-border bg-card p-8 hover:border-primary/50 transition group">
-              <div className="h-12 w-12 rounded-xl bg-gradient-brand flex items-center justify-center mb-6 shadow-[var(--shadow-glow)]">
-                <f.icon className="h-6 w-6 text-primary-foreground" />
+              <div className="h-12 w-12 rounded-xl bg-muted/50 border border-border flex items-center justify-center mb-6">
+                <f.icon className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold">{f.title}</h3>
+              <h3 className="text-xl font-semibold text-primary">{f.title}</h3>
               <p className="mt-3 text-muted-foreground leading-relaxed">{f.desc}</p>
             </div>
           ))}
@@ -119,7 +119,7 @@ function Home() {
       </section>
 
       {/* Destinos */}
-      <section id="destinos" className="py-24 bg-accent/30">
+      <section id="destinos" className="py-24 bg-background">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex items-end justify-between mb-12 flex-wrap gap-4">
             <div>
@@ -141,7 +141,7 @@ function Home() {
                   <div className="flex items-center gap-2 text-xs text-primary uppercase tracking-widest">
                     <MapPin className="h-3.5 w-3.5" /> {d.tag}
                   </div>
-                  <h3 className="mt-2 text-2xl font-semibold">{d.name}</h3>
+                  <h3 className="mt-2 text-2xl font-semibold text-primary">{d.name}</h3>
                 </div>
               </a>
             ))}
@@ -168,7 +168,7 @@ function Home() {
               { t: "Assessoria de vistos", d: "Orientação e apoio na documentação." },
             ].map((s) => (
               <div key={s.t} className="rounded-xl border border-border bg-card p-6 hover:border-primary/50 transition">
-                <h3 className="font-semibold">{s.t}</h3>
+                <h3 className="font-semibold text-primary">{s.t}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{s.d}</p>
               </div>
             ))}
@@ -177,11 +177,11 @@ function Home() {
       </section>
 
       {/* Sobre */}
-      <section id="sobre" className="py-24 bg-accent/30">
+      <section id="sobre" className="py-24 bg-background">
         <div className="mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <span className="text-primary text-sm uppercase tracking-widest">Sobre a Via Air</span>
-            <h2 className="mt-2 text-4xl md:text-5xl font-bold">Feita por quem ama viajar, para quem quer viver a experiência.</h2>
+            <h2 className="mt-2 text-4xl md:text-5xl font-bold text-primary">Feita por quem ama viajar, para quem quer viver a experiência.</h2>
             <p className="mt-6 text-muted-foreground leading-relaxed">
               A Via Air é uma agência de viagens especializada em transformar sonhos em roteiros reais. Cada cliente é único — e cada viagem é planejada com carinho, atenção aos detalhes e o suporte que só uma equipe apaixonada pode oferecer.
             </p>
@@ -209,7 +209,7 @@ function Home() {
       <section id="contato" className="py-24">
         <div className="mx-auto max-w-4xl px-6 text-center">
           <span className="text-primary text-sm uppercase tracking-widest">Fale com a gente</span>
-          <h2 className="mt-2 text-4xl md:text-6xl font-bold">Pronto para embarcar?</h2>
+          <h2 className="mt-2 text-4xl md:text-6xl font-bold text-primary">Pronto para embarcar?</h2>
           <p className="mt-6 text-lg text-muted-foreground">
             Envie sua ideia de viagem e nosso time monta um orçamento personalizado para você.
           </p>
