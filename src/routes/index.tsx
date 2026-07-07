@@ -280,7 +280,7 @@ function Home() {
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a
-              href="https://wa.me/5500000000000"
+              href="https://wa.me/5544999514838"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-8 py-4 font-medium text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
@@ -295,7 +295,7 @@ function Home() {
             </a>
           </div>
           <div className="mt-12 grid sm:grid-cols-3 gap-6 text-sm">
-            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Phone className="h-4 w-4 text-brand-orange" /> (00) 0000-0000</div>
+            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Phone className="h-4 w-4 text-brand-orange" /> (44) 99951-4838</div>
             <div className="flex items-center justify-center gap-2 text-muted-foreground"><Mail className="h-4 w-4 text-brand-orange" /> contato@viaair.com.br</div>
             <div className="flex items-center justify-center gap-2 text-muted-foreground"><Instagram className="h-4 w-4 text-brand-orange" /> @viaair</div>
           </div>
