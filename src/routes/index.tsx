@@ -228,9 +228,44 @@ function Home() {
               ))}
             </div>
           </div>
-          <div className="relative aspect-square rounded-3xl overflow-hidden">
-            <img src={destBeach} alt="Destino" loading="lazy" width={1024} height={1280} className="absolute inset-0 h-full w-full object-cover" />
+          <div className="relative aspect-[4/5] rounded-3xl overflow-hidden">
+            <img src={ceoPhoto.url} alt="CEO da Via Air" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+            <div className="absolute bottom-0 p-6">
+              <span className="text-xs uppercase tracking-widest text-brand-orange">Fundador & CEO</span>
+              <h3 className="mt-1 text-2xl font-semibold text-foreground">Uma vida dedicada a viajar</h3>
+              <p className="mt-2 text-sm text-muted-foreground max-w-md">
+                Sempre vivi do turismo — e viajando. Meu maior prazer é conhecer novas culturas, lugares e pessoas. Cada roteiro da Via Air nasce dessa vivência e do desejo de compartilhar o melhor do mundo com os nossos clientes.
+              </p>
+            </div>
             <div className="absolute inset-0 ring-1 ring-inset ring-border rounded-3xl" />
+          </div>
+        </div>
+      </section>
+
+      {/* Formas de pagamento */}
+      <section className="py-24 bg-card/40 border-y border-border">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="max-w-2xl mb-12">
+            <span className="text-brand-orange text-sm uppercase tracking-widest">Formas de pagamento</span>
+            <h2 className="mt-2 text-4xl md:text-5xl font-bold text-foreground">Pague do jeito que fica melhor pra você</h2>
+            <p className="mt-4 text-muted-foreground">Todas as opções <span className="text-brand-orange font-semibold">sem juros</span>.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: QrCode, t: "Pix", d: "Pagamento instantâneo com confirmação imediata." },
+              { icon: CreditCard, t: "Cartão de crédito", d: "Parcele sua viagem no cartão sem juros." },
+              { icon: Landmark, t: "Boleto com análise de crédito", d: "Parcele em boletos após análise de crédito." },
+              { icon: Landmark, t: "Boleto até a data da viagem", d: "Divida em boletos até embarcar, sem análise de crédito." },
+            ].map((p) => (
+              <div key={p.t} className="rounded-2xl border border-border bg-card p-6">
+                <div className="h-11 w-11 rounded-xl bg-muted/50 border border-border flex items-center justify-center mb-4">
+                  <p.icon className="h-5 w-5 text-brand-orange" />
+                </div>
+                <h3 className="font-semibold text-foreground">{p.t}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{p.d}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
