@@ -297,7 +297,7 @@ function Home() {
           <div className="mt-12 grid sm:grid-cols-3 gap-6 text-sm">
             <div className="flex items-center justify-center gap-2 text-muted-foreground"><Phone className="h-4 w-4 text-brand-orange" /> (44) 99951-4838</div>
             <div className="flex items-center justify-center gap-2 text-muted-foreground"><Mail className="h-4 w-4 text-brand-orange" /> comercial@voeair.com</div>
-            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Instagram className="h-4 w-4 text-brand-orange" /> @viaair</div>
+            <div className="flex items-center justify-center gap-2 text-muted-foreground"><Instagram className="h-4 w-4 text-brand-orange" /> @viaairs</div>
           </div>
         </div>
       </section>
