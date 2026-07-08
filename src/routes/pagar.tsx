@@ -9,7 +9,7 @@ import { CardForm, useCardData } from "@/components/CardForm";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
 
-const MAX_INSTALLMENTS = 12;
+const MAX_INSTALLMENTS = 10;
 
 type Search = {
   desc?: string;
@@ -209,8 +209,7 @@ function PayPage() {
                     const s = splitInstallments(totalNumber, installments, effectiveFirst);
                     return s.equal ? (
                       <div className="text-xs text-muted-foreground text-right">
-                        {installments}x de {formatBRL(s.first)}
-                        {installments <= 10 ? " sem juros" : ""}
+                        {installments}x de {formatBRL(s.first)} sem juros
                       </div>
                     ) : (
                       <div className="text-xs text-muted-foreground text-right space-y-0.5">

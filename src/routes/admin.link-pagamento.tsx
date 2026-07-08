@@ -39,7 +39,7 @@ function LinkGenerator() {
   }, [totalNumber, installments, orderRef, description, customer, effectiveFirst]);
 
   const parcelaLabel = split.equal
-    ? `${installments}x de ${formatBRL(split.first)}${installments <= 10 ? " sem juros" : ""}`
+    ? `${installments}x de ${formatBRL(split.first)} sem juros`
     : `1ª de ${formatBRL(split.first)} + ${split.restCount}x de ${formatBRL(split.rest)}`;
 
   const whatsMessage = url
@@ -82,9 +82,9 @@ function LinkGenerator() {
             </Field>
             <Field label="Parcelas">
               <select value={installments} onChange={(e) => setInstallments(Number(e.target.value))} className={cls}>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                   <option key={n} value={n}>
-                    {n}x{n <= 10 ? " sem juros" : ""}
+                    {n}x sem juros
                   </option>
                 ))}
               </select>
