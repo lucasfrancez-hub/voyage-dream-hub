@@ -5,11 +5,8 @@ import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle } from "lu
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
-import {
-  bitrixCheckoutUrl,
-  customQuoteWhatsappUrl,
-  whatsappUrl,
-} from "@/lib/checkout-config";
+import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
+import { CardForm, useCardData } from "@/components/CardForm";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
 
