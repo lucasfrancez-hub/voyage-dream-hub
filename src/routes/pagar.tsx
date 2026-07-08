@@ -184,10 +184,21 @@ function PayPage() {
                       {formatBRL(totalNumber)}
                     </span>
                   </div>
-                  <div className="text-xs text-muted-foreground text-right">
-                    {installments}x de {formatBRL(totalNumber / installments)}
-                    {installments <= 10 ? " sem juros" : ""}
-                  </div>
+                  {(() => {
+                    const effectiveFirst = entradaNumber > 0 && installments > 1 ? entradaNumber : undefined;
+                    const s = splitInstallments(totalNumber, installments, effectiveFirst);
+                    return s.equal ? (
+                      <div className="text-xs text-muted-foreground text-right">
+                        {installments}x de {formatBRL(s.first)}
+                        {installments <= 10 ? " sem juros" : ""}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground text-right space-y-0.5">
+                        <div>1ª parcela: <strong className="text-foreground">{formatBRL(s.first)}</strong></div>
+                        <div>+ {s.restCount}x de {formatBRL(s.rest)}</div>
+                      </div>
+                    );
+                  })()}
                   <button
                     type="submit"
                     disabled={submitting || success}
