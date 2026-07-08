@@ -63,6 +63,7 @@ function CofrePage() {
   const [entries, setEntries] = useState<CofreEntry[]>([]);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"all" | "avulso" | "pedido">("all");
+  const [detailsItem, setDetailsItem] = useState<UnifiedItem | null>(null);
   const router = useRouter();
 
   const fetchOrders = useServerFn(listCofreOrders);
