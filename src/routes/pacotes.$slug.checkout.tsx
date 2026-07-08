@@ -382,24 +382,15 @@ function Checkout() {
               </div>
 
               {payment === "credit_card" && (
-                <div className="mt-5 grid sm:grid-cols-2 gap-4">
-                  <Field label="Parcelas">
-                    <select
-                      value={installments}
-                      onChange={(e) => setInstallments(Number(e.target.value))}
-                      className={inputCls}
-                    >
-                      {Array.from({ length: MAX_INSTALLMENTS }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>
-                          {n}x de {formatBRL(totalPrice / n)}
-                          {n <= 10 ? " sem juros" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <div className="text-xs text-muted-foreground self-end pb-1">
-                    Até <strong>10x sem juros</strong>. 11x e 12x disponíveis sob consulta.
-                  </div>
+                <div className="mt-6 pt-6 border-t border-border">
+                  <CardForm
+                    data={card}
+                    onChange={patchCard}
+                    installments={installments}
+                    onInstallmentsChange={setInstallments}
+                    installmentsOptions={Array.from({ length: MAX_INSTALLMENTS }, (_, i) => i + 1)}
+                    total={totalPrice}
+                  />
                 </div>
               )}
             </Card>
