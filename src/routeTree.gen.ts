@@ -19,6 +19,7 @@ import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
+import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 
@@ -72,6 +73,11 @@ const AdminLinkPagamentoRoute = AdminLinkPagamentoRouteImport.update({
   path: '/link-pagamento',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCofreRoute = AdminCofreRouteImport.update({
+  id: '/cofre',
+  path: '/cofre',
+  getParentRoute: () => AdminRoute,
+} as any)
 const PacotesSlugIndexRoute = PacotesSlugIndexRouteImport.update({
   id: '/$slug/',
   path: '/$slug/',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
+  '/admin/cofre': typeof AdminCofreRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/pagar': typeof PagarRoute
+  '/admin/cofre': typeof AdminCofreRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
+  '/admin/cofre': typeof AdminCofreRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/pacotes'
     | '/pagar'
+    | '/admin/cofre'
     | '/admin/link-pagamento'
     | '/admin/pacotes'
     | '/admin/pedidos'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/pagar'
+    | '/admin/cofre'
     | '/admin/link-pagamento'
     | '/admin/pacotes'
     | '/admin/pedidos'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/pacotes'
     | '/pagar'
+    | '/admin/cofre'
     | '/admin/link-pagamento'
     | '/admin/pacotes'
     | '/admin/pedidos'
@@ -249,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLinkPagamentoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cofre': {
+      id: '/admin/cofre'
+      path: '/cofre'
+      fullPath: '/admin/cofre'
+      preLoaderRoute: typeof AdminCofreRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/pacotes/$slug/': {
       id: '/pacotes/$slug/'
       path: '/$slug'
@@ -267,6 +286,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminCofreRoute: typeof AdminCofreRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
@@ -274,6 +294,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCofreRoute: AdminCofreRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPedidosRoute: AdminPedidosRoute,

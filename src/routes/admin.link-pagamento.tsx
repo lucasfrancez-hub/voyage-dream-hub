@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Link2, Copy, ExternalLink, MessageCircle } from "lucide-react";
+import { Link2, Copy, ExternalLink, MessageCircle, Vault } from "lucide-react";
 import { toast } from "sonner";
 import { paymentLinkUrl, whatsappUrl, splitInstallments } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
+import { saveCofreEntry } from "@/lib/cofre-storage";
 
 export const Route = createFileRoute("/admin/link-pagamento")({
   component: LinkGenerator,
@@ -46,12 +47,36 @@ function LinkGenerator() {
     ? `Olá${customer ? ` ${customer}` : ""}! Segue seu link de pagamento seguro Via Air:\n\n💳 ${description}\n💰 Total: ${formatBRL(totalNumber)}\n📆 ${parcelaLabel}\n\n🔒 ${url}\n\nQualquer dúvida estamos à disposição.`
     : "";
 
+  function persistToCofre() {
+    if (!url) return;
+    saveCofreEntry({
+      customer: customer || undefined,
+      customerPhone: customerPhone || undefined,
+      description,
+      total: totalNumber,
+      installments,
+      firstAmount: effectiveFirst,
+      orderRef: orderRef || undefined,
+      url,
+    });
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
-      <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
-        <Link2 className="h-4 w-4" /> Gerar link de pagamento
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
+            <Link2 className="h-4 w-4" /> Gerar link de pagamento
+          </div>
+          <h1 className="mt-1 font-display text-3xl font-bold">Link do cofre Via Air</h1>
+        </div>
+        <Link
+          to="/admin/cofre"
+          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs hover:border-brand-orange transition"
+        >
+          <Vault className="h-4 w-4" /> Ver cofre
+        </Link>
       </div>
-      <h1 className="mt-1 font-display text-3xl font-bold">Link do cofre Via Air</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Monte um link personalizado com valor e parcelas. O cliente abre em <code>/pagar</code>{" "}
         dentro do próprio domínio e preenche os dados do cartão.
@@ -143,7 +168,8 @@ function LinkGenerator() {
               disabled={!url}
               onClick={() => {
                 navigator.clipboard.writeText(url);
-                toast.success("Link copiado");
+                persistToCofre();
+                toast.success("Link copiado e salvo no cofre");
               }}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-50"
             >
@@ -154,6 +180,7 @@ function LinkGenerator() {
               target="_blank"
               rel="noreferrer"
               aria-disabled={!url}
+              onClick={() => persistToCofre()}
               className={`inline-flex items-center justify-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm hover:border-brand-orange transition ${!url ? "pointer-events-none opacity-50" : ""}`}
             >
               <ExternalLink className="h-4 w-4" /> Abrir cofre
@@ -163,6 +190,7 @@ function LinkGenerator() {
               target="_blank"
               rel="noreferrer"
               aria-disabled={!url}
+              onClick={() => persistToCofre()}
               className={`inline-flex items-center justify-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm hover:border-brand-orange transition ${!url ? "pointer-events-none opacity-50" : ""}`}
             >
               <MessageCircle className="h-4 w-4" /> Enviar no WhatsApp
