@@ -190,6 +190,7 @@ function PayPage() {
                     onInstallmentsChange={setInstallments}
                     installmentsOptions={installmentsOptions}
                     total={totalNumber}
+                    firstAmount={firstAmount}
                   />
                 </Card>
               </div>
