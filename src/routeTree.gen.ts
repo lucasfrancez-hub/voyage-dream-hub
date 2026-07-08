@@ -14,9 +14,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
-import { Route as PacotesSlugRouteImport } from './routes/pacotes.$slug'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
+import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 
 const PacotesRoute = PacotesRouteImport.update({
@@ -44,11 +44,6 @@ const PacotesIndexRoute = PacotesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PacotesRoute,
 } as any)
-const PacotesSlugRoute = PacotesSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => PacotesRoute,
-} as any)
 const AdminPedidosRoute = AdminPedidosRouteImport.update({
   id: '/pedidos',
   path: '/pedidos',
@@ -59,10 +54,15 @@ const AdminPacotesRoute = AdminPacotesRouteImport.update({
   path: '/pacotes',
   getParentRoute: () => AdminRoute,
 } as any)
+const PacotesSlugIndexRoute = PacotesSlugIndexRouteImport.update({
+  id: '/$slug/',
+  path: '/$slug/',
+  getParentRoute: () => PacotesRoute,
+} as any)
 const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => PacotesSlugRoute,
+  id: '/$slug/checkout',
+  path: '/$slug/checkout',
+  getParentRoute: () => PacotesRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -72,9 +72,9 @@ export interface FileRoutesByFullPath {
   '/pacotes': typeof PacotesRouteWithChildren
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
-  '/pacotes/$slug': typeof PacotesSlugRouteWithChildren
   '/pacotes/': typeof PacotesIndexRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/pacotes/$slug/': typeof PacotesSlugIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -82,9 +82,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
-  '/pacotes/$slug': typeof PacotesSlugRouteWithChildren
   '/pacotes': typeof PacotesIndexRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/pacotes/$slug': typeof PacotesSlugIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -94,9 +94,9 @@ export interface FileRoutesById {
   '/pacotes': typeof PacotesRouteWithChildren
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
-  '/pacotes/$slug': typeof PacotesSlugRouteWithChildren
   '/pacotes/': typeof PacotesIndexRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/pacotes/$slug/': typeof PacotesSlugIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,9 +107,9 @@ export interface FileRouteTypes {
     | '/pacotes'
     | '/admin/pacotes'
     | '/admin/pedidos'
-    | '/pacotes/$slug'
     | '/pacotes/'
     | '/pacotes/$slug/checkout'
+    | '/pacotes/$slug/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -117,9 +117,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/admin/pacotes'
     | '/admin/pedidos'
-    | '/pacotes/$slug'
     | '/pacotes'
     | '/pacotes/$slug/checkout'
+    | '/pacotes/$slug'
   id:
     | '__root__'
     | '/'
@@ -128,9 +128,9 @@ export interface FileRouteTypes {
     | '/pacotes'
     | '/admin/pacotes'
     | '/admin/pedidos'
-    | '/pacotes/$slug'
     | '/pacotes/'
     | '/pacotes/$slug/checkout'
+    | '/pacotes/$slug/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -177,13 +177,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesIndexRouteImport
       parentRoute: typeof PacotesRoute
     }
-    '/pacotes/$slug': {
-      id: '/pacotes/$slug'
-      path: '/$slug'
-      fullPath: '/pacotes/$slug'
-      preLoaderRoute: typeof PacotesSlugRouteImport
-      parentRoute: typeof PacotesRoute
-    }
     '/admin/pedidos': {
       id: '/admin/pedidos'
       path: '/pedidos'
@@ -198,12 +191,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPacotesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/pacotes/$slug/': {
+      id: '/pacotes/$slug/'
+      path: '/$slug'
+      fullPath: '/pacotes/$slug/'
+      preLoaderRoute: typeof PacotesSlugIndexRouteImport
+      parentRoute: typeof PacotesRoute
+    }
     '/pacotes/$slug/checkout': {
       id: '/pacotes/$slug/checkout'
-      path: '/checkout'
+      path: '/$slug/checkout'
       fullPath: '/pacotes/$slug/checkout'
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
-      parentRoute: typeof PacotesSlugRoute
+      parentRoute: typeof PacotesRoute
     }
   }
 }
@@ -220,26 +220,16 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface PacotesSlugRouteChildren {
-  PacotesSlugCheckoutRoute: typeof PacotesSlugCheckoutRoute
-}
-
-const PacotesSlugRouteChildren: PacotesSlugRouteChildren = {
-  PacotesSlugCheckoutRoute: PacotesSlugCheckoutRoute,
-}
-
-const PacotesSlugRouteWithChildren = PacotesSlugRoute._addFileChildren(
-  PacotesSlugRouteChildren,
-)
-
 interface PacotesRouteChildren {
-  PacotesSlugRoute: typeof PacotesSlugRouteWithChildren
   PacotesIndexRoute: typeof PacotesIndexRoute
+  PacotesSlugCheckoutRoute: typeof PacotesSlugCheckoutRoute
+  PacotesSlugIndexRoute: typeof PacotesSlugIndexRoute
 }
 
 const PacotesRouteChildren: PacotesRouteChildren = {
-  PacotesSlugRoute: PacotesSlugRouteWithChildren,
   PacotesIndexRoute: PacotesIndexRoute,
+  PacotesSlugCheckoutRoute: PacotesSlugCheckoutRoute,
+  PacotesSlugIndexRoute: PacotesSlugIndexRoute,
 }
 
 const PacotesRouteWithChildren =

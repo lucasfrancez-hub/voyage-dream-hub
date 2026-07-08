@@ -18,7 +18,7 @@ import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
 import { customQuoteWhatsappUrl } from "@/lib/checkout-config";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
-export const Route = createFileRoute("/pacotes/$slug")({
+export const Route = createFileRoute("/pacotes/$slug/")({
   component: PackageDetails,
   errorComponent: ({ error }) => (
     <div className="min-h-screen flex items-center justify-center p-6 text-center">
