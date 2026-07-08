@@ -56,6 +56,7 @@ type UnifiedItem = {
   adults?: number;
   children?: number;
   notes?: string | null;
+  order?: CofreOrder;
 };
 
 function CofrePage() {
