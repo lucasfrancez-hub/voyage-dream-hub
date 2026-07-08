@@ -155,6 +155,20 @@ function PackageDetails() {
             </section>
           )}
 
+          {(pkg.outbound_flight || pkg.return_flight) && (
+            <section>
+              <h2 className="text-xl font-semibold">Voos</h2>
+              <div className="mt-4 grid md:grid-cols-2 gap-4">
+                {pkg.outbound_flight && (
+                  <FlightCard flight={pkg.outbound_flight as FlightInfo} kind="outbound" />
+                )}
+                {pkg.return_flight && (
+                  <FlightCard flight={pkg.return_flight as FlightInfo} kind="return" />
+                )}
+              </div>
+            </section>
+          )}
+
           {pkg.includes && pkg.includes.length > 0 && (
             <section>
               <h2 className="text-xl font-semibold">O que está incluso</h2>
