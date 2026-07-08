@@ -271,8 +271,7 @@ function Checkout() {
                 </Field>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Crianças com 30% de desconto sobre o valor por pessoa. Preencha os dados de cada
-                passageiro abaixo.
+                Preencha os dados de cada passageiro abaixo.
               </p>
               {occupancyMismatch && (
                 <div className="mt-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs">
