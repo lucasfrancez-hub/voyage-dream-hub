@@ -337,6 +337,16 @@ function AdminPackages() {
                   onChange={(e) => setEditing({ ...editing, hotel_stars: Number(e.target.value) })}
                 />
               </FormField>
+              <FormField label="Ocupação base (adultos)">
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  className={inp}
+                  value={editing.base_occupancy ?? 2}
+                  onChange={(e) => setEditing({ ...editing, base_occupancy: Number(e.target.value) })}
+                />
+              </FormField>
               <FormField label="URL da imagem" wide>
                 <input
                   className={inp}
