@@ -343,7 +343,7 @@ function AdminPackages() {
                   value={
                     Array.isArray(editing.includes)
                       ? editing.includes.join("\n")
-                      : (editing.includes as string) ?? ""
+                      : ((editing.includes as unknown as string) ?? "")
                   }
                   onChange={(e) => setEditing({ ...editing, includes: e.target.value as unknown as string[] })}
                 />
