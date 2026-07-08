@@ -168,7 +168,8 @@ function LinkGenerator() {
               disabled={!url}
               onClick={() => {
                 navigator.clipboard.writeText(url);
-                toast.success("Link copiado");
+                persistToCofre();
+                toast.success("Link copiado e salvo no cofre");
               }}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-50"
             >
@@ -179,6 +180,7 @@ function LinkGenerator() {
               target="_blank"
               rel="noreferrer"
               aria-disabled={!url}
+              onClick={() => persistToCofre()}
               className={`inline-flex items-center justify-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm hover:border-brand-orange transition ${!url ? "pointer-events-none opacity-50" : ""}`}
             >
               <ExternalLink className="h-4 w-4" /> Abrir cofre
@@ -188,6 +190,7 @@ function LinkGenerator() {
               target="_blank"
               rel="noreferrer"
               aria-disabled={!url}
+              onClick={() => persistToCofre()}
               className={`inline-flex items-center justify-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm hover:border-brand-orange transition ${!url ? "pointer-events-none opacity-50" : ""}`}
             >
               <MessageCircle className="h-4 w-4" /> Enviar no WhatsApp
