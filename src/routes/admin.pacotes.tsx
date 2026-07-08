@@ -12,6 +12,7 @@ export const Route = createFileRoute("/admin/pacotes")({
 
 type FlightInfo = {
   airline?: string;
+  airline_logo_url?: string;
   flight_number?: string;
   from_iata?: string;
   from_city?: string;
@@ -21,6 +22,10 @@ type FlightInfo = {
   arrive_at?: string;
   duration?: string;
   stops?: number | string;
+  cabin_class?: string;
+  carry_on?: boolean;
+  checked_bag?: boolean;
+  personal_item?: boolean;
 };
 
 type PackageRow = {
