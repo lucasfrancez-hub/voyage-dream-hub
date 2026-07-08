@@ -300,11 +300,19 @@ function CofrePage() {
                     {e.customerPhone ? ` · ${e.customerPhone}` : ""}
                     {e.email ? ` · ${e.email}` : ""}
                   </div>
-                  {(e.adults != null || e.children != null) && (
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {e.adults ?? 0} adulto(s)
-                      {(e.children ?? 0) > 0 ? ` · ${e.children} criança(s)` : ""}
-                      {e.paymentMethod ? ` · Pagamento: ${e.paymentMethod}` : ""}
+                  {(e.adults != null || e.children != null || e.paymentMethod) && (
+                    <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-2">
+                      <span>
+                        {e.adults ?? 0} adulto(s)
+                        {(e.children ?? 0) > 0 ? ` · ${e.children} criança(s)` : ""}
+                      </span>
+                      {e.paymentMethod && (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${paymentMethodLabel(e.paymentMethod).className}`}
+                        >
+                          {paymentMethodLabel(e.paymentMethod).label}
+                        </span>
+                      )}
                     </div>
                   )}
                   {e.notes && (
