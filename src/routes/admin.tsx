@@ -94,6 +94,7 @@ function AdminLayout() {
               <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
               <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
               <NavItem to="/admin/link-pagamento" icon={Link2} label="Link de pagamento" active={pathname.startsWith("/admin/link-pagamento")} />
+              <NavItem to="/admin/cofre" icon={Vault} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
               <NavItem to="/admin/seguranca" icon={ShieldCheck} label="Segurança" active={pathname.startsWith("/admin/seguranca")} />
             </nav>
           </div>
