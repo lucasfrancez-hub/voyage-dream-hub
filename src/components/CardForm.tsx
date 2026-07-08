@@ -1,37 +1,68 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { CreditCard as CardIcon } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 
+export const CARD_BRANDS = [
+  "Visa",
+  "Mastercard",
+  "Elo",
+  "Amex",
+  "Diners",
+  "Hipercard",
+] as const;
+export type CardBrand = (typeof CARD_BRANDS)[number];
+
 // Detecção simples de bandeira por prefixo (BIN)
-export function detectBrand(number: string): string {
+export function detectBrand(number: string): CardBrand | "" {
   const n = number.replace(/\D/g, "");
+  if (!n) return "";
   if (/^4/.test(n)) return "Visa";
   if (/^(5[1-5]|2[2-7])/.test(n)) return "Mastercard";
   if (/^3[47]/.test(n)) return "Amex";
-  if (/^(6011|65|64[4-9])/.test(n)) return "Discover";
   if (/^(38|30[0-5])/.test(n)) return "Diners";
-  if (/^35/.test(n)) return "JCB";
   if (/^(50|5[6-8]|6[0-9])/.test(n) && n.length >= 6) return "Elo";
   if (/^(384|60)/.test(n)) return "Hipercard";
   return "";
 }
 
-const brandColors: Record<string, string> = {
-  Visa: "bg-blue-600",
-  Mastercard: "bg-red-500",
-  Amex: "bg-sky-500",
-  Discover: "bg-orange-500",
-  Diners: "bg-slate-600",
-  JCB: "bg-emerald-600",
-  Elo: "bg-yellow-500",
-  Hipercard: "bg-red-700",
-};
+// Logos "textuais" das bandeiras (aparência de badge oficial, sem uso de marca registrada).
+function BrandLogo({ brand, active }: { brand: CardBrand; active: boolean }) {
+  const base = "flex h-8 w-14 items-center justify-center rounded-md text-[10px] font-black tracking-tight";
+  const dim = active ? "" : "opacity-60 grayscale";
+  const cls = `${base} ${dim}`;
+  switch (brand) {
+    case "Visa":
+      return <div className={`${cls} bg-white text-[#1a1f71]`}>VISA</div>;
+    case "Mastercard":
+      return (
+        <div className={`${cls} bg-white relative overflow-hidden`}>
+          <span className="absolute left-2 h-5 w-5 rounded-full bg-[#eb001b]" />
+          <span className="absolute left-[26px] h-5 w-5 rounded-full bg-[#f79e1b] mix-blend-multiply" />
+        </div>
+      );
+    case "Elo":
+      return (
+        <div className={`${cls} bg-black text-white`}>
+          <span className="text-[#ffcb05]">e</span>
+          <span className="text-[#ef4123]">l</span>
+          <span className="text-white">o</span>
+        </div>
+      );
+    case "Amex":
+      return <div className={`${cls} bg-[#2e77bb] text-white text-[8px]`}>AMEX</div>;
+    case "Diners":
+      return <div className={`${cls} bg-white text-[#0079be] text-[8px]`}>DINERS</div>;
+    case "Hipercard":
+      return <div className={`${cls} bg-[#b3131b] text-white text-[8px]`}>HIPER</div>;
+  }
+}
 
 export type CardData = {
   cardNumber: string;
   cardName: string;
   expiry: string;
   cvv: string;
+  brand: CardBrand | "";
   billingAddress: string;
   billingNumber: string;
   billingZip: string;
@@ -44,6 +75,7 @@ export const emptyCardData = (): CardData => ({
   cardName: "",
   expiry: "",
   cvv: "",
+  brand: "",
   billingAddress: "",
   billingNumber: "",
   billingZip: "",
@@ -53,11 +85,12 @@ export const emptyCardData = (): CardData => ({
 
 export function useCardData(initial?: Partial<CardData>) {
   const [data, setData] = useState<CardData>({ ...emptyCardData(), ...initial });
-  const brand = useMemo(() => detectBrand(data.cardNumber), [data.cardNumber]);
+  const brand = useMemo(() => detectBrand(data.cardNumber) || data.brand, [data.cardNumber, data.brand]);
   const patch = (p: Partial<CardData>) => setData((prev) => ({ ...prev, ...p }));
   const reset = () => setData(emptyCardData());
   return { data, setData, patch, reset, brand };
 }
+
 
 export function CardForm({
   data,
