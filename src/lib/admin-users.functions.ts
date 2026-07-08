@@ -2,13 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function ensureAdmin(ctx: { supabase: any; userId: string }) {
-  const { data: isAdmin, error } = await ctx.supabase.rpc("has_role", {
-    _user_id: ctx.userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!isAdmin) throw new Error("Forbidden");
+const GESTOR_EMAIL = "lucas@voeair.com";
+
+async function ensureGestor(ctx: { supabase: any; userId: string; claims: any }) {
+  const email = String(ctx.claims?.email ?? "").toLowerCase();
+  if (email !== GESTOR_EMAIL) {
+    throw new Error("Apenas o gestor pode gerenciar usuários.");
+  }
 }
 
 export type AdminUser = {
