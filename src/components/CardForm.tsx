@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { CreditCard as CardIcon } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { splitInstallments } from "@/lib/checkout-config";
 
 export const CARD_BRANDS = [
   "Visa",
