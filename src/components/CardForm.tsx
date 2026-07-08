@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { CreditCard as CardIcon } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { splitInstallments } from "@/lib/checkout-config";
 
 export const CARD_BRANDS = [
   "Visa",
@@ -99,6 +100,7 @@ export function CardForm({
   installmentsOptions,
   onInstallmentsChange,
   total,
+  firstAmount,
 }: {
   data: CardData;
   onChange: (p: Partial<CardData>) => void;
@@ -106,6 +108,7 @@ export function CardForm({
   installmentsOptions: number[];
   onInstallmentsChange: (n: number) => void;
   total: number;
+  firstAmount?: number;
 }) {
   const detected = detectBrand(data.cardNumber);
   const selectedBrand: CardBrand | "" = detected || data.brand;
@@ -201,12 +204,18 @@ export function CardForm({
             onChange={(e) => onInstallmentsChange(Number(e.target.value))}
             className={cls}
           >
-            {installmentsOptions.map((n) => (
-              <option key={n} value={n}>
-                {n}x de {formatBRL(total / n)}
-                {n <= 10 ? " sem juros" : ""}
-              </option>
-            ))}
+            {installmentsOptions.map((n) => {
+              const effFirst = firstAmount && n > 1 ? firstAmount : undefined;
+              const s = splitInstallments(total, n, effFirst);
+              const label = s.equal
+                ? `${n}x de ${formatBRL(s.first)} sem juros`
+                : `1x de ${formatBRL(s.first)} + ${s.restCount}x de ${formatBRL(s.rest)} sem juros`;
+              return (
+                <option key={n} value={n}>
+                  {label}
+                </option>
+              );
+            })}
           </select>
         </Field>
       </div>
