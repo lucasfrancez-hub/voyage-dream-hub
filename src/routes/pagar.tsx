@@ -130,6 +130,22 @@ function PayPage() {
               Este link não tem as informações necessárias. Verifique com nosso time.
             </p>
           </div>
+        ) : success ? (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-green-500">
+              <Check className="h-8 w-8" />
+            </div>
+            <h1 className="mt-6 font-display text-2xl md:text-3xl font-bold">Pedido enviado!</h1>
+            <p className="mt-3 text-muted-foreground max-w-md mx-auto">
+              Seu pedido foi enviado para análise, em breve você receberá um retorno.
+            </p>
+            <Link
+              to="/"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
+            >
+              <ArrowLeft className="h-4 w-4" /> Voltar ao início
+            </Link>
+          </div>
         ) : (
           <>
             <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
@@ -203,7 +219,7 @@ function PayPage() {
                     disabled={submitting || success}
                     className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
                   >
-                    {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</> : success ? <><Check className="h-4 w-4" /> Enviado</> : <>Fazer pedido</>}
+                    {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</> : <>Fazer pedido</>}
                   </button>
                   <p className="text-[11px] text-muted-foreground text-center">
                     Ambiente criptografado. Seus dados trafegam por conexão segura.
