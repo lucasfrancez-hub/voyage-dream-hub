@@ -205,10 +205,27 @@ function PackageDetails() {
               {pkg.nights != null && <Row label="Noites" value={String(pkg.nights)} />}
             </dl>
 
+            <div className="mt-5 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+              Este pacote foi montado para{" "}
+              <span className="text-foreground font-medium">
+                {pkg.base_occupancy ?? 2} adulto{(pkg.base_occupancy ?? 2) > 1 ? "s" : ""}
+              </span>
+              . Precisa de outra quantidade de viajantes?{" "}
+              <a
+                href={customQuoteWhatsappUrl(pkg.title)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand-orange hover:underline font-medium"
+              >
+                Fale no WhatsApp
+              </a>
+              .
+            </div>
+
             <Link
               to="/pacotes/$slug/checkout"
               params={{ slug: pkg.slug }}
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
             >
               Reservar agora <ArrowRight className="h-4 w-4" />
             </Link>
@@ -220,6 +237,75 @@ function PackageDetails() {
       </div>
     </div>
   );
+}
+
+type FlightInfo = {
+  airline?: string;
+  flight_number?: string;
+  from_iata?: string;
+  from_city?: string;
+  to_iata?: string;
+  to_city?: string;
+  depart_at?: string; // ISO datetime string
+  arrive_at?: string;
+  duration?: string;
+  stops?: number | string;
+};
+
+function FlightCard({ flight, kind }: { flight: FlightInfo; kind: "outbound" | "return" }) {
+  const Icon = kind === "outbound" ? PlaneTakeoff : PlaneLanding;
+  const label = kind === "outbound" ? "Voo de ida" : "Voo de volta";
+  const stopsN = typeof flight.stops === "string" ? Number(flight.stops) : flight.stops;
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+        <Icon className="h-4 w-4 text-brand-orange" /> {label}
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-2xl font-display font-bold">{flight.from_iata ?? "—"}</div>
+          {flight.from_city && (
+            <div className="text-[11px] text-muted-foreground">{flight.from_city}</div>
+          )}
+          {flight.depart_at && (
+            <div className="mt-1 text-xs">{formatFlightDT(flight.depart_at)}</div>
+          )}
+        </div>
+        <div className="flex-1 border-t border-dashed border-border relative">
+          <Plane className="h-3.5 w-3.5 text-brand-orange absolute -top-2 left-1/2 -translate-x-1/2 rotate-90" />
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-display font-bold">{flight.to_iata ?? "—"}</div>
+          {flight.to_city && (
+            <div className="text-[11px] text-muted-foreground">{flight.to_city}</div>
+          )}
+          {flight.arrive_at && (
+            <div className="mt-1 text-xs">{formatFlightDT(flight.arrive_at)}</div>
+          )}
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+        {flight.airline && (
+          <span>
+            <span className="text-foreground font-medium">{flight.airline}</span>
+            {flight.flight_number ? ` · ${flight.flight_number}` : ""}
+          </span>
+        )}
+        {flight.duration && <span>Duração: {flight.duration}</span>}
+        {stopsN != null && !Number.isNaN(stopsN) && (
+          <span>{stopsN === 0 ? "Direto" : `${stopsN} escala${stopsN > 1 ? "s" : ""}`}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatFlightDT(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const date = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  const time = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return `${date} · ${time}`;
 }
 
 function Row({ label, value }: { label: string; value: string }) {
