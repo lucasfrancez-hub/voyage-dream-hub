@@ -13,7 +13,7 @@ type Step = "credentials" | "mfa";
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode] = useState<"login" | "signup">("login");
   const [step, setStep] = useState<Step>("credentials");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -185,13 +185,9 @@ function AuthPage() {
                 </button>
               </form>
 
-              <button
-                type="button"
-                onClick={() => setMode(mode === "login" ? "signup" : "login")}
-                className="mt-4 w-full text-center text-xs text-muted-foreground hover:text-brand-orange"
-              >
-                {mode === "login" ? "Ainda não tem conta? Criar agora" : "Já tem conta? Entrar"}
-              </button>
+              <p className="mt-4 w-full text-center text-xs text-muted-foreground">
+                Acesso restrito. Novos usuários são criados pelo gestor no painel administrativo.
+              </p>
             </>
           )}
         </div>
