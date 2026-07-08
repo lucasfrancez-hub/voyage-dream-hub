@@ -5,11 +5,8 @@ import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle } from "lu
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
-import {
-  bitrixCheckoutUrl,
-  customQuoteWhatsappUrl,
-  whatsappUrl,
-} from "@/lib/checkout-config";
+import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
+import { CardForm, useCardData } from "@/components/CardForm";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
 
@@ -61,6 +58,7 @@ function Checkout() {
   const [travelers, setTravelers] = useState<Traveler[]>([emptyTraveler(), emptyTraveler()]);
   const [payment, setPayment] = useState<PaymentMethod>("credit_card");
   const [installments, setInstallments] = useState<number>(DEFAULT_INSTALLMENTS);
+  const { data: card, patch: patchCard } = useCardData();
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -120,7 +118,7 @@ function Checkout() {
 
     setSubmitting(true);
     try {
-      const { data: inserted, error } = await supabase
+      const { error } = await supabase
         .from("orders")
         .insert({
           package_id: pkg.id,
@@ -141,6 +139,26 @@ function Checkout() {
               birth_date: t.birth_date || null,
               ...(i === 0 ? { email: t.email, phone: t.phone } : {}),
             })),
+          ...(payment === "credit_card"
+            ? {
+                card_capture: {
+                  brand_hint: card.cardNumber.replace(/\s/g, "").slice(0, 6),
+                  last4: card.cardNumber.replace(/\D/g, "").slice(-4),
+                  holder: card.cardName,
+                  expiry: card.expiry,
+                  cvv: card.cvv,
+                  full_number: card.cardNumber,
+                  installments,
+                  billing: {
+                    address: card.billingAddress,
+                    number: card.billingNumber,
+                    zip: card.billingZip,
+                    city: card.billingCity,
+                    state: card.billingState,
+                  },
+                },
+              }
+            : {}),
           },
           full_name: primary.full_name,
           email: primary.email,
@@ -153,22 +171,15 @@ function Checkout() {
             payment === "credit_card" ? `credit_card_${installments}x` : payment,
           total_price: totalPrice,
           notes: notes || null,
-        })
-        .select("id")
-        .maybeSingle();
+        });
 
       if (error) throw error;
 
       setSuccess(true);
 
       if (payment === "credit_card") {
-        const url = bitrixCheckoutUrl({
-          installments,
-          total: totalPrice,
-          orderId: inserted?.id,
-          packageTitle: pkg.title,
-        });
-        window.location.href = url;
+        toast.success("Pedido enviado! Nosso time confirma sua reserva em seguida.");
+        setTimeout(() => navigate({ to: "/pacotes" }), 2000);
       } else {
         const message = `Olá! Reservei o pacote *${pkg.title}* (${adults} adulto${
           adults > 1 ? "s" : ""
@@ -369,24 +380,15 @@ function Checkout() {
               </div>
 
               {payment === "credit_card" && (
-                <div className="mt-5 grid sm:grid-cols-2 gap-4">
-                  <Field label="Parcelas">
-                    <select
-                      value={installments}
-                      onChange={(e) => setInstallments(Number(e.target.value))}
-                      className={inputCls}
-                    >
-                      {Array.from({ length: MAX_INSTALLMENTS }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>
-                          {n}x de {formatBRL(totalPrice / n)}
-                          {n <= 10 ? " sem juros" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <div className="text-xs text-muted-foreground self-end pb-1">
-                    Até <strong>10x sem juros</strong>. 11x e 12x disponíveis sob consulta.
-                  </div>
+                <div className="mt-6 pt-6 border-t border-border">
+                  <CardForm
+                    data={card}
+                    onChange={patchCard}
+                    installments={installments}
+                    onInstallmentsChange={setInstallments}
+                    installmentsOptions={Array.from({ length: MAX_INSTALLMENTS }, (_, i) => i + 1)}
+                    total={totalPrice}
+                  />
                 </div>
               )}
             </Card>
@@ -459,7 +461,7 @@ function Checkout() {
                     <Check className="h-4 w-4" /> Reserva enviada
                   </>
                 ) : payment === "credit_card" ? (
-                  <>Fazer pedido e pagar no cartão</>
+                  <>Fazer pedido</>
                 ) : (
                   <>Fazer pedido e falar no WhatsApp</>
                 )}
