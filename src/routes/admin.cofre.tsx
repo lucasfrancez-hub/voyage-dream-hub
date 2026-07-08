@@ -12,6 +12,11 @@ import {
   Package,
   Link2,
   RefreshCw,
+  FileText,
+  X,
+  CreditCard,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
