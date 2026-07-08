@@ -13,17 +13,17 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
     return () => sub.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (session === null) return;
+    if (session === undefined) return;
     if (!session) {
       navigate({ to: "/auth" });
       return;
@@ -51,13 +51,14 @@ function AdminLayout() {
     }
   }, [pathname, isAdmin, navigate]);
 
-  if (session === null || isAdmin === null) {
+  if (session === undefined || (session && isAdmin === null)) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
       </div>
     );
   }
+
 
   if (!isAdmin) {
     return (
