@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, CreditCard, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
@@ -93,6 +93,9 @@ function AdminLayout() {
             <nav className="hidden md:flex items-center gap-1">
               <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
               <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
+              <NavItem to="/admin/link-pagamento" icon={Link2} label="Link de pagamento" active={pathname.startsWith("/admin/link-pagamento")} />
+              <NavItem to="/admin/cofre" icon={CreditCard} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
+              <NavItem to="/admin/seguranca" icon={ShieldCheck} label="Segurança" active={pathname.startsWith("/admin/seguranca")} />
             </nav>
           </div>
           <div className="flex items-center gap-2">
@@ -113,10 +116,13 @@ function AdminLayout() {
             </button>
           </div>
         </div>
-        <nav className="md:hidden border-t border-border">
-          <div className="mx-auto max-w-7xl px-6 py-2 flex items-center gap-1">
+        <nav className="md:hidden border-t border-border overflow-x-auto">
+          <div className="mx-auto max-w-7xl px-6 py-2 flex items-center gap-1 whitespace-nowrap">
             <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
             <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
+            <NavItem to="/admin/link-pagamento" icon={Link2} label="Link" active={pathname.startsWith("/admin/link-pagamento")} />
+            <NavItem to="/admin/cofre" icon={CreditCard} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
+            <NavItem to="/admin/seguranca" icon={ShieldCheck} label="Segurança" active={pathname.startsWith("/admin/seguranca")} />
           </div>
         </nav>
       </header>
