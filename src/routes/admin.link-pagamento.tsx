@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Link2, Copy, ExternalLink, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { paymentLinkUrl, whatsappUrl } from "@/lib/checkout-config";
+import { paymentLinkUrl, whatsappUrl, splitInstallments } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/link-pagamento")({
@@ -16,8 +16,15 @@ function LinkGenerator() {
   const [total, setTotal] = useState("");
   const [installments, setInstallments] = useState(10);
   const [orderRef, setOrderRef] = useState("");
+  const [mode, setMode] = useState<"equal" | "first-higher">("equal");
+  const [firstAmount, setFirstAmount] = useState("");
 
   const totalNumber = Number(total.replace(",", ".")) || 0;
+  const firstAmountNumber = Number(firstAmount.replace(",", ".")) || 0;
+  const effectiveFirst =
+    mode === "first-higher" && installments > 1 ? firstAmountNumber : undefined;
+
+  const split = splitInstallments(totalNumber, installments, effectiveFirst);
 
   const url = useMemo(() => {
     if (!totalNumber || !description) return "";
@@ -25,13 +32,18 @@ function LinkGenerator() {
       description,
       total: totalNumber,
       installments,
+      firstAmount: effectiveFirst,
       orderRef: orderRef || undefined,
       customerName: customer || undefined,
     });
-  }, [totalNumber, installments, orderRef, description, customer]);
+  }, [totalNumber, installments, orderRef, description, customer, effectiveFirst]);
+
+  const parcelaLabel = split.equal
+    ? `${installments}x de ${formatBRL(split.first)}${installments <= 10 ? " sem juros" : ""}`
+    : `1ª de ${formatBRL(split.first)} + ${split.restCount}x de ${formatBRL(split.rest)}`;
 
   const whatsMessage = url
-    ? `Olá${customer ? ` ${customer}` : ""}! Segue seu link de pagamento seguro Via Air:\n\n💳 ${description}\n💰 Total: ${formatBRL(totalNumber)} em ${installments}x de ${formatBRL(totalNumber / installments)}${installments <= 10 ? " sem juros" : ""}\n\n🔒 ${url}\n\nQualquer dúvida estamos à disposição.`
+    ? `Olá${customer ? ` ${customer}` : ""}! Segue seu link de pagamento seguro Via Air:\n\n💳 ${description}\n💰 Total: ${formatBRL(totalNumber)}\n📆 ${parcelaLabel}\n\n🔒 ${url}\n\nQualquer dúvida estamos à disposição.`
     : "";
 
   return (
@@ -78,6 +90,37 @@ function LinkGenerator() {
               </select>
             </Field>
           </div>
+
+          <div className="space-y-2 pt-2">
+            <span className="block text-xs text-muted-foreground">Divisão das parcelas</span>
+            <div className="grid sm:grid-cols-2 gap-2">
+              <label className={`flex items-start gap-2 rounded-xl border p-3 cursor-pointer transition ${mode === "equal" ? "border-brand-orange bg-brand-orange/5" : "border-border hover:border-brand-orange/50"}`}>
+                <input type="radio" name="mode" checked={mode === "equal"} onChange={() => setMode("equal")} className="mt-0.5 accent-brand-orange" />
+                <span className="text-sm">
+                  <span className="block font-medium">Tudo dividido igual</span>
+                  <span className="block text-xs text-muted-foreground">Todas as parcelas com o mesmo valor.</span>
+                </span>
+              </label>
+              <label className={`flex items-start gap-2 rounded-xl border p-3 cursor-pointer transition ${mode === "first-higher" ? "border-brand-orange bg-brand-orange/5" : "border-border hover:border-brand-orange/50"}`}>
+                <input type="radio" name="mode" checked={mode === "first-higher"} onChange={() => setMode("first-higher")} disabled={installments < 2} className="mt-0.5 accent-brand-orange" />
+                <span className="text-sm">
+                  <span className="block font-medium">1ª parcela mais alta</span>
+                  <span className="block text-xs text-muted-foreground">Define o valor da entrada; o resto é dividido igualmente.</span>
+                </span>
+              </label>
+            </div>
+            {mode === "first-higher" && installments > 1 && (
+              <Field label="Valor da 1ª parcela (R$)">
+                <input
+                  inputMode="decimal"
+                  value={firstAmount}
+                  onChange={(e) => setFirstAmount(e.target.value)}
+                  className={cls}
+                  placeholder="Ex.: 1500.00"
+                />
+              </Field>
+            )}
+          </div>
         </section>
 
         <aside className="rounded-2xl border border-border bg-card p-6 space-y-4 lg:sticky lg:top-24 h-fit">
@@ -86,10 +129,7 @@ function LinkGenerator() {
             {totalNumber ? formatBRL(totalNumber) : "R$ —"}
           </div>
           {totalNumber > 0 && (
-            <div className="text-xs text-muted-foreground">
-              {installments}x de {formatBRL(totalNumber / installments)}
-              {installments <= 10 ? " sem juros" : ""}
-            </div>
+            <div className="text-xs text-muted-foreground">{parcelaLabel}</div>
           )}
 
           <div className="pt-3 border-t border-border">

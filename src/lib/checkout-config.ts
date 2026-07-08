@@ -22,6 +22,7 @@ export function paymentLinkUrl(params: {
   installments: number;
   orderRef?: string;
   customerName?: string;
+  firstAmount?: number; // valor da 1ª parcela quando diferente das demais
 }): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://voeair.com";
@@ -29,7 +30,29 @@ export function paymentLinkUrl(params: {
   q.set("desc", params.description);
   q.set("total", params.total.toFixed(2));
   q.set("parcelas", String(params.installments));
+  if (params.firstAmount && params.firstAmount > 0 && params.installments > 1) {
+    q.set("entrada", params.firstAmount.toFixed(2));
+  }
   if (params.orderRef) q.set("ref", params.orderRef);
   if (params.customerName) q.set("cliente", params.customerName);
   return `${origin}/pagar?${q.toString()}`;
+}
+
+// Divide o total em parcelas. Se firstAmount for informado, a 1ª parcela usa esse
+// valor e o restante é dividido igualmente entre as demais.
+export function splitInstallments(
+  total: number,
+  installments: number,
+  firstAmount?: number,
+) {
+  if (!installments || installments < 1) {
+    return { first: total, rest: 0, restCount: 0, equal: true };
+  }
+  if (!firstAmount || installments === 1 || firstAmount <= 0) {
+    const each = total / installments;
+    return { first: each, rest: each, restCount: installments - 1, equal: true };
+  }
+  const restTotal = Math.max(total - firstAmount, 0);
+  const rest = installments > 1 ? restTotal / (installments - 1) : 0;
+  return { first: firstAmount, rest, restCount: installments - 1, equal: false };
 }
