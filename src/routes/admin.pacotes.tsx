@@ -78,7 +78,15 @@ function AdminPackages() {
     setSaving(true);
     try {
       const payload = {
-        ...editing,
+        slug: editing.slug!,
+        title: editing.title!,
+        destination: editing.destination!,
+        origin: editing.origin || null,
+        image_url: editing.image_url || null,
+        summary: editing.summary || null,
+        itinerary: editing.itinerary || null,
+        hotel_name: editing.hotel_name || null,
+        is_active: editing.is_active ?? true,
         includes:
           typeof editing.includes === "string"
             ? (editing.includes as string).split("\n").map((s) => s.trim()).filter(Boolean)

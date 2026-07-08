@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesSlugRouteImport } from './routes/pacotes.$slug'
+import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 
 const PacotesRoute = PacotesRouteImport.update({
@@ -47,6 +48,11 @@ const PacotesSlugRoute = PacotesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => PacotesRoute,
 } as any)
+const AdminPacotesRoute = AdminPacotesRouteImport.update({
+  id: '/pacotes',
+  path: '/pacotes',
+  getParentRoute: () => AdminRoute,
+} as any)
 const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
@@ -55,17 +61,19 @@ const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/pacotes': typeof PacotesRouteWithChildren
+  '/admin/pacotes': typeof AdminPacotesRoute
   '/pacotes/$slug': typeof PacotesSlugRouteWithChildren
   '/pacotes/': typeof PacotesIndexRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/admin/pacotes': typeof AdminPacotesRoute
   '/pacotes/$slug': typeof PacotesSlugRouteWithChildren
   '/pacotes': typeof PacotesIndexRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -73,9 +81,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/pacotes': typeof PacotesRouteWithChildren
+  '/admin/pacotes': typeof AdminPacotesRoute
   '/pacotes/$slug': typeof PacotesSlugRouteWithChildren
   '/pacotes/': typeof PacotesIndexRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/pacotes'
+    | '/admin/pacotes'
     | '/pacotes/$slug'
     | '/pacotes/'
     | '/pacotes/$slug/checkout'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/admin/pacotes'
     | '/pacotes/$slug'
     | '/pacotes'
     | '/pacotes/$slug/checkout'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/pacotes'
+    | '/admin/pacotes'
     | '/pacotes/$slug'
     | '/pacotes/'
     | '/pacotes/$slug/checkout'
@@ -111,7 +123,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   PacotesRoute: typeof PacotesRouteWithChildren
 }
@@ -160,6 +172,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesSlugRouteImport
       parentRoute: typeof PacotesRoute
     }
+    '/admin/pacotes': {
+      id: '/admin/pacotes'
+      path: '/pacotes'
+      fullPath: '/admin/pacotes'
+      preLoaderRoute: typeof AdminPacotesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/pacotes/$slug/checkout': {
       id: '/pacotes/$slug/checkout'
       path: '/checkout'
@@ -169,6 +188,16 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteChildren {
+  AdminPacotesRoute: typeof AdminPacotesRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminPacotesRoute: AdminPacotesRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PacotesSlugRouteChildren {
   PacotesSlugCheckoutRoute: typeof PacotesSlugCheckoutRoute
@@ -197,7 +226,7 @@ const PacotesRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   PacotesRoute: PacotesRouteWithChildren,
 }
