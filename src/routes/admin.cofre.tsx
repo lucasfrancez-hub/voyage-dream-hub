@@ -131,6 +131,7 @@ function CofrePage() {
         adults: o.adults,
         children: o.children,
         notes: o.notes,
+        order: o,
       };
     });
 
