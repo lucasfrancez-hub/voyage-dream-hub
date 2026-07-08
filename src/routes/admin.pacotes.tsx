@@ -10,6 +10,19 @@ export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
 });
 
+type FlightInfo = {
+  airline?: string;
+  flight_number?: string;
+  from_iata?: string;
+  from_city?: string;
+  to_iata?: string;
+  to_city?: string;
+  depart_at?: string;
+  arrive_at?: string;
+  duration?: string;
+  stops?: number | string;
+};
+
 type PackageRow = {
   id: string;
   slug: string;
@@ -29,6 +42,9 @@ type PackageRow = {
   hotel_stars: number | null;
   is_active: boolean;
   sort_order: number;
+  base_occupancy: number;
+  outbound_flight: FlightInfo | null;
+  return_flight: FlightInfo | null;
 };
 
 const emptyForm: Partial<PackageRow> = {
@@ -49,6 +65,9 @@ const emptyForm: Partial<PackageRow> = {
   hotel_stars: 3,
   is_active: true,
   sort_order: 0,
+  base_occupancy: 2,
+  outbound_flight: null,
+  return_flight: null,
 };
 
 function AdminPackages() {
