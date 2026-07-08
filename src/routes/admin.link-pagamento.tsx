@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Link2, Copy, ExternalLink, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { paymentLinkUrl, whatsappUrl } from "@/lib/checkout-config";
+import { paymentLinkUrl, whatsappUrl, splitInstallments } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/link-pagamento")({
@@ -16,8 +16,15 @@ function LinkGenerator() {
   const [total, setTotal] = useState("");
   const [installments, setInstallments] = useState(10);
   const [orderRef, setOrderRef] = useState("");
+  const [mode, setMode] = useState<"equal" | "first-higher">("equal");
+  const [firstAmount, setFirstAmount] = useState("");
 
   const totalNumber = Number(total.replace(",", ".")) || 0;
+  const firstAmountNumber = Number(firstAmount.replace(",", ".")) || 0;
+  const effectiveFirst =
+    mode === "first-higher" && installments > 1 ? firstAmountNumber : undefined;
+
+  const split = splitInstallments(totalNumber, installments, effectiveFirst);
 
   const url = useMemo(() => {
     if (!totalNumber || !description) return "";
@@ -25,10 +32,15 @@ function LinkGenerator() {
       description,
       total: totalNumber,
       installments,
+      firstAmount: effectiveFirst,
       orderRef: orderRef || undefined,
       customerName: customer || undefined,
     });
-  }, [totalNumber, installments, orderRef, description, customer]);
+  }, [totalNumber, installments, orderRef, description, customer, effectiveFirst]);
+
+  const parcelaLabel = split.equal
+    ? `${installments}x de ${formatBRL(split.first)}${installments <= 10 ? " sem juros" : ""}`
+    : `1ª de ${formatBRL(split.first)} + ${split.restCount}x de ${formatBRL(split.rest)}`;
 
   const whatsMessage = url
     ? `Olá${customer ? ` ${customer}` : ""}! Segue seu link de pagamento seguro Via Air:\n\n💳 ${description}\n💰 Total: ${formatBRL(totalNumber)} em ${installments}x de ${formatBRL(totalNumber / installments)}${installments <= 10 ? " sem juros" : ""}\n\n🔒 ${url}\n\nQualquer dúvida estamos à disposição.`
