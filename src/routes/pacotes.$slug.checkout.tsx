@@ -171,9 +171,7 @@ function Checkout() {
             payment === "credit_card" ? `credit_card_${installments}x` : payment,
           total_price: totalPrice,
           notes: notes || null,
-        })
-        .select("id")
-        .maybeSingle();
+        });
 
       if (error) throw error;
 
