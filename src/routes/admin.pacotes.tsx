@@ -117,6 +117,9 @@ function AdminPackages() {
         sort_order: Number(editing.sort_order) || 0,
         going_date: editing.going_date || null,
         return_date: editing.return_date || null,
+        base_occupancy: Number(editing.base_occupancy) || 2,
+        outbound_flight: cleanFlight(editing.outbound_flight),
+        return_flight: cleanFlight(editing.return_flight),
       };
       const { error } = editing.id
         ? await supabase.from("packages").update(payload).eq("id", editing.id)
