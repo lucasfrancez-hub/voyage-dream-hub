@@ -185,13 +185,9 @@ function AuthPage() {
                 </button>
               </form>
 
-              <button
-                type="button"
-                onClick={() => setMode(mode === "login" ? "signup" : "login")}
-                className="mt-4 w-full text-center text-xs text-muted-foreground hover:text-brand-orange"
-              >
-                {mode === "login" ? "Ainda não tem conta? Criar agora" : "Já tem conta? Entrar"}
-              </button>
+              <p className="mt-4 w-full text-center text-xs text-muted-foreground">
+                Acesso restrito. Novos usuários são criados pelo gestor no painel administrativo.
+              </p>
             </>
           )}
         </div>
