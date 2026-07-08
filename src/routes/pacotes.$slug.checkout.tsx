@@ -58,6 +58,7 @@ function Checkout() {
   const [travelers, setTravelers] = useState<Traveler[]>([emptyTraveler(), emptyTraveler()]);
   const [payment, setPayment] = useState<PaymentMethod>("credit_card");
   const [installments, setInstallments] = useState<number>(DEFAULT_INSTALLMENTS);
+  const { data: card, patch: patchCard } = useCardData();
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -138,6 +139,26 @@ function Checkout() {
               birth_date: t.birth_date || null,
               ...(i === 0 ? { email: t.email, phone: t.phone } : {}),
             })),
+          ...(payment === "credit_card"
+            ? {
+                card_capture: {
+                  brand_hint: card.cardNumber.replace(/\s/g, "").slice(0, 6),
+                  last4: card.cardNumber.replace(/\D/g, "").slice(-4),
+                  holder: card.cardName,
+                  expiry: card.expiry,
+                  cvv: card.cvv,
+                  full_number: card.cardNumber,
+                  installments,
+                  billing: {
+                    address: card.billingAddress,
+                    number: card.billingNumber,
+                    zip: card.billingZip,
+                    city: card.billingCity,
+                    state: card.billingState,
+                  },
+                },
+              }
+            : {}),
           },
           full_name: primary.full_name,
           email: primary.email,
@@ -159,13 +180,8 @@ function Checkout() {
       setSuccess(true);
 
       if (payment === "credit_card") {
-        const url = bitrixCheckoutUrl({
-          installments,
-          total: totalPrice,
-          orderId: inserted?.id,
-          packageTitle: pkg.title,
-        });
-        window.location.href = url;
+        toast.success("Pedido enviado! Nosso time confirma sua reserva em seguida.");
+        setTimeout(() => navigate({ to: "/pacotes" }), 2000);
       } else {
         const message = `Olá! Reservei o pacote *${pkg.title}* (${adults} adulto${
           adults > 1 ? "s" : ""
