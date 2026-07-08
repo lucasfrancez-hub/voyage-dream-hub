@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Link2, Copy, ExternalLink, MessageCircle } from "lucide-react";
+import { Link2, Copy, ExternalLink, MessageCircle, Vault } from "lucide-react";
 import { toast } from "sonner";
 import { paymentLinkUrl, whatsappUrl, splitInstallments } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
+import { saveCofreEntry } from "@/lib/cofre-storage";
 
 export const Route = createFileRoute("/admin/link-pagamento")({
   component: LinkGenerator,
