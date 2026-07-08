@@ -298,6 +298,15 @@ function CofrePage() {
                 >
                   <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
                 </a>
+                {e.kind === "pedido" && e.order && (
+                  <button
+                    type="button"
+                    onClick={() => setDetailsItem(e)}
+                    className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
+                  >
+                    <FileText className="h-3.5 w-3.5" /> Ver dados
+                  </button>
+                )}
                 {e.kind === "pedido" && e.orderId && (
                   <button
                     type="button"
