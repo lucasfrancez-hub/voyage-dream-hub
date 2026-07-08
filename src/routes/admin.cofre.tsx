@@ -75,6 +75,8 @@ function CofrePage() {
   const router = useRouter();
 
   const fetchOrders = useServerFn(listCofreOrders);
+  const updateOrder = useServerFn(updateCofreOrder);
+  const deleteOrder = useServerFn(deleteCofreOrder);
   const ordersQuery = useQuery({
     queryKey: ["cofre-orders"],
     queryFn: () => fetchOrders(),
@@ -93,6 +95,50 @@ function CofrePage() {
     deleteCofreEntry(id);
     setEntries(listCofreEntries());
     toast.success("Link removido do cofre");
+  }
+
+  async function onFinalize(orderId: string) {
+    try {
+      await updateOrder({ data: { id: orderId, status: "paid" } });
+      toast.success("Pedido finalizado");
+      ordersQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
+  async function onReject(orderId: string, currentNotes: string | null) {
+    const reason = window.prompt(
+      "Motivo da rejeição (aparecerá nas observações do pedido):",
+      "",
+    );
+    if (reason === null) return;
+    const trimmed = reason.trim();
+    const stamp = new Date().toLocaleString("pt-BR");
+    const rejectionLine = `[Rejeitado em ${stamp}] ${trimmed || "Sem motivo informado"}`;
+    const newNotes = currentNotes
+      ? `${currentNotes}\n${rejectionLine}`
+      : rejectionLine;
+    try {
+      await updateOrder({
+        data: { id: orderId, status: "rejected", notes: newNotes },
+      });
+      toast.success("Pedido rejeitado");
+      ordersQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
+  async function onDeleteOrder(orderId: string) {
+    if (!window.confirm("Excluir este pedido definitivamente?")) return;
+    try {
+      await deleteOrder({ data: { id: orderId } });
+      toast.success("Pedido excluído");
+      ordersQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
   }
 
   const items: UnifiedItem[] = useMemo(() => {
