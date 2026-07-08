@@ -20,14 +20,19 @@ type Search = {
   cliente?: string;
 };
 
+const asStr = (v: unknown): string | undefined => {
+  if (v === undefined || v === null || v === "") return undefined;
+  return typeof v === "string" ? v : String(v);
+};
+
 export const Route = createFileRoute("/pagar")({
   validateSearch: (s: Record<string, unknown>): Search => ({
-    desc: typeof s.desc === "string" ? s.desc : undefined,
-    total: typeof s.total === "string" ? s.total : undefined,
-    parcelas: typeof s.parcelas === "string" ? s.parcelas : undefined,
-    entrada: typeof s.entrada === "string" ? s.entrada : undefined,
-    ref: typeof s.ref === "string" ? s.ref : undefined,
-    cliente: typeof s.cliente === "string" ? s.cliente : undefined,
+    desc: asStr(s.desc),
+    total: asStr(s.total),
+    parcelas: asStr(s.parcelas),
+    entrada: asStr(s.entrada),
+    ref: asStr(s.ref),
+    cliente: asStr(s.cliente),
   }),
   component: PayPage,
 });
