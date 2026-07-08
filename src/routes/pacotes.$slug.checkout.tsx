@@ -1,11 +1,15 @@
 import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { ArrowLeft, CreditCard, QrCode, Loader2, Check } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
-import { BITRIX_CHECKOUT_URL, whatsappUrl } from "@/lib/checkout-config";
+import {
+  bitrixCheckoutUrl,
+  customQuoteWhatsappUrl,
+  whatsappUrl,
+} from "@/lib/checkout-config";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
 export const Route = createFileRoute("/pacotes/$slug/checkout")({
@@ -13,6 +17,9 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
 });
 
 type PaymentMethod = "credit_card" | "pix";
+
+const MAX_INSTALLMENTS = 12;
+const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
   const { slug } = Route.useParams();
@@ -41,15 +48,24 @@ function Checkout() {
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [payment, setPayment] = useState<PaymentMethod>("credit_card");
+  const [installments, setInstallments] = useState<number>(DEFAULT_INSTALLMENTS);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Once the package loads, default the passenger count to its base occupancy.
+  useEffect(() => {
+    if (pkg?.base_occupancy) setAdults(pkg.base_occupancy);
+  }, [pkg?.base_occupancy]);
 
   const totalPrice = useMemo(() => {
     if (!pkg) return 0;
     const per = Number(pkg.price_per_person) + Number(pkg.taxes ?? 0);
     return per * adults + per * 0.7 * children;
   }, [pkg, adults, children]);
+
+  const baseOccupancy = pkg?.base_occupancy ?? 2;
+  const occupancyMismatch = !!pkg && adults !== baseOccupancy;
 
   if (isLoading || !pkg) {
     return (
@@ -70,38 +86,48 @@ function Checkout() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("orders").insert({
-        package_id: pkg.id,
-        package_snapshot: {
-          slug: pkg.slug,
-          title: pkg.title,
-          destination: pkg.destination,
-          going_date: pkg.going_date,
-          return_date: pkg.return_date,
-          price_per_person: pkg.price_per_person,
-          taxes: pkg.taxes,
-        },
-        full_name: fullName,
-        email,
-        phone,
-        cpf: cpf || null,
-        birth_date: birthDate || null,
-        adults,
-        children,
-        payment_method: payment,
-        total_price: totalPrice,
-        notes: notes || null,
-      });
+      const { data: inserted, error } = await supabase
+        .from("orders")
+        .insert({
+          package_id: pkg.id,
+          package_snapshot: {
+            slug: pkg.slug,
+            title: pkg.title,
+            destination: pkg.destination,
+            going_date: pkg.going_date,
+            return_date: pkg.return_date,
+            price_per_person: pkg.price_per_person,
+            taxes: pkg.taxes,
+            base_occupancy: pkg.base_occupancy,
+          },
+          full_name: fullName,
+          email,
+          phone,
+          cpf: cpf || null,
+          birth_date: birthDate || null,
+          adults,
+          children,
+          payment_method:
+            payment === "credit_card" ? `credit_card_${installments}x` : payment,
+          total_price: totalPrice,
+          notes: notes || null,
+        })
+        .select("id")
+        .maybeSingle();
 
       if (error) throw error;
 
       setSuccess(true);
 
       if (payment === "credit_card") {
-        toast.success("Redirecionando para o pagamento no cartão…");
-        setTimeout(() => {
-          window.location.href = BITRIX_CHECKOUT_URL;
-        }, 1200);
+        const url = bitrixCheckoutUrl({
+          installments,
+          total: totalPrice,
+          orderId: inserted?.id,
+          packageTitle: pkg.title,
+        });
+        // Redireciona imediatamente para o cofre do Bitrix.
+        window.location.href = url;
       } else {
         const message = `Olá! Reservei o pacote *${pkg.title}* (${adults} adulto${
           adults > 1 ? "s" : ""
@@ -112,7 +138,7 @@ function Checkout() {
         setTimeout(() => {
           window.open(whatsappUrl(message), "_blank");
           navigate({ to: "/pacotes" });
-        }, 800);
+        }, 600);
       }
     } catch (err) {
       console.error(err);
@@ -141,12 +167,31 @@ function Checkout() {
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="font-display text-3xl md:text-4xl font-bold">Falta pouco para concluir sua reserva</h1>
+        <h1 className="font-display text-3xl md:text-4xl font-bold">
+          Falta pouco para concluir sua reserva
+        </h1>
         <p className="mt-2 text-muted-foreground text-sm">
           Preencha seus dados e escolha a forma de pagamento. Nosso time confirma sua reserva em seguida.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 grid lg:grid-cols-[1fr_360px] gap-8">
+        <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+          Este pacote foi montado para{" "}
+          <span className="text-foreground font-medium">
+            {baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}
+          </span>
+          . Para outra quantidade de viajantes, prefira solicitar um orçamento personalizado{" "}
+          <a
+            href={customQuoteWhatsappUrl(pkg.title)}
+            target="_blank"
+            rel="noreferrer"
+            className="text-brand-orange hover:underline font-medium inline-flex items-center gap-1"
+          >
+            <MessageCircle className="h-3 w-3" /> pelo WhatsApp
+          </a>
+          .
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
           {/* Left: form */}
           <div className="space-y-6">
             {/* Passageiro principal */}
@@ -206,7 +251,7 @@ function Checkout() {
             {/* Viajantes */}
             <Card title="Viajantes">
               <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Adultos">
+                <Field label={`Adultos (pacote para ${baseOccupancy})`}>
                   <input
                     type="number"
                     min={1}
@@ -230,6 +275,22 @@ function Checkout() {
               <p className="mt-2 text-xs text-muted-foreground">
                 Crianças com 30% de desconto sobre o valor por pessoa.
               </p>
+              {occupancyMismatch && (
+                <div className="mt-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs">
+                  Este pacote foi montado para{" "}
+                  <strong>{baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}</strong>. Você
+                  selecionou {adults}. O valor pode variar — recomendamos{" "}
+                  <a
+                    href={customQuoteWhatsappUrl(pkg.title)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-brand-orange hover:underline font-medium"
+                  >
+                    solicitar um orçamento personalizado no WhatsApp
+                  </a>
+                  .
+                </div>
+              )}
             </Card>
 
             {/* Pagamento */}
@@ -241,7 +302,7 @@ function Checkout() {
                   onClick={() => setPayment("credit_card")}
                   icon={CreditCard}
                   title="Cartão de crédito"
-                  desc="Parcele em até 12x sem juros no ambiente seguro do cofre."
+                  desc="Parcele em até 10x sem juros no ambiente seguro do cofre."
                 />
                 <PaymentOption
                   active={payment === "pix"}
@@ -251,6 +312,28 @@ function Checkout() {
                   desc="Finalize via WhatsApp com nosso consultor."
                 />
               </div>
+
+              {payment === "credit_card" && (
+                <div className="mt-5 grid sm:grid-cols-2 gap-4">
+                  <Field label="Parcelas">
+                    <select
+                      value={installments}
+                      onChange={(e) => setInstallments(Number(e.target.value))}
+                      className={inputCls}
+                    >
+                      {Array.from({ length: MAX_INSTALLMENTS }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n}>
+                          {n}x de {formatBRL(totalPrice / n)}
+                          {n <= 10 ? " sem juros" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <div className="text-xs text-muted-foreground self-end pb-1">
+                    Até <strong>10x sem juros</strong>. 11x e 12x disponíveis sob consulta.
+                  </div>
+                </div>
+              )}
             </Card>
 
             {/* Observações */}
@@ -277,7 +360,10 @@ function Checkout() {
                 </div>
               </div>
               <div className="mt-5 space-y-2 text-sm border-t border-border pt-4">
-                <SummaryLine label={`Adultos × ${adults}`} value={formatBRL(Number(pkg.price_per_person) * adults)} />
+                <SummaryLine
+                  label={`Adultos × ${adults}`}
+                  value={formatBRL(Number(pkg.price_per_person) * adults)}
+                />
                 {children > 0 && (
                   <SummaryLine
                     label={`Crianças × ${children}`}
@@ -297,6 +383,12 @@ function Checkout() {
                   {formatBRL(totalPrice)}
                 </span>
               </div>
+              {payment === "credit_card" && (
+                <div className="mt-1 text-right text-xs text-muted-foreground">
+                  em {installments}x de {formatBRL(totalPrice / installments)}
+                  {installments <= 10 ? " sem juros" : ""}
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -312,9 +404,9 @@ function Checkout() {
                     <Check className="h-4 w-4" /> Reserva enviada
                   </>
                 ) : payment === "credit_card" ? (
-                  <>Finalizar e pagar no cartão</>
+                  <>Fazer pedido e pagar no cartão</>
                 ) : (
-                  <>Finalizar reserva no WhatsApp</>
+                  <>Fazer pedido e falar no WhatsApp</>
                 )}
               </button>
               <p className="mt-3 text-[11px] text-muted-foreground text-center">
