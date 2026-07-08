@@ -446,3 +446,125 @@ function FormField({
     </label>
   );
 }
+
+function cleanFlight(f: FlightInfo | null | undefined): FlightInfo | null {
+  if (!f) return null;
+  const entries = Object.entries(f).filter(([, v]) => v !== "" && v !== null && v !== undefined);
+  if (entries.length === 0) return null;
+  return Object.fromEntries(entries) as FlightInfo;
+}
+
+function FlightFieldset({
+  title,
+  value,
+  onChange,
+}: {
+  title: string;
+  value: FlightInfo | null;
+  onChange: (f: FlightInfo | null) => void;
+}) {
+  const f = value ?? {};
+  const patch = (p: Partial<FlightInfo>) => onChange({ ...f, ...p });
+  return (
+    <div className="sm:col-span-2 rounded-xl border border-border p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="text-xs text-muted-foreground hover:text-destructive"
+          >
+            Limpar
+          </button>
+        )}
+      </div>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <FormField label="Companhia aérea">
+          <input
+            className={inp}
+            value={f.airline ?? ""}
+            onChange={(e) => patch({ airline: e.target.value })}
+            placeholder="LATAM, GOL, Azul…"
+          />
+        </FormField>
+        <FormField label="Número do voo">
+          <input
+            className={inp}
+            value={f.flight_number ?? ""}
+            onChange={(e) => patch({ flight_number: e.target.value })}
+            placeholder="LA 3456"
+          />
+        </FormField>
+        <FormField label="Origem (IATA)">
+          <input
+            className={inp}
+            value={f.from_iata ?? ""}
+            onChange={(e) => patch({ from_iata: e.target.value.toUpperCase() })}
+            placeholder="RIO"
+            maxLength={4}
+          />
+        </FormField>
+        <FormField label="Cidade origem">
+          <input
+            className={inp}
+            value={f.from_city ?? ""}
+            onChange={(e) => patch({ from_city: e.target.value })}
+            placeholder="Rio de Janeiro"
+          />
+        </FormField>
+        <FormField label="Destino (IATA)">
+          <input
+            className={inp}
+            value={f.to_iata ?? ""}
+            onChange={(e) => patch({ to_iata: e.target.value.toUpperCase() })}
+            placeholder="PMW"
+            maxLength={4}
+          />
+        </FormField>
+        <FormField label="Cidade destino">
+          <input
+            className={inp}
+            value={f.to_city ?? ""}
+            onChange={(e) => patch({ to_city: e.target.value })}
+            placeholder="Palmas"
+          />
+        </FormField>
+        <FormField label="Partida (data e hora)">
+          <input
+            type="datetime-local"
+            className={inp}
+            value={f.depart_at ?? ""}
+            onChange={(e) => patch({ depart_at: e.target.value })}
+          />
+        </FormField>
+        <FormField label="Chegada (data e hora)">
+          <input
+            type="datetime-local"
+            className={inp}
+            value={f.arrive_at ?? ""}
+            onChange={(e) => patch({ arrive_at: e.target.value })}
+          />
+        </FormField>
+        <FormField label="Duração">
+          <input
+            className={inp}
+            value={f.duration ?? ""}
+            onChange={(e) => patch({ duration: e.target.value })}
+            placeholder="2h 30min"
+          />
+        </FormField>
+        <FormField label="Escalas (0 = direto)">
+          <input
+            type="number"
+            min={0}
+            className={inp}
+            value={f.stops ?? ""}
+            onChange={(e) => patch({ stops: e.target.value === "" ? "" : Number(e.target.value) })}
+          />
+        </FormField>
+      </div>
+    </div>
+  );
+}
+
