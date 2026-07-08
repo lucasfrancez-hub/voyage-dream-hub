@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
 import { customQuoteWhatsappUrl } from "@/lib/checkout-config";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import { ContactFooter } from "@/components/ContactFooter";
 
 export const Route = createFileRoute("/pacotes/$slug/")({
   component: PackageDetails,
@@ -235,6 +236,7 @@ function PackageDetails() {
           </div>
         </aside>
       </div>
+      <ContactFooter whatsappMessage={`Olá! Tenho interesse no pacote e quero mais informações.`} />
     </div>
   );
 }

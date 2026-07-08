@@ -11,6 +11,7 @@ import {
   whatsappUrl,
 } from "@/lib/checkout-config";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import { ContactFooter } from "@/components/ContactFooter";
 
 export const Route = createFileRoute("/pacotes/$slug/checkout")({
   component: Checkout,
@@ -470,6 +471,7 @@ function Checkout() {
           </aside>
         </form>
       </div>
+      <ContactFooter whatsappMessage={`Olá! Preciso de ajuda para finalizar minha reserva.`} />
     </div>
   );
 }
