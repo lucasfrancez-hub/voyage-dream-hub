@@ -99,6 +99,7 @@ export function CardForm({
   installmentsOptions,
   onInstallmentsChange,
   total,
+  firstAmount,
 }: {
   data: CardData;
   onChange: (p: Partial<CardData>) => void;
@@ -106,6 +107,7 @@ export function CardForm({
   installmentsOptions: number[];
   onInstallmentsChange: (n: number) => void;
   total: number;
+  firstAmount?: number;
 }) {
   const detected = detectBrand(data.cardNumber);
   const selectedBrand: CardBrand | "" = detected || data.brand;
