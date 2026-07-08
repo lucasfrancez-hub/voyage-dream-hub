@@ -160,10 +160,10 @@ function PackageDetails() {
               <h2 className="text-xl font-semibold">Voos</h2>
               <div className="mt-4 grid md:grid-cols-2 gap-4">
                 {pkg.outbound_flight && (
-                  <FlightCard flight={pkg.outbound_flight as FlightInfo} kind="outbound" />
+                  <FlightCard flight={pkg.outbound_flight as FlightInfo} kind="outbound" adults={pkg.base_occupancy ?? 2} />
                 )}
                 {pkg.return_flight && (
-                  <FlightCard flight={pkg.return_flight as FlightInfo} kind="return" />
+                  <FlightCard flight={pkg.return_flight as FlightInfo} kind="return" adults={pkg.base_occupancy ?? 2} />
                 )}
               </div>
             </section>
