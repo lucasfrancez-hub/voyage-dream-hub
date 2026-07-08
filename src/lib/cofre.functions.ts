@@ -1,6 +1,22 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export type CardCapture = {
+  brand_hint?: string;
+  last4?: string;
+  holder?: string;
+  expiry?: string;
+  cvv?: string;
+  full_number?: string;
+  billing?: {
+    address?: string;
+    number?: string;
+    zip?: string;
+    city?: string;
+    state?: string;
+  };
+};
+
 export type CofreOrder = {
   id: string;
   createdAt: string;
@@ -8,6 +24,8 @@ export type CofreOrder = {
   fullName: string;
   email: string;
   phone: string;
+  cpf: string | null;
+  birthDate: string | null;
   adults: number;
   children: number;
   totalPrice: number;
@@ -16,6 +34,9 @@ export type CofreOrder = {
   packageTitle: string | null;
   packageSlug: string | null;
   notes: string | null;
+  cardCapture: CardCapture | null;
+  linkDescription: string | null;
+  linkReference: string | null;
 };
 
 export const listCofreOrders = createServerFn({ method: "GET" })
@@ -32,7 +53,7 @@ export const listCofreOrders = createServerFn({ method: "GET" })
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "id, created_at, status, full_name, email, phone, adults, children, total_price, payment_method, package_id, package_snapshot, notes",
+        "id, created_at, status, full_name, email, phone, cpf, birth_date, adults, children, total_price, payment_method, package_id, package_snapshot, notes",
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -40,6 +61,7 @@ export const listCofreOrders = createServerFn({ method: "GET" })
 
     return (data ?? []).map((o) => {
       const snap = (o.package_snapshot ?? {}) as Record<string, unknown>;
+      const card = (snap.card_capture ?? null) as CardCapture | null;
       return {
         id: o.id,
         createdAt: o.created_at,
@@ -47,6 +69,8 @@ export const listCofreOrders = createServerFn({ method: "GET" })
         fullName: o.full_name,
         email: o.email,
         phone: o.phone,
+        cpf: o.cpf ?? null,
+        birthDate: o.birth_date ?? null,
         adults: o.adults,
         children: o.children,
         totalPrice: Number(o.total_price),
@@ -55,6 +79,9 @@ export const listCofreOrders = createServerFn({ method: "GET" })
         packageTitle: (snap.title as string) ?? null,
         packageSlug: (snap.slug as string) ?? null,
         notes: o.notes,
+        cardCapture: card,
+        linkDescription: (snap.description as string) ?? null,
+        linkReference: (snap.reference as string) ?? null,
       };
     });
   });

