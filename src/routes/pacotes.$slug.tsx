@@ -3,15 +3,19 @@ import { useQuery } from "@tanstack/react-query";
 import {
   MapPin,
   Plane,
+  PlaneTakeoff,
+  PlaneLanding,
   Calendar,
   Hotel,
   Check,
   ArrowLeft,
   ArrowRight,
   Star,
+  MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
+import { customQuoteWhatsappUrl } from "@/lib/checkout-config";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
 export const Route = createFileRoute("/pacotes/$slug")({
