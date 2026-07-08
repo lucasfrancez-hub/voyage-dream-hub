@@ -221,7 +221,7 @@ export function CardForm({
       </div>
 
       <div className="pt-4 border-t border-border">
-        <div className="text-xs text-muted-foreground mb-3">Endereço de cobrança (antifraude)</div>
+        <div className="text-xs text-muted-foreground mb-3">Endereço de cobrança</div>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="CEP *">
             <input required value={data.billingZip} onChange={(e) => onChange({ billingZip: e.target.value })} className={cls} placeholder="00000-000" />
