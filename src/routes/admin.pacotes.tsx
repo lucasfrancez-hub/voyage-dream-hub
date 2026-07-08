@@ -380,6 +380,18 @@ function AdminPackages() {
                   onChange={(e) => setEditing({ ...editing, includes: e.target.value as unknown as string[] })}
                 />
               </FormField>
+
+              <FlightFieldset
+                title="Voo de ida"
+                value={editing.outbound_flight ?? null}
+                onChange={(f) => setEditing({ ...editing, outbound_flight: f })}
+              />
+              <FlightFieldset
+                title="Voo de volta"
+                value={editing.return_flight ?? null}
+                onChange={(f) => setEditing({ ...editing, return_flight: f })}
+              />
+
               <FormField label="Ativo" wide>
                 <label className="inline-flex items-center gap-2">
                   <input
