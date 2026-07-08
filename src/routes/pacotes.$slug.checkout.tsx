@@ -118,7 +118,7 @@ function Checkout() {
 
     setSubmitting(true);
     try {
-      const { data: inserted, error } = await supabase
+      const { error } = await supabase
         .from("orders")
         .insert({
           package_id: pkg.id,
@@ -463,7 +463,7 @@ function Checkout() {
                     <Check className="h-4 w-4" /> Reserva enviada
                   </>
                 ) : payment === "credit_card" ? (
-                  <>Fazer pedido e pagar no cartão</>
+                  <>Fazer pedido</>
                 ) : (
                   <>Fazer pedido e falar no WhatsApp</>
                 )}
