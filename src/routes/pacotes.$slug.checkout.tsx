@@ -40,13 +40,24 @@ function Checkout() {
     },
   });
 
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  type Traveler = {
+    full_name: string;
+    cpf: string;
+    birth_date: string;
+    email: string; // only used on traveler 0 as contact
+    phone: string; // only used on traveler 0 as contact
+  };
+  const emptyTraveler = (): Traveler => ({
+    full_name: "",
+    cpf: "",
+    birth_date: "",
+    email: "",
+    phone: "",
+  });
+
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
+  const [travelers, setTravelers] = useState<Traveler[]>([emptyTraveler(), emptyTraveler()]);
   const [payment, setPayment] = useState<PaymentMethod>("credit_card");
   const [installments, setInstallments] = useState<number>(DEFAULT_INSTALLMENTS);
   const [notes, setNotes] = useState("");
@@ -57,6 +68,22 @@ function Checkout() {
   useEffect(() => {
     if (pkg?.base_occupancy) setAdults(pkg.base_occupancy);
   }, [pkg?.base_occupancy]);
+
+  // Grow / shrink the travelers list to always match adults + children.
+  useEffect(() => {
+    const total = Math.max(1, adults + children);
+    setTravelers((prev) => {
+      if (prev.length === total) return prev;
+      if (prev.length < total) {
+        return [...prev, ...Array.from({ length: total - prev.length }, emptyTraveler)];
+      }
+      return prev.slice(0, total);
+    });
+  }, [adults, children]);
+
+  function updateTraveler(index: number, patch: Partial<Traveler>) {
+    setTravelers((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
+  }
 
   const totalPrice = useMemo(() => {
     if (!pkg) return 0;
@@ -79,8 +106,14 @@ function Checkout() {
     e.preventDefault();
     if (submitting || !pkg) return;
 
-    if (!fullName || !email || !phone) {
-      toast.error("Preencha nome, e-mail e telefone.");
+    const primary = travelers[0];
+    if (!primary?.full_name || !primary?.email || !primary?.phone) {
+      toast.error("Preencha nome, e-mail e telefone do passageiro 1 (responsável pela reserva).");
+      return;
+    }
+    const missingName = travelers.findIndex((t) => !t.full_name.trim());
+    if (missingName >= 0) {
+      toast.error(`Preencha o nome completo do passageiro ${missingName + 1}.`);
       return;
     }
 
@@ -99,12 +132,20 @@ function Checkout() {
             price_per_person: pkg.price_per_person,
             taxes: pkg.taxes,
             base_occupancy: pkg.base_occupancy,
+            travelers: travelers.map((t, i) => ({
+              index: i + 1,
+              kind: i < adults ? "adult" : "child",
+              full_name: t.full_name,
+              cpf: t.cpf || null,
+              birth_date: t.birth_date || null,
+              ...(i === 0 ? { email: t.email, phone: t.phone } : {}),
+            })),
           },
-          full_name: fullName,
-          email,
-          phone,
-          cpf: cpf || null,
-          birth_date: birthDate || null,
+          full_name: primary.full_name,
+          email: primary.email,
+          phone: primary.phone,
+          cpf: primary.cpf || null,
+          birth_date: primary.birth_date || null,
           adults,
           children,
           payment_method:
@@ -126,14 +167,13 @@ function Checkout() {
           orderId: inserted?.id,
           packageTitle: pkg.title,
         });
-        // Redireciona imediatamente para o cofre do Bitrix.
         window.location.href = url;
       } else {
         const message = `Olá! Reservei o pacote *${pkg.title}* (${adults} adulto${
           adults > 1 ? "s" : ""
         }${children ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}) — Total ${formatBRL(
           totalPrice,
-        )}. Quero pagar via Pix.\nNome: ${fullName}\nE-mail: ${email}\nTelefone: ${phone}`;
+        )}. Quero pagar via Pix.\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
         toast.success("Abrindo WhatsApp para finalizar o Pix…");
         setTimeout(() => {
           window.open(whatsappUrl(message), "_blank");
