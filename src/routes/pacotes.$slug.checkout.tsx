@@ -234,62 +234,8 @@ function Checkout() {
         <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
           {/* Left: form */}
           <div className="space-y-6">
-            {/* Passageiro principal */}
-            <Card title="Passageiro principal">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Nome completo *">
-                  <input
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className={inputCls}
-                    placeholder="Como no documento"
-                    maxLength={120}
-                  />
-                </Field>
-                <Field label="CPF">
-                  <input
-                    value={cpf}
-                    onChange={(e) => setCpf(e.target.value)}
-                    className={inputCls}
-                    placeholder="000.000.000-00"
-                    maxLength={20}
-                  />
-                </Field>
-                <Field label="E-mail *">
-                  <input
-                    required
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={inputCls}
-                    placeholder="voce@email.com"
-                    maxLength={160}
-                  />
-                </Field>
-                <Field label="Telefone / WhatsApp *">
-                  <input
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className={inputCls}
-                    placeholder="(00) 00000-0000"
-                    maxLength={30}
-                  />
-                </Field>
-                <Field label="Data de nascimento">
-                  <input
-                    type="date"
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-            </Card>
-
-            {/* Viajantes */}
-            <Card title="Viajantes">
+            {/* Viajantes — contagem */}
+            <Card title="Quantos viajantes?">
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label={`Adultos (pacote para ${baseOccupancy})`}>
                   <input
@@ -313,7 +259,8 @@ function Checkout() {
                 </Field>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Crianças com 30% de desconto sobre o valor por pessoa.
+                Crianças com 30% de desconto sobre o valor por pessoa. Preencha os dados de cada
+                passageiro abaixo.
               </p>
               {occupancyMismatch && (
                 <div className="mt-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs">
@@ -332,6 +279,73 @@ function Checkout() {
                 </div>
               )}
             </Card>
+
+            {/* Um formulário por passageiro */}
+            {travelers.map((t, i) => {
+              const isPrimary = i === 0;
+              const isChild = i >= adults;
+              const title = isPrimary
+                ? "Passageiro 1 (responsável pela reserva)"
+                : `Passageiro ${i + 1}${isChild ? " (criança)" : ""}`;
+              return (
+                <Card key={i} title={title}>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Field label="Nome completo *">
+                      <input
+                        required
+                        value={t.full_name}
+                        onChange={(e) => updateTraveler(i, { full_name: e.target.value })}
+                        className={inputCls}
+                        placeholder="Como no documento"
+                        maxLength={120}
+                      />
+                    </Field>
+                    <Field label="CPF">
+                      <input
+                        value={t.cpf}
+                        onChange={(e) => updateTraveler(i, { cpf: e.target.value })}
+                        className={inputCls}
+                        placeholder="000.000.000-00"
+                        maxLength={20}
+                      />
+                    </Field>
+                    <Field label="Data de nascimento">
+                      <input
+                        type="date"
+                        value={t.birth_date}
+                        onChange={(e) => updateTraveler(i, { birth_date: e.target.value })}
+                        className={inputCls}
+                      />
+                    </Field>
+                    {isPrimary && (
+                      <>
+                        <Field label="E-mail *">
+                          <input
+                            required
+                            type="email"
+                            value={t.email}
+                            onChange={(e) => updateTraveler(i, { email: e.target.value })}
+                            className={inputCls}
+                            placeholder="voce@email.com"
+                            maxLength={160}
+                          />
+                        </Field>
+                        <Field label="Telefone / WhatsApp *">
+                          <input
+                            required
+                            value={t.phone}
+                            onChange={(e) => updateTraveler(i, { phone: e.target.value })}
+                            className={inputCls}
+                            placeholder="(00) 00000-0000"
+                            maxLength={30}
+                          />
+                        </Field>
+                      </>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
 
             {/* Pagamento */}
             <Card title="Pagamento">
