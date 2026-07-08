@@ -204,12 +204,18 @@ export function CardForm({
             onChange={(e) => onInstallmentsChange(Number(e.target.value))}
             className={cls}
           >
-            {installmentsOptions.map((n) => (
-              <option key={n} value={n}>
-                {n}x de {formatBRL(total / n)}
-                {n <= 10 ? " sem juros" : ""}
-              </option>
-            ))}
+            {installmentsOptions.map((n) => {
+              const effFirst = firstAmount && n > 1 ? firstAmount : undefined;
+              const s = splitInstallments(total, n, effFirst);
+              const label = s.equal
+                ? `${n}x de ${formatBRL(s.first)} sem juros`
+                : `1x de ${formatBRL(s.first)} + ${s.restCount}x de ${formatBRL(s.rest)} sem juros`;
+              return (
+                <option key={n} value={n}>
+                  {label}
+                </option>
+              );
+            })}
           </select>
         </Field>
       </div>
