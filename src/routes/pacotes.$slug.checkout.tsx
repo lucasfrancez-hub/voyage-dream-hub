@@ -40,13 +40,24 @@ function Checkout() {
     },
   });
 
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  type Traveler = {
+    full_name: string;
+    cpf: string;
+    birth_date: string;
+    email: string; // only used on traveler 0 as contact
+    phone: string; // only used on traveler 0 as contact
+  };
+  const emptyTraveler = (): Traveler => ({
+    full_name: "",
+    cpf: "",
+    birth_date: "",
+    email: "",
+    phone: "",
+  });
+
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
+  const [travelers, setTravelers] = useState<Traveler[]>([emptyTraveler(), emptyTraveler()]);
   const [payment, setPayment] = useState<PaymentMethod>("credit_card");
   const [installments, setInstallments] = useState<number>(DEFAULT_INSTALLMENTS);
   const [notes, setNotes] = useState("");
@@ -57,6 +68,22 @@ function Checkout() {
   useEffect(() => {
     if (pkg?.base_occupancy) setAdults(pkg.base_occupancy);
   }, [pkg?.base_occupancy]);
+
+  // Grow / shrink the travelers list to always match adults + children.
+  useEffect(() => {
+    const total = Math.max(1, adults + children);
+    setTravelers((prev) => {
+      if (prev.length === total) return prev;
+      if (prev.length < total) {
+        return [...prev, ...Array.from({ length: total - prev.length }, emptyTraveler)];
+      }
+      return prev.slice(0, total);
+    });
+  }, [adults, children]);
+
+  function updateTraveler(index: number, patch: Partial<Traveler>) {
+    setTravelers((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
+  }
 
   const totalPrice = useMemo(() => {
     if (!pkg) return 0;
@@ -79,8 +106,14 @@ function Checkout() {
     e.preventDefault();
     if (submitting || !pkg) return;
 
-    if (!fullName || !email || !phone) {
-      toast.error("Preencha nome, e-mail e telefone.");
+    const primary = travelers[0];
+    if (!primary?.full_name || !primary?.email || !primary?.phone) {
+      toast.error("Preencha nome, e-mail e telefone do passageiro 1 (responsável pela reserva).");
+      return;
+    }
+    const missingName = travelers.findIndex((t) => !t.full_name.trim());
+    if (missingName >= 0) {
+      toast.error(`Preencha o nome completo do passageiro ${missingName + 1}.`);
       return;
     }
 
@@ -99,12 +132,20 @@ function Checkout() {
             price_per_person: pkg.price_per_person,
             taxes: pkg.taxes,
             base_occupancy: pkg.base_occupancy,
+            travelers: travelers.map((t, i) => ({
+              index: i + 1,
+              kind: i < adults ? "adult" : "child",
+              full_name: t.full_name,
+              cpf: t.cpf || null,
+              birth_date: t.birth_date || null,
+              ...(i === 0 ? { email: t.email, phone: t.phone } : {}),
+            })),
           },
-          full_name: fullName,
-          email,
-          phone,
-          cpf: cpf || null,
-          birth_date: birthDate || null,
+          full_name: primary.full_name,
+          email: primary.email,
+          phone: primary.phone,
+          cpf: primary.cpf || null,
+          birth_date: primary.birth_date || null,
           adults,
           children,
           payment_method:
@@ -126,14 +167,13 @@ function Checkout() {
           orderId: inserted?.id,
           packageTitle: pkg.title,
         });
-        // Redireciona imediatamente para o cofre do Bitrix.
         window.location.href = url;
       } else {
         const message = `Olá! Reservei o pacote *${pkg.title}* (${adults} adulto${
           adults > 1 ? "s" : ""
         }${children ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}) — Total ${formatBRL(
           totalPrice,
-        )}. Quero pagar via Pix.\nNome: ${fullName}\nE-mail: ${email}\nTelefone: ${phone}`;
+        )}. Quero pagar via Pix.\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
         toast.success("Abrindo WhatsApp para finalizar o Pix…");
         setTimeout(() => {
           window.open(whatsappUrl(message), "_blank");
@@ -194,62 +234,8 @@ function Checkout() {
         <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
           {/* Left: form */}
           <div className="space-y-6">
-            {/* Passageiro principal */}
-            <Card title="Passageiro principal">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Nome completo *">
-                  <input
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className={inputCls}
-                    placeholder="Como no documento"
-                    maxLength={120}
-                  />
-                </Field>
-                <Field label="CPF">
-                  <input
-                    value={cpf}
-                    onChange={(e) => setCpf(e.target.value)}
-                    className={inputCls}
-                    placeholder="000.000.000-00"
-                    maxLength={20}
-                  />
-                </Field>
-                <Field label="E-mail *">
-                  <input
-                    required
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={inputCls}
-                    placeholder="voce@email.com"
-                    maxLength={160}
-                  />
-                </Field>
-                <Field label="Telefone / WhatsApp *">
-                  <input
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className={inputCls}
-                    placeholder="(00) 00000-0000"
-                    maxLength={30}
-                  />
-                </Field>
-                <Field label="Data de nascimento">
-                  <input
-                    type="date"
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-            </Card>
-
-            {/* Viajantes */}
-            <Card title="Viajantes">
+            {/* Viajantes — contagem */}
+            <Card title="Quantos viajantes?">
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label={`Adultos (pacote para ${baseOccupancy})`}>
                   <input
@@ -273,7 +259,8 @@ function Checkout() {
                 </Field>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Crianças com 30% de desconto sobre o valor por pessoa.
+                Crianças com 30% de desconto sobre o valor por pessoa. Preencha os dados de cada
+                passageiro abaixo.
               </p>
               {occupancyMismatch && (
                 <div className="mt-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs">
@@ -292,6 +279,73 @@ function Checkout() {
                 </div>
               )}
             </Card>
+
+            {/* Um formulário por passageiro */}
+            {travelers.map((t, i) => {
+              const isPrimary = i === 0;
+              const isChild = i >= adults;
+              const title = isPrimary
+                ? "Passageiro 1 (responsável pela reserva)"
+                : `Passageiro ${i + 1}${isChild ? " (criança)" : ""}`;
+              return (
+                <Card key={i} title={title}>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Field label="Nome completo *">
+                      <input
+                        required
+                        value={t.full_name}
+                        onChange={(e) => updateTraveler(i, { full_name: e.target.value })}
+                        className={inputCls}
+                        placeholder="Como no documento"
+                        maxLength={120}
+                      />
+                    </Field>
+                    <Field label="CPF">
+                      <input
+                        value={t.cpf}
+                        onChange={(e) => updateTraveler(i, { cpf: e.target.value })}
+                        className={inputCls}
+                        placeholder="000.000.000-00"
+                        maxLength={20}
+                      />
+                    </Field>
+                    <Field label="Data de nascimento">
+                      <input
+                        type="date"
+                        value={t.birth_date}
+                        onChange={(e) => updateTraveler(i, { birth_date: e.target.value })}
+                        className={inputCls}
+                      />
+                    </Field>
+                    {isPrimary && (
+                      <>
+                        <Field label="E-mail *">
+                          <input
+                            required
+                            type="email"
+                            value={t.email}
+                            onChange={(e) => updateTraveler(i, { email: e.target.value })}
+                            className={inputCls}
+                            placeholder="voce@email.com"
+                            maxLength={160}
+                          />
+                        </Field>
+                        <Field label="Telefone / WhatsApp *">
+                          <input
+                            required
+                            value={t.phone}
+                            onChange={(e) => updateTraveler(i, { phone: e.target.value })}
+                            className={inputCls}
+                            placeholder="(00) 00000-0000"
+                            maxLength={30}
+                          />
+                        </Field>
+                      </>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
 
             {/* Pagamento */}
             <Card title="Pagamento">
