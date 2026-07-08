@@ -380,6 +380,42 @@ function CofrePage() {
                     <Package className="h-3.5 w-3.5" /> Ver pedido
                   </button>
                 )}
+                {e.kind === "pedido" && e.orderId && e.status !== "paid" && (
+                  <button
+                    type="button"
+                    onClick={() => onFinalize(e.orderId!)}
+                    className="inline-flex items-center gap-2 rounded-full border border-green-500/40 text-green-500 px-3.5 py-2 text-xs hover:bg-green-500/10 transition"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+                  </button>
+                )}
+                {e.kind === "pedido" && e.orderId && e.status !== "rejected" && (
+                  <button
+                    type="button"
+                    onClick={() => onReject(e.orderId!, e.notes ?? null)}
+                    className="inline-flex items-center gap-2 rounded-full border border-red-500/40 text-red-500 px-3.5 py-2 text-xs hover:bg-red-500/10 transition"
+                  >
+                    <XCircle className="h-3.5 w-3.5" /> Rejeitar
+                  </button>
+                )}
+                {e.kind === "pedido" && e.orderId && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteOrder(e.orderId!)}
+                    className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir
+                  </button>
+                )}
+                {e.kind === "avulso" && (
+                  <button
+                    type="button"
+                    onClick={() => onDelete(e.id.replace(/^avulso:/, ""))}
+                    className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Remover
+                  </button>
+                )}
                 {e.kind === "avulso" && (
                   <button
                     type="button"
