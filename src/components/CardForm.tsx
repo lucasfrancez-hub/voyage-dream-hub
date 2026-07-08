@@ -209,9 +209,6 @@ export function CardForm({
             ))}
           </select>
         </Field>
-        <div className="text-xs text-muted-foreground self-end pb-2">
-          Até <strong>10x sem juros</strong>. 11x e 12x sob consulta.
-        </div>
       </div>
 
       <div className="pt-4 border-t border-border">

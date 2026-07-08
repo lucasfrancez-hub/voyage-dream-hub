@@ -82,9 +82,9 @@ function LinkGenerator() {
             </Field>
             <Field label="Parcelas">
               <select value={installments} onChange={(e) => setInstallments(Number(e.target.value))} className={cls}>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
                   <option key={n} value={n}>
-                    {n}x sem juros
+                    {n}x{n <= 10 ? " sem juros" : ""}
                   </option>
                 ))}
               </select>
