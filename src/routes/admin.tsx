@@ -102,12 +102,14 @@ function AdminLayout() {
             </nav>
           </div>
           <div className="flex items-center gap-2">
-            <Link
-              to="/"
+            <a
+              href="https://viaair.tur.br"
+              target="_blank"
+              rel="noopener noreferrer"
               className="hidden sm:inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-brand-orange"
             >
               <Home className="h-4 w-4" /> Ver site
-            </Link>
+            </a>
             <button
               onClick={async () => {
                 await supabase.auth.signOut();
