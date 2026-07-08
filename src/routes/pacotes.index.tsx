@@ -1,0 +1,137 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { MapPin, Calendar, Plane, ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { formatBRL, formatDateRange } from "@/lib/format";
+import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+
+export const Route = createFileRoute("/pacotes/")({
+  head: () => ({
+    meta: [
+      { title: "Pacotes de viagem — Via Air" },
+      {
+        name: "description",
+        content:
+          "Pacotes de viagem prontos com aéreo, hospedagem e passeios. Reserve com atendimento humano da Via Air.",
+      },
+      { property: "og:title", content: "Pacotes de viagem — Via Air" },
+      {
+        property: "og:description",
+        content:
+          "Pacotes de viagem prontos com aéreo, hospedagem e passeios. Reserve com atendimento humano da Via Air.",
+      },
+    ],
+  }),
+  component: PacotesList,
+});
+
+function PacotesList() {
+  const { data: packages, isLoading } = useQuery({
+    queryKey: ["packages", "active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("packages")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-background/80 backdrop-blur">
+        <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3">
+            <img src={viaAirLogo.url} alt="Via Air" className="h-9 w-auto" />
+          </Link>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-brand-orange"
+          >
+            <ArrowLeft className="h-4 w-4" /> Voltar ao site
+          </Link>
+        </div>
+      </header>
+
+      <section className="mx-auto max-w-7xl px-6 py-12 md:py-16">
+        <div className="max-w-2xl">
+          <span className="text-brand-orange text-sm uppercase tracking-widest">
+            Pacotes disponíveis
+          </span>
+          <h1 className="mt-2 font-display text-4xl md:text-5xl font-bold">
+            Roteiros prontos para <span className="text-gradient-brand">embarcar</span>
+          </h1>
+          <p className="mt-4 text-muted-foreground">
+            Aéreo, hospedagem, traslados e passeios em um único orçamento. Escolha o destino
+            e finalize a reserva com nosso time.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {isLoading &&
+            Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-border bg-card animate-pulse aspect-[4/5]"
+              />
+            ))}
+
+          {!isLoading && packages?.length === 0 && (
+            <div className="col-span-full rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
+              Nenhum pacote disponível no momento. Fale com a gente no WhatsApp para um roteiro
+              sob medida.
+            </div>
+          )}
+
+          {packages?.map((p) => (
+            <Link
+              key={p.id}
+              to="/pacotes/$slug"
+              params={{ slug: p.slug }}
+              className="group rounded-2xl overflow-hidden border border-border bg-card hover:border-brand-orange/50 transition flex flex-col"
+            >
+              <div className="relative aspect-[4/3] overflow-hidden">
+                {p.image_url ? (
+                  <img
+                    src={p.image_url}
+                    alt={p.title}
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-muted" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-background/70 to-transparent" />
+                <div className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-primary-foreground">
+                  <MapPin className="h-3 w-3" /> {p.destination}
+                </div>
+              </div>
+              <div className="p-5 flex flex-col gap-3 flex-1">
+                <h2 className="font-semibold text-lg leading-snug">{p.title}</h2>
+                {p.origin && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Plane className="h-3.5 w-3.5 text-brand-orange" /> Saindo de {p.origin}
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5 text-brand-orange" />
+                  {formatDateRange(p.going_date, p.return_date)}
+                  {p.nights ? ` · ${p.nights} noites` : ""}
+                </div>
+                <div className="mt-auto pt-3 border-t border-border">
+                  <div className="text-xs text-muted-foreground">a partir de</div>
+                  <div className="text-2xl font-display font-bold text-brand-orange">
+                    {formatBRL(p.price_per_person)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">por pessoa</div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}

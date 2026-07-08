@@ -9,38 +9,160 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PacotesRouteImport } from './routes/pacotes'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
+import { Route as PacotesSlugRouteImport } from './routes/pacotes.$slug'
+import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
+import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 
+const PacotesRoute = PacotesRouteImport.update({
+  id: '/pacotes',
+  path: '/pacotes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PacotesIndexRoute = PacotesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PacotesRoute,
+} as any)
+const PacotesSlugRoute = PacotesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => PacotesRoute,
+} as any)
+const AdminPedidosRoute = AdminPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPacotesRoute = AdminPacotesRouteImport.update({
+  id: '/pacotes',
+  path: '/pacotes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => PacotesSlugRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/pacotes': typeof PacotesRouteWithChildren
+  '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/pacotes/$slug': typeof PacotesSlugRouteWithChildren
+  '/pacotes/': typeof PacotesIndexRoute
+  '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/pacotes/$slug': typeof PacotesSlugRouteWithChildren
+  '/pacotes': typeof PacotesIndexRoute
+  '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/pacotes': typeof PacotesRouteWithChildren
+  '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/pacotes/$slug': typeof PacotesSlugRouteWithChildren
+  '/pacotes/': typeof PacotesIndexRoute
+  '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/pacotes'
+    | '/admin/pacotes'
+    | '/admin/pedidos'
+    | '/pacotes/$slug'
+    | '/pacotes/'
+    | '/pacotes/$slug/checkout'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/admin/pacotes'
+    | '/admin/pedidos'
+    | '/pacotes/$slug'
+    | '/pacotes'
+    | '/pacotes/$slug/checkout'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/pacotes'
+    | '/admin/pacotes'
+    | '/admin/pedidos'
+    | '/pacotes/$slug'
+    | '/pacotes/'
+    | '/pacotes/$slug/checkout'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  PacotesRoute: typeof PacotesRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pacotes': {
+      id: '/pacotes'
+      path: '/pacotes'
+      fullPath: '/pacotes'
+      preLoaderRoute: typeof PacotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +170,87 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pacotes/': {
+      id: '/pacotes/'
+      path: '/'
+      fullPath: '/pacotes/'
+      preLoaderRoute: typeof PacotesIndexRouteImport
+      parentRoute: typeof PacotesRoute
+    }
+    '/pacotes/$slug': {
+      id: '/pacotes/$slug'
+      path: '/$slug'
+      fullPath: '/pacotes/$slug'
+      preLoaderRoute: typeof PacotesSlugRouteImport
+      parentRoute: typeof PacotesRoute
+    }
+    '/admin/pedidos': {
+      id: '/admin/pedidos'
+      path: '/pedidos'
+      fullPath: '/admin/pedidos'
+      preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pacotes': {
+      id: '/admin/pacotes'
+      path: '/pacotes'
+      fullPath: '/admin/pacotes'
+      preLoaderRoute: typeof AdminPacotesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/pacotes/$slug/checkout': {
+      id: '/pacotes/$slug/checkout'
+      path: '/checkout'
+      fullPath: '/pacotes/$slug/checkout'
+      preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
+      parentRoute: typeof PacotesSlugRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminPacotesRoute: typeof AdminPacotesRoute
+  AdminPedidosRoute: typeof AdminPedidosRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminPacotesRoute: AdminPacotesRoute,
+  AdminPedidosRoute: AdminPedidosRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface PacotesSlugRouteChildren {
+  PacotesSlugCheckoutRoute: typeof PacotesSlugCheckoutRoute
+}
+
+const PacotesSlugRouteChildren: PacotesSlugRouteChildren = {
+  PacotesSlugCheckoutRoute: PacotesSlugCheckoutRoute,
+}
+
+const PacotesSlugRouteWithChildren = PacotesSlugRoute._addFileChildren(
+  PacotesSlugRouteChildren,
+)
+
+interface PacotesRouteChildren {
+  PacotesSlugRoute: typeof PacotesSlugRouteWithChildren
+  PacotesIndexRoute: typeof PacotesIndexRoute
+}
+
+const PacotesRouteChildren: PacotesRouteChildren = {
+  PacotesSlugRoute: PacotesSlugRouteWithChildren,
+  PacotesIndexRoute: PacotesIndexRoute,
+}
+
+const PacotesRouteWithChildren =
+  PacotesRoute._addFileChildren(PacotesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  AuthRoute: AuthRoute,
+  PacotesRoute: PacotesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
