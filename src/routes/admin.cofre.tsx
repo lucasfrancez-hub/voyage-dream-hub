@@ -636,19 +636,12 @@ function Badge({ kind }: { kind: Kind }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    pending: "bg-yellow-500/15 text-yellow-600",
-    paid: "bg-green-500/15 text-green-600",
-    cancelled: "bg-red-500/15 text-red-600",
-    canceled: "bg-red-500/15 text-red-600",
-    approved: "bg-green-500/15 text-green-600",
-  };
-  const cls = map[status] || "bg-muted text-muted-foreground";
+  const s = statusLabel(status);
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${cls}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${s.className}`}
     >
-      {status}
+      {s.label}
     </span>
   );
 }
