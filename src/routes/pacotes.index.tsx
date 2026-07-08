@@ -126,6 +126,9 @@ function PacotesList() {
                     {formatBRL(p.price_per_person)}
                   </div>
                   <div className="text-[11px] text-muted-foreground">por pessoa</div>
+                  <div className="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-[11px] text-muted-foreground">
+                    Pacote para <span className="text-foreground font-medium">{p.base_occupancy ?? 2} adulto{(p.base_occupancy ?? 2) > 1 ? "s" : ""}</span>. Para outra quantidade, fale no WhatsApp.
+                  </div>
                 </div>
               </div>
             </Link>

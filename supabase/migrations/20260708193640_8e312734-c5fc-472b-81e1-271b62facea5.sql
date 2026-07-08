@@ -1,0 +1,5 @@
+
+ALTER TABLE public.packages
+  ADD COLUMN IF NOT EXISTS base_occupancy INTEGER NOT NULL DEFAULT 2,
+  ADD COLUMN IF NOT EXISTS outbound_flight JSONB,
+  ADD COLUMN IF NOT EXISTS return_flight JSONB;

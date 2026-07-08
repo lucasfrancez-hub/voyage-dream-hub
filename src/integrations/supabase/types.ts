@@ -78,6 +78,7 @@ export type Database = {
       }
       packages: {
         Row: {
+          base_occupancy: number
           created_at: string
           destination: string
           going_date: string | null
@@ -90,8 +91,10 @@ export type Database = {
           itinerary: string | null
           nights: number | null
           origin: string | null
+          outbound_flight: Json | null
           price_per_person: number
           return_date: string | null
+          return_flight: Json | null
           slug: string
           sort_order: number
           summary: string | null
@@ -100,6 +103,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          base_occupancy?: number
           created_at?: string
           destination: string
           going_date?: string | null
@@ -112,8 +116,10 @@ export type Database = {
           itinerary?: string | null
           nights?: number | null
           origin?: string | null
+          outbound_flight?: Json | null
           price_per_person: number
           return_date?: string | null
+          return_flight?: Json | null
           slug: string
           sort_order?: number
           summary?: string | null
@@ -122,6 +128,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          base_occupancy?: number
           created_at?: string
           destination?: string
           going_date?: string | null
@@ -134,8 +141,10 @@ export type Database = {
           itinerary?: string | null
           nights?: number | null
           origin?: string | null
+          outbound_flight?: Json | null
           price_per_person?: number
           return_date?: string | null
+          return_flight?: Json | null
           slug?: string
           sort_order?: number
           summary?: string | null
