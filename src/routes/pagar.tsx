@@ -101,8 +101,7 @@ function PayPage() {
       });
       if (error) throw error;
       setSuccess(true);
-      toast.success("Pagamento enviado! Nosso time confirma em seguida.");
-      setTimeout(() => navigate({ to: "/" }), 2500);
+      toast.success("Seu pedido foi enviado para análise, em breve você receberá um retorno.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao processar pagamento");
     } finally {
