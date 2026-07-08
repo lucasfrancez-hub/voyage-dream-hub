@@ -12,6 +12,7 @@ export const Route = createFileRoute("/admin/pacotes")({
 
 type FlightInfo = {
   airline?: string;
+  airline_logo_url?: string;
   flight_number?: string;
   from_iata?: string;
   from_city?: string;
@@ -21,6 +22,10 @@ type FlightInfo = {
   arrive_at?: string;
   duration?: string;
   stops?: number | string;
+  cabin_class?: string;
+  carry_on?: boolean;
+  checked_bag?: boolean;
+  personal_item?: boolean;
 };
 
 type PackageRow = {
@@ -562,6 +567,55 @@ function FlightFieldset({
             value={f.stops ?? ""}
             onChange={(e) => patch({ stops: e.target.value === "" ? "" : Number(e.target.value) })}
           />
+        </FormField>
+        <FormField label="Classe">
+          <select
+            className={inp}
+            value={f.cabin_class ?? ""}
+            onChange={(e) => patch({ cabin_class: e.target.value })}
+          >
+            <option value="">—</option>
+            <option value="Econômica">Econômica</option>
+            <option value="Premium Economy">Premium Economy</option>
+            <option value="Executiva">Executiva</option>
+            <option value="Primeira classe">Primeira classe</option>
+          </select>
+        </FormField>
+        <FormField label="Logo da companhia (URL)" wide>
+          <input
+            className={inp}
+            value={f.airline_logo_url ?? ""}
+            onChange={(e) => patch({ airline_logo_url: e.target.value })}
+            placeholder="https://…logo.png"
+          />
+        </FormField>
+        <FormField label="Bagagens inclusas" wide>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={!!f.personal_item}
+                onChange={(e) => patch({ personal_item: e.target.checked })}
+              />
+              Item pessoal
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={!!f.carry_on}
+                onChange={(e) => patch({ carry_on: e.target.checked })}
+              />
+              Bagagem de mão
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={!!f.checked_bag}
+                onChange={(e) => patch({ checked_bag: e.target.checked })}
+              />
+              Bagagem despachada
+            </label>
+          </div>
         </FormField>
       </div>
     </div>
