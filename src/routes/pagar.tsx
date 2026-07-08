@@ -43,9 +43,9 @@ function PayPage() {
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
-  const initialInstallments = Math.min(Math.max(Number(parcelas) || 10, 1), MAX_INSTALLMENTS);
+  const maxInstallments = Math.min(Math.max(Number(parcelas) || 10, 1), MAX_INSTALLMENTS);
 
-  const [installments, setInstallments] = useState(initialInstallments);
+  const [installments, setInstallments] = useState(maxInstallments);
   const { data: card, patch: patchCard } = useCardData();
   const [fullName, setFullName] = useState(cliente ?? "");
   const [cpf, setCpf] = useState("");
@@ -56,9 +56,10 @@ function PayPage() {
   const [success, setSuccess] = useState(false);
 
   const installmentsOptions = useMemo(
-    () => Array.from({ length: MAX_INSTALLMENTS }, (_, i) => i + 1),
-    [],
+    () => Array.from({ length: maxInstallments }, (_, i) => i + 1),
+    [maxInstallments],
   );
+  const firstAmount = entradaNumber > 0 ? entradaNumber : undefined;
 
   const invalid = !desc || !totalNumber;
 
