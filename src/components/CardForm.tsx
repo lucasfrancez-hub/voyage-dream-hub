@@ -107,34 +107,54 @@ export function CardForm({
   onInstallmentsChange: (n: number) => void;
   total: number;
 }) {
-  const brand = detectBrand(data.cardNumber);
+  const detected = detectBrand(data.cardNumber);
+  const selectedBrand: CardBrand | "" = detected || data.brand;
+
+  useEffect(() => {
+    if (detected && detected !== data.brand) {
+      onChange({ brand: detected });
+    }
+  }, [detected]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <CardIcon className="h-4 w-4 text-brand-orange" /> Dados do cartão de crédito
       </div>
 
+      <div>
+        <div className="text-xs text-muted-foreground mb-2">Bandeira do cartão *</div>
+        <div className="flex flex-wrap gap-2">
+          {CARD_BRANDS.map((b) => {
+            const active = selectedBrand === b;
+            return (
+              <button
+                key={b}
+                type="button"
+                onClick={() => onChange({ brand: b })}
+                aria-pressed={active}
+                title={b}
+                className={`rounded-xl border p-1.5 transition ${active ? "border-brand-orange ring-2 ring-brand-orange/30 bg-brand-orange/5" : "border-border hover:border-brand-orange/50"}`}
+              >
+                <BrandLogo brand={b} active={active} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid sm:grid-cols-[1fr_120px] gap-4">
         <Field label="Número do cartão *">
-          <div className="relative">
-            <input
-              required
-              inputMode="numeric"
-              value={data.cardNumber}
-              onChange={(e) => onChange({ cardNumber: e.target.value.replace(/[^\d ]/g, "") })}
-              className={`${cls} pr-24`}
-              placeholder="0000 0000 0000 0000"
-              maxLength={23}
-              autoComplete="cc-number"
-            />
-            {brand && (
-              <span
-                className={`absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-1 text-[10px] font-bold text-white ${brandColors[brand] ?? "bg-neutral-600"}`}
-              >
-                {brand}
-              </span>
-            )}
-          </div>
+          <input
+            required
+            inputMode="numeric"
+            value={data.cardNumber}
+            onChange={(e) => onChange({ cardNumber: e.target.value.replace(/[^\d ]/g, "") })}
+            className={cls}
+            placeholder="0000 0000 0000 0000"
+            maxLength={23}
+            autoComplete="cc-number"
+          />
         </Field>
         <Field label="CVV *">
           <input
