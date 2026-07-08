@@ -416,15 +416,6 @@ function CofrePage() {
                     <Trash2 className="h-3.5 w-3.5" /> Remover
                   </button>
                 )}
-                {e.kind === "avulso" && (
-                  <button
-                    type="button"
-                    onClick={() => onDelete(e.id.replace(/^avulso:/, ""))}
-                    className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" /> Remover
-                  </button>
-                )}
               </div>
             </div>
           );
