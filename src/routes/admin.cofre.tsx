@@ -17,6 +17,8 @@ import {
   CreditCard,
   Eye,
   EyeOff,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
@@ -30,7 +32,13 @@ import {
   deleteCofreEntry,
   type CofreEntry,
 } from "@/lib/cofre-storage";
-import { listCofreOrders, type CofreOrder } from "@/lib/cofre.functions";
+import {
+  listCofreOrders,
+  updateCofreOrder,
+  deleteCofreOrder,
+  type CofreOrder,
+} from "@/lib/cofre.functions";
+import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 
 export const Route = createFileRoute("/admin/cofre")({
   component: CofrePage,
