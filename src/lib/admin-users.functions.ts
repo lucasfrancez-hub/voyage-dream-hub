@@ -22,7 +22,7 @@ export type AdminUser = {
 export const listAdminUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminUser[]> => {
-    await ensureAdmin(context);
+    await ensureGestor(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.auth.admin.listUsers({
       page: 1,
@@ -63,7 +63,7 @@ export const createAdminUser = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureAdmin(context);
+    await ensureGestor(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
@@ -92,7 +92,7 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
     z.object({ userId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureAdmin(context);
+    await ensureGestor(context);
     if (data.userId === context.userId) {
       throw new Error("Você não pode remover sua própria conta.");
     }
@@ -113,7 +113,7 @@ export const setAdminUserRole = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureAdmin(context);
+    await ensureGestor(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Substitui roles do usuário pela role solicitada
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
