@@ -241,6 +241,7 @@ function PackageDetails() {
 
 type FlightInfo = {
   airline?: string;
+  airline_logo_url?: string;
   flight_number?: string;
   from_iata?: string;
   from_city?: string;
@@ -250,6 +251,10 @@ type FlightInfo = {
   arrive_at?: string;
   duration?: string;
   stops?: number | string;
+  cabin_class?: string; // Econômica, Executiva…
+  carry_on?: boolean; // bagagem de mão
+  checked_bag?: boolean; // bagagem despachada
+  personal_item?: boolean; // item pessoal / mochila
 };
 
 function FlightCard({ flight, kind }: { flight: FlightInfo; kind: "outbound" | "return" }) {
