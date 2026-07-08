@@ -4,6 +4,7 @@ import { MapPin, Calendar, Plane, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import { ContactFooter } from "@/components/ContactFooter";
 
 export const Route = createFileRoute("/pacotes/")({
   head: () => ({
@@ -135,6 +136,8 @@ function PacotesList() {
           ))}
         </div>
       </section>
+
+      <ContactFooter />
     </div>
   );
 }

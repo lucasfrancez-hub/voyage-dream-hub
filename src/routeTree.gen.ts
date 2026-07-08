@@ -14,8 +14,11 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
+import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
+import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
+import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 
@@ -44,6 +47,11 @@ const PacotesIndexRoute = PacotesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PacotesRoute,
 } as any)
+const AdminSegurancaRoute = AdminSegurancaRouteImport.update({
+  id: '/seguranca',
+  path: '/seguranca',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPedidosRoute = AdminPedidosRouteImport.update({
   id: '/pedidos',
   path: '/pedidos',
@@ -52,6 +60,16 @@ const AdminPedidosRoute = AdminPedidosRouteImport.update({
 const AdminPacotesRoute = AdminPacotesRouteImport.update({
   id: '/pacotes',
   path: '/pacotes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLinkPagamentoRoute = AdminLinkPagamentoRouteImport.update({
+  id: '/link-pagamento',
+  path: '/link-pagamento',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCofreRoute = AdminCofreRouteImport.update({
+  id: '/cofre',
+  path: '/cofre',
   getParentRoute: () => AdminRoute,
 } as any)
 const PacotesSlugIndexRoute = PacotesSlugIndexRouteImport.update({
@@ -70,8 +88,11 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/pacotes': typeof PacotesRouteWithChildren
+  '/admin/cofre': typeof AdminCofreRoute
+  '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/seguranca': typeof AdminSegurancaRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
@@ -80,8 +101,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/admin/cofre': typeof AdminCofreRoute
+  '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/seguranca': typeof AdminSegurancaRoute
   '/pacotes': typeof PacotesIndexRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
@@ -92,8 +116,11 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/pacotes': typeof PacotesRouteWithChildren
+  '/admin/cofre': typeof AdminCofreRoute
+  '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/seguranca': typeof AdminSegurancaRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
@@ -105,8 +132,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/pacotes'
+    | '/admin/cofre'
+    | '/admin/link-pagamento'
     | '/admin/pacotes'
     | '/admin/pedidos'
+    | '/admin/seguranca'
     | '/pacotes/'
     | '/pacotes/$slug/checkout'
     | '/pacotes/$slug/'
@@ -115,8 +145,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/admin/cofre'
+    | '/admin/link-pagamento'
     | '/admin/pacotes'
     | '/admin/pedidos'
+    | '/admin/seguranca'
     | '/pacotes'
     | '/pacotes/$slug/checkout'
     | '/pacotes/$slug'
@@ -126,8 +159,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/pacotes'
+    | '/admin/cofre'
+    | '/admin/link-pagamento'
     | '/admin/pacotes'
     | '/admin/pedidos'
+    | '/admin/seguranca'
     | '/pacotes/'
     | '/pacotes/$slug/checkout'
     | '/pacotes/$slug/'
@@ -177,6 +213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesIndexRouteImport
       parentRoute: typeof PacotesRoute
     }
+    '/admin/seguranca': {
+      id: '/admin/seguranca'
+      path: '/seguranca'
+      fullPath: '/admin/seguranca'
+      preLoaderRoute: typeof AdminSegurancaRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pedidos': {
       id: '/admin/pedidos'
       path: '/pedidos'
@@ -189,6 +232,20 @@ declare module '@tanstack/react-router' {
       path: '/pacotes'
       fullPath: '/admin/pacotes'
       preLoaderRoute: typeof AdminPacotesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/link-pagamento': {
+      id: '/admin/link-pagamento'
+      path: '/link-pagamento'
+      fullPath: '/admin/link-pagamento'
+      preLoaderRoute: typeof AdminLinkPagamentoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cofre': {
+      id: '/admin/cofre'
+      path: '/cofre'
+      fullPath: '/admin/cofre'
+      preLoaderRoute: typeof AdminCofreRouteImport
       parentRoute: typeof AdminRoute
     }
     '/pacotes/$slug/': {
@@ -209,13 +266,19 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminCofreRoute: typeof AdminCofreRoute
+  AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
+  AdminSegurancaRoute: typeof AdminSegurancaRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCofreRoute: AdminCofreRoute,
+  AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPedidosRoute: AdminPedidosRoute,
+  AdminSegurancaRoute: AdminSegurancaRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
