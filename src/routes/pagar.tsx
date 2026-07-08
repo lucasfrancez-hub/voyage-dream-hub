@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
+import { splitInstallments } from "@/lib/checkout-config";
 import { CardForm, useCardData } from "@/components/CardForm";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
@@ -14,6 +15,7 @@ type Search = {
   desc?: string;
   total?: string;
   parcelas?: string;
+  entrada?: string;
   ref?: string;
   cliente?: string;
 };
@@ -23,6 +25,7 @@ export const Route = createFileRoute("/pagar")({
     desc: typeof s.desc === "string" ? s.desc : undefined,
     total: typeof s.total === "string" ? s.total : undefined,
     parcelas: typeof s.parcelas === "string" ? s.parcelas : undefined,
+    entrada: typeof s.entrada === "string" ? s.entrada : undefined,
     ref: typeof s.ref === "string" ? s.ref : undefined,
     cliente: typeof s.cliente === "string" ? s.cliente : undefined,
   }),
@@ -31,9 +34,10 @@ export const Route = createFileRoute("/pagar")({
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, ref, cliente } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, cliente } = Route.useSearch();
 
   const totalNumber = Number(total) || 0;
+  const entradaNumber = Number(entrada) || 0;
   const initialInstallments = Math.min(Math.max(Number(parcelas) || 10, 1), MAX_INSTALLMENTS);
 
   const [installments, setInstallments] = useState(initialInstallments);
