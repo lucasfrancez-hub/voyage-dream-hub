@@ -98,7 +98,7 @@ export const updateCofreOrder = createServerFn({ method: "POST" })
     if (roleErr) throw new Error(roleErr.message);
     if (!isAdmin) throw new Error("Forbidden");
 
-    const patch: Record<string, unknown> = { status: data.status };
+    const patch: { status: string; notes?: string | null } = { status: data.status };
     if (data.notes !== undefined) patch.notes = data.notes;
 
     const { error } = await supabase.from("orders").update(patch).eq("id", data.id);
