@@ -257,7 +257,7 @@ type FlightInfo = {
   personal_item?: boolean; // item pessoal / mochila
 };
 
-function FlightCard({ flight, kind }: { flight: FlightInfo; kind: "outbound" | "return" }) {
+function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbound" | "return"; adults: number }) {
   const Icon = kind === "outbound" ? PlaneTakeoff : PlaneLanding;
   const label = kind === "outbound" ? "Voo de ida" : "Voo de volta";
   const stopsN = typeof flight.stops === "string" ? Number(flight.stops) : flight.stops;
@@ -266,51 +266,79 @@ function FlightCard({ flight, kind }: { flight: FlightInfo; kind: "outbound" | "
       <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
         <Icon className="h-4 w-4 text-brand-orange" /> {label}
       </div>
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <div>
-          <div className="text-2xl font-display font-bold">{flight.from_iata ?? "—"}</div>
-          {flight.from_city && (
-            <div className="text-[11px] text-muted-foreground">{flight.from_city}</div>
-          )}
-          {flight.depart_at && (
-            <div className="mt-1 text-xs">{formatFlightDT(flight.depart_at)}</div>
-          )}
-        </div>
-        <div className="flex-1 border-t border-dashed border-border relative">
-          <Plane className="h-3.5 w-3.5 text-brand-orange absolute -top-2 left-1/2 -translate-x-1/2 rotate-90" />
-        </div>
-        <div className="text-right">
-          <div className="text-2xl font-display font-bold">{flight.to_iata ?? "—"}</div>
-          {flight.to_city && (
-            <div className="text-[11px] text-muted-foreground">{flight.to_city}</div>
-          )}
-          {flight.arrive_at && (
-            <div className="mt-1 text-xs">{formatFlightDT(flight.arrive_at)}</div>
+      <div className="mt-3 flex items-start gap-3">
+        {flight.airline_logo_url ? (
+          <img
+            src={flight.airline_logo_url}
+            alt={flight.airline ?? "Companhia aérea"}
+            className="h-12 w-12 rounded-lg object-contain bg-white p-1 border border-border shrink-0"
+          />
+        ) : (
+          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center text-[10px] font-semibold text-muted-foreground shrink-0">
+            {flight.airline?.slice(0, 3).toUpperCase() ?? "AIR"}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold">
+            {flight.airline ?? "Companhia"}{" "}
+            {flight.flight_number && (
+              <span className="text-muted-foreground font-normal">· {flight.flight_number}</span>
+            )}
+          </div>
+          <div className="text-sm mt-0.5">
+            <span className="font-medium">{flight.from_iata ?? "—"} {formatFlightTime(flight.depart_at)}</span>
+            <span className="text-muted-foreground"> — </span>
+            <span className="font-medium">{flight.to_iata ?? "—"} {formatFlightTime(flight.arrive_at)}</span>
+          </div>
+          {(flight.depart_at || flight.arrive_at) && (
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              {flight.depart_at && formatFlightDate(flight.depart_at)}
+              {flight.arrive_at && flight.arrive_at !== flight.depart_at && ` → ${formatFlightDate(flight.arrive_at)}`}
+            </div>
           )}
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-        {flight.airline && (
-          <span>
-            <span className="text-foreground font-medium">{flight.airline}</span>
-            {flight.flight_number ? ` · ${flight.flight_number}` : ""}
-          </span>
-        )}
-        {flight.duration && <span>Duração: {flight.duration}</span>}
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
         {stopsN != null && !Number.isNaN(stopsN) && (
-          <span>{stopsN === 0 ? "Direto" : `${stopsN} escala${stopsN > 1 ? "s" : ""}`}</span>
+          <span>{stopsN === 0 ? "Direto" : `${stopsN} parada${stopsN > 1 ? "s" : ""}`}</span>
         )}
+        <span>· {adults} Adulto{adults > 1 ? "s" : ""}</span>
+        {flight.cabin_class && <span>· {flight.cabin_class}</span>}
+        {flight.duration && <span>· {flight.duration}</span>}
       </div>
+
+      {(flight.personal_item || flight.carry_on || flight.checked_bag) && (
+        <div className="mt-3 flex items-center gap-3 text-[11px] text-muted-foreground border-t border-border pt-3">
+          <BagIcon label="Item pessoal" active={!!flight.personal_item} kind="personal" />
+          <BagIcon label="Bagagem de mão" active={!!flight.carry_on} kind="carry" />
+          <BagIcon label="Bagagem despachada" active={!!flight.checked_bag} kind="checked" />
+        </div>
+      )}
     </div>
   );
 }
 
-function formatFlightDT(iso: string): string {
+function BagIcon({ label, active, kind }: { label: string; active: boolean; kind: "personal" | "carry" | "checked" }) {
+  const size = kind === "personal" ? "h-3.5 w-3" : kind === "carry" ? "h-4 w-3.5" : "h-5 w-4";
+  return (
+    <span title={label} className={`inline-flex items-center gap-1 ${active ? "text-brand-orange" : "opacity-30"}`}>
+      <span className={`${size} rounded-sm border-2 border-current`} />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
+function formatFlightTime(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+function formatFlightDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  const date = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-  const time = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  return `${date} · ${time}`;
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
 function Row({ label, value }: { label: string; value: string }) {
