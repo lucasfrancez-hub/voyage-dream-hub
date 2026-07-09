@@ -139,49 +139,13 @@ function Checkout() {
     }
 
     if (payment === "boleto") {
-      const required: Array<[keyof BoletoData, string]> = [
-        ["relationship", "Vínculo com o viajante"],
-        ["full_name", "Nome completo do financiador"],
-        ["cpf", "CPF"],
-        ["birth_date", "Data de nascimento"],
-        ["rg", "RG"],
-        ["rg_issuer", "Órgão emissor do RG"],
-        ["rg_issue_date", "Data de emissão do RG"],
-        ["birth_city", "Cidade de nascimento"],
-        ["marital_status", "Estado civil"],
-        ["mother_name", "Nome da mãe"],
-        ["zip", "CEP"],
-        ["address", "Endereço"],
-        ["address_number", "Número"],
-        ["city", "Cidade"],
-        ["state", "Estado"],
-        ["profession", "Profissão"],
-        ["income", "Renda mensal"],
-        ["employer_name", "Nome da empresa"],
-        ["employed_since", "Empregado desde"],
-        ["bank_name", "Banco"],
-        ["bank_agency", "Agência"],
-        ["bank_account", "Conta"],
-        ["bank_client_since", "Cliente do banco desde"],
-      ];
-      const missing = required.find(([k]) => !boleto[k].trim());
-      if (missing) {
-        toast.error(`Preencha o campo: ${missing[1]}.`);
+      const err = validateBoleto(boleto, isThirdPartyFinancier);
+      if (err) {
+        toast.error(err);
         return;
       }
-      if (isThirdPartyFinancier) {
-        if (!boleto.passenger_doc_path) {
-          toast.error("Envie a foto do documento do viajante.");
-          return;
-        }
-        if (!boleto.financier_doc_path) {
-          toast.error("Envie a foto do documento do financiador.");
-          return;
-        }
-      }
-
-
     }
+
 
 
     setSubmitting(true);
