@@ -179,6 +179,14 @@ function LinkGenerator() {
                 placeholder="Ex.: 12/03/2026 a 19/03/2026"
               />
             </Field>
+            <Field label="Nome dos passageiros (um por linha)">
+              <textarea
+                value={passengers}
+                onChange={(e) => setPassengers(e.target.value)}
+                className={`${cls} min-h-[70px]`}
+                placeholder={"Ex.: JOÃO DA SILVA\nMARIA DA SILVA\nPEDRO DA SILVA (CHD)"}
+              />
+            </Field>
           </div>
 
           <Field label="Referência interna (opcional)">
