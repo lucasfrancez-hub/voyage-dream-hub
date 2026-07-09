@@ -175,3 +175,35 @@ function NavItem({
     </Link>
   );
 }
+
+function CartaoNav({ pathname }: { pathname: string }) {
+  const active =
+    pathname === "/admin/link-pagamento" ||
+    pathname.startsWith("/admin/link-pagamento/") ||
+    pathname.startsWith("/admin/link-cartao-simples");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
+          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <Link2 className="h-4 w-4" /> Cartão <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuItem asChild>
+          <Link to="/admin/link-pagamento" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Link seguro</span>
+            <span className="text-xs text-muted-foreground">Com assinatura e biometria</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/link-cartao-simples" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Link convencional</span>
+            <span className="text-xs text-muted-foreground">Só dados do cartão</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
