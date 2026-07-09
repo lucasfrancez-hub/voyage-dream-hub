@@ -391,7 +391,7 @@ function CofrePage() {
                       "{e.notes}"
                     </div>
                   )}
-                  {(e.supplier || e.locator || e.route || e.travelDate) && (
+                  {(e.supplier || e.locator || e.route || e.travelDate || e.passengers) && (
                     <div className="mt-2 grid gap-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
                       {e.supplier && (
                         <div>
