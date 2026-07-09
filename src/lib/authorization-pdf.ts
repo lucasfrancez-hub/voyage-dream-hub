@@ -131,7 +131,7 @@ export async function generateAuthorizationPDF(opts: {
       );
       doc.text("Documento validado eletronicamente (MP 2.200-2/2001)", M, 22.5);
     } else {
-      doc.text(`Pedido ${a.order_number || orderId}`, M, 17);
+      doc.text(`Pedido ${displayOrderNumber}`, M, 17);
     }
 
     // selo à direita
