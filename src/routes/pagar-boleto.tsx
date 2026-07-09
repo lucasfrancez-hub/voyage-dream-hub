@@ -329,6 +329,30 @@ function PayBoletoPage() {
                       {formatBRL(summary.total)}
                     </span>
                   </div>
+
+                  <div className="border-t border-border pt-3 space-y-2">
+                    <label className="block">
+                      <span className="block text-xs text-muted-foreground mb-1.5">
+                        Parcelamento no boleto (sem juros)
+                      </span>
+                      <select
+                        value={installments}
+                        onChange={(e) => setInstallments(Number(e.target.value))}
+                        className={cls}
+                      >
+                        {Array.from({ length: MAX_BOLETO_INSTALLMENTS }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>
+                            {n}x de {formatBRL(totalNumber / n)} sem juros
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">
+                      {installments === 1
+                        ? "Pagamento em boleto único."
+                        : `${installments} boletos mensais de ${formatBRL(installmentValue)}, sem juros.`}
+                    </p>
+                  </div>
                   <button
                     type="submit"
                     disabled={submitting || success}
