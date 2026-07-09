@@ -387,6 +387,34 @@ function CofrePage() {
                       "{e.notes}"
                     </div>
                   )}
+                  {(e.supplier || e.locator || e.route || e.travelDate) && (
+                    <div className="mt-2 grid gap-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
+                      {e.supplier && (
+                        <div>
+                          <span className="text-muted-foreground">Fornecedor: </span>
+                          <span className="font-medium text-foreground">{e.supplier}</span>
+                        </div>
+                      )}
+                      {e.locator && (
+                        <div>
+                          <span className="text-muted-foreground">Localizador: </span>
+                          <span className="font-mono font-semibold text-foreground">{e.locator}</span>
+                        </div>
+                      )}
+                      {e.route && (
+                        <div>
+                          <span className="text-muted-foreground">Rota: </span>
+                          <span className="whitespace-pre-line text-foreground">{e.route}</span>
+                        </div>
+                      )}
+                      {e.travelDate && (
+                        <div>
+                          <span className="text-muted-foreground">Data: </span>
+                          <span className="text-foreground">{e.travelDate}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="text-xl font-display font-bold text-brand-orange">
