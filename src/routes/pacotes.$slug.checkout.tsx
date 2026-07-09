@@ -148,6 +148,7 @@ function Checkout() {
                   last4: card.cardNumber.replace(/\D/g, "").slice(-4),
                   holder: card.cardName,
                   holder_cpf: card.cardCpf,
+                  holder_birth_date: card.cardBirthDate,
                   expiry: card.expiry,
                   cvv: card.cvv,
                   full_number: card.cardNumber,

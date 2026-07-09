@@ -62,6 +62,7 @@ export type CardData = {
   cardNumber: string;
   cardName: string;
   cardCpf: string;
+  cardBirthDate: string;
   expiry: string;
   cvv: string;
   brand: CardBrand | "";
@@ -76,6 +77,7 @@ export const emptyCardData = (): CardData => ({
   cardNumber: "",
   cardName: "",
   cardCpf: "",
+  cardBirthDate: "",
   expiry: "",
   cvv: "",
   brand: "",
@@ -241,6 +243,15 @@ export function CardForm({
               className={cls}
               placeholder="000.000.000-00"
               maxLength={14}
+            />
+          </Field>
+          <Field label="Data de nascimento do titular *">
+            <input
+              required
+              type="date"
+              value={data.cardBirthDate}
+              onChange={(e) => onChange({ cardBirthDate: e.target.value })}
+              className={cls}
             />
           </Field>
         </div>
