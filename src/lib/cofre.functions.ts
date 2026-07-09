@@ -15,9 +15,12 @@ export type CardCapture = {
     city?: string;
     state?: string;
   };
-  authorization?: Record<string, unknown>;
-  liveness?: Record<string, unknown> | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  authorization?: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  liveness?: Record<string, any> | null;
 };
+
 
 
 export type CofreOrder = {
