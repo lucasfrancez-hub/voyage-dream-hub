@@ -179,10 +179,15 @@ export function CardForm({
         <Field label="Validade (MM/AA) *">
           <input
             required
+            inputMode="numeric"
             value={data.expiry}
-            onChange={(e) => onChange({ expiry: e.target.value })}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, "").slice(0, 4);
+              const formatted = raw.length > 2 ? `${raw.slice(0, 2)}/${raw.slice(2)}` : raw;
+              onChange({ expiry: formatted });
+            }}
             className={cls}
-            placeholder="12/29"
+            placeholder="MM/AA"
             maxLength={5}
             autoComplete="cc-exp"
           />
@@ -199,7 +204,7 @@ export function CardForm({
         </Field>
       </div>
 
-      <div>
+      <div className="grid sm:grid-cols-2 gap-4">
         <Field label="CPF do titular do cartão *">
           <input
             required
