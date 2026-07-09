@@ -217,6 +217,7 @@ function PayPage() {
                     installmentsOptions={installmentsOptions}
                     total={totalNumber}
                     firstAmount={firstAmount}
+                    hideCardCpf
                   />
                 </Card>
               </div>
