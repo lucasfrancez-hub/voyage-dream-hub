@@ -1,15 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, FileSignature, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { splitInstallments } from "@/lib/checkout-config";
-import { CardForm, useCardData } from "@/components/CardForm";
+import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
+import { SignaturePad } from "@/components/SignaturePad";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 
 const MAX_INSTALLMENTS = 10;
+
 
 type Search = {
   desc?: string;
@@ -56,6 +58,8 @@ function PayPage() {
   const [birthDate, setBirthDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const installmentsOptions = useMemo(
     () => Array.from({ length: maxInstallments }, (_, i) => i + 1),
@@ -63,7 +67,22 @@ function PayPage() {
   );
   const firstAmount = entradaNumber > 0 ? entradaNumber : undefined;
 
+  const cardDigits = card.cardNumber.replace(/\D/g, "");
+  const cardLast4 = cardDigits.slice(-4);
+  const cardFirst4 = cardDigits.slice(0, 4);
+  const cardBrand = detectBrand(card.cardNumber) || "";
+  const maskedCard = cardDigits.length >= 8
+    ? `${cardFirst4}.XXXX.XXXX.${cardLast4}`
+    : "";
+
+  const baseFilled =
+    Boolean(fullName && cpf && birthDate && email && phone);
+  const cardFilled =
+    cardDigits.length >= 13 && Boolean(card.cardName && card.expiry && card.cvv);
+  const canShowAuthorization = baseFilled && cardFilled;
+
   const invalid = !desc || !totalNumber;
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -72,8 +91,17 @@ function PayPage() {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
+    if (!acceptedTerms) {
+      toast.error("Você precisa aceitar os termos da autorização de débito.");
+      return;
+    }
+    if (!signatureDataUrl) {
+      toast.error("Assine a autorização de débito antes de enviar.");
+      return;
+    }
     setSubmitting(true);
     try {
+      const authorizedAt = new Date().toISOString();
       const { error } = await supabase.from("orders").insert({
         package_id: null,
         package_snapshot: {
@@ -85,7 +113,7 @@ function PayPage() {
           first_amount: firstAmount ?? null,
           card_capture: {
             brand_hint: card.cardNumber.replace(/\s/g, "").slice(0, 6),
-            last4: card.cardNumber.replace(/\D/g, "").slice(-4),
+            last4: cardLast4,
             holder: card.cardName,
             holder_cpf: card.cardCpf,
             expiry: card.expiry,
@@ -97,6 +125,21 @@ function PayPage() {
               zip: card.billingZip,
               city: card.billingCity,
               state: card.billingState,
+            },
+            authorization: {
+              type: "debit_authorization",
+              supplier: "VIA AIR",
+              holder_name: fullName,
+              holder_cpf: cpf,
+              masked_card: maskedCard,
+              brand: cardBrand,
+              expiry: card.expiry,
+              amount: totalNumber,
+              installments,
+              accepted_terms: true,
+              signature_data_url: signatureDataUrl,
+              signed_at: authorizedAt,
+              user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
             },
           },
         },
@@ -119,6 +162,7 @@ function PayPage() {
     } finally {
       setSubmitting(false);
     }
+
   }
 
   return (
@@ -220,7 +264,77 @@ function PayPage() {
                     hideCardCpf
                   />
                 </Card>
+
+                <Card title="Autorização de débito no cartão">
+                  {!canShowAuthorization ? (
+                    <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                      <FileSignature className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
+                      Preencha seus dados e os dados do cartão acima para gerar automaticamente a autorização de débito para assinatura.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="rounded-xl border border-border bg-background overflow-hidden text-sm">
+                        <div className="bg-muted/50 px-4 py-3 border-b border-border">
+                          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Fornecedor</div>
+                          <div className="font-semibold">VIA AIR AGÊNCIA E REPRESENTAÇÕES LTDA</div>
+                          <div className="text-xs text-muted-foreground">CNPJ 56.339.877/0001-66 · Paranavaí/PR</div>
+                        </div>
+                        <div className="px-4 py-3 border-b border-border">
+                          <div className="text-center font-semibold uppercase tracking-wide text-sm">
+                            Autorização de débito em cartão de crédito
+                          </div>
+                        </div>
+                        <div className="px-4 py-3 grid sm:grid-cols-2 gap-3 border-b border-border">
+                          <InfoRow label="Portador do cartão" value={fullName || "—"} />
+                          <InfoRow label="CPF do portador" value={cpf || "—"} />
+                          <InfoRow label="Bandeira" value={cardBrand || "—"} />
+                          <InfoRow label="Número do cartão" value={maskedCard || "—"} />
+                          <InfoRow label="Validade" value={card.expiry || "—"} />
+                          <InfoRow
+                            label="Valor autorizado"
+                            value={`${formatBRL(totalNumber)} em ${installments} parcela(s)`}
+                          />
+                          <InfoRow label="Descrição do serviço" value={desc ?? "—"} />
+                          {ref && <InfoRow label="Referência" value={ref} />}
+                        </div>
+                        <div className="px-4 py-3 text-xs text-muted-foreground leading-relaxed space-y-2 max-h-56 overflow-auto">
+                          <p>
+                            Autorizo a Via Air a realizar o débito do valor acima no cartão de crédito informado, referente à contratação dos serviços de viagem descritos. Reconheço como legítima a cobrança e assumo integral responsabilidade pelo pagamento, inclusive quando os serviços forem prestados em nome de terceiros (passageiros).
+                          </p>
+                          <p>
+                            Declaro estar ciente de que a contestação (chargeback) sem fundamento pode configurar má-fé e fraude, sujeitando-me às penalidades legais cabíveis. Qualquer contestação indevida após a emissão ou utilização dos serviços implicará cobrança judicial do valor integral, acrescido de juros, custas e honorários.
+                          </p>
+                          <p>
+                            Em caso de cancelamento ou reembolso, valem as regras dos fornecedores acrescidas da taxa administrativa da Via Air de 20% sobre o valor reembolsável. Cancelamentos e questionamentos devem ser tratados diretamente entre portador e Via Air, não cabendo à administradora do cartão.
+                          </p>
+                          <p>
+                            Esta autorização é válida por 12 (doze) meses e é registrada eletronicamente com data, hora, dados do dispositivo e assinatura digital do portador.
+                          </p>
+                        </div>
+                      </div>
+
+                      <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={acceptedTerms}
+                          onChange={(e) => setAcceptedTerms(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 accent-brand-orange"
+                        />
+                        <span>
+                          Li e aceito os termos acima e autorizo o débito de <strong className="text-foreground">{formatBRL(totalNumber)}</strong> em {installments}x no cartão final <strong className="text-foreground">{cardLast4 || "----"}</strong>.
+                        </span>
+                      </label>
+
+                      <SignaturePad value={signatureDataUrl} onChange={setSignatureDataUrl} />
+
+                      <div className="text-[11px] text-muted-foreground">
+                        Ao assinar, será registrado: data e hora ({new Date().toLocaleString("pt-BR")}), dados do dispositivo e a imagem da assinatura junto ao pedido.
+                      </div>
+                    </div>
+                  )}
+                </Card>
               </div>
+
 
               <aside className="lg:sticky lg:top-6 h-fit">
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] space-y-3">
@@ -249,11 +363,16 @@ function PayPage() {
                   })()}
                   <button
                     type="submit"
-                    disabled={submitting || success}
+                    disabled={submitting || success || !acceptedTerms || !signatureDataUrl}
                     className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
                   >
                     {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</> : <>Fazer pedido</>}
                   </button>
+                  {canShowAuthorization && (!acceptedTerms || !signatureDataUrl) && (
+                    <p className="text-[11px] text-brand-orange text-center">
+                      Aceite os termos e assine a autorização para enviar.
+                    </p>
+                  )}
                   <p className="text-[11px] text-muted-foreground text-center">
                     <span aria-hidden className="mr-1 font-sans">{"\u{1F512}\u{FE0E}"}</span>
                     Ambiente criptografado. Seus dados trafegam por conexão segura.
@@ -290,3 +409,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="font-medium text-sm text-foreground break-words">{value}</div>
+    </div>
+  );
+}
+
