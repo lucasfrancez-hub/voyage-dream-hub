@@ -47,7 +47,8 @@ export const Route = createFileRoute("/pagar")({
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, cliente, img } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, cliente, img, simples } = Route.useSearch();
+  const secureMode = simples !== "1";
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
