@@ -47,12 +47,12 @@ function PacotesList() {
           <Link to="/" className="flex items-center gap-3">
             <img src={viaAirLogo.url} alt="Via Air" className="h-9 w-auto" />
           </Link>
-          <Link
-            to="/"
+          <a
+            href="https://viaair.tur.br"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-brand-orange"
           >
             <ArrowLeft className="h-4 w-4" /> Voltar ao site
-          </Link>
+          </a>
         </div>
       </header>
 
