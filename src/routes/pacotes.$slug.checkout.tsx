@@ -549,6 +549,12 @@ function Checkout() {
                     value={formatBRL(Number(pkg.taxes))}
                   />
                 )}
+                {payment === "pix" && pixDiscountValue > 0 && (
+                  <SummaryLine
+                    label="Desconto Pix (-5%)"
+                    value={`- ${formatBRL(pixDiscountValue)}`}
+                  />
+                )}
               </div>
               <div className="mt-4 border-t border-border pt-4 flex justify-between items-baseline">
                 <span className="text-muted-foreground text-sm">Total</span>
@@ -556,6 +562,11 @@ function Checkout() {
                   {formatBRL(totalPrice)}
                 </span>
               </div>
+              {payment === "pix" && pixDiscountValue > 0 && (
+                <div className="mt-1 text-right text-xs text-green-500 font-semibold">
+                  Você economiza {formatBRL(pixDiscountValue)} pagando via Pix
+                </div>
+              )}
               {payment === "credit_card" && (
                 <div className="mt-1 text-right text-xs text-muted-foreground">
                   em {installments}x de {formatBRL(totalPrice / installments)}
