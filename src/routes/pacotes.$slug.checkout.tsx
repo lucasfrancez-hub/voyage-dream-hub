@@ -859,11 +859,13 @@ function BoletoForm({
 
       <BoletoSection title="Comprovação de vínculo (documentos com foto)">
         <p className="text-xs text-muted-foreground mb-3">
-          Envie a foto do documento (RG ou CNH) do <strong>viajante</strong> e do <strong>financiador</strong>. Quando o financiador não for o próprio viajante, esses documentos são usados para comprovar o vínculo familiar. Aceitamos JPG, PNG ou PDF (até 10 MB cada).
+          {isThirdParty
+            ? "Envie a foto do documento (RG ou CNH) do viajante e do financiador. Esses documentos são obrigatórios para comprovar o vínculo familiar. Aceitamos JPG, PNG ou PDF (até 10 MB cada)."
+            : "Quando o financiador não for o próprio viajante, será necessário enviar a foto do documento (RG ou CNH) do viajante e do financiador para comprovar o vínculo. Aceitamos JPG, PNG ou PDF (até 10 MB cada)."}
         </p>
         <div className="grid sm:grid-cols-2 gap-4">
           <BoletoUpload
-            label="Documento do viajante *"
+            label={isThirdParty ? "Documento do viajante *" : "Documento do viajante"}
             fileName={data.passenger_doc_name}
             onUpload={(path, name) =>
               onChange({ passenger_doc_path: path, passenger_doc_name: name })
@@ -871,7 +873,7 @@ function BoletoForm({
             onClear={() => onChange({ passenger_doc_path: "", passenger_doc_name: "" })}
           />
           <BoletoUpload
-            label="Documento do financiador *"
+            label={isThirdParty ? "Documento do financiador *" : "Documento do financiador"}
             fileName={data.financier_doc_name}
             onUpload={(path, name) =>
               onChange({ financier_doc_path: path, financier_doc_name: name })
@@ -880,6 +882,7 @@ function BoletoForm({
           />
         </div>
       </BoletoSection>
+
 
     </div>
   );
