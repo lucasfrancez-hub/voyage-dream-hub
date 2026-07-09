@@ -345,8 +345,10 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
         <span>
-          {segments.length > 1
-            ? `${segments.length - 1} conexão${segments.length - 1 > 1 ? "es" : ""}`
+          {segments.length > 0
+            ? segments.length > 1
+              ? `${segments.length - 1} conexão${segments.length - 1 > 1 ? "es" : ""}`
+              : "Voo direto"
             : stopsN != null && !Number.isNaN(stopsN) && stopsN > 0
             ? `${stopsN} conexão${stopsN > 1 ? "es" : ""}`
             : "Voo direto"}
