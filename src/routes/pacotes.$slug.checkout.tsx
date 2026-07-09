@@ -455,9 +455,17 @@ function Checkout() {
                 )}
               </button>
               <p className="mt-3 text-[11px] text-muted-foreground text-center">
-                Ao continuar você concorda com nossos termos e política de cancelamento.
+                Ao continuar você concorda com nossos{" "}
+                <button
+                  type="button"
+                  onClick={() => setTermsOpen(true)}
+                  className="text-brand-orange hover:underline font-medium"
+                >
+                  termos e política de cancelamento
+                </button>
+                .
               </p>
-              <p className="mt-2 text-[11px] text-muted-foreground text-center">
+              <p className="mt-2 text-[10px] text-muted-foreground/80 text-center">
                 <span aria-hidden className="mr-1 font-sans">{"\u{1F512}\u{FE0E}"}</span>
                 Ambiente criptografado. Seus dados trafegam por conexão segura.
               </p>
@@ -465,6 +473,7 @@ function Checkout() {
           </aside>
         </form>
       </div>
+      {termsOpen && <TermsModal onClose={() => setTermsOpen(false)} />}
       <ContactFooter whatsappMessage={`Olá! Preciso de ajuda para finalizar minha reserva.`} />
     </div>
   );
