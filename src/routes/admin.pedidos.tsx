@@ -386,7 +386,7 @@ function AdminOrders() {
                 {hasAuthorization && authorization && (
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       try {
                         const signedAt = authorization.signed_at ?? o.created_at;
                         const validUntil =
@@ -410,12 +410,13 @@ function AdminOrders() {
                           signed_at: signedAt,
                           valid_until: validUntil,
                         };
-                        generateAuthorizationPDF({
+                        await generateAuthorizationPDF({
                           orderId: o.id,
                           createdAt: o.created_at,
                           authorization: enriched,
                           liveness,
                         });
+
                       } catch (err) {
                         toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
                       }
