@@ -16,6 +16,8 @@ function LinkBoletoGenerator() {
   const [description, setDescription] = useState("");
   const [total, setTotal] = useState("");
   const [orderRef, setOrderRef] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
+
   const [imageUrl, setImageUrl] = useState("");
 
   const totalNumber = Number(total.replace(",", ".")) || 0;
@@ -26,10 +28,12 @@ function LinkBoletoGenerator() {
       description,
       total: totalNumber,
       orderRef: orderRef || undefined,
+      orderNumber: orderNumber.trim() || undefined,
       customerName: customer || undefined,
       imageUrl: imageUrl || undefined,
     });
-  }, [totalNumber, description, orderRef, customer, imageUrl]);
+  }, [totalNumber, description, orderRef, orderNumber, customer, imageUrl]);
+
 
   const whatsMessage = url
     ? `Olá${customer ? ` ${customer}` : ""}! Segue o link para preencher a ficha de crédito Via Air (boleto bancário):\n\n📄 ${description}\n💰 Total: ${formatBRL(totalNumber)}\n\n🔒 ${url}\n\nApós o envio, um consultor entra em contato pelo WhatsApp com o resultado da análise.`
@@ -44,10 +48,12 @@ function LinkBoletoGenerator() {
       total: totalNumber,
       installments: 1,
       orderRef: orderRef || undefined,
+      orderNumber: orderNumber.trim() || undefined,
       imageUrl: imageUrl || undefined,
       url,
     });
   }
+
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
@@ -86,9 +92,22 @@ function LinkBoletoGenerator() {
           <Field label="Descrição / referência *">
             <input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} placeholder="Pacote Cancún 5 dias" />
           </Field>
+          <Field label="Número do pedido (opcional)">
+            <input
+              value={orderNumber}
+              onChange={(e) => setOrderNumber(e.target.value)}
+              className={cls}
+              placeholder="Ex.: localizador da cia (ABC123) ou ID da operadora"
+              maxLength={40}
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Aparecerá como número do pedido no cofre e nos comprovantes.
+            </span>
+          </Field>
           <Field label="Referência interna (opcional)">
             <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
           </Field>
+
           <Field label="Imagem do destino (URL) — aparece no topo do link">
             <input
               value={imageUrl}
