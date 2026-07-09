@@ -240,6 +240,9 @@ function PackageDetails() {
             <p className="mt-3 text-[11px] text-muted-foreground text-center">
               Você preenche seus dados e finaliza o pagamento na próxima etapa.
             </p>
+            <p className="mt-2 text-[10px] text-muted-foreground text-center">
+              Sujeito à disponibilidade de voos e hospedagem.
+            </p>
           </div>
         </aside>
       </div>
