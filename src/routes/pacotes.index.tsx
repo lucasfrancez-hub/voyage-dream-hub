@@ -124,9 +124,11 @@ function PacotesList() {
                 <div className="mt-auto pt-3 border-t border-border">
                   <div className="text-xs text-muted-foreground">a partir de</div>
                   <div className="text-2xl font-display font-bold text-brand-orange">
-                    {formatBRL(p.price_per_person)}
+                    {formatBRL(Number(p.price_per_person) * (p.base_occupancy ?? 2))}
                   </div>
-                  <div className="text-[11px] text-muted-foreground">por pessoa</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    para {p.base_occupancy === 1 ? "1 pessoa" : `${p.base_occupancy ?? 2} pessoas`}
+                  </div>
                   <div className="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-[11px] text-muted-foreground">
                     Pacote para <span className="text-foreground font-medium">{p.base_occupancy ?? 2} adulto{(p.base_occupancy ?? 2) > 1 ? "s" : ""}</span>. Para outra quantidade, fale no WhatsApp.
                   </div>

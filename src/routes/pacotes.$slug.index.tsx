@@ -77,6 +77,8 @@ function PackageDetails() {
     );
   }
 
+  const baseOccupancy = pkg.base_occupancy ?? 2;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-background/80 backdrop-blur">
@@ -195,13 +197,15 @@ function PackageDetails() {
         {/* Right: sticky reservation card */}
         <aside className="lg:sticky lg:top-6 h-fit">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
-            <div className="text-xs text-muted-foreground">Preço por pessoa</div>
+            <div className="text-xs text-muted-foreground">
+              Preço para {baseOccupancy === 1 ? "1 pessoa" : `${baseOccupancy} pessoas`}
+            </div>
             <div className="mt-1 text-3xl font-display font-bold text-brand-orange">
-              {formatBRL(pkg.price_per_person)}
+              {formatBRL(Number(pkg.price_per_person) * baseOccupancy)}
             </div>
             {pkg.taxes ? (
               <div className="text-xs text-muted-foreground mt-1">
-                + {formatBRL(pkg.taxes)} de taxas
+                + {formatBRL(Number(pkg.taxes) * baseOccupancy)} de taxas
               </div>
             ) : null}
 
