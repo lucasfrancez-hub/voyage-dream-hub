@@ -21,6 +21,7 @@ export type AuthorizationData = {
   trip_locator?: string | null;
   trip_route?: string | null;
   trip_date?: string | null;
+  trip_passengers?: string | null;
   accepted_terms?: boolean;
   signature_data_url?: string | null;
 
