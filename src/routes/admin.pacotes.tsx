@@ -441,6 +441,16 @@ function AdminPackages() {
                 onChange={(f) => setEditing({ ...editing, return_flight: f })}
               />
 
+              <FormField label="Fornecedor (interno — não aparece pro cliente)" wide>
+                <input
+                  className={inp}
+                  value={editing.supplier_name ?? ""}
+                  onChange={(e) => setEditing({ ...editing, supplier_name: e.target.value })}
+                  placeholder="Ex: CVC, Nascimento, Flytour…"
+                />
+              </FormField>
+
+
               <FormField label="Ativo" wide>
                 <label className="inline-flex items-center gap-2">
                   <input
