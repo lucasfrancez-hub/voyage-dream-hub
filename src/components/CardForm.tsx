@@ -224,7 +224,32 @@ export function CardForm({
         <div className="text-xs text-muted-foreground mb-3">Endereço de cobrança</div>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="CEP *">
-            <input required value={data.billingZip} onChange={(e) => onChange({ billingZip: e.target.value })} className={cls} placeholder="00000-000" />
+            <input
+              required
+              value={data.billingZip}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
+                const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
+                onChange({ billingZip: formatted });
+                if (raw.length === 8) {
+                  fetch(`https://viacep.com.br/ws/${raw}/json/`)
+                    .then((r) => r.json())
+                    .then((d) => {
+                      if (d && !d.erro) {
+                        onChange({
+                          billingAddress: d.logradouro || "",
+                          billingCity: d.localidade || "",
+                          billingState: (d.uf || "").toUpperCase(),
+                        });
+                      }
+                    })
+                    .catch(() => {});
+                }
+              }}
+              className={cls}
+              placeholder="00000-000"
+              inputMode="numeric"
+            />
           </Field>
           <Field label="Endereço *">
             <input required value={data.billingAddress} onChange={(e) => onChange({ billingAddress: e.target.value })} className={cls} placeholder="Rua / Avenida" />
