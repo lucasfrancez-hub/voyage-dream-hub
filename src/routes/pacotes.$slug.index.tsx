@@ -195,11 +195,11 @@ function PackageDetails() {
               Preço para {baseOccupancy === 1 ? "1 pessoa" : `${baseOccupancy} pessoas`}
             </div>
             <div className="mt-1 text-3xl font-display font-bold text-brand-orange">
-              {formatBRL(Number(pkg.price_per_person) * baseOccupancy)}
+              {formatBRL(Number(pkg.price_per_person) * baseOccupancy + Number(pkg.taxes ?? 0))}
             </div>
             {pkg.taxes ? (
               <div className="text-xs text-muted-foreground mt-1">
-                + {formatBRL(Number(pkg.taxes) * baseOccupancy)} de taxas
+                Taxas de {formatBRL(Number(pkg.taxes))} já inclusas no valor final
               </div>
             ) : null}
 
