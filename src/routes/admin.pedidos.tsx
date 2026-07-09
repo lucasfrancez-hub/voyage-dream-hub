@@ -383,21 +383,6 @@ function AdminOrders() {
                     <XCircle className="h-3.5 w-3.5" /> Rejeitar
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => onDelete(o.id)}
-                  className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
-                >
-                  <Trash2 className="h-3.5 w-3.5" /> Excluir
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
                 {hasAuthorization && authorization && (
                   <button
                     type="button"
@@ -418,6 +403,23 @@ function AdminOrders() {
                     <FileSignature className="h-3.5 w-3.5" /> Ver autorização de débito
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => onDelete(o.id)}
+                  className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Excluir
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
 
 function InfoLine({
   icon: Icon,
