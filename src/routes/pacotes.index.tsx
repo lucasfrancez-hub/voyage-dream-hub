@@ -1,10 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Calendar, Plane } from "lucide-react";
+import { useMemo, useState } from "react";
+import { MapPin, Calendar, Plane, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/pacotes/")({
   head: () => ({
@@ -42,6 +51,33 @@ function PacotesList() {
     },
   });
 
+  const [originFilter, setOriginFilter] = useState<string>("all");
+  const [destinationFilter, setDestinationFilter] = useState<string>("all");
+
+  const origins = useMemo(
+    () => Array.from(new Set((packages || []).map((p) => p.origin).filter(Boolean))).sort(),
+    [packages],
+  );
+  const destinations = useMemo(
+    () => Array.from(new Set((packages || []).map((p) => p.destination).filter(Boolean))).sort(),
+    [packages],
+  );
+
+  const filteredPackages = useMemo(() => {
+    return (packages || []).filter((p) => {
+      const originMatch = originFilter === "all" || p.origin === originFilter;
+      const destinationMatch = destinationFilter === "all" || p.destination === destinationFilter;
+      return originMatch && destinationMatch;
+    });
+  }, [packages, originFilter, destinationFilter]);
+
+  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all";
+
+  const clearFilters = () => {
+    setOriginFilter("all");
+    setDestinationFilter("all");
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopBar backHref="https://viaair.tur.br" backLabel="Voltar ao site" />
@@ -60,7 +96,73 @@ function PacotesList() {
           </p>
         </div>
 
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground sm:pb-2.5">
+            <SlidersHorizontal className="h-4 w-4 text-brand-orange" />
+            Filtrar por
+          </div>
+
+          <div className="flex-1">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Origem
+            </label>
+            <Select value={originFilter} onValueChange={setOriginFilter}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Todas as origens" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as origens</SelectItem>
+                {origins.map((origin) => (
+                  <SelectItem key={origin} value={origin!}>
+                    {origin}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Destino
+            </label>
+            <Select value={destinationFilter} onValueChange={setDestinationFilter}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Todos os destinos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os destinos</SelectItem>
+                {destinations.map((destination) => (
+                  <SelectItem key={destination} value={destination!}>
+                    {destination}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {hasActiveFilters && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={clearFilters}
+              aria-label="Limpar filtros"
+              className="shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        {hasActiveFilters && !isLoading && (
+          <div className="mt-4 text-sm text-muted-foreground">
+            {filteredPackages.length} de {packages?.length ?? 0} roteiro
+            {filteredPackages.length === 1 ? "" : "s"} encontrado
+            {filteredPackages.length === 1 ? "" : "s"}
+          </div>
+        )}
+
+        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading &&
             Array.from({ length: 6 }).map((_, i) => (
               <div
@@ -69,14 +171,29 @@ function PacotesList() {
               />
             ))}
 
-          {!isLoading && packages?.length === 0 && (
+          {!isLoading && filteredPackages.length === 0 && (
             <div className="col-span-full rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
-              Nenhum pacote disponível no momento. Fale com a gente no WhatsApp para um roteiro
-              sob medida.
+              {hasActiveFilters ? (
+                <>
+                  Nenhum roteiro encontrado com esses filtros.{" "}
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-brand-orange underline hover:no-underline"
+                  >
+                    Limpar filtros
+                  </button>
+                </>
+              ) : (
+                <>
+                  Nenhum pacote disponível no momento. Fale com a gente no WhatsApp para um roteiro
+                  sob medida.
+                </>
+              )}
             </div>
           )}
 
-          {packages?.map((p) => (
+          {filteredPackages.map((p) => (
             <Link
               key={p.id}
               to="/pacotes/$slug"
