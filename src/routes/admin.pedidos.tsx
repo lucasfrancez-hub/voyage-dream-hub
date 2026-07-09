@@ -523,6 +523,15 @@ function AdminOrders() {
                     <XCircle className="h-3.5 w-3.5" /> Rejeitar
                   </button>
                 )}
+                {o.status !== "cancelled" && o.status !== "paid" && (
+                  <button
+                    type="button"
+                    onClick={() => onCancel(o.id, o.notes ?? null)}
+                    className="inline-flex items-center gap-2 rounded-full border border-orange-500/40 text-orange-500 px-3.5 py-2 text-xs hover:bg-orange-500/10 transition"
+                  >
+                    <Ban className="h-3.5 w-3.5" /> Cancelar
+                  </button>
+                )}
                 {hasAuthorization && authorization && (
                   <button
                     type="button"
