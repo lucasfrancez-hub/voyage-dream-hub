@@ -159,8 +159,8 @@ function AdminOrders() {
             hotel_stars?: number | null;
             meal_plan?: string | null;
             includes?: string[] | null;
-            outbound_flight?: FlightLike | null;
-            return_flight?: FlightLike | null;
+            outbound_flight?: FlightInfo | null;
+            return_flight?: FlightInfo | null;
 
             first_amount?: number | null;
             travelers?: Array<{
