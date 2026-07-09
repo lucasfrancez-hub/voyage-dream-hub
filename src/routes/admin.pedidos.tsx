@@ -235,7 +235,17 @@ function AdminOrders() {
           </div>
         )}
         {filteredOrders.map((o) => {
-          const snap = (o.package_snapshot ?? {}) as {
+          const rawSnap = (o.package_snapshot ?? {}) as Record<string, unknown>;
+          const pkg = (o.package_id && packagesById?.[o.package_id as string]) || {};
+          // Merge: snapshot wins, package fills gaps (for old orders / missing snapshot fields)
+          const merged: Record<string, unknown> = { ...pkg, ...rawSnap };
+          for (const k of Object.keys(rawSnap)) {
+            if (rawSnap[k] === null || rawSnap[k] === undefined) {
+              if (pkg[k] !== undefined && pkg[k] !== null) merged[k] = pkg[k];
+            }
+          }
+          const supplierFromPackage = (pkg["supplier_name"] as string | null | undefined) ?? null;
+          const snap = merged as {
             slug?: string;
             title?: string;
             destination?: string;
