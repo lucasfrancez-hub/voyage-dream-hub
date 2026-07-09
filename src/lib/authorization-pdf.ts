@@ -17,8 +17,10 @@ export type AuthorizationData = {
   installments?: number;
   description?: string | null;
   reference?: string | null;
+  order_number?: string | null;
   accepted_terms?: boolean;
   signature_data_url?: string | null;
+
   signed_at?: string;
   ip_address?: string | null;
   ip_geo?: {
@@ -123,7 +125,7 @@ export async function generateAuthorizationPDF(opts: {
       );
       doc.text("Documento validado eletronicamente (MP 2.200-2/2001)", M, 22.5);
     } else {
-      doc.text(`Pedido ${orderId}`, M, 17);
+      doc.text(`Pedido ${a.order_number || orderId}`, M, 17);
     }
 
     // selo à direita
@@ -242,7 +244,9 @@ export async function generateAuthorizationPDF(opts: {
     doc.text(value, x + 2.5, y + 9);
   };
   const chipW = (contentW - 6) / 3;
-  chip("Pedido", orderId.slice(0, 12) + (orderId.length > 12 ? "…" : ""), M, chipW);
+  const pedidoDisplay = a.order_number || (orderId.slice(0, 12) + (orderId.length > 12 ? "…" : ""));
+  chip("Pedido", pedidoDisplay, M, chipW);
+
   chip("Assinado em", fmtDate(a.signed_at), M + chipW + 3, chipW);
   chip("Válido até", fmtDate(a.valid_until), M + (chipW + 3) * 2, chipW);
   y += 16;

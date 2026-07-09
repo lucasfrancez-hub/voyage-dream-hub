@@ -18,6 +18,8 @@ function LinkGenerator() {
   const [total, setTotal] = useState("");
   const [installments, setInstallments] = useState(10);
   const [orderRef, setOrderRef] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
+
   const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
   const [firstAmount, setFirstAmount] = useState("");
@@ -37,11 +39,13 @@ function LinkGenerator() {
       installments,
       firstAmount: effectiveFirst,
       orderRef: orderRef || undefined,
+      orderNumber: orderNumber.trim() || undefined,
       customerName: customer || undefined,
       imageUrl: imageUrl || undefined,
       supplier: supplier.trim(),
     });
-  }, [totalNumber, installments, orderRef, description, customer, effectiveFirst, imageUrl, supplier]);
+  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier]);
+
 
   const parcelaLabel = split.equal
     ? `${installments}x de ${formatBRL(split.first)} sem juros`
@@ -61,10 +65,12 @@ function LinkGenerator() {
       installments,
       firstAmount: effectiveFirst,
       orderRef: orderRef || undefined,
+      orderNumber: orderNumber.trim() || undefined,
       imageUrl: imageUrl || undefined,
       url,
     });
   }
+
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
@@ -118,9 +124,22 @@ function LinkGenerator() {
               Quem aparecerá na fatura e no documento de autorização de débito. Pode ser Via Air, uma companhia aérea ou operadora.
             </span>
           </Field>
+          <Field label="Número do pedido (opcional)">
+            <input
+              value={orderNumber}
+              onChange={(e) => setOrderNumber(e.target.value)}
+              className={cls}
+              placeholder="Ex.: localizador da cia (ABC123) ou ID da operadora"
+              maxLength={40}
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Aparecerá como número oficial do pedido no PDF de autorização de débito. Deixe em branco para usar o ID interno.
+            </span>
+          </Field>
           <Field label="Referência interna (opcional)">
             <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
           </Field>
+
           <Field label="Imagem do destino (URL) — aparece no topo do link do cliente">
             <input
               value={imageUrl}

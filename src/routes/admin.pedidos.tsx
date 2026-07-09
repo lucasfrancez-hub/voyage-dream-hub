@@ -149,6 +149,8 @@ function AdminOrders() {
             base_occupancy?: number | null;
             description?: string;
             reference?: string | null;
+            order_number?: string | null;
+
             first_amount?: number | null;
             travelers?: Array<{
               index?: number;
@@ -401,6 +403,8 @@ function AdminOrders() {
                           holder_birth_date: authorization.holder_birth_date ?? o.birth_date ?? undefined,
                           description: authorization.description ?? snap.description ?? title,
                           reference: authorization.reference ?? snap.reference ?? null,
+                          order_number: authorization.order_number ?? snap.order_number ?? null,
+
                           supplier: authorization.supplier ?? "—",
                           representative:
                             authorization.representative ??

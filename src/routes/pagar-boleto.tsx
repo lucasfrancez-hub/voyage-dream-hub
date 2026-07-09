@@ -14,6 +14,7 @@ type Search = {
   desc?: string;
   total?: string;
   ref?: string;
+  pedido?: string;
   cliente?: string;
   img?: string;
 };
@@ -28,11 +29,13 @@ export const Route = createFileRoute("/pagar-boleto")({
     desc: asStr(s.desc),
     total: asStr(s.total),
     ref: asStr(s.ref),
+    pedido: asStr(s.pedido),
     cliente: asStr(s.cliente),
     img: asStr(s.img),
   }),
   component: PayBoletoPage,
 });
+
 
 type Passenger = {
   full_name: string;
@@ -51,7 +54,7 @@ const emptyPassenger = (): Passenger => ({
 });
 
 function PayBoletoPage() {
-  const { desc, total, ref, cliente, img } = Route.useSearch();
+  const { desc, total, ref, pedido, cliente, img } = Route.useSearch();
   const totalNumber = Number(total) || 0;
   const invalid = !desc || !totalNumber;
 
@@ -122,6 +125,8 @@ function PayBoletoPage() {
           kind: "payment_link_boleto",
           description: desc,
           reference: ref ?? null,
+          order_number: pedido ?? null,
+
           total: totalNumber,
           installments,
           installment_value: installmentValue,

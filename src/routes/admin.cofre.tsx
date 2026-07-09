@@ -429,6 +429,8 @@ function CofrePage() {
                           holder_birth_date: rawAuth.holder_birth_date ?? ord.birthDate ?? undefined,
                           description: rawAuth.description ?? ord.linkDescription ?? e.description,
                           reference: rawAuth.reference ?? ord.linkReference ?? null,
+                          order_number: rawAuth.order_number ?? ord.orderNumber ?? null,
+
                           supplier: rawAuth.supplier ?? "—",
                           representative:
                             rawAuth.representative ??
