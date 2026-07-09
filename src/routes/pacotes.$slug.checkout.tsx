@@ -455,8 +455,9 @@ function Checkout() {
               <p className="mt-3 text-[11px] text-muted-foreground text-center">
                 Ao continuar você concorda com nossos termos e política de cancelamento.
               </p>
-              <p className="mt-2 text-[11px] text-muted-foreground text-center inline-flex items-center justify-center gap-1.5">
-                <Lock className="h-3 w-3" /> Ambiente criptografado. Seus dados trafegam por conexão segura.
+              <p className="mt-2 text-[11px] text-muted-foreground text-center">
+                <span aria-hidden className="mr-1 font-sans">{"\u{1F512}\u{FE0E}"}</span>
+                Ambiente criptografado. Seus dados trafegam por conexão segura.
               </p>
             </div>
           </aside>
