@@ -44,6 +44,7 @@ export type CofreOrder = {
   linkDescription: string | null;
   linkReference: string | null;
   firstAmount: number | null;
+  snapshotKind: string | null;
 };
 
 
