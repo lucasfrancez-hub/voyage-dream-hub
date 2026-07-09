@@ -43,6 +43,8 @@ import {
   type CofreOrder,
 } from "@/lib/cofre.functions";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
+import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
+
 import { detectBrand } from "@/components/CardForm";
 
 function cardBrandLabel(card: { brand_hint?: string; full_number?: string; last4?: string } | null | undefined): string {
