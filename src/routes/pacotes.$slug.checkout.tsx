@@ -752,7 +752,7 @@ function BoletoForm({
             </select>
           </Field>
           <Field label="CPF *">
-            <input value={data.cpf} onChange={set("cpf")} className={inputCls} placeholder="000.000.000-00" maxLength={20} />
+            <input value={data.cpf} onChange={(e) => onChange({ cpf: maskCPF(e.target.value) })} className={inputCls} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} />
           </Field>
           <Field label="Data de nascimento *">
             <input type="date" value={data.birth_date} onChange={set("birth_date")} className={inputCls} />
