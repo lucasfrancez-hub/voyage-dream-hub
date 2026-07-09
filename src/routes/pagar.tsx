@@ -59,11 +59,14 @@ export const Route = createFileRoute("/pagar")({
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec, loc, rota, datav } = Route.useSearch();
 
   const secureMode = simples !== "1";
   const supplierName = fornec?.trim() || "Via Air Agência e Representações Ltda";
   const supplierIsViaAir = !fornec || /via ?air/i.test(fornec);
+  const tripLocator = loc?.trim() ?? "";
+  const tripRoute = rota?.trim() ?? "";
+  const tripDate = datav?.trim() ?? "";
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
@@ -81,8 +84,6 @@ function PayPage() {
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [liveness, setLiveness] = useState<LivenessResult | null>(null);
-  const [tripLocator, setTripLocator] = useState("");
-  const [tripRoute, setTripRoute] = useState("");
   const [tripDate, setTripDate] = useState("");
 
 
