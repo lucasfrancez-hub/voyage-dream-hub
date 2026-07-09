@@ -716,7 +716,9 @@ function BoletoForm({
 }) {
   const set = <K extends keyof BoletoData>(k: K) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     onChange({ [k]: e.target.value } as Partial<BoletoData>);
+  const isThirdParty = data.relationship !== "" && data.relationship !== "proprio_viajante";
   return (
+
     <div className="space-y-6">
       <BoletoSection title="Dados pessoais do financiador">
         <div className="grid sm:grid-cols-2 gap-4">
