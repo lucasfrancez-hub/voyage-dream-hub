@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, QrCode, FileText, Loader2, Check, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
   component: Checkout,
 });
 
-type PaymentMethod = "credit_card" | "pix";
+type PaymentMethod = "credit_card" | "pix" | "boleto";
 
 const MAX_INSTALLMENTS = 10;
 const DEFAULT_INSTALLMENTS = 10;
@@ -184,12 +184,13 @@ function Checkout() {
         toast.success("Pedido enviado! Nosso time confirma sua reserva em seguida.");
         setTimeout(() => navigate({ to: "/pacotes" }), 2000);
       } else {
+        const methodLabel = payment === "pix" ? "Pix" : "boleto bancário parcelado";
         const message = `Olá! Reservei o pacote *${pkg.title}* (${adults} adulto${
           adults > 1 ? "s" : ""
         }${children ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}) — Total ${formatBRL(
           totalPrice,
-        )}. Quero pagar via Pix.\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
-        toast.success("Abrindo WhatsApp para finalizar o Pix…");
+        )}. Quero pagar via ${methodLabel}.\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
+        toast.success("Abrindo WhatsApp para finalizar…");
         setTimeout(() => {
           window.open(whatsappUrl(message), "_blank");
           navigate({ to: "/pacotes" });
@@ -353,7 +354,7 @@ function Checkout() {
             {/* Pagamento */}
             <Card title="Pagamento">
               <p className="text-sm text-muted-foreground mb-4">Como prefere pagar?</p>
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-3 gap-3">
                 <PaymentOption
                   active={payment === "credit_card"}
                   onClick={() => setPayment("credit_card")}
@@ -368,7 +369,20 @@ function Checkout() {
                   title="Pix"
                   desc="Finalize via WhatsApp com nosso consultor."
                 />
+                <PaymentOption
+                  active={payment === "boleto"}
+                  onClick={() => setPayment("boleto")}
+                  icon={FileText}
+                  title="Boleto bancário"
+                  desc="Parcelamos no boleto. Finalização feita via WhatsApp com nosso consultor."
+                />
               </div>
+
+              {payment === "boleto" && (
+                <div className="mt-4 rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs text-muted-foreground">
+                  O parcelamento no boleto bancário não é finalizado de forma online. Ao concluir o pedido, você será direcionado ao WhatsApp para combinar as condições com nosso consultor.
+                </div>
+              )}
 
               {payment === "credit_card" && (
                 <div className="mt-6 pt-6 border-t border-border">
