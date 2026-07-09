@@ -102,16 +102,38 @@ function AdminOrders() {
         {orders?.length ?? 0} reserva(s) recebida(s)
       </p>
 
+      <div className="mt-6 flex flex-wrap gap-2 border-b border-border pb-3">
+        {PAYMENT_FILTERS.map((f) => {
+          const active = filter === f.value;
+          const count = f.value === "all" ? orders?.length ?? 0 : counts[f.value] ?? 0;
+          return (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setFilter(f.value)}
+              className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                active
+                  ? "bg-brand-orange text-primary-foreground"
+                  : "border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f.label}
+              <span className={`rounded-full px-1.5 text-[10px] ${active ? "bg-white/20" : "bg-muted"}`}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mt-6 space-y-3">
         {isLoading && (
           <div className="text-center text-muted-foreground py-8">Carregando…</div>
         )}
-        {!isLoading && orders?.length === 0 && (
+        {!isLoading && filteredOrders.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
-            Nenhum pedido ainda.
+            {filter === "all" ? "Nenhum pedido ainda." : "Nenhum pedido nesta forma de pagamento."}
           </div>
         )}
-        {orders?.map((o) => {
+        {filteredOrders.map((o) => {
           const snap = (o.package_snapshot ?? {}) as {
             slug?: string;
             title?: string;
