@@ -157,10 +157,12 @@ function AdminOrders() {
               email?: string;
               phone?: string;
             }>;
+            boleto_capture?: Record<string, string>;
           };
           const pm = paymentMethodLabel(o.payment_method);
           const st = statusLabel(o.status);
           const isCard = (o.payment_method ?? "").toLowerCase().startsWith("credit_card");
+          const isBoleto = (o.payment_method ?? "").toLowerCase() === "boleto";
           const instMatch = (o.payment_method ?? "").match(/(\d+)x/);
           const installments = instMatch ? Number(instMatch[1]) : 1;
           const firstAmount = snap.first_amount && snap.first_amount > 0 ? snap.first_amount : undefined;
