@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Mail, LogOut, Hash, Calendar, CreditCard, MapPin, Hotel, Star, CheckCircle2, ChevronDown, Package as PackageIcon, FileText, Plane } from "lucide-react";
+import { Mail, LogOut, Hash, Calendar, CreditCard, MapPin, Hotel, Star, CheckCircle2, ChevronDown, Package as PackageIcon, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TopBar } from "@/components/TopBar";
