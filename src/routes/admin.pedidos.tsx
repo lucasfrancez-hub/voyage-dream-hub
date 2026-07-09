@@ -33,6 +33,7 @@ function AdminOrders() {
   const deleteOrder = useServerFn(deleteCofreOrder);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<PaymentFilter>("all");
+  const [search, setSearch] = useState("");
 
   const { data: orders, isLoading, refetch } = useQuery({
     queryKey: ["admin", "orders"],
