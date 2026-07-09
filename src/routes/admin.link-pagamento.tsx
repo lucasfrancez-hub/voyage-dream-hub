@@ -22,6 +22,7 @@ function LinkGenerator() {
   const [locator, setLocator] = useState("");
   const [tripRoute, setTripRoute] = useState("");
   const [travelDate, setTravelDate] = useState("");
+  const [passengers, setPassengers] = useState("");
 
   const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
