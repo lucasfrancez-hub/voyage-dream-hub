@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Calendar, Plane, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDateRange, formatBRL } from "@/lib/format";
+import { formatBRL, formatDateRange } from "@/lib/format";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
 
@@ -122,13 +122,12 @@ function PacotesList() {
                   {p.nights ? ` · ${p.nights} noites` : ""}
                 </div>
                 <div className="mt-auto pt-3 border-t border-border">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">a partir de</span>
-                    <span className="font-display text-xl font-bold text-brand-orange">
-                      {formatBRL(p.price_per_person)}
-                    </span>
+                  <div className="text-xs text-muted-foreground">a partir de</div>
+                  <div className="text-2xl font-display font-bold text-brand-orange">
+                    {formatBRL(p.price_per_person)}
                   </div>
-                  <div className="rounded-md bg-muted/40 px-2 py-1.5 text-[11px] text-muted-foreground">
+                  <div className="text-[11px] text-muted-foreground">por pessoa</div>
+                  <div className="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-[11px] text-muted-foreground">
                     Pacote para <span className="text-foreground font-medium">{p.base_occupancy ?? 2} adulto{(p.base_occupancy ?? 2) > 1 ? "s" : ""}</span>. Para outra quantidade, fale no WhatsApp.
                   </div>
                   <div className="mt-2 text-[10px] text-muted-foreground text-center">
