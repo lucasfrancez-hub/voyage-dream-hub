@@ -420,8 +420,8 @@ function Checkout() {
                 )}
                 {Number(pkg.taxes ?? 0) > 0 && (
                   <SummaryLine
-                    label={`Taxas × ${adults + children}`}
-                    value={formatBRL(Number(pkg.taxes) * (adults + children))}
+                    label="Taxas (já inclusas)"
+                    value={formatBRL(Number(pkg.taxes))}
                   />
                 )}
               </div>
