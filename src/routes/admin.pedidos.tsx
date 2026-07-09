@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Mail, Phone, User, CheckCircle2, XCircle, Ban, Trash2, CreditCard, Calendar, Hash, ChevronDown, MapPin, Package as PackageIcon, Users, FileText, FileSignature, Hotel, Star } from "lucide-react";
+import { Mail, Phone, User, CheckCircle2, XCircle, Ban, RotateCcw, Trash2, CreditCard, Calendar, Hash, ChevronDown, MapPin, Package as PackageIcon, Users, FileText, FileSignature, Hotel, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -60,15 +60,6 @@ function AdminOrders() {
     return acc;
   }, {});
 
-  async function onFinalize(id: string) {
-    try {
-      await updateOrder({ data: { id, status: "paid" } });
-      toast.success("Pedido finalizado");
-      refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro");
-    }
-  }
 
   async function onReject(id: string, currentNotes: string | null) {
     const reason = window.prompt(
@@ -90,6 +81,12 @@ function AdminOrders() {
   }
 
   async function onCancel(id: string, currentNotes: string | null) {
+    const confirmed = window.confirm(
+      "ATENÇÃO: Cancelar aqui só marca o pedido como cancelado no portal.\n\n" +
+      "Se o bilhete/reserva já foi emitido, o cancelamento pode estar sujeito a MULTA e regras da companhia/operadora. " +
+      "Cancele também no sistema do fornecedor.\n\nDeseja continuar?",
+    );
+    if (!confirmed) return;
     const reason = window.prompt(
       "Motivo do cancelamento (opcional):",
       "",
@@ -107,6 +104,31 @@ function AdminOrders() {
       toast.error(err instanceof Error ? err.message : "Erro");
     }
   }
+
+  async function onReactivate(id: string, currentNotes: string | null) {
+    const stamp = new Date().toLocaleString("pt-BR");
+    const line = `[Reativado em ${stamp}]`;
+    const newNotes = currentNotes ? `${currentNotes}\n${line}` : line;
+    try {
+      await updateOrder({ data: { id, status: "pending", notes: newNotes } });
+      toast.success("Pedido reativado");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
+  async function onConfirmPayment(id: string) {
+    if (!window.confirm("Confirmar que o pagamento foi realizado e finalizar o pedido?")) return;
+    try {
+      await updateOrder({ data: { id, status: "paid" } });
+      toast.success("Pagamento confirmado");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
 
   async function onDelete(id: string) {
     if (!window.confirm("Excluir este pedido definitivamente?")) return;
@@ -508,13 +530,22 @@ function AdminOrders() {
                 {o.status !== "paid" && (
                   <button
                     type="button"
-                    onClick={() => onFinalize(o.id)}
+                    onClick={() => onConfirmPayment(o.id)}
                     className="inline-flex items-center gap-2 rounded-full border border-green-500/40 text-green-500 px-3.5 py-2 text-xs hover:bg-green-500/10 transition"
                   >
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Pagamento realizado
                   </button>
                 )}
-                {o.status !== "rejected" && (
+                {(o.status === "cancelled" || o.status === "rejected") && (
+                  <button
+                    type="button"
+                    onClick={() => onReactivate(o.id, o.notes ?? null)}
+                    className="inline-flex items-center gap-2 rounded-full border border-blue-500/40 text-blue-400 px-3.5 py-2 text-xs hover:bg-blue-500/10 transition"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Reativar pedido
+                  </button>
+                )}
+                {o.status !== "rejected" && o.status !== "cancelled" && (
                   <button
                     type="button"
                     onClick={() => onReject(o.id, o.notes ?? null)}
@@ -523,13 +554,13 @@ function AdminOrders() {
                     <XCircle className="h-3.5 w-3.5" /> Rejeitar
                   </button>
                 )}
-                {o.status !== "cancelled" && o.status !== "paid" && (
+                {o.status !== "cancelled" && (
                   <button
                     type="button"
                     onClick={() => onCancel(o.id, o.notes ?? null)}
                     className="inline-flex items-center gap-2 rounded-full border border-orange-500/40 text-orange-500 px-3.5 py-2 text-xs hover:bg-orange-500/10 transition"
                   >
-                    <Ban className="h-3.5 w-3.5" /> Cancelar
+                    <Ban className="h-3.5 w-3.5" /> Cancelar pedido
                   </button>
                 )}
                 {hasAuthorization && authorization && (
