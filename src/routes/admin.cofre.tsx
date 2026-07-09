@@ -79,6 +79,10 @@ type UnifiedItem = {
   paymentMethod?: string;
   orderId?: string;
   orderNumber?: string;
+  supplier?: string;
+  locator?: string;
+  route?: string;
+  travelDate?: string;
   adults?: number;
   children?: number;
   notes?: string | null;
@@ -173,6 +177,11 @@ function CofrePage() {
       firstAmount: e.firstAmount,
       url: e.url,
       meta: e.orderRef ? `Ref: ${e.orderRef}` : "Link avulso",
+      orderNumber: e.orderNumber,
+      supplier: e.supplier,
+      locator: e.locator,
+      route: e.route,
+      travelDate: e.travelDate,
     }));
 
     const pedidos: UnifiedItem[] = (ordersQuery.data ?? [])
@@ -203,6 +212,12 @@ function CofrePage() {
           orderRef: o.id.slice(0, 8),
           customerName: o.fullName,
         });
+        const auth = (o.cardCapture?.authorization ?? {}) as {
+          supplier?: string;
+          trip_locator?: string;
+          trip_route?: string;
+          trip_date?: string;
+        };
         return {
           id: `pedido:${o.id}`,
           kind: isLinkOrder ? "avulso" : "pedido",
@@ -223,6 +238,10 @@ function CofrePage() {
           paymentMethod: o.paymentMethod,
           orderId: o.id,
           orderNumber: o.orderNumber ?? undefined,
+          supplier: auth.supplier ?? undefined,
+          locator: auth.trip_locator ?? undefined,
+          route: auth.trip_route ?? undefined,
+          travelDate: auth.trip_date ?? undefined,
           adults: o.adults,
           children: o.children,
           notes: o.notes,
@@ -366,6 +385,34 @@ function CofrePage() {
                   {e.notes && (
                     <div className="text-xs text-muted-foreground mt-1 italic">
                       "{e.notes}"
+                    </div>
+                  )}
+                  {(e.supplier || e.locator || e.route || e.travelDate) && (
+                    <div className="mt-2 grid gap-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
+                      {e.supplier && (
+                        <div>
+                          <span className="text-muted-foreground">Fornecedor: </span>
+                          <span className="font-medium text-foreground">{e.supplier}</span>
+                        </div>
+                      )}
+                      {e.locator && (
+                        <div>
+                          <span className="text-muted-foreground">Localizador: </span>
+                          <span className="font-mono font-semibold text-foreground">{e.locator}</span>
+                        </div>
+                      )}
+                      {e.route && (
+                        <div>
+                          <span className="text-muted-foreground">Rota: </span>
+                          <span className="whitespace-pre-line text-foreground">{e.route}</span>
+                        </div>
+                      )}
+                      {e.travelDate && (
+                        <div>
+                          <span className="text-muted-foreground">Data: </span>
+                          <span className="text-foreground">{e.travelDate}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

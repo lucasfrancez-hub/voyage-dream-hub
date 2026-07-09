@@ -19,6 +19,9 @@ function LinkGenerator() {
   const [installments, setInstallments] = useState(10);
   const [orderRef, setOrderRef] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
+  const [locator, setLocator] = useState("");
+  const [tripRoute, setTripRoute] = useState("");
+  const [travelDate, setTravelDate] = useState("");
 
   const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
@@ -43,8 +46,11 @@ function LinkGenerator() {
       customerName: customer || undefined,
       imageUrl: imageUrl || undefined,
       supplier: supplier.trim(),
+      locator: locator.trim() || undefined,
+      route: tripRoute.trim() || undefined,
+      travelDate: travelDate.trim() || undefined,
     });
-  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier]);
+  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier, locator, tripRoute, travelDate]);
 
 
   const parcelaLabel = split.equal
@@ -67,6 +73,10 @@ function LinkGenerator() {
       orderRef: orderRef || undefined,
       orderNumber: orderNumber.trim() || undefined,
       imageUrl: imageUrl || undefined,
+      supplier: supplier.trim() || undefined,
+      locator: locator.trim() || undefined,
+      route: tripRoute.trim() || undefined,
+      travelDate: travelDate.trim() || undefined,
       url,
     });
   }
@@ -136,6 +146,38 @@ function LinkGenerator() {
               Aparecerá como número oficial do pedido no PDF de autorização de débito. Deixe em branco para usar o ID interno.
             </span>
           </Field>
+
+          <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              Informações da viagem (aparecem no PDF de autorização)
+            </div>
+            <Field label="Localizador da companhia aérea">
+              <input
+                value={locator}
+                onChange={(e) => setLocator(e.target.value.toUpperCase())}
+                className={cls}
+                placeholder="Ex.: ABC123"
+                maxLength={20}
+              />
+            </Field>
+            <Field label="Rota (origem, destino e horários)">
+              <textarea
+                value={tripRoute}
+                onChange={(e) => setTripRoute(e.target.value)}
+                className={`${cls} min-h-[70px]`}
+                placeholder={"Ex.: CWB 08:15 → GRU 09:35 (LA3421)\nGRU 22:10 → MIA 06:30 (LA8188)"}
+              />
+            </Field>
+            <Field label="Data(s) da viagem">
+              <input
+                value={travelDate}
+                onChange={(e) => setTravelDate(e.target.value)}
+                className={cls}
+                placeholder="Ex.: 12/03/2026 a 19/03/2026"
+              />
+            </Field>
+          </div>
+
           <Field label="Referência interna (opcional)">
             <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
           </Field>

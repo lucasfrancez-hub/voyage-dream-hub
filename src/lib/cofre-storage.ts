@@ -10,6 +10,10 @@ export type CofreEntry = {
   orderRef?: string;
   orderNumber?: string;
   imageUrl?: string;
+  supplier?: string;
+  locator?: string;
+  route?: string;
+  travelDate?: string;
   url: string;
 };
 
