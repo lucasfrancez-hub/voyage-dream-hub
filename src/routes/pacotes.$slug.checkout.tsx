@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
