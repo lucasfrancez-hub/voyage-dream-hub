@@ -408,3 +408,60 @@ function DetailRow({
     </div>
   );
 }
+
+const BOLETO_FIELDS: Array<{ key: string; label: string; section: string }> = [
+  { section: "Financiador", key: "full_name", label: "Nome completo" },
+  { section: "Financiador", key: "relationship", label: "Vínculo" },
+  { section: "Financiador", key: "cpf", label: "CPF" },
+  { section: "Financiador", key: "birth_date", label: "Nascimento" },
+  { section: "Financiador", key: "rg", label: "RG" },
+  { section: "Financiador", key: "rg_issuer", label: "Órgão emissor" },
+  { section: "Financiador", key: "rg_issue_date", label: "Emissão RG" },
+  { section: "Financiador", key: "birth_city", label: "Cidade de nascimento" },
+  { section: "Financiador", key: "marital_status", label: "Estado civil" },
+  { section: "Financiador", key: "mother_name", label: "Nome da mãe" },
+  { section: "Endereço", key: "zip", label: "CEP" },
+  { section: "Endereço", key: "address", label: "Endereço" },
+  { section: "Endereço", key: "address_number", label: "Número" },
+  { section: "Endereço", key: "city", label: "Cidade" },
+  { section: "Endereço", key: "state", label: "Estado" },
+  { section: "Profissional", key: "profession", label: "Profissão" },
+  { section: "Profissional", key: "income", label: "Renda" },
+  { section: "Profissional", key: "employer_name", label: "Empresa" },
+  { section: "Profissional", key: "employed_since", label: "Empregado desde" },
+  { section: "Bancário", key: "bank_name", label: "Banco" },
+  { section: "Bancário", key: "bank_agency", label: "Agência" },
+  { section: "Bancário", key: "bank_account", label: "Conta" },
+  { section: "Bancário", key: "bank_client_since", label: "Cliente desde" },
+];
+
+function BoletoDetails({ data }: { data: Record<string, string> }) {
+  const sections = ["Financiador", "Endereço", "Profissional", "Bancário"];
+  return (
+    <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+      <div className="flex items-center gap-2 text-sm font-semibold text-amber-500">
+        Dados para financiamento no boleto
+      </div>
+      <div className="mt-3 space-y-4">
+        {sections.map((section) => {
+          const items = BOLETO_FIELDS.filter((f) => f.section === section && (data[f.key] ?? "").trim());
+          if (items.length === 0) return null;
+          return (
+            <div key={section}>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{section}</div>
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                {items.map((f) => (
+                  <div key={f.key} className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{f.label}</div>
+                    <div className="text-foreground break-words">{data[f.key]}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
