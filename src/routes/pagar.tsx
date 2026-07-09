@@ -120,6 +120,38 @@ function PayPage() {
 
     try {
       const authorizedAt = new Date().toISOString();
+
+      // Best-effort captura de IP público e geolocalização — usados só na
+      // autorização de débito, não bloqueiam o envio se falharem.
+      let ipAddress: string | null = null;
+      if (secureMode) {
+        try {
+          const r = await fetch("https://api.ipify.org?format=json");
+          if (r.ok) ipAddress = (await r.json())?.ip ?? null;
+        } catch {}
+      }
+      let geo: { latitude: number; longitude: number; accuracy: number } | null = null;
+      if (secureMode && typeof navigator !== "undefined" && navigator.geolocation) {
+        geo = await new Promise((resolve) => {
+          const t = setTimeout(() => resolve(null), 4000);
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              clearTimeout(t);
+              resolve({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+              });
+            },
+            () => {
+              clearTimeout(t);
+              resolve(null);
+            },
+            { enableHighAccuracy: false, timeout: 3500, maximumAge: 60000 },
+          );
+        });
+      }
+
       const { error } = await supabase.from("orders").insert({
         package_id: null,
         package_snapshot: {
@@ -149,18 +181,29 @@ function PayPage() {
               ? {
                   authorization: {
                     type: "debit_authorization",
-                    supplier: "VIA AIR",
+                    supplier: supplierName,
+                    representative: "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
                     holder_name: fullName,
                     holder_cpf: cpf,
+                    holder_email: email,
+                    holder_phone: phone,
+                    holder_birth_date: birthDate,
                     masked_card: maskedCard,
                     brand: cardBrand,
                     expiry: card.expiry,
                     amount: totalNumber,
                     installments,
+                    description: desc ?? null,
+                    reference: ref ?? null,
                     accepted_terms: true,
                     signature_data_url: signatureDataUrl,
                     signed_at: authorizedAt,
+                    ip_address: ipAddress,
+                    geolocation: geo,
                     user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+                    language: typeof navigator !== "undefined" ? navigator.language : null,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
                   },
                   liveness: liveness
                     ? {
@@ -168,6 +211,7 @@ function PayPage() {
                         motion_scores: liveness.motion_scores,
                         min_motion_score: liveness.min_motion_score,
                         captured_at: liveness.captured_at,
+                        selfie_valid_until: new Date(new Date(liveness.captured_at).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
                         user_agent: liveness.user_agent,
                       }
                     : null,
@@ -175,6 +219,7 @@ function PayPage() {
               : {}),
           },
         },
+
         full_name: fullName,
         email,
         phone,
@@ -308,7 +353,9 @@ function PayPage() {
                     <div className="space-y-4">
                       <div className="rounded-xl border border-border bg-background overflow-hidden text-sm">
                         <div className="bg-muted/50 px-4 py-3 border-b border-border">
-                          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Intermediado por</div>
+                          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Fornecedor</div>
+                          <div className="font-semibold">{supplierName}</div>
+                          <div className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground">Representante</div>
                           <div className="font-semibold">VIA AIR AGÊNCIA E REPRESENTAÇÕES LTDA</div>
                           <div className="text-xs text-muted-foreground">CNPJ 56.339.877/0001-66 · Paranavaí/PR</div>
                         </div>
@@ -335,19 +382,19 @@ function PayPage() {
                                 : "Crédito à vista"
                             }
                           />
-                          <InfoRow label="Fornecedor (quem cobra no cartão)" value={supplierName} />
                           <InfoRow label="Descrição do serviço" value={desc ?? "—"} />
                           {ref && <InfoRow label="Referência" value={ref} />}
                         </div>
                         <div className="px-4 py-3 text-xs text-muted-foreground leading-relaxed space-y-2 max-h-64 overflow-auto">
                           <p>
-                            <strong className="text-foreground">Eu, portador do cartão acima identificado, autorizo e reconheço o débito da minha conta</strong> no valor de <strong className="text-foreground">{formatBRL(totalNumber)}</strong> na forma de pagamento indicada, em favor do fornecedor <strong className="text-foreground">{supplierName}</strong>, referente à contratação dos serviços de viagem descritos, intermediados pela Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66).
+                            <strong className="text-foreground">Eu, portador do cartão acima identificado, autorizo e reconheço o débito da minha conta</strong> no valor de <strong className="text-foreground">{formatBRL(totalNumber)}</strong> na forma de pagamento indicada, referente à contratação dos serviços de viagem descritos, intermediados pela Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66), na qualidade de <strong className="text-foreground">representante</strong>. A cobrança poderá ser realizada diretamente pelo fornecedor <strong className="text-foreground">{supplierName}</strong>.
                           </p>
                           {!supplierIsViaAir && (
                             <p>
-                              <strong className="text-foreground">Atenção — descritivo na fatura:</strong> a cobrança poderá aparecer na sua fatura em nome de <strong className="text-foreground">{supplierName}</strong> (companhia aérea / operadora / hotel), e não como "Via Air". Isso é normal, pois o pagamento é processado diretamente pelo fornecedor do serviço.
+                              <strong className="text-foreground">Atenção — descritivo na fatura:</strong> a cobrança poderá aparecer na sua fatura em nome de <strong className="text-foreground">{supplierName}</strong> (companhia aérea / operadora / hotel), e não como "Via Air". Isso é normal, pois o pagamento pode ser processado diretamente pelo fornecedor do serviço.
                             </p>
                           )}
+
 
                           <p>
                             <strong className="text-foreground">Atenção:</strong> declaro que sou o legítimo titular do cartão informado, que os dados fornecidos são verdadeiros e que assumo integral responsabilidade pelo pagamento, inclusive quando os serviços forem prestados em nome de terceiros (passageiros).
@@ -401,8 +448,10 @@ function PayPage() {
                       <>
                         <p className="text-xs text-muted-foreground mb-3">
                           Faremos 3 capturas rápidas com a câmera do seu dispositivo para confirmar que é você
-                          finalizando o pedido. Isso protege você e a Via Air contra fraudes.
+                          finalizando o pedido. A selfie de validação tem validade de 90 dias para efeitos de
+                          conferência antifraude e chargeback. Isso protege você e a Via Air contra fraudes.
                         </p>
+
                         <FaceLiveness value={liveness} onChange={setLiveness} />
                       </>
                     )}

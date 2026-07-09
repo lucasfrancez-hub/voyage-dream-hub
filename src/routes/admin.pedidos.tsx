@@ -2,13 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Mail, Phone, User, CheckCircle2, XCircle, Trash2, CreditCard, Calendar, Hash, ChevronDown, MapPin, Package as PackageIcon, Users, FileText } from "lucide-react";
+import { Mail, Phone, User, CheckCircle2, XCircle, Trash2, CreditCard, Calendar, Hash, ChevronDown, MapPin, Package as PackageIcon, Users, FileText, FileSignature } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { splitInstallments } from "@/lib/checkout-config";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 import { updateCofreOrder, deleteCofreOrder } from "@/lib/cofre.functions";
+import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
+
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrders,
@@ -158,6 +160,10 @@ function AdminOrders() {
               phone?: string;
             }>;
             boleto_capture?: Record<string, string>;
+            card_capture?: {
+              authorization?: AuthorizationData;
+              liveness?: LivenessData | null;
+            };
           };
           const pm = paymentMethodLabel(o.payment_method);
           const st = statusLabel(o.status);
@@ -168,6 +174,10 @@ function AdminOrders() {
           const firstAmount = snap.first_amount && snap.first_amount > 0 ? snap.first_amount : undefined;
           const split = isCard ? splitInstallments(Number(o.total_price), installments, firstAmount) : null;
           const title = snap.title ?? snap.description ?? "Pacote";
+          const authorization = snap.card_capture?.authorization;
+          const liveness = snap.card_capture?.liveness ?? null;
+          const hasAuthorization = !!authorization?.signature_data_url;
+
           return (
             <div key={o.id} className="rounded-2xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -373,6 +383,26 @@ function AdminOrders() {
                     <XCircle className="h-3.5 w-3.5" /> Rejeitar
                   </button>
                 )}
+                {hasAuthorization && authorization && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        generateAuthorizationPDF({
+                          orderId: o.id,
+                          createdAt: o.created_at,
+                          authorization,
+                          liveness,
+                        });
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full border border-blue-500/40 text-blue-500 px-3.5 py-2 text-xs hover:bg-blue-500/10 transition"
+                  >
+                    <FileSignature className="h-3.5 w-3.5" /> Ver autorização de débito
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => onDelete(o.id)}
@@ -388,6 +418,8 @@ function AdminOrders() {
     </div>
   );
 }
+
+
 
 function InfoLine({
   icon: Icon,
