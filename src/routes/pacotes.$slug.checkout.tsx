@@ -722,13 +722,15 @@ function formatIncomeBRL(input: string): string {
 function BoletoForm({
   data,
   onChange,
+  isThirdParty,
 }: {
   data: BoletoData;
   onChange: (patch: Partial<BoletoData>) => void;
+  isThirdParty: boolean;
 }) {
   const set = <K extends keyof BoletoData>(k: K) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     onChange({ [k]: e.target.value } as Partial<BoletoData>);
-  const isThirdParty = data.relationship !== "" && data.relationship !== "proprio_viajante";
+
   return (
 
     <div className="space-y-6">
