@@ -242,6 +242,7 @@ function Checkout() {
                 },
               }
             : {}),
+          ...(payment === "boleto" ? { boleto_capture: boleto } : {}),
           },
           full_name: primary.full_name,
           email: primary.email,
