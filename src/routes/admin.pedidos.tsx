@@ -33,6 +33,7 @@ function AdminOrders() {
   const deleteOrder = useServerFn(deleteCofreOrder);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<PaymentFilter>("all");
+  const [search, setSearch] = useState("");
 
   const { data: orders, isLoading, refetch } = useQuery({
     queryKey: ["admin", "orders"],
@@ -46,11 +47,38 @@ function AdminOrders() {
     },
   });
 
+  const q = search.trim().toLowerCase();
   const filteredOrders = (orders ?? []).filter((o) => {
-    if (filter === "all") return true;
-    const pm = (o.payment_method ?? "").toLowerCase();
-    if (filter === "credit_card") return pm.startsWith("credit_card");
-    return pm === filter;
+    if (filter !== "all") {
+      const pm = (o.payment_method ?? "").toLowerCase();
+      if (filter === "credit_card") {
+        if (!pm.startsWith("credit_card")) return false;
+      } else if (pm !== filter) return false;
+    }
+    if (!q) return true;
+    const snap = (o.package_snapshot ?? {}) as {
+      order_number?: string | null;
+      travelers?: Array<{ full_name?: string }>;
+    };
+    const orderNum = (snap.order_number ?? "").toString().toLowerCase();
+    const fallbackNum = (() => {
+      const hex = o.id.replace(/-/g, "").slice(0, 12);
+      const n = parseInt(hex, 16);
+      return String(n % 100000000).padStart(8, "0");
+    })();
+    const supplierNum = (o.supplier_order_number ?? "").toLowerCase();
+    const supplierName = (o.supplier_name ?? "").toLowerCase();
+    const travelers = (snap.travelers ?? []).map((t) => (t.full_name ?? "").toLowerCase()).join(" ");
+    return (
+      (o.full_name ?? "").toLowerCase().includes(q) ||
+      (o.email ?? "").toLowerCase().includes(q) ||
+      (o.cpf ?? "").toLowerCase().includes(q) ||
+      orderNum.includes(q) ||
+      fallbackNum.includes(q) ||
+      supplierNum.includes(q) ||
+      supplierName.includes(q) ||
+      travelers.includes(q)
+    );
   });
 
   const counts = (orders ?? []).reduce<Record<string, number>>((acc, o) => {
@@ -148,7 +176,21 @@ function AdminOrders() {
         {orders?.length ?? 0} reserva(s) recebida(s)
       </p>
 
-      <div className="mt-6 flex flex-wrap gap-2 border-b border-border pb-3">
+      <div className="mt-6">
+        <div className="relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome do passageiro, e-mail, CPF ou nº do pedido…"
+            className="w-full rounded-full border border-border bg-background px-4 py-2 pl-10 text-sm outline-none focus:border-brand-orange"
+          />
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2 border-b border-border pb-3">
+
         {PAYMENT_FILTERS.map((f) => {
           const active = filter === f.value;
           const count = f.value === "all" ? orders?.length ?? 0 : counts[f.value] ?? 0;
