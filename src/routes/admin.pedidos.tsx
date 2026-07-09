@@ -10,6 +10,7 @@ import { splitInstallments } from "@/lib/checkout-config";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 import { updateCofreOrder, deleteCofreOrder } from "@/lib/cofre.functions";
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
+import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 
 type FlightLike = {
   airline?: string;
