@@ -59,6 +59,7 @@ type PackageRow = {
   includes: string[] | null;
   hotel_name: string | null;
   hotel_stars: number | null;
+  meal_plan: string | null;
   is_active: boolean;
   sort_order: number;
   base_occupancy: number;
@@ -82,6 +83,7 @@ const emptyForm: Partial<PackageRow> = {
   includes: [],
   hotel_name: "",
   hotel_stars: 3,
+  meal_plan: "",
   is_active: true,
   sort_order: 0,
   base_occupancy: 2,
@@ -124,6 +126,7 @@ function AdminPackages() {
         summary: editing.summary || null,
         itinerary: editing.itinerary || null,
         hotel_name: editing.hotel_name || null,
+        meal_plan: editing.meal_plan || null,
         is_active: editing.is_active ?? true,
         includes:
           typeof editing.includes === "string"
@@ -355,6 +358,20 @@ function AdminPackages() {
                   value={editing.hotel_stars ?? 3}
                   onChange={(e) => setEditing({ ...editing, hotel_stars: Number(e.target.value) })}
                 />
+              </FormField>
+              <FormField label="Regime de alimentação">
+                <select
+                  className={inp}
+                  value={editing.meal_plan ?? ""}
+                  onChange={(e) => setEditing({ ...editing, meal_plan: e.target.value })}
+                >
+                  <option value="">— Não informado —</option>
+                  <option value="Sem refeição">Sem refeição</option>
+                  <option value="Café da manhã">Café da manhã</option>
+                  <option value="Meia pensão">Meia pensão (café + 1 refeição)</option>
+                  <option value="Pensão completa">Pensão completa (café + almoço + jantar)</option>
+                  <option value="All inclusive">All inclusive</option>
+                </select>
               </FormField>
               <FormField label="Ocupação base (adultos)">
                 <input

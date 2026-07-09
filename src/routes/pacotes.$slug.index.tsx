@@ -148,6 +148,12 @@ function PackageDetails() {
                       </span>
                     ) : null}
                   </div>
+                  {pkg.meal_plan && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
+                      <Check className="h-3.5 w-3.5" />
+                      Regime: {pkg.meal_plan}
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
