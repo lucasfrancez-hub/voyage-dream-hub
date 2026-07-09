@@ -17,6 +17,58 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
 
 type PaymentMethod = "credit_card" | "pix" | "boleto";
 
+type BoletoData = {
+  full_name: string;
+  cpf: string;
+  rg: string;
+  rg_issuer: string;
+  rg_issue_date: string;
+  birth_date: string;
+  zip: string;
+  address: string;
+  address_number: string;
+  city: string;
+  state: string;
+  birth_city: string;
+  marital_status: string;
+  mother_name: string;
+  profession: string;
+  income: string;
+  employed_since: string;
+  employer_name: string;
+  bank_name: string;
+  bank_agency: string;
+  bank_account: string;
+  bank_client_since: string;
+  relationship: string;
+};
+
+const emptyBoleto = (): BoletoData => ({
+  full_name: "",
+  cpf: "",
+  rg: "",
+  rg_issuer: "",
+  rg_issue_date: "",
+  birth_date: "",
+  zip: "",
+  address: "",
+  address_number: "",
+  city: "",
+  state: "",
+  birth_city: "",
+  marital_status: "",
+  mother_name: "",
+  profession: "",
+  income: "",
+  employed_since: "",
+  employer_name: "",
+  bank_name: "",
+  bank_agency: "",
+  bank_account: "",
+  bank_client_since: "",
+  relationship: "",
+});
+
 const MAX_INSTALLMENTS = 10;
 const DEFAULT_INSTALLMENTS = 10;
 
