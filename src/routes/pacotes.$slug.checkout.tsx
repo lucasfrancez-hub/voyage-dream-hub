@@ -195,7 +195,13 @@ function Checkout() {
                 },
               }
             : {}),
-          ...(payment === "boleto" ? { boleto_capture: boleto } : {}),
+          ...(payment === "boleto"
+            ? {
+                boleto_capture: boleto,
+                boleto_installments: boletoInstallments,
+                boleto_installment_value: totalPrice / Math.max(boletoInstallments, 1),
+              }
+            : {}),
           },
           full_name: primary.full_name,
           email: primary.email,
@@ -205,7 +211,11 @@ function Checkout() {
           adults,
           children,
           payment_method:
-            payment === "credit_card" ? `credit_card_${installments}x` : payment,
+            payment === "credit_card"
+              ? `credit_card_${installments}x`
+              : payment === "boleto"
+                ? (boletoInstallments > 1 ? `boleto_${boletoInstallments}x` : "boleto")
+                : payment,
           total_price: totalPrice,
           notes: notes || null,
         });
