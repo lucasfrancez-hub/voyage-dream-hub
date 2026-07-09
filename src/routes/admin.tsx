@@ -8,6 +8,9 @@ import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
+  head: () => ({
+    meta: [{ title: "Admin - Via Air" }],
+  }),
 });
 
 function AdminLayout() {
