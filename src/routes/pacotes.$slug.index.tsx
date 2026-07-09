@@ -339,10 +339,10 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
           type="button"
           onClick={() => setOpenItin(true)}
           className="mt-3 inline-flex items-center gap-2 rounded-full border border-brand-orange/40 text-brand-orange px-3.5 py-1.5 text-xs font-medium hover:bg-brand-orange/10 transition"
-          title="Ver itinerário completo"
+          title="Aqui está o seu voo completo"
         >
           <RouteIcon className="h-3.5 w-3.5" />
-          Ver itinerário
+          Aqui está o seu voo completo
         </button>
       )}
 
@@ -400,11 +400,6 @@ function ItineraryModal({
         </div>
 
         <div className="p-5 space-y-3">
-          {segments.length === 0 && (
-            <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-              O detalhamento das conexões ainda não foi informado. Fale com nosso time no WhatsApp para saber os pontos de conexão e horários.
-            </div>
-          )}
           {(segments.length === 0
             ? [
                 {
