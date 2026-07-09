@@ -359,6 +359,20 @@ function AdminPackages() {
                   onChange={(e) => setEditing({ ...editing, hotel_stars: Number(e.target.value) })}
                 />
               </FormField>
+              <FormField label="Regime de alimentação">
+                <select
+                  className={inp}
+                  value={editing.meal_plan ?? ""}
+                  onChange={(e) => setEditing({ ...editing, meal_plan: e.target.value })}
+                >
+                  <option value="">— Não informado —</option>
+                  <option value="Sem refeição">Sem refeição</option>
+                  <option value="Café da manhã">Café da manhã</option>
+                  <option value="Meia pensão">Meia pensão (café + 1 refeição)</option>
+                  <option value="Pensão completa">Pensão completa (café + almoço + jantar)</option>
+                  <option value="All inclusive">All inclusive</option>
+                </select>
+              </FormField>
               <FormField label="Ocupação base (adultos)">
                 <input
                   type="number"
