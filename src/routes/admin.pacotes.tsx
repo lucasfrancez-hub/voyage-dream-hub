@@ -660,7 +660,7 @@ function SegmentsEditor({
         <div>
           <h4 className="text-sm font-semibold">Itinerário detalhado (trechos)</h4>
           <p className="text-[11px] text-muted-foreground">
-            Preencha para mostrar o botão "Ver itinerário" com paradas e conexões.
+            Preencha um trecho por conexão para mostrar o botão "Ver itinerário".
           </p>
         </div>
         <button
