@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Mail, LogOut, Hash, Calendar, CreditCard, MapPin, Hotel, Star, CheckCircle2, ChevronDown, Package as PackageIcon, FileText } from "lucide-react";
+import { Mail, LogOut, Hash, Calendar, CreditCard, MapPin, Hotel, Star, CheckCircle2, ChevronDown, Package as PackageIcon, FileText, Plane } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TopBar } from "@/components/TopBar";
@@ -34,6 +34,7 @@ type Order = {
   supplier_name: string | null;
   supplier_order_number: string | null;
   notes: string | null;
+  airline_locator: string | null;
   package_id: string | null;
   package_snapshot: Record<string, unknown>;
 };
@@ -311,6 +312,14 @@ function OrderCard({ order: o, pkg }: { order: Order; pkg?: Record<string, unkno
           <Calendar className="h-4 w-4" />
           {snap.nights ? `${snap.nights} noites · ` : ""}
           {formatDateRange(snap.going_date, snap.return_date)}
+        </div>
+      )}
+
+      {o.airline_locator && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-brand-orange/30 bg-brand-orange/5 px-3 py-2 text-sm">
+          <Plane className="h-4 w-4 text-brand-orange" />
+          <span className="text-muted-foreground">Localizador da companhia aérea:</span>
+          <span className="font-mono font-bold tracking-widest text-foreground">{o.airline_locator}</span>
         </div>
       )}
 

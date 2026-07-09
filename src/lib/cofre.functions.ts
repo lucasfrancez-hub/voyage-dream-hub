@@ -113,6 +113,7 @@ export const updateCofreOrder = createServerFn({ method: "POST" })
     notes?: string | null;
     supplier_name?: string | null;
     supplier_order_number?: string | null;
+    airline_locator?: string | null;
   }) => input)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -128,11 +129,13 @@ export const updateCofreOrder = createServerFn({ method: "POST" })
       notes?: string | null;
       supplier_name?: string | null;
       supplier_order_number?: string | null;
+      airline_locator?: string | null;
     } = {};
     if (data.status !== undefined) patch.status = data.status;
     if (data.notes !== undefined) patch.notes = data.notes;
     if (data.supplier_name !== undefined) patch.supplier_name = data.supplier_name;
     if (data.supplier_order_number !== undefined) patch.supplier_order_number = data.supplier_order_number;
+    if (data.airline_locator !== undefined) patch.airline_locator = data.airline_locator;
 
     if (Object.keys(patch).length === 0) return { ok: true };
 
