@@ -89,7 +89,7 @@ function Checkout() {
   const totalPrice = useMemo(() => {
     if (!pkg) return 0;
     const per = Number(pkg.price_per_person) + Number(pkg.taxes ?? 0);
-    return per * adults + per * 0.7 * children;
+    return per * (adults + children);
   }, [pkg, adults, children]);
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
@@ -416,7 +416,7 @@ function Checkout() {
                 {children > 0 && (
                   <SummaryLine
                     label={`Crianças × ${children}`}
-                    value={formatBRL(Number(pkg.price_per_person) * 0.7 * children)}
+                    value={formatBRL(Number(pkg.price_per_person) * children)}
                   />
                 )}
                 {Number(pkg.taxes ?? 0) > 0 && (
