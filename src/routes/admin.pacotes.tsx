@@ -90,6 +90,7 @@ const emptyForm: Partial<PackageRow> = {
   base_occupancy: 2,
   outbound_flight: null,
   return_flight: null,
+  supplier_name: "",
 };
 
 function AdminPackages() {
