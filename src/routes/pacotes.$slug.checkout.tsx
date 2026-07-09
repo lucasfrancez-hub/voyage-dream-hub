@@ -460,10 +460,20 @@ function Checkout() {
               </div>
 
               {payment === "boleto" && (
-                <div className="mt-4 rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs text-muted-foreground">
-                  O parcelamento no boleto bancário não é finalizado de forma online. Ao concluir o pedido, você será direcionado ao WhatsApp para combinar as condições com nosso consultor.
+                <div className="mt-6 pt-6 border-t border-border space-y-5">
+                  <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-4 text-xs text-muted-foreground leading-relaxed">
+                    <p>
+                      <span className="text-foreground font-semibold">Como funciona:</span> o parcelamento no boleto passa por análise de crédito e não é concluído online. Preencha os dados abaixo — um consultor entra em contato pelo WhatsApp para finalizar.
+                    </p>
+                    <p className="mt-2">
+                      <span className="text-foreground font-semibold">Quem pode financiar:</span> o financiamento deve estar no nome de um dos viajantes ou de um parente de primeiro grau (pai, mãe, irmão(ã), cônjuge). Em casos específicos, aceitamos avó(ô) como financiador.
+                    </p>
+                  </div>
+
+                  <BoletoForm data={boleto} onChange={patchBoleto} />
                 </div>
               )}
+
 
               {payment === "credit_card" && (
                 <div className="mt-6 pt-6 border-t border-border">
