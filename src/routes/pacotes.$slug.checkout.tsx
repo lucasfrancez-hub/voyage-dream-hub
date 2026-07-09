@@ -685,6 +685,11 @@ function SummaryLine({ label, value }: { label: string; value: string }) {
   );
 }
 
+function maskCEP(input: string): string {
+  const d = (input ?? "").replace(/\D/g, "").slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+}
+
 function formatIncomeBRL(input: string): string {
   const digits = (input ?? "").replace(/\D/g, "");
   if (!digits) return "";
