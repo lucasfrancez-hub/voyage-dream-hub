@@ -89,11 +89,28 @@ function AdminOrders() {
         )}
         {orders?.map((o) => {
           const snap = (o.package_snapshot ?? {}) as {
+            slug?: string;
             title?: string;
             destination?: string;
+            origin?: string;
+            going_date?: string | null;
+            return_date?: string | null;
+            nights?: number | null;
+            price_per_person?: number | null;
+            taxes?: number | null;
+            base_occupancy?: number | null;
             description?: string;
             reference?: string | null;
             first_amount?: number | null;
+            travelers?: Array<{
+              index?: number;
+              kind?: string;
+              full_name?: string;
+              cpf?: string | null;
+              birth_date?: string | null;
+              email?: string;
+              phone?: string;
+            }>;
           };
           const pm = paymentMethodLabel(o.payment_method);
           const st = statusLabel(o.status);
