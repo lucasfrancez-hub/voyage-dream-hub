@@ -356,7 +356,7 @@ function Checkout() {
                   onClick={() => setPayment("credit_card")}
                   icon={CreditCard}
                   title="Cartão de crédito"
-                  desc="Parcele em até 10x sem juros no ambiente seguro do cofre."
+                  desc="Parcele em até 10x sem juros em ambiente seguro e criptografado."
                 />
                 <PaymentOption
                   active={payment === "pix"}
