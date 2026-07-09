@@ -417,6 +417,12 @@ function CofrePage() {
                           <span className="text-foreground">{e.travelDate}</span>
                         </div>
                       )}
+                      {e.passengers && (
+                        <div>
+                          <span className="text-muted-foreground">Passageiros: </span>
+                          <span className="whitespace-pre-line text-foreground">{e.passengers}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
