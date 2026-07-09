@@ -649,3 +649,131 @@ function SummaryLine({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function BoletoForm({
+  data,
+  onChange,
+}: {
+  data: BoletoData;
+  onChange: (patch: Partial<BoletoData>) => void;
+}) {
+  const set = <K extends keyof BoletoData>(k: K) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    onChange({ [k]: e.target.value } as Partial<BoletoData>);
+  return (
+    <div className="space-y-6">
+      <BoletoSection title="Dados pessoais do financiador">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Nome completo *">
+            <input value={data.full_name} onChange={set("full_name")} className={inputCls} maxLength={120} />
+          </Field>
+          <Field label="Vínculo com o viajante *">
+            <select value={data.relationship} onChange={set("relationship")} className={inputCls}>
+              <option value="">Selecione…</option>
+              <option value="proprio_viajante">O próprio viajante</option>
+              <option value="conjuge">Cônjuge</option>
+              <option value="pai">Pai</option>
+              <option value="mae">Mãe</option>
+              <option value="irmao">Irmão(ã)</option>
+              <option value="avo">Avó / Avô</option>
+            </select>
+          </Field>
+          <Field label="CPF *">
+            <input value={data.cpf} onChange={set("cpf")} className={inputCls} placeholder="000.000.000-00" maxLength={20} />
+          </Field>
+          <Field label="Data de nascimento *">
+            <input type="date" value={data.birth_date} onChange={set("birth_date")} className={inputCls} />
+          </Field>
+          <Field label="RG *">
+            <input value={data.rg} onChange={set("rg")} className={inputCls} maxLength={30} />
+          </Field>
+          <Field label="Órgão emissor *">
+            <input value={data.rg_issuer} onChange={set("rg_issuer")} className={inputCls} placeholder="SSP/UF" maxLength={20} />
+          </Field>
+          <Field label="Data de emissão do RG">
+            <input type="date" value={data.rg_issue_date} onChange={set("rg_issue_date")} className={inputCls} />
+          </Field>
+          <Field label="Cidade de nascimento">
+            <input value={data.birth_city} onChange={set("birth_city")} className={inputCls} maxLength={80} />
+          </Field>
+          <Field label="Estado civil">
+            <select value={data.marital_status} onChange={set("marital_status")} className={inputCls}>
+              <option value="">Selecione…</option>
+              <option value="solteiro">Solteiro(a)</option>
+              <option value="casado">Casado(a)</option>
+              <option value="uniao_estavel">União estável</option>
+              <option value="divorciado">Divorciado(a)</option>
+              <option value="viuvo">Viúvo(a)</option>
+            </select>
+          </Field>
+          <Field label="Nome da mãe *">
+            <input value={data.mother_name} onChange={set("mother_name")} className={inputCls} maxLength={120} />
+          </Field>
+        </div>
+      </BoletoSection>
+
+      <BoletoSection title="Endereço residencial">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="CEP *">
+            <input value={data.zip} onChange={set("zip")} className={inputCls} placeholder="00000-000" maxLength={12} />
+          </Field>
+          <Field label="Endereço *">
+            <input value={data.address} onChange={set("address")} className={inputCls} placeholder="Rua, avenida…" maxLength={160} />
+          </Field>
+          <Field label="Número *">
+            <input value={data.address_number} onChange={set("address_number")} className={inputCls} maxLength={20} />
+          </Field>
+          <Field label="Cidade *">
+            <input value={data.city} onChange={set("city")} className={inputCls} maxLength={80} />
+          </Field>
+          <Field label="Estado *">
+            <input value={data.state} onChange={set("state")} className={inputCls} placeholder="UF" maxLength={30} />
+          </Field>
+        </div>
+      </BoletoSection>
+
+      <BoletoSection title="Dados profissionais e renda">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Profissão">
+            <input value={data.profession} onChange={set("profession")} className={inputCls} maxLength={80} />
+          </Field>
+          <Field label="Renda mensal">
+            <input value={data.income} onChange={set("income")} className={inputCls} placeholder="R$" maxLength={30} />
+          </Field>
+          <Field label="Nome da empresa">
+            <input value={data.employer_name} onChange={set("employer_name")} className={inputCls} maxLength={120} />
+          </Field>
+          <Field label="Empregado desde">
+            <input type="month" value={data.employed_since} onChange={set("employed_since")} className={inputCls} />
+          </Field>
+        </div>
+      </BoletoSection>
+
+      <BoletoSection title="Referência bancária">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Banco">
+            <input value={data.bank_name} onChange={set("bank_name")} className={inputCls} maxLength={80} />
+          </Field>
+          <Field label="Cliente desde">
+            <input type="month" value={data.bank_client_since} onChange={set("bank_client_since")} className={inputCls} />
+          </Field>
+          <Field label="Agência">
+            <input value={data.bank_agency} onChange={set("bank_agency")} className={inputCls} maxLength={20} />
+          </Field>
+          <Field label="Conta">
+            <input value={data.bank_account} onChange={set("bank_account")} className={inputCls} maxLength={30} />
+          </Field>
+        </div>
+      </BoletoSection>
+    </div>
+  );
+}
+
+function BoletoSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-widest text-brand-orange font-semibold mb-3">{title}</div>
+      {children}
+    </div>
+  );
+}
+
