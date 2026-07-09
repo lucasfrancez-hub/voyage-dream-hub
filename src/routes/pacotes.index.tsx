@@ -135,8 +135,10 @@ function PacotesList() {
             Roteiros prontos para <span className="text-gradient-brand">embarcar</span>
           </h1>
           <p className="mt-4 text-muted-foreground">
-            Aéreo, hospedagem, traslados e passeios em um único orçamento. Escolha o destino
-            e finalize a reserva com nosso time.
+            Aéreo, hospedagem, transfer e passeio inclusos no orçamento. Escolha o destino
+            e finalize a reserva com o nosso time. Os valores são bloqueados e não sofrem
+            alteração conforme a proximidade das datas — são vagas vendidas, sujeitas à
+            disponibilidade.
           </p>
         </div>
 
