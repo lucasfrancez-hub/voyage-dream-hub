@@ -472,31 +472,16 @@ function PayPage() {
                           <InfoRow label="Descrição do serviço" value={desc ?? "—"} />
                           {ref && <InfoRow label="Referência" value={ref} />}
                         </div>
-                        <div className="px-4 py-3 border-b border-border space-y-3">
-                          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Informações da viagem</div>
-                          <div className="grid sm:grid-cols-3 gap-3">
-                            <Field label="Localizador">
-                              <input
-                                value={tripLocator}
-                                onChange={(e) => setTripLocator(e.target.value.toUpperCase())}
-                                className={cls}
-                                placeholder="Ex.: ABC123"
-                                maxLength={20}
-                              />
-                            </Field>
-                            <Field label="Rota">
-                              <input
-                                value={tripRoute}
-                                onChange={(e) => setTripRoute(e.target.value)}
-                                className={cls}
-                                placeholder="Ex.: CWB → GRU → MIA"
-                              />
-                            </Field>
-                            <Field label="Data da viagem">
-                              <DateBRInput value={tripDate} onChange={setTripDate} className={cls} />
-                            </Field>
+                        {(tripLocator || tripRoute || tripDate) && (
+                          <div className="px-4 py-3 border-b border-border space-y-2">
+                            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Informações da viagem</div>
+                            <div className="grid sm:grid-cols-3 gap-3">
+                              {tripLocator && <InfoRow label="Localizador" value={tripLocator} />}
+                              {tripRoute && <InfoRow label="Rota" value={tripRoute} />}
+                              {tripDate && <InfoRow label="Data / horários" value={tripDate} />}
+                            </div>
                           </div>
-                        </div>
+                        )}
                         <div className="px-4 py-3 text-xs text-muted-foreground leading-relaxed space-y-2 max-h-64 overflow-auto">
                           <p>
                             <strong className="text-foreground">Eu, portador do cartão acima identificado, autorizo e reconheço o débito da minha conta</strong> no valor de <strong className="text-foreground">{formatBRL(totalNumber)}</strong> na forma de pagamento indicada, referente à contratação dos serviços de viagem descritos, intermediados pela Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66), na qualidade de <strong className="text-foreground">representante</strong>. A cobrança poderá ser realizada diretamente pelo fornecedor <strong className="text-foreground">{supplierName}</strong>.
