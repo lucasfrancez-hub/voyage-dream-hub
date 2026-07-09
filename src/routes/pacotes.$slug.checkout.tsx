@@ -177,6 +177,7 @@ function Checkout() {
             base_occupancy: pkg.base_occupancy,
             image_url: pkg.image_url ?? null,
             summary: pkg.summary ?? null,
+            itinerary: pkg.itinerary ?? null,
             hotel_name: pkg.hotel_name ?? null,
             hotel_stars: pkg.hotel_stars ?? null,
             meal_plan: pkg.meal_plan ?? null,
