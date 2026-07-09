@@ -633,7 +633,7 @@ function DetailsModal({
             (card.billing.address ||
               card.billing.city ||
               card.billing.zip) && (
-              <Section title="Endereço de cobrança" icon={MapPinIcon}>
+              <Section title="Endereço de cobrança" icon={MapPin}>
                 {card.billing.zip && (
                   <FieldRow label="CEP" value={card.billing.zip} onCopy={copyText} />
                 )}
