@@ -37,7 +37,9 @@ export type CofreOrder = {
   cardCapture: CardCapture | null;
   linkDescription: string | null;
   linkReference: string | null;
+  firstAmount: number | null;
 };
+
 
 export const listCofreOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
