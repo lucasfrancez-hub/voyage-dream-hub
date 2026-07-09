@@ -283,10 +283,22 @@ type FlightInfo = {
 function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbound" | "return"; adults: number }) {
   const Icon = kind === "outbound" ? PlaneTakeoff : PlaneLanding;
   const label = kind === "outbound" ? "Voo de ida" : "Voo de volta";
-  const stopsN = typeof flight.stops === "string" ? Number(flight.stops) : flight.stops;
-  const hasStops = stopsN != null && !Number.isNaN(stopsN) && stopsN > 0;
   const segments = flight.segments ?? [];
-  const totalDuration = computeTotalDuration(flight.depart_at, flight.arrive_at) || flight.duration;
+  const first = segments[0];
+  const last = segments[segments.length - 1];
+  // Derive displayed origin/destination/times from trechos when informed;
+  // fall back to the main flight fields otherwise.
+  const fromIata = first?.from_iata ?? flight.from_iata;
+  const fromCity = first?.from_city ?? flight.from_city;
+  const toIata = last?.to_iata ?? flight.to_iata;
+  const toCity = last?.to_city ?? flight.to_city;
+  const departAt = first?.depart_at ?? flight.depart_at;
+  const arriveAt = last?.arrive_at ?? flight.arrive_at;
+  const derivedStops = segments.length > 0 ? segments.length - 1 : undefined;
+  const declaredStops = typeof flight.stops === "string" ? Number(flight.stops) : flight.stops;
+  const stopsN = derivedStops ?? declaredStops;
+  const hasStops = stopsN != null && !Number.isNaN(stopsN) && stopsN > 0;
+  const totalDuration = computeTotalDuration(departAt, arriveAt) || flight.duration;
   const [openItin, setOpenItin] = useState(false);
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
@@ -307,20 +319,25 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
         )}
         <div className="flex-1 min-w-0">
           <div className="font-semibold">
-            {flight.airline ?? "Companhia"}{" "}
-            {flight.flight_number && (
-              <span className="text-muted-foreground font-normal">· {flight.flight_number}</span>
+            {flight.airline ?? first?.airline ?? "Companhia"}{" "}
+            {(flight.flight_number || first?.flight_number) && (
+              <span className="text-muted-foreground font-normal">· {flight.flight_number ?? first?.flight_number}</span>
             )}
           </div>
           <div className="text-sm mt-0.5">
-            <span className="font-medium">{flight.from_iata ?? "—"} {formatFlightTime(flight.depart_at)}</span>
+            <span className="font-medium">{fromIata ?? "—"} {formatFlightTime(departAt)}</span>
             <span className="text-muted-foreground"> — </span>
-            <span className="font-medium">{flight.to_iata ?? "—"} {formatFlightTime(flight.arrive_at)}</span>
+            <span className="font-medium">{toIata ?? "—"} {formatFlightTime(arriveAt)}</span>
           </div>
-          {(flight.depart_at || flight.arrive_at) && (
+          {(fromCity || toCity) && (
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              {flight.depart_at && formatFlightDate(flight.depart_at)}
-              {flight.arrive_at && flight.arrive_at !== flight.depart_at && ` → ${formatFlightDate(flight.arrive_at)}`}
+              {fromCity ?? ""}{fromCity && toCity ? " → " : ""}{toCity ?? ""}
+            </div>
+          )}
+          {(departAt || arriveAt) && (
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              {departAt && formatFlightDate(departAt)}
+              {arriveAt && arriveAt !== departAt && ` → ${formatFlightDate(arriveAt)}`}
             </div>
           )}
         </div>
@@ -335,7 +352,7 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
         {totalDuration && <span>· {totalDuration}</span>}
       </div>
 
-      {hasStops && (
+      {(hasStops || segments.length > 0) && (
         <button
           type="button"
           onClick={() => setOpenItin(true)}
@@ -374,6 +391,10 @@ function ItineraryModal({
   onClose: () => void;
 }) {
   const segments = flight.segments ?? [];
+  const first = segments[0];
+  const last = segments[segments.length - 1];
+  const fromIata = first?.from_iata ?? flight.from_iata;
+  const toIata = last?.to_iata ?? flight.to_iata;
   const headline =
     kind === "outbound"
       ? "Aqui está o seu itinerário completo de ida"
@@ -392,7 +413,7 @@ function ItineraryModal({
             <div className="text-[10px] uppercase tracking-widest text-white/80 font-semibold">Itinerário completo</div>
             <div className="font-display font-bold text-white text-lg leading-tight mt-0.5">{headline}</div>
             <div className="text-xs text-white/90 mt-1">
-              {flight.from_iata} → {flight.to_iata}
+              {fromIata} → {toIata}
               {totalDuration && ` · ${totalDuration}`}
             </div>
           </div>
