@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Mail, Phone, User, CheckCircle2, XCircle, Trash2 } from "lucide-react";
+import { Mail, Phone, User, CheckCircle2, XCircle, Trash2, CreditCard, Calendar, Hash } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
+import { splitInstallments } from "@/lib/checkout-config";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 import { updateCofreOrder, deleteCofreOrder } from "@/lib/cofre.functions";
 
@@ -85,9 +86,21 @@ function AdminOrders() {
           </div>
         )}
         {orders?.map((o) => {
-          const snap = (o.package_snapshot ?? {}) as { title?: string; destination?: string };
+          const snap = (o.package_snapshot ?? {}) as {
+            title?: string;
+            destination?: string;
+            description?: string;
+            reference?: string | null;
+            first_amount?: number | null;
+          };
           const pm = paymentMethodLabel(o.payment_method);
           const st = statusLabel(o.status);
+          const isCard = (o.payment_method ?? "").toLowerCase().startsWith("credit_card");
+          const instMatch = (o.payment_method ?? "").match(/(\d+)x/);
+          const installments = instMatch ? Number(instMatch[1]) : 1;
+          const firstAmount = snap.first_amount && snap.first_amount > 0 ? snap.first_amount : undefined;
+          const split = isCard ? splitInstallments(Number(o.total_price), installments, firstAmount) : null;
+          const title = snap.title ?? snap.description ?? "Pacote";
           return (
             <div key={o.id} className="rounded-2xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -95,8 +108,10 @@ function AdminOrders() {
                   <div className="text-xs text-muted-foreground">
                     {new Date(o.created_at).toLocaleString("pt-BR")}
                   </div>
-                  <div className="mt-1 font-semibold">{snap.title ?? "Pacote"}</div>
-                  <div className="text-xs text-muted-foreground">{snap.destination}</div>
+                  <div className="mt-1 font-semibold">{title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {snap.destination ?? snap.reference ?? ""}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-muted-foreground">Total</div>
@@ -104,19 +119,58 @@ function AdminOrders() {
                     {formatBRL(o.total_price)}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1 justify-end">
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${pm.className}`}
-                    >
-                      {pm.label}
-                    </span>
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}
-                    >
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>
                       {st.label}
                     </span>
                   </div>
                 </div>
               </div>
+
+              {/* Payment method highlight */}
+              <div className={`mt-4 rounded-xl border p-4 ${isCard ? "border-blue-500/30 bg-blue-500/5" : "border-border bg-muted/30"}`}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CreditCard className={`h-4 w-4 ${isCard ? "text-blue-400" : "text-muted-foreground"}`} />
+                  <span className={`text-sm font-semibold ${pm.className.includes("text-") ? pm.className.split(" ").find(c => c.startsWith("text-")) : ""}`}>
+                    {pm.label}
+                  </span>
+                  {isCard && (
+                    <span className="text-xs text-muted-foreground">· parcelado sem juros</span>
+                  )}
+                </div>
+                {isCard && split && (
+                  <div className="mt-3 grid sm:grid-cols-3 gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Parcelas</div>
+                        <div className="font-semibold">{installments}x</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">1ª parcela</div>
+                        <div className="font-semibold text-brand-orange">{formatBRL(split.first)}</div>
+                      </div>
+                    </div>
+                    {!split.equal && split.restCount > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Demais</div>
+                          <div className="font-semibold">{split.restCount}x de {formatBRL(split.rest)}</div>
+                        </div>
+                      </div>
+                    )}
+                    {split.equal && (
+                      <div className="sm:col-span-2 text-xs text-muted-foreground self-center">
+                        {installments}x iguais de <strong className="text-foreground">{formatBRL(split.first)}</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="mt-4 grid sm:grid-cols-3 gap-3 text-sm border-t border-border pt-4">
                 <InfoLine icon={User} value={o.full_name} />
                 <InfoLine icon={Mail} value={o.email} />
