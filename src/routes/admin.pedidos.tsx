@@ -11,6 +11,20 @@ import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 import { updateCofreOrder, deleteCofreOrder } from "@/lib/cofre.functions";
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
 
+type FlightLike = {
+  airline?: string;
+  flight_number?: string;
+  departure_airport?: string;
+  arrival_airport?: string;
+  departure_time?: string;
+  arrival_time?: string;
+  departure_date?: string;
+  arrival_date?: string;
+  duration?: string;
+  stops?: number;
+  segments?: Array<Record<string, unknown>>;
+} & Record<string, unknown>;
+
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrders,
