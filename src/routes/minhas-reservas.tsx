@@ -229,7 +229,7 @@ function SignedInView({ email }: { email: string }) {
       )}
       {orders && orders.length > 0 && (
         <div className="space-y-3">
-          {orders.map((o) => <OrderCard key={o.id} order={o} />)}
+          {orders.map((o) => <OrderCard key={o.id} order={o} pkg={o.package_id ? packagesById[o.package_id] : undefined} />)}
         </div>
       )}
     </div>
