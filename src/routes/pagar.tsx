@@ -314,32 +314,48 @@ function PayPage() {
                           </div>
                         </div>
                         <div className="px-4 py-3 grid sm:grid-cols-2 gap-3 border-b border-border">
-                          <InfoRow label="Portador do cartão" value={fullName || "—"} />
+                          <InfoRow label="Nome do associado (portador)" value={fullName || "—"} />
                           <InfoRow label="CPF do portador" value={cpf || "—"} />
                           <InfoRow label="Bandeira" value={cardBrand || "—"} />
                           <InfoRow label="Número do cartão" value={maskedCard || "—"} />
-                          <InfoRow label="Validade" value={card.expiry || "—"} />
+                          <InfoRow label="Validade do cartão" value={card.expiry || "—"} />
                           <InfoRow
-                            label="Valor autorizado"
-                            value={`${formatBRL(totalNumber)} em ${installments} parcela(s)`}
+                            label="Valor total autorizado"
+                            value={formatBRL(totalNumber)}
                           />
+                          <InfoRow
+                            label="Forma de pagamento"
+                            value={
+                              installments > 1
+                                ? `Crédito parcelado em ${installments}x de ${formatBRL(totalNumber / installments)}`
+                                : "Crédito à vista"
+                            }
+                          />
+                          <InfoRow label="Fornecedor" value="Via Air Agência e Representações Ltda" />
                           <InfoRow label="Descrição do serviço" value={desc ?? "—"} />
                           {ref && <InfoRow label="Referência" value={ref} />}
                         </div>
-                        <div className="px-4 py-3 text-xs text-muted-foreground leading-relaxed space-y-2 max-h-56 overflow-auto">
+                        <div className="px-4 py-3 text-xs text-muted-foreground leading-relaxed space-y-2 max-h-64 overflow-auto">
                           <p>
-                            Autorizo a Via Air a realizar o débito do valor acima no cartão de crédito informado, referente à contratação dos serviços de viagem descritos. Reconheço como legítima a cobrança e assumo integral responsabilidade pelo pagamento, inclusive quando os serviços forem prestados em nome de terceiros (passageiros).
+                            <strong className="text-foreground">Eu, portador do cartão acima identificado, autorizo e reconheço o débito da minha conta</strong> no valor de <strong className="text-foreground">{formatBRL(totalNumber)}</strong> na forma de pagamento indicada, em favor do fornecedor <strong className="text-foreground">Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)</strong>, referente à contratação dos serviços de viagem descritos.
                           </p>
                           <p>
-                            Declaro estar ciente de que a contestação (chargeback) sem fundamento pode configurar má-fé e fraude, sujeitando-me às penalidades legais cabíveis. Qualquer contestação indevida após a emissão ou utilização dos serviços implicará cobrança judicial do valor integral, acrescido de juros, custas e honorários.
+                            <strong className="text-foreground">Atenção:</strong> declaro que sou o legítimo titular do cartão informado, que os dados fornecidos são verdadeiros e que assumo integral responsabilidade pelo pagamento, inclusive quando os serviços forem prestados em nome de terceiros (passageiros).
                           </p>
                           <p>
-                            Em caso de cancelamento ou reembolso, valem as regras dos fornecedores acrescidas da taxa administrativa da Via Air de 20% sobre o valor reembolsável. Cancelamentos e questionamentos devem ser tratados diretamente entre portador e Via Air, não cabendo à administradora do cartão.
+                            <strong className="text-foreground">Atenção — chargeback:</strong> reconheço como legítima esta cobrança e declaro estar ciente de que a contestação (chargeback) sem fundamento pode configurar má-fé e fraude, sujeitando-me às penalidades legais cabíveis. Qualquer contestação indevida após a emissão ou utilização dos serviços implicará cobrança judicial do valor integral, acrescido de juros, custas processuais e honorários advocatícios.
                           </p>
                           <p>
-                            Esta autorização é válida por 12 (doze) meses e é registrada eletronicamente com data, hora, dados do dispositivo e assinatura digital do portador.
+                            <strong className="text-foreground">Atenção — cancelamento e reembolso:</strong> valem as regras dos fornecedores (companhias aéreas, hotéis, operadoras) acrescidas da taxa administrativa da Via Air de 20% sobre o valor reembolsável. Cancelamentos e questionamentos devem ser tratados diretamente entre portador e Via Air, não cabendo à administradora do cartão intermediar.
+                          </p>
+                          <p>
+                            <strong className="text-foreground">Atenção — no-show e alterações:</strong> não comparecimento (no-show), alterações de datas, nomes ou trechos estão sujeitos às regras tarifárias do fornecedor e podem implicar perda parcial ou total do valor pago.
+                          </p>
+                          <p>
+                            Esta autorização é válida por 12 (doze) meses e é registrada eletronicamente com data, hora, endereço IP, dados do dispositivo, verificação facial (liveness) e assinatura digital do portador, com validade jurídica nos termos da MP 2.200-2/2001.
                           </p>
                         </div>
+
                       </div>
 
                       <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
