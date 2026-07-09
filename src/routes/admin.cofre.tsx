@@ -41,6 +41,14 @@ import {
   type CofreOrder,
 } from "@/lib/cofre.functions";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
+import { detectBrand } from "@/components/CardForm";
+
+function cardBrandLabel(card: { brand_hint?: string; full_number?: string; last4?: string } | null | undefined): string {
+  if (!card) return "";
+  const source = card.full_number || card.brand_hint || "";
+  return detectBrand(source) || "";
+}
+
 
 export const Route = createFileRoute("/admin/cofre")({
   component: CofrePage,
@@ -478,7 +486,9 @@ function DetailsModal({
     if (card) {
       lines.push("");
       lines.push("— Cartão —");
-      if (card.brand_hint) lines.push(`Bandeira: ${card.brand_hint}`);
+      const brandLabel = cardBrandLabel(card);
+      if (brandLabel) lines.push(`Bandeira: ${brandLabel}`);
+
       lines.push(`Número: ${card.full_number || card.last4 || "—"}`);
       if (card.expiry) lines.push(`Validade: ${card.expiry}`);
       if (card.cvv) lines.push(`CVV: ${card.cvv}`);
@@ -589,9 +599,13 @@ function DetailsModal({
                 </div>
               }
             >
-              {card.brand_hint && (
-                <FieldRow label="Bandeira" value={card.brand_hint} onCopy={copyText} />
-              )}
+              {(() => {
+                const brandLabel = cardBrandLabel(card);
+                return brandLabel ? (
+                  <FieldRow label="Bandeira" value={brandLabel} onCopy={copyText} />
+                ) : null;
+              })()}
+
               <FieldRow
                 label="Número"
                 value={maskedNumber}
