@@ -98,15 +98,22 @@ function PayPage() {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
-    if (!acceptedTerms) {
-      toast.error("Você precisa aceitar os termos da autorização de débito.");
-      return;
-    }
-    if (!signatureDataUrl) {
-      toast.error("Assine a autorização de débito antes de enviar.");
-      return;
+    if (secureMode) {
+      if (!acceptedTerms) {
+        toast.error("Você precisa aceitar os termos da autorização de débito.");
+        return;
+      }
+      if (!signatureDataUrl) {
+        toast.error("Assine a autorização de débito antes de enviar.");
+        return;
+      }
+      if (!liveness) {
+        toast.error("Complete a verificação de biometria facial antes de enviar.");
+        return;
+      }
     }
     setSubmitting(true);
+
     try {
       const authorizedAt = new Date().toISOString();
       const { error } = await supabase.from("orders").insert({
