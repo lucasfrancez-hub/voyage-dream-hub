@@ -104,6 +104,22 @@ function LinkGenerator() {
           <Field label="Referência interna (opcional)">
             <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
           </Field>
+          <Field label="Imagem do destino (URL) — aparece no topo do link do cliente">
+            <input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              className={cls}
+              placeholder="https://…foto-do-destino.jpg"
+            />
+            {imageUrl && (
+              <img
+                src={imageUrl}
+                alt="Prévia do destino"
+                className="mt-2 h-28 w-full rounded-lg object-cover border border-border"
+                onError={(e) => (e.currentTarget.style.display = "none")}
+              />
+            )}
+          </Field>
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Valor total (R$) *">
               <input required inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} className={cls} placeholder="4999.90" />
