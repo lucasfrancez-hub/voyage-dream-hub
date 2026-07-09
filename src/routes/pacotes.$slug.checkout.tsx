@@ -761,8 +761,33 @@ function BoletoForm({
       <BoletoSection title="Endereço residencial">
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="CEP *">
-            <input value={data.zip} onChange={set("zip")} className={inputCls} placeholder="00000-000" maxLength={12} />
+            <input
+              value={data.zip}
+              onChange={(e) => {
+                const masked = maskCEP(e.target.value);
+                onChange({ zip: masked });
+                const digits = masked.replace(/\D/g, "");
+                if (digits.length === 8) {
+                  fetch(`https://viacep.com.br/ws/${digits}/json/`)
+                    .then((r) => r.json())
+                    .then((j: { erro?: boolean; logradouro?: string; localidade?: string; uf?: string }) => {
+                      if (j?.erro) return;
+                      onChange({
+                        address: j.logradouro || "",
+                        city: j.localidade || "",
+                        state: j.uf || "",
+                      });
+                    })
+                    .catch(() => {});
+                }
+              }}
+              className={inputCls}
+              placeholder="00000-000"
+              inputMode="numeric"
+              maxLength={9}
+            />
           </Field>
+
           <Field label="Endereço *">
             <input value={data.address} onChange={set("address")} className={inputCls} placeholder="Rua, avenida…" maxLength={160} />
           </Field>
