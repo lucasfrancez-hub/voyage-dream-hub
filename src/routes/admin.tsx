@@ -102,8 +102,8 @@ function AdminLayout() {
             <nav className="hidden md:flex items-center gap-1">
               <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
               <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-              <NavItem to="/admin/link-pagamento" icon={Link2} label="Cartão seguro" active={pathname === "/admin/link-pagamento" || pathname.startsWith("/admin/link-pagamento/")} />
-              <NavItem to="/admin/link-cartao-simples" icon={Link2} label="Cartão simples" active={pathname.startsWith("/admin/link-cartao-simples")} />
+              <CartaoNav pathname={pathname} />
+
               <NavItem to="/admin/link-boleto" icon={FileText} label="Link boleto" active={pathname.startsWith("/admin/link-boleto")} />
               <NavItem to="/admin/cofre" icon={Vault} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
               {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
