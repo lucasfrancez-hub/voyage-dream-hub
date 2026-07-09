@@ -21,12 +21,26 @@ export type AuthorizationData = {
   signature_data_url?: string | null;
   signed_at?: string;
   ip_address?: string | null;
-  geolocation?: { latitude: number; longitude: number; accuracy: number } | null;
+  ip_geo?: {
+    city?: string;
+    region?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
+    org?: string;
+  } | null;
+  geolocation?: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    source?: "gps" | "ip";
+  } | null;
   user_agent?: string | null;
   language?: string | null;
   timezone?: string | null;
   valid_until?: string;
 };
+
 
 export type LivenessData = {
   photos?: string[];
