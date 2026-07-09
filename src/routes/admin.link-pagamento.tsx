@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Link2, Copy, ExternalLink, MessageCircle, Vault } from "lucide-react";
+import { Link2, Copy, ExternalLink, MessageCircle, Vault, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { paymentLinkUrl, whatsappUrl, splitInstallments } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
@@ -87,7 +87,16 @@ function LinkGenerator() {
         dentro do próprio domínio e preenche os dados do cartão.
       </p>
 
-      <div className="mt-8 grid lg:grid-cols-[1fr_400px] gap-6">
+      <div className="mt-4 flex items-start gap-2 rounded-xl border border-yellow-500/40 bg-yellow-500/5 p-3 text-xs text-yellow-900 dark:text-yellow-200">
+        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+        <div>
+          <strong>Atenção:</strong> para clientes vindo da internet, desconhecidos ou que você nunca atendeu, use sempre este
+          <strong> link seguro</strong>.
+          O link convencional é exclusivo para clientes já conhecidos e de confiança.
+        </div>
+      </div>
+
+      <div className="mt-6 grid lg:grid-cols-[1fr_400px] gap-6">
         <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
           <Field label="Nome do cliente">
             <input value={customer} onChange={(e) => setCustomer(e.target.value)} className={cls} placeholder="Lucas Silva" />
