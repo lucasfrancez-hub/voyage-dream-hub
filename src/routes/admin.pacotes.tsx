@@ -468,9 +468,59 @@ function FormField({
 
 function cleanFlight(f: FlightInfo | null | undefined): FlightInfo | null {
   if (!f) return null;
-  const entries = Object.entries(f).filter(([, v]) => v !== "" && v !== null && v !== undefined);
+  const segments = getCleanSegments(f);
+  const first = segments[0];
+  const last = segments[segments.length - 1];
+  const duration = formatMinutes(diffMinutes(first?.depart_at, last?.arrive_at)) || f.duration;
+  const normalized: FlightInfo = {
+    ...f,
+    airline: f.airline || first?.airline,
+    flight_number: f.flight_number || first?.flight_number,
+    from_iata: first?.from_iata ?? f.from_iata,
+    from_city: first?.from_city ?? f.from_city,
+    to_iata: last?.to_iata ?? f.to_iata,
+    to_city: last?.to_city ?? f.to_city,
+    depart_at: first?.depart_at ?? f.depart_at,
+    arrive_at: last?.arrive_at ?? f.arrive_at,
+    duration,
+    stops: Math.max(0, segments.length - 1),
+    segments,
+  };
+  const entries = Object.entries(normalized).filter(([, v]) => {
+    if (Array.isArray(v)) return v.length > 0;
+    return v !== "" && v !== null && v !== undefined;
+  });
   if (entries.length === 0) return null;
   return Object.fromEntries(entries) as FlightInfo;
+}
+
+function getCleanSegments(f: FlightInfo): FlightSegment[] {
+  const filledSegments = (f.segments ?? []).map(cleanSegment).filter(hasSegmentData);
+  if (filledSegments.length > 0) return filledSegments;
+
+  const fallbackSegment = cleanSegment({
+    airline: f.airline,
+    flight_number: f.flight_number,
+    from_iata: f.from_iata,
+    from_city: f.from_city,
+    to_iata: f.to_iata,
+    to_city: f.to_city,
+    depart_at: f.depart_at,
+    arrive_at: f.arrive_at,
+    duration: f.duration,
+  });
+
+  return hasSegmentData(fallbackSegment) ? [fallbackSegment] : [];
+}
+
+function cleanSegment(segment: FlightSegment): FlightSegment {
+  return Object.fromEntries(
+    Object.entries(segment).filter(([, v]) => v !== "" && v !== null && v !== undefined),
+  ) as FlightSegment;
+}
+
+function hasSegmentData(segment: FlightSegment): boolean {
+  return Object.values(segment).some((value) => value !== "" && value !== null && value !== undefined);
 }
 
 function FlightFieldset({
@@ -483,7 +533,7 @@ function FlightFieldset({
   onChange: (f: FlightInfo | null) => void;
 }) {
   const f = value ?? {};
-  const segments: FlightSegment[] = f.segments && f.segments.length > 0 ? f.segments : [{}];
+  const segments: FlightSegment[] = getEditorSegments(f);
   const patch = (p: Partial<FlightInfo>) => onChange({ ...f, ...p });
   const patchSeg = (i: number, p: Partial<FlightSegment>) =>
     patch({ segments: segments.map((s, idx) => (idx === i ? { ...s, ...p } : s)) });
@@ -705,6 +755,25 @@ function FlightFieldset({
       </div>
     </div>
   );
+}
+
+function getEditorSegments(f: FlightInfo): FlightSegment[] {
+  const filledSegments = f.segments && f.segments.length > 0 ? f.segments : [];
+  if (filledSegments.length > 0) return filledSegments;
+
+  const fallbackSegment: FlightSegment = {
+    airline: f.airline,
+    flight_number: f.flight_number,
+    from_iata: f.from_iata,
+    from_city: f.from_city,
+    to_iata: f.to_iata,
+    to_city: f.to_city,
+    depart_at: f.depart_at,
+    arrive_at: f.arrive_at,
+    duration: f.duration,
+  };
+
+  return hasSegmentData(fallbackSegment) ? [fallbackSegment] : [{}];
 }
 
 function diffMinutes(a?: string, b?: string): number | null {

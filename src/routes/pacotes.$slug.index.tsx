@@ -495,6 +495,29 @@ function ItineraryModal({
   );
 }
 
+function getDisplaySegments(flight: FlightInfo): FlightSegment[] {
+  const filledSegments = (flight.segments ?? []).filter(hasSegmentData);
+  if (filledSegments.length > 0) return filledSegments;
+
+  const fallbackSegment: FlightSegment = {
+    airline: flight.airline,
+    flight_number: flight.flight_number,
+    from_iata: flight.from_iata,
+    from_city: flight.from_city,
+    to_iata: flight.to_iata,
+    to_city: flight.to_city,
+    depart_at: flight.depart_at,
+    arrive_at: flight.arrive_at,
+    duration: flight.duration,
+  };
+
+  return hasSegmentData(fallbackSegment) ? [fallbackSegment] : [];
+}
+
+function hasSegmentData(segment: FlightSegment): boolean {
+  return Object.values(segment).some((value) => value !== "" && value !== null && value !== undefined);
+}
+
 
 function BagIcon({
   label,
