@@ -184,18 +184,29 @@ function Checkout() {
 
     if (payment === "boleto") {
       const required: Array<[keyof BoletoData, string]> = [
+        ["relationship", "Vínculo com o viajante"],
         ["full_name", "Nome completo do financiador"],
         ["cpf", "CPF"],
+        ["birth_date", "Data de nascimento"],
         ["rg", "RG"],
         ["rg_issuer", "Órgão emissor do RG"],
-        ["birth_date", "Data de nascimento"],
+        ["rg_issue_date", "Data de emissão do RG"],
+        ["birth_city", "Cidade de nascimento"],
+        ["marital_status", "Estado civil"],
+        ["mother_name", "Nome da mãe"],
         ["zip", "CEP"],
         ["address", "Endereço"],
         ["address_number", "Número"],
         ["city", "Cidade"],
         ["state", "Estado"],
-        ["mother_name", "Nome da mãe"],
-        ["relationship", "Vínculo com o viajante"],
+        ["profession", "Profissão"],
+        ["income", "Renda mensal"],
+        ["employer_name", "Nome da empresa"],
+        ["employed_since", "Empregado desde"],
+        ["bank_name", "Banco"],
+        ["bank_agency", "Agência"],
+        ["bank_account", "Conta"],
+        ["bank_client_since", "Cliente do banco desde"],
       ];
       const missing = required.find(([k]) => !boleto[k].trim());
       if (missing) {
@@ -480,12 +491,18 @@ function Checkout() {
 
               {payment === "boleto" && (
                 <div className="mt-6 pt-6 border-t border-border space-y-5">
-                  <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-4 text-xs text-muted-foreground leading-relaxed">
+                  <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-4 text-xs text-muted-foreground leading-relaxed space-y-2">
                     <p>
-                      <span className="text-foreground font-semibold">Como funciona:</span> o parcelamento no boleto passa por análise de crédito e não é concluído online. Preencha os dados abaixo — um consultor entra em contato pelo WhatsApp para finalizar.
+                      <span className="text-foreground font-semibold">Como funciona:</span> ao enviar, os dados são encaminhados para <span className="text-foreground font-semibold">análise de crédito</span>. A finalização não é concluída online — um consultor entra em contato pelo WhatsApp com o resultado e as próximas etapas.
                     </p>
-                    <p className="mt-2">
+                    <p>
                       <span className="text-foreground font-semibold">Quem pode financiar:</span> o financiamento deve estar no nome de um dos viajantes ou de um parente de primeiro grau (pai, mãe, irmão(ã), cônjuge). Em casos específicos, aceitamos avó(ô) como financiador.
+                    </p>
+                    <p>
+                      <span className="text-foreground font-semibold">Boleto pré-pago (quitação até a data da viagem):</span> essa modalidade não está disponível pelo portal. A solicitação deve ser feita diretamente com nosso consultor pelo WhatsApp.
+                    </p>
+                    <p>
+                      <span className="text-foreground font-semibold">Todos os campos abaixo são obrigatórios.</span>
                     </p>
                   </div>
 
@@ -708,13 +725,13 @@ function BoletoForm({
           <Field label="Órgão emissor *">
             <input value={data.rg_issuer} onChange={set("rg_issuer")} className={inputCls} placeholder="SSP/UF" maxLength={20} />
           </Field>
-          <Field label="Data de emissão do RG">
+          <Field label="Data de emissão do RG *">
             <input type="date" value={data.rg_issue_date} onChange={set("rg_issue_date")} className={inputCls} />
           </Field>
-          <Field label="Cidade de nascimento">
+          <Field label="Cidade de nascimento *">
             <input value={data.birth_city} onChange={set("birth_city")} className={inputCls} maxLength={80} />
           </Field>
-          <Field label="Estado civil">
+          <Field label="Estado civil *">
             <select value={data.marital_status} onChange={set("marital_status")} className={inputCls}>
               <option value="">Selecione…</option>
               <option value="solteiro">Solteiro(a)</option>
@@ -752,16 +769,16 @@ function BoletoForm({
 
       <BoletoSection title="Dados profissionais e renda">
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Profissão">
+          <Field label="Profissão *">
             <input value={data.profession} onChange={set("profession")} className={inputCls} maxLength={80} />
           </Field>
-          <Field label="Renda mensal">
+          <Field label="Renda mensal *">
             <input value={data.income} onChange={set("income")} className={inputCls} placeholder="R$" maxLength={30} />
           </Field>
-          <Field label="Nome da empresa">
+          <Field label="Nome da empresa *">
             <input value={data.employer_name} onChange={set("employer_name")} className={inputCls} maxLength={120} />
           </Field>
-          <Field label="Empregado desde">
+          <Field label="Empregado desde *">
             <input type="month" value={data.employed_since} onChange={set("employed_since")} className={inputCls} />
           </Field>
         </div>
@@ -769,16 +786,16 @@ function BoletoForm({
 
       <BoletoSection title="Referência bancária">
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Banco">
+          <Field label="Banco *">
             <input value={data.bank_name} onChange={set("bank_name")} className={inputCls} maxLength={80} />
           </Field>
-          <Field label="Cliente desde">
+          <Field label="Cliente desde *">
             <input type="month" value={data.bank_client_since} onChange={set("bank_client_since")} className={inputCls} />
           </Field>
-          <Field label="Agência">
+          <Field label="Agência *">
             <input value={data.bank_agency} onChange={set("bank_agency")} className={inputCls} maxLength={20} />
           </Field>
-          <Field label="Conta">
+          <Field label="Conta *">
             <input value={data.bank_account} onChange={set("bank_account")} className={inputCls} maxLength={30} />
           </Field>
         </div>
