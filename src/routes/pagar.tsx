@@ -68,7 +68,7 @@ function PayPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
-    if (!fullName || !email || !phone || !card.cardNumber || !card.cvv || !card.expiry) {
+    if (!fullName || !cpf || !birthDate || !email || !phone || !card.cardNumber || !card.cvv || !card.expiry) {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
@@ -171,12 +171,30 @@ function PayPage() {
             <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
               <div className="space-y-6">
                 <Card title="Seus dados">
+                  <p className="text-xs text-brand-orange mb-4">
+                    Os dados a ser digitado deve corresponder ao do titular do cartão
+                  </p>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <Field label="Nome completo *">
                       <input required value={fullName} onChange={(e) => setFullName(e.target.value)} className={cls} />
                     </Field>
-                    <Field label="CPF">
-                      <input value={cpf} onChange={(e) => setCpf(e.target.value)} className={cls} placeholder="000.000.000-00" />
+                    <Field label="CPF *">
+                      <input
+                        required
+                        inputMode="numeric"
+                        value={cpf}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\D/g, "").slice(0, 11);
+                          const formatted = raw
+                            .replace(/(\d{3})(\d)/, "$1.$2")
+                            .replace(/(\d{3})(\d)/, "$1.$2")
+                            .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+                          setCpf(formatted);
+                        }}
+                        className={cls}
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                      />
                     </Field>
                     <Field label="E-mail *">
                       <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={cls} />
@@ -184,8 +202,8 @@ function PayPage() {
                     <Field label="Telefone / WhatsApp *">
                       <input required value={phone} onChange={(e) => setPhone(e.target.value)} className={cls} />
                     </Field>
-                    <Field label="Data de nascimento">
-                      <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={cls} />
+                    <Field label="Data de nascimento *">
+                      <input required type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={cls} />
                     </Field>
                   </div>
                 </Card>
@@ -199,6 +217,7 @@ function PayPage() {
                     installmentsOptions={installmentsOptions}
                     total={totalNumber}
                     firstAmount={firstAmount}
+                    hideCardCpf
                   />
                 </Card>
               </div>

@@ -103,6 +103,7 @@ export function CardForm({
   onInstallmentsChange,
   total,
   firstAmount,
+  hideCardCpf,
 }: {
   data: CardData;
   onChange: (p: Partial<CardData>) => void;
@@ -111,6 +112,7 @@ export function CardForm({
   onInstallmentsChange: (n: number) => void;
   total: number;
   firstAmount?: number;
+  hideCardCpf?: boolean;
 }) {
   const detected = detectBrand(data.cardNumber);
   const selectedBrand: CardBrand | "" = detected || data.brand;
@@ -221,26 +223,28 @@ export function CardForm({
         </Field>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="CPF do titular do cartão *">
-          <input
-            required
-            inputMode="numeric"
-            value={data.cardCpf}
-            onChange={(e) => {
-              const raw = e.target.value.replace(/\D/g, "").slice(0, 11);
-              const formatted = raw
-                .replace(/(\d{3})(\d)/, "$1.$2")
-                .replace(/(\d{3})(\d)/, "$1.$2")
-                .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-              onChange({ cardCpf: formatted });
-            }}
-            className={cls}
-            placeholder="000.000.000-00"
-            maxLength={14}
-          />
-        </Field>
-      </div>
+      {!hideCardCpf && (
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="CPF do titular do cartão *">
+            <input
+              required
+              inputMode="numeric"
+              value={data.cardCpf}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "").slice(0, 11);
+                const formatted = raw
+                  .replace(/(\d{3})(\d)/, "$1.$2")
+                  .replace(/(\d{3})(\d)/, "$1.$2")
+                  .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+                onChange({ cardCpf: formatted });
+              }}
+              className={cls}
+              placeholder="000.000.000-00"
+              maxLength={14}
+            />
+          </Field>
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Parcelas">
