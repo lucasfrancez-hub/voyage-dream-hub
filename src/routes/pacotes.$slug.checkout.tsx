@@ -16,7 +16,7 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
 
 type PaymentMethod = "credit_card" | "pix";
 
-const MAX_INSTALLMENTS = 12;
+const MAX_INSTALLMENTS = 10;
 const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
