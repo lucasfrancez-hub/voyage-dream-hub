@@ -411,7 +411,8 @@ function CofrePage() {
                 {e.kind === "pedido" && e.order?.cardCapture?.authorization?.signature_data_url && (
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+
                       try {
                         const ord = e.order!;
                         const rawAuth = ord.cardCapture!.authorization as unknown as AuthorizationData;
@@ -437,12 +438,13 @@ function CofrePage() {
                           signed_at: signedAt,
                           valid_until: validUntil,
                         };
-                        generateAuthorizationPDF({
+                        await generateAuthorizationPDF({
                           orderId: e.orderId!,
                           createdAt: ord.createdAt,
                           authorization: enriched,
                           liveness: (ord.cardCapture!.liveness ?? null) as unknown as LivenessData | null,
                         });
+
                       } catch (err) {
                         toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
                       }

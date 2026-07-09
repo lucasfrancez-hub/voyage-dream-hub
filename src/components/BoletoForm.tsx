@@ -2,6 +2,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCPF } from "@/lib/format";
+import { DateBRInput } from "@/components/DateBRInput";
+
 
 export type BoletoData = {
   full_name: string;
@@ -173,7 +175,7 @@ export function BoletoForm({
             />
           </Field>
           <Field label="Data de nascimento *">
-            <input type="date" value={data.birth_date} onChange={set("birth_date")} className={inputCls} />
+            <DateBRInput value={data.birth_date} onChange={(iso) => onChange({ birth_date: iso })} className={inputCls} />
           </Field>
           <Field label="RG *">
             <input value={data.rg} onChange={set("rg")} className={inputCls} maxLength={30} />
@@ -182,8 +184,9 @@ export function BoletoForm({
             <input value={data.rg_issuer} onChange={set("rg_issuer")} className={inputCls} placeholder="SSP/UF" maxLength={20} />
           </Field>
           <Field label="Data de emissão do RG *">
-            <input type="date" value={data.rg_issue_date} onChange={set("rg_issue_date")} className={inputCls} />
+            <DateBRInput value={data.rg_issue_date} onChange={(iso) => onChange({ rg_issue_date: iso })} className={inputCls} />
           </Field>
+
           <Field label="Cidade de nascimento *">
             <input value={data.birth_city} onChange={set("birth_city")} className={inputCls} maxLength={80} />
           </Field>

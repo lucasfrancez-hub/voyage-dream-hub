@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { CreditCard as CardIcon } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { splitInstallments } from "@/lib/checkout-config";
+import { DateBRInput } from "@/components/DateBRInput";
+
 
 export const CARD_BRANDS = [
   "Visa",
@@ -246,14 +248,14 @@ export function CardForm({
             />
           </Field>
           <Field label="Data de nascimento do titular *">
-            <input
+            <DateBRInput
               required
-              type="date"
               value={data.cardBirthDate}
-              onChange={(e) => onChange({ cardBirthDate: e.target.value })}
+              onChange={(iso) => onChange({ cardBirthDate: iso })}
               className={cls}
             />
           </Field>
+
         </div>
       )}
 

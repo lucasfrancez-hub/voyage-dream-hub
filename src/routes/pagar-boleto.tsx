@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, maskCPF } from "@/lib/format";
 import { BoletoForm, emptyBoleto, validateBoleto } from "@/components/BoletoForm";
+import { DateBRInput } from "@/components/DateBRInput";
+
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 
@@ -246,13 +248,13 @@ function PayBoletoPage() {
                             />
                           </Field>
                           <Field label="Data de nascimento">
-                            <input
-                              type="date"
+                            <DateBRInput
                               value={p.birth_date}
-                              onChange={(e) => updatePassenger(i, { birth_date: e.target.value })}
+                              onChange={(iso) => updatePassenger(i, { birth_date: iso })}
                               className={cls}
                             />
                           </Field>
+
                           {i === 0 && (
                             <>
                               <Field label="E-mail *">

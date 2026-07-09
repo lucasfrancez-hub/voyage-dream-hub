@@ -8,6 +8,8 @@ import { splitInstallments } from "@/lib/checkout-config";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { SignaturePad } from "@/components/SignaturePad";
 import { FaceLiveness, type LivenessResult } from "@/components/FaceLiveness";
+import { DateBRInput } from "@/components/DateBRInput";
+
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 
@@ -374,8 +376,9 @@ function PayPage() {
                       <input required value={phone} onChange={(e) => setPhone(e.target.value)} className={cls} />
                     </Field>
                     <Field label="Data de nascimento *">
-                      <input required type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={cls} />
+                      <DateBRInput required value={birthDate} onChange={setBirthDate} className={cls} />
                     </Field>
+
                   </div>
                 </Card>
 
@@ -497,10 +500,11 @@ function PayPage() {
                     ) : (
                       <>
                         <p className="text-xs text-muted-foreground mb-3">
-                          Faremos 3 capturas rápidas com a câmera do seu dispositivo para confirmar que é você
-                          finalizando o pedido. A selfie de validação tem validade de 90 dias para efeitos de
-                          conferência antifraude e chargeback. Isso protege você e a Via Air contra fraudes.
+                          Biometria facial em 5 passos para confirmar sua identidade. A verificação é
+                          usada como proteção antifraude e evidência em caso de chargeback, com validade
+                          de 90 dias. Isso protege você e a Via Air.
                         </p>
+
 
                         <FaceLiveness value={liveness} onChange={setLiveness} />
                       </>
