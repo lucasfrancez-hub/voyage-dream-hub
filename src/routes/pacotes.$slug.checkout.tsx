@@ -62,6 +62,7 @@ function Checkout() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
 
   // Once the package loads, default the passenger count to its base occupancy.
   useEffect(() => {
