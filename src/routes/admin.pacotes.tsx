@@ -83,6 +83,7 @@ const emptyForm: Partial<PackageRow> = {
   includes: [],
   hotel_name: "",
   hotel_stars: 3,
+  meal_plan: "",
   is_active: true,
   sort_order: 0,
   base_occupancy: 2,
