@@ -126,6 +126,7 @@ function AdminPackages() {
         summary: editing.summary || null,
         itinerary: editing.itinerary || null,
         hotel_name: editing.hotel_name || null,
+        meal_plan: editing.meal_plan || null,
         is_active: editing.is_active ?? true,
         includes:
           typeof editing.includes === "string"
