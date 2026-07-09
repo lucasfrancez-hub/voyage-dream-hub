@@ -245,7 +245,9 @@ function PayPage() {
                     signature_data_url: signatureDataUrl,
                     signed_at: authorizedAt,
                     ip_address: ipAddress,
+                    ip_geo: ipGeo,
                     geolocation: geo,
+
                     user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
                     language: typeof navigator !== "undefined" ? navigator.language : null,
                     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
