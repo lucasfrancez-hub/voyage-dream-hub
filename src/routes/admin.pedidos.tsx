@@ -464,7 +464,7 @@ function AdminOrders() {
                       className="inline-flex items-center gap-2 text-xs font-semibold text-brand-orange hover:opacity-80 transition"
                     >
                       <PackageIcon className="h-3.5 w-3.5" />
-                      {isOpen ? "Ocultar detalhes do pacote" : "Ver detalhes do pacote"}
+                      {isOpen ? "Ocultar detalhes da reserva" : "Ver detalhes da reserva"}
                       <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
                     </button>
                     {isOpen && (
