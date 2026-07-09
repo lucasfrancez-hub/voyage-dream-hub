@@ -725,13 +725,13 @@ function BoletoForm({
           <Field label="Órgão emissor *">
             <input value={data.rg_issuer} onChange={set("rg_issuer")} className={inputCls} placeholder="SSP/UF" maxLength={20} />
           </Field>
-          <Field label="Data de emissão do RG">
+          <Field label="Data de emissão do RG *">
             <input type="date" value={data.rg_issue_date} onChange={set("rg_issue_date")} className={inputCls} />
           </Field>
-          <Field label="Cidade de nascimento">
+          <Field label="Cidade de nascimento *">
             <input value={data.birth_city} onChange={set("birth_city")} className={inputCls} maxLength={80} />
           </Field>
-          <Field label="Estado civil">
+          <Field label="Estado civil *">
             <select value={data.marital_status} onChange={set("marital_status")} className={inputCls}>
               <option value="">Selecione…</option>
               <option value="solteiro">Solteiro(a)</option>
