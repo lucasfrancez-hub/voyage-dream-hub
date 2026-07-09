@@ -213,8 +213,7 @@ function Checkout() {
         toast.error(`Preencha o campo: ${missing[1]}.`);
         return;
       }
-      const isThirdParty = boleto.relationship !== "proprio_viajante";
-      if (isThirdParty) {
+      if (isThirdPartyFinancier) {
         if (!boleto.passenger_doc_path) {
           toast.error("Envie a foto do documento do viajante.");
           return;
