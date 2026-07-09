@@ -159,6 +159,19 @@ function Checkout() {
   const baseOccupancy = pkg?.base_occupancy ?? 2;
   const occupancyMismatch = !!pkg && adults + children !== baseOccupancy;
 
+  const boletoCpfDigits = boleto.cpf.replace(/\D/g, "");
+  const boletoNameNorm = boleto.full_name.trim().toLowerCase();
+  const financierMatchesTraveler = travelers.some((t) => {
+    const tCpf = t.cpf.replace(/\D/g, "");
+    const tName = t.full_name.trim().toLowerCase();
+    if (boletoCpfDigits.length >= 11 && tCpf.length >= 11) return tCpf === boletoCpfDigits;
+    if (boletoNameNorm && tName) return tName === boletoNameNorm;
+    return false;
+  });
+  const hasFinancierIdentity =
+    boletoCpfDigits.length >= 11 || boletoNameNorm.length > 0;
+  const isThirdPartyFinancier = hasFinancierIdentity && !financierMatchesTraveler;
+
   if (isLoading || !pkg) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
