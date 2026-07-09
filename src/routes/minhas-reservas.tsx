@@ -34,8 +34,11 @@ type Order = {
   supplier_name: string | null;
   supplier_order_number: string | null;
   notes: string | null;
+  package_id: string | null;
   package_snapshot: Record<string, unknown>;
 };
+
+type PackageMap = Record<string, Record<string, unknown>>;
 
 function MinhasReservas() {
   const [email, setEmail] = useState<string | null>(null);
