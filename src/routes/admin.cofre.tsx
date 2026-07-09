@@ -403,6 +403,27 @@ function CofrePage() {
                     <Package className="h-3.5 w-3.5" /> Ver pedido
                   </button>
                 )}
+                {e.kind === "pedido" && e.order?.cardCapture?.authorization?.signature_data_url && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        generateAuthorizationPDF({
+                          orderId: e.orderId!,
+                          createdAt: e.order!.createdAt,
+                          authorization: e.order!.cardCapture!.authorization as unknown as AuthorizationData,
+                          liveness: (e.order!.cardCapture!.liveness ?? null) as unknown as LivenessData | null,
+                        });
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full border border-blue-500/40 text-blue-500 px-3.5 py-2 text-xs hover:bg-blue-500/10 transition"
+                  >
+                    <FileSignature className="h-3.5 w-3.5" /> Ver autorização de débito
+                  </button>
+                )}
+
                 {e.kind === "pedido" && e.orderId && e.status !== "paid" && (
                   <button
                     type="button"
