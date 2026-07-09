@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Calendar, Plane, ArrowLeft } from "lucide-react";
+import { MapPin, Calendar, Plane } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
-import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
+import { TopBar } from "@/components/TopBar";
 
 export const Route = createFileRoute("/pacotes/")({
   head: () => ({
@@ -42,19 +42,7 @@ function PacotesList() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={viaAirLogo.url} alt="Via Air" className="h-9 w-auto" />
-          </Link>
-          <a
-            href="https://viaair.tur.br"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-brand-orange"
-          >
-            <ArrowLeft className="h-4 w-4" /> Voltar ao site
-          </a>
-        </div>
-      </header>
+      <TopBar backHref="https://viaair.tur.br" backLabel="Voltar ao site" />
 
       <section className="mx-auto max-w-7xl px-6 py-12 md:py-16">
         <div className="max-w-2xl">

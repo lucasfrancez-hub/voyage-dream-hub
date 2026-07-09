@@ -1,14 +1,14 @@
 import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle, Lock } from "lucide-react";
+import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
 import { CardForm, useCardData } from "@/components/CardForm";
-import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
+import { TopBar } from "@/components/TopBar";
 
 export const Route = createFileRoute("/pacotes/$slug/checkout")({
   component: Checkout,
@@ -203,20 +203,7 @@ function Checkout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={viaAirLogo.url} alt="Via Air" className="h-9 w-auto" />
-          </Link>
-          <Link
-            to="/pacotes/$slug"
-            params={{ slug }}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-brand-orange"
-          >
-            <ArrowLeft className="h-4 w-4" /> Voltar ao pacote
-          </Link>
-        </div>
-      </header>
+      <TopBar backTo="/pacotes/$slug" backParams={{ slug }} backLabel="Voltar ao pacote" />
 
       <div className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="font-display text-3xl md:text-4xl font-bold">
@@ -468,8 +455,9 @@ function Checkout() {
               <p className="mt-3 text-[11px] text-muted-foreground text-center">
                 Ao continuar você concorda com nossos termos e política de cancelamento.
               </p>
-              <p className="mt-2 text-[11px] text-muted-foreground text-center inline-flex items-center justify-center gap-1.5">
-                <Lock className="h-3 w-3" /> Ambiente criptografado. Seus dados trafegam por conexão segura.
+              <p className="mt-2 text-[11px] text-muted-foreground text-center">
+                <span aria-hidden className="mr-1 font-sans">{"\u{1F512}\u{FE0E}"}</span>
+                Ambiente criptografado. Seus dados trafegam por conexão segura.
               </p>
             </div>
           </aside>
