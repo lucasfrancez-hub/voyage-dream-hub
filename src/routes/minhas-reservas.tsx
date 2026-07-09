@@ -236,9 +236,16 @@ function SignedInView({ email }: { email: string }) {
   );
 }
 
-function OrderCard({ order: o }: { order: Order }) {
+function OrderCard({ order: o, pkg }: { order: Order; pkg?: Record<string, unknown> }) {
   const [open, setOpen] = useState(false);
-  const snap = (o.package_snapshot ?? {}) as {
+  const rawSnap = (o.package_snapshot ?? {}) as Record<string, unknown>;
+  const merged: Record<string, unknown> = { ...(pkg ?? {}), ...rawSnap };
+  for (const k of Object.keys(rawSnap)) {
+    if (rawSnap[k] === null || rawSnap[k] === undefined) {
+      if (pkg && pkg[k] !== undefined && pkg[k] !== null) merged[k] = pkg[k];
+    }
+  }
+  const snap = merged as {
     title?: string;
     destination?: string;
     origin?: string;
