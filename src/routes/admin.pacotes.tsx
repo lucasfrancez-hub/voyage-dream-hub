@@ -448,9 +448,10 @@ function AdminPackages() {
                   <span className="text-sm">Mostrar no site</span>
                 </label>
               </FormField>
+              </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-border bg-card px-6 py-4">
               <button
                 onClick={() => setEditing(null)}
                 className="rounded-full border border-border px-4 py-2 text-sm"
