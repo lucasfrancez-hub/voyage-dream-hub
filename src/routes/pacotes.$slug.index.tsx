@@ -402,7 +402,7 @@ function ItineraryModal({
         <div className="p-5 space-y-3">
           {segments.length === 0 && (
             <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-              O detalhamento das paradas ainda não foi informado. Fale com nosso time no WhatsApp para saber os pontos de conexão e horários.
+              O detalhamento das conexões ainda não foi informado. Fale com nosso time no WhatsApp para saber os pontos de conexão e horários.
             </div>
           )}
           {(segments.length === 0
