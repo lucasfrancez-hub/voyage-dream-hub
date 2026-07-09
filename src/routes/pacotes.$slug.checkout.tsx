@@ -154,9 +154,11 @@ function Checkout() {
 
     setSubmitting(true);
     try {
-      const { data: inserted, error } = await supabase
+      const newId = crypto.randomUUID();
+      const { error } = await supabase
         .from("orders")
         .insert({
+          id: newId,
           package_id: pkg.id,
           package_snapshot: {
             slug: pkg.slug,
