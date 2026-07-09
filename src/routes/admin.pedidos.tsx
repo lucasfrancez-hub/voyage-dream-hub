@@ -436,6 +436,21 @@ function AdminOrders() {
                 }}
               />
 
+              <AirlineLocatorEditor
+                orderId={o.id}
+                initialValue={(o as { airline_locator?: string | null }).airline_locator ?? ""}
+                onSave={async (locator) => {
+                  await updateOrder({
+                    data: {
+                      id: o.id,
+                      airline_locator: locator.trim() ? locator.trim().toUpperCase() : null,
+                    },
+                  });
+                  toast.success("Localizador atualizado");
+                  refetch();
+                }}
+              />
+
               <OrderDocuments orderId={o.id} canManage />
               {(() => {
                 const isOpen = expanded[o.id] === undefined ? true : !!expanded[o.id];
