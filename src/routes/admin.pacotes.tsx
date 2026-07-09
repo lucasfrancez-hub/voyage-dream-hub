@@ -343,7 +343,7 @@ function AdminPackages() {
                   onChange={(e) => setEditing({ ...editing, price_per_person: Number(e.target.value) })}
                 />
               </FormField>
-              <FormField label="Taxas (valor total do pacote — já incluso no preço final)">
+              <FormField label="Taxas (informativo — já inclusas no preço por pessoa)">
                 <input
                   type="number"
                   step="0.01"
