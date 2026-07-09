@@ -41,6 +41,10 @@ type BoletoData = {
   bank_account: string;
   bank_client_since: string;
   relationship: string;
+  passenger_doc_path: string;
+  passenger_doc_name: string;
+  financier_doc_path: string;
+  financier_doc_name: string;
 };
 
 const emptyBoleto = (): BoletoData => ({
@@ -67,6 +71,10 @@ const emptyBoleto = (): BoletoData => ({
   bank_account: "",
   bank_client_since: "",
   relationship: "",
+  passenger_doc_path: "",
+  passenger_doc_name: "",
+  financier_doc_path: "",
+  financier_doc_name: "",
 });
 
 const MAX_INSTALLMENTS = 10;
