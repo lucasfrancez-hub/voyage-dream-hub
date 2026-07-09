@@ -11,6 +11,20 @@ import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 import { updateCofreOrder, deleteCofreOrder } from "@/lib/cofre.functions";
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
 
+type FlightLike = {
+  airline?: string;
+  flight_number?: string;
+  departure_airport?: string;
+  arrival_airport?: string;
+  departure_time?: string;
+  arrival_time?: string;
+  departure_date?: string;
+  arrival_date?: string;
+  duration?: string;
+  stops?: number;
+  segments?: Array<Record<string, unknown>>;
+} & Record<string, unknown>;
+
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrders,
@@ -150,6 +164,14 @@ function AdminOrders() {
             description?: string;
             reference?: string | null;
             order_number?: string | null;
+            image_url?: string | null;
+            summary?: string | null;
+            hotel_name?: string | null;
+            hotel_stars?: number | null;
+            meal_plan?: string | null;
+            includes?: string[] | null;
+            outbound_flight?: FlightLike | null;
+            return_flight?: FlightLike | null;
 
             first_amount?: number | null;
             travelers?: Array<{
@@ -346,7 +368,67 @@ function AdminOrders() {
                           {snap.reference && (
                             <DetailRow icon={Hash} label="Referência" value={snap.reference} />
                           )}
+                          {snap.hotel_name && (
+                            <DetailRow
+                              icon={PackageIcon}
+                              label={`Hotel${snap.hotel_stars ? ` · ${"★".repeat(snap.hotel_stars)}` : ""}`}
+                              value={`${snap.hotel_name}${snap.meal_plan ? ` — ${snap.meal_plan}` : ""}`}
+                            />
+                          )}
                         </div>
+
+                        {snap.summary && (
+                          <div className="pt-2 border-t border-border text-sm text-muted-foreground whitespace-pre-wrap">
+                            {snap.summary}
+                          </div>
+                        )}
+
+                        {(snap.outbound_flight || snap.return_flight) && (
+                          <div className="pt-2 border-t border-border space-y-2">
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              Voos
+                            </div>
+                            {snap.outbound_flight && (
+                              <FlightSummary flight={snap.outbound_flight} label="Ida" />
+                            )}
+                            {snap.return_flight && (
+                              <FlightSummary flight={snap.return_flight} label="Volta" />
+                            )}
+                          </div>
+                        )}
+
+                        {snap.includes && snap.includes.length > 0 && (
+                          <div className="pt-2 border-t border-border">
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                              Incluso no pacote
+                            </div>
+                            <ul className="grid sm:grid-cols-2 gap-1 text-sm">
+                              {snap.includes.map((it, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
+                                  <span>{it}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {snap.slug && (
+                          <div className="pt-2 border-t border-border">
+                            <a
+                              href={`/pacotes/${snap.slug}?preview=1`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2 rounded-full border border-brand-orange/50 text-brand-orange px-3.5 py-2 text-xs font-semibold hover:bg-brand-orange/10 transition"
+                            >
+                              <PackageIcon className="h-3.5 w-3.5" />
+                              Abrir página completa do pacote
+                            </a>
+                            <div className="mt-1 text-[10px] text-muted-foreground">
+                              Acessa mesmo se o pacote estiver oculto/expirado.
+                            </div>
+                          </div>
+                        )}
                         {snap.travelers && snap.travelers.length > 0 && (
                           <div className="pt-2 border-t border-border">
                             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
@@ -460,6 +542,54 @@ function AdminOrders() {
   );
 }
 
+function FlightSummary({ flight, label }: { flight: FlightLike; label: string }) {
+  const f = flight as Record<string, unknown>;
+  const airline = (f.airline as string) ?? "";
+  const flightNumber = (f.flight_number as string) ?? "";
+  const dep = (f.departure_airport as string) ?? "";
+  const arr = (f.arrival_airport as string) ?? "";
+  const depTime = (f.departure_time as string) ?? "";
+  const arrTime = (f.arrival_time as string) ?? "";
+  const depDate = (f.departure_date as string) ?? "";
+  const arrDate = (f.arrival_date as string) ?? "";
+  const stops = typeof f.stops === "number" ? (f.stops as number) : undefined;
+  const duration = (f.duration as string) ?? "";
+
+  return (
+    <div className="rounded-lg border border-border bg-background/40 p-3 text-sm">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange/15 text-brand-orange text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
+          {label}
+        </span>
+        {airline && <span className="font-semibold">{airline}</span>}
+        {flightNumber && <span className="text-xs text-muted-foreground">· {flightNumber}</span>}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        {(dep || depTime || depDate) && (
+          <span>
+            <strong className="text-foreground">{dep || "—"}</strong>
+            {depTime ? ` · ${depTime}` : ""}
+            {depDate ? ` · ${depDate}` : ""}
+          </span>
+        )}
+        <span className="text-muted-foreground">→</span>
+        {(arr || arrTime || arrDate) && (
+          <span>
+            <strong className="text-foreground">{arr || "—"}</strong>
+            {arrTime ? ` · ${arrTime}` : ""}
+            {arrDate ? ` · ${arrDate}` : ""}
+          </span>
+        )}
+        {duration && <span className="text-muted-foreground">· {duration}</span>}
+        {stops != null && (
+          <span className="text-muted-foreground">
+            · {stops === 0 ? "direto" : `${stops} parada(s)`}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 
 function InfoLine({

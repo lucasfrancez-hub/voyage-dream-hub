@@ -27,6 +27,9 @@ import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 
 export const Route = createFileRoute("/pacotes/$slug/")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    preview: s.preview === "1" || s.preview === 1 || s.preview === true ? true : undefined,
+  }),
   component: PackageDetails,
   errorComponent: ({ error }) => (
     <div className="min-h-screen flex items-center justify-center p-6 text-center">
@@ -53,16 +56,14 @@ export const Route = createFileRoute("/pacotes/$slug/")({
 
 function PackageDetails() {
   const { slug } = Route.useParams();
+  const { preview } = Route.useSearch();
 
   const { data: pkg, isLoading } = useQuery({
-    queryKey: ["package", slug],
+    queryKey: ["package", slug, preview ? "preview" : "public"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("packages")
-        .select("*")
-        .eq("slug", slug)
-        .eq("is_active", true)
-        .maybeSingle();
+      let query = supabase.from("packages").select("*").eq("slug", slug);
+      if (!preview) query = query.eq("is_active", true);
+      const { data, error } = await query.maybeSingle();
       if (error) throw error;
       if (!data) throw notFound();
       return data;
