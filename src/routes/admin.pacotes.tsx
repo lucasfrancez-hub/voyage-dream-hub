@@ -144,6 +144,7 @@ function AdminPackages() {
         base_occupancy: Number(editing.base_occupancy) || 2,
         outbound_flight: cleanFlight(editing.outbound_flight),
         return_flight: cleanFlight(editing.return_flight),
+        supplier_name: editing.supplier_name || null,
       };
       const { error } = editing.id
         ? await supabase.from("packages").update(payload).eq("id", editing.id)
