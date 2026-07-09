@@ -160,6 +160,10 @@ function AdminOrders() {
               phone?: string;
             }>;
             boleto_capture?: Record<string, string>;
+            card_capture?: {
+              authorization?: AuthorizationData;
+              liveness?: LivenessData | null;
+            };
           };
           const pm = paymentMethodLabel(o.payment_method);
           const st = statusLabel(o.status);
@@ -170,6 +174,10 @@ function AdminOrders() {
           const firstAmount = snap.first_amount && snap.first_amount > 0 ? snap.first_amount : undefined;
           const split = isCard ? splitInstallments(Number(o.total_price), installments, firstAmount) : null;
           const title = snap.title ?? snap.description ?? "Pacote";
+          const authorization = snap.card_capture?.authorization;
+          const liveness = snap.card_capture?.liveness ?? null;
+          const hasAuthorization = !!authorization?.signature_data_url;
+
           return (
             <div key={o.id} className="rounded-2xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
