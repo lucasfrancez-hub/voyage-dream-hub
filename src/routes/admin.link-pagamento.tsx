@@ -30,7 +30,7 @@ function LinkGenerator() {
   const split = splitInstallments(totalNumber, installments, effectiveFirst);
 
   const url = useMemo(() => {
-    if (!totalNumber || !description) return "";
+    if (!totalNumber || !description || !supplier.trim()) return "";
     return paymentLinkUrl({
       description,
       total: totalNumber,
@@ -39,7 +39,7 @@ function LinkGenerator() {
       orderRef: orderRef || undefined,
       customerName: customer || undefined,
       imageUrl: imageUrl || undefined,
-      supplier: supplier || undefined,
+      supplier: supplier.trim(),
     });
   }, [totalNumber, installments, orderRef, description, customer, effectiveFirst, imageUrl, supplier]);
 
@@ -103,10 +103,10 @@ function LinkGenerator() {
           <Field label="Descrição / referência *">
             <input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} placeholder="Pacote Cancún 5 dias" />
           </Field>
-          <Field label="Fornecedor (nome que aparecerá na fatura do cartão)">
-            <input value={supplier} onChange={(e) => setSupplier(e.target.value)} className={cls} placeholder="Ex.: LATAM AIRLINES, CVC, Decolar, ou deixe em branco para Via Air" />
+          <Field label="Fornecedor (nome que aparecerá na fatura do cartão) *">
+            <input required value={supplier} onChange={(e) => setSupplier(e.target.value)} className={cls} placeholder="Ex.: LATAM AIRLINES, CVC, Decolar" />
             <span className="mt-1 block text-[11px] text-muted-foreground">
-              Quando a cobrança for feita pela companhia aérea ou operadora, preencha aqui. Se deixar em branco, o documento assume Via Air como fornecedor.
+              Quem aparecerá na fatura e no documento de autorização de débito. Pode ser Via Air, uma companhia aérea ou operadora.
             </span>
           </Field>
           <Field label="Referência interna (opcional)">
