@@ -53,9 +53,9 @@ export function TopBar({
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/50">
       <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between gap-6">
-        <Link to="/" className="flex items-center gap-3 shrink-0">
+        <a href="https://viaair.tur.br" className="flex items-center gap-3 shrink-0">
           <img src={viaAirLogo.url} alt="Via Air" className="h-9 w-auto" />
-        </Link>
+        </a>
 
         <nav className="hidden lg:flex items-center gap-7">
           {NAV_ITEMS.map((item) => (
