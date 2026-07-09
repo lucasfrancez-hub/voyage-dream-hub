@@ -41,6 +41,10 @@ type BoletoData = {
   bank_account: string;
   bank_client_since: string;
   relationship: string;
+  passenger_doc_path: string;
+  passenger_doc_name: string;
+  financier_doc_path: string;
+  financier_doc_name: string;
 };
 
 const emptyBoleto = (): BoletoData => ({
@@ -67,6 +71,10 @@ const emptyBoleto = (): BoletoData => ({
   bank_account: "",
   bank_client_since: "",
   relationship: "",
+  passenger_doc_path: "",
+  passenger_doc_name: "",
+  financier_doc_path: "",
+  financier_doc_name: "",
 });
 
 const MAX_INSTALLMENTS = 10;
@@ -193,6 +201,17 @@ function Checkout() {
       if (missing) {
         toast.error(`Preencha o campo: ${missing[1]}.`);
         return;
+      }
+      const isThirdParty = boleto.relationship && boleto.relationship !== "proprio_viajante";
+      if (isThirdParty) {
+        if (!boleto.passenger_doc_path) {
+          toast.error("Envie o documento do viajante para comprovar o vínculo.");
+          return;
+        }
+        if (!boleto.financier_doc_path) {
+          toast.error("Envie o documento do financiador para comprovar o vínculo.");
+          return;
+        }
       }
     }
 
@@ -764,6 +783,32 @@ function BoletoForm({
           </Field>
         </div>
       </BoletoSection>
+
+      {data.relationship && data.relationship !== "proprio_viajante" && (
+        <BoletoSection title="Comprovação de vínculo (obrigatório para terceiros)">
+          <p className="text-xs text-muted-foreground mb-3">
+            Envie um documento com foto do viajante e do financiador (RG ou CNH). Aceitamos JPG, PNG ou PDF (até 10 MB cada).
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <BoletoUpload
+              label="Documento do viajante *"
+              fileName={data.passenger_doc_name}
+              onUpload={(path, name) =>
+                onChange({ passenger_doc_path: path, passenger_doc_name: name })
+              }
+              onClear={() => onChange({ passenger_doc_path: "", passenger_doc_name: "" })}
+            />
+            <BoletoUpload
+              label="Documento do financiador *"
+              fileName={data.financier_doc_name}
+              onUpload={(path, name) =>
+                onChange({ financier_doc_path: path, financier_doc_name: name })
+              }
+              onClear={() => onChange({ financier_doc_path: "", financier_doc_name: "" })}
+            />
+          </div>
+        </BoletoSection>
+      )}
     </div>
   );
 }
@@ -776,4 +821,76 @@ function BoletoSection({ title, children }: { title: string; children: React.Rea
     </div>
   );
 }
+
+function BoletoUpload({
+  label,
+  fileName,
+  onUpload,
+  onClear,
+}: {
+  label: string;
+  fileName: string;
+  onUpload: (path: string, name: string) => void;
+  onClear: () => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx. 10 MB).");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "bin";
+      const path = `${new Date().getFullYear()}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("boleto-documents")
+        .upload(path, file, { contentType: file.type || undefined, upsert: false });
+      if (error) throw error;
+      onUpload(path, file.name);
+      toast.success("Documento enviado.");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Erro ao enviar documento.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div>
+      <span className="block text-xs text-muted-foreground mb-1.5">{label}</span>
+      {fileName ? (
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-brand-orange/40 bg-brand-orange/5 px-3 py-2.5 text-sm">
+          <span className="truncate text-foreground">{fileName}</span>
+          <button
+            type="button"
+            onClick={onClear}
+            className="text-xs text-muted-foreground hover:text-destructive shrink-0"
+          >
+            remover
+          </button>
+        </div>
+      ) : (
+        <label className={`flex items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-background px-3 py-3 text-sm cursor-pointer hover:border-brand-orange/60 transition ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={handleFile}
+            className="hidden"
+            disabled={uploading}
+          />
+          <span className="text-muted-foreground">
+            {uploading ? "Enviando…" : "Escolher arquivo (JPG, PNG ou PDF)"}
+          </span>
+        </label>
+      )}
+    </div>
+  );
+}
+
 
