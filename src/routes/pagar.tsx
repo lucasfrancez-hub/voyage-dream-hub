@@ -7,6 +7,7 @@ import { formatBRL } from "@/lib/format";
 import { splitInstallments } from "@/lib/checkout-config";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { SignaturePad } from "@/components/SignaturePad";
+import { FaceLiveness, type LivenessResult } from "@/components/FaceLiveness";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 
@@ -21,6 +22,7 @@ type Search = {
   ref?: string;
   cliente?: string;
   img?: string;
+  simples?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
@@ -37,9 +39,11 @@ export const Route = createFileRoute("/pagar")({
     ref: asStr(s.ref),
     cliente: asStr(s.cliente),
     img: asStr(s.img),
+    simples: asStr(s.simples),
   }),
   component: PayPage,
 });
+
 
 function PayPage() {
   const navigate = useNavigate();
