@@ -213,14 +213,18 @@ function Checkout() {
         toast.error(`Preencha o campo: ${missing[1]}.`);
         return;
       }
-      if (!boleto.passenger_doc_path) {
-        toast.error("Envie a foto do documento do viajante.");
-        return;
+      const isThirdParty = boleto.relationship !== "proprio_viajante";
+      if (isThirdParty) {
+        if (!boleto.passenger_doc_path) {
+          toast.error("Envie a foto do documento do viajante.");
+          return;
+        }
+        if (!boleto.financier_doc_path) {
+          toast.error("Envie a foto do documento do financiador.");
+          return;
+        }
       }
-      if (!boleto.financier_doc_path) {
-        toast.error("Envie a foto do documento do financiador.");
-        return;
-      }
+
 
     }
 
@@ -289,22 +293,22 @@ function Checkout() {
 
       setSuccess(true);
 
-      if (payment === "credit_card") {
+      if (payment === "credit_card" || payment === "boleto") {
         toast.success("Pedido enviado! Nosso time confirma sua reserva em seguida.");
         setTimeout(() => navigate({ to: "/pacotes" }), 2000);
       } else {
-        const methodLabel = payment === "pix" ? "Pix" : "boleto bancário parcelado";
         const message = `Olá! Reservei o pacote *${pkg.title}* (${adults} adulto${
           adults > 1 ? "s" : ""
         }${children ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}) — Total ${formatBRL(
           totalPrice,
-        )}. Quero pagar via ${methodLabel}.\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
+        )}. Quero pagar via Pix.\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
         toast.success("Abrindo WhatsApp para finalizar…");
         setTimeout(() => {
           window.open(whatsappUrl(message), "_blank");
           navigate({ to: "/pacotes" });
         }, 600);
       }
+
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "Erro ao enviar reserva.";
@@ -591,11 +595,12 @@ function Checkout() {
                   <>
                     <Check className="h-4 w-4" /> Reserva enviada
                   </>
-                ) : payment === "credit_card" ? (
-                  <>Fazer pedido</>
-                ) : (
+                ) : payment === "pix" ? (
                   <>Fazer pedido e falar no WhatsApp</>
+                ) : (
+                  <>Fazer pedido</>
                 )}
+
               </button>
               <p className="mt-3 text-[11px] text-muted-foreground text-center">
                 Ao continuar você concorda com nossos{" "}
@@ -711,7 +716,9 @@ function BoletoForm({
 }) {
   const set = <K extends keyof BoletoData>(k: K) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     onChange({ [k]: e.target.value } as Partial<BoletoData>);
+  const isThirdParty = data.relationship !== "" && data.relationship !== "proprio_viajante";
   return (
+
     <div className="space-y-6">
       <BoletoSection title="Dados pessoais do financiador">
         <div className="grid sm:grid-cols-2 gap-4">
@@ -852,11 +859,13 @@ function BoletoForm({
 
       <BoletoSection title="Comprovação de vínculo (documentos com foto)">
         <p className="text-xs text-muted-foreground mb-3">
-          Envie a foto do documento (RG ou CNH) do <strong>viajante</strong> e do <strong>financiador</strong>. Quando o financiador não for o próprio viajante, esses documentos são usados para comprovar o vínculo familiar. Aceitamos JPG, PNG ou PDF (até 10 MB cada).
+          {isThirdParty
+            ? "Envie a foto do documento (RG ou CNH) do viajante e do financiador. Esses documentos são obrigatórios para comprovar o vínculo familiar. Aceitamos JPG, PNG ou PDF (até 10 MB cada)."
+            : "Quando o financiador não for o próprio viajante, será necessário enviar a foto do documento (RG ou CNH) do viajante e do financiador para comprovar o vínculo. Aceitamos JPG, PNG ou PDF (até 10 MB cada)."}
         </p>
         <div className="grid sm:grid-cols-2 gap-4">
           <BoletoUpload
-            label="Documento do viajante *"
+            label={isThirdParty ? "Documento do viajante *" : "Documento do viajante"}
             fileName={data.passenger_doc_name}
             onUpload={(path, name) =>
               onChange({ passenger_doc_path: path, passenger_doc_name: name })
@@ -864,7 +873,7 @@ function BoletoForm({
             onClear={() => onChange({ passenger_doc_path: "", passenger_doc_name: "" })}
           />
           <BoletoUpload
-            label="Documento do financiador *"
+            label={isThirdParty ? "Documento do financiador *" : "Documento do financiador"}
             fileName={data.financier_doc_name}
             onUpload={(path, name) =>
               onChange({ financier_doc_path: path, financier_doc_name: name })
@@ -873,6 +882,7 @@ function BoletoForm({
           />
         </div>
       </BoletoSection>
+
 
     </div>
   );
