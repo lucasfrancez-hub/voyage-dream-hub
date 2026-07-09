@@ -140,9 +140,8 @@ function PayBoletoPage() {
         birth_date: primary.birth_date || null,
         adults: passengers.length,
         children: 0,
-        payment_method: "boleto",
+        payment_method: installments > 1 ? `boleto_${installments}x` : "boleto",
         total_price: totalNumber,
-        installments,
         notes: notes || null,
       });
       if (error) throw error;
