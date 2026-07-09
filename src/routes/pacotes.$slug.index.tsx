@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   MapPin,
+  Plane,
   Calendar,
   Hotel,
   Check,
