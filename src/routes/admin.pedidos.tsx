@@ -357,20 +357,45 @@ function AdminOrders() {
                           {snap.reference && (
                             <DetailRow icon={Hash} label="Referência" value={snap.reference} />
                           )}
-                          {snap.hotel_name && (
-                            <DetailRow
-                              icon={PackageIcon}
-                              label={`Hotel${snap.hotel_stars ? ` · ${"★".repeat(snap.hotel_stars)}` : ""}`}
-                              value={`${snap.hotel_name}${snap.meal_plan ? ` — ${snap.meal_plan}` : ""}`}
-                            />
-                          )}
                         </div>
+
+                        {snap.hotel_name && (
+                          <div className="pt-2 border-t border-border">
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                              Hospedagem
+                            </div>
+                            <div className="rounded-2xl border border-border bg-card p-4 flex items-start gap-3">
+                              <div className="h-10 w-10 rounded-xl bg-muted/50 border border-border flex items-center justify-center shrink-0">
+                                <Hotel className="h-5 w-5 text-brand-orange" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold">{snap.hotel_name}</span>
+                                  {snap.hotel_stars ? (
+                                    <span className="inline-flex">
+                                      {Array.from({ length: snap.hotel_stars }).map((_, i) => (
+                                        <Star key={i} className="h-3.5 w-3.5 fill-brand-orange text-brand-orange" />
+                                      ))}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                {snap.meal_plan && (
+                                  <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    Regime: {snap.meal_plan}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {snap.summary && (
                           <div className="pt-2 border-t border-border text-sm text-muted-foreground whitespace-pre-wrap">
                             {snap.summary}
                           </div>
                         )}
+
 
                         {(snap.outbound_flight || snap.return_flight) && (
                           <div className="pt-2 border-t border-border space-y-3">
