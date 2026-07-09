@@ -180,6 +180,15 @@ function AdminOrders() {
           const liveness = snap.card_capture?.liveness ?? null;
           const hasAuthorization = !!authorization?.signature_data_url;
 
+          const displayOrderNumber =
+            snap.order_number && snap.order_number.trim()
+              ? snap.order_number.trim()
+              : `#${(() => {
+                  const hex = o.id.replace(/-/g, "").slice(0, 12);
+                  const n = parseInt(hex, 16);
+                  return String(n % 100000000).padStart(8, "0");
+                })()}`;
+
           return (
             <div key={o.id} className="rounded-2xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -190,6 +199,10 @@ function AdminOrders() {
                   <div className="mt-1 font-semibold">{title}</div>
                   <div className="text-xs text-muted-foreground">
                     {snap.destination ?? snap.reference ?? ""}
+                  </div>
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-mono font-semibold text-foreground">
+                    <Hash className="h-3 w-3 text-muted-foreground" />
+                    Pedido {displayOrderNumber}
                   </div>
                 </div>
                 <div className="text-right">

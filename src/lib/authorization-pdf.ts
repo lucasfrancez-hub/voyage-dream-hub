@@ -82,6 +82,12 @@ export async function generateAuthorizationPDF(opts: {
 }) {
 
   const { orderId, createdAt, authorization: a, liveness } = opts;
+  const numericFromUuid = (() => {
+    const hex = orderId.replace(/-/g, "").slice(0, 12);
+    const n = parseInt(hex, 16);
+    return `#${String(n % 100000000).padStart(8, "0")}`;
+  })();
+  const displayOrderNumber = a.order_number && a.order_number.trim() ? a.order_number.trim() : numericFromUuid;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -125,7 +131,7 @@ export async function generateAuthorizationPDF(opts: {
       );
       doc.text("Documento validado eletronicamente (MP 2.200-2/2001)", M, 22.5);
     } else {
-      doc.text(`Pedido ${a.order_number || orderId}`, M, 17);
+      doc.text(`Pedido ${displayOrderNumber}`, M, 17);
     }
 
     // selo à direita
@@ -244,7 +250,7 @@ export async function generateAuthorizationPDF(opts: {
     doc.text(value, x + 2.5, y + 9);
   };
   const chipW = (contentW - 6) / 3;
-  const pedidoDisplay = a.order_number || (orderId.slice(0, 12) + (orderId.length > 12 ? "…" : ""));
+  const pedidoDisplay = displayOrderNumber;
   chip("Pedido", pedidoDisplay, M, chipW);
 
   chip("Assinado em", fmtDate(a.signed_at), M + chipW + 3, chipW);
@@ -478,7 +484,7 @@ export async function generateAuthorizationPDF(opts: {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    const shortId = (a.order_number || orderId).toString().slice(0, 18);
+    const shortId = displayOrderNumber.slice(0, 20);
     doc.text("viaair.tur.br", M, pageH - 5.5);
     doc.text(`Autorização de débito · Pedido ${shortId}`, pageW / 2, pageH - 5.5, { align: "center" });
     doc.text(`Página ${i} de ${pages}`, pageW - M, pageH - 5.5, { align: "right" });
