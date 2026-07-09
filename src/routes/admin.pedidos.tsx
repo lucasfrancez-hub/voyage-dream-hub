@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Mail, Phone, User, CheckCircle2, XCircle, Trash2, CreditCard, Calendar, Hash, ChevronDown, MapPin, Package as PackageIcon, Users } from "lucide-react";
+import { Mail, Phone, User, CheckCircle2, XCircle, Trash2, CreditCard, Calendar, Hash, ChevronDown, MapPin, Package as PackageIcon, Users, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -238,9 +238,24 @@ function AdminOrders() {
                 )}
               </div>
 
-              {isBoleto && snap.boleto_capture && (
-                <BoletoDetails data={snap.boleto_capture} />
-              )}
+              {isBoleto && snap.boleto_capture && (() => {
+                const key = `boleto:${o.id}`;
+                const isOpen = !!expanded[key];
+                return (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setExpanded((p) => ({ ...p, [key]: !isOpen }))}
+                      className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 text-amber-500 px-3.5 py-2 text-xs font-semibold hover:bg-amber-500/10 transition"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {isOpen ? "Ocultar dados do boleto" : "Ver dados do boleto"}
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {isOpen && <BoletoDetails data={snap.boleto_capture} />}
+                  </div>
+                );
+              })()}
 
 
               <div className="mt-4 grid sm:grid-cols-3 gap-3 text-sm border-t border-border pt-4">
