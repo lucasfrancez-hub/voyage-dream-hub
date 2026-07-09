@@ -68,7 +68,7 @@ function PayPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
-    if (!fullName || !email || !phone || !card.cardNumber || !card.cvv || !card.expiry) {
+    if (!fullName || !cpf || !birthDate || !email || !phone || !card.cardNumber || !card.cvv || !card.expiry) {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
