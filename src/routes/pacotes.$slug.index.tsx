@@ -513,6 +513,19 @@ function BagIcon({
   );
 }
 
+function computeLayover(arrive?: string, nextDepart?: string): string {
+  if (!arrive || !nextDepart) return "";
+  const a = new Date(arrive).getTime();
+  const b = new Date(nextDepart).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return "";
+  const minsTotal = Math.round((b - a) / 60000);
+  const h = Math.floor(minsTotal / 60);
+  const m = minsTotal % 60;
+  if (h === 0) return `${m}min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}min`;
+}
+
 function formatFlightTime(iso?: string): string {
   if (!iso) return "";
   const d = new Date(iso);
