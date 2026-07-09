@@ -783,6 +783,32 @@ function BoletoForm({
           </Field>
         </div>
       </BoletoSection>
+
+      {data.relationship && data.relationship !== "proprio_viajante" && (
+        <BoletoSection title="Comprovação de vínculo (obrigatório para terceiros)">
+          <p className="text-xs text-muted-foreground mb-3">
+            Envie um documento com foto do viajante e do financiador (RG ou CNH). Aceitamos JPG, PNG ou PDF (até 10 MB cada).
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <BoletoUpload
+              label="Documento do viajante *"
+              fileName={data.passenger_doc_name}
+              onUpload={(path, name) =>
+                onChange({ passenger_doc_path: path, passenger_doc_name: name })
+              }
+              onClear={() => onChange({ passenger_doc_path: "", passenger_doc_name: "" })}
+            />
+            <BoletoUpload
+              label="Documento do financiador *"
+              fileName={data.financier_doc_name}
+              onUpload={(path, name) =>
+                onChange({ financier_doc_path: path, financier_doc_name: name })
+              }
+              onClear={() => onChange({ financier_doc_path: "", financier_doc_name: "" })}
+            />
+          </div>
+        </BoletoSection>
+      )}
     </div>
   );
 }
