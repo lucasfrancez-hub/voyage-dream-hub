@@ -49,6 +49,9 @@ export const Route = createFileRoute("/pagar")({
     img: asStr(s.img),
     simples: asStr(s.simples),
     fornec: asStr(s.fornec),
+    loc: asStr(s.loc),
+    rota: asStr(s.rota),
+    datav: asStr(s.datav),
   }),
   component: PayPage,
 });
