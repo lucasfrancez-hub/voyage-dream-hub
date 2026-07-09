@@ -17,6 +17,7 @@ export type Database = {
       orders: {
         Row: {
           adults: number
+          airline_locator: string | null
           birth_date: string | null
           children: number
           cpf: string | null
@@ -36,6 +37,7 @@ export type Database = {
         }
         Insert: {
           adults?: number
+          airline_locator?: string | null
           birth_date?: string | null
           children?: number
           cpf?: string | null
@@ -55,6 +57,7 @@ export type Database = {
         }
         Update: {
           adults?: number
+          airline_locator?: string | null
           birth_date?: string | null
           children?: number
           cpf?: string | null
