@@ -88,7 +88,7 @@ function Checkout() {
 
   const totalPrice = useMemo(() => {
     if (!pkg) return 0;
-    return Number(pkg.price_per_person) * (adults + children) + Number(pkg.taxes ?? 0);
+    return Number(pkg.price_per_person) * (adults + children);
   }, [pkg, adults, children]);
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
