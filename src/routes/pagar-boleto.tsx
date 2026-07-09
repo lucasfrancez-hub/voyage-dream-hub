@@ -121,6 +121,8 @@ function PayBoletoPage() {
           description: desc,
           reference: ref ?? null,
           total: totalNumber,
+          installments,
+          installment_value: installmentValue,
           image_url: img ?? null,
           passengers: passengers.map((p, i) => ({
             index: i + 1,
