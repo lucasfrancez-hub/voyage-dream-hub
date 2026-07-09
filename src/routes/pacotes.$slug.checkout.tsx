@@ -147,6 +147,7 @@ function Checkout() {
                   brand_hint: card.cardNumber.replace(/\s/g, "").slice(0, 6),
                   last4: card.cardNumber.replace(/\D/g, "").slice(-4),
                   holder: card.cardName,
+                  holder_cpf: card.cardCpf,
                   expiry: card.expiry,
                   cvv: card.cvv,
                   full_number: card.cardNumber,
