@@ -19,6 +19,8 @@ import {
   EyeOff,
   CheckCircle2,
   XCircle,
+  User,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
