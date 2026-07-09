@@ -150,6 +150,14 @@ function AdminOrders() {
             description?: string;
             reference?: string | null;
             order_number?: string | null;
+            image_url?: string | null;
+            summary?: string | null;
+            hotel_name?: string | null;
+            hotel_stars?: number | null;
+            meal_plan?: string | null;
+            includes?: string[] | null;
+            outbound_flight?: FlightLike | null;
+            return_flight?: FlightLike | null;
 
             first_amount?: number | null;
             travelers?: Array<{
