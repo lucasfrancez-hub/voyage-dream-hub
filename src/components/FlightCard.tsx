@@ -47,10 +47,12 @@ export function FlightCard({
   flight,
   kind,
   adults,
+  airlineLocator,
 }: {
   flight: FlightInfo;
   kind: "outbound" | "return";
   adults: number;
+  airlineLocator?: string | null;
 }) {
   const Icon = kind === "outbound" ? PlaneTakeoff : PlaneLanding;
   const label = kind === "outbound" ? "Voo de ida" : "Voo de volta";
