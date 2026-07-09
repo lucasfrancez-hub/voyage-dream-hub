@@ -497,8 +497,9 @@ function Checkout() {
                       <span className="text-foreground font-semibold">Quem pode financiar:</span> o financiamento deve estar no nome de um dos viajantes ou de um parente de primeiro grau (pai, mãe, irmão(ã), cônjuge). Em casos específicos, aceitamos avó(ô) como financiador.
                     </p>
                     <p>
-                      <span className="text-foreground font-semibold">Boleto pré-pago (quitação até a data da viagem):</span> essa modalidade não está disponível pelo portal. A solicitação deve ser feita diretamente com nosso consultor pelo WhatsApp.
+                      <span className="text-foreground font-semibold">Boleto pré-pago (quitação até a data da viagem):</span> essa modalidade <span className="text-foreground font-semibold">não passa por análise de crédito</span> e não pode ser solicitada pelo portal. A reserva deve ser feita diretamente com nosso consultor pelo WhatsApp.
                     </p>
+
                     <p>
                       <span className="text-foreground font-semibold">Todos os campos abaixo são obrigatórios.</span>
                     </p>
@@ -684,6 +685,18 @@ function SummaryLine({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatIncomeBRL(input: string): string {
+  const digits = (input ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  const number = Number(digits) / 100;
+  return number.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  });
+}
+
+
 function BoletoForm({
   data,
   onChange,
@@ -771,8 +784,16 @@ function BoletoForm({
             <input value={data.profession} onChange={set("profession")} className={inputCls} maxLength={80} />
           </Field>
           <Field label="Renda mensal *">
-            <input value={data.income} onChange={set("income")} className={inputCls} placeholder="R$" maxLength={30} />
+            <input
+              value={data.income}
+              onChange={(e) => onChange({ income: formatIncomeBRL(e.target.value) })}
+              className={inputCls}
+              placeholder="R$ 0,00"
+              inputMode="numeric"
+              maxLength={30}
+            />
           </Field>
+
           <Field label="Nome da empresa *">
             <input value={data.employer_name} onChange={set("employer_name")} className={inputCls} maxLength={120} />
           </Field>
