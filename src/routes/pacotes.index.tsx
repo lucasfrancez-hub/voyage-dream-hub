@@ -151,7 +151,7 @@ function PacotesList() {
               Origem
             </label>
             <Select value={originFilter} onValueChange={setOriginFilter}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
                 <SelectValue placeholder="Todas as origens" />
               </SelectTrigger>
               <SelectContent>
@@ -170,7 +170,7 @@ function PacotesList() {
               Destino
             </label>
             <Select value={destinationFilter} onValueChange={setDestinationFilter}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
                 <SelectValue placeholder="Todos os destinos" />
               </SelectTrigger>
               <SelectContent>
@@ -189,7 +189,7 @@ function PacotesList() {
               Ordenar por
             </label>
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
                 <div className="flex items-center gap-2">
                   <ArrowUpDown className="h-3.5 w-3.5 text-brand-orange" />
                   <SelectValue placeholder="Ordenar por" />
