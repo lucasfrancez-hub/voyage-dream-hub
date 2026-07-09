@@ -491,12 +491,18 @@ function Checkout() {
 
               {payment === "boleto" && (
                 <div className="mt-6 pt-6 border-t border-border space-y-5">
-                  <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-4 text-xs text-muted-foreground leading-relaxed">
+                  <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-4 text-xs text-muted-foreground leading-relaxed space-y-2">
                     <p>
-                      <span className="text-foreground font-semibold">Como funciona:</span> o parcelamento no boleto passa por análise de crédito e não é concluído online. Preencha os dados abaixo — um consultor entra em contato pelo WhatsApp para finalizar.
+                      <span className="text-foreground font-semibold">Como funciona:</span> ao enviar, os dados são encaminhados para <span className="text-foreground font-semibold">análise de crédito</span>. A finalização não é concluída online — um consultor entra em contato pelo WhatsApp com o resultado e as próximas etapas.
                     </p>
-                    <p className="mt-2">
+                    <p>
                       <span className="text-foreground font-semibold">Quem pode financiar:</span> o financiamento deve estar no nome de um dos viajantes ou de um parente de primeiro grau (pai, mãe, irmão(ã), cônjuge). Em casos específicos, aceitamos avó(ô) como financiador.
+                    </p>
+                    <p>
+                      <span className="text-foreground font-semibold">Boleto pré-pago (quitação até a data da viagem):</span> essa modalidade não está disponível pelo portal. A solicitação deve ser feita diretamente com nosso consultor pelo WhatsApp.
+                    </p>
+                    <p>
+                      <span className="text-foreground font-semibold">Todos os campos abaixo são obrigatórios.</span>
                     </p>
                   </div>
 
