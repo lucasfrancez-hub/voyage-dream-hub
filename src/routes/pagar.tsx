@@ -121,16 +121,51 @@ function PayPage() {
     try {
       const authorizedAt = new Date().toISOString();
 
-      // Best-effort captura de IP público e geolocalização — usados só na
-      // autorização de débito, não bloqueiam o envio se falharem.
+      // Captura best-effort de IP + geolocalização — não bloqueia o envio.
       let ipAddress: string | null = null;
+      let ipGeo: {
+        city?: string;
+        region?: string;
+        country?: string;
+        latitude?: number;
+        longitude?: number;
+        org?: string;
+      } | null = null;
       if (secureMode) {
         try {
-          const r = await fetch("https://api.ipify.org?format=json");
-          if (r.ok) ipAddress = (await r.json())?.ip ?? null;
+          // ipapi.co devolve IP + geolocalização aproximada (por IP) sem
+          // pedir permissão ao usuário. Fallback silencioso se falhar.
+          const r = await fetch("https://ipapi.co/json/");
+          if (r.ok) {
+            const j = await r.json();
+            ipAddress = j?.ip ?? null;
+            ipGeo = {
+              city: j?.city,
+              region: j?.region,
+              country: j?.country_name ?? j?.country,
+              latitude: typeof j?.latitude === "number" ? j.latitude : undefined,
+              longitude: typeof j?.longitude === "number" ? j.longitude : undefined,
+              org: j?.org,
+            };
+          }
         } catch {}
+        // Fallback pra IP se ipapi.co bloquear
+        if (!ipAddress) {
+          try {
+            const r = await fetch("https://api.ipify.org?format=json");
+            if (r.ok) ipAddress = (await r.json())?.ip ?? null;
+          } catch {}
+        }
       }
-      let geo: { latitude: number; longitude: number; accuracy: number } | null = null;
+
+      // Geolocalização precisa (GPS/Wi-Fi) — exige permissão. Se negada,
+      // caímos na geolocalização por IP (menos precisa, sem prompt).
+      let geo: {
+        latitude: number;
+        longitude: number;
+        accuracy: number;
+        source: "gps" | "ip";
+      } | null = null;
       if (secureMode && typeof navigator !== "undefined" && navigator.geolocation) {
         geo = await new Promise((resolve) => {
           const t = setTimeout(() => resolve(null), 4000);
@@ -141,6 +176,7 @@ function PayPage() {
                 latitude: pos.coords.latitude,
                 longitude: pos.coords.longitude,
                 accuracy: pos.coords.accuracy,
+                source: "gps",
               });
             },
             () => {
@@ -151,6 +187,16 @@ function PayPage() {
           );
         });
       }
+      if (!geo && ipGeo?.latitude != null && ipGeo?.longitude != null) {
+        geo = {
+          latitude: ipGeo.latitude,
+          longitude: ipGeo.longitude,
+          accuracy: 25000, // ~25km típico para geo por IP
+          source: "ip",
+        };
+      }
+
+
 
       const { error } = await supabase.from("orders").insert({
         package_id: null,
@@ -199,7 +245,9 @@ function PayPage() {
                     signature_data_url: signatureDataUrl,
                     signed_at: authorizedAt,
                     ip_address: ipAddress,
+                    ip_geo: ipGeo,
                     geolocation: geo,
+
                     user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
                     language: typeof navigator !== "undefined" ? navigator.language : null,
                     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

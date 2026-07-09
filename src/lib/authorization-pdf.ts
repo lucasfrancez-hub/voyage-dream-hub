@@ -21,12 +21,26 @@ export type AuthorizationData = {
   signature_data_url?: string | null;
   signed_at?: string;
   ip_address?: string | null;
-  geolocation?: { latitude: number; longitude: number; accuracy: number } | null;
+  ip_geo?: {
+    city?: string;
+    region?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
+    org?: string;
+  } | null;
+  geolocation?: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    source?: "gps" | "ip";
+  } | null;
   user_agent?: string | null;
   language?: string | null;
   timezone?: string | null;
   valid_until?: string;
 };
+
 
 export type LivenessData = {
   photos?: string[];
@@ -226,21 +240,28 @@ export function generateAuthorizationPDF(opts: {
   // Metadados técnicos
   h1("Registro eletrônico (evidência)");
   kv("Endereço IP", a.ip_address ?? "não capturado");
+  if (a.ip_geo) {
+    const parts = [a.ip_geo.city, a.ip_geo.region, a.ip_geo.country].filter(Boolean).join(", ");
+    if (parts) kv("Localização por IP", parts);
+    if (a.ip_geo.org) kv("Operadora / rede", a.ip_geo.org);
+  }
   if (a.geolocation) {
+    const src = a.geolocation.source === "ip" ? "aproximada por IP" : "GPS / Wi-Fi";
     kv(
       "Geolocalização",
-      `lat ${a.geolocation.latitude.toFixed(6)}, lng ${a.geolocation.longitude.toFixed(6)} (±${Math.round(a.geolocation.accuracy)}m)`,
+      `lat ${a.geolocation.latitude.toFixed(6)}, lng ${a.geolocation.longitude.toFixed(6)} (±${Math.round(a.geolocation.accuracy)}m · ${src})`,
     );
     kv(
       "Mapa",
       `https://www.google.com/maps?q=${a.geolocation.latitude},${a.geolocation.longitude}`,
     );
   } else {
-    kv("Geolocalização", "não autorizada pelo portador");
+    kv("Geolocalização", "não disponível");
   }
   kv("Fuso horário", a.timezone ?? "—");
   kv("Idioma do dispositivo", a.language ?? "—");
   kv("User-Agent", a.user_agent ?? "—");
+
 
   // Rodapé em todas as páginas
   const pages = doc.getNumberOfPages();
