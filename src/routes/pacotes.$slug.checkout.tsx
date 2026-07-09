@@ -62,6 +62,8 @@ function Checkout() {
   const [travelers, setTravelers] = useState<Traveler[]>([emptyTraveler(), emptyTraveler()]);
   const [payment, setPayment] = useState<PaymentMethod>("credit_card");
   const [installments, setInstallments] = useState<number>(DEFAULT_INSTALLMENTS);
+  const [boletoInstallments, setBoletoInstallments] = useState<number>(1);
+  const MAX_BOLETO_INSTALLMENTS = 10;
   const { data: card, patch: patchCard } = useCardData();
   const [boleto, setBoleto] = useState<BoletoData>(emptyBoleto);
   const [notes, setNotes] = useState("");
