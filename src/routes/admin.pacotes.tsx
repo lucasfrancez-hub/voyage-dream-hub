@@ -65,6 +65,7 @@ type PackageRow = {
   base_occupancy: number;
   outbound_flight: FlightInfo | null;
   return_flight: FlightInfo | null;
+  supplier_name: string | null;
 };
 
 const emptyForm: Partial<PackageRow> = {
