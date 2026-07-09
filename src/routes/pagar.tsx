@@ -75,6 +75,9 @@ function PayPage() {
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [liveness, setLiveness] = useState<LivenessResult | null>(null);
+  const [tripLocator, setTripLocator] = useState("");
+  const [tripRoute, setTripRoute] = useState("");
+  const [tripDate, setTripDate] = useState("");
 
 
   const installmentsOptions = useMemo(
@@ -270,6 +273,9 @@ function PayPage() {
                     description: desc ?? null,
                     reference: ref ?? null,
                     order_number: pedido ?? null,
+                    trip_locator: tripLocator || null,
+                    trip_route: tripRoute || null,
+                    trip_date: tripDate || null,
                     accepted_terms: true,
 
                     signature_data_url: signatureDataUrl,
@@ -465,6 +471,31 @@ function PayPage() {
                           />
                           <InfoRow label="Descrição do serviço" value={desc ?? "—"} />
                           {ref && <InfoRow label="Referência" value={ref} />}
+                        </div>
+                        <div className="px-4 py-3 border-b border-border space-y-3">
+                          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Informações da viagem</div>
+                          <div className="grid sm:grid-cols-3 gap-3">
+                            <Field label="Localizador">
+                              <input
+                                value={tripLocator}
+                                onChange={(e) => setTripLocator(e.target.value.toUpperCase())}
+                                className={cls}
+                                placeholder="Ex.: ABC123"
+                                maxLength={20}
+                              />
+                            </Field>
+                            <Field label="Rota">
+                              <input
+                                value={tripRoute}
+                                onChange={(e) => setTripRoute(e.target.value)}
+                                className={cls}
+                                placeholder="Ex.: CWB → GRU → MIA"
+                              />
+                            </Field>
+                            <Field label="Data da viagem">
+                              <DateBRInput value={tripDate} onChange={setTripDate} className={cls} />
+                            </Field>
+                          </div>
                         </div>
                         <div className="px-4 py-3 text-xs text-muted-foreground leading-relaxed space-y-2 max-h-64 overflow-auto">
                           <p>
