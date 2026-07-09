@@ -7,9 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange, maskCPF } from "@/lib/format";
 import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
 import { CardForm, useCardData } from "@/components/CardForm";
+import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/components/BoletoForm";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { TermsModal } from "@/components/TermsModal";
+
 
 export const Route = createFileRoute("/pacotes/$slug/checkout")({
   component: Checkout,
