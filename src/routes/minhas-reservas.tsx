@@ -7,6 +7,7 @@ import { TopBar } from "@/components/TopBar";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 import { FlightCard, type FlightInfo } from "@/components/FlightCard";
+import { OrderDocuments } from "@/components/OrderDocuments";
 
 export const Route = createFileRoute("/minhas-reservas")({
   head: () => ({
