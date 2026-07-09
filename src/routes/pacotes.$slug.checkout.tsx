@@ -444,6 +444,31 @@ function Checkout() {
                     </p>
                   </div>
 
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                    <label className="block">
+                      <span className="block text-xs text-muted-foreground mb-1.5">
+                        Em quantas vezes deseja parcelar? (sem juros)
+                      </span>
+                      <select
+                        value={boletoInstallments}
+                        onChange={(e) => setBoletoInstallments(Number(e.target.value))}
+                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+                      >
+                        {Array.from({ length: MAX_BOLETO_INSTALLMENTS }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>
+                            {n}x de {formatBRL(totalPrice / n)} sem juros
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Total: <strong className="text-foreground">{formatBRL(totalPrice)}</strong>
+                      {boletoInstallments > 1 && (
+                        <> · {boletoInstallments} boletos mensais de <strong className="text-foreground">{formatBRL(totalPrice / boletoInstallments)}</strong>, sem juros.</>
+                      )}
+                    </p>
+                  </div>
+
                   <BoletoForm data={boleto} onChange={patchBoleto} isThirdParty={isThirdPartyFinancier} />
                 </div>
               )}
