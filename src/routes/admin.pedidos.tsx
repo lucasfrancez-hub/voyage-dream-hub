@@ -323,7 +323,7 @@ function AdminOrders() {
                 {o.cpf ? ` · CPF ${o.cpf}` : ""}
               </div>
               {(() => {
-                const isOpen = !!expanded[o.id];
+                const isOpen = expanded[o.id] === undefined ? true : !!expanded[o.id];
                 const hasSnap = !!(snap.title || snap.destination || snap.travelers?.length);
                 if (!hasSnap) return null;
                 return (
