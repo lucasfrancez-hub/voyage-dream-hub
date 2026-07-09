@@ -250,7 +250,7 @@ function Checkout() {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Crianças (0-11)">
+                <Field label="Crianças (até 12 anos)">
                   <input
                     type="number"
                     min={0}
@@ -261,7 +261,10 @@ function Checkout() {
                   />
                 </Field>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 text-xs text-brand-orange">
+                Criança é considerada até 12 anos. A partir de 13 anos, é considerado adulto.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
                 Preencha os dados de cada passageiro abaixo.
               </p>
               {occupancyMismatch && (
