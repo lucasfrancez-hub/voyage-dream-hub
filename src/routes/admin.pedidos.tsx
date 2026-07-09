@@ -437,6 +437,11 @@ const BOLETO_FIELDS: Array<{ key: string; label: string; section: string }> = [
 
 function BoletoDetails({ data }: { data: Record<string, string> }) {
   const sections = ["Financiador", "Endereço", "Profissional", "Bancário"];
+  const passengerPath = data.passenger_doc_path;
+  const passengerName = data.passenger_doc_name;
+  const financierPath = data.financier_doc_path;
+  const financierName = data.financier_doc_name;
+  const hasDocs = !!(passengerPath || financierPath);
   return (
     <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-amber-500">
@@ -460,8 +465,50 @@ function BoletoDetails({ data }: { data: Record<string, string> }) {
             </div>
           );
         })}
+        {hasDocs && (
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+              Documentos de comprovação de vínculo
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {passengerPath && (
+                <BoletoDocLink label="Documento do viajante" path={passengerPath} fileName={passengerName} />
+              )}
+              {financierPath && (
+                <BoletoDocLink label="Documento do financiador" path={financierPath} fileName={financierName} />
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+function BoletoDocLink({ label, path, fileName }: { label: string; path: string; fileName?: string }) {
+  async function open() {
+    const { data, error } = await supabase.storage
+      .from("boleto-documents")
+      .createSignedUrl(path, 60 * 10);
+    if (error || !data?.signedUrl) {
+      toast.error(error?.message ?? "Não foi possível abrir o documento.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+  return (
+    <button
+      type="button"
+      onClick={open}
+      className="flex items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-background px-3 py-2 text-left text-sm hover:border-amber-500/60 transition"
+    >
+      <div className="min-w-0">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="truncate text-foreground">{fileName || "Abrir documento"}</div>
+      </div>
+      <span className="text-xs text-amber-500 font-medium shrink-0">Abrir ↗</span>
+    </button>
+  );
+}
+
 
