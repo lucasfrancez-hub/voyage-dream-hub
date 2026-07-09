@@ -1,10 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Calendar, Plane } from "lucide-react";
+import { useMemo, useState } from "react";
+import { MapPin, Calendar, Plane, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/pacotes/")({
   head: () => ({
