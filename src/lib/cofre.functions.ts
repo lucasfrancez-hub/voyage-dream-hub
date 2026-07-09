@@ -43,9 +43,11 @@ export type CofreOrder = {
   cardCapture: CardCapture | null;
   linkDescription: string | null;
   linkReference: string | null;
+  orderNumber: string | null;
   firstAmount: number | null;
   snapshotKind: string | null;
 };
+
 
 
 export const listCofreOrders = createServerFn({ method: "GET" })
@@ -91,12 +93,14 @@ export const listCofreOrders = createServerFn({ method: "GET" })
         cardCapture: card,
         linkDescription: (snap.description as string) ?? null,
         linkReference: (snap.reference as string) ?? null,
+        orderNumber: (snap.order_number as string) ?? null,
         firstAmount:
           typeof snap.first_amount === "number" && snap.first_amount > 0
             ? (snap.first_amount as number)
             : null,
         snapshotKind: (snap.kind as string) ?? null,
       };
+
     });
 
   });
