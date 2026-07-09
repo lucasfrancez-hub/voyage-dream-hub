@@ -309,6 +309,9 @@ function PacotesList() {
                   <div className="text-[11px] text-muted-foreground">
                     para {p.base_occupancy === 1 ? "1 pessoa" : `${p.base_occupancy ?? 2} pessoas`}
                   </div>
+                  <div className="mt-1 text-[11px] font-semibold text-emerald-600">
+                    Ganhe 5% de desconto pagando no Pix
+                  </div>
                   <div className="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-[11px] text-muted-foreground">
                     Pacote para <span className="text-foreground font-medium">{p.base_occupancy ?? 2} adulto{(p.base_occupancy ?? 2) > 1 ? "s" : ""}</span>. Para outra quantidade, fale no WhatsApp.
                   </div>
