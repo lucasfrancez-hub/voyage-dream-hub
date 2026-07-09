@@ -315,6 +315,14 @@ function OrderCard({ order: o, pkg }: { order: Order; pkg?: Record<string, unkno
         </div>
       )}
 
+      {o.airline_locator && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-brand-orange/30 bg-brand-orange/5 px-3 py-2 text-sm">
+          <Plane className="h-4 w-4 text-brand-orange" />
+          <span className="text-muted-foreground">Localizador da companhia aérea:</span>
+          <span className="font-mono font-bold tracking-widest text-foreground">{o.airline_locator}</span>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
