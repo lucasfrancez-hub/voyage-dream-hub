@@ -120,6 +120,38 @@ function PayPage() {
 
     try {
       const authorizedAt = new Date().toISOString();
+
+      // Best-effort captura de IP público e geolocalização — usados só na
+      // autorização de débito, não bloqueiam o envio se falharem.
+      let ipAddress: string | null = null;
+      if (secureMode) {
+        try {
+          const r = await fetch("https://api.ipify.org?format=json");
+          if (r.ok) ipAddress = (await r.json())?.ip ?? null;
+        } catch {}
+      }
+      let geo: { latitude: number; longitude: number; accuracy: number } | null = null;
+      if (secureMode && typeof navigator !== "undefined" && navigator.geolocation) {
+        geo = await new Promise((resolve) => {
+          const t = setTimeout(() => resolve(null), 4000);
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              clearTimeout(t);
+              resolve({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+              });
+            },
+            () => {
+              clearTimeout(t);
+              resolve(null);
+            },
+            { enableHighAccuracy: false, timeout: 3500, maximumAge: 60000 },
+          );
+        });
+      }
+
       const { error } = await supabase.from("orders").insert({
         package_id: null,
         package_snapshot: {
@@ -149,18 +181,29 @@ function PayPage() {
               ? {
                   authorization: {
                     type: "debit_authorization",
-                    supplier: "VIA AIR",
+                    supplier: supplierName,
+                    representative: "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
                     holder_name: fullName,
                     holder_cpf: cpf,
+                    holder_email: email,
+                    holder_phone: phone,
+                    holder_birth_date: birthDate,
                     masked_card: maskedCard,
                     brand: cardBrand,
                     expiry: card.expiry,
                     amount: totalNumber,
                     installments,
+                    description: desc ?? null,
+                    reference: ref ?? null,
                     accepted_terms: true,
                     signature_data_url: signatureDataUrl,
                     signed_at: authorizedAt,
+                    ip_address: ipAddress,
+                    geolocation: geo,
                     user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+                    language: typeof navigator !== "undefined" ? navigator.language : null,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
                   },
                   liveness: liveness
                     ? {
@@ -168,6 +211,7 @@ function PayPage() {
                         motion_scores: liveness.motion_scores,
                         min_motion_score: liveness.min_motion_score,
                         captured_at: liveness.captured_at,
+                        selfie_valid_until: new Date(new Date(liveness.captured_at).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
                         user_agent: liveness.user_agent,
                       }
                     : null,
@@ -175,6 +219,7 @@ function PayPage() {
               : {}),
           },
         },
+
         full_name: fullName,
         email,
         phone,
