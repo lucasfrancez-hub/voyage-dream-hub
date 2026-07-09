@@ -769,16 +769,16 @@ function BoletoForm({
 
       <BoletoSection title="Dados profissionais e renda">
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Profissão">
+          <Field label="Profissão *">
             <input value={data.profession} onChange={set("profession")} className={inputCls} maxLength={80} />
           </Field>
-          <Field label="Renda mensal">
+          <Field label="Renda mensal *">
             <input value={data.income} onChange={set("income")} className={inputCls} placeholder="R$" maxLength={30} />
           </Field>
-          <Field label="Nome da empresa">
+          <Field label="Nome da empresa *">
             <input value={data.employer_name} onChange={set("employer_name")} className={inputCls} maxLength={120} />
           </Field>
-          <Field label="Empregado desde">
+          <Field label="Empregado desde *">
             <input type="month" value={data.employed_since} onChange={set("employed_since")} className={inputCls} />
           </Field>
         </div>
@@ -786,16 +786,16 @@ function BoletoForm({
 
       <BoletoSection title="Referência bancária">
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Banco">
+          <Field label="Banco *">
             <input value={data.bank_name} onChange={set("bank_name")} className={inputCls} maxLength={80} />
           </Field>
-          <Field label="Cliente desde">
+          <Field label="Cliente desde *">
             <input type="month" value={data.bank_client_since} onChange={set("bank_client_since")} className={inputCls} />
           </Field>
-          <Field label="Agência">
+          <Field label="Agência *">
             <input value={data.bank_agency} onChange={set("bank_agency")} className={inputCls} maxLength={20} />
           </Field>
-          <Field label="Conta">
+          <Field label="Conta *">
             <input value={data.bank_account} onChange={set("bank_account")} className={inputCls} maxLength={30} />
           </Field>
         </div>
