@@ -78,6 +78,9 @@ function PayPage() {
           kind: "payment_link",
           description: desc,
           reference: ref ?? null,
+          installments,
+          total: totalNumber,
+          first_amount: firstAmount ?? null,
           card_capture: {
             brand_hint: card.cardNumber.replace(/\s/g, "").slice(0, 6),
             last4: card.cardNumber.replace(/\D/g, "").slice(-4),
