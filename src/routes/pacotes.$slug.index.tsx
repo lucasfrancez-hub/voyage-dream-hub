@@ -286,6 +286,7 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
   const stopsN = typeof flight.stops === "string" ? Number(flight.stops) : flight.stops;
   const hasStops = stopsN != null && !Number.isNaN(stopsN) && stopsN > 0;
   const segments = flight.segments ?? [];
+  const totalDuration = computeTotalDuration(flight.depart_at, flight.arrive_at) || flight.duration;
   const [openItin, setOpenItin] = useState(false);
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
@@ -331,7 +332,7 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
         )}
         <span>· {adults} Adulto{adults > 1 ? "s" : ""}</span>
         {flight.cabin_class && <span>· {flight.cabin_class}</span>}
-        {flight.duration && <span>· {flight.duration}</span>}
+        {totalDuration && <span>· {totalDuration}</span>}
       </div>
 
       {hasStops && (
@@ -355,7 +356,7 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
       )}
 
       {openItin && (
-        <ItineraryModal flight={flight} label={label} onClose={() => setOpenItin(false)} />
+        <ItineraryModal flight={flight} kind={kind} totalDuration={totalDuration} onClose={() => setOpenItin(false)} />
       )}
     </div>
   );
@@ -363,14 +364,20 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
 
 function ItineraryModal({
   flight,
-  label,
+  kind,
+  totalDuration,
   onClose,
 }: {
   flight: FlightInfo;
-  label: string;
+  kind: "outbound" | "return";
+  totalDuration?: string;
   onClose: () => void;
 }) {
   const segments = flight.segments ?? [];
+  const headline =
+    kind === "outbound"
+      ? "Aqui está o seu itinerário completo de ida"
+      : "Aqui está o seu itinerário completo da volta";
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
@@ -380,19 +387,19 @@ function ItineraryModal({
         className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-gradient-to-r from-brand-orange to-brand-orange/70 text-white px-5 py-4 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 bg-[#7a2f0a] text-white px-5 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
-            <div className="text-[10px] uppercase tracking-widest opacity-90">Itinerário completo</div>
-            <div className="font-display font-semibold">{label}</div>
-            <div className="text-xs opacity-90 mt-0.5">
+            <div className="text-[10px] uppercase tracking-widest text-white/80 font-semibold">Itinerário completo</div>
+            <div className="font-display font-bold text-white text-lg leading-tight mt-0.5">{headline}</div>
+            <div className="text-xs text-white/90 mt-1">
               {flight.from_iata} → {flight.to_iata}
-              {flight.duration && ` · ${flight.duration}`}
+              {totalDuration && ` · ${totalDuration}`}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-1.5 hover:bg-white/20 transition"
+            className="rounded-full p-1.5 hover:bg-white/20 transition text-white"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
@@ -512,6 +519,19 @@ function computeLayover(arrive?: string, nextDepart?: string): string {
   if (!arrive || !nextDepart) return "";
   const a = new Date(arrive).getTime();
   const b = new Date(nextDepart).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return "";
+  const minsTotal = Math.round((b - a) / 60000);
+  const h = Math.floor(minsTotal / 60);
+  const m = minsTotal % 60;
+  if (h === 0) return `${m}min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}min`;
+}
+
+function computeTotalDuration(depart?: string, arrive?: string): string {
+  if (!depart || !arrive) return "";
+  const a = new Date(depart).getTime();
+  const b = new Date(arrive).getTime();
   if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return "";
   const minsTotal = Math.round((b - a) / 60000);
   const h = Math.floor(minsTotal / 60);
