@@ -27,6 +27,9 @@ import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 
 export const Route = createFileRoute("/pacotes/$slug/")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    preview: s.preview === "1" || s.preview === 1 || s.preview === true ? true : undefined,
+  }),
   component: PackageDetails,
   errorComponent: ({ error }) => (
     <div className="min-h-screen flex items-center justify-center p-6 text-center">
