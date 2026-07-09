@@ -221,6 +221,7 @@ function CofrePage() {
           status: o.status,
           paymentMethod: o.paymentMethod,
           orderId: o.id,
+          orderNumber: o.orderNumber ?? undefined,
           adults: o.adults,
           children: o.children,
           notes: o.notes,
