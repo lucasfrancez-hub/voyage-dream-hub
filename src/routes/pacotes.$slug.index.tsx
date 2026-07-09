@@ -12,6 +12,9 @@ import {
   ArrowRight,
   Star,
   MessageCircle,
+  Backpack,
+  Briefcase,
+  Luggage,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
@@ -311,22 +314,36 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
       </div>
 
       {(flight.personal_item || flight.carry_on || flight.checked_bag) && (
-        <div className="mt-3 flex items-center gap-3 text-[11px] text-muted-foreground border-t border-border pt-3">
-          <BagIcon label="Item pessoal" active={!!flight.personal_item} kind="personal" />
-          <BagIcon label="Bagagem de mão" active={!!flight.carry_on} kind="carry" />
-          <BagIcon label="Bagagem despachada" active={!!flight.checked_bag} kind="checked" />
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+          <BagIcon label="Bolsa/mochila" active={!!flight.personal_item} icon={Backpack} />
+          <BagIcon label="Bagagem de mão" active={!!flight.carry_on} icon={Briefcase} />
+          <BagIcon label="Bagagem despachada" active={!!flight.checked_bag} icon={Luggage} />
         </div>
       )}
     </div>
   );
 }
 
-function BagIcon({ label, active, kind }: { label: string; active: boolean; kind: "personal" | "carry" | "checked" }) {
-  const size = kind === "personal" ? "h-3.5 w-3" : kind === "carry" ? "h-4 w-3.5" : "h-5 w-4";
+function BagIcon({
+  label,
+  active,
+  icon: Icon,
+}: {
+  label: string;
+  active: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
   return (
-    <span title={label} className={`inline-flex items-center gap-1 ${active ? "text-brand-orange" : "opacity-30"}`}>
-      <span className={`${size} rounded-sm border-2 border-current`} />
-      <span className="sr-only">{label}</span>
+    <span
+      title={label}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition ${
+        active
+          ? "border-brand-orange/40 bg-brand-orange/10 text-brand-orange"
+          : "border-border text-muted-foreground/60 line-through decoration-1"
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      <span>{label}</span>
     </span>
   );
 }
