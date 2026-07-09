@@ -60,15 +60,6 @@ function AdminOrders() {
     return acc;
   }, {});
 
-  async function onFinalize(id: string) {
-    try {
-      await updateOrder({ data: { id, status: "paid" } });
-      toast.success("Pedido finalizado");
-      refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro");
-    }
-  }
 
   async function onReject(id: string, currentNotes: string | null) {
     const reason = window.prompt(
