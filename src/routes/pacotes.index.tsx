@@ -30,10 +30,12 @@ function PacotesList() {
   const { data: packages, isLoading } = useQuery({
     queryKey: ["packages", "active"],
     queryFn: async () => {
+      const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("packages")
         .select("*")
         .eq("is_active", true)
+        .or(`going_date.is.null,going_date.gte.${today}`)
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return data;
