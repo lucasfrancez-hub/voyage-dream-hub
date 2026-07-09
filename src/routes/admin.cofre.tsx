@@ -599,9 +599,13 @@ function DetailsModal({
                 </div>
               }
             >
-              {card.brand_hint && (
-                <FieldRow label="Bandeira" value={card.brand_hint} onCopy={copyText} />
-              )}
+              {(() => {
+                const brandLabel = cardBrandLabel(card);
+                return brandLabel ? (
+                  <FieldRow label="Bandeira" value={brandLabel} onCopy={copyText} />
+                ) : null;
+              })()}
+
               <FieldRow
                 label="Número"
                 value={maskedNumber}
