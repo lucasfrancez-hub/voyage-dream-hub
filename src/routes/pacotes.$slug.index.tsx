@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   MapPin,
   Plane,
@@ -15,6 +16,9 @@ import {
   Backpack,
   Briefcase,
   Luggage,
+  Route as RouteIcon,
+  X,
+  Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
@@ -244,6 +248,19 @@ function PackageDetails() {
   );
 }
 
+type FlightSegment = {
+  airline?: string;
+  flight_number?: string;
+  from_iata?: string;
+  from_city?: string;
+  to_iata?: string;
+  to_city?: string;
+  depart_at?: string;
+  arrive_at?: string;
+  duration?: string;
+  layover?: string; // tempo de conexão após este trecho (ex.: "1h 40min")
+};
+
 type FlightInfo = {
   airline?: string;
   airline_logo_url?: string;
@@ -260,12 +277,17 @@ type FlightInfo = {
   carry_on?: boolean; // bagagem de mão
   checked_bag?: boolean; // bagagem despachada
   personal_item?: boolean; // item pessoal / mochila
+  segments?: FlightSegment[];
 };
 
 function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbound" | "return"; adults: number }) {
   const Icon = kind === "outbound" ? PlaneTakeoff : PlaneLanding;
   const label = kind === "outbound" ? "Voo de ida" : "Voo de volta";
   const stopsN = typeof flight.stops === "string" ? Number(flight.stops) : flight.stops;
+  const hasStops = stopsN != null && !Number.isNaN(stopsN) && stopsN > 0;
+  const segments = flight.segments ?? [];
+  const canShowItinerary = segments.length > 0;
+  const [openItin, setOpenItin] = useState(false);
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
@@ -313,6 +335,19 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
         {flight.duration && <span>· {flight.duration}</span>}
       </div>
 
+      {hasStops && (
+        <button
+          type="button"
+          onClick={() => setOpenItin(true)}
+          disabled={!canShowItinerary}
+          className="mt-3 inline-flex items-center gap-2 rounded-full border border-brand-orange/40 text-brand-orange px-3.5 py-1.5 text-xs font-medium hover:bg-brand-orange/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          title={canShowItinerary ? "Ver itinerário completo" : "Itinerário detalhado não disponível"}
+        >
+          <RouteIcon className="h-3.5 w-3.5" />
+          Ver itinerário
+        </button>
+      )}
+
       {(flight.personal_item || flight.carry_on || flight.checked_bag) && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
           <BagIcon label="Bolsa/mochila" active={!!flight.personal_item} icon={Backpack} />
@@ -320,9 +355,111 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
           <BagIcon label="Bagagem despachada" active={!!flight.checked_bag} icon={Luggage} />
         </div>
       )}
+
+      {openItin && canShowItinerary && (
+        <ItineraryModal flight={flight} label={label} onClose={() => setOpenItin(false)} />
+      )}
     </div>
   );
 }
+
+function ItineraryModal({
+  flight,
+  label,
+  onClose,
+}: {
+  flight: FlightInfo;
+  label: string;
+  onClose: () => void;
+}) {
+  const segments = flight.segments ?? [];
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 bg-gradient-to-r from-brand-orange to-brand-orange/70 text-white px-5 py-4 flex items-center justify-between rounded-t-2xl">
+          <div>
+            <div className="text-[10px] uppercase tracking-widest opacity-90">Itinerário completo</div>
+            <div className="font-display font-semibold">{label}</div>
+            <div className="text-xs opacity-90 mt-0.5">
+              {flight.from_iata} → {flight.to_iata}
+              {flight.duration && ` · ${flight.duration}`}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1.5 hover:bg-white/20 transition"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3">
+          {segments.map((s, i) => (
+            <div key={i}>
+              <div className="rounded-xl border border-border p-4">
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span className="uppercase tracking-widest">Trecho {i + 1}</span>
+                  {s.duration && <span>{s.duration}</span>}
+                </div>
+                <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
+                  {s.airline ?? "Companhia"}
+                  {s.flight_number && (
+                    <span className="text-muted-foreground font-normal">· {s.flight_number}</span>
+                  )}
+                </div>
+                <div className="mt-3 grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <div>
+                    <div className="text-lg font-display font-bold">{s.from_iata ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">{s.from_city ?? ""}</div>
+                    <div className="text-xs mt-1">
+                      {s.depart_at && (
+                        <>
+                          <span className="font-medium">{formatFlightTime(s.depart_at)}</span>
+                          <span className="text-muted-foreground"> · {formatFlightDate(s.depart_at)}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <Plane className="h-4 w-4 text-brand-orange rotate-90 sm:rotate-0" />
+                  <div className="text-right">
+                    <div className="text-lg font-display font-bold">{s.to_iata ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">{s.to_city ?? ""}</div>
+                    <div className="text-xs mt-1">
+                      {s.arrive_at && (
+                        <>
+                          <span className="font-medium">{formatFlightTime(s.arrive_at)}</span>
+                          <span className="text-muted-foreground"> · {formatFlightDate(s.arrive_at)}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {i < segments.length - 1 && (
+                <div className="my-2 flex items-center gap-2 pl-4 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5 text-brand-orange" />
+                  <span>
+                    Conexão em <strong className="text-foreground">{s.to_iata ?? "—"}</strong>
+                    {s.layover ? ` · ${s.layover}` : ""}
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function BagIcon({
   label,
