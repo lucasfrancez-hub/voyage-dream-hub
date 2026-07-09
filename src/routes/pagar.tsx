@@ -30,6 +30,7 @@ type Search = {
   loc?: string;
   rota?: string;
   datav?: string;
+  pax?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
