@@ -384,16 +384,26 @@ function AdminOrders() {
                         )}
 
                         {(snap.outbound_flight || snap.return_flight) && (
-                          <div className="pt-2 border-t border-border space-y-2">
+                          <div className="pt-2 border-t border-border space-y-3">
                             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                               Voos
                             </div>
-                            {snap.outbound_flight && (
-                              <FlightSummary flight={snap.outbound_flight} label="Ida" />
-                            )}
-                            {snap.return_flight && (
-                              <FlightSummary flight={snap.return_flight} label="Volta" />
-                            )}
+                            <div className="grid md:grid-cols-2 gap-3">
+                              {snap.outbound_flight && (
+                                <FlightCard
+                                  flight={snap.outbound_flight as FlightInfo}
+                                  kind="outbound"
+                                  adults={snap.base_occupancy ?? o.adults ?? 2}
+                                />
+                              )}
+                              {snap.return_flight && (
+                                <FlightCard
+                                  flight={snap.return_flight as FlightInfo}
+                                  kind="return"
+                                  adults={snap.base_occupancy ?? o.adults ?? 2}
+                                />
+                              )}
+                            </div>
                           </div>
                         )}
 
