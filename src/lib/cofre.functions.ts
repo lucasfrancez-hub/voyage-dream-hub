@@ -15,7 +15,10 @@ export type CardCapture = {
     city?: string;
     state?: string;
   };
+  authorization?: Record<string, unknown>;
+  liveness?: Record<string, unknown> | null;
 };
+
 
 export type CofreOrder = {
   id: string;
