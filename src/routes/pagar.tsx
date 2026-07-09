@@ -448,8 +448,10 @@ function PayPage() {
                       <>
                         <p className="text-xs text-muted-foreground mb-3">
                           Faremos 3 capturas rápidas com a câmera do seu dispositivo para confirmar que é você
-                          finalizando o pedido. Isso protege você e a Via Air contra fraudes.
+                          finalizando o pedido. A selfie de validação tem validade de 90 dias para efeitos de
+                          conferência antifraude e chargeback. Isso protege você e a Via Air contra fraudes.
                         </p>
+
                         <FaceLiveness value={liveness} onChange={setLiveness} />
                       </>
                     )}
