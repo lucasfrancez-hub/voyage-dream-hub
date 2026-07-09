@@ -53,6 +53,7 @@ export const Route = createFileRoute("/pagar")({
     loc: asStr(s.loc),
     rota: asStr(s.rota),
     datav: asStr(s.datav),
+    pax: asStr(s.pax),
   }),
   component: PayPage,
 });
