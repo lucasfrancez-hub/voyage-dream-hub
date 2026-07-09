@@ -497,8 +497,9 @@ function Checkout() {
                       <span className="text-foreground font-semibold">Quem pode financiar:</span> o financiamento deve estar no nome de um dos viajantes ou de um parente de primeiro grau (pai, mãe, irmão(ã), cônjuge). Em casos específicos, aceitamos avó(ô) como financiador.
                     </p>
                     <p>
-                      <span className="text-foreground font-semibold">Boleto pré-pago (quitação até a data da viagem):</span> essa modalidade não está disponível pelo portal. A solicitação deve ser feita diretamente com nosso consultor pelo WhatsApp.
+                      <span className="text-foreground font-semibold">Boleto pré-pago (quitação até a data da viagem):</span> essa modalidade <span className="text-foreground font-semibold">não passa por análise de crédito</span> e não pode ser solicitada pelo portal. A reserva deve ser feita diretamente com nosso consultor pelo WhatsApp.
                     </p>
+
                     <p>
                       <span className="text-foreground font-semibold">Todos os campos abaixo são obrigatórios.</span>
                     </p>
