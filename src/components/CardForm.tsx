@@ -61,6 +61,7 @@ function BrandLogo({ brand, active }: { brand: CardBrand; active: boolean }) {
 export type CardData = {
   cardNumber: string;
   cardName: string;
+  cardCpf: string;
   expiry: string;
   cvv: string;
   brand: CardBrand | "";
@@ -74,6 +75,7 @@ export type CardData = {
 export const emptyCardData = (): CardData => ({
   cardNumber: "",
   cardName: "",
+  cardCpf: "",
   expiry: "",
   cvv: "",
   brand: "",
@@ -193,6 +195,27 @@ export function CardForm({
             className={cls}
             placeholder="LUCAS S SILVA"
             autoComplete="cc-name"
+          />
+        </Field>
+      </div>
+
+      <div>
+        <Field label="CPF do titular do cartão *">
+          <input
+            required
+            inputMode="numeric"
+            value={data.cardCpf}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, "").slice(0, 11);
+              const formatted = raw
+                .replace(/(\d{3})(\d)/, "$1.$2")
+                .replace(/(\d{3})(\d)/, "$1.$2")
+                .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+              onChange({ cardCpf: formatted });
+            }}
+            className={cls}
+            placeholder="000.000.000-00"
+            maxLength={14}
           />
         </Field>
       </div>
