@@ -129,7 +129,8 @@ function AdminLayout() {
           <div className="mx-auto max-w-7xl px-6 py-2 flex items-center gap-1 whitespace-nowrap">
             <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
             <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-            <NavItem to="/admin/link-pagamento" icon={Link2} label="Link" active={pathname.startsWith("/admin/link-pagamento")} />
+            <NavItem to="/admin/link-pagamento" icon={Link2} label="Cartão" active={pathname.startsWith("/admin/link-pagamento")} />
+            <NavItem to="/admin/link-boleto" icon={FileText} label="Boleto" active={pathname.startsWith("/admin/link-boleto")} />
             <NavItem to="/admin/cofre" icon={Vault} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
             {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
               <NavItem to="/admin/usuarios" icon={Users} label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
