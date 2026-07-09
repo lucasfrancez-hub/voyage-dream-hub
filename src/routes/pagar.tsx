@@ -9,7 +9,7 @@ import { CardForm, useCardData } from "@/components/CardForm";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
 
-const MAX_INSTALLMENTS = 12;
+const MAX_INSTALLMENTS = 10;
 
 type Search = {
   desc?: string;
