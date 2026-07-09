@@ -355,7 +355,7 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
       )}
 
       {openItin && (
-        <ItineraryModal flight={flight} label={label} segments={segments} onClose={() => setOpenItin(false)} />
+        <ItineraryModal flight={flight} label={label} onClose={() => setOpenItin(false)} />
       )}
     </div>
   );
