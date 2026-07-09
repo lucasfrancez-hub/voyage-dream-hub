@@ -407,7 +407,7 @@ function Checkout() {
                   onClick={() => setPayment("boleto")}
                   icon={FileText}
                   title="Boleto bancário"
-                  desc="Parcelamos no boleto. Finalização feita via WhatsApp com nosso consultor."
+                  desc="Parcelamos em até 10x sem juros no boleto. Finalização feita via WhatsApp com nosso consultor."
                 />
               </div>
 
