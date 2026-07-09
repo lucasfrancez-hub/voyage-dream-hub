@@ -170,14 +170,29 @@ function PacotesList() {
               />
             ))}
 
-          {!isLoading && packages?.length === 0 && (
+          {!isLoading && filteredPackages.length === 0 && (
             <div className="col-span-full rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
-              Nenhum pacote disponível no momento. Fale com a gente no WhatsApp para um roteiro
-              sob medida.
+              {hasActiveFilters ? (
+                <>
+                  Nenhum roteiro encontrado com esses filtros.{" "}
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-brand-orange underline hover:no-underline"
+                  >
+                    Limpar filtros
+                  </button>
+                </>
+              ) : (
+                <>
+                  Nenhum pacote disponível no momento. Fale com a gente no WhatsApp para um roteiro
+                  sob medida.
+                </>
+              )}
             </div>
           )}
 
-          {packages?.map((p) => (
+          {filteredPackages.map((p) => (
             <Link
               key={p.id}
               to="/pacotes/$slug"
