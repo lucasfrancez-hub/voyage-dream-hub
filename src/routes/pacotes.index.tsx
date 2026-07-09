@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Calendar, Plane, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, formatDateRange } from "@/lib/format";
+import { formatDateRange } from "@/lib/format";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
 
