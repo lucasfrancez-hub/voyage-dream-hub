@@ -368,7 +368,67 @@ function AdminOrders() {
                           {snap.reference && (
                             <DetailRow icon={Hash} label="Referência" value={snap.reference} />
                           )}
+                          {snap.hotel_name && (
+                            <DetailRow
+                              icon={PackageIcon}
+                              label={`Hotel${snap.hotel_stars ? ` · ${"★".repeat(snap.hotel_stars)}` : ""}`}
+                              value={`${snap.hotel_name}${snap.meal_plan ? ` — ${snap.meal_plan}` : ""}`}
+                            />
+                          )}
                         </div>
+
+                        {snap.summary && (
+                          <div className="pt-2 border-t border-border text-sm text-muted-foreground whitespace-pre-wrap">
+                            {snap.summary}
+                          </div>
+                        )}
+
+                        {(snap.outbound_flight || snap.return_flight) && (
+                          <div className="pt-2 border-t border-border space-y-2">
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              Voos
+                            </div>
+                            {snap.outbound_flight && (
+                              <FlightSummary flight={snap.outbound_flight} label="Ida" />
+                            )}
+                            {snap.return_flight && (
+                              <FlightSummary flight={snap.return_flight} label="Volta" />
+                            )}
+                          </div>
+                        )}
+
+                        {snap.includes && snap.includes.length > 0 && (
+                          <div className="pt-2 border-t border-border">
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                              Incluso no pacote
+                            </div>
+                            <ul className="grid sm:grid-cols-2 gap-1 text-sm">
+                              {snap.includes.map((it, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
+                                  <span>{it}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {snap.slug && (
+                          <div className="pt-2 border-t border-border">
+                            <a
+                              href={`/pacotes/${snap.slug}?preview=1`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2 rounded-full border border-brand-orange/50 text-brand-orange px-3.5 py-2 text-xs font-semibold hover:bg-brand-orange/10 transition"
+                            >
+                              <PackageIcon className="h-3.5 w-3.5" />
+                              Abrir página completa do pacote
+                            </a>
+                            <div className="mt-1 text-[10px] text-muted-foreground">
+                              Acessa mesmo se o pacote estiver oculto/expirado.
+                            </div>
+                          </div>
+                        )}
                         {snap.travelers && snap.travelers.length > 0 && (
                           <div className="pt-2 border-t border-border">
                             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
