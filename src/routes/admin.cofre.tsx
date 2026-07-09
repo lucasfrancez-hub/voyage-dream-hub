@@ -161,6 +161,7 @@ function CofrePage() {
     const avulsos: UnifiedItem[] = entries.map((e) => ({
       id: `avulso:${e.id}`,
       kind: "avulso",
+      linkKind: "card",
       createdAt: e.createdAt,
       customer: e.customer || "Sem nome",
       customerPhone: e.customerPhone,
@@ -172,51 +173,59 @@ function CofrePage() {
       meta: e.orderRef ? `Ref: ${e.orderRef}` : "Link avulso",
     }));
 
-    const pedidos: UnifiedItem[] = (ordersQuery.data ?? []).map((o: CofreOrder) => {
-      const isLinkOrder = (o.snapshotKind ?? "").startsWith("payment_link");
-      const desc = isLinkOrder
-        ? (o.linkDescription || "Link de pagamento")
-        : o.packageTitle
-          ? `Pacote ${o.packageTitle}`
-          : "Pedido de pacote";
-      const pm = (o.paymentMethod ?? "").toLowerCase();
-      const instMatch = pm.match(/(\d+)x/);
-      const installments = instMatch ? Number(instMatch[1]) : 1;
-      const firstAmount = o.firstAmount && o.firstAmount > 0 ? o.firstAmount : undefined;
+    const pedidos: UnifiedItem[] = (ordersQuery.data ?? [])
+      .filter((o: CofreOrder) => {
+        const pm = (o.paymentMethod ?? "").toLowerCase();
+        // Pix e WhatsApp não vão para o cofre — só cartão e boleto.
+        return pm !== "pix" && pm !== "whatsapp";
+      })
+      .map((o: CofreOrder) => {
+        const isLinkOrder = (o.snapshotKind ?? "").startsWith("payment_link");
+        const desc = isLinkOrder
+          ? (o.linkDescription || "Link de pagamento")
+          : o.packageTitle
+            ? `Pacote ${o.packageTitle}`
+            : "Pedido de pacote";
+        const pm = (o.paymentMethod ?? "").toLowerCase();
+        const linkKind: LinkKind = pm === "boleto" ? "boleto" : "card";
+        const instMatch = pm.match(/(\d+)x/);
+        const installments = instMatch ? Number(instMatch[1]) : 1;
+        const firstAmount = o.firstAmount && o.firstAmount > 0 ? o.firstAmount : undefined;
 
 
-      const url = paymentLinkUrl({
-        description: desc,
-        total: o.totalPrice,
-        installments,
-        firstAmount,
-        orderRef: o.id.slice(0, 8),
-        customerName: o.fullName,
+        const url = paymentLinkUrl({
+          description: desc,
+          total: o.totalPrice,
+          installments,
+          firstAmount,
+          orderRef: o.id.slice(0, 8),
+          customerName: o.fullName,
+        });
+        return {
+          id: `pedido:${o.id}`,
+          kind: isLinkOrder ? "avulso" : "pedido",
+          linkKind,
+          createdAt: new Date(o.createdAt).getTime(),
+          customer: o.fullName,
+          customerPhone: o.phone,
+          email: o.email,
+          description: desc,
+          total: o.totalPrice,
+          installments,
+          firstAmount,
+          url,
+          meta: isLinkOrder
+            ? `Link avulso · #${o.id.slice(0, 8)}${o.linkReference ? ` · ${o.linkReference}` : ""}`
+            : `Pedido #${o.id.slice(0, 8)}${o.packageSlug ? ` · ${o.packageSlug}` : ""}`,
+          status: o.status,
+          paymentMethod: o.paymentMethod,
+          orderId: o.id,
+          adults: o.adults,
+          children: o.children,
+          notes: o.notes,
+          order: o,
+        };
       });
-      return {
-        id: `pedido:${o.id}`,
-        kind: isLinkOrder ? "avulso" : "pedido",
-        createdAt: new Date(o.createdAt).getTime(),
-        customer: o.fullName,
-        customerPhone: o.phone,
-        email: o.email,
-        description: desc,
-        total: o.totalPrice,
-        installments,
-        firstAmount,
-        url,
-        meta: isLinkOrder
-          ? `Link avulso · #${o.id.slice(0, 8)}${o.linkReference ? ` · ${o.linkReference}` : ""}`
-          : `Pedido #${o.id.slice(0, 8)}${o.packageSlug ? ` · ${o.packageSlug}` : ""}`,
-        status: o.status,
-        paymentMethod: o.paymentMethod,
-        orderId: o.id,
-        adults: o.adults,
-        children: o.children,
-        notes: o.notes,
-        order: o,
-      };
-    });
 
 
     const merged = [...avulsos, ...pedidos].sort(
