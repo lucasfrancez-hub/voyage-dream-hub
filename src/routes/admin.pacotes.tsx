@@ -573,7 +573,7 @@ function FlightFieldset({
             placeholder="2h 30min"
           />
         </FormField>
-        <FormField label="Escalas (0 = direto)">
+        <FormField label="Conexões (0 = direto)">
           <input
             type="number"
             min={0}
