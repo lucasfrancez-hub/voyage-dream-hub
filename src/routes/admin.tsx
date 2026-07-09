@@ -1,9 +1,15 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home, Link2, FileText, ShieldCheck, Vault, Users } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, FileText, ShieldCheck, Vault, Users, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
 export const Route = createFileRoute("/admin")({
@@ -96,8 +102,8 @@ function AdminLayout() {
             <nav className="hidden md:flex items-center gap-1">
               <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
               <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-              <NavItem to="/admin/link-pagamento" icon={Link2} label="Cartão seguro" active={pathname === "/admin/link-pagamento" || pathname.startsWith("/admin/link-pagamento/")} />
-              <NavItem to="/admin/link-cartao-simples" icon={Link2} label="Cartão simples" active={pathname.startsWith("/admin/link-cartao-simples")} />
+              <CartaoNav pathname={pathname} />
+
               <NavItem to="/admin/link-boleto" icon={FileText} label="Link boleto" active={pathname.startsWith("/admin/link-boleto")} />
               <NavItem to="/admin/cofre" icon={Vault} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
               {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
@@ -130,8 +136,8 @@ function AdminLayout() {
           <div className="mx-auto max-w-7xl px-6 py-2 flex items-center gap-1 whitespace-nowrap">
             <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
             <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-            <NavItem to="/admin/link-pagamento" icon={Link2} label="Cartão seguro" active={pathname === "/admin/link-pagamento" || pathname.startsWith("/admin/link-pagamento/")} />
-            <NavItem to="/admin/link-cartao-simples" icon={Link2} label="Cartão simples" active={pathname.startsWith("/admin/link-cartao-simples")} />
+            <CartaoNav pathname={pathname} />
+
             <NavItem to="/admin/link-boleto" icon={FileText} label="Boleto" active={pathname.startsWith("/admin/link-boleto")} />
             <NavItem to="/admin/cofre" icon={Vault} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
             {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
@@ -167,5 +173,37 @@ function NavItem({
     >
       <Icon className="h-4 w-4" /> {label}
     </Link>
+  );
+}
+
+function CartaoNav({ pathname }: { pathname: string }) {
+  const active =
+    pathname === "/admin/link-pagamento" ||
+    pathname.startsWith("/admin/link-pagamento/") ||
+    pathname.startsWith("/admin/link-cartao-simples");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
+          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <Link2 className="h-4 w-4" /> Cartão <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuItem asChild>
+          <Link to="/admin/link-pagamento" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Link seguro</span>
+            <span className="text-xs text-muted-foreground">Com assinatura e biometria</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/link-cartao-simples" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Link convencional</span>
+            <span className="text-xs text-muted-foreground">Só dados do cartão</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
