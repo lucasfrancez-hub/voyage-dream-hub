@@ -164,18 +164,29 @@ function SignInForm() {
 
 function SignedInView({ email }: { email: string }) {
   const [orders, setOrders] = useState<Order[] | null>(null);
+  const [packagesById, setPackagesById] = useState<PackageMap>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [ordersRes, packagesRes] = await Promise.all([
+        supabase.from("orders").select("*").order("created_at", { ascending: false }),
+        supabase
+          .from("packages")
+          .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,base_occupancy,outbound_flight,return_flight"),
+      ]);
       if (cancelled) return;
-      if (error) setError(error.message);
-      else setOrders((data ?? []) as Order[]);
+      if (ordersRes.error) {
+        setError(ordersRes.error.message);
+      } else {
+        setOrders((ordersRes.data ?? []) as Order[]);
+      }
+      if (!packagesRes.error && packagesRes.data) {
+        const map: PackageMap = {};
+        for (const p of packagesRes.data) map[(p as { id: string }).id] = p as Record<string, unknown>;
+        setPackagesById(map);
+      }
     })();
     return () => {
       cancelled = true;
