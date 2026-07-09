@@ -1,11 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import {
   MapPin,
-  Plane,
-  PlaneTakeoff,
-  PlaneLanding,
   Calendar,
   Hotel,
   Check,
@@ -13,18 +9,13 @@ import {
   ArrowRight,
   Star,
   MessageCircle,
-  Backpack,
-  Briefcase,
-  Luggage,
-  Route as RouteIcon,
-  X,
-  Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
 import { customQuoteWhatsappUrl } from "@/lib/checkout-config";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
+import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 
 export const Route = createFileRoute("/pacotes/$slug/")({
   validateSearch: (s: Record<string, unknown>) => ({
