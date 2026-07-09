@@ -18,6 +18,7 @@ type Search = {
   entrada?: string;
   ref?: string;
   cliente?: string;
+  img?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
@@ -33,13 +34,14 @@ export const Route = createFileRoute("/pagar")({
     entrada: asStr(s.entrada),
     ref: asStr(s.ref),
     cliente: asStr(s.cliente),
+    img: asStr(s.img),
   }),
   component: PayPage,
 });
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, cliente } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, cliente, img } = Route.useSearch();
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
@@ -157,11 +159,22 @@ function PayPage() {
           </div>
         ) : (
           <>
+            {img && (
+              <div className="mb-6 overflow-hidden rounded-2xl border border-border shadow-[var(--shadow-card)]">
+                <img
+                  src={img}
+                  alt={desc ?? "Destino"}
+                  className="h-48 md:h-64 w-full object-cover"
+                  onError={(e) => (e.currentTarget.parentElement!.style.display = "none")}
+                />
+              </div>
+            )}
             <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
               <ShieldCheck className="h-4 w-4" /> Pagamento seguro Via Air
             </div>
             <h1 className="mt-1 font-display text-3xl md:text-4xl font-bold">Finalize seu pagamento</h1>
             <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
+
 
             <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
               <div className="space-y-6">

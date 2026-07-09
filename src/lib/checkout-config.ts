@@ -23,6 +23,7 @@ export function paymentLinkUrl(params: {
   orderRef?: string;
   customerName?: string;
   firstAmount?: number; // valor da 1ª parcela quando diferente das demais
+  imageUrl?: string; // imagem do destino que aparece no topo do link do cliente
 }): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://voeair.com";
@@ -35,6 +36,7 @@ export function paymentLinkUrl(params: {
   }
   if (params.orderRef) q.set("ref", params.orderRef);
   if (params.customerName) q.set("cliente", params.customerName);
+  if (params.imageUrl) q.set("img", params.imageUrl);
   return `${origin}/pagar?${q.toString()}`;
 }
 

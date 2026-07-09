@@ -17,6 +17,7 @@ function LinkGenerator() {
   const [total, setTotal] = useState("");
   const [installments, setInstallments] = useState(10);
   const [orderRef, setOrderRef] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
   const [firstAmount, setFirstAmount] = useState("");
 
@@ -36,8 +37,9 @@ function LinkGenerator() {
       firstAmount: effectiveFirst,
       orderRef: orderRef || undefined,
       customerName: customer || undefined,
+      imageUrl: imageUrl || undefined,
     });
-  }, [totalNumber, installments, orderRef, description, customer, effectiveFirst]);
+  }, [totalNumber, installments, orderRef, description, customer, effectiveFirst, imageUrl]);
 
   const parcelaLabel = split.equal
     ? `${installments}x de ${formatBRL(split.first)} sem juros`
@@ -57,6 +59,7 @@ function LinkGenerator() {
       installments,
       firstAmount: effectiveFirst,
       orderRef: orderRef || undefined,
+      imageUrl: imageUrl || undefined,
       url,
     });
   }
@@ -100,6 +103,22 @@ function LinkGenerator() {
           </Field>
           <Field label="Referência interna (opcional)">
             <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
+          </Field>
+          <Field label="Imagem do destino (URL) — aparece no topo do link do cliente">
+            <input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              className={cls}
+              placeholder="https://…foto-do-destino.jpg"
+            />
+            {imageUrl && (
+              <img
+                src={imageUrl}
+                alt="Prévia do destino"
+                className="mt-2 h-28 w-full rounded-lg object-cover border border-border"
+                onError={(e) => (e.currentTarget.style.display = "none")}
+              />
+            )}
           </Field>
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Valor total (R$) *">
