@@ -82,6 +82,12 @@ export async function generateAuthorizationPDF(opts: {
 }) {
 
   const { orderId, createdAt, authorization: a, liveness } = opts;
+  const numericFromUuid = (() => {
+    const hex = orderId.replace(/-/g, "").slice(0, 12);
+    const n = parseInt(hex, 16);
+    return `#${String(n % 100000000).padStart(8, "0")}`;
+  })();
+  const displayOrderNumber = a.order_number && a.order_number.trim() ? a.order_number.trim() : numericFromUuid;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
