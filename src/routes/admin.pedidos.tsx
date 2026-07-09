@@ -199,6 +199,88 @@ function AdminOrders() {
                 {o.adults} adulto(s){o.children ? ` · ${o.children} criança(s)` : ""}
                 {o.cpf ? ` · CPF ${o.cpf}` : ""}
               </div>
+              {(() => {
+                const isOpen = !!expanded[o.id];
+                const hasSnap = !!(snap.title || snap.destination || snap.travelers?.length);
+                if (!hasSnap) return null;
+                return (
+                  <div className="mt-4 border-t border-border pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setExpanded((p) => ({ ...p, [o.id]: !isOpen }))}
+                      className="inline-flex items-center gap-2 text-xs font-semibold text-brand-orange hover:opacity-80 transition"
+                    >
+                      <PackageIcon className="h-3.5 w-3.5" />
+                      {isOpen ? "Ocultar detalhes do pacote" : "Ver detalhes do pacote"}
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {isOpen && (
+                      <div className="mt-3 rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+                        <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                          {snap.title && (
+                            <DetailRow icon={PackageIcon} label="Pacote" value={snap.title} />
+                          )}
+                          {snap.destination && (
+                            <DetailRow icon={MapPin} label="Destino" value={snap.destination} />
+                          )}
+                          {snap.origin && (
+                            <DetailRow icon={MapPin} label="Origem" value={snap.origin} />
+                          )}
+                          {(snap.going_date || snap.return_date) && (
+                            <DetailRow
+                              icon={Calendar}
+                              label={snap.nights ? `Datas · ${snap.nights} noites` : "Datas"}
+                              value={formatDateRange(snap.going_date, snap.return_date)}
+                            />
+                          )}
+                          {snap.price_per_person != null && (
+                            <DetailRow
+                              icon={CreditCard}
+                              label="Preço por pessoa"
+                              value={formatBRL(snap.price_per_person)}
+                            />
+                          )}
+                          {snap.base_occupancy != null && (
+                            <DetailRow
+                              icon={Users}
+                              label="Ocupação base"
+                              value={`${snap.base_occupancy} adulto(s)`}
+                            />
+                          )}
+                          {snap.slug && (
+                            <DetailRow icon={Hash} label="Slug" value={snap.slug} />
+                          )}
+                          {snap.reference && (
+                            <DetailRow icon={Hash} label="Referência" value={snap.reference} />
+                          )}
+                        </div>
+                        {snap.travelers && snap.travelers.length > 0 && (
+                          <div className="pt-2 border-t border-border">
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                              Passageiros
+                            </div>
+                            <ul className="space-y-1.5 text-sm">
+                              {snap.travelers.map((t, i) => (
+                                <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-orange/15 text-brand-orange text-[10px] font-semibold px-1.5">
+                                    {t.index ?? i + 1}
+                                  </span>
+                                  <span className="font-medium">{t.full_name ?? "—"}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {t.kind === "child" ? "criança" : "adulto"}
+                                    {t.cpf ? ` · CPF ${t.cpf}` : ""}
+                                    {t.birth_date ? ` · nasc. ${t.birth_date}` : ""}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {o.notes && (
                 <div className="mt-3 text-sm rounded-lg bg-muted/40 p-3 whitespace-pre-wrap">
                   {o.notes}
