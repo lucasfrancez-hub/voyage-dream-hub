@@ -171,9 +171,12 @@ function CofrePage() {
     }));
 
     const pedidos: UnifiedItem[] = (ordersQuery.data ?? []).map((o: CofreOrder) => {
-      const desc = o.packageTitle
-        ? `Pacote ${o.packageTitle}`
-        : "Pedido de pacote";
+      const isLinkOrder = (o.snapshotKind ?? "").startsWith("payment_link");
+      const desc = isLinkOrder
+        ? (o.linkDescription || "Link de pagamento")
+        : o.packageTitle
+          ? `Pacote ${o.packageTitle}`
+          : "Pedido de pacote";
       const pm = (o.paymentMethod ?? "").toLowerCase();
       const instMatch = pm.match(/(\d+)x/);
       const installments = instMatch ? Number(instMatch[1]) : 1;
@@ -190,7 +193,7 @@ function CofrePage() {
       });
       return {
         id: `pedido:${o.id}`,
-        kind: "pedido",
+        kind: isLinkOrder ? "avulso" : "pedido",
         createdAt: new Date(o.createdAt).getTime(),
         customer: o.fullName,
         customerPhone: o.phone,
@@ -200,7 +203,9 @@ function CofrePage() {
         installments,
         firstAmount,
         url,
-        meta: `Pedido #${o.id.slice(0, 8)}${o.packageSlug ? ` · ${o.packageSlug}` : ""}`,
+        meta: isLinkOrder
+          ? `Link avulso · #${o.id.slice(0, 8)}${o.linkReference ? ` · ${o.linkReference}` : ""}`
+          : `Pedido #${o.id.slice(0, 8)}${o.packageSlug ? ` · ${o.packageSlug}` : ""}`,
         status: o.status,
         paymentMethod: o.paymentMethod,
         orderId: o.id,
