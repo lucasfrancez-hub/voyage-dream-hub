@@ -345,6 +345,23 @@ function AdminOrders() {
                 {o.adults} adulto(s){o.children ? ` · ${o.children} criança(s)` : ""}
                 {o.cpf ? ` · CPF ${o.cpf}` : ""}
               </div>
+
+              <SupplierEditor
+                orderId={o.id}
+                initialName={o.supplier_name ?? ""}
+                initialNumber={o.supplier_order_number ?? ""}
+                onSave={async (name, number) => {
+                  await updateOrder({
+                    data: {
+                      id: o.id,
+                      supplier_name: name.trim() ? name.trim() : null,
+                      supplier_order_number: number.trim() ? number.trim() : null,
+                    },
+                  });
+                  toast.success("Fornecedor atualizado");
+                  refetch();
+                }}
+              />
               {(() => {
                 const isOpen = expanded[o.id] === undefined ? true : !!expanded[o.id];
                 const hasSnap = !!(snap.title || snap.destination || snap.travelers?.length);
