@@ -183,6 +183,7 @@ function CofrePage() {
       locator: e.locator,
       route: e.route,
       travelDate: e.travelDate,
+      passengers: e.passengers,
     }));
 
     const pedidos: UnifiedItem[] = (ordersQuery.data ?? [])
