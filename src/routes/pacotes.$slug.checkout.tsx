@@ -1,14 +1,14 @@
 import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle, Lock } from "lucide-react";
+import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
 import { CardForm, useCardData } from "@/components/CardForm";
-import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
+import { TopBar } from "@/components/TopBar";
 
 export const Route = createFileRoute("/pacotes/$slug/checkout")({
   component: Checkout,
