@@ -293,22 +293,22 @@ function Checkout() {
 
       setSuccess(true);
 
-      if (payment === "credit_card") {
+      if (payment === "credit_card" || payment === "boleto") {
         toast.success("Pedido enviado! Nosso time confirma sua reserva em seguida.");
         setTimeout(() => navigate({ to: "/pacotes" }), 2000);
       } else {
-        const methodLabel = payment === "pix" ? "Pix" : "boleto bancário parcelado";
         const message = `Olá! Reservei o pacote *${pkg.title}* (${adults} adulto${
           adults > 1 ? "s" : ""
         }${children ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}) — Total ${formatBRL(
           totalPrice,
-        )}. Quero pagar via ${methodLabel}.\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
+        )}. Quero pagar via Pix.\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
         toast.success("Abrindo WhatsApp para finalizar…");
         setTimeout(() => {
           window.open(whatsappUrl(message), "_blank");
           navigate({ to: "/pacotes" });
         }, 600);
       }
+
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "Erro ao enviar reserva.";
