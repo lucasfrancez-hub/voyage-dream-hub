@@ -483,7 +483,19 @@ function FlightFieldset({
   onChange: (f: FlightInfo | null) => void;
 }) {
   const f = value ?? {};
+  const segments: FlightSegment[] = f.segments && f.segments.length > 0 ? f.segments : [{}];
   const patch = (p: Partial<FlightInfo>) => onChange({ ...f, ...p });
+  const patchSeg = (i: number, p: Partial<FlightSegment>) =>
+    patch({ segments: segments.map((s, idx) => (idx === i ? { ...s, ...p } : s)) });
+  const addSeg = () => patch({ segments: [...segments, {}] });
+  const removeSeg = (i: number) =>
+    patch({ segments: segments.filter((_, idx) => idx !== i) });
+
+  const first = segments[0];
+  const last = segments[segments.length - 1];
+  const totalMin = diffMinutes(first?.depart_at, last?.arrive_at);
+  const stopsCount = Math.max(0, segments.length - 1);
+
   return (
     <div className="sm:col-span-2 rounded-xl border border-border p-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -498,8 +510,10 @@ function FlightFieldset({
           </button>
         )}
       </div>
+
+      {/* Informações comuns da jornada */}
       <div className="grid sm:grid-cols-2 gap-3">
-        <FormField label="Companhia aérea">
+        <FormField label="Companhia aérea (padrão)">
           <input
             className={inp}
             value={f.airline ?? ""}
@@ -507,79 +521,12 @@ function FlightFieldset({
             placeholder="LATAM, GOL, Azul…"
           />
         </FormField>
-        <FormField label="Número do voo">
+        <FormField label="Logo da companhia (URL)">
           <input
             className={inp}
-            value={f.flight_number ?? ""}
-            onChange={(e) => patch({ flight_number: e.target.value })}
-            placeholder="LA 3456"
-          />
-        </FormField>
-        <FormField label="Origem (IATA)">
-          <input
-            className={inp}
-            value={f.from_iata ?? ""}
-            onChange={(e) => patch({ from_iata: e.target.value.toUpperCase() })}
-            placeholder="RIO"
-            maxLength={4}
-          />
-        </FormField>
-        <FormField label="Cidade origem">
-          <input
-            className={inp}
-            value={f.from_city ?? ""}
-            onChange={(e) => patch({ from_city: e.target.value })}
-            placeholder="Rio de Janeiro"
-          />
-        </FormField>
-        <FormField label="Destino (IATA)">
-          <input
-            className={inp}
-            value={f.to_iata ?? ""}
-            onChange={(e) => patch({ to_iata: e.target.value.toUpperCase() })}
-            placeholder="PMW"
-            maxLength={4}
-          />
-        </FormField>
-        <FormField label="Cidade destino">
-          <input
-            className={inp}
-            value={f.to_city ?? ""}
-            onChange={(e) => patch({ to_city: e.target.value })}
-            placeholder="Palmas"
-          />
-        </FormField>
-        <FormField label="Partida (data e hora)">
-          <input
-            type="datetime-local"
-            className={inp}
-            value={f.depart_at ?? ""}
-            onChange={(e) => patch({ depart_at: e.target.value })}
-          />
-        </FormField>
-        <FormField label="Chegada (data e hora)">
-          <input
-            type="datetime-local"
-            className={inp}
-            value={f.arrive_at ?? ""}
-            onChange={(e) => patch({ arrive_at: e.target.value })}
-          />
-        </FormField>
-        <FormField label="Duração">
-          <input
-            className={inp}
-            value={f.duration ?? ""}
-            onChange={(e) => patch({ duration: e.target.value })}
-            placeholder="2h 30min"
-          />
-        </FormField>
-        <FormField label="Conexões (0 = direto)">
-          <input
-            type="number"
-            min={0}
-            className={inp}
-            value={f.stops ?? ""}
-            onChange={(e) => patch({ stops: e.target.value === "" ? "" : Number(e.target.value) })}
+            value={f.airline_logo_url ?? ""}
+            onChange={(e) => patch({ airline_logo_url: e.target.value })}
+            placeholder="https://…logo.png"
           />
         </FormField>
         <FormField label="Classe">
@@ -595,16 +542,8 @@ function FlightFieldset({
             <option value="Primeira classe">Primeira classe</option>
           </select>
         </FormField>
-        <FormField label="Logo da companhia (URL)" wide>
-          <input
-            className={inp}
-            value={f.airline_logo_url ?? ""}
-            onChange={(e) => patch({ airline_logo_url: e.target.value })}
-            placeholder="https://…logo.png"
-          />
-        </FormField>
-        <FormField label="Bagagens inclusas" wide>
-          <div className="flex flex-wrap gap-4 text-sm">
+        <FormField label="Bagagens inclusas">
+          <div className="flex flex-wrap gap-4 text-sm pt-1.5">
             <label className="inline-flex items-center gap-2">
               <input
                 type="checkbox"
@@ -631,130 +570,158 @@ function FlightFieldset({
             </label>
           </div>
         </FormField>
-        <div className="sm:col-span-2">
-          <SegmentsEditor
-            value={f.segments ?? []}
-            onChange={(segments) => patch({ segments })}
-          />
-        </div>
       </div>
-    </div>
-  );
-}
 
-function SegmentsEditor({
-  value,
-  onChange,
-}: {
-  value: FlightSegment[];
-  onChange: (v: FlightSegment[]) => void;
-}) {
-  const add = () => onChange([...value, {}]);
-  const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i));
-  const patchAt = (i: number, p: Partial<FlightSegment>) =>
-    onChange(value.map((s, idx) => (idx === i ? { ...s, ...p } : s)));
+      {/* Resumo automático */}
+      <div className="rounded-lg bg-muted/30 border border-border p-3 text-xs flex flex-wrap gap-x-4 gap-y-1">
+        <span>
+          <span className="text-muted-foreground">Rota: </span>
+          <strong>{first?.from_iata || "—"} → {last?.to_iata || "—"}</strong>
+        </span>
+        <span>
+          <span className="text-muted-foreground">Conexões: </span>
+          <strong>{stopsCount === 0 ? "Direto" : `${stopsCount} conexão${stopsCount > 1 ? "es" : ""}`}</strong>
+        </span>
+        <span>
+          <span className="text-muted-foreground">Tempo total: </span>
+          <strong>{formatMinutes(totalMin) || "—"}</strong>
+        </span>
+        <span className="text-muted-foreground italic">
+          (calculado automaticamente a partir dos trechos)
+        </span>
+      </div>
 
-  return (
-    <div className="rounded-lg border border-dashed border-border p-3 space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h4 className="text-sm font-semibold">Itinerário detalhado (trechos)</h4>
-          <p className="text-[11px] text-muted-foreground">
-            Preencha um trecho por conexão para mostrar o botão "Ver itinerário".
-          </p>
-        </div>
+      {/* Trechos */}
+      <div className="space-y-3">
+        {segments.map((s, i) => {
+          const nextDepart = segments[i + 1]?.depart_at;
+          const layoverMin = i < segments.length - 1 ? diffMinutes(s.arrive_at, nextDepart) : null;
+          const segMin = diffMinutes(s.depart_at, s.arrive_at);
+          return (
+            <div key={i}>
+              <div className="rounded-lg border border-border p-3 space-y-2 bg-muted/10">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-brand-orange uppercase tracking-widest">
+                    {i === 0 && segments.length === 1
+                      ? "Voo direto"
+                      : i === 0
+                      ? "Trecho 1"
+                      : `Trecho ${i + 1} (conexão)`}
+                    {segMin != null && (
+                      <span className="ml-2 text-muted-foreground font-normal normal-case tracking-normal">
+                        · {formatMinutes(segMin)}
+                      </span>
+                    )}
+                  </span>
+                  {segments.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeSeg(i)}
+                      className="text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      Remover trecho
+                    </button>
+                  )}
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <input
+                    className={inp}
+                    value={s.airline ?? ""}
+                    onChange={(e) => patchSeg(i, { airline: e.target.value })}
+                    placeholder="Companhia (opcional, se diferente)"
+                  />
+                  <input
+                    className={inp}
+                    value={s.flight_number ?? ""}
+                    onChange={(e) => patchSeg(i, { flight_number: e.target.value })}
+                    placeholder="Nº do voo (ex.: LA 3456)"
+                  />
+                  <input
+                    className={inp}
+                    value={s.from_iata ?? ""}
+                    onChange={(e) => patchSeg(i, { from_iata: e.target.value.toUpperCase() })}
+                    placeholder="Origem (IATA) — ex.: SDU"
+                    maxLength={4}
+                  />
+                  <input
+                    className={inp}
+                    value={s.from_city ?? ""}
+                    onChange={(e) => patchSeg(i, { from_city: e.target.value })}
+                    placeholder="Cidade origem — ex.: Rio de Janeiro"
+                  />
+                  <input
+                    className={inp}
+                    value={s.to_iata ?? ""}
+                    onChange={(e) => patchSeg(i, { to_iata: e.target.value.toUpperCase() })}
+                    placeholder="Destino (IATA) — ex.: GRU"
+                    maxLength={4}
+                  />
+                  <input
+                    className={inp}
+                    value={s.to_city ?? ""}
+                    onChange={(e) => patchSeg(i, { to_city: e.target.value })}
+                    placeholder="Cidade destino — ex.: São Paulo"
+                  />
+                  <FormField label="Partida (data e hora)">
+                    <input
+                      type="datetime-local"
+                      className={inp}
+                      value={s.depart_at ?? ""}
+                      onChange={(e) => patchSeg(i, { depart_at: e.target.value })}
+                    />
+                  </FormField>
+                  <FormField label="Chegada (data e hora)">
+                    <input
+                      type="datetime-local"
+                      className={inp}
+                      value={s.arrive_at ?? ""}
+                      onChange={(e) => patchSeg(i, { arrive_at: e.target.value })}
+                    />
+                  </FormField>
+                </div>
+              </div>
+              {i < segments.length - 1 && (
+                <div className="my-2 pl-4 text-xs text-muted-foreground flex items-center gap-2">
+                  <span>⏱</span>
+                  <span>
+                    Conexão em <strong className="text-foreground">{s.to_iata || "—"}</strong>:{" "}
+                    <strong className="text-foreground">
+                      {formatMinutes(layoverMin) || "—"}
+                    </strong>
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
         <button
           type="button"
-          onClick={add}
-          className="text-xs rounded-full border border-brand-orange/40 text-brand-orange px-3 py-1 hover:bg-brand-orange/10"
+          onClick={addSeg}
+          className="w-full rounded-lg border border-dashed border-brand-orange/40 text-brand-orange text-sm py-2 hover:bg-brand-orange/10 transition"
         >
-          + Trecho
+          + Adicionar conexão
         </button>
       </div>
-      {value.length === 0 && (
-        <div className="text-xs text-muted-foreground italic">Nenhum trecho adicionado.</div>
-      )}
-      {value.map((s, i) => (
-        <div key={i} className="rounded-lg border border-border p-3 space-y-2 bg-muted/20">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-              Trecho {i + 1}
-            </span>
-            <button
-              type="button"
-              onClick={() => remove(i)}
-              className="text-xs text-muted-foreground hover:text-destructive"
-            >
-              Remover
-            </button>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-2">
-            <input
-              className={inp}
-              value={s.airline ?? ""}
-              onChange={(e) => patchAt(i, { airline: e.target.value })}
-              placeholder="Companhia"
-            />
-            <input
-              className={inp}
-              value={s.flight_number ?? ""}
-              onChange={(e) => patchAt(i, { flight_number: e.target.value })}
-              placeholder="Nº do voo"
-            />
-            <input
-              className={inp}
-              value={s.from_iata ?? ""}
-              onChange={(e) => patchAt(i, { from_iata: e.target.value.toUpperCase() })}
-              placeholder="Origem (IATA)"
-              maxLength={4}
-            />
-            <input
-              className={inp}
-              value={s.from_city ?? ""}
-              onChange={(e) => patchAt(i, { from_city: e.target.value })}
-              placeholder="Cidade origem"
-            />
-            <input
-              className={inp}
-              value={s.to_iata ?? ""}
-              onChange={(e) => patchAt(i, { to_iata: e.target.value.toUpperCase() })}
-              placeholder="Destino (IATA)"
-              maxLength={4}
-            />
-            <input
-              className={inp}
-              value={s.to_city ?? ""}
-              onChange={(e) => patchAt(i, { to_city: e.target.value })}
-              placeholder="Cidade destino"
-            />
-            <input
-              type="datetime-local"
-              className={inp}
-              value={s.depart_at ?? ""}
-              onChange={(e) => patchAt(i, { depart_at: e.target.value })}
-            />
-            <input
-              type="datetime-local"
-              className={inp}
-              value={s.arrive_at ?? ""}
-              onChange={(e) => patchAt(i, { arrive_at: e.target.value })}
-            />
-            <input
-              className={inp}
-              value={s.duration ?? ""}
-              onChange={(e) => patchAt(i, { duration: e.target.value })}
-              placeholder="Duração do trecho (ex.: 2h 10min)"
-            />
-            <input
-              className={inp}
-              value={s.layover ?? ""}
-              onChange={(e) => patchAt(i, { layover: e.target.value })}
-              placeholder="Tempo de conexão (opcional — calculado automático)"
-            />
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
+
+function diffMinutes(a?: string, b?: string): number | null {
+  if (!a || !b) return null;
+  const ta = new Date(a).getTime();
+  const tb = new Date(b).getTime();
+  if (Number.isNaN(ta) || Number.isNaN(tb) || tb <= ta) return null;
+  return Math.round((tb - ta) / 60000);
+}
+
+function formatMinutes(m: number | null): string {
+  if (m == null) return "";
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  if (h === 0) return `${min}min`;
+  if (min === 0) return `${h}h`;
+  return `${h}h ${min}min`;
+}
+
 
