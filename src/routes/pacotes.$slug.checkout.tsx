@@ -635,23 +635,30 @@ function PaymentOption({
   icon: Icon,
   title,
   desc,
+  badge,
 }: {
   active: boolean;
   onClick: () => void;
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   desc: string;
+  badge?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`text-left rounded-xl border p-4 transition ${
+      className={`relative text-left rounded-xl border p-4 transition ${
         active
           ? "border-brand-orange bg-brand-orange/5"
           : "border-border bg-background hover:border-brand-orange/50"
       }`}
     >
+      {badge && (
+        <span className="absolute -top-2 right-3 rounded-full bg-green-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow">
+          {badge}
+        </span>
+      )}
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4 text-brand-orange" />
         <span className="font-semibold">{title}</span>
