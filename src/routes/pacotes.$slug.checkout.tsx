@@ -174,6 +174,29 @@ function Checkout() {
       return;
     }
 
+    if (payment === "boleto") {
+      const required: Array<[keyof BoletoData, string]> = [
+        ["full_name", "Nome completo do financiador"],
+        ["cpf", "CPF"],
+        ["rg", "RG"],
+        ["rg_issuer", "Órgão emissor do RG"],
+        ["birth_date", "Data de nascimento"],
+        ["zip", "CEP"],
+        ["address", "Endereço"],
+        ["address_number", "Número"],
+        ["city", "Cidade"],
+        ["state", "Estado"],
+        ["mother_name", "Nome da mãe"],
+        ["relationship", "Vínculo com o viajante"],
+      ];
+      const missing = required.find(([k]) => !boleto[k].trim());
+      if (missing) {
+        toast.error(`Preencha o campo: ${missing[1]}.`);
+        return;
+      }
+    }
+
+
     setSubmitting(true);
     try {
       const { error } = await supabase
