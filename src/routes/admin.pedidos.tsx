@@ -539,13 +539,22 @@ function AdminOrders() {
                 {o.status !== "paid" && (
                   <button
                     type="button"
-                    onClick={() => onFinalize(o.id)}
+                    onClick={() => onConfirmPayment(o.id)}
                     className="inline-flex items-center gap-2 rounded-full border border-green-500/40 text-green-500 px-3.5 py-2 text-xs hover:bg-green-500/10 transition"
                   >
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Pagamento realizado
                   </button>
                 )}
-                {o.status !== "rejected" && (
+                {(o.status === "cancelled" || o.status === "rejected") && (
+                  <button
+                    type="button"
+                    onClick={() => onReactivate(o.id, o.notes ?? null)}
+                    className="inline-flex items-center gap-2 rounded-full border border-blue-500/40 text-blue-400 px-3.5 py-2 text-xs hover:bg-blue-500/10 transition"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Reativar pedido
+                  </button>
+                )}
+                {o.status !== "rejected" && o.status !== "cancelled" && (
                   <button
                     type="button"
                     onClick={() => onReject(o.id, o.notes ?? null)}
@@ -554,13 +563,13 @@ function AdminOrders() {
                     <XCircle className="h-3.5 w-3.5" /> Rejeitar
                   </button>
                 )}
-                {o.status !== "cancelled" && o.status !== "paid" && (
+                {o.status !== "cancelled" && (
                   <button
                     type="button"
                     onClick={() => onCancel(o.id, o.notes ?? null)}
                     className="inline-flex items-center gap-2 rounded-full border border-orange-500/40 text-orange-500 px-3.5 py-2 text-xs hover:bg-orange-500/10 transition"
                   >
-                    <Ban className="h-3.5 w-3.5" /> Cancelar
+                    <Ban className="h-3.5 w-3.5" /> Cancelar pedido
                   </button>
                 )}
                 {hasAuthorization && authorization && (
