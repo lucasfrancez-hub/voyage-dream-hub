@@ -46,8 +46,11 @@ function LinkGenerator() {
       customerName: customer || undefined,
       imageUrl: imageUrl || undefined,
       supplier: supplier.trim(),
+      locator: locator.trim() || undefined,
+      route: tripRoute.trim() || undefined,
+      travelDate: travelDate.trim() || undefined,
     });
-  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier]);
+  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier, locator, tripRoute, travelDate]);
 
 
   const parcelaLabel = split.equal
