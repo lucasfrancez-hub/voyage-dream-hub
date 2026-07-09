@@ -461,15 +461,25 @@ function ItineraryModal({
                   </div>
                 </div>
               </div>
-              {i < arr.length - 1 && (
-                <div className="my-2 flex items-center gap-2 pl-4 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5 text-brand-orange" />
-                  <span>
-                    Conexão em <strong className="text-foreground">{s.to_iata ?? "—"}</strong>
-                    {s.layover ? ` · ${s.layover}` : ""}
-                  </span>
-                </div>
-              )}
+              {i < arr.length - 1 && (() => {
+                const nextDepart = arr[i + 1]?.depart_at;
+                const auto = computeLayover(s.arrive_at, nextDepart);
+                const layoverText = s.layover?.trim() || auto;
+                return (
+                  <div className="my-2 flex items-center gap-2 pl-4 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5 text-brand-orange" />
+                    <span>
+                      Tempo de conexão em{" "}
+                      <strong className="text-foreground">{s.to_iata ?? "—"}</strong>
+                      {layoverText ? (
+                        <>
+                          : <strong className="text-foreground">{layoverText}</strong>
+                        </>
+                      ) : null}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>
@@ -501,6 +511,19 @@ function BagIcon({
       <span>{label}</span>
     </span>
   );
+}
+
+function computeLayover(arrive?: string, nextDepart?: string): string {
+  if (!arrive || !nextDepart) return "";
+  const a = new Date(arrive).getTime();
+  const b = new Date(nextDepart).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return "";
+  const minsTotal = Math.round((b - a) / 60000);
+  const h = Math.floor(minsTotal / 60);
+  const m = minsTotal % 60;
+  if (h === 0) return `${m}min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}min`;
 }
 
 function formatFlightTime(iso?: string): string {
