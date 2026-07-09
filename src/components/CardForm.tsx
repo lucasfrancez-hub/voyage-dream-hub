@@ -62,6 +62,7 @@ export type CardData = {
   cardNumber: string;
   cardName: string;
   cardCpf: string;
+  cardBirthDate: string;
   expiry: string;
   cvv: string;
   brand: CardBrand | "";
@@ -76,6 +77,7 @@ export const emptyCardData = (): CardData => ({
   cardNumber: "",
   cardName: "",
   cardCpf: "",
+  cardBirthDate: "",
   expiry: "",
   cvv: "",
   brand: "",
