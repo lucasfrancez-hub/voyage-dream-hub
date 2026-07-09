@@ -105,6 +105,7 @@ export type Database = {
           slug: string
           sort_order: number
           summary: string | null
+          supplier_name: string | null
           taxes: number | null
           title: string
           updated_at: string
@@ -131,6 +132,7 @@ export type Database = {
           slug: string
           sort_order?: number
           summary?: string | null
+          supplier_name?: string | null
           taxes?: number | null
           title: string
           updated_at?: string
@@ -157,6 +159,7 @@ export type Database = {
           slug?: string
           sort_order?: number
           summary?: string | null
+          supplier_name?: string | null
           taxes?: number | null
           title?: string
           updated_at?: string
