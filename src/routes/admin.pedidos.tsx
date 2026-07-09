@@ -14,10 +14,20 @@ export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrders,
 });
 
+const PAYMENT_FILTERS = [
+  { value: "all", label: "Todos" },
+  { value: "credit_card", label: "Cartão" },
+  { value: "pix", label: "Pix" },
+  { value: "boleto", label: "Boleto bancário" },
+  { value: "whatsapp", label: "WhatsApp" },
+] as const;
+type PaymentFilter = (typeof PAYMENT_FILTERS)[number]["value"];
+
 function AdminOrders() {
   const updateOrder = useServerFn(updateCofreOrder);
   const deleteOrder = useServerFn(deleteCofreOrder);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [filter, setFilter] = useState<PaymentFilter>("all");
 
   const { data: orders, isLoading, refetch } = useQuery({
     queryKey: ["admin", "orders"],
@@ -30,6 +40,20 @@ function AdminOrders() {
       return data;
     },
   });
+
+  const filteredOrders = (orders ?? []).filter((o) => {
+    if (filter === "all") return true;
+    const pm = (o.payment_method ?? "").toLowerCase();
+    if (filter === "credit_card") return pm.startsWith("credit_card");
+    return pm === filter;
+  });
+
+  const counts = (orders ?? []).reduce<Record<string, number>>((acc, o) => {
+    const pm = (o.payment_method ?? "").toLowerCase();
+    const key = pm.startsWith("credit_card") ? "credit_card" : pm;
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
 
   async function onFinalize(id: string) {
     try {
@@ -78,16 +102,38 @@ function AdminOrders() {
         {orders?.length ?? 0} reserva(s) recebida(s)
       </p>
 
+      <div className="mt-6 flex flex-wrap gap-2 border-b border-border pb-3">
+        {PAYMENT_FILTERS.map((f) => {
+          const active = filter === f.value;
+          const count = f.value === "all" ? orders?.length ?? 0 : counts[f.value] ?? 0;
+          return (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setFilter(f.value)}
+              className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                active
+                  ? "bg-brand-orange text-primary-foreground"
+                  : "border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f.label}
+              <span className={`rounded-full px-1.5 text-[10px] ${active ? "bg-white/20" : "bg-muted"}`}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mt-6 space-y-3">
         {isLoading && (
           <div className="text-center text-muted-foreground py-8">Carregando…</div>
         )}
-        {!isLoading && orders?.length === 0 && (
+        {!isLoading && filteredOrders.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
-            Nenhum pedido ainda.
+            {filter === "all" ? "Nenhum pedido ainda." : "Nenhum pedido nesta forma de pagamento."}
           </div>
         )}
-        {orders?.map((o) => {
+        {filteredOrders.map((o) => {
           const snap = (o.package_snapshot ?? {}) as {
             slug?: string;
             title?: string;
@@ -111,10 +157,12 @@ function AdminOrders() {
               email?: string;
               phone?: string;
             }>;
+            boleto_capture?: Record<string, string>;
           };
           const pm = paymentMethodLabel(o.payment_method);
           const st = statusLabel(o.status);
           const isCard = (o.payment_method ?? "").toLowerCase().startsWith("credit_card");
+          const isBoleto = (o.payment_method ?? "").toLowerCase() === "boleto";
           const instMatch = (o.payment_method ?? "").match(/(\d+)x/);
           const installments = instMatch ? Number(instMatch[1]) : 1;
           const firstAmount = snap.first_amount && snap.first_amount > 0 ? snap.first_amount : undefined;
@@ -189,6 +237,11 @@ function AdminOrders() {
                   </div>
                 )}
               </div>
+
+              {isBoleto && snap.boleto_capture && (
+                <BoletoDetails data={snap.boleto_capture} />
+              )}
+
 
               <div className="mt-4 grid sm:grid-cols-3 gap-3 text-sm border-t border-border pt-4">
                 <InfoLine icon={User} value={o.full_name} />
@@ -355,3 +408,60 @@ function DetailRow({
     </div>
   );
 }
+
+const BOLETO_FIELDS: Array<{ key: string; label: string; section: string }> = [
+  { section: "Financiador", key: "full_name", label: "Nome completo" },
+  { section: "Financiador", key: "relationship", label: "Vínculo" },
+  { section: "Financiador", key: "cpf", label: "CPF" },
+  { section: "Financiador", key: "birth_date", label: "Nascimento" },
+  { section: "Financiador", key: "rg", label: "RG" },
+  { section: "Financiador", key: "rg_issuer", label: "Órgão emissor" },
+  { section: "Financiador", key: "rg_issue_date", label: "Emissão RG" },
+  { section: "Financiador", key: "birth_city", label: "Cidade de nascimento" },
+  { section: "Financiador", key: "marital_status", label: "Estado civil" },
+  { section: "Financiador", key: "mother_name", label: "Nome da mãe" },
+  { section: "Endereço", key: "zip", label: "CEP" },
+  { section: "Endereço", key: "address", label: "Endereço" },
+  { section: "Endereço", key: "address_number", label: "Número" },
+  { section: "Endereço", key: "city", label: "Cidade" },
+  { section: "Endereço", key: "state", label: "Estado" },
+  { section: "Profissional", key: "profession", label: "Profissão" },
+  { section: "Profissional", key: "income", label: "Renda" },
+  { section: "Profissional", key: "employer_name", label: "Empresa" },
+  { section: "Profissional", key: "employed_since", label: "Empregado desde" },
+  { section: "Bancário", key: "bank_name", label: "Banco" },
+  { section: "Bancário", key: "bank_agency", label: "Agência" },
+  { section: "Bancário", key: "bank_account", label: "Conta" },
+  { section: "Bancário", key: "bank_client_since", label: "Cliente desde" },
+];
+
+function BoletoDetails({ data }: { data: Record<string, string> }) {
+  const sections = ["Financiador", "Endereço", "Profissional", "Bancário"];
+  return (
+    <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+      <div className="flex items-center gap-2 text-sm font-semibold text-amber-500">
+        Dados para financiamento no boleto
+      </div>
+      <div className="mt-3 space-y-4">
+        {sections.map((section) => {
+          const items = BOLETO_FIELDS.filter((f) => f.section === section && (data[f.key] ?? "").trim());
+          if (items.length === 0) return null;
+          return (
+            <div key={section}>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{section}</div>
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                {items.map((f) => (
+                  <div key={f.key} className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{f.label}</div>
+                    <div className="text-foreground break-words">{data[f.key]}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
