@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { MapPin, Calendar, Plane, SlidersHorizontal, X, ArrowUpDown } from "lucide-react";
+import { MapPin, Calendar, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { ContactFooter } from "@/components/ContactFooter";
