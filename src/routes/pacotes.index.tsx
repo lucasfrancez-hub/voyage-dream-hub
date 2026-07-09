@@ -113,11 +113,13 @@ function PacotesList() {
     return sorted;
   }, [packages, originFilter, destinationFilter, sortBy]);
 
-  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all";
+  const hasActiveFilters =
+    originFilter !== "all" || destinationFilter !== "all" || sortBy !== "sort_order";
 
   const clearFilters = () => {
     setOriginFilter("all");
     setDestinationFilter("all");
+    setSortBy("sort_order");
   };
 
   return (
