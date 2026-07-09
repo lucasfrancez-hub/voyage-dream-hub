@@ -293,6 +293,7 @@ function PayPage() {
                   />
                 </Card>
 
+                {secureMode && (
                 <Card title="Autorização de débito no cartão">
                   {!canShowAuthorization ? (
                     <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
