@@ -541,54 +541,6 @@ function AdminOrders() {
   );
 }
 
-function FlightSummary({ flight, label }: { flight: FlightLike; label: string }) {
-  const f = flight as Record<string, unknown>;
-  const airline = (f.airline as string) ?? "";
-  const flightNumber = (f.flight_number as string) ?? "";
-  const dep = (f.departure_airport as string) ?? "";
-  const arr = (f.arrival_airport as string) ?? "";
-  const depTime = (f.departure_time as string) ?? "";
-  const arrTime = (f.arrival_time as string) ?? "";
-  const depDate = (f.departure_date as string) ?? "";
-  const arrDate = (f.arrival_date as string) ?? "";
-  const stops = typeof f.stops === "number" ? (f.stops as number) : undefined;
-  const duration = (f.duration as string) ?? "";
-
-  return (
-    <div className="rounded-lg border border-border bg-background/40 p-3 text-sm">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange/15 text-brand-orange text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
-          {label}
-        </span>
-        {airline && <span className="font-semibold">{airline}</span>}
-        {flightNumber && <span className="text-xs text-muted-foreground">· {flightNumber}</span>}
-      </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-        {(dep || depTime || depDate) && (
-          <span>
-            <strong className="text-foreground">{dep || "—"}</strong>
-            {depTime ? ` · ${depTime}` : ""}
-            {depDate ? ` · ${depDate}` : ""}
-          </span>
-        )}
-        <span className="text-muted-foreground">→</span>
-        {(arr || arrTime || arrDate) && (
-          <span>
-            <strong className="text-foreground">{arr || "—"}</strong>
-            {arrTime ? ` · ${arrTime}` : ""}
-            {arrDate ? ` · ${arrDate}` : ""}
-          </span>
-        )}
-        {duration && <span className="text-muted-foreground">· {duration}</span>}
-        {stops != null && (
-          <span className="text-muted-foreground">
-            · {stops === 0 ? "direto" : `${stops} parada(s)`}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 
 function InfoLine({
