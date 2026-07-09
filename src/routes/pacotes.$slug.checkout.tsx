@@ -685,6 +685,17 @@ function SummaryLine({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatBRL(input: string): string {
+  const digits = (input ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  const number = Number(digits) / 100;
+  return number.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  });
+}
+
 function BoletoForm({
   data,
   onChange,
