@@ -238,6 +238,11 @@ function AdminOrders() {
                 )}
               </div>
 
+              {isBoleto && snap.boleto_capture && (
+                <BoletoDetails data={snap.boleto_capture} />
+              )}
+
+
               <div className="mt-4 grid sm:grid-cols-3 gap-3 text-sm border-t border-border pt-4">
                 <InfoLine icon={User} value={o.full_name} />
                 <InfoLine icon={Mail} value={o.email} />
