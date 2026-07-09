@@ -60,10 +60,15 @@ function Checkout() {
   const [payment, setPayment] = useState<PaymentMethod>("credit_card");
   const [installments, setInstallments] = useState<number>(DEFAULT_INSTALLMENTS);
   const { data: card, patch: patchCard } = useCardData();
+  const [boleto, setBoleto] = useState<BoletoData>(emptyBoleto);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+
+  function patchBoleto(patch: Partial<BoletoData>) {
+    setBoleto((prev) => ({ ...prev, ...patch }));
+  }
 
   // Once the package loads, default the passenger count to its base occupancy.
   useEffect(() => {
