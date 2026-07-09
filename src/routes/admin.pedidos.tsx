@@ -90,6 +90,12 @@ function AdminOrders() {
   }
 
   async function onCancel(id: string, currentNotes: string | null) {
+    const confirmed = window.confirm(
+      "ATENÇÃO: Cancelar aqui só marca o pedido como cancelado no portal.\n\n" +
+      "Se o bilhete/reserva já foi emitido, o cancelamento pode estar sujeito a MULTA e regras da companhia/operadora. " +
+      "Cancele também no sistema do fornecedor.\n\nDeseja continuar?",
+    );
+    if (!confirmed) return;
     const reason = window.prompt(
       "Motivo do cancelamento (opcional):",
       "",
@@ -107,6 +113,31 @@ function AdminOrders() {
       toast.error(err instanceof Error ? err.message : "Erro");
     }
   }
+
+  async function onReactivate(id: string, currentNotes: string | null) {
+    const stamp = new Date().toLocaleString("pt-BR");
+    const line = `[Reativado em ${stamp}]`;
+    const newNotes = currentNotes ? `${currentNotes}\n${line}` : line;
+    try {
+      await updateOrder({ data: { id, status: "pending", notes: newNotes } });
+      toast.success("Pedido reativado");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
+  async function onConfirmPayment(id: string) {
+    if (!window.confirm("Confirmar que o pagamento foi realizado e finalizar o pedido?")) return;
+    try {
+      await updateOrder({ data: { id, status: "paid" } });
+      toast.success("Pagamento confirmado");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
 
   async function onDelete(id: string) {
     if (!window.confirm("Excluir este pedido definitivamente?")) return;
