@@ -749,7 +749,7 @@ function SegmentsEditor({
               className={inp}
               value={s.layover ?? ""}
               onChange={(e) => patchAt(i, { layover: e.target.value })}
-              placeholder="Conexão após este trecho (ex.: 1h 40min)"
+              placeholder="Tempo de conexão (opcional — calculado automático)"
             />
           </div>
         </div>
