@@ -388,10 +388,32 @@ function AdminOrders() {
                     type="button"
                     onClick={() => {
                       try {
+                        const signedAt = authorization.signed_at ?? o.created_at;
+                        const validUntil =
+                          authorization.valid_until ??
+                          new Date(new Date(signedAt).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+                        const enriched: AuthorizationData = {
+                          ...authorization,
+                          holder_name: authorization.holder_name ?? o.full_name,
+                          holder_cpf: authorization.holder_cpf ?? o.cpf ?? undefined,
+                          holder_email: authorization.holder_email ?? o.email,
+                          holder_phone: authorization.holder_phone ?? o.phone,
+                          holder_birth_date: authorization.holder_birth_date ?? o.birth_date ?? undefined,
+                          description: authorization.description ?? snap.description ?? title,
+                          reference: authorization.reference ?? snap.reference ?? null,
+                          supplier: authorization.supplier ?? "—",
+                          representative:
+                            authorization.representative ??
+                            "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
+                          installments: authorization.installments ?? installments,
+                          amount: authorization.amount ?? Number(o.total_price),
+                          signed_at: signedAt,
+                          valid_until: validUntil,
+                        };
                         generateAuthorizationPDF({
                           orderId: o.id,
                           createdAt: o.created_at,
-                          authorization,
+                          authorization: enriched,
                           liveness,
                         });
                       } catch (err) {
@@ -403,6 +425,7 @@ function AdminOrders() {
                     <FileSignature className="h-3.5 w-3.5" /> Ver autorização de débito
                   </button>
                 )}
+
                 <button
                   type="button"
                   onClick={() => onDelete(o.id)}

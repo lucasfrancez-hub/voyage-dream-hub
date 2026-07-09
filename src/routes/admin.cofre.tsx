@@ -408,11 +408,35 @@ function CofrePage() {
                     type="button"
                     onClick={() => {
                       try {
+                        const ord = e.order!;
+                        const rawAuth = ord.cardCapture!.authorization as unknown as AuthorizationData;
+                        const signedAt = rawAuth.signed_at ?? ord.createdAt;
+                        const validUntil =
+                          rawAuth.valid_until ??
+                          new Date(new Date(signedAt).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+                        const enriched: AuthorizationData = {
+                          ...rawAuth,
+                          holder_name: rawAuth.holder_name ?? ord.fullName,
+                          holder_cpf: rawAuth.holder_cpf ?? ord.cpf ?? undefined,
+                          holder_email: rawAuth.holder_email ?? ord.email,
+                          holder_phone: rawAuth.holder_phone ?? ord.phone,
+                          holder_birth_date: rawAuth.holder_birth_date ?? ord.birthDate ?? undefined,
+                          description: rawAuth.description ?? ord.linkDescription ?? e.description,
+                          reference: rawAuth.reference ?? ord.linkReference ?? null,
+                          supplier: rawAuth.supplier ?? "—",
+                          representative:
+                            rawAuth.representative ??
+                            "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
+                          installments: rawAuth.installments ?? e.installments,
+                          amount: rawAuth.amount ?? ord.totalPrice,
+                          signed_at: signedAt,
+                          valid_until: validUntil,
+                        };
                         generateAuthorizationPDF({
                           orderId: e.orderId!,
-                          createdAt: e.order!.createdAt,
-                          authorization: e.order!.cardCapture!.authorization as unknown as AuthorizationData,
-                          liveness: (e.order!.cardCapture!.liveness ?? null) as unknown as LivenessData | null,
+                          createdAt: ord.createdAt,
+                          authorization: enriched,
+                          liveness: (ord.cardCapture!.liveness ?? null) as unknown as LivenessData | null,
                         });
                       } catch (err) {
                         toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
@@ -423,6 +447,7 @@ function CofrePage() {
                     <FileSignature className="h-3.5 w-3.5" /> Ver autorização de débito
                   </button>
                 )}
+
 
                 {e.kind === "pedido" && e.orderId && e.status !== "paid" && (
                   <button
