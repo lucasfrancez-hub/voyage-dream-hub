@@ -103,6 +103,7 @@ export function CardForm({
   onInstallmentsChange,
   total,
   firstAmount,
+  hideCardCpf,
 }: {
   data: CardData;
   onChange: (p: Partial<CardData>) => void;
@@ -111,6 +112,7 @@ export function CardForm({
   onInstallmentsChange: (n: number) => void;
   total: number;
   firstAmount?: number;
+  hideCardCpf?: boolean;
 }) {
   const detected = detectBrand(data.cardNumber);
   const selectedBrand: CardBrand | "" = detected || data.brand;
