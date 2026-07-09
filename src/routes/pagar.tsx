@@ -91,8 +91,17 @@ function PayPage() {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
+    if (!acceptedTerms) {
+      toast.error("Você precisa aceitar os termos da autorização de débito.");
+      return;
+    }
+    if (!signatureDataUrl) {
+      toast.error("Assine a autorização de débito antes de enviar.");
+      return;
+    }
     setSubmitting(true);
     try {
+      const authorizedAt = new Date().toISOString();
       const { error } = await supabase.from("orders").insert({
         package_id: null,
         package_snapshot: {
@@ -104,7 +113,7 @@ function PayPage() {
           first_amount: firstAmount ?? null,
           card_capture: {
             brand_hint: card.cardNumber.replace(/\s/g, "").slice(0, 6),
-            last4: card.cardNumber.replace(/\D/g, "").slice(-4),
+            last4: cardLast4,
             holder: card.cardName,
             holder_cpf: card.cardCpf,
             expiry: card.expiry,
@@ -116,6 +125,21 @@ function PayPage() {
               zip: card.billingZip,
               city: card.billingCity,
               state: card.billingState,
+            },
+            authorization: {
+              type: "debit_authorization",
+              supplier: "VIA AIR",
+              holder_name: fullName,
+              holder_cpf: cpf,
+              masked_card: maskedCard,
+              brand: cardBrand,
+              expiry: card.expiry,
+              amount: totalNumber,
+              installments,
+              accepted_terms: true,
+              signature_data_url: signatureDataUrl,
+              signed_at: authorizedAt,
+              user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
             },
           },
         },
@@ -138,6 +162,7 @@ function PayPage() {
     } finally {
       setSubmitting(false);
     }
+
   }
 
   return (
