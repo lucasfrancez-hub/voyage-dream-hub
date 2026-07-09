@@ -202,6 +202,17 @@ function Checkout() {
         toast.error(`Preencha o campo: ${missing[1]}.`);
         return;
       }
+      const isThirdParty = boleto.relationship && boleto.relationship !== "proprio_viajante";
+      if (isThirdParty) {
+        if (!boleto.passenger_doc_path) {
+          toast.error("Envie o documento do viajante para comprovar o vínculo.");
+          return;
+        }
+        if (!boleto.financier_doc_path) {
+          toast.error("Envie o documento do financiador para comprovar o vínculo.");
+          return;
+        }
+      }
     }
 
 
