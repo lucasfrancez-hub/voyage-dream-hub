@@ -19,6 +19,9 @@ function LinkGenerator() {
   const [installments, setInstallments] = useState(10);
   const [orderRef, setOrderRef] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
+  const [locator, setLocator] = useState("");
+  const [tripRoute, setTripRoute] = useState("");
+  const [travelDate, setTravelDate] = useState("");
 
   const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
