@@ -8,6 +8,8 @@ import { splitInstallments } from "@/lib/checkout-config";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { SignaturePad } from "@/components/SignaturePad";
 import { FaceLiveness, type LivenessResult } from "@/components/FaceLiveness";
+import { DateBRInput } from "@/components/DateBRInput";
+
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 
@@ -374,8 +376,9 @@ function PayPage() {
                       <input required value={phone} onChange={(e) => setPhone(e.target.value)} className={cls} />
                     </Field>
                     <Field label="Data de nascimento *">
-                      <input required type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={cls} />
+                      <DateBRInput required value={birthDate} onChange={setBirthDate} className={cls} />
                     </Field>
+
                   </div>
                 </Card>
 
