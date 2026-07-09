@@ -154,10 +154,27 @@ export function CardForm({
             required
             inputMode="numeric"
             value={data.cardNumber}
-            onChange={(e) => onChange({ cardNumber: e.target.value.replace(/[^\d ]/g, "") })}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, "");
+              const isAmex = selectedBrand === "Amex";
+              const limit = isAmex ? 15 : 16;
+              const digits = raw.slice(0, limit);
+              let formatted = digits;
+              if (isAmex) {
+                formatted = digits
+                  .replace(/(\d{4})(\d)/, "$1 $2")
+                  .replace(/(\d{4} \d{6})(\d)/, "$1 $2");
+              } else {
+                formatted = digits
+                  .replace(/(\d{4})(\d)/, "$1 $2")
+                  .replace(/(\d{4} \d{4})(\d)/, "$1 $2")
+                  .replace(/(\d{4} \d{4} \d{4})(\d)/, "$1 $2");
+              }
+              onChange({ cardNumber: formatted });
+            }}
             className={cls}
-            placeholder="0000 0000 0000 0000"
-            maxLength={23}
+            placeholder={selectedBrand === "Amex" ? "0000 000000 00000" : "0000 0000 0000 0000"}
+            maxLength={selectedBrand === "Amex" ? 17 : 19}
             autoComplete="cc-number"
           />
         </Field>
