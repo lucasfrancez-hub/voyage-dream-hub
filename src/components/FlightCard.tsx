@@ -47,10 +47,12 @@ export function FlightCard({
   flight,
   kind,
   adults,
+  airlineLocator,
 }: {
   flight: FlightInfo;
   kind: "outbound" | "return";
   adults: number;
+  airlineLocator?: string | null;
 }) {
   const Icon = kind === "outbound" ? PlaneTakeoff : PlaneLanding;
   const label = kind === "outbound" ? "Voo de ida" : "Voo de volta";
@@ -70,8 +72,15 @@ export function FlightCard({
   const [openItin, setOpenItin] = useState(false);
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-        <Icon className="h-4 w-4 text-brand-orange" /> {label}
+      <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+        <span className="inline-flex items-center gap-2">
+          <Icon className="h-4 w-4 text-brand-orange" /> {label}
+        </span>
+        {airlineLocator && (
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-brand-orange/40 bg-brand-orange/10 px-2 py-0.5 text-[10px] font-mono font-bold tracking-widest text-brand-orange normal-case">
+            <Plane className="h-3 w-3" /> {airlineLocator}
+          </span>
+        )}
       </div>
       <div className="mt-3 flex items-start gap-3">
         {flight.airline_logo_url ? (
