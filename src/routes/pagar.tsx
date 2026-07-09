@@ -273,6 +273,9 @@ function PayPage() {
                     description: desc ?? null,
                     reference: ref ?? null,
                     order_number: pedido ?? null,
+                    trip_locator: tripLocator || null,
+                    trip_route: tripRoute || null,
+                    trip_date: tripDate || null,
                     accepted_terms: true,
 
                     signature_data_url: signatureDataUrl,
