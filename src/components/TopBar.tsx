@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, Ticket } from "lucide-react";
 import type { ReactNode } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { WHATSAPP_PHONE } from "@/lib/checkout-config";
@@ -67,22 +67,26 @@ export function TopBar({
               {item.label}
             </a>
           ))}
-          <Link
-            to="/minhas-reservas"
-            className="text-sm font-semibold text-brand-orange hover:opacity-80 transition-colors"
-          >
-            Minhas reservas
-          </Link>
         </nav>
 
-        <a
-          href={waUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition shrink-0"
-        >
-          <MessageCircle className="h-4 w-4" /> WhatsApp
-        </a>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            to="/minhas-reservas"
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-3 py-2 text-xs sm:text-sm font-semibold text-brand-orange hover:bg-brand-orange hover:text-white transition"
+          >
+            <Ticket className="h-4 w-4" />
+            <span className="hidden sm:inline">Minhas reservas</span>
+            <span className="sm:hidden">Reservas</span>
+          </Link>
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:opacity-90 transition"
+          >
+            <MessageCircle className="h-4 w-4" /> <span className="hidden sm:inline">WhatsApp</span>
+          </a>
+        </div>
       </div>
       <div className="border-t border-border/40 bg-background/40">
         <div className="mx-auto max-w-7xl px-6 h-10 flex items-center">

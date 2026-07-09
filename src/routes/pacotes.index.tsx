@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { MapPin, Calendar, Plane, SlidersHorizontal, X, ArrowUpDown } from "lucide-react";
+import { MapPin, Calendar, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { ContactFooter } from "@/components/ContactFooter";
@@ -143,6 +143,15 @@ function PacotesList() {
             conforme a proximidade da data de embarque. As reservas estão sujeitas apenas
             à disponibilidade de vagas.
           </p>
+          <div className="mt-6">
+            <Link
+              to="/minhas-reservas"
+              className="inline-flex items-center gap-2 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-4 py-2 text-sm font-semibold text-brand-orange hover:bg-brand-orange hover:text-white transition"
+            >
+              <Ticket className="h-4 w-4" />
+              Ver minhas reservas
+            </Link>
+          </div>
         </div>
 
         <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
