@@ -123,7 +123,12 @@ export const updateCofreOrder = createServerFn({ method: "POST" })
     if (roleErr) throw new Error(roleErr.message);
     if (!isAdmin) throw new Error("Forbidden");
 
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      status?: string;
+      notes?: string | null;
+      supplier_name?: string | null;
+      supplier_order_number?: string | null;
+    } = {};
     if (data.status !== undefined) patch.status = data.status;
     if (data.notes !== undefined) patch.notes = data.notes;
     if (data.supplier_name !== undefined) patch.supplier_name = data.supplier_name;
