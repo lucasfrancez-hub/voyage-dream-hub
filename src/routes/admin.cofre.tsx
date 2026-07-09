@@ -235,7 +235,7 @@ function CofrePage() {
   }, [entries, ordersQuery.data]);
 
   const filtered = items.filter((e) => {
-    if (tab !== "all" && e.kind !== tab) return false;
+    if (tab !== "all" && e.linkKind !== tab) return false;
     if (!query) return true;
     const q = query.toLowerCase();
     return (
@@ -247,8 +247,8 @@ function CofrePage() {
     );
   });
 
-  const countAvulso = items.filter((i) => i.kind === "avulso").length;
-  const countPedido = items.filter((i) => i.kind === "pedido").length;
+  const countCard = items.filter((i) => i.linkKind === "card").length;
+  const countBoleto = items.filter((i) => i.linkKind === "boleto").length;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
