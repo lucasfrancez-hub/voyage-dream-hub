@@ -77,6 +77,8 @@ function PackageDetails() {
     );
   }
 
+  const baseOccupancy = pkg.base_occupancy ?? 2;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-background/80 backdrop-blur">
