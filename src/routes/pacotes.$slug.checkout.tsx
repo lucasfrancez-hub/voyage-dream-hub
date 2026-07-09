@@ -213,14 +213,18 @@ function Checkout() {
         toast.error(`Preencha o campo: ${missing[1]}.`);
         return;
       }
-      if (!boleto.passenger_doc_path) {
-        toast.error("Envie a foto do documento do viajante.");
-        return;
+      const isThirdParty = boleto.relationship !== "proprio_viajante";
+      if (isThirdParty) {
+        if (!boleto.passenger_doc_path) {
+          toast.error("Envie a foto do documento do viajante.");
+          return;
+        }
+        if (!boleto.financier_doc_path) {
+          toast.error("Envie a foto do documento do financiador.");
+          return;
+        }
       }
-      if (!boleto.financier_doc_path) {
-        toast.error("Envie a foto do documento do financiador.");
-        return;
-      }
+
 
     }
 
