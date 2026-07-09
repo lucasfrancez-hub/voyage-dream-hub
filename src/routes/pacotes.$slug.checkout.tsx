@@ -98,10 +98,14 @@ function Checkout() {
     setTravelers((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
   }
 
-  const totalPrice = useMemo(() => {
+  const subtotalPrice = useMemo(() => {
     if (!pkg) return 0;
     return Number(pkg.price_per_person) * (adults + children);
   }, [pkg, adults, children]);
+
+  const PIX_DISCOUNT = 0.05;
+  const pixDiscountValue = payment === "pix" ? subtotalPrice * PIX_DISCOUNT : 0;
+  const totalPrice = subtotalPrice - pixDiscountValue;
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
   const occupancyMismatch = !!pkg && adults + children !== baseOccupancy;
@@ -429,6 +433,7 @@ function Checkout() {
                   icon={QrCode}
                   title="Pix"
                   desc="Finalize via WhatsApp com nosso consultor."
+                  badge="-5% de desconto"
                 />
                 <PaymentOption
                   active={payment === "boleto"}
@@ -544,6 +549,12 @@ function Checkout() {
                     value={formatBRL(Number(pkg.taxes))}
                   />
                 )}
+                {payment === "pix" && pixDiscountValue > 0 && (
+                  <SummaryLine
+                    label="Desconto Pix (-5%)"
+                    value={`- ${formatBRL(pixDiscountValue)}`}
+                  />
+                )}
               </div>
               <div className="mt-4 border-t border-border pt-4 flex justify-between items-baseline">
                 <span className="text-muted-foreground text-sm">Total</span>
@@ -551,6 +562,11 @@ function Checkout() {
                   {formatBRL(totalPrice)}
                 </span>
               </div>
+              {payment === "pix" && pixDiscountValue > 0 && (
+                <div className="mt-1 text-right text-xs text-green-500 font-semibold">
+                  Você economiza {formatBRL(pixDiscountValue)} pagando via Pix
+                </div>
+              )}
               {payment === "credit_card" && (
                 <div className="mt-1 text-right text-xs text-muted-foreground">
                   em {installments}x de {formatBRL(totalPrice / installments)}
@@ -630,23 +646,30 @@ function PaymentOption({
   icon: Icon,
   title,
   desc,
+  badge,
 }: {
   active: boolean;
   onClick: () => void;
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   desc: string;
+  badge?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`text-left rounded-xl border p-4 transition ${
+      className={`relative text-left rounded-xl border p-4 transition ${
         active
           ? "border-brand-orange bg-brand-orange/5"
           : "border-border bg-background hover:border-brand-orange/50"
       }`}
     >
+      {badge && (
+        <span className="absolute -top-2 right-3 rounded-full bg-green-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow">
+          {badge}
+        </span>
+      )}
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4 text-brand-orange" />
         <span className="font-semibold">{title}</span>
