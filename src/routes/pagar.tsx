@@ -65,6 +65,8 @@ function PayPage() {
   const [success, setSuccess] = useState(false);
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [liveness, setLiveness] = useState<LivenessResult | null>(null);
+
 
   const installmentsOptions = useMemo(
     () => Array.from({ length: maxInstallments }, (_, i) => i + 1),
