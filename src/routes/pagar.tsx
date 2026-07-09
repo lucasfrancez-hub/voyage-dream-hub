@@ -363,11 +363,16 @@ function PayPage() {
                   })()}
                   <button
                     type="submit"
-                    disabled={submitting || success}
+                    disabled={submitting || success || !acceptedTerms || !signatureDataUrl}
                     className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
                   >
                     {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</> : <>Fazer pedido</>}
                   </button>
+                  {canShowAuthorization && (!acceptedTerms || !signatureDataUrl) && (
+                    <p className="text-[11px] text-brand-orange text-center">
+                      Aceite os termos e assine a autorização para enviar.
+                    </p>
+                  )}
                   <p className="text-[11px] text-muted-foreground text-center">
                     <span aria-hidden className="mr-1 font-sans">{"\u{1F512}\u{FE0E}"}</span>
                     Ambiente criptografado. Seus dados trafegam por conexão segura.
