@@ -595,11 +595,12 @@ function Checkout() {
                   <>
                     <Check className="h-4 w-4" /> Reserva enviada
                   </>
-                ) : payment === "credit_card" ? (
-                  <>Fazer pedido</>
-                ) : (
+                ) : payment === "pix" ? (
                   <>Fazer pedido e falar no WhatsApp</>
+                ) : (
+                  <>Fazer pedido</>
                 )}
+
               </button>
               <p className="mt-3 text-[11px] text-muted-foreground text-center">
                 Ao continuar você concorda com nossos{" "}
