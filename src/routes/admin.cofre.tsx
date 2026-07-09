@@ -21,7 +21,9 @@ import {
   XCircle,
   User,
   MapPin,
+  FileSignature,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import {
