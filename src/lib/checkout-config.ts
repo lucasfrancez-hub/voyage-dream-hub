@@ -24,6 +24,7 @@ export function paymentLinkUrl(params: {
   customerName?: string;
   firstAmount?: number; // valor da 1ª parcela quando diferente das demais
   imageUrl?: string; // imagem do destino que aparece no topo do link do cliente
+  supplier?: string; // fornecedor que aparecerá na fatura (cia aérea, operadora, etc.)
 }): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://voeair.com";
@@ -37,6 +38,7 @@ export function paymentLinkUrl(params: {
   if (params.orderRef) q.set("ref", params.orderRef);
   if (params.customerName) q.set("cliente", params.customerName);
   if (params.imageUrl) q.set("img", params.imageUrl);
+  if (params.supplier) q.set("fornec", params.supplier);
   return `${origin}/pagar?${q.toString()}`;
 }
 
@@ -49,6 +51,7 @@ export function paymentSimpleLinkUrl(params: {
   customerName?: string;
   firstAmount?: number;
   imageUrl?: string;
+  supplier?: string;
 }): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://voeair.com";
@@ -62,6 +65,7 @@ export function paymentSimpleLinkUrl(params: {
   if (params.orderRef) q.set("ref", params.orderRef);
   if (params.customerName) q.set("cliente", params.customerName);
   if (params.imageUrl) q.set("img", params.imageUrl);
+  if (params.supplier) q.set("fornec", params.supplier);
   q.set("simples", "1");
   return `${origin}/pagar?${q.toString()}`;
 }
