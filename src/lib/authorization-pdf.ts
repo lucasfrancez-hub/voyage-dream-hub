@@ -478,9 +478,10 @@ export async function generateAuthorizationPDF(opts: {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text(`Autorização de débito · Pedido ${orderId}`, M, pageH - 5.5);
+    const shortId = (a.order_number || orderId).toString().slice(0, 18);
+    doc.text("viaair.tur.br", M, pageH - 5.5);
+    doc.text(`Autorização de débito · Pedido ${shortId}`, pageW / 2, pageH - 5.5, { align: "center" });
     doc.text(`Página ${i} de ${pages}`, pageW - M, pageH - 5.5, { align: "right" });
-    doc.text("viaair.tur.br", pageW / 2, pageH - 5.5, { align: "center" });
     setInk();
   }
 

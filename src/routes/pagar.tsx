@@ -171,32 +171,53 @@ function PayPage() {
         accuracy: number;
         source: "gps" | "ip";
       } | null = null;
-      if (secureMode && typeof navigator !== "undefined" && navigator.geolocation) {
-        geo = await new Promise((resolve) => {
-          const t = setTimeout(() => resolve(null), 4000);
+      if (secureMode) {
+        if (typeof navigator === "undefined" || !navigator.geolocation) {
+          toast.error("Seu dispositivo não permite compartilhar a localização. Sem essa autorização não é possível processar o pagamento.");
+          setSubmitting(false);
+          return;
+        }
+        const gpsResult = await new Promise<
+          | { ok: true; data: { latitude: number; longitude: number; accuracy: number; source: "gps" } }
+          | { ok: false; denied: boolean }
+        >((resolve) => {
+          const t = setTimeout(() => resolve({ ok: false, denied: false }), 10000);
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               clearTimeout(t);
               resolve({
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-                accuracy: pos.coords.accuracy,
-                source: "gps",
+                ok: true,
+                data: {
+                  latitude: pos.coords.latitude,
+                  longitude: pos.coords.longitude,
+                  accuracy: pos.coords.accuracy,
+                  source: "gps",
+                },
               });
             },
-            () => {
+            (err) => {
               clearTimeout(t);
-              resolve(null);
+              resolve({ ok: false, denied: err.code === err.PERMISSION_DENIED });
             },
-            { enableHighAccuracy: false, timeout: 3500, maximumAge: 60000 },
+            { enableHighAccuracy: true, timeout: 9500, maximumAge: 60000 },
           );
         });
-      }
-      if (!geo && ipGeo?.latitude != null && ipGeo?.longitude != null) {
+        if (gpsResult.ok) {
+          geo = gpsResult.data;
+        } else {
+          toast.error(
+            gpsResult.denied
+              ? "Você recusou compartilhar sua localização. Sem essa autorização não é possível processar o pagamento."
+              : "Não conseguimos capturar sua localização. Habilite o GPS e tente novamente — sem essa autorização não é possível processar o pagamento.",
+          );
+          setSubmitting(false);
+          return;
+        }
+      } else if (ipGeo?.latitude != null && ipGeo?.longitude != null) {
         geo = {
           latitude: ipGeo.latitude,
           longitude: ipGeo.longitude,
-          accuracy: 25000, // ~25km típico para geo por IP
+          accuracy: 25000,
           source: "ip",
         };
       }
