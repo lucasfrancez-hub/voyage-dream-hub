@@ -245,6 +245,15 @@ export function CardForm({
               maxLength={14}
             />
           </Field>
+          <Field label="Data de nascimento do titular *">
+            <input
+              required
+              type="date"
+              value={data.cardBirthDate}
+              onChange={(e) => onChange({ cardBirthDate: e.target.value })}
+              className={cls}
+            />
+          </Field>
         </div>
       )}
 
