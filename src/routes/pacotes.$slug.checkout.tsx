@@ -354,7 +354,7 @@ function Checkout() {
             {/* Pagamento */}
             <Card title="Pagamento">
               <p className="text-sm text-muted-foreground mb-4">Como prefere pagar?</p>
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-3 gap-3">
                 <PaymentOption
                   active={payment === "credit_card"}
                   onClick={() => setPayment("credit_card")}
@@ -369,7 +369,20 @@ function Checkout() {
                   title="Pix"
                   desc="Finalize via WhatsApp com nosso consultor."
                 />
+                <PaymentOption
+                  active={payment === "boleto"}
+                  onClick={() => setPayment("boleto")}
+                  icon={FileText}
+                  title="Boleto bancário"
+                  desc="Parcelamos no boleto. Finalização feita via WhatsApp com nosso consultor."
+                />
               </div>
+
+              {payment === "boleto" && (
+                <div className="mt-4 rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs text-muted-foreground">
+                  O parcelamento no boleto bancário não é finalizado de forma online. Ao concluir o pedido, você será direcionado ao WhatsApp para combinar as condições com nosso consultor.
+                </div>
+              )}
 
               {payment === "credit_card" && (
                 <div className="mt-6 pt-6 border-t border-border">
