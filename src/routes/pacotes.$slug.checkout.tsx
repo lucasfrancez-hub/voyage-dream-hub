@@ -521,7 +521,7 @@ function Checkout() {
                     </p>
                   </div>
 
-                  <BoletoForm data={boleto} onChange={patchBoleto} />
+                  <BoletoForm data={boleto} onChange={patchBoleto} isThirdParty={isThirdPartyFinancier} />
                 </div>
               )}
 
