@@ -73,6 +73,10 @@ function LinkGenerator() {
       orderRef: orderRef || undefined,
       orderNumber: orderNumber.trim() || undefined,
       imageUrl: imageUrl || undefined,
+      supplier: supplier.trim() || undefined,
+      locator: locator.trim() || undefined,
+      route: tripRoute.trim() || undefined,
+      travelDate: travelDate.trim() || undefined,
       url,
     });
   }
