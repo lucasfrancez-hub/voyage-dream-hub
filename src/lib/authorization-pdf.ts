@@ -250,7 +250,7 @@ export async function generateAuthorizationPDF(opts: {
     doc.text(value, x + 2.5, y + 9);
   };
   const chipW = (contentW - 6) / 3;
-  const pedidoDisplay = a.order_number || (orderId.slice(0, 12) + (orderId.length > 12 ? "…" : ""));
+  const pedidoDisplay = displayOrderNumber;
   chip("Pedido", pedidoDisplay, M, chipW);
 
   chip("Assinado em", fmtDate(a.signed_at), M + chipW + 3, chipW);
