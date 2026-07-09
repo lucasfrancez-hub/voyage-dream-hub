@@ -239,6 +239,7 @@ function Checkout() {
                 : payment,
           total_price: totalPrice,
           notes: notes || null,
+          supplier_name: (pkg as { supplier_name?: string | null }).supplier_name ?? null,
         });
 
       if (error) throw error;
