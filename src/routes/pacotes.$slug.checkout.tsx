@@ -34,7 +34,7 @@ function Checkout() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
-        .select("*")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle();

@@ -48,6 +48,18 @@ function AdminOrders() {
     },
   });
 
+  const { data: packagesById } = useQuery({
+    queryKey: ["admin", "packages", "byId"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("packages").select("*");
+      if (error) throw error;
+      const map: Record<string, Record<string, unknown>> = {};
+      for (const p of data ?? []) map[(p as { id: string }).id] = p as Record<string, unknown>;
+      return map;
+    },
+  });
+
+
   const q = search.trim().toLowerCase();
   const filteredOrders = (orders ?? []).filter((o) => {
     if (filter !== "all") {
@@ -223,7 +235,17 @@ function AdminOrders() {
           </div>
         )}
         {filteredOrders.map((o) => {
-          const snap = (o.package_snapshot ?? {}) as {
+          const rawSnap = (o.package_snapshot ?? {}) as Record<string, unknown>;
+          const pkg = (o.package_id && packagesById?.[o.package_id as string]) || {};
+          // Merge: snapshot wins, package fills gaps (for old orders / missing snapshot fields)
+          const merged: Record<string, unknown> = { ...pkg, ...rawSnap };
+          for (const k of Object.keys(rawSnap)) {
+            if (rawSnap[k] === null || rawSnap[k] === undefined) {
+              if (pkg[k] !== undefined && pkg[k] !== null) merged[k] = pkg[k];
+            }
+          }
+          const supplierFromPackage = (pkg["supplier_name"] as string | null | undefined) ?? null;
+          const snap = merged as {
             slug?: string;
             title?: string;
             destination?: string;
@@ -296,9 +318,17 @@ function AdminOrders() {
                   <div className="text-xs text-muted-foreground">
                     {snap.destination ?? snap.reference ?? ""}
                   </div>
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-mono font-semibold text-foreground">
-                    <Hash className="h-3 w-3 text-muted-foreground" />
-                    Pedido {displayOrderNumber}
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-mono font-semibold text-foreground">
+                      <Hash className="h-3 w-3 text-muted-foreground" />
+                      Pedido {displayOrderNumber}
+                    </span>
+                    {supplierFromPackage && (
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400" title="Fornecedor do pacote (interno)">
+                        <PackageIcon className="h-3 w-3" />
+                        Fornecedor: {supplierFromPackage}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">

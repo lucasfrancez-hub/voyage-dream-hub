@@ -34,8 +34,11 @@ type Order = {
   supplier_name: string | null;
   supplier_order_number: string | null;
   notes: string | null;
+  package_id: string | null;
   package_snapshot: Record<string, unknown>;
 };
+
+type PackageMap = Record<string, Record<string, unknown>>;
 
 function MinhasReservas() {
   const [email, setEmail] = useState<string | null>(null);
@@ -161,18 +164,29 @@ function SignInForm() {
 
 function SignedInView({ email }: { email: string }) {
   const [orders, setOrders] = useState<Order[] | null>(null);
+  const [packagesById, setPackagesById] = useState<PackageMap>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [ordersRes, packagesRes] = await Promise.all([
+        supabase.from("orders").select("*").order("created_at", { ascending: false }),
+        supabase
+          .from("packages")
+          .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,base_occupancy,outbound_flight,return_flight"),
+      ]);
       if (cancelled) return;
-      if (error) setError(error.message);
-      else setOrders((data ?? []) as Order[]);
+      if (ordersRes.error) {
+        setError(ordersRes.error.message);
+      } else {
+        setOrders((ordersRes.data ?? []) as Order[]);
+      }
+      if (!packagesRes.error && packagesRes.data) {
+        const map: PackageMap = {};
+        for (const p of packagesRes.data) map[(p as { id: string }).id] = p as Record<string, unknown>;
+        setPackagesById(map);
+      }
     })();
     return () => {
       cancelled = true;
@@ -215,16 +229,23 @@ function SignedInView({ email }: { email: string }) {
       )}
       {orders && orders.length > 0 && (
         <div className="space-y-3">
-          {orders.map((o) => <OrderCard key={o.id} order={o} />)}
+          {orders.map((o) => <OrderCard key={o.id} order={o} pkg={o.package_id ? packagesById[o.package_id] : undefined} />)}
         </div>
       )}
     </div>
   );
 }
 
-function OrderCard({ order: o }: { order: Order }) {
+function OrderCard({ order: o, pkg }: { order: Order; pkg?: Record<string, unknown> }) {
   const [open, setOpen] = useState(false);
-  const snap = (o.package_snapshot ?? {}) as {
+  const rawSnap = (o.package_snapshot ?? {}) as Record<string, unknown>;
+  const merged: Record<string, unknown> = { ...(pkg ?? {}), ...rawSnap };
+  for (const k of Object.keys(rawSnap)) {
+    if (rawSnap[k] === null || rawSnap[k] === undefined) {
+      if (pkg && pkg[k] !== undefined && pkg[k] !== null) merged[k] = pkg[k];
+    }
+  }
+  const snap = merged as {
     title?: string;
     destination?: string;
     origin?: string;

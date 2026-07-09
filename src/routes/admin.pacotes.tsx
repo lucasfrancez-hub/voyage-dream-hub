@@ -65,6 +65,7 @@ type PackageRow = {
   base_occupancy: number;
   outbound_flight: FlightInfo | null;
   return_flight: FlightInfo | null;
+  supplier_name: string | null;
 };
 
 const emptyForm: Partial<PackageRow> = {
@@ -89,6 +90,7 @@ const emptyForm: Partial<PackageRow> = {
   base_occupancy: 2,
   outbound_flight: null,
   return_flight: null,
+  supplier_name: "",
 };
 
 function AdminPackages() {
@@ -142,6 +144,7 @@ function AdminPackages() {
         base_occupancy: Number(editing.base_occupancy) || 2,
         outbound_flight: cleanFlight(editing.outbound_flight),
         return_flight: cleanFlight(editing.return_flight),
+        supplier_name: editing.supplier_name || null,
       };
       const { error } = editing.id
         ? await supabase.from("packages").update(payload).eq("id", editing.id)
@@ -437,6 +440,16 @@ function AdminPackages() {
                 value={editing.return_flight ?? null}
                 onChange={(f) => setEditing({ ...editing, return_flight: f })}
               />
+
+              <FormField label="Fornecedor (interno — não aparece pro cliente)" wide>
+                <input
+                  className={inp}
+                  value={editing.supplier_name ?? ""}
+                  onChange={(e) => setEditing({ ...editing, supplier_name: e.target.value })}
+                  placeholder="Ex: CVC, Nascimento, Flytour…"
+                />
+              </FormField>
+
 
               <FormField label="Ativo" wide>
                 <label className="inline-flex items-center gap-2">
