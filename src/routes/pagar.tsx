@@ -23,6 +23,7 @@ type Search = {
   cliente?: string;
   img?: string;
   simples?: string;
+  fornec?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/pagar")({
     cliente: asStr(s.cliente),
     img: asStr(s.img),
     simples: asStr(s.simples),
+    fornec: asStr(s.fornec),
   }),
   component: PayPage,
 });
@@ -47,8 +49,10 @@ export const Route = createFileRoute("/pagar")({
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, cliente, img, simples } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, cliente, img, simples, fornec } = Route.useSearch();
   const secureMode = simples !== "1";
+  const supplierName = fornec?.trim() || "Via Air Agência e Representações Ltda";
+  const supplierIsViaAir = !fornec || /via ?air/i.test(fornec);
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
@@ -304,7 +308,7 @@ function PayPage() {
                     <div className="space-y-4">
                       <div className="rounded-xl border border-border bg-background overflow-hidden text-sm">
                         <div className="bg-muted/50 px-4 py-3 border-b border-border">
-                          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Fornecedor</div>
+                          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Intermediado por</div>
                           <div className="font-semibold">VIA AIR AGÊNCIA E REPRESENTAÇÕES LTDA</div>
                           <div className="text-xs text-muted-foreground">CNPJ 56.339.877/0001-66 · Paranavaí/PR</div>
                         </div>
@@ -331,14 +335,20 @@ function PayPage() {
                                 : "Crédito à vista"
                             }
                           />
-                          <InfoRow label="Fornecedor" value="Via Air Agência e Representações Ltda" />
+                          <InfoRow label="Fornecedor (quem cobra no cartão)" value={supplierName} />
                           <InfoRow label="Descrição do serviço" value={desc ?? "—"} />
                           {ref && <InfoRow label="Referência" value={ref} />}
                         </div>
                         <div className="px-4 py-3 text-xs text-muted-foreground leading-relaxed space-y-2 max-h-64 overflow-auto">
                           <p>
-                            <strong className="text-foreground">Eu, portador do cartão acima identificado, autorizo e reconheço o débito da minha conta</strong> no valor de <strong className="text-foreground">{formatBRL(totalNumber)}</strong> na forma de pagamento indicada, em favor do fornecedor <strong className="text-foreground">Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)</strong>, referente à contratação dos serviços de viagem descritos.
+                            <strong className="text-foreground">Eu, portador do cartão acima identificado, autorizo e reconheço o débito da minha conta</strong> no valor de <strong className="text-foreground">{formatBRL(totalNumber)}</strong> na forma de pagamento indicada, em favor do fornecedor <strong className="text-foreground">{supplierName}</strong>, referente à contratação dos serviços de viagem descritos, intermediados pela Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66).
                           </p>
+                          {!supplierIsViaAir && (
+                            <p>
+                              <strong className="text-foreground">Atenção — descritivo na fatura:</strong> a cobrança poderá aparecer na sua fatura em nome de <strong className="text-foreground">{supplierName}</strong> (companhia aérea / operadora / hotel), e não como "Via Air". Isso é normal, pois o pagamento é processado diretamente pelo fornecedor do serviço.
+                            </p>
+                          )}
+
                           <p>
                             <strong className="text-foreground">Atenção:</strong> declaro que sou o legítimo titular do cartão informado, que os dados fornecidos são verdadeiros e que assumo integral responsabilidade pelo pagamento, inclusive quando os serviços forem prestados em nome de terceiros (passageiros).
                           </p>

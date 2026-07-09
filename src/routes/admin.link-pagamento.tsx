@@ -14,6 +14,7 @@ function LinkGenerator() {
   const [customer, setCustomer] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [description, setDescription] = useState("");
+  const [supplier, setSupplier] = useState("");
   const [total, setTotal] = useState("");
   const [installments, setInstallments] = useState(10);
   const [orderRef, setOrderRef] = useState("");
@@ -38,8 +39,9 @@ function LinkGenerator() {
       orderRef: orderRef || undefined,
       customerName: customer || undefined,
       imageUrl: imageUrl || undefined,
+      supplier: supplier || undefined,
     });
-  }, [totalNumber, installments, orderRef, description, customer, effectiveFirst, imageUrl]);
+  }, [totalNumber, installments, orderRef, description, customer, effectiveFirst, imageUrl, supplier]);
 
   const parcelaLabel = split.equal
     ? `${installments}x de ${formatBRL(split.first)} sem juros`
@@ -100,6 +102,12 @@ function LinkGenerator() {
           </Field>
           <Field label="Descrição / referência *">
             <input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} placeholder="Pacote Cancún 5 dias" />
+          </Field>
+          <Field label="Fornecedor (nome que aparecerá na fatura do cartão)">
+            <input value={supplier} onChange={(e) => setSupplier(e.target.value)} className={cls} placeholder="Ex.: LATAM AIRLINES, CVC, Decolar, ou deixe em branco para Via Air" />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Quando a cobrança for feita pela companhia aérea ou operadora, preencha aqui. Se deixar em branco, o documento assume Via Air como fornecedor.
+            </span>
           </Field>
           <Field label="Referência interna (opcional)">
             <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
