@@ -83,6 +83,7 @@ type UnifiedItem = {
   locator?: string;
   route?: string;
   travelDate?: string;
+  passengers?: string;
   adults?: number;
   children?: number;
   notes?: string | null;
