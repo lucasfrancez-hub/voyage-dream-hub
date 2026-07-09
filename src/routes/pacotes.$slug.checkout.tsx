@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CreditCard, QrCode, FileText, Loader2, Check, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, formatDateRange } from "@/lib/format";
+import { formatBRL, formatDateRange, maskCPF } from "@/lib/format";
 import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
 import { CardForm, useCardData } from "@/components/CardForm";
 import { ContactFooter } from "@/components/ContactFooter";
@@ -432,10 +432,11 @@ function Checkout() {
                     <Field label="CPF">
                       <input
                         value={t.cpf}
-                        onChange={(e) => updateTraveler(i, { cpf: e.target.value })}
+                        onChange={(e) => updateTraveler(i, { cpf: maskCPF(e.target.value) })}
                         className={inputCls}
                         placeholder="000.000.000-00"
-                        maxLength={20}
+                        inputMode="numeric"
+                        maxLength={14}
                       />
                     </Field>
                     <Field label="Data de nascimento">
@@ -751,7 +752,7 @@ function BoletoForm({
             </select>
           </Field>
           <Field label="CPF *">
-            <input value={data.cpf} onChange={set("cpf")} className={inputCls} placeholder="000.000.000-00" maxLength={20} />
+            <input value={data.cpf} onChange={(e) => onChange({ cpf: maskCPF(e.target.value) })} className={inputCls} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} />
           </Field>
           <Field label="Data de nascimento *">
             <input type="date" value={data.birth_date} onChange={set("birth_date")} className={inputCls} />
