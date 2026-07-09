@@ -21,6 +21,7 @@ export function paymentLinkUrl(params: {
   total: number;
   installments: number;
   orderRef?: string;
+  orderNumber?: string;
   customerName?: string;
   firstAmount?: number; // valor da 1ª parcela quando diferente das demais
   imageUrl?: string; // imagem do destino que aparece no topo do link do cliente
@@ -36,6 +37,7 @@ export function paymentLinkUrl(params: {
     q.set("entrada", params.firstAmount.toFixed(2));
   }
   if (params.orderRef) q.set("ref", params.orderRef);
+  if (params.orderNumber) q.set("pedido", params.orderNumber);
   if (params.customerName) q.set("cliente", params.customerName);
   if (params.imageUrl) q.set("img", params.imageUrl);
   if (params.supplier) q.set("fornec", params.supplier);
@@ -48,6 +50,7 @@ export function paymentSimpleLinkUrl(params: {
   total: number;
   installments: number;
   orderRef?: string;
+  orderNumber?: string;
   customerName?: string;
   firstAmount?: number;
   imageUrl?: string;
@@ -63,6 +66,7 @@ export function paymentSimpleLinkUrl(params: {
     q.set("entrada", params.firstAmount.toFixed(2));
   }
   if (params.orderRef) q.set("ref", params.orderRef);
+  if (params.orderNumber) q.set("pedido", params.orderNumber);
   if (params.customerName) q.set("cliente", params.customerName);
   if (params.imageUrl) q.set("img", params.imageUrl);
   if (params.supplier) q.set("fornec", params.supplier);
@@ -75,6 +79,7 @@ export function paymentBoletoLinkUrl(params: {
   description: string;
   total: number;
   orderRef?: string;
+  orderNumber?: string;
   customerName?: string;
   imageUrl?: string;
 }): string {
@@ -84,10 +89,12 @@ export function paymentBoletoLinkUrl(params: {
   q.set("desc", params.description);
   q.set("total", params.total.toFixed(2));
   if (params.orderRef) q.set("ref", params.orderRef);
+  if (params.orderNumber) q.set("pedido", params.orderNumber);
   if (params.customerName) q.set("cliente", params.customerName);
   if (params.imageUrl) q.set("img", params.imageUrl);
   return `${origin}/pagar-boleto?${q.toString()}`;
 }
+
 
 // Divide o total em parcelas. `firstAmount` representa a TAXA DE EMBARQUE que
 // será somada à 1ª parcela — não é o valor final da 1ª parcela.

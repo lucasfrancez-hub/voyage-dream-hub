@@ -8,9 +8,11 @@ export type CofreEntry = {
   installments: number;
   firstAmount?: number;
   orderRef?: string;
+  orderNumber?: string;
   imageUrl?: string;
   url: string;
 };
+
 
 const KEY = "viaair.cofre.entries.v1";
 
