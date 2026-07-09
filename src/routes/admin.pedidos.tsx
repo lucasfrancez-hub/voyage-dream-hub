@@ -318,9 +318,17 @@ function AdminOrders() {
                   <div className="text-xs text-muted-foreground">
                     {snap.destination ?? snap.reference ?? ""}
                   </div>
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-mono font-semibold text-foreground">
-                    <Hash className="h-3 w-3 text-muted-foreground" />
-                    Pedido {displayOrderNumber}
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-mono font-semibold text-foreground">
+                      <Hash className="h-3 w-3 text-muted-foreground" />
+                      Pedido {displayOrderNumber}
+                    </span>
+                    {supplierFromPackage && (
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400" title="Fornecedor do pacote (interno)">
+                        <PackageIcon className="h-3 w-3" />
+                        Fornecedor: {supplierFromPackage}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
