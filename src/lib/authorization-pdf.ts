@@ -72,12 +72,13 @@ function fmtDate(iso?: string | null) {
   }
 }
 
-export function generateAuthorizationPDF(opts: {
+export async function generateAuthorizationPDF(opts: {
   orderId: string;
   createdAt: string;
   authorization: AuthorizationData;
   liveness: LivenessData | null;
 }) {
+
   const { orderId, createdAt, authorization: a, liveness } = opts;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -391,14 +392,37 @@ export function generateAuthorizationPDF(opts: {
     const imgW = (contentW - gap * (cols - 1)) / cols;
     const imgH = imgW * 1.25;
     ensure(imgH + 12);
+
+    // pré-carrega para conhecer as proporções e evitar imagem esmagada
+    const dims = await Promise.all(
+      photos.map(
+        (src) =>
+          new Promise<{ w: number; h: number }>((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve({ w: img.naturalWidth || 4, h: img.naturalHeight || 3 });
+            img.onerror = () => resolve({ w: 4, h: 3 });
+            img.src = src;
+          }),
+      ),
+    );
+
     photos.forEach((p, i) => {
       const x = M + i * (imgW + gap);
       // frame
       doc.setDrawColor(RULE[0], RULE[1], RULE[2]);
       doc.setFillColor(245, 246, 250);
       doc.roundedRect(x, y, imgW, imgH, 1.5, 1.5, "FD");
+      // fit-contain dentro do frame preservando proporção
+      const boxW = imgW - 3;
+      const boxH = imgH - 3;
+      const { w: iw, h: ih } = dims[i];
+      const scale = Math.min(boxW / iw, boxH / ih);
+      const dw = iw * scale;
+      const dh = ih * scale;
+      const dx = x + 1.5 + (boxW - dw) / 2;
+      const dy = y + 1.5 + (boxH - dh) / 2;
       try {
-        doc.addImage(p, "JPEG", x + 1.5, y + 1.5, imgW - 3, imgH - 3);
+        doc.addImage(p, "JPEG", dx, dy, dw, dh);
       } catch {}
       // legenda
       const key = liveness.challenges?.[i];
@@ -410,6 +434,7 @@ export function generateAuthorizationPDF(opts: {
     });
     setInk();
     y += imgH + 10;
+
   } else {
     beginKvSection();
     kv("Status", "não capturada");
