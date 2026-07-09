@@ -199,6 +199,27 @@ export function CardForm({
         </Field>
       </div>
 
+      <div>
+        <Field label="CPF do titular do cartão *">
+          <input
+            required
+            inputMode="numeric"
+            value={data.cardCpf}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, "").slice(0, 11);
+              const formatted = raw
+                .replace(/(\d{3})(\d)/, "$1.$2")
+                .replace(/(\d{3})(\d)/, "$1.$2")
+                .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+              onChange({ cardCpf: formatted });
+            }}
+            className={cls}
+            placeholder="000.000.000-00"
+            maxLength={14}
+          />
+        </Field>
+      </div>
+
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Parcelas">
           <select
