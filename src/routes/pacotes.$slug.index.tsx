@@ -447,7 +447,9 @@ function ItineraryModal({
             <div key={i}>
               <div className="rounded-xl border border-border p-4">
                 <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span className="uppercase tracking-widest">Trecho {i + 1}</span>
+                  <span className="uppercase tracking-widest">
+                    {arr.length === 1 ? "Voo direto" : `Trecho ${i + 1}`}
+                  </span>
                   {s.duration && <span>{s.duration}</span>}
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
