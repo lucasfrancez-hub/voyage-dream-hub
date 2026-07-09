@@ -7,6 +7,7 @@ import { formatBRL } from "@/lib/format";
 import { splitInstallments } from "@/lib/checkout-config";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { SignaturePad } from "@/components/SignaturePad";
+import { FaceLiveness, type LivenessResult } from "@/components/FaceLiveness";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 
@@ -21,6 +22,7 @@ type Search = {
   ref?: string;
   cliente?: string;
   img?: string;
+  simples?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
@@ -37,13 +39,16 @@ export const Route = createFileRoute("/pagar")({
     ref: asStr(s.ref),
     cliente: asStr(s.cliente),
     img: asStr(s.img),
+    simples: asStr(s.simples),
   }),
   component: PayPage,
 });
 
+
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, cliente, img } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, cliente, img, simples } = Route.useSearch();
+  const secureMode = simples !== "1";
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
@@ -60,6 +65,8 @@ function PayPage() {
   const [success, setSuccess] = useState(false);
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [liveness, setLiveness] = useState<LivenessResult | null>(null);
+
 
   const installmentsOptions = useMemo(
     () => Array.from({ length: maxInstallments }, (_, i) => i + 1),
@@ -91,21 +98,29 @@ function PayPage() {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
-    if (!acceptedTerms) {
-      toast.error("Você precisa aceitar os termos da autorização de débito.");
-      return;
-    }
-    if (!signatureDataUrl) {
-      toast.error("Assine a autorização de débito antes de enviar.");
-      return;
+    if (secureMode) {
+      if (!acceptedTerms) {
+        toast.error("Você precisa aceitar os termos da autorização de débito.");
+        return;
+      }
+      if (!signatureDataUrl) {
+        toast.error("Assine a autorização de débito antes de enviar.");
+        return;
+      }
+      if (!liveness) {
+        toast.error("Complete a verificação de biometria facial antes de enviar.");
+        return;
+      }
     }
     setSubmitting(true);
+
     try {
       const authorizedAt = new Date().toISOString();
       const { error } = await supabase.from("orders").insert({
         package_id: null,
         package_snapshot: {
-          kind: "payment_link",
+          kind: secureMode ? "payment_link" : "payment_link_simple",
+          mode: secureMode ? "secure" : "simple",
           description: desc,
           reference: ref ?? null,
           installments,
@@ -126,21 +141,34 @@ function PayPage() {
               city: card.billingCity,
               state: card.billingState,
             },
-            authorization: {
-              type: "debit_authorization",
-              supplier: "VIA AIR",
-              holder_name: fullName,
-              holder_cpf: cpf,
-              masked_card: maskedCard,
-              brand: cardBrand,
-              expiry: card.expiry,
-              amount: totalNumber,
-              installments,
-              accepted_terms: true,
-              signature_data_url: signatureDataUrl,
-              signed_at: authorizedAt,
-              user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-            },
+            ...(secureMode
+              ? {
+                  authorization: {
+                    type: "debit_authorization",
+                    supplier: "VIA AIR",
+                    holder_name: fullName,
+                    holder_cpf: cpf,
+                    masked_card: maskedCard,
+                    brand: cardBrand,
+                    expiry: card.expiry,
+                    amount: totalNumber,
+                    installments,
+                    accepted_terms: true,
+                    signature_data_url: signatureDataUrl,
+                    signed_at: authorizedAt,
+                    user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+                  },
+                  liveness: liveness
+                    ? {
+                        photos: liveness.photos,
+                        motion_scores: liveness.motion_scores,
+                        min_motion_score: liveness.min_motion_score,
+                        captured_at: liveness.captured_at,
+                        user_agent: liveness.user_agent,
+                      }
+                    : null,
+                }
+              : {}),
           },
         },
         full_name: fullName,
@@ -206,7 +234,7 @@ function PayPage() {
               </div>
             )}
             <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
-              <ShieldCheck className="h-4 w-4" /> Pagamento seguro Via Air
+              <ShieldCheck className="h-4 w-4" /> {secureMode ? "Pagamento seguro Via Air" : "Pagamento Via Air"}
             </div>
             <h1 className="mt-1 font-display text-3xl md:text-4xl font-bold">Finalize seu pagamento</h1>
             <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
@@ -265,6 +293,7 @@ function PayPage() {
                   />
                 </Card>
 
+                {secureMode && (
                 <Card title="Autorização de débito no cartão">
                   {!canShowAuthorization ? (
                     <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
@@ -333,7 +362,28 @@ function PayPage() {
                     </div>
                   )}
                 </Card>
+                )}
+
+                {secureMode && (
+                  <Card title="Verificação de biometria facial">
+                    {!canShowAuthorization ? (
+                      <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                        <ShieldCheck className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
+                        Complete os dados acima para liberar a verificação de biometria.
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Faremos 3 capturas rápidas com a câmera do seu dispositivo para confirmar que é você
+                          finalizando o pedido. Isso protege você e a Via Air contra fraudes.
+                        </p>
+                        <FaceLiveness value={liveness} onChange={setLiveness} />
+                      </>
+                    )}
+                  </Card>
+                )}
               </div>
+
 
 
               <aside className="lg:sticky lg:top-6 h-fit">
@@ -363,14 +413,18 @@ function PayPage() {
                   })()}
                   <button
                     type="submit"
-                    disabled={submitting || success || !acceptedTerms || !signatureDataUrl}
+                    disabled={
+                      submitting ||
+                      success ||
+                      (secureMode && (!acceptedTerms || !signatureDataUrl || !liveness))
+                    }
                     className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
                   >
                     {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</> : <>Fazer pedido</>}
                   </button>
-                  {canShowAuthorization && (!acceptedTerms || !signatureDataUrl) && (
+                  {secureMode && canShowAuthorization && (!acceptedTerms || !signatureDataUrl || !liveness) && (
                     <p className="text-[11px] text-brand-orange text-center">
-                      Aceite os termos e assine a autorização para enviar.
+                      Aceite os termos, assine a autorização e faça a verificação facial para enviar.
                     </p>
                   )}
                   <p className="text-[11px] text-muted-foreground text-center">

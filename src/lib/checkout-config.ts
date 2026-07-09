@@ -40,6 +40,32 @@ export function paymentLinkUrl(params: {
   return `${origin}/pagar?${q.toString()}`;
 }
 
+// Link de pagamento "convencional" (sem biometria/assinatura) — para clientes já conhecidos.
+export function paymentSimpleLinkUrl(params: {
+  description: string;
+  total: number;
+  installments: number;
+  orderRef?: string;
+  customerName?: string;
+  firstAmount?: number;
+  imageUrl?: string;
+}): string {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://voeair.com";
+  const q = new URLSearchParams();
+  q.set("desc", params.description);
+  q.set("total", params.total.toFixed(2));
+  q.set("parcelas", String(params.installments));
+  if (params.firstAmount && params.firstAmount > 0 && params.installments > 1) {
+    q.set("entrada", params.firstAmount.toFixed(2));
+  }
+  if (params.orderRef) q.set("ref", params.orderRef);
+  if (params.customerName) q.set("cliente", params.customerName);
+  if (params.imageUrl) q.set("img", params.imageUrl);
+  q.set("simples", "1");
+  return `${origin}/pagar?${q.toString()}`;
+}
+
 // Link de pagamento por boleto bancário — cliente preenche a ficha de crédito.
 export function paymentBoletoLinkUrl(params: {
   description: string;
