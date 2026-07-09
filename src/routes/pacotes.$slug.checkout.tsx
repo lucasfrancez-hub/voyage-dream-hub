@@ -104,7 +104,9 @@ function Checkout() {
   }, [pkg, adults, children]);
 
   const PIX_DISCOUNT = 0.05;
-  const pixDiscountValue = payment === "pix" ? subtotalPrice * PIX_DISCOUNT : 0;
+  const taxesAmount = Number(pkg?.taxes ?? 0);
+  const pixDiscountBase = Math.max(0, subtotalPrice - taxesAmount);
+  const pixDiscountValue = payment === "pix" ? pixDiscountBase * PIX_DISCOUNT : 0;
   const totalPrice = subtotalPrice - pixDiscountValue;
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
