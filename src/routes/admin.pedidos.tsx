@@ -48,6 +48,18 @@ function AdminOrders() {
     },
   });
 
+  const { data: packagesById } = useQuery({
+    queryKey: ["admin", "packages", "byId"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("packages").select("*");
+      if (error) throw error;
+      const map: Record<string, Record<string, unknown>> = {};
+      for (const p of data ?? []) map[(p as { id: string }).id] = p as Record<string, unknown>;
+      return map;
+    },
+  });
+
+
   const q = search.trim().toLowerCase();
   const filteredOrders = (orders ?? []).filter((o) => {
     if (filter !== "all") {
