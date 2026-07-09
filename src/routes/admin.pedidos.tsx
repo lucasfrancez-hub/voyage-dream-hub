@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Mail, Phone, User, CheckCircle2, XCircle, Trash2, CreditCard, Calendar, Hash, ChevronDown, MapPin, Package as PackageIcon, Users, FileText, FileSignature, Hotel, Star } from "lucide-react";
+import { Mail, Phone, User, CheckCircle2, XCircle, Ban, Trash2, CreditCard, Calendar, Hash, ChevronDown, MapPin, Package as PackageIcon, Users, FileText, FileSignature, Hotel, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -83,6 +83,25 @@ function AdminOrders() {
     try {
       await updateOrder({ data: { id, status: "rejected", notes: newNotes } });
       toast.success("Pedido rejeitado");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
+  async function onCancel(id: string, currentNotes: string | null) {
+    const reason = window.prompt(
+      "Motivo do cancelamento (opcional):",
+      "",
+    );
+    if (reason === null) return;
+    const trimmed = reason.trim();
+    const stamp = new Date().toLocaleString("pt-BR");
+    const line = `[Cancelado em ${stamp}] ${trimmed || "Sem motivo informado"}`;
+    const newNotes = currentNotes ? `${currentNotes}\n${line}` : line;
+    try {
+      await updateOrder({ data: { id, status: "cancelled", notes: newNotes } });
+      toast.success("Pedido cancelado");
       refetch();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro");
@@ -502,6 +521,15 @@ function AdminOrders() {
                     className="inline-flex items-center gap-2 rounded-full border border-red-500/40 text-red-500 px-3.5 py-2 text-xs hover:bg-red-500/10 transition"
                   >
                     <XCircle className="h-3.5 w-3.5" /> Rejeitar
+                  </button>
+                )}
+                {o.status !== "cancelled" && o.status !== "paid" && (
+                  <button
+                    type="button"
+                    onClick={() => onCancel(o.id, o.notes ?? null)}
+                    className="inline-flex items-center gap-2 rounded-full border border-orange-500/40 text-orange-500 px-3.5 py-2 text-xs hover:bg-orange-500/10 transition"
+                  >
+                    <Ban className="h-3.5 w-3.5" /> Cancelar
                   </button>
                 )}
                 {hasAuthorization && authorization && (
