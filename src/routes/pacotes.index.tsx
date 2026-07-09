@@ -67,12 +67,51 @@ function PacotesList() {
   );
 
   const filteredPackages = useMemo(() => {
-    return (packages || []).filter((p) => {
+    const filtered = (packages || []).filter((p) => {
       const originMatch = originFilter === "all" || p.origin === originFilter;
       const destinationMatch = destinationFilter === "all" || p.destination === destinationFilter;
       return originMatch && destinationMatch;
     });
-  }, [packages, originFilter, destinationFilter]);
+
+    const sorted = [...filtered];
+    switch (sortBy) {
+      case "price_asc":
+        sorted.sort(
+          (a, b) =>
+            Number(a.price_per_person) * (a.base_occupancy ?? 2) -
+            Number(b.price_per_person) * (b.base_occupancy ?? 2),
+        );
+        break;
+      case "price_desc":
+        sorted.sort(
+          (a, b) =>
+            Number(b.price_per_person) * (b.base_occupancy ?? 2) -
+            Number(a.price_per_person) * (a.base_occupancy ?? 2),
+        );
+        break;
+      case "date_asc":
+        sorted.sort((a, b) => {
+          if (!a.going_date && !b.going_date) return 0;
+          if (!a.going_date) return 1;
+          if (!b.going_date) return -1;
+          return new Date(a.going_date).getTime() - new Date(b.going_date).getTime();
+        });
+        break;
+      case "date_desc":
+        sorted.sort((a, b) => {
+          if (!a.going_date && !b.going_date) return 0;
+          if (!a.going_date) return 1;
+          if (!b.going_date) return -1;
+          return new Date(b.going_date).getTime() - new Date(a.going_date).getTime();
+        });
+        break;
+      case "sort_order":
+      default:
+        sorted.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        break;
+    }
+    return sorted;
+  }, [packages, originFilter, destinationFilter, sortBy]);
 
   const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all";
 
