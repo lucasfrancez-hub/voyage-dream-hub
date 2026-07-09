@@ -469,47 +469,8 @@ function AdminOrders() {
                     </button>
                     {isOpen && (
                       <div className="mt-3 rounded-xl border border-border bg-muted/20 p-4 space-y-3">
-                        <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                          {snap.title && (
-                            <DetailRow icon={PackageIcon} label="Pacote" value={snap.title} />
-                          )}
-                          {snap.destination && (
-                            <DetailRow icon={MapPin} label="Destino" value={snap.destination} />
-                          )}
-                          {snap.origin && (
-                            <DetailRow icon={MapPin} label="Origem" value={snap.origin} />
-                          )}
-                          {(snap.going_date || snap.return_date) && (
-                            <DetailRow
-                              icon={Calendar}
-                              label={snap.nights ? `Datas · ${snap.nights} noites` : "Datas"}
-                              value={formatDateRange(snap.going_date, snap.return_date)}
-                            />
-                          )}
-                          {snap.price_per_person != null && (
-                            <DetailRow
-                              icon={CreditCard}
-                              label="Preço por pessoa"
-                              value={formatBRL(snap.price_per_person)}
-                            />
-                          )}
-                          {snap.base_occupancy != null && (
-                            <DetailRow
-                              icon={Users}
-                              label="Ocupação base"
-                              value={`${snap.base_occupancy} adulto(s)`}
-                            />
-                          )}
-                          {snap.slug && (
-                            <DetailRow icon={Hash} label="Slug" value={snap.slug} />
-                          )}
-                          {snap.reference && (
-                            <DetailRow icon={Hash} label="Referência" value={snap.reference} />
-                          )}
-                        </div>
-
                         {snap.hotel_name && (
-                          <div className="pt-2 border-t border-border">
+                          <div>
                             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
                               Hospedagem
                             </div>
@@ -539,29 +500,6 @@ function AdminOrders() {
                           </div>
                         )}
 
-                        {snap.summary && (
-                          <div className="pt-2 border-t border-border">
-                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-                              Sobre o pacote
-                            </div>
-                            <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                              {snap.summary}
-                            </div>
-                          </div>
-                        )}
-
-                        {snap.itinerary && (
-                          <div className="pt-2 border-t border-border">
-                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-                              Roteiro
-                            </div>
-                            <pre className="whitespace-pre-wrap font-sans text-sm text-muted-foreground leading-relaxed">
-                              {snap.itinerary}
-                            </pre>
-                          </div>
-                        )}
-
-
                         {(snap.outbound_flight || snap.return_flight) && (
                           <div className="pt-2 border-t border-border space-y-3">
                             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -573,6 +511,7 @@ function AdminOrders() {
                                   flight={snap.outbound_flight as FlightInfo}
                                   kind="outbound"
                                   adults={snap.base_occupancy ?? o.adults ?? 2}
+                                  airlineLocator={(o as { airline_locator?: string | null }).airline_locator ?? null}
                                 />
                               )}
                               {snap.return_flight && (
@@ -580,11 +519,13 @@ function AdminOrders() {
                                   flight={snap.return_flight as FlightInfo}
                                   kind="return"
                                   adults={snap.base_occupancy ?? o.adults ?? 2}
+                                  airlineLocator={(o as { airline_locator?: string | null }).airline_locator ?? null}
                                 />
                               )}
                             </div>
                           </div>
                         )}
+
 
                         {snap.includes && snap.includes.length > 0 && (
                           <div className="pt-2 border-t border-border">
