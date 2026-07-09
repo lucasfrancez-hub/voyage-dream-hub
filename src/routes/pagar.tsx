@@ -507,9 +507,7 @@ function PayPage() {
                     ) : (
                       <>
                         <p className="text-xs text-muted-foreground mb-3">
-                          Biometria facial em 5 passos para confirmar sua identidade. A verificação é
-                          usada como proteção antifraude e evidência em caso de chargeback, com validade
-                          de 90 dias. Isso protege você e a Via Air.
+                          Análise biométrica facial (prova de vida) em 5 passos.
                         </p>
 
 
