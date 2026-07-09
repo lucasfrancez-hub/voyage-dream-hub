@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -257,12 +257,22 @@ function AdminPackages() {
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-3xl rounded-2xl bg-card border border-border p-6 my-8">
-            <h2 className="text-xl font-semibold">
-              {editing.id ? "Editar pacote" : "Novo pacote"}
-            </h2>
-            <div className="mt-4 grid sm:grid-cols-2 gap-3">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl max-h-[92vh] rounded-2xl bg-card border border-border flex flex-col overflow-hidden">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card px-6 py-4">
+              <h2 className="text-xl font-semibold">
+                {editing.id ? "Editar pacote" : "Novo pacote"}
+              </h2>
+              <button
+                onClick={() => setEditing(null)}
+                aria-label="Fechar"
+                className="rounded-full p-1.5 hover:bg-muted transition text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              <div className="grid sm:grid-cols-2 gap-3">
               <FormField label="Slug (URL) *">
                 <input
                   className={inp}
@@ -438,9 +448,10 @@ function AdminPackages() {
                   <span className="text-sm">Mostrar no site</span>
                 </label>
               </FormField>
+              </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-border bg-card px-6 py-4">
               <button
                 onClick={() => setEditing(null)}
                 className="rounded-full border border-border px-4 py-2 text-sm"
