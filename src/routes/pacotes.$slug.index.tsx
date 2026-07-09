@@ -283,7 +283,7 @@ type FlightInfo = {
 function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbound" | "return"; adults: number }) {
   const Icon = kind === "outbound" ? PlaneTakeoff : PlaneLanding;
   const label = kind === "outbound" ? "Voo de ida" : "Voo de volta";
-  const segments = flight.segments ?? [];
+  const segments = getDisplaySegments(flight);
   const first = segments[0];
   const last = segments[segments.length - 1];
   // Derive displayed origin/destination/times from trechos when informed;
@@ -294,11 +294,10 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
   const toCity = last?.to_city ?? flight.to_city;
   const departAt = first?.depart_at ?? flight.depart_at;
   const arriveAt = last?.arrive_at ?? flight.arrive_at;
-  const derivedStops = segments.length > 0 ? segments.length - 1 : undefined;
-  const declaredStops = typeof flight.stops === "string" ? Number(flight.stops) : flight.stops;
-  const stopsN = derivedStops ?? declaredStops;
-  const hasStops = stopsN != null && !Number.isNaN(stopsN) && stopsN > 0;
+  const stopsN = Math.max(0, segments.length - 1);
+  const hasStops = stopsN > 0;
   const totalDuration = computeTotalDuration(departAt, arriveAt) || flight.duration;
+  const connectionLabel = hasStops ? `${stopsN} conexão${stopsN > 1 ? "es" : ""}` : "Voo direto";
   const [openItin, setOpenItin] = useState(false);
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
@@ -344,21 +343,13 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-        <span>
-          {segments.length > 0
-            ? segments.length > 1
-              ? `${segments.length - 1} conexão${segments.length - 1 > 1 ? "es" : ""}`
-              : "Voo direto"
-            : stopsN != null && !Number.isNaN(stopsN) && stopsN > 0
-            ? `${stopsN} conexão${stopsN > 1 ? "es" : ""}`
-            : "Voo direto"}
-        </span>
+        <span>{connectionLabel}</span>
         <span>· {adults} Adulto{adults > 1 ? "s" : ""}</span>
         {flight.cabin_class && <span>· {flight.cabin_class}</span>}
         {totalDuration && <span>· {totalDuration}</span>}
       </div>
 
-      {(hasStops || segments.length > 0) && (
+      {segments.length > 0 && (
         <button
           type="button"
           onClick={() => setOpenItin(true)}
@@ -396,7 +387,7 @@ function ItineraryModal({
   totalDuration?: string;
   onClose: () => void;
 }) {
-  const segments = flight.segments ?? [];
+  const segments = getDisplaySegments(flight);
   const first = segments[0];
   const last = segments[segments.length - 1];
   const fromIata = first?.from_iata ?? flight.from_iata;
@@ -434,22 +425,7 @@ function ItineraryModal({
         </div>
 
         <div className="p-5 space-y-3">
-          {(segments.length === 0
-            ? [
-                {
-                  airline: flight.airline,
-                  flight_number: flight.flight_number,
-                  from_iata: flight.from_iata,
-                  from_city: flight.from_city,
-                  to_iata: flight.to_iata,
-                  to_city: flight.to_city,
-                  depart_at: flight.depart_at,
-                  arrive_at: flight.arrive_at,
-                  duration: flight.duration,
-                } as FlightSegment,
-              ]
-            : segments
-          ).map((s, i, arr) => (
+          {segments.map((s, i, arr) => (
             <div key={i}>
               <div className="rounded-xl border border-border p-4">
                 <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -517,6 +493,29 @@ function ItineraryModal({
       </div>
     </div>
   );
+}
+
+function getDisplaySegments(flight: FlightInfo): FlightSegment[] {
+  const filledSegments = (flight.segments ?? []).filter(hasSegmentData);
+  if (filledSegments.length > 0) return filledSegments;
+
+  const fallbackSegment: FlightSegment = {
+    airline: flight.airline,
+    flight_number: flight.flight_number,
+    from_iata: flight.from_iata,
+    from_city: flight.from_city,
+    to_iata: flight.to_iata,
+    to_city: flight.to_city,
+    depart_at: flight.depart_at,
+    arrive_at: flight.arrive_at,
+    duration: flight.duration,
+  };
+
+  return hasSegmentData(fallbackSegment) ? [fallbackSegment] : [];
+}
+
+function hasSegmentData(segment: FlightSegment): boolean {
+  return Object.values(segment).some((value) => value !== "" && value !== null && value !== undefined);
 }
 
 
