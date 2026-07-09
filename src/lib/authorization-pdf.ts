@@ -484,7 +484,7 @@ export async function generateAuthorizationPDF(opts: {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    const shortId = (a.order_number || orderId).toString().slice(0, 18);
+    const shortId = displayOrderNumber.slice(0, 20);
     doc.text("viaair.tur.br", M, pageH - 5.5);
     doc.text(`Autorização de débito · Pedido ${shortId}`, pageW / 2, pageH - 5.5, { align: "center" });
     doc.text(`Página ${i} de ${pages}`, pageW - M, pageH - 5.5, { align: "right" });
