@@ -261,6 +261,8 @@ function PayPage() {
                         captured_at: liveness.captured_at,
                         selfie_valid_until: new Date(new Date(liveness.captured_at).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
                         user_agent: liveness.user_agent,
+                        challenges: liveness.challenges,
+                        face_detector_used: liveness.face_detector_used,
                       }
                     : null,
                 }
