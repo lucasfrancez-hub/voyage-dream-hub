@@ -230,9 +230,16 @@ function Checkout() {
                 : payment,
           total_price: totalPrice,
           notes: notes || null,
-        });
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
+
+      const newId = inserted?.id ?? "";
+      const orderNumber = newId
+        ? `#${String(parseInt(newId.replace(/-/g, "").slice(0, 12), 16) % 100000000).padStart(8, "0")}`
+        : "";
 
       setSuccess(true);
 
@@ -244,7 +251,7 @@ function Checkout() {
           adults > 1 ? "s" : ""
         }${children ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}) — Total ${formatBRL(
           totalPrice,
-        )}. Quero pagar via Pix.\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
+        )}. Quero pagar via Pix.\nPedido: ${orderNumber}\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
         toast.success("Abrindo WhatsApp para finalizar…");
         setTimeout(() => {
           window.open(whatsappUrl(message), "_blank");
