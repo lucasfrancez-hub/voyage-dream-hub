@@ -254,7 +254,7 @@ export async function generateAuthorizationPDF(opts: {
   // ── seções
   h1("Fornecedor e representante");
   beginKvSection();
-  kv("Fornecedor (cobrador)", a.supplier ?? "—");
+  kv("Fornecedor", a.supplier ?? "—");
   kv("Representante", a.representative ?? "Via Air Agência e Representações Ltda");
   y += 2;
 
