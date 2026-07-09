@@ -196,6 +196,7 @@ function AdminOrders() {
             order_number?: string | null;
             image_url?: string | null;
             summary?: string | null;
+            itinerary?: string | null;
             hotel_name?: string | null;
             hotel_stars?: number | null;
             meal_plan?: string | null;
@@ -432,8 +433,24 @@ function AdminOrders() {
                         )}
 
                         {snap.summary && (
-                          <div className="pt-2 border-t border-border text-sm text-muted-foreground whitespace-pre-wrap">
-                            {snap.summary}
+                          <div className="pt-2 border-t border-border">
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                              Sobre o pacote
+                            </div>
+                            <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                              {snap.summary}
+                            </div>
+                          </div>
+                        )}
+
+                        {snap.itinerary && (
+                          <div className="pt-2 border-t border-border">
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                              Roteiro
+                            </div>
+                            <pre className="whitespace-pre-wrap font-sans text-sm text-muted-foreground leading-relaxed">
+                              {snap.itinerary}
+                            </pre>
                           </div>
                         )}
 
