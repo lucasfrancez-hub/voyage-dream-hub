@@ -27,6 +27,9 @@ type Search = {
   img?: string;
   simples?: string;
   fornec?: string;
+  loc?: string;
+  rota?: string;
+  datav?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
