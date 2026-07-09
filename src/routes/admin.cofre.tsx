@@ -245,6 +245,7 @@ function CofrePage() {
           locator: auth.trip_locator ?? undefined,
           route: auth.trip_route ?? undefined,
           travelDate: auth.trip_date ?? undefined,
+          passengers: auth.trip_passengers ?? undefined,
           adults: o.adults,
           children: o.children,
           notes: o.notes,
