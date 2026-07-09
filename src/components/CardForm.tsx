@@ -61,6 +61,7 @@ function BrandLogo({ brand, active }: { brand: CardBrand; active: boolean }) {
 export type CardData = {
   cardNumber: string;
   cardName: string;
+  cardCpf: string;
   expiry: string;
   cvv: string;
   brand: CardBrand | "";
@@ -74,6 +75,7 @@ export type CardData = {
 export const emptyCardData = (): CardData => ({
   cardNumber: "",
   cardName: "",
+  cardCpf: "",
   expiry: "",
   cvv: "",
   brand: "",
