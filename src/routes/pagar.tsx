@@ -58,6 +58,8 @@ function PayPage() {
   const [birthDate, setBirthDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const installmentsOptions = useMemo(
     () => Array.from({ length: maxInstallments }, (_, i) => i + 1),
@@ -65,7 +67,22 @@ function PayPage() {
   );
   const firstAmount = entradaNumber > 0 ? entradaNumber : undefined;
 
+  const cardDigits = card.cardNumber.replace(/\D/g, "");
+  const cardLast4 = cardDigits.slice(-4);
+  const cardFirst4 = cardDigits.slice(0, 4);
+  const cardBrand = detectBrand(card.cardNumber) || "";
+  const maskedCard = cardDigits.length >= 8
+    ? `${cardFirst4}.XXXX.XXXX.${cardLast4}`
+    : "";
+
+  const baseFilled =
+    Boolean(fullName && cpf && birthDate && email && phone);
+  const cardFilled =
+    cardDigits.length >= 13 && Boolean(card.cardName && card.expiry && card.cvv);
+  const canShowAuthorization = baseFilled && cardFilled;
+
   const invalid = !desc || !totalNumber;
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
