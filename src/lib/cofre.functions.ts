@@ -107,7 +107,13 @@ export const listCofreOrders = createServerFn({ method: "GET" })
 
 export const updateCofreOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string; status: string; notes?: string | null }) => input)
+  .inputValidator((input: {
+    id: string;
+    status?: string;
+    notes?: string | null;
+    supplier_name?: string | null;
+    supplier_order_number?: string | null;
+  }) => input)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
@@ -117,8 +123,13 @@ export const updateCofreOrder = createServerFn({ method: "POST" })
     if (roleErr) throw new Error(roleErr.message);
     if (!isAdmin) throw new Error("Forbidden");
 
-    const patch: { status: string; notes?: string | null } = { status: data.status };
+    const patch: Record<string, unknown> = {};
+    if (data.status !== undefined) patch.status = data.status;
     if (data.notes !== undefined) patch.notes = data.notes;
+    if (data.supplier_name !== undefined) patch.supplier_name = data.supplier_name;
+    if (data.supplier_order_number !== undefined) patch.supplier_order_number = data.supplier_order_number;
+
+    if (Object.keys(patch).length === 0) return { ok: true };
 
     const { error } = await supabase.from("orders").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
