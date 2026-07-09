@@ -338,9 +338,8 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
         <button
           type="button"
           onClick={() => setOpenItin(true)}
-          disabled={!canShowItinerary}
-          className="mt-3 inline-flex items-center gap-2 rounded-full border border-brand-orange/40 text-brand-orange px-3.5 py-1.5 text-xs font-medium hover:bg-brand-orange/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          title={canShowItinerary ? "Ver itinerário completo" : "Itinerário detalhado não disponível"}
+          className="mt-3 inline-flex items-center gap-2 rounded-full border border-brand-orange/40 text-brand-orange px-3.5 py-1.5 text-xs font-medium hover:bg-brand-orange/10 transition"
+          title="Ver itinerário completo"
         >
           <RouteIcon className="h-3.5 w-3.5" />
           Ver itinerário
@@ -355,8 +354,8 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
         </div>
       )}
 
-      {openItin && canShowItinerary && (
-        <ItineraryModal flight={flight} label={label} onClose={() => setOpenItin(false)} />
+      {openItin && (
+        <ItineraryModal flight={flight} label={label} segments={segments} onClose={() => setOpenItin(false)} />
       )}
     </div>
   );
