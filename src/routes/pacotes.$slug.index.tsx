@@ -199,7 +199,7 @@ function PackageDetails() {
             </div>
             {pkg.taxes ? (
               <div className="text-xs text-muted-foreground mt-1">
-                Inclui {formatBRL(Number(pkg.taxes))} de taxas (já no valor final)
+                Já com as taxas inclusas de {formatBRL(Number(pkg.taxes))}
               </div>
             ) : null}
 
