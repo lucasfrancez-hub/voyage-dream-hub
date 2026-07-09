@@ -61,7 +61,7 @@ export const Route = createFileRoute("/pagar")({
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec, loc, rota, datav } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec, loc, rota, datav, pax } = Route.useSearch();
 
   const secureMode = simples !== "1";
   const supplierName = fornec?.trim() || "Via Air Agência e Representações Ltda";
@@ -69,6 +69,7 @@ function PayPage() {
   const tripLocator = loc?.trim() ?? "";
   const tripRoute = rota?.trim() ?? "";
   const tripDate = datav?.trim() ?? "";
+  const tripPassengers = pax?.trim() ?? "";
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
