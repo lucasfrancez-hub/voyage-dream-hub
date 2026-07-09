@@ -59,9 +59,11 @@ export const Route = createFileRoute("/admin/cofre")({
 });
 
 type Kind = "avulso" | "pedido";
+type LinkKind = "card" | "boleto";
 type UnifiedItem = {
   id: string;
   kind: Kind;
+  linkKind: LinkKind;
   createdAt: number;
   customer: string;
   customerPhone?: string;
@@ -84,7 +86,7 @@ type UnifiedItem = {
 function CofrePage() {
   const [entries, setEntries] = useState<CofreEntry[]>([]);
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<"all" | "avulso" | "pedido">("all");
+  const [tab, setTab] = useState<"all" | "card" | "boleto">("all");
   const [detailsItem, setDetailsItem] = useState<UnifiedItem | null>(null);
   const router = useRouter();
 
@@ -159,6 +161,7 @@ function CofrePage() {
     const avulsos: UnifiedItem[] = entries.map((e) => ({
       id: `avulso:${e.id}`,
       kind: "avulso",
+      linkKind: "card",
       createdAt: e.createdAt,
       customer: e.customer || "Sem nome",
       customerPhone: e.customerPhone,
@@ -170,51 +173,59 @@ function CofrePage() {
       meta: e.orderRef ? `Ref: ${e.orderRef}` : "Link avulso",
     }));
 
-    const pedidos: UnifiedItem[] = (ordersQuery.data ?? []).map((o: CofreOrder) => {
-      const isLinkOrder = (o.snapshotKind ?? "").startsWith("payment_link");
-      const desc = isLinkOrder
-        ? (o.linkDescription || "Link de pagamento")
-        : o.packageTitle
-          ? `Pacote ${o.packageTitle}`
-          : "Pedido de pacote";
-      const pm = (o.paymentMethod ?? "").toLowerCase();
-      const instMatch = pm.match(/(\d+)x/);
-      const installments = instMatch ? Number(instMatch[1]) : 1;
-      const firstAmount = o.firstAmount && o.firstAmount > 0 ? o.firstAmount : undefined;
+    const pedidos: UnifiedItem[] = (ordersQuery.data ?? [])
+      .filter((o: CofreOrder) => {
+        const pm = (o.paymentMethod ?? "").toLowerCase();
+        // Pix e WhatsApp não vão para o cofre — só cartão e boleto.
+        return pm !== "pix" && pm !== "whatsapp";
+      })
+      .map((o: CofreOrder) => {
+        const isLinkOrder = (o.snapshotKind ?? "").startsWith("payment_link");
+        const desc = isLinkOrder
+          ? (o.linkDescription || "Link de pagamento")
+          : o.packageTitle
+            ? `Pacote ${o.packageTitle}`
+            : "Pedido de pacote";
+        const pm = (o.paymentMethod ?? "").toLowerCase();
+        const linkKind: LinkKind = pm === "boleto" ? "boleto" : "card";
+        const instMatch = pm.match(/(\d+)x/);
+        const installments = instMatch ? Number(instMatch[1]) : 1;
+        const firstAmount = o.firstAmount && o.firstAmount > 0 ? o.firstAmount : undefined;
 
 
-      const url = paymentLinkUrl({
-        description: desc,
-        total: o.totalPrice,
-        installments,
-        firstAmount,
-        orderRef: o.id.slice(0, 8),
-        customerName: o.fullName,
+        const url = paymentLinkUrl({
+          description: desc,
+          total: o.totalPrice,
+          installments,
+          firstAmount,
+          orderRef: o.id.slice(0, 8),
+          customerName: o.fullName,
+        });
+        return {
+          id: `pedido:${o.id}`,
+          kind: isLinkOrder ? "avulso" : "pedido",
+          linkKind,
+          createdAt: new Date(o.createdAt).getTime(),
+          customer: o.fullName,
+          customerPhone: o.phone,
+          email: o.email,
+          description: desc,
+          total: o.totalPrice,
+          installments,
+          firstAmount,
+          url,
+          meta: isLinkOrder
+            ? `Link avulso · #${o.id.slice(0, 8)}${o.linkReference ? ` · ${o.linkReference}` : ""}`
+            : `Pedido #${o.id.slice(0, 8)}${o.packageSlug ? ` · ${o.packageSlug}` : ""}`,
+          status: o.status,
+          paymentMethod: o.paymentMethod,
+          orderId: o.id,
+          adults: o.adults,
+          children: o.children,
+          notes: o.notes,
+          order: o,
+        };
       });
-      return {
-        id: `pedido:${o.id}`,
-        kind: isLinkOrder ? "avulso" : "pedido",
-        createdAt: new Date(o.createdAt).getTime(),
-        customer: o.fullName,
-        customerPhone: o.phone,
-        email: o.email,
-        description: desc,
-        total: o.totalPrice,
-        installments,
-        firstAmount,
-        url,
-        meta: isLinkOrder
-          ? `Link avulso · #${o.id.slice(0, 8)}${o.linkReference ? ` · ${o.linkReference}` : ""}`
-          : `Pedido #${o.id.slice(0, 8)}${o.packageSlug ? ` · ${o.packageSlug}` : ""}`,
-        status: o.status,
-        paymentMethod: o.paymentMethod,
-        orderId: o.id,
-        adults: o.adults,
-        children: o.children,
-        notes: o.notes,
-        order: o,
-      };
-    });
 
 
     const merged = [...avulsos, ...pedidos].sort(
@@ -224,7 +235,7 @@ function CofrePage() {
   }, [entries, ordersQuery.data]);
 
   const filtered = items.filter((e) => {
-    if (tab !== "all" && e.kind !== tab) return false;
+    if (tab !== "all" && e.linkKind !== tab) return false;
     if (!query) return true;
     const q = query.toLowerCase();
     return (
@@ -236,8 +247,8 @@ function CofrePage() {
     );
   });
 
-  const countAvulso = items.filter((i) => i.kind === "avulso").length;
-  const countPedido = items.filter((i) => i.kind === "pedido").length;
+  const countCard = items.filter((i) => i.linkKind === "card").length;
+  const countBoleto = items.filter((i) => i.linkKind === "boleto").length;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
@@ -267,11 +278,11 @@ function CofrePage() {
         <TabBtn active={tab === "all"} onClick={() => setTab("all")}>
           Todos ({items.length})
         </TabBtn>
-        <TabBtn active={tab === "pedido"} onClick={() => setTab("pedido")}>
-          <Package className="h-3.5 w-3.5" /> Pacotes prontos ({countPedido})
+        <TabBtn active={tab === "card"} onClick={() => setTab("card")}>
+          <CreditCard className="h-3.5 w-3.5" /> Link de pagamento ({countCard})
         </TabBtn>
-        <TabBtn active={tab === "avulso"} onClick={() => setTab("avulso")}>
-          <Link2 className="h-3.5 w-3.5" /> Avulsos ({countAvulso})
+        <TabBtn active={tab === "boleto"} onClick={() => setTab("boleto")}>
+          <FileText className="h-3.5 w-3.5" /> Link de boleto ({countBoleto})
         </TabBtn>
       </div>
 
