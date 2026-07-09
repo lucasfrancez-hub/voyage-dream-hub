@@ -156,7 +156,7 @@ function PacotesList() {
 
         {hasActiveFilters && !isLoading && (
           <div className="mt-4 text-sm text-muted-foreground">
-            Mostrando {filteredPackages.length} de {packages?.length ?? 0} roteiro
+            {filteredPackages.length} de {packages?.length ?? 0} roteiro
             {filteredPackages.length === 1 ? "" : "s"} encontrado
             {filteredPackages.length === 1 ? "" : "s"}
           </div>
