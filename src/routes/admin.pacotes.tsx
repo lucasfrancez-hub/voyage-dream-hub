@@ -59,6 +59,7 @@ type PackageRow = {
   includes: string[] | null;
   hotel_name: string | null;
   hotel_stars: number | null;
+  meal_plan: string | null;
   is_active: boolean;
   sort_order: number;
   base_occupancy: number;
