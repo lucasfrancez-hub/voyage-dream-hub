@@ -30,7 +30,7 @@ function LinkGenerator() {
   const split = splitInstallments(totalNumber, installments, effectiveFirst);
 
   const url = useMemo(() => {
-    if (!totalNumber || !description) return "";
+    if (!totalNumber || !description || !supplier.trim()) return "";
     return paymentLinkUrl({
       description,
       total: totalNumber,
@@ -39,7 +39,7 @@ function LinkGenerator() {
       orderRef: orderRef || undefined,
       customerName: customer || undefined,
       imageUrl: imageUrl || undefined,
-      supplier: supplier || undefined,
+      supplier: supplier.trim(),
     });
   }, [totalNumber, installments, orderRef, description, customer, effectiveFirst, imageUrl, supplier]);
 
