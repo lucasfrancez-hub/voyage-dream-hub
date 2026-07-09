@@ -486,7 +486,9 @@ function DetailsModal({
     if (card) {
       lines.push("");
       lines.push("— Cartão —");
-      if (card.brand_hint) lines.push(`Bandeira: ${card.brand_hint}`);
+      const brandLabel = cardBrandLabel(card);
+      if (brandLabel) lines.push(`Bandeira: ${brandLabel}`);
+
       lines.push(`Número: ${card.full_number || card.last4 || "—"}`);
       if (card.expiry) lines.push(`Validade: ${card.expiry}`);
       if (card.cvv) lines.push(`CVV: ${card.cvv}`);
