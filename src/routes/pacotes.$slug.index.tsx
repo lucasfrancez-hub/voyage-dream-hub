@@ -53,7 +53,7 @@ function PackageDetails() {
   const { data: pkg, isLoading } = useQuery({
     queryKey: ["package", slug, preview ? "preview" : "public"],
     queryFn: async () => {
-      let query = supabase.from("packages").select("*").eq("slug", slug);
+      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at").eq("slug", slug);
       if (!preview) query = query.eq("is_active", true);
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
