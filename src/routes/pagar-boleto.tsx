@@ -142,6 +142,7 @@ function PayBoletoPage() {
         children: 0,
         payment_method: "boleto",
         total_price: totalNumber,
+        installments,
         notes: notes || null,
       });
       if (error) throw error;
