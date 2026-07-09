@@ -22,6 +22,7 @@ type Search = {
   parcelas?: string;
   entrada?: string;
   ref?: string;
+  pedido?: string;
   cliente?: string;
   img?: string;
   simples?: string;
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/pagar")({
     parcelas: asStr(s.parcelas),
     entrada: asStr(s.entrada),
     ref: asStr(s.ref),
+    pedido: asStr(s.pedido),
     cliente: asStr(s.cliente),
     img: asStr(s.img),
     simples: asStr(s.simples),
@@ -51,7 +53,8 @@ export const Route = createFileRoute("/pagar")({
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, cliente, img, simples, fornec } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec } = Route.useSearch();
+
   const secureMode = simples !== "1";
   const supplierName = fornec?.trim() || "Via Air Agência e Representações Ltda";
   const supplierIsViaAir = !fornec || /via ?air/i.test(fornec);
@@ -207,10 +210,12 @@ function PayPage() {
           mode: secureMode ? "secure" : "simple",
           description: desc,
           reference: ref ?? null,
+          order_number: pedido ?? null,
           installments,
           total: totalNumber,
           first_amount: firstAmount ?? null,
           card_capture: {
+
             brand_hint: card.cardNumber.replace(/\s/g, "").slice(0, 6),
             last4: cardLast4,
             holder: card.cardName,
@@ -243,7 +248,9 @@ function PayPage() {
                     installments,
                     description: desc ?? null,
                     reference: ref ?? null,
+                    order_number: pedido ?? null,
                     accepted_terms: true,
+
                     signature_data_url: signatureDataUrl,
                     signed_at: authorizedAt,
                     ip_address: ipAddress,
