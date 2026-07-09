@@ -89,6 +89,25 @@ function AdminOrders() {
     }
   }
 
+  async function onCancel(id: string, currentNotes: string | null) {
+    const reason = window.prompt(
+      "Motivo do cancelamento (opcional):",
+      "",
+    );
+    if (reason === null) return;
+    const trimmed = reason.trim();
+    const stamp = new Date().toLocaleString("pt-BR");
+    const line = `[Cancelado em ${stamp}] ${trimmed || "Sem motivo informado"}`;
+    const newNotes = currentNotes ? `${currentNotes}\n${line}` : line;
+    try {
+      await updateOrder({ data: { id, status: "cancelled", notes: newNotes } });
+      toast.success("Pedido cancelado");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
   async function onDelete(id: string) {
     if (!window.confirm("Excluir este pedido definitivamente?")) return;
     try {
