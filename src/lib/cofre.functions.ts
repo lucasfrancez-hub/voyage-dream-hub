@@ -37,7 +37,9 @@ export type CofreOrder = {
   cardCapture: CardCapture | null;
   linkDescription: string | null;
   linkReference: string | null;
+  firstAmount: number | null;
 };
+
 
 export const listCofreOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -82,8 +84,13 @@ export const listCofreOrders = createServerFn({ method: "GET" })
         cardCapture: card,
         linkDescription: (snap.description as string) ?? null,
         linkReference: (snap.reference as string) ?? null,
+        firstAmount:
+          typeof snap.first_amount === "number" && snap.first_amount > 0
+            ? (snap.first_amount as number)
+            : null,
       };
     });
+
   });
 
 export const updateCofreOrder = createServerFn({ method: "POST" })

@@ -170,10 +170,17 @@ function CofrePage() {
       const desc = o.packageTitle
         ? `Pacote ${o.packageTitle}`
         : "Pedido de pacote";
+      const pm = (o.paymentMethod ?? "").toLowerCase();
+      const instMatch = pm.match(/(\d+)x/);
+      const installments = instMatch ? Number(instMatch[1]) : 1;
+      const firstAmount = o.firstAmount && o.firstAmount > 0 ? o.firstAmount : undefined;
+
+
       const url = paymentLinkUrl({
         description: desc,
         total: o.totalPrice,
-        installments: 1,
+        installments,
+        firstAmount,
         orderRef: o.id.slice(0, 8),
         customerName: o.fullName,
       });
@@ -186,7 +193,8 @@ function CofrePage() {
         email: o.email,
         description: desc,
         total: o.totalPrice,
-        installments: 1,
+        installments,
+        firstAmount,
         url,
         meta: `Pedido #${o.id.slice(0, 8)}${o.packageSlug ? ` · ${o.packageSlug}` : ""}`,
         status: o.status,
@@ -198,6 +206,7 @@ function CofrePage() {
         order: o,
       };
     });
+
 
     const merged = [...avulsos, ...pedidos].sort(
       (a, b) => b.createdAt - a.createdAt,
