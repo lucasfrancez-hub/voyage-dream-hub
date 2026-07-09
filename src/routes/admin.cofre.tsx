@@ -59,9 +59,11 @@ export const Route = createFileRoute("/admin/cofre")({
 });
 
 type Kind = "avulso" | "pedido";
+type LinkKind = "card" | "boleto";
 type UnifiedItem = {
   id: string;
   kind: Kind;
+  linkKind: LinkKind;
   createdAt: number;
   customer: string;
   customerPhone?: string;
