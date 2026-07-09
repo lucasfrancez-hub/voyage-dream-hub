@@ -60,6 +60,9 @@ function PayBoletoPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [installments, setInstallments] = useState(1);
+  const MAX_BOLETO_INSTALLMENTS = 10;
+  const installmentValue = totalNumber > 0 && installments > 0 ? totalNumber / installments : 0;
 
   const boletoCpfDigits = boleto.cpf.replace(/\D/g, "");
   const boletoNameNorm = boleto.full_name.trim().toLowerCase();
