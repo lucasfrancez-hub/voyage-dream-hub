@@ -67,6 +67,12 @@ export function TopBar({
               {item.label}
             </a>
           ))}
+          <Link
+            to="/minhas-reservas"
+            className="text-sm font-semibold text-brand-orange hover:opacity-80 transition-colors"
+          >
+            Minhas reservas
+          </Link>
         </nav>
 
         <a
