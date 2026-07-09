@@ -75,6 +75,9 @@ function PayPage() {
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [liveness, setLiveness] = useState<LivenessResult | null>(null);
+  const [tripLocator, setTripLocator] = useState("");
+  const [tripRoute, setTripRoute] = useState("");
+  const [tripDate, setTripDate] = useState("");
 
 
   const installmentsOptions = useMemo(
