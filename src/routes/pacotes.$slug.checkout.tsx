@@ -93,7 +93,7 @@ function Checkout() {
   }, [pkg, adults, children]);
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
-  const occupancyMismatch = !!pkg && adults !== baseOccupancy;
+  const occupancyMismatch = !!pkg && (adults !== baseOccupancy || children > 0);
 
   if (isLoading || !pkg) {
     return (
@@ -268,7 +268,9 @@ function Checkout() {
                 <div className="mt-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs">
                   Este pacote foi montado para{" "}
                   <strong>{baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}</strong>. Você
-                  selecionou {adults}. O valor pode variar — recomendamos{" "}
+                  selecionou {adults} adulto{adults > 1 ? "s" : ""}
+                  {children > 0 && ` + ${children} criança${children > 1 ? "s" : ""}`}. O valor pode
+                  variar — recomendamos{" "}
                   <a
                     href={customQuoteWhatsappUrl(pkg.title)}
                     target="_blank"
