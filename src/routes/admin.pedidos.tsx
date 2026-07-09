@@ -405,6 +405,8 @@ function AdminOrders() {
                   refetch();
                 }}
               />
+
+              <OrderDocuments orderId={o.id} canManage />
               {(() => {
                 const isOpen = expanded[o.id] === undefined ? true : !!expanded[o.id];
                 const hasSnap = !!(snap.title || snap.destination || snap.travelers?.length);
