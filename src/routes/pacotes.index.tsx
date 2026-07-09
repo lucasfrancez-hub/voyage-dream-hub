@@ -294,9 +294,6 @@ function PacotesList() {
                 <div className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-primary-foreground">
                   <MapPin className="h-3 w-3" /> {p.destination}
                 </div>
-                <div className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-lg">
-                  5% off no Pix
-                </div>
               </div>
               <div className="p-5 flex flex-col gap-3 flex-1">
                 <h2 className="font-semibold text-lg leading-snug">{p.title}</h2>
