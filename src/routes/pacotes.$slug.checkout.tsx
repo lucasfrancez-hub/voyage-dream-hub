@@ -98,10 +98,14 @@ function Checkout() {
     setTravelers((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
   }
 
-  const totalPrice = useMemo(() => {
+  const subtotalPrice = useMemo(() => {
     if (!pkg) return 0;
     return Number(pkg.price_per_person) * (adults + children);
   }, [pkg, adults, children]);
+
+  const PIX_DISCOUNT = 0.05;
+  const pixDiscountValue = payment === "pix" ? subtotalPrice * PIX_DISCOUNT : 0;
+  const totalPrice = subtotalPrice - pixDiscountValue;
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
   const occupancyMismatch = !!pkg && adults + children !== baseOccupancy;
