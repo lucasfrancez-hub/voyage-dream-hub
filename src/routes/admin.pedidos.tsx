@@ -1,15 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Mail, Phone, User } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Mail, Phone, User, CheckCircle2, XCircle, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
+import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
+import { updateCofreOrder, deleteCofreOrder } from "@/lib/cofre.functions";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrders,
 });
 
 function AdminOrders() {
-  const { data: orders, isLoading } = useQuery({
+  const updateOrder = useServerFn(updateCofreOrder);
+  const deleteOrder = useServerFn(deleteCofreOrder);
+
+  const { data: orders, isLoading, refetch } = useQuery({
     queryKey: ["admin", "orders"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -20,6 +27,46 @@ function AdminOrders() {
       return data;
     },
   });
+
+  async function onFinalize(id: string) {
+    try {
+      await updateOrder({ data: { id, status: "paid" } });
+      toast.success("Pedido finalizado");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
+  async function onReject(id: string, currentNotes: string | null) {
+    const reason = window.prompt(
+      "Motivo da rejeição (ex.: antifraude barrou, dados inválidos):",
+      "",
+    );
+    if (reason === null) return;
+    const trimmed = reason.trim();
+    const stamp = new Date().toLocaleString("pt-BR");
+    const line = `[Rejeitado em ${stamp}] ${trimmed || "Sem motivo informado"}`;
+    const newNotes = currentNotes ? `${currentNotes}\n${line}` : line;
+    try {
+      await updateOrder({ data: { id, status: "rejected", notes: newNotes } });
+      toast.success("Pedido rejeitado");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
+  async function onDelete(id: string) {
+    if (!window.confirm("Excluir este pedido definitivamente?")) return;
+    try {
+      await deleteOrder({ data: { id } });
+      toast.success("Pedido excluído");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
@@ -39,6 +86,8 @@ function AdminOrders() {
         )}
         {orders?.map((o) => {
           const snap = (o.package_snapshot ?? {}) as { title?: string; destination?: string };
+          const pm = paymentMethodLabel(o.payment_method);
+          const st = statusLabel(o.status);
           return (
             <div key={o.id} className="rounded-2xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -54,15 +103,18 @@ function AdminOrders() {
                   <div className="text-lg font-display font-bold text-brand-orange">
                     {formatBRL(o.total_price)}
                   </div>
-                  <span
-                    className={`inline-block mt-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ${
-                      o.payment_method === "credit_card"
-                        ? "bg-blue-500/10 text-blue-400"
-                        : "bg-emerald-500/10 text-emerald-500"
-                    }`}
-                  >
-                    {o.payment_method === "credit_card" ? "Cartão" : "Pix / WhatsApp"}
-                  </span>
+                  <div className="mt-1 flex flex-wrap gap-1 justify-end">
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${pm.className}`}
+                    >
+                      {pm.label}
+                    </span>
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}
+                    >
+                      {st.label}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="mt-4 grid sm:grid-cols-3 gap-3 text-sm border-t border-border pt-4">
@@ -75,8 +127,37 @@ function AdminOrders() {
                 {o.cpf ? ` · CPF ${o.cpf}` : ""}
               </div>
               {o.notes && (
-                <div className="mt-3 text-sm rounded-lg bg-muted/40 p-3">{o.notes}</div>
+                <div className="mt-3 text-sm rounded-lg bg-muted/40 p-3 whitespace-pre-wrap">
+                  {o.notes}
+                </div>
               )}
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
+                {o.status !== "paid" && (
+                  <button
+                    type="button"
+                    onClick={() => onFinalize(o.id)}
+                    className="inline-flex items-center gap-2 rounded-full border border-green-500/40 text-green-500 px-3.5 py-2 text-xs hover:bg-green-500/10 transition"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+                  </button>
+                )}
+                {o.status !== "rejected" && (
+                  <button
+                    type="button"
+                    onClick={() => onReject(o.id, o.notes ?? null)}
+                    className="inline-flex items-center gap-2 rounded-full border border-red-500/40 text-red-500 px-3.5 py-2 text-xs hover:bg-red-500/10 transition"
+                  >
+                    <XCircle className="h-3.5 w-3.5" /> Rejeitar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onDelete(o.id)}
+                  className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Excluir
+                </button>
+              </div>
             </div>
           );
         })}

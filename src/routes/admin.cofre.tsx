@@ -17,6 +17,8 @@ import {
   CreditCard,
   Eye,
   EyeOff,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
@@ -30,7 +32,13 @@ import {
   deleteCofreEntry,
   type CofreEntry,
 } from "@/lib/cofre-storage";
-import { listCofreOrders, type CofreOrder } from "@/lib/cofre.functions";
+import {
+  listCofreOrders,
+  updateCofreOrder,
+  deleteCofreOrder,
+  type CofreOrder,
+} from "@/lib/cofre.functions";
+import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 
 export const Route = createFileRoute("/admin/cofre")({
   component: CofrePage,
@@ -67,6 +75,8 @@ function CofrePage() {
   const router = useRouter();
 
   const fetchOrders = useServerFn(listCofreOrders);
+  const updateOrder = useServerFn(updateCofreOrder);
+  const deleteOrder = useServerFn(deleteCofreOrder);
   const ordersQuery = useQuery({
     queryKey: ["cofre-orders"],
     queryFn: () => fetchOrders(),
@@ -85,6 +95,50 @@ function CofrePage() {
     deleteCofreEntry(id);
     setEntries(listCofreEntries());
     toast.success("Link removido do cofre");
+  }
+
+  async function onFinalize(orderId: string) {
+    try {
+      await updateOrder({ data: { id: orderId, status: "paid" } });
+      toast.success("Pedido finalizado");
+      ordersQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
+  async function onReject(orderId: string, currentNotes: string | null) {
+    const reason = window.prompt(
+      "Motivo da rejeição (aparecerá nas observações do pedido):",
+      "",
+    );
+    if (reason === null) return;
+    const trimmed = reason.trim();
+    const stamp = new Date().toLocaleString("pt-BR");
+    const rejectionLine = `[Rejeitado em ${stamp}] ${trimmed || "Sem motivo informado"}`;
+    const newNotes = currentNotes
+      ? `${currentNotes}\n${rejectionLine}`
+      : rejectionLine;
+    try {
+      await updateOrder({
+        data: { id: orderId, status: "rejected", notes: newNotes },
+      });
+      toast.success("Pedido rejeitado");
+      ordersQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
+
+  async function onDeleteOrder(orderId: string) {
+    if (!window.confirm("Excluir este pedido definitivamente?")) return;
+    try {
+      await deleteOrder({ data: { id: orderId } });
+      toast.success("Pedido excluído");
+      ordersQuery.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
   }
 
   const items: UnifiedItem[] = useMemo(() => {
@@ -246,11 +300,19 @@ function CofrePage() {
                     {e.customerPhone ? ` · ${e.customerPhone}` : ""}
                     {e.email ? ` · ${e.email}` : ""}
                   </div>
-                  {(e.adults != null || e.children != null) && (
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {e.adults ?? 0} adulto(s)
-                      {(e.children ?? 0) > 0 ? ` · ${e.children} criança(s)` : ""}
-                      {e.paymentMethod ? ` · Pagamento: ${e.paymentMethod}` : ""}
+                  {(e.adults != null || e.children != null || e.paymentMethod) && (
+                    <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-2">
+                      <span>
+                        {e.adults ?? 0} adulto(s)
+                        {(e.children ?? 0) > 0 ? ` · ${e.children} criança(s)` : ""}
+                      </span>
+                      {e.paymentMethod && (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${paymentMethodLabel(e.paymentMethod).className}`}
+                        >
+                          {paymentMethodLabel(e.paymentMethod).label}
+                        </span>
+                      )}
                     </div>
                   )}
                   {e.notes && (
@@ -316,6 +378,33 @@ function CofrePage() {
                     className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
                   >
                     <Package className="h-3.5 w-3.5" /> Ver pedido
+                  </button>
+                )}
+                {e.kind === "pedido" && e.orderId && e.status !== "paid" && (
+                  <button
+                    type="button"
+                    onClick={() => onFinalize(e.orderId!)}
+                    className="inline-flex items-center gap-2 rounded-full border border-green-500/40 text-green-500 px-3.5 py-2 text-xs hover:bg-green-500/10 transition"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+                  </button>
+                )}
+                {e.kind === "pedido" && e.orderId && e.status !== "rejected" && (
+                  <button
+                    type="button"
+                    onClick={() => onReject(e.orderId!, e.notes ?? null)}
+                    className="inline-flex items-center gap-2 rounded-full border border-red-500/40 text-red-500 px-3.5 py-2 text-xs hover:bg-red-500/10 transition"
+                  >
+                    <XCircle className="h-3.5 w-3.5" /> Rejeitar
+                  </button>
+                )}
+                {e.kind === "pedido" && e.orderId && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteOrder(e.orderId!)}
+                    className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir
                   </button>
                 )}
                 {e.kind === "avulso" && (
@@ -547,19 +636,12 @@ function Badge({ kind }: { kind: Kind }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    pending: "bg-yellow-500/15 text-yellow-600",
-    paid: "bg-green-500/15 text-green-600",
-    cancelled: "bg-red-500/15 text-red-600",
-    canceled: "bg-red-500/15 text-red-600",
-    approved: "bg-green-500/15 text-green-600",
-  };
-  const cls = map[status] || "bg-muted text-muted-foreground";
+  const s = statusLabel(status);
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${cls}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${s.className}`}
     >
-      {status}
+      {s.label}
     </span>
   );
 }
