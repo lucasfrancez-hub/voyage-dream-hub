@@ -79,6 +79,10 @@ type UnifiedItem = {
   paymentMethod?: string;
   orderId?: string;
   orderNumber?: string;
+  supplier?: string;
+  locator?: string;
+  route?: string;
+  travelDate?: string;
   adults?: number;
   children?: number;
   notes?: string | null;
