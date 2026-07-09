@@ -177,6 +177,11 @@ function CofrePage() {
       firstAmount: e.firstAmount,
       url: e.url,
       meta: e.orderRef ? `Ref: ${e.orderRef}` : "Link avulso",
+      orderNumber: e.orderNumber,
+      supplier: e.supplier,
+      locator: e.locator,
+      route: e.route,
+      travelDate: e.travelDate,
     }));
 
     const pedidos: UnifiedItem[] = (ordersQuery.data ?? [])
