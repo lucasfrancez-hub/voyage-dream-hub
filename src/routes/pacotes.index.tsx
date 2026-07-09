@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { MapPin, Calendar, Plane, SlidersHorizontal, X } from "lucide-react";
+import { MapPin, Calendar, Plane, SlidersHorizontal, X, ArrowUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { ContactFooter } from "@/components/ContactFooter";
@@ -53,6 +53,9 @@ function PacotesList() {
 
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<
+    "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
+  >("sort_order");
 
   const origins = useMemo(
     () => Array.from(new Set((packages || []).map((p) => p.origin).filter(Boolean))).sort(),
@@ -64,18 +67,59 @@ function PacotesList() {
   );
 
   const filteredPackages = useMemo(() => {
-    return (packages || []).filter((p) => {
+    const filtered = (packages || []).filter((p) => {
       const originMatch = originFilter === "all" || p.origin === originFilter;
       const destinationMatch = destinationFilter === "all" || p.destination === destinationFilter;
       return originMatch && destinationMatch;
     });
-  }, [packages, originFilter, destinationFilter]);
 
-  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all";
+    const sorted = [...filtered];
+    switch (sortBy) {
+      case "price_asc":
+        sorted.sort(
+          (a, b) =>
+            Number(a.price_per_person) * (a.base_occupancy ?? 2) -
+            Number(b.price_per_person) * (b.base_occupancy ?? 2),
+        );
+        break;
+      case "price_desc":
+        sorted.sort(
+          (a, b) =>
+            Number(b.price_per_person) * (b.base_occupancy ?? 2) -
+            Number(a.price_per_person) * (a.base_occupancy ?? 2),
+        );
+        break;
+      case "date_asc":
+        sorted.sort((a, b) => {
+          if (!a.going_date && !b.going_date) return 0;
+          if (!a.going_date) return 1;
+          if (!b.going_date) return -1;
+          return new Date(a.going_date).getTime() - new Date(b.going_date).getTime();
+        });
+        break;
+      case "date_desc":
+        sorted.sort((a, b) => {
+          if (!a.going_date && !b.going_date) return 0;
+          if (!a.going_date) return 1;
+          if (!b.going_date) return -1;
+          return new Date(b.going_date).getTime() - new Date(a.going_date).getTime();
+        });
+        break;
+      case "sort_order":
+      default:
+        sorted.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        break;
+    }
+    return sorted;
+  }, [packages, originFilter, destinationFilter, sortBy]);
+
+  const hasActiveFilters =
+    originFilter !== "all" || destinationFilter !== "all" || sortBy !== "sort_order";
 
   const clearFilters = () => {
     setOriginFilter("all");
     setDestinationFilter("all");
+    setSortBy("sort_order");
   };
 
   return (
@@ -136,6 +180,27 @@ function PacotesList() {
                     {destination}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Ordenar por
+            </label>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+              <SelectTrigger className="w-full">
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-3.5 w-3.5 text-brand-orange" />
+                  <SelectValue placeholder="Ordenar por" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sort_order">Ordem de exibição</SelectItem>
+                <SelectItem value="price_asc">Menor preço</SelectItem>
+                <SelectItem value="price_desc">Maior preço</SelectItem>
+                <SelectItem value="date_asc">Data de ida mais próxima</SelectItem>
+                <SelectItem value="date_desc">Data de ida mais distante</SelectItem>
               </SelectContent>
             </Select>
           </div>
