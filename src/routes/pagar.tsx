@@ -286,6 +286,7 @@ function PayPage() {
                     trip_locator: tripLocator || null,
                     trip_route: tripRoute || null,
                     trip_date: tripDate || null,
+                    trip_passengers: tripPassengers || null,
                     accepted_terms: true,
 
                     signature_data_url: signatureDataUrl,
