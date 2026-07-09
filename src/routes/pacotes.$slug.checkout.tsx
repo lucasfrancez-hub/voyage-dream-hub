@@ -432,10 +432,11 @@ function Checkout() {
                     <Field label="CPF">
                       <input
                         value={t.cpf}
-                        onChange={(e) => updateTraveler(i, { cpf: e.target.value })}
+                        onChange={(e) => updateTraveler(i, { cpf: maskCPF(e.target.value) })}
                         className={inputCls}
                         placeholder="000.000.000-00"
-                        maxLength={20}
+                        inputMode="numeric"
+                        maxLength={14}
                       />
                     </Field>
                     <Field label="Data de nascimento">
