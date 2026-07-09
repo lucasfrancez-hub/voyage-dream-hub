@@ -156,19 +156,22 @@ function LinkSimpleGenerator() {
                 <input type="radio" name="mode" checked={mode === "first-higher"} onChange={() => setMode("first-higher")} disabled={installments < 2} className="mt-0.5 accent-brand-orange" />
                 <span className="text-sm">
                   <span className="block font-medium">1ª parcela mais alta</span>
-                  <span className="block text-xs text-muted-foreground">Define o valor da entrada; o resto é dividido igualmente.</span>
+                  <span className="block text-xs text-muted-foreground">Soma a taxa de embarque na 1ª parcela; o restante do total é dividido igualmente.</span>
                 </span>
               </label>
             </div>
             {mode === "first-higher" && installments > 1 && (
-              <Field label="Valor da 1ª parcela (R$)">
+              <Field label="Valor da taxa de embarque (R$)">
                 <input
                   inputMode="decimal"
                   value={firstAmount}
                   onChange={(e) => setFirstAmount(e.target.value)}
                   className={cls}
-                  placeholder="Ex.: 1500.00"
+                  placeholder="Ex.: 150.00"
                 />
+                <span className="mt-1 block text-[11px] text-muted-foreground">
+                  Esse valor é somado à 1ª parcela. Se a parcela normal já for maior que a taxa, ela é ignorada e as parcelas ficam iguais.
+                </span>
               </Field>
             )}
           </div>
