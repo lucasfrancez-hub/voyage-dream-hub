@@ -315,14 +315,6 @@ function OrderCard({ order: o, pkg }: { order: Order; pkg?: Record<string, unkno
         </div>
       )}
 
-      {o.airline_locator && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-brand-orange/30 bg-brand-orange/5 px-3 py-2 text-sm">
-          <Plane className="h-4 w-4 text-brand-orange" />
-          <span className="text-muted-foreground">Localizador da companhia aérea:</span>
-          <span className="font-mono font-bold tracking-widest text-foreground">{o.airline_locator}</span>
-        </div>
-      )}
-
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -366,21 +358,12 @@ function OrderCard({ order: o, pkg }: { order: Order; pkg?: Record<string, unkno
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Voos</div>
               <div className="grid md:grid-cols-2 gap-3">
                 {snap.outbound_flight && (
-                  <FlightCard flight={snap.outbound_flight} kind="outbound" adults={o.adults} />
+                  <FlightCard flight={snap.outbound_flight} kind="outbound" adults={o.adults} airlineLocator={o.airline_locator} />
                 )}
                 {snap.return_flight && (
-                  <FlightCard flight={snap.return_flight} kind="return" adults={o.adults} />
+                  <FlightCard flight={snap.return_flight} kind="return" adults={o.adults} airlineLocator={o.airline_locator} />
                 )}
               </div>
-            </div>
-          )}
-
-          {snap.itinerary && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Roteiro</div>
-              <pre className="whitespace-pre-wrap font-sans text-sm text-muted-foreground leading-relaxed">
-                {snap.itinerary}
-              </pre>
             </div>
           )}
 
