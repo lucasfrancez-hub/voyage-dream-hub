@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Mail, Phone, User, CheckCircle2, XCircle, Trash2 } from "lucide-react";
+import { Mail, Phone, User, CheckCircle2, XCircle, Trash2, CreditCard, Calendar, Hash } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
+import { splitInstallments } from "@/lib/checkout-config";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 import { updateCofreOrder, deleteCofreOrder } from "@/lib/cofre.functions";
 
