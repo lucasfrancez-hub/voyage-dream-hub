@@ -232,16 +232,11 @@ function Checkout() {
                 : payment,
           total_price: totalPrice,
           notes: notes || null,
-        })
-        .select("id")
-        .single();
+        });
 
       if (error) throw error;
 
-      const newId = inserted?.id ?? "";
-      const orderNumber = newId
-        ? `#${String(parseInt(newId.replace(/-/g, "").slice(0, 12), 16) % 100000000).padStart(8, "0")}`
-        : "";
+      const orderNumber = `#${String(parseInt(newId.replace(/-/g, "").slice(0, 12), 16) % 100000000).padStart(8, "0")}`;
 
       setSuccess(true);
 
