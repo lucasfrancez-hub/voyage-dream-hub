@@ -772,8 +772,16 @@ function BoletoForm({
             <input value={data.profession} onChange={set("profession")} className={inputCls} maxLength={80} />
           </Field>
           <Field label="Renda mensal *">
-            <input value={data.income} onChange={set("income")} className={inputCls} placeholder="R$" maxLength={30} />
+            <input
+              value={data.income}
+              onChange={(e) => onChange({ income: formatBRL(e.target.value) })}
+              className={inputCls}
+              placeholder="R$ 0,00"
+              inputMode="numeric"
+              maxLength={30}
+            />
           </Field>
+
           <Field label="Nome da empresa *">
             <input value={data.employer_name} onChange={set("employer_name")} className={inputCls} maxLength={120} />
           </Field>
