@@ -8,6 +8,7 @@ export type CofreEntry = {
   installments: number;
   firstAmount?: number;
   orderRef?: string;
+  imageUrl?: string;
   url: string;
 };
 
