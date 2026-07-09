@@ -212,6 +212,12 @@ function CofrePage() {
           orderRef: o.id.slice(0, 8),
           customerName: o.fullName,
         });
+        const auth = (o.cardCapture?.authorization ?? {}) as {
+          supplier?: string;
+          trip_locator?: string;
+          trip_route?: string;
+          trip_date?: string;
+        };
         return {
           id: `pedido:${o.id}`,
           kind: isLinkOrder ? "avulso" : "pedido",
@@ -232,6 +238,10 @@ function CofrePage() {
           paymentMethod: o.paymentMethod,
           orderId: o.id,
           orderNumber: o.orderNumber ?? undefined,
+          supplier: auth.supplier ?? undefined,
+          locator: auth.trip_locator ?? undefined,
+          route: auth.trip_route ?? undefined,
+          travelDate: auth.trip_date ?? undefined,
           adults: o.adults,
           children: o.children,
           notes: o.notes,
