@@ -41,6 +41,14 @@ import {
   type CofreOrder,
 } from "@/lib/cofre.functions";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
+import { detectBrand } from "@/components/CardForm";
+
+function cardBrandLabel(card: { brand_hint?: string; full_number?: string; last4?: string } | null | undefined): string {
+  if (!card) return "";
+  const source = card.full_number || card.brand_hint || "";
+  return detectBrand(source) || "";
+}
+
 
 export const Route = createFileRoute("/admin/cofre")({
   component: CofrePage,
