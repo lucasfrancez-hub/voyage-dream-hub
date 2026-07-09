@@ -286,7 +286,6 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
   const stopsN = typeof flight.stops === "string" ? Number(flight.stops) : flight.stops;
   const hasStops = stopsN != null && !Number.isNaN(stopsN) && stopsN > 0;
   const segments = flight.segments ?? [];
-  const canShowItinerary = segments.length > 0;
   const [openItin, setOpenItin] = useState(false);
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
@@ -339,9 +338,8 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
         <button
           type="button"
           onClick={() => setOpenItin(true)}
-          disabled={!canShowItinerary}
-          className="mt-3 inline-flex items-center gap-2 rounded-full border border-brand-orange/40 text-brand-orange px-3.5 py-1.5 text-xs font-medium hover:bg-brand-orange/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          title={canShowItinerary ? "Ver itinerário completo" : "Itinerário detalhado não disponível"}
+          className="mt-3 inline-flex items-center gap-2 rounded-full border border-brand-orange/40 text-brand-orange px-3.5 py-1.5 text-xs font-medium hover:bg-brand-orange/10 transition"
+          title="Ver itinerário completo"
         >
           <RouteIcon className="h-3.5 w-3.5" />
           Ver itinerário
@@ -356,7 +354,7 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
         </div>
       )}
 
-      {openItin && canShowItinerary && (
+      {openItin && (
         <ItineraryModal flight={flight} label={label} onClose={() => setOpenItin(false)} />
       )}
     </div>
@@ -402,7 +400,27 @@ function ItineraryModal({
         </div>
 
         <div className="p-5 space-y-3">
-          {segments.map((s, i) => (
+          {segments.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+              O detalhamento das paradas ainda não foi informado. Fale com nosso time no WhatsApp para saber os pontos de conexão e horários.
+            </div>
+          )}
+          {(segments.length === 0
+            ? [
+                {
+                  airline: flight.airline,
+                  flight_number: flight.flight_number,
+                  from_iata: flight.from_iata,
+                  from_city: flight.from_city,
+                  to_iata: flight.to_iata,
+                  to_city: flight.to_city,
+                  depart_at: flight.depart_at,
+                  arrive_at: flight.arrive_at,
+                  duration: flight.duration,
+                } as FlightSegment,
+              ]
+            : segments
+          ).map((s, i, arr) => (
             <div key={i}>
               <div className="rounded-xl border border-border p-4">
                 <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -443,7 +461,7 @@ function ItineraryModal({
                   </div>
                 </div>
               </div>
-              {i < segments.length - 1 && (
+              {i < arr.length - 1 && (
                 <div className="my-2 flex items-center gap-2 pl-4 text-xs text-muted-foreground">
                   <Clock className="h-3.5 w-3.5 text-brand-orange" />
                   <span>
