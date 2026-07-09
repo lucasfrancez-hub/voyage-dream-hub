@@ -1,15 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, FileSignature, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { splitInstallments } from "@/lib/checkout-config";
-import { CardForm, useCardData } from "@/components/CardForm";
+import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
+import { SignaturePad } from "@/components/SignaturePad";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 
 const MAX_INSTALLMENTS = 10;
+
 
 type Search = {
   desc?: string;
