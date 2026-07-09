@@ -93,7 +93,7 @@ function Checkout() {
   }, [pkg, adults, children]);
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
-  const occupancyMismatch = !!pkg && (adults !== baseOccupancy || children > 0);
+  const occupancyMismatch = !!pkg && adults + children !== baseOccupancy;
 
   if (isLoading || !pkg) {
     return (
@@ -250,7 +250,7 @@ function Checkout() {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Crianças (até 12 anos)">
+                <Field label="Crianças* (até 12 anos)">
                   <input
                     type="number"
                     min={0}
@@ -261,10 +261,7 @@ function Checkout() {
                   />
                 </Field>
               </div>
-              <p className="mt-2 text-xs text-brand-orange">
-                Criança é considerada até 12 anos. A partir de 13 anos, é considerado adulto.
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Preencha os dados de cada passageiro abaixo.
               </p>
               {occupancyMismatch && (
