@@ -22,6 +22,7 @@ import {
   User,
   MapPin,
   FileSignature,
+  Hash,
 } from "lucide-react";
 
 import { toast } from "sonner";
