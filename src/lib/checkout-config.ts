@@ -106,9 +106,9 @@ export function splitInstallments(
   if (!firstAmount || installments === 1 || firstAmount <= 0 || base >= firstAmount) {
     return { first: base, rest: base, restCount: installments - 1, equal: true };
   }
-  // Taxa de embarque soma na 1ª parcela; o restante é dividido igualmente.
-  const remaining = Math.max(total - firstAmount, 0);
-  const baseRest = remaining / installments;
-  const first = baseRest + firstAmount;
-  return { first, rest: baseRest, restCount: installments - 1, equal: false };
+  // Taxa de embarque soma na 1ª parcela; o restante do total é dividido
+  // igualmente entre as parcelas seguintes.
+  const first = base + firstAmount;
+  const rest = installments > 1 ? Math.max(total - first, 0) / (installments - 1) : 0;
+  return { first, rest, restCount: installments - 1, equal: false };
 }
