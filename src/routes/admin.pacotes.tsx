@@ -10,6 +10,19 @@ export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
 });
 
+type FlightSegment = {
+  airline?: string;
+  flight_number?: string;
+  from_iata?: string;
+  from_city?: string;
+  to_iata?: string;
+  to_city?: string;
+  depart_at?: string;
+  arrive_at?: string;
+  duration?: string;
+  layover?: string;
+};
+
 type FlightInfo = {
   airline?: string;
   airline_logo_url?: string;
@@ -26,6 +39,7 @@ type FlightInfo = {
   carry_on?: boolean;
   checked_bag?: boolean;
   personal_item?: boolean;
+  segments?: FlightSegment[];
 };
 
 type PackageRow = {
