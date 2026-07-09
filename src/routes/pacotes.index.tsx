@@ -184,6 +184,27 @@ function PacotesList() {
             </Select>
           </div>
 
+          <div className="flex-1">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Ordenar por
+            </label>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+              <SelectTrigger className="w-full">
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-3.5 w-3.5 text-brand-orange" />
+                  <SelectValue placeholder="Ordenar por" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sort_order">Ordem de exibição</SelectItem>
+                <SelectItem value="price_asc">Menor preço</SelectItem>
+                <SelectItem value="price_desc">Maior preço</SelectItem>
+                <SelectItem value="date_asc">Data de ida mais próxima</SelectItem>
+                <SelectItem value="date_desc">Data de ida mais distante</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {hasActiveFilters && (
             <Button
               type="button"
