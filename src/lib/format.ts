@@ -25,3 +25,11 @@ export function formatDateRange(a?: string | null, b?: string | null): string {
   if (B === "—") return A;
   return `${A} → ${B}`;
 }
+
+export function maskCPF(input: string): string {
+  const raw = (input ?? "").replace(/\D/g, "").slice(0, 11);
+  return raw
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
