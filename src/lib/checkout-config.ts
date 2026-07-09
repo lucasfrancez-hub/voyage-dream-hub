@@ -40,6 +40,25 @@ export function paymentLinkUrl(params: {
   return `${origin}/pagar?${q.toString()}`;
 }
 
+// Link de pagamento por boleto bancário — cliente preenche a ficha de crédito.
+export function paymentBoletoLinkUrl(params: {
+  description: string;
+  total: number;
+  orderRef?: string;
+  customerName?: string;
+  imageUrl?: string;
+}): string {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://voeair.com";
+  const q = new URLSearchParams();
+  q.set("desc", params.description);
+  q.set("total", params.total.toFixed(2));
+  if (params.orderRef) q.set("ref", params.orderRef);
+  if (params.customerName) q.set("cliente", params.customerName);
+  if (params.imageUrl) q.set("img", params.imageUrl);
+  return `${origin}/pagar-boleto?${q.toString()}`;
+}
+
 // Divide o total em parcelas. Se firstAmount for informado, a 1ª parcela usa esse
 // valor e o restante é dividido igualmente entre as demais.
 export function splitInstallments(

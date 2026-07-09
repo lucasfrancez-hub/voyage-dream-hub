@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -20,10 +21,16 @@ import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
+import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 
+const PagarBoletoRoute = PagarBoletoRouteImport.update({
+  id: '/pagar-boleto',
+  path: '/pagar-boleto',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PagarRoute = PagarRouteImport.update({
   id: '/pagar',
   path: '/pagar',
@@ -79,6 +86,11 @@ const AdminLinkPagamentoRoute = AdminLinkPagamentoRouteImport.update({
   path: '/link-pagamento',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLinkBoletoRoute = AdminLinkBoletoRouteImport.update({
+  id: '/link-boleto',
+  path: '/link-boleto',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCofreRoute = AdminCofreRouteImport.update({
   id: '/cofre',
   path: '/cofre',
@@ -101,7 +113,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
+  '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -116,7 +130,9 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/pagar': typeof PagarRoute
+  '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -133,7 +149,9 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
+  '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -151,7 +169,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/pacotes'
     | '/pagar'
+    | '/pagar-boleto'
     | '/admin/cofre'
+    | '/admin/link-boleto'
     | '/admin/link-pagamento'
     | '/admin/pacotes'
     | '/admin/pedidos'
@@ -166,7 +186,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/pagar'
+    | '/pagar-boleto'
     | '/admin/cofre'
+    | '/admin/link-boleto'
     | '/admin/link-pagamento'
     | '/admin/pacotes'
     | '/admin/pedidos'
@@ -182,7 +204,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/pacotes'
     | '/pagar'
+    | '/pagar-boleto'
     | '/admin/cofre'
+    | '/admin/link-boleto'
     | '/admin/link-pagamento'
     | '/admin/pacotes'
     | '/admin/pedidos'
@@ -199,10 +223,18 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
+  PagarBoletoRoute: typeof PagarBoletoRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pagar-boleto': {
+      id: '/pagar-boleto'
+      path: '/pagar-boleto'
+      fullPath: '/pagar-boleto'
+      preLoaderRoute: typeof PagarBoletoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pagar': {
       id: '/pagar'
       path: '/pagar'
@@ -280,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLinkPagamentoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/link-boleto': {
+      id: '/admin/link-boleto'
+      path: '/link-boleto'
+      fullPath: '/admin/link-boleto'
+      preLoaderRoute: typeof AdminLinkBoletoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cofre': {
       id: '/admin/cofre'
       path: '/cofre'
@@ -306,6 +345,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminCofreRoute: typeof AdminCofreRoute
+  AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
@@ -315,6 +355,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCofreRoute: AdminCofreRoute,
+  AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPedidosRoute: AdminPedidosRoute,
@@ -345,6 +386,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
+  PagarBoletoRoute: PagarBoletoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
