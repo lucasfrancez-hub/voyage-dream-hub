@@ -89,8 +89,11 @@ export function paymentBoletoLinkUrl(params: {
   return `${origin}/pagar-boleto?${q.toString()}`;
 }
 
-// Divide o total em parcelas. Se firstAmount for informado, a 1ª parcela usa esse
-// valor e o restante é dividido igualmente entre as demais.
+// Divide o total em parcelas. `firstAmount` representa a TAXA DE EMBARQUE que
+// será somada à 1ª parcela — não é o valor final da 1ª parcela.
+// Regra: se a parcela base (total/parcelas) já for maior ou igual à taxa de
+// embarque, a taxa é ignorada e todas as parcelas ficam iguais (não faz
+// sentido somar algo menor do que a parcela normal).
 export function splitInstallments(
   total: number,
   installments: number,
@@ -99,11 +102,13 @@ export function splitInstallments(
   if (!installments || installments < 1) {
     return { first: total, rest: 0, restCount: 0, equal: true };
   }
-  if (!firstAmount || installments === 1 || firstAmount <= 0) {
-    const each = total / installments;
-    return { first: each, rest: each, restCount: installments - 1, equal: true };
+  const base = total / installments;
+  if (!firstAmount || installments === 1 || firstAmount <= 0 || base >= firstAmount) {
+    return { first: base, rest: base, restCount: installments - 1, equal: true };
   }
-  const restTotal = Math.max(total - firstAmount, 0);
-  const rest = installments > 1 ? restTotal / (installments - 1) : 0;
-  return { first: firstAmount, rest, restCount: installments - 1, equal: false };
+  // Taxa de embarque soma na 1ª parcela; o restante é dividido igualmente.
+  const remaining = Math.max(total - firstAmount, 0);
+  const baseRest = remaining / installments;
+  const first = baseRest + firstAmount;
+  return { first, rest: baseRest, restCount: installments - 1, equal: false };
 }
