@@ -339,10 +339,10 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
           type="button"
           onClick={() => setOpenItin(true)}
           className="mt-3 inline-flex items-center gap-2 rounded-full border border-brand-orange/40 text-brand-orange px-3.5 py-1.5 text-xs font-medium hover:bg-brand-orange/10 transition"
-          title="Aqui está o seu voo completo"
+          title="Ver itinerário"
         >
           <RouteIcon className="h-3.5 w-3.5" />
-          Aqui está o seu voo completo
+          Ver itinerário
         </button>
       )}
 
