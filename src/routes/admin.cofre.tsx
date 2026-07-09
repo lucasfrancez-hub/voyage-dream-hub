@@ -278,11 +278,11 @@ function CofrePage() {
         <TabBtn active={tab === "all"} onClick={() => setTab("all")}>
           Todos ({items.length})
         </TabBtn>
-        <TabBtn active={tab === "pedido"} onClick={() => setTab("pedido")}>
-          <Package className="h-3.5 w-3.5" /> Pacotes prontos ({countPedido})
+        <TabBtn active={tab === "card"} onClick={() => setTab("card")}>
+          <CreditCard className="h-3.5 w-3.5" /> Link de pagamento ({countCard})
         </TabBtn>
-        <TabBtn active={tab === "avulso"} onClick={() => setTab("avulso")}>
-          <Link2 className="h-3.5 w-3.5" /> Avulsos ({countAvulso})
+        <TabBtn active={tab === "boleto"} onClick={() => setTab("boleto")}>
+          <FileText className="h-3.5 w-3.5" /> Link de boleto ({countBoleto})
         </TabBtn>
       </div>
 
