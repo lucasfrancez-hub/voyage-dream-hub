@@ -685,7 +685,7 @@ function SummaryLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatBRL(input: string): string {
+function formatIncomeBRL(input: string): string {
   const digits = (input ?? "").replace(/\D/g, "");
   if (!digits) return "";
   const number = Number(digits) / 100;
@@ -695,6 +695,7 @@ function formatBRL(input: string): string {
     minimumFractionDigits: 2,
   });
 }
+
 
 function BoletoForm({
   data,
