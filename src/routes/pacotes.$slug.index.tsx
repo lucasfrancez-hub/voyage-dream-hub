@@ -286,7 +286,6 @@ function FlightCard({ flight, kind, adults }: { flight: FlightInfo; kind: "outbo
   const stopsN = typeof flight.stops === "string" ? Number(flight.stops) : flight.stops;
   const hasStops = stopsN != null && !Number.isNaN(stopsN) && stopsN > 0;
   const segments = flight.segments ?? [];
-  const canShowItinerary = segments.length > 0;
   const [openItin, setOpenItin] = useState(false);
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
