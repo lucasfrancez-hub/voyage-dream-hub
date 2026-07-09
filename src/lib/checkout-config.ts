@@ -26,6 +26,9 @@ export function paymentLinkUrl(params: {
   firstAmount?: number; // valor da 1ª parcela quando diferente das demais
   imageUrl?: string; // imagem do destino que aparece no topo do link do cliente
   supplier?: string; // fornecedor que aparecerá na fatura (cia aérea, operadora, etc.)
+  locator?: string; // localizador da companhia aérea
+  route?: string; // origem/destino e horários
+  travelDate?: string; // data(s) da viagem
 }): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://voeair.com";
@@ -41,6 +44,9 @@ export function paymentLinkUrl(params: {
   if (params.customerName) q.set("cliente", params.customerName);
   if (params.imageUrl) q.set("img", params.imageUrl);
   if (params.supplier) q.set("fornec", params.supplier);
+  if (params.locator) q.set("loc", params.locator);
+  if (params.route) q.set("rota", params.route);
+  if (params.travelDate) q.set("datav", params.travelDate);
   return `${origin}/pagar?${q.toString()}`;
 }
 
