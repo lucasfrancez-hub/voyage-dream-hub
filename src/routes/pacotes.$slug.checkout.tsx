@@ -433,6 +433,7 @@ function Checkout() {
                   icon={QrCode}
                   title="Pix"
                   desc="Finalize via WhatsApp com nosso consultor."
+                  badge="-5% de desconto"
                 />
                 <PaymentOption
                   active={payment === "boleto"}
