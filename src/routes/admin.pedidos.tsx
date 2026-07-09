@@ -14,10 +14,20 @@ export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrders,
 });
 
+const PAYMENT_FILTERS = [
+  { value: "all", label: "Todos" },
+  { value: "credit_card", label: "Cartão" },
+  { value: "pix", label: "Pix" },
+  { value: "boleto", label: "Boleto bancário" },
+  { value: "whatsapp", label: "WhatsApp" },
+] as const;
+type PaymentFilter = (typeof PAYMENT_FILTERS)[number]["value"];
+
 function AdminOrders() {
   const updateOrder = useServerFn(updateCofreOrder);
   const deleteOrder = useServerFn(deleteCofreOrder);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [filter, setFilter] = useState<PaymentFilter>("all");
 
   const { data: orders, isLoading, refetch } = useQuery({
     queryKey: ["admin", "orders"],
@@ -30,6 +40,20 @@ function AdminOrders() {
       return data;
     },
   });
+
+  const filteredOrders = (orders ?? []).filter((o) => {
+    if (filter === "all") return true;
+    const pm = (o.payment_method ?? "").toLowerCase();
+    if (filter === "credit_card") return pm.startsWith("credit_card");
+    return pm === filter;
+  });
+
+  const counts = (orders ?? []).reduce<Record<string, number>>((acc, o) => {
+    const pm = (o.payment_method ?? "").toLowerCase();
+    const key = pm.startsWith("credit_card") ? "credit_card" : pm;
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
 
   async function onFinalize(id: string) {
     try {
