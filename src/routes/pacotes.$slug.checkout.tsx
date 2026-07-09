@@ -416,7 +416,7 @@ function Checkout() {
                 {children > 0 && (
                   <SummaryLine
                     label={`Crianças × ${children}`}
-                    value={formatBRL(Number(pkg.price_per_person) * 0.7 * children)}
+                    value={formatBRL(Number(pkg.price_per_person) * children)}
                   />
                 )}
                 {Number(pkg.taxes ?? 0) > 0 && (
