@@ -23,6 +23,7 @@ type Search = {
   cliente?: string;
   img?: string;
   simples?: string;
+  fornec?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/pagar")({
     cliente: asStr(s.cliente),
     img: asStr(s.img),
     simples: asStr(s.simples),
+    fornec: asStr(s.fornec),
   }),
   component: PayPage,
 });
@@ -47,8 +49,10 @@ export const Route = createFileRoute("/pagar")({
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, cliente, img, simples } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, cliente, img, simples, fornec } = Route.useSearch();
   const secureMode = simples !== "1";
+  const supplierName = fornec?.trim() || "Via Air Agência e Representações Ltda";
+  const supplierIsViaAir = !fornec || /via ?air/i.test(fornec);
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
