@@ -22,6 +22,7 @@ import {
   User,
   MapPin,
   FileSignature,
+  Hash,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -77,6 +78,7 @@ type UnifiedItem = {
   status?: string;
   paymentMethod?: string;
   orderId?: string;
+  orderNumber?: string;
   adults?: number;
   children?: number;
   notes?: string | null;
@@ -220,6 +222,7 @@ function CofrePage() {
           status: o.status,
           paymentMethod: o.paymentMethod,
           orderId: o.id,
+          orderNumber: o.orderNumber ?? undefined,
           adults: o.adults,
           children: o.children,
           notes: o.notes,
@@ -333,6 +336,12 @@ function CofrePage() {
                     </span>
                     <span className="text-muted-foreground">· {e.meta}</span>
                   </div>
+                  {e.orderNumber && (
+                    <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-mono font-semibold text-foreground">
+                      <Hash className="h-3 w-3 text-muted-foreground" />
+                      Pedido {e.orderNumber}
+                    </div>
+                  )}
                   <div className="mt-1 font-semibold truncate">{e.description}</div>
                   <div className="text-sm text-muted-foreground">
                     <span className="font-medium text-foreground">{e.customer}</span>
