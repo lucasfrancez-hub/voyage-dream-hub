@@ -17,6 +17,7 @@ export const Route = createFileRoute("/admin/pedidos")({
 function AdminOrders() {
   const updateOrder = useServerFn(updateCofreOrder);
   const deleteOrder = useServerFn(deleteCofreOrder);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const { data: orders, isLoading, refetch } = useQuery({
     queryKey: ["admin", "orders"],
