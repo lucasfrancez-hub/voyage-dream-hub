@@ -217,20 +217,34 @@ export function generateAuthorizationPDF(opts: {
       "Scores por transição",
       (liveness.motion_scores ?? []).map((s) => s.toFixed(4)).join(" · ") || "—",
     );
+    kv(
+      "Método de verificação",
+      liveness.face_detector_used ? "Detector facial nativo 3D + desafios" : "Desafios com análise de movimento",
+    );
+    kv(
+      "Desafios executados",
+      (liveness.challenges ?? []).join(" · ") || "—",
+    );
     y += 2;
     h2("Capturas");
-    const labels = ["Frente", "Direita", "Esquerda"];
-    const imgW = 55;
-    const imgH = 41;
-    const gap = 6;
+    const labelMap: Record<string, string> = {
+      fit: "Encaixe", near: "Aproximação", right: "Direita", left: "Esquerda", smile: "Sorriso",
+      front: "Frente",
+    };
+    const photos = liveness.photos.slice(0, 5);
+    const imgW = 35;
+    const imgH = 47;
+    const gap = 4;
     ensure(imgH + 8);
     let x = M;
-    liveness.photos.slice(0, 3).forEach((p, i) => {
+    photos.forEach((p, i) => {
       try {
         doc.addImage(p, "JPEG", x, y, imgW, imgH);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.text(labels[i] ?? `#${i + 1}`, x + imgW / 2, y + imgH + 4, { align: "center" });
+        doc.setFontSize(7);
+        const key = liveness.challenges?.[i];
+        const label = (key && labelMap[key]) || `#${i + 1}`;
+        doc.text(label, x + imgW / 2, y + imgH + 4, { align: "center" });
       } catch {}
       x += imgW + gap;
     });
