@@ -49,6 +49,8 @@ export type LivenessData = {
   captured_at?: string;
   selfie_valid_until?: string;
   user_agent?: string | null;
+  challenges?: string[];
+  face_detector_used?: boolean;
 };
 
 const M = 14; // margem
