@@ -79,6 +79,7 @@ function LinkGenerator() {
       locator: locator.trim() || undefined,
       route: tripRoute.trim() || undefined,
       travelDate: travelDate.trim() || undefined,
+      passengers: passengers.trim() || undefined,
       url,
     });
   }
