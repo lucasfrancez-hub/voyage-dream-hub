@@ -391,6 +391,10 @@ function ItineraryModal({
   onClose: () => void;
 }) {
   const segments = flight.segments ?? [];
+  const first = segments[0];
+  const last = segments[segments.length - 1];
+  const fromIata = first?.from_iata ?? flight.from_iata;
+  const toIata = last?.to_iata ?? flight.to_iata;
   const headline =
     kind === "outbound"
       ? "Aqui está o seu itinerário completo de ida"
@@ -409,7 +413,7 @@ function ItineraryModal({
             <div className="text-[10px] uppercase tracking-widest text-white/80 font-semibold">Itinerário completo</div>
             <div className="font-display font-bold text-white text-lg leading-tight mt-0.5">{headline}</div>
             <div className="text-xs text-white/90 mt-1">
-              {flight.from_iata} → {flight.to_iata}
+              {fromIata} → {toIata}
               {totalDuration && ` · ${totalDuration}`}
             </div>
           </div>
