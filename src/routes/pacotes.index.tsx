@@ -127,18 +127,18 @@ function PacotesList() {
       <TopBar backHref="https://viaair.tur.br" backLabel="Voltar ao site" />
 
       <section className="mx-auto max-w-7xl px-6 py-12 md:py-16">
-        <div className="max-w-2xl">
+        <div className="max-w-prose">
           <span className="text-brand-orange text-sm uppercase tracking-widest">
             Pacotes disponíveis
           </span>
           <h1 className="mt-2 font-display text-4xl md:text-5xl font-bold">
             Roteiros prontos para <span className="text-gradient-brand">embarcar</span>
           </h1>
-          <p className="mt-4 text-muted-foreground">
+          <p className="mt-4 text-muted-foreground leading-relaxed">
             Aéreo, hospedagem, transfer e passeio inclusos no orçamento. Escolha o destino
             e finalize a reserva com o nosso time.
           </p>
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-6 text-xs text-muted-foreground/80 leading-loose">
             Garanta seu pacote com tranquilidade: o valor anunciado não sofre alteração
             conforme a proximidade da data de embarque. As reservas estão sujeitas apenas
             à disponibilidade de vagas.
