@@ -388,7 +388,7 @@ function CofrePage() {
                 >
                   <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
                 </a>
-                {e.kind === "pedido" && e.order && (
+                {e.order && (
                   <button
                     type="button"
                     onClick={() => setDetailsItem(e)}
@@ -397,7 +397,7 @@ function CofrePage() {
                     <FileText className="h-3.5 w-3.5" /> Ver dados
                   </button>
                 )}
-                {e.kind === "pedido" && e.orderId && (
+                {e.order && e.orderId && e.kind === "pedido" && (
                   <button
                     type="button"
                     onClick={() =>
@@ -408,7 +408,7 @@ function CofrePage() {
                     <Package className="h-3.5 w-3.5" /> Ver pedido
                   </button>
                 )}
-                {e.kind === "pedido" && e.order?.cardCapture?.authorization?.signature_data_url && (
+                {e.order?.cardCapture?.authorization?.signature_data_url && (
                   <button
                     type="button"
                     onClick={async () => {
@@ -458,7 +458,7 @@ function CofrePage() {
                 )}
 
 
-                {e.kind === "pedido" && e.orderId && e.status !== "paid" && (
+                {e.order && e.orderId && e.status !== "paid" && (
                   <button
                     type="button"
                     onClick={() => onFinalize(e.orderId!)}
@@ -467,7 +467,7 @@ function CofrePage() {
                     <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
                   </button>
                 )}
-                {e.kind === "pedido" && e.orderId && e.status !== "rejected" && (
+                {e.order && e.orderId && e.status !== "rejected" && (
                   <button
                     type="button"
                     onClick={() => onReject(e.orderId!, e.notes ?? null)}
@@ -476,7 +476,7 @@ function CofrePage() {
                     <XCircle className="h-3.5 w-3.5" /> Rejeitar
                   </button>
                 )}
-                {e.kind === "pedido" && e.orderId && (
+                {e.order && e.orderId && (
                   <button
                     type="button"
                     onClick={() => onDeleteOrder(e.orderId!)}
@@ -485,7 +485,7 @@ function CofrePage() {
                     <Trash2 className="h-3.5 w-3.5" /> Excluir
                   </button>
                 )}
-                {e.kind === "avulso" && (
+                {!e.order && (
                   <button
                     type="button"
                     onClick={() => onDelete(e.id.replace(/^avulso:/, ""))}
