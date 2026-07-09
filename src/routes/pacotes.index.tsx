@@ -51,6 +51,33 @@ function PacotesList() {
     },
   });
 
+  const [originFilter, setOriginFilter] = useState<string>("all");
+  const [destinationFilter, setDestinationFilter] = useState<string>("all");
+
+  const origins = useMemo(
+    () => Array.from(new Set((packages || []).map((p) => p.origin).filter(Boolean))).sort(),
+    [packages],
+  );
+  const destinations = useMemo(
+    () => Array.from(new Set((packages || []).map((p) => p.destination).filter(Boolean))).sort(),
+    [packages],
+  );
+
+  const filteredPackages = useMemo(() => {
+    return (packages || []).filter((p) => {
+      const originMatch = originFilter === "all" || p.origin === originFilter;
+      const destinationMatch = destinationFilter === "all" || p.destination === destinationFilter;
+      return originMatch && destinationMatch;
+    });
+  }, [packages, originFilter, destinationFilter]);
+
+  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all";
+
+  const clearFilters = () => {
+    setOriginFilter("all");
+    setDestinationFilter("all");
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopBar backHref="https://viaair.tur.br" backLabel="Voltar ao site" />
