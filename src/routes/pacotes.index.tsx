@@ -53,6 +53,9 @@ function PacotesList() {
 
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<
+    "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
+  >("sort_order");
 
   const origins = useMemo(
     () => Array.from(new Set((packages || []).map((p) => p.origin).filter(Boolean))).sort(),
