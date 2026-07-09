@@ -62,6 +62,8 @@ function Checkout() {
   const [travelers, setTravelers] = useState<Traveler[]>([emptyTraveler(), emptyTraveler()]);
   const [payment, setPayment] = useState<PaymentMethod>("credit_card");
   const [installments, setInstallments] = useState<number>(DEFAULT_INSTALLMENTS);
+  const [boletoInstallments, setBoletoInstallments] = useState<number>(1);
+  const MAX_BOLETO_INSTALLMENTS = 10;
   const { data: card, patch: patchCard } = useCardData();
   const [boleto, setBoleto] = useState<BoletoData>(emptyBoleto);
   const [notes, setNotes] = useState("");
@@ -193,7 +195,13 @@ function Checkout() {
                 },
               }
             : {}),
-          ...(payment === "boleto" ? { boleto_capture: boleto } : {}),
+          ...(payment === "boleto"
+            ? {
+                boleto_capture: boleto,
+                boleto_installments: boletoInstallments,
+                boleto_installment_value: totalPrice / Math.max(boletoInstallments, 1),
+              }
+            : {}),
           },
           full_name: primary.full_name,
           email: primary.email,
@@ -203,7 +211,11 @@ function Checkout() {
           adults,
           children,
           payment_method:
-            payment === "credit_card" ? `credit_card_${installments}x` : payment,
+            payment === "credit_card"
+              ? `credit_card_${installments}x`
+              : payment === "boleto"
+                ? (boletoInstallments > 1 ? `boleto_${boletoInstallments}x` : "boleto")
+                : payment,
           total_price: totalPrice,
           notes: notes || null,
         });
@@ -429,6 +441,31 @@ function Checkout() {
 
                     <p>
                       <span className="text-foreground font-semibold">Todos os campos abaixo são obrigatórios.</span>
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                    <label className="block">
+                      <span className="block text-xs text-muted-foreground mb-1.5">
+                        Em quantas vezes deseja parcelar? (sem juros)
+                      </span>
+                      <select
+                        value={boletoInstallments}
+                        onChange={(e) => setBoletoInstallments(Number(e.target.value))}
+                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+                      >
+                        {Array.from({ length: MAX_BOLETO_INSTALLMENTS }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>
+                            {n}x de {formatBRL(totalPrice / n)} sem juros
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Total: <strong className="text-foreground">{formatBRL(totalPrice)}</strong>
+                      {boletoInstallments > 1 && (
+                        <> · {boletoInstallments} boletos mensais de <strong className="text-foreground">{formatBRL(totalPrice / boletoInstallments)}</strong>, sem juros.</>
+                      )}
                     </p>
                   </div>
 

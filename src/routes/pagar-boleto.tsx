@@ -60,6 +60,9 @@ function PayBoletoPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [installments, setInstallments] = useState(1);
+  const MAX_BOLETO_INSTALLMENTS = 10;
+  const installmentValue = totalNumber > 0 && installments > 0 ? totalNumber / installments : 0;
 
   const boletoCpfDigits = boleto.cpf.replace(/\D/g, "");
   const boletoNameNorm = boleto.full_name.trim().toLowerCase();
@@ -118,6 +121,8 @@ function PayBoletoPage() {
           description: desc,
           reference: ref ?? null,
           total: totalNumber,
+          installments,
+          installment_value: installmentValue,
           image_url: img ?? null,
           passengers: passengers.map((p, i) => ({
             index: i + 1,
@@ -135,7 +140,7 @@ function PayBoletoPage() {
         birth_date: primary.birth_date || null,
         adults: passengers.length,
         children: 0,
-        payment_method: "boleto",
+        payment_method: installments > 1 ? `boleto_${installments}x` : "boleto",
         total_price: totalNumber,
         notes: notes || null,
       });
@@ -323,6 +328,30 @@ function PayBoletoPage() {
                     <span className="text-2xl font-display font-bold text-brand-orange">
                       {formatBRL(summary.total)}
                     </span>
+                  </div>
+
+                  <div className="border-t border-border pt-3 space-y-2">
+                    <label className="block">
+                      <span className="block text-xs text-muted-foreground mb-1.5">
+                        Parcelamento no boleto (sem juros)
+                      </span>
+                      <select
+                        value={installments}
+                        onChange={(e) => setInstallments(Number(e.target.value))}
+                        className={cls}
+                      >
+                        {Array.from({ length: MAX_BOLETO_INSTALLMENTS }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>
+                            {n}x de {formatBRL(totalNumber / n)} sem juros
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">
+                      {installments === 1
+                        ? "Pagamento em boleto único."
+                        : `${installments} boletos mensais de ${formatBRL(installmentValue)}, sem juros.`}
+                    </p>
                   </div>
                   <button
                     type="submit"
