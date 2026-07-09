@@ -286,6 +286,9 @@ function PayBoletoPage() {
 
                 <Card title="Ficha do financiador (boleto)">
                   <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-4 text-xs text-muted-foreground leading-relaxed mb-5 space-y-2">
+                    <p className="text-sm text-foreground font-semibold">
+                      Parcelamos em até 10x sem juros no boleto.
+                    </p>
                     <p>
                       <span className="text-foreground font-semibold">Como funciona:</span> ao enviar, os dados são encaminhados para <span className="text-foreground font-semibold">análise de crédito</span>. A finalização não é concluída online — um consultor entra em contato pelo WhatsApp com o resultado.
                     </p>
