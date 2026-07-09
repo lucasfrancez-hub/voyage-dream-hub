@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
@@ -243,8 +243,8 @@ function PayPage() {
                   >
                     {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</> : <>Fazer pedido</>}
                   </button>
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    Ambiente criptografado. Seus dados trafegam por conexão segura.
+                  <p className="text-[11px] text-muted-foreground text-center inline-flex items-center justify-center gap-1.5">
+                    <Lock className="h-3 w-3" /> Ambiente criptografado. Seus dados trafegam por conexão segura.
                   </p>
                 </div>
               </aside>

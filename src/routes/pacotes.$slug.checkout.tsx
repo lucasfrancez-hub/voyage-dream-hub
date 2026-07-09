@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, QrCode, Loader2, Check, MessageCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -467,6 +467,9 @@ function Checkout() {
               </button>
               <p className="mt-3 text-[11px] text-muted-foreground text-center">
                 Ao continuar você concorda com nossos termos e política de cancelamento.
+              </p>
+              <p className="mt-2 text-[11px] text-muted-foreground text-center inline-flex items-center justify-center gap-1.5">
+                <Lock className="h-3 w-3" /> Ambiente criptografado. Seus dados trafegam por conexão segura.
               </p>
             </div>
           </aside>
