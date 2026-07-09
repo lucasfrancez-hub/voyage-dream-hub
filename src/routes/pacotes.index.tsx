@@ -138,7 +138,7 @@ function PacotesList() {
             Aéreo, hospedagem, transfer e passeio inclusos no orçamento. Escolha o destino
             e finalize a reserva com o nosso time.
           </p>
-          <p className="mt-3 text-sm text-muted-foreground">
+          <p className="mt-3 text-xs text-muted-foreground">
             Garanta seu pacote com tranquilidade: o valor anunciado não sofre alteração
             conforme a proximidade da data de embarque. As reservas estão sujeitas apenas
             à disponibilidade de vagas.
