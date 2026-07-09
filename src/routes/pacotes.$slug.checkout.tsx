@@ -93,7 +93,7 @@ function Checkout() {
   }, [pkg, adults, children]);
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
-  const occupancyMismatch = !!pkg && adults !== baseOccupancy;
+  const occupancyMismatch = !!pkg && (adults !== baseOccupancy || children > 0);
 
   if (isLoading || !pkg) {
     return (
