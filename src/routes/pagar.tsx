@@ -362,7 +362,28 @@ function PayPage() {
                     </div>
                   )}
                 </Card>
+                )}
+
+                {secureMode && (
+                  <Card title="Verificação de biometria facial">
+                    {!canShowAuthorization ? (
+                      <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                        <ShieldCheck className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
+                        Complete os dados acima para liberar a verificação de biometria.
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Faremos 3 capturas rápidas com a câmera do seu dispositivo para confirmar que é você
+                          finalizando o pedido. Isso protege você e a Via Air contra fraudes.
+                        </p>
+                        <FaceLiveness value={liveness} onChange={setLiveness} />
+                      </>
+                    )}
+                  </Card>
+                )}
               </div>
+
 
 
               <aside className="lg:sticky lg:top-6 h-fit">
