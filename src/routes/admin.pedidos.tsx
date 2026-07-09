@@ -47,11 +47,38 @@ function AdminOrders() {
     },
   });
 
+  const q = search.trim().toLowerCase();
   const filteredOrders = (orders ?? []).filter((o) => {
-    if (filter === "all") return true;
-    const pm = (o.payment_method ?? "").toLowerCase();
-    if (filter === "credit_card") return pm.startsWith("credit_card");
-    return pm === filter;
+    if (filter !== "all") {
+      const pm = (o.payment_method ?? "").toLowerCase();
+      if (filter === "credit_card") {
+        if (!pm.startsWith("credit_card")) return false;
+      } else if (pm !== filter) return false;
+    }
+    if (!q) return true;
+    const snap = (o.package_snapshot ?? {}) as {
+      order_number?: string | null;
+      travelers?: Array<{ full_name?: string }>;
+    };
+    const orderNum = (snap.order_number ?? "").toString().toLowerCase();
+    const fallbackNum = (() => {
+      const hex = o.id.replace(/-/g, "").slice(0, 12);
+      const n = parseInt(hex, 16);
+      return String(n % 100000000).padStart(8, "0");
+    })();
+    const supplierNum = (o.supplier_order_number ?? "").toLowerCase();
+    const supplierName = (o.supplier_name ?? "").toLowerCase();
+    const travelers = (snap.travelers ?? []).map((t) => (t.full_name ?? "").toLowerCase()).join(" ");
+    return (
+      (o.full_name ?? "").toLowerCase().includes(q) ||
+      (o.email ?? "").toLowerCase().includes(q) ||
+      (o.cpf ?? "").toLowerCase().includes(q) ||
+      orderNum.includes(q) ||
+      fallbackNum.includes(q) ||
+      supplierNum.includes(q) ||
+      supplierName.includes(q) ||
+      travelers.includes(q)
+    );
   });
 
   const counts = (orders ?? []).reduce<Record<string, number>>((acc, o) => {
