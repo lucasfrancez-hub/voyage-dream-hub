@@ -219,6 +219,7 @@ function CofrePage() {
           trip_locator?: string;
           trip_route?: string;
           trip_date?: string;
+          trip_passengers?: string;
         };
         return {
           id: `pedido:${o.id}`,
