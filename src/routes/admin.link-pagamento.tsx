@@ -22,6 +22,7 @@ function LinkGenerator() {
   const [locator, setLocator] = useState("");
   const [tripRoute, setTripRoute] = useState("");
   const [travelDate, setTravelDate] = useState("");
+  const [passengers, setPassengers] = useState("");
 
   const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
@@ -49,8 +50,9 @@ function LinkGenerator() {
       locator: locator.trim() || undefined,
       route: tripRoute.trim() || undefined,
       travelDate: travelDate.trim() || undefined,
+      passengers: passengers.trim() || undefined,
     });
-  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier, locator, tripRoute, travelDate]);
+  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier, locator, tripRoute, travelDate, passengers]);
 
 
   const parcelaLabel = split.equal
@@ -77,6 +79,7 @@ function LinkGenerator() {
       locator: locator.trim() || undefined,
       route: tripRoute.trim() || undefined,
       travelDate: travelDate.trim() || undefined,
+      passengers: passengers.trim() || undefined,
       url,
     });
   }
@@ -174,6 +177,14 @@ function LinkGenerator() {
                 onChange={(e) => setTravelDate(e.target.value)}
                 className={cls}
                 placeholder="Ex.: 12/03/2026 a 19/03/2026"
+              />
+            </Field>
+            <Field label="Nome dos passageiros (um por linha)">
+              <textarea
+                value={passengers}
+                onChange={(e) => setPassengers(e.target.value)}
+                className={`${cls} min-h-[70px]`}
+                placeholder={"Ex.: JOÃO DA SILVA\nMARIA DA SILVA\nPEDRO DA SILVA (CHD)"}
               />
             </Field>
           </div>

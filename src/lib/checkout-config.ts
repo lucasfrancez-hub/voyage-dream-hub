@@ -29,6 +29,7 @@ export function paymentLinkUrl(params: {
   locator?: string; // localizador da companhia aérea
   route?: string; // origem/destino e horários
   travelDate?: string; // data(s) da viagem
+  passengers?: string; // nome dos passageiros
 }): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://voeair.com";
@@ -47,6 +48,7 @@ export function paymentLinkUrl(params: {
   if (params.locator) q.set("loc", params.locator);
   if (params.route) q.set("rota", params.route);
   if (params.travelDate) q.set("datav", params.travelDate);
+  if (params.passengers) q.set("pax", params.passengers);
   return `${origin}/pagar?${q.toString()}`;
 }
 

@@ -30,6 +30,7 @@ type Search = {
   loc?: string;
   rota?: string;
   datav?: string;
+  pax?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
@@ -52,6 +53,7 @@ export const Route = createFileRoute("/pagar")({
     loc: asStr(s.loc),
     rota: asStr(s.rota),
     datav: asStr(s.datav),
+    pax: asStr(s.pax),
   }),
   component: PayPage,
 });
@@ -59,7 +61,7 @@ export const Route = createFileRoute("/pagar")({
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec, loc, rota, datav } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec, loc, rota, datav, pax } = Route.useSearch();
 
   const secureMode = simples !== "1";
   const supplierName = fornec?.trim() || "Via Air Agência e Representações Ltda";
@@ -67,6 +69,7 @@ function PayPage() {
   const tripLocator = loc?.trim() ?? "";
   const tripRoute = rota?.trim() ?? "";
   const tripDate = datav?.trim() ?? "";
+  const tripPassengers = pax?.trim() ?? "";
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
@@ -283,6 +286,7 @@ function PayPage() {
                     trip_locator: tripLocator || null,
                     trip_route: tripRoute || null,
                     trip_date: tripDate || null,
+                    trip_passengers: tripPassengers || null,
                     accepted_terms: true,
 
                     signature_data_url: signatureDataUrl,
@@ -479,7 +483,7 @@ function PayPage() {
                           <InfoRow label="Descrição do serviço" value={desc ?? "—"} />
                           {ref && <InfoRow label="Referência" value={ref} />}
                         </div>
-                        {(tripLocator || tripRoute || tripDate) && (
+                        {(tripLocator || tripRoute || tripDate || tripPassengers) && (
                           <div className="px-4 py-3 border-b border-border space-y-2">
                             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Informações da viagem</div>
                             <div className="grid sm:grid-cols-3 gap-3">
@@ -487,6 +491,7 @@ function PayPage() {
                               {tripRoute && <InfoRow label="Rota" value={tripRoute} />}
                               {tripDate && <InfoRow label="Data / horários" value={tripDate} />}
                             </div>
+                            {tripPassengers && <InfoRow label="Passageiros" value={tripPassengers} />}
                           </div>
                         )}
                         <div className="px-4 py-3 text-xs text-muted-foreground leading-relaxed space-y-2 max-h-64 overflow-auto">

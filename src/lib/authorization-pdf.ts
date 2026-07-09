@@ -21,6 +21,7 @@ export type AuthorizationData = {
   trip_locator?: string | null;
   trip_route?: string | null;
   trip_date?: string | null;
+  trip_passengers?: string | null;
   accepted_terms?: boolean;
   signature_data_url?: string | null;
 
@@ -292,12 +293,13 @@ export async function generateAuthorizationPDF(opts: {
   if (a.reference) kv("Referência", a.reference);
   y += 2;
 
-  if (a.trip_locator || a.trip_route || a.trip_date) {
+  if (a.trip_locator || a.trip_route || a.trip_date || a.trip_passengers) {
     h1("Informações da viagem");
     beginKvSection();
     if (a.trip_locator) kv("Localizador", a.trip_locator);
     if (a.trip_route) kv("Rota / voos / horários", a.trip_route);
     if (a.trip_date) kv("Data(s) da viagem", a.trip_date);
+    if (a.trip_passengers) kv("Passageiros", a.trip_passengers);
     y += 2;
   }
 

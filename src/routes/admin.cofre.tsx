@@ -83,6 +83,7 @@ type UnifiedItem = {
   locator?: string;
   route?: string;
   travelDate?: string;
+  passengers?: string;
   adults?: number;
   children?: number;
   notes?: string | null;
@@ -182,6 +183,7 @@ function CofrePage() {
       locator: e.locator,
       route: e.route,
       travelDate: e.travelDate,
+      passengers: e.passengers,
     }));
 
     const pedidos: UnifiedItem[] = (ordersQuery.data ?? [])
@@ -217,6 +219,7 @@ function CofrePage() {
           trip_locator?: string;
           trip_route?: string;
           trip_date?: string;
+          trip_passengers?: string;
         };
         return {
           id: `pedido:${o.id}`,
@@ -242,6 +245,7 @@ function CofrePage() {
           locator: auth.trip_locator ?? undefined,
           route: auth.trip_route ?? undefined,
           travelDate: auth.trip_date ?? undefined,
+          passengers: auth.trip_passengers ?? undefined,
           adults: o.adults,
           children: o.children,
           notes: o.notes,
@@ -387,7 +391,7 @@ function CofrePage() {
                       "{e.notes}"
                     </div>
                   )}
-                  {(e.supplier || e.locator || e.route || e.travelDate) && (
+                  {(e.supplier || e.locator || e.route || e.travelDate || e.passengers) && (
                     <div className="mt-2 grid gap-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
                       {e.supplier && (
                         <div>
@@ -411,6 +415,12 @@ function CofrePage() {
                         <div>
                           <span className="text-muted-foreground">Data: </span>
                           <span className="text-foreground">{e.travelDate}</span>
+                        </div>
+                      )}
+                      {e.passengers && (
+                        <div>
+                          <span className="text-muted-foreground">Passageiros: </span>
+                          <span className="whitespace-pre-line text-foreground">{e.passengers}</span>
                         </div>
                       )}
                     </div>

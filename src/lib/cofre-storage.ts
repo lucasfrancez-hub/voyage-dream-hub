@@ -14,6 +14,7 @@ export type CofreEntry = {
   locator?: string;
   route?: string;
   travelDate?: string;
+  passengers?: string;
   url: string;
 };
 
