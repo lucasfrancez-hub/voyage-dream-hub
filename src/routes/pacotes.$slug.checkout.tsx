@@ -420,7 +420,7 @@ function Checkout() {
                 )}
                 {Number(pkg.taxes ?? 0) > 0 && (
                   <SummaryLine
-                    label="Taxas inclusas"
+                    label="Já com taxas inclusas de"
                     value={formatBRL(Number(pkg.taxes))}
                   />
                 )}
