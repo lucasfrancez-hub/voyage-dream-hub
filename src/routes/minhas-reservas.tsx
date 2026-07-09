@@ -34,6 +34,7 @@ type Order = {
   supplier_name: string | null;
   supplier_order_number: string | null;
   notes: string | null;
+  airline_locator: string | null;
   package_id: string | null;
   package_snapshot: Record<string, unknown>;
 };
