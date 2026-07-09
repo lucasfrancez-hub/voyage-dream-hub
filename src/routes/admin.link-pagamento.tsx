@@ -50,8 +50,9 @@ function LinkGenerator() {
       locator: locator.trim() || undefined,
       route: tripRoute.trim() || undefined,
       travelDate: travelDate.trim() || undefined,
+      passengers: passengers.trim() || undefined,
     });
-  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier, locator, tripRoute, travelDate]);
+  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier, locator, tripRoute, travelDate, passengers]);
 
 
   const parcelaLabel = split.equal
