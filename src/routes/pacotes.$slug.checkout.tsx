@@ -8,6 +8,8 @@ import { formatBRL, formatDateRange, maskCPF } from "@/lib/format";
 import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
 import { CardForm, useCardData } from "@/components/CardForm";
 import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/components/BoletoForm";
+import { DateBRInput } from "@/components/DateBRInput";
+
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { TermsModal } from "@/components/TermsModal";
@@ -359,13 +361,13 @@ function Checkout() {
                       />
                     </Field>
                     <Field label="Data de nascimento">
-                      <input
-                        type="date"
+                      <DateBRInput
                         value={t.birth_date}
-                        onChange={(e) => updateTraveler(i, { birth_date: e.target.value })}
+                        onChange={(iso) => updateTraveler(i, { birth_date: iso })}
                         className={inputCls}
                       />
                     </Field>
+
                     {isPrimary && (
                       <>
                         <Field label="E-mail *">

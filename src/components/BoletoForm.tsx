@@ -175,7 +175,7 @@ export function BoletoForm({
             />
           </Field>
           <Field label="Data de nascimento *">
-            <DateBRInput value={data.birth_date} onChange={(iso) => setField("birth_date", iso)} className={inputCls} />
+            <DateBRInput value={data.birth_date} onChange={(iso) => onChange({ birth_date: iso })} className={inputCls} />
           </Field>
           <Field label="RG *">
             <input value={data.rg} onChange={set("rg")} className={inputCls} maxLength={30} />
@@ -184,7 +184,7 @@ export function BoletoForm({
             <input value={data.rg_issuer} onChange={set("rg_issuer")} className={inputCls} placeholder="SSP/UF" maxLength={20} />
           </Field>
           <Field label="Data de emissão do RG *">
-            <DateBRInput value={data.rg_issue_date} onChange={(iso) => setField("rg_issue_date", iso)} className={inputCls} />
+            <DateBRInput value={data.rg_issue_date} onChange={(iso) => onChange({ rg_issue_date: iso })} className={inputCls} />
           </Field>
 
           <Field label="Cidade de nascimento *">
