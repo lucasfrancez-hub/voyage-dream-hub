@@ -122,16 +122,7 @@ function PayPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={viaAirLogo.url} alt="Via Air" className="h-9 w-auto" />
-          </Link>
-          <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-brand-orange">
-            <ArrowLeft className="h-4 w-4" /> Voltar
-          </Link>
-        </div>
-      </header>
+      <TopBar backTo="/" backLabel="Voltar" />
 
       <div className="mx-auto max-w-4xl px-6 py-10">
         {invalid ? (
