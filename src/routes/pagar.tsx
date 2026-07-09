@@ -18,6 +18,7 @@ type Search = {
   entrada?: string;
   ref?: string;
   cliente?: string;
+  img?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
@@ -33,13 +34,14 @@ export const Route = createFileRoute("/pagar")({
     entrada: asStr(s.entrada),
     ref: asStr(s.ref),
     cliente: asStr(s.cliente),
+    img: asStr(s.img),
   }),
   component: PayPage,
 });
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, cliente } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, cliente, img } = Route.useSearch();
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
