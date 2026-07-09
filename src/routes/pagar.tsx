@@ -119,7 +119,8 @@ function PayPage() {
       const { error } = await supabase.from("orders").insert({
         package_id: null,
         package_snapshot: {
-          kind: "payment_link",
+          kind: secureMode ? "payment_link" : "payment_link_simple",
+          mode: secureMode ? "secure" : "simple",
           description: desc,
           reference: ref ?? null,
           installments,
@@ -140,21 +141,34 @@ function PayPage() {
               city: card.billingCity,
               state: card.billingState,
             },
-            authorization: {
-              type: "debit_authorization",
-              supplier: "VIA AIR",
-              holder_name: fullName,
-              holder_cpf: cpf,
-              masked_card: maskedCard,
-              brand: cardBrand,
-              expiry: card.expiry,
-              amount: totalNumber,
-              installments,
-              accepted_terms: true,
-              signature_data_url: signatureDataUrl,
-              signed_at: authorizedAt,
-              user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-            },
+            ...(secureMode
+              ? {
+                  authorization: {
+                    type: "debit_authorization",
+                    supplier: "VIA AIR",
+                    holder_name: fullName,
+                    holder_cpf: cpf,
+                    masked_card: maskedCard,
+                    brand: cardBrand,
+                    expiry: card.expiry,
+                    amount: totalNumber,
+                    installments,
+                    accepted_terms: true,
+                    signature_data_url: signatureDataUrl,
+                    signed_at: authorizedAt,
+                    user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+                  },
+                  liveness: liveness
+                    ? {
+                        photos: liveness.photos,
+                        motion_scores: liveness.motion_scores,
+                        min_motion_score: liveness.min_motion_score,
+                        captured_at: liveness.captured_at,
+                        user_agent: liveness.user_agent,
+                      }
+                    : null,
+                }
+              : {}),
           },
         },
         full_name: fullName,
