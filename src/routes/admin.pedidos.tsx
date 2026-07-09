@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Mail, Phone, User, CheckCircle2, XCircle, Trash2, CreditCard, Calendar, Hash, ChevronDown, MapPin, Package as PackageIcon, Users, FileText, FileSignature } from "lucide-react";
+import { Mail, Phone, User, CheckCircle2, XCircle, Trash2, CreditCard, Calendar, Hash, ChevronDown, MapPin, Package as PackageIcon, Users, FileText, FileSignature, Hotel, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -10,20 +10,9 @@ import { splitInstallments } from "@/lib/checkout-config";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 import { updateCofreOrder, deleteCofreOrder } from "@/lib/cofre.functions";
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
+import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 
-type FlightLike = {
-  airline?: string;
-  flight_number?: string;
-  departure_airport?: string;
-  arrival_airport?: string;
-  departure_time?: string;
-  arrival_time?: string;
-  departure_date?: string;
-  arrival_date?: string;
-  duration?: string;
-  stops?: number;
-  segments?: Array<Record<string, unknown>>;
-} & Record<string, unknown>;
+
 
 
 export const Route = createFileRoute("/admin/pedidos")({
@@ -170,8 +159,8 @@ function AdminOrders() {
             hotel_stars?: number | null;
             meal_plan?: string | null;
             includes?: string[] | null;
-            outbound_flight?: FlightLike | null;
-            return_flight?: FlightLike | null;
+            outbound_flight?: FlightInfo | null;
+            return_flight?: FlightInfo | null;
 
             first_amount?: number | null;
             travelers?: Array<{
@@ -368,14 +357,38 @@ function AdminOrders() {
                           {snap.reference && (
                             <DetailRow icon={Hash} label="Referência" value={snap.reference} />
                           )}
-                          {snap.hotel_name && (
-                            <DetailRow
-                              icon={PackageIcon}
-                              label={`Hotel${snap.hotel_stars ? ` · ${"★".repeat(snap.hotel_stars)}` : ""}`}
-                              value={`${snap.hotel_name}${snap.meal_plan ? ` — ${snap.meal_plan}` : ""}`}
-                            />
-                          )}
                         </div>
+
+                        {snap.hotel_name && (
+                          <div className="pt-2 border-t border-border">
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                              Hospedagem
+                            </div>
+                            <div className="rounded-2xl border border-border bg-card p-4 flex items-start gap-3">
+                              <div className="h-10 w-10 rounded-xl bg-muted/50 border border-border flex items-center justify-center shrink-0">
+                                <Hotel className="h-5 w-5 text-brand-orange" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold">{snap.hotel_name}</span>
+                                  {snap.hotel_stars ? (
+                                    <span className="inline-flex">
+                                      {Array.from({ length: snap.hotel_stars }).map((_, i) => (
+                                        <Star key={i} className="h-3.5 w-3.5 fill-brand-orange text-brand-orange" />
+                                      ))}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                {snap.meal_plan && (
+                                  <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    Regime: {snap.meal_plan}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {snap.summary && (
                           <div className="pt-2 border-t border-border text-sm text-muted-foreground whitespace-pre-wrap">
@@ -383,17 +396,28 @@ function AdminOrders() {
                           </div>
                         )}
 
+
                         {(snap.outbound_flight || snap.return_flight) && (
-                          <div className="pt-2 border-t border-border space-y-2">
+                          <div className="pt-2 border-t border-border space-y-3">
                             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                               Voos
                             </div>
-                            {snap.outbound_flight && (
-                              <FlightSummary flight={snap.outbound_flight} label="Ida" />
-                            )}
-                            {snap.return_flight && (
-                              <FlightSummary flight={snap.return_flight} label="Volta" />
-                            )}
+                            <div className="grid md:grid-cols-2 gap-3">
+                              {snap.outbound_flight && (
+                                <FlightCard
+                                  flight={snap.outbound_flight as FlightInfo}
+                                  kind="outbound"
+                                  adults={snap.base_occupancy ?? o.adults ?? 2}
+                                />
+                              )}
+                              {snap.return_flight && (
+                                <FlightCard
+                                  flight={snap.return_flight as FlightInfo}
+                                  kind="return"
+                                  adults={snap.base_occupancy ?? o.adults ?? 2}
+                                />
+                              )}
+                            </div>
                           </div>
                         )}
 
@@ -542,54 +566,6 @@ function AdminOrders() {
   );
 }
 
-function FlightSummary({ flight, label }: { flight: FlightLike; label: string }) {
-  const f = flight as Record<string, unknown>;
-  const airline = (f.airline as string) ?? "";
-  const flightNumber = (f.flight_number as string) ?? "";
-  const dep = (f.departure_airport as string) ?? "";
-  const arr = (f.arrival_airport as string) ?? "";
-  const depTime = (f.departure_time as string) ?? "";
-  const arrTime = (f.arrival_time as string) ?? "";
-  const depDate = (f.departure_date as string) ?? "";
-  const arrDate = (f.arrival_date as string) ?? "";
-  const stops = typeof f.stops === "number" ? (f.stops as number) : undefined;
-  const duration = (f.duration as string) ?? "";
-
-  return (
-    <div className="rounded-lg border border-border bg-background/40 p-3 text-sm">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange/15 text-brand-orange text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
-          {label}
-        </span>
-        {airline && <span className="font-semibold">{airline}</span>}
-        {flightNumber && <span className="text-xs text-muted-foreground">· {flightNumber}</span>}
-      </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-        {(dep || depTime || depDate) && (
-          <span>
-            <strong className="text-foreground">{dep || "—"}</strong>
-            {depTime ? ` · ${depTime}` : ""}
-            {depDate ? ` · ${depDate}` : ""}
-          </span>
-        )}
-        <span className="text-muted-foreground">→</span>
-        {(arr || arrTime || arrDate) && (
-          <span>
-            <strong className="text-foreground">{arr || "—"}</strong>
-            {arrTime ? ` · ${arrTime}` : ""}
-            {arrDate ? ` · ${arrDate}` : ""}
-          </span>
-        )}
-        {duration && <span className="text-muted-foreground">· {duration}</span>}
-        {stops != null && (
-          <span className="text-muted-foreground">
-            · {stops === 0 ? "direto" : `${stops} parada(s)`}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 
 function InfoLine({
