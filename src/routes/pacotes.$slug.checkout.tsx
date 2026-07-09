@@ -154,7 +154,7 @@ function Checkout() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from("orders")
         .insert({
           package_id: pkg.id,
