@@ -154,9 +154,11 @@ function Checkout() {
 
     setSubmitting(true);
     try {
+      const newId = crypto.randomUUID();
       const { error } = await supabase
         .from("orders")
         .insert({
+          id: newId,
           package_id: pkg.id,
           package_snapshot: {
             slug: pkg.slug,
@@ -234,6 +236,8 @@ function Checkout() {
 
       if (error) throw error;
 
+      const orderNumber = `#${String(parseInt(newId.replace(/-/g, "").slice(0, 12), 16) % 100000000).padStart(8, "0")}`;
+
       setSuccess(true);
 
       if (payment === "credit_card" || payment === "boleto") {
@@ -244,7 +248,7 @@ function Checkout() {
           adults > 1 ? "s" : ""
         }${children ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}) — Total ${formatBRL(
           totalPrice,
-        )}. Quero pagar via Pix.\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
+        )}. Quero pagar via Pix.\nPedido: ${orderNumber}\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
         toast.success("Abrindo WhatsApp para finalizar…");
         setTimeout(() => {
           window.open(whatsappUrl(message), "_blank");
