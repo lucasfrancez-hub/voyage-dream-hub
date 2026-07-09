@@ -173,9 +173,8 @@ function CofrePage() {
       const pm = (o.paymentMethod ?? "").toLowerCase();
       const instMatch = pm.match(/(\d+)x/);
       const installments = instMatch ? Number(instMatch[1]) : 1;
-      const snap = (o as unknown as { packageSnapshot?: Record<string, unknown> }).packageSnapshot;
-      void snap;
       const firstAmount = o.firstAmount && o.firstAmount > 0 ? o.firstAmount : undefined;
+
 
       const url = paymentLinkUrl({
         description: desc,
