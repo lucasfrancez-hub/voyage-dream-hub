@@ -23,8 +23,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
 import { customQuoteWhatsappUrl } from "@/lib/checkout-config";
-import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { ContactFooter } from "@/components/ContactFooter";
+import { TopBar } from "@/components/TopBar";
 
 export const Route = createFileRoute("/pacotes/$slug/")({
   component: PackageDetails,
