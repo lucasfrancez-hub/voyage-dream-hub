@@ -210,7 +210,7 @@ function Checkout() {
 
       <div className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="font-display text-3xl md:text-4xl font-bold">
-          Falta pouco para concluir sua reserva
+          Falta pouco para concluir <span className="text-brand-orange">sua reserva</span>
         </h1>
         <p className="mt-2 text-muted-foreground text-sm">
           Preencha seus dados e escolha a forma de pagamento. Nosso time confirma sua reserva em seguida.
