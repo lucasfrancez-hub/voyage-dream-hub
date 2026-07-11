@@ -96,6 +96,10 @@ function LinkSimpleGenerator() {
 
   function persistToCofre() {
     if (!url) return;
+    if (editingIdRef.current) {
+      deleteCofreEntry(editingIdRef.current);
+      editingIdRef.current = null;
+    }
     saveCofreEntry({
       customer: customer || undefined,
       customerPhone: customerPhone || undefined,
@@ -124,7 +128,9 @@ function LinkSimpleGenerator() {
           <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
             <Link2 className="h-4 w-4" /> Link cartão convencional
           </div>
-          <h1 className="mt-1 font-display text-3xl font-bold">Link cartão sem verificação</h1>
+          <h1 className="mt-1 font-display text-3xl font-bold">
+            {isEditing ? "Editar link do cofre" : "Link cartão sem verificação"}
+          </h1>
         </div>
         <Link
           to="/admin/cofre"
