@@ -148,7 +148,9 @@ function LinkGenerator() {
           <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
             <Link2 className="h-4 w-4" /> Gerar link de pagamento
           </div>
-          <h1 className="mt-1 font-display text-3xl font-bold">Link do cofre Via Air</h1>
+          <h1 className="mt-1 font-display text-3xl font-bold">
+            {isEditing ? "Editar link do cofre" : "Link do cofre Via Air"}
+          </h1>
         </div>
         <Link
           to="/admin/cofre"
