@@ -15,6 +15,12 @@ export type CofreEntry = {
   route?: string;
   travelDate?: string;
   passengers?: string;
+  hotel?: string;
+  flights?: string;
+  checkin?: string;
+  checkout?: string;
+  days?: string;
+  nights?: string;
   url: string;
 };
 
