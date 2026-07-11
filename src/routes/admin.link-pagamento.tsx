@@ -147,7 +147,15 @@ function LinkGenerator() {
             />
           </Field>
           <Field label="Descrição / referência *">
-            <input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} placeholder="Pacote Cancún 5 dias" />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={`${cls} min-h-[90px]`}
+              placeholder={"Pacote Cancún 5 dias\nInclui traslados e passeios"}
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Quebras de linha são preservadas no link do cliente e no PDF.
+            </span>
           </Field>
           <Field label="Fornecedor (nome que aparecerá na fatura do cartão) *">
             <input required value={supplier} onChange={(e) => setSupplier(e.target.value)} className={cls} placeholder="Ex.: LATAM AIRLINES, CVC, Decolar" />
