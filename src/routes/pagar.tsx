@@ -13,7 +13,7 @@ import { DateBRInput } from "@/components/DateBRInput";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 
-const MAX_INSTALLMENTS = 10;
+const MAX_INSTALLMENTS = 12;
 
 
 type Search = {
