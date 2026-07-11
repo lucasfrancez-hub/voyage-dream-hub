@@ -409,7 +409,7 @@ function PayPage() {
               <ShieldCheck className="h-4 w-4" /> {secureMode ? "Pagamento seguro Via Air" : "Pagamento Via Air"}
             </div>
             <h1 className="mt-1 font-display text-3xl md:text-4xl font-bold">Finalize seu pagamento</h1>
-            <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
+            <p className="mt-2 text-sm text-muted-foreground whitespace-pre-line">{desc}</p>
 
 
             <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
