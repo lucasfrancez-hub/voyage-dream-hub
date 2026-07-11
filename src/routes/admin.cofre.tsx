@@ -23,6 +23,7 @@ import {
   MapPin,
   FileSignature,
   Hash,
+  Pencil,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ import {
 import {
   listCofreEntries,
   deleteCofreEntry,
+  stashEditEntry,
   type CofreEntry,
 } from "@/lib/cofre-storage";
 import {
@@ -563,13 +565,37 @@ function CofrePage() {
                   </button>
                 )}
                 {!e.order && (
-                  <button
-                    type="button"
-                    onClick={() => onDelete(e.id.replace(/^avulso:/, ""))}
-                    className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" /> Remover
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const entry = entries.find(
+                          (x) => x.id === e.id.replace(/^avulso:/, ""),
+                        );
+                        if (!entry) {
+                          toast.error("Entrada não encontrada");
+                          return;
+                        }
+                        stashEditEntry(entry);
+                        const isSimples = /[?&]simples=1(?:&|$)/.test(entry.url);
+                        router.navigate({
+                          to: isSimples
+                            ? "/admin/link-cartao-simples"
+                            : "/admin/link-pagamento",
+                        });
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full border border-brand-orange/40 text-brand-orange px-3.5 py-2 text-xs hover:bg-brand-orange/10 transition"
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(e.id.replace(/^avulso:/, ""))}
+                      className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Remover
+                    </button>
+                  </>
                 )}
               </div>
             </div>
