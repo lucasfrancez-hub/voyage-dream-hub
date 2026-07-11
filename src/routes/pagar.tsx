@@ -31,6 +31,12 @@ type Search = {
   rota?: string;
   datav?: string;
   pax?: string;
+  hotel?: string;
+  voos?: string;
+  cin?: string;
+  cout?: string;
+  dias?: string;
+  noites?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
@@ -54,6 +60,12 @@ export const Route = createFileRoute("/pagar")({
     rota: asStr(s.rota),
     datav: asStr(s.datav),
     pax: asStr(s.pax),
+    hotel: asStr(s.hotel),
+    voos: asStr(s.voos),
+    cin: asStr(s.cin),
+    cout: asStr(s.cout),
+    dias: asStr(s.dias),
+    noites: asStr(s.noites),
   }),
   component: PayPage,
 });
@@ -61,7 +73,7 @@ export const Route = createFileRoute("/pagar")({
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec, loc, rota, datav, pax } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec, loc, rota, datav, pax, hotel, voos, cin, cout, dias, noites } = Route.useSearch();
 
   const secureMode = simples !== "1";
   const supplierName = fornec?.trim() || "Via Air Agência e Representações Ltda";
@@ -70,6 +82,14 @@ function PayPage() {
   const tripRoute = rota?.trim() ?? "";
   const tripDate = datav?.trim() ?? "";
   const tripPassengers = pax?.trim() ?? "";
+  const tripHotel = hotel?.trim() ?? "";
+  const tripFlights = voos?.trim() ?? "";
+  const tripCheckin = cin?.trim() ?? "";
+  const tripCheckout = cout?.trim() ?? "";
+  const tripDays = dias?.trim() ?? "";
+  const tripNights = noites?.trim() ?? "";
+  const hasExtraTrip =
+    tripHotel || tripFlights || tripCheckin || tripCheckout || tripDays || tripNights;
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
