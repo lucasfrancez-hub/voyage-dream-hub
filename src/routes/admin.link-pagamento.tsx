@@ -23,6 +23,12 @@ function LinkGenerator() {
   const [tripRoute, setTripRoute] = useState("");
   const [travelDate, setTravelDate] = useState("");
   const [passengers, setPassengers] = useState("");
+  const [hotel, setHotel] = useState("");
+  const [flights, setFlights] = useState("");
+  const [checkin, setCheckin] = useState("");
+  const [checkout, setCheckout] = useState("");
+  const [days, setDays] = useState("");
+  const [nights, setNights] = useState("");
 
   const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
