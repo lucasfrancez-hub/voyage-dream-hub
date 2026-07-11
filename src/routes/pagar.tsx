@@ -604,7 +604,23 @@ function PayPage() {
               <aside className="lg:sticky lg:top-6 h-fit">
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] space-y-3">
                   <h3 className="font-semibold">Resumo</h3>
-                  <div className="text-sm">{desc}</div>
+                  <div className="text-sm whitespace-pre-line">{desc}</div>
+                  {hasExtraTrip && (
+                    <div className="rounded-lg border border-border bg-background/60 p-3 text-xs space-y-1">
+                      {tripHotel && <div><span className="text-muted-foreground">Hotel:</span> {tripHotel}</div>}
+                      {tripFlights && <div className="whitespace-pre-line"><span className="text-muted-foreground">Voos:</span> {tripFlights}</div>}
+                      {(tripCheckin || tripCheckout) && (
+                        <div>
+                          <span className="text-muted-foreground">Check-in/out:</span> {tripCheckin || "—"} → {tripCheckout || "—"}
+                        </div>
+                      )}
+                      {(tripDays || tripNights) && (
+                        <div>
+                          <span className="text-muted-foreground">Duração:</span> {tripDays || "—"} dia(s) / {tripNights || "—"} noite(s)
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {ref && <div className="text-xs text-muted-foreground">Ref: {ref}</div>}
                   <div className="border-t border-border pt-3 flex justify-between items-baseline">
                     <span className="text-muted-foreground text-sm">Total</span>
