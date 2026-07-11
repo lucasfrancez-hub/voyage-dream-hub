@@ -307,6 +307,12 @@ function PayPage() {
                     trip_route: tripRoute || null,
                     trip_date: tripDate || null,
                     trip_passengers: tripPassengers || null,
+                    trip_hotel: tripHotel || null,
+                    trip_flights: tripFlights || null,
+                    trip_checkin: tripCheckin || null,
+                    trip_checkout: tripCheckout || null,
+                    trip_days: tripDays || null,
+                    trip_nights: tripNights || null,
                     accepted_terms: true,
 
                     signature_data_url: signatureDataUrl,
