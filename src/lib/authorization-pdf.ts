@@ -22,6 +22,12 @@ export type AuthorizationData = {
   trip_route?: string | null;
   trip_date?: string | null;
   trip_passengers?: string | null;
+  trip_hotel?: string | null;
+  trip_flights?: string | null;
+  trip_checkin?: string | null;
+  trip_checkout?: string | null;
+  trip_days?: string | null;
+  trip_nights?: string | null;
   accepted_terms?: boolean;
   signature_data_url?: string | null;
 
@@ -293,12 +299,21 @@ export async function generateAuthorizationPDF(opts: {
   if (a.reference) kv("Referência", a.reference);
   y += 2;
 
-  if (a.trip_locator || a.trip_route || a.trip_date || a.trip_passengers) {
+  const hasExtraTrip =
+    a.trip_hotel || a.trip_flights || a.trip_checkin || a.trip_checkout || a.trip_days || a.trip_nights;
+  if (a.trip_locator || a.trip_route || a.trip_date || a.trip_passengers || hasExtraTrip) {
     h1("Informações da viagem");
     beginKvSection();
     if (a.trip_locator) kv("Localizador", a.trip_locator);
     if (a.trip_route) kv("Rota / voos / horários", a.trip_route);
+    if (a.trip_flights) kv("Voos", a.trip_flights);
+    if (a.trip_hotel) kv("Hotel / hospedagem", a.trip_hotel);
     if (a.trip_date) kv("Data(s) da viagem", a.trip_date);
+    if (a.trip_checkin) kv("Check-in", a.trip_checkin);
+    if (a.trip_checkout) kv("Check-out", a.trip_checkout);
+    if (a.trip_days || a.trip_nights) {
+      kv("Duração", `${a.trip_days || "—"} dia(s) / ${a.trip_nights || "—"} noite(s)`);
+    }
     if (a.trip_passengers) kv("Passageiros", a.trip_passengers);
     y += 2;
   }

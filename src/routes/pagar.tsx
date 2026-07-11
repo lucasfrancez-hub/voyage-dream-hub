@@ -31,6 +31,12 @@ type Search = {
   rota?: string;
   datav?: string;
   pax?: string;
+  hotel?: string;
+  voos?: string;
+  cin?: string;
+  cout?: string;
+  dias?: string;
+  noites?: string;
 };
 
 const asStr = (v: unknown): string | undefined => {
@@ -54,6 +60,12 @@ export const Route = createFileRoute("/pagar")({
     rota: asStr(s.rota),
     datav: asStr(s.datav),
     pax: asStr(s.pax),
+    hotel: asStr(s.hotel),
+    voos: asStr(s.voos),
+    cin: asStr(s.cin),
+    cout: asStr(s.cout),
+    dias: asStr(s.dias),
+    noites: asStr(s.noites),
   }),
   component: PayPage,
 });
@@ -61,7 +73,7 @@ export const Route = createFileRoute("/pagar")({
 
 function PayPage() {
   const navigate = useNavigate();
-  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec, loc, rota, datav, pax } = Route.useSearch();
+  const { desc, total, parcelas, entrada, ref, pedido, cliente, img, simples, fornec, loc, rota, datav, pax, hotel, voos, cin, cout, dias, noites } = Route.useSearch();
 
   const secureMode = simples !== "1";
   const supplierName = fornec?.trim() || "Via Air Agência e Representações Ltda";
@@ -70,6 +82,14 @@ function PayPage() {
   const tripRoute = rota?.trim() ?? "";
   const tripDate = datav?.trim() ?? "";
   const tripPassengers = pax?.trim() ?? "";
+  const tripHotel = hotel?.trim() ?? "";
+  const tripFlights = voos?.trim() ?? "";
+  const tripCheckin = cin?.trim() ?? "";
+  const tripCheckout = cout?.trim() ?? "";
+  const tripDays = dias?.trim() ?? "";
+  const tripNights = noites?.trim() ?? "";
+  const hasExtraTrip =
+    tripHotel || tripFlights || tripCheckin || tripCheckout || tripDays || tripNights;
 
   const totalNumber = Number(total) || 0;
   const entradaNumber = Number(entrada) || 0;
@@ -287,6 +307,12 @@ function PayPage() {
                     trip_route: tripRoute || null,
                     trip_date: tripDate || null,
                     trip_passengers: tripPassengers || null,
+                    trip_hotel: tripHotel || null,
+                    trip_flights: tripFlights || null,
+                    trip_checkin: tripCheckin || null,
+                    trip_checkout: tripCheckout || null,
+                    trip_days: tripDays || null,
+                    trip_nights: tripNights || null,
                     accepted_terms: true,
 
                     signature_data_url: signatureDataUrl,
@@ -383,7 +409,7 @@ function PayPage() {
               <ShieldCheck className="h-4 w-4" /> {secureMode ? "Pagamento seguro Via Air" : "Pagamento Via Air"}
             </div>
             <h1 className="mt-1 font-display text-3xl md:text-4xl font-bold">Finalize seu pagamento</h1>
-            <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
+            <p className="mt-2 text-sm text-muted-foreground whitespace-pre-line">{desc}</p>
 
 
             <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
@@ -483,14 +509,20 @@ function PayPage() {
                           <InfoRow label="Descrição do serviço" value={desc ?? "—"} />
                           {ref && <InfoRow label="Referência" value={ref} />}
                         </div>
-                        {(tripLocator || tripRoute || tripDate || tripPassengers) && (
+                        {(tripLocator || tripRoute || tripDate || tripPassengers || hasExtraTrip) && (
                           <div className="px-4 py-3 border-b border-border space-y-2">
                             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Informações da viagem</div>
                             <div className="grid sm:grid-cols-3 gap-3">
                               {tripLocator && <InfoRow label="Localizador" value={tripLocator} />}
                               {tripRoute && <InfoRow label="Rota" value={tripRoute} />}
                               {tripDate && <InfoRow label="Data / horários" value={tripDate} />}
+                              {tripCheckin && <InfoRow label="Check-in" value={tripCheckin} />}
+                              {tripCheckout && <InfoRow label="Check-out" value={tripCheckout} />}
+                              {tripDays && <InfoRow label="Dias" value={tripDays} />}
+                              {tripNights && <InfoRow label="Noites" value={tripNights} />}
                             </div>
+                            {tripHotel && <InfoRow label="Hotel / hospedagem" value={tripHotel} />}
+                            {tripFlights && <InfoRow label="Voos" value={tripFlights} />}
                             {tripPassengers && <InfoRow label="Passageiros" value={tripPassengers} />}
                           </div>
                         )}
@@ -572,7 +604,23 @@ function PayPage() {
               <aside className="lg:sticky lg:top-6 h-fit">
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] space-y-3">
                   <h3 className="font-semibold">Resumo</h3>
-                  <div className="text-sm">{desc}</div>
+                  <div className="text-sm whitespace-pre-line">{desc}</div>
+                  {hasExtraTrip && (
+                    <div className="rounded-lg border border-border bg-background/60 p-3 text-xs space-y-1">
+                      {tripHotel && <div><span className="text-muted-foreground">Hotel:</span> {tripHotel}</div>}
+                      {tripFlights && <div className="whitespace-pre-line"><span className="text-muted-foreground">Voos:</span> {tripFlights}</div>}
+                      {(tripCheckin || tripCheckout) && (
+                        <div>
+                          <span className="text-muted-foreground">Check-in/out:</span> {tripCheckin || "—"} → {tripCheckout || "—"}
+                        </div>
+                      )}
+                      {(tripDays || tripNights) && (
+                        <div>
+                          <span className="text-muted-foreground">Duração:</span> {tripDays || "—"} dia(s) / {tripNights || "—"} noite(s)
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {ref && <div className="text-xs text-muted-foreground">Ref: {ref}</div>}
                   <div className="border-t border-border pt-3 flex justify-between items-baseline">
                     <span className="text-muted-foreground text-sm">Total</span>
@@ -651,7 +699,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="font-medium text-sm text-foreground break-words">{value}</div>
+      <div className="font-medium text-sm text-foreground break-words whitespace-pre-line">{value}</div>
     </div>
   );
 }

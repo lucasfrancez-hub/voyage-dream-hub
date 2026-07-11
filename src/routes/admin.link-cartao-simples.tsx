@@ -18,6 +18,12 @@ function LinkSimpleGenerator() {
   const [installments, setInstallments] = useState(10);
   const [orderRef, setOrderRef] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
+  const [hotel, setHotel] = useState("");
+  const [flights, setFlights] = useState("");
+  const [checkin, setCheckin] = useState("");
+  const [checkout, setCheckout] = useState("");
+  const [days, setDays] = useState("");
+  const [nights, setNights] = useState("");
 
   const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
@@ -41,8 +47,14 @@ function LinkSimpleGenerator() {
       orderNumber: orderNumber.trim() || undefined,
       customerName: customer || undefined,
       imageUrl: imageUrl || undefined,
+      hotel: hotel.trim() || undefined,
+      flights: flights.trim() || undefined,
+      checkin: checkin.trim() || undefined,
+      checkout: checkout.trim() || undefined,
+      days: days.trim() || undefined,
+      nights: nights.trim() || undefined,
     });
-  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl]);
+  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, hotel, flights, checkin, checkout, days, nights]);
 
 
   const parcelaLabel = split.equal
@@ -65,6 +77,12 @@ function LinkSimpleGenerator() {
       orderRef: orderRef || undefined,
       orderNumber: orderNumber.trim() || undefined,
       imageUrl: imageUrl || undefined,
+      hotel: hotel.trim() || undefined,
+      flights: flights.trim() || undefined,
+      checkin: checkin.trim() || undefined,
+      checkout: checkout.trim() || undefined,
+      days: days.trim() || undefined,
+      nights: nights.trim() || undefined,
       url,
     });
   }
@@ -112,7 +130,15 @@ function LinkSimpleGenerator() {
             />
           </Field>
           <Field label="Descrição / referência *">
-            <input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} placeholder="Pacote Cancún 5 dias" />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={`${cls} min-h-[90px]`}
+              placeholder={"Pacote Cancún 5 dias\nInclui traslados e passeios"}
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Quebras de linha são preservadas no link do cliente.
+            </span>
           </Field>
           <Field label="Número do pedido (opcional)">
             <input
@@ -126,6 +152,38 @@ function LinkSimpleGenerator() {
               Aparecerá como número do pedido no cofre e nos comprovantes.
             </span>
           </Field>
+
+          <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              Informações da viagem (opcionais — aparecem no link do cliente)
+            </div>
+            <Field label="Hotel / hospedagem">
+              <input value={hotel} onChange={(e) => setHotel(e.target.value)} className={cls} placeholder="Ex.: Hotel Riu Cancún — quarto duplo vista mar" />
+            </Field>
+            <Field label="Voos (companhia, número, horários)">
+              <textarea
+                value={flights}
+                onChange={(e) => setFlights(e.target.value)}
+                className={`${cls} min-h-[70px]`}
+                placeholder={"Ex.: LATAM LA3421 CWB 08:15 → GRU 09:35\nLATAM LA8188 GRU 22:10 → MIA 06:30"}
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Check-in">
+                <input value={checkin} onChange={(e) => setCheckin(e.target.value)} className={cls} placeholder="12/03/2026" />
+              </Field>
+              <Field label="Check-out">
+                <input value={checkout} onChange={(e) => setCheckout(e.target.value)} className={cls} placeholder="19/03/2026" />
+              </Field>
+              <Field label="Dias">
+                <input value={days} onChange={(e) => setDays(e.target.value)} className={cls} placeholder="Ex.: 7" />
+              </Field>
+              <Field label="Noites">
+                <input value={nights} onChange={(e) => setNights(e.target.value)} className={cls} placeholder="Ex.: 6" />
+              </Field>
+            </div>
+          </div>
+
           <Field label="Referência interna (opcional)">
             <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
           </Field>

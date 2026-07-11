@@ -30,6 +30,12 @@ export function paymentLinkUrl(params: {
   route?: string; // origem/destino e horários
   travelDate?: string; // data(s) da viagem
   passengers?: string; // nome dos passageiros
+  hotel?: string;
+  flights?: string;
+  checkin?: string;
+  checkout?: string;
+  days?: string;
+  nights?: string;
 }): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://voeair.com";
@@ -49,8 +55,15 @@ export function paymentLinkUrl(params: {
   if (params.route) q.set("rota", params.route);
   if (params.travelDate) q.set("datav", params.travelDate);
   if (params.passengers) q.set("pax", params.passengers);
+  if (params.hotel) q.set("hotel", params.hotel);
+  if (params.flights) q.set("voos", params.flights);
+  if (params.checkin) q.set("cin", params.checkin);
+  if (params.checkout) q.set("cout", params.checkout);
+  if (params.days) q.set("dias", params.days);
+  if (params.nights) q.set("noites", params.nights);
   return `${origin}/pagar?${q.toString()}`;
 }
+
 
 // Link de pagamento "convencional" (sem biometria/assinatura) — para clientes já conhecidos.
 export function paymentSimpleLinkUrl(params: {
@@ -63,6 +76,12 @@ export function paymentSimpleLinkUrl(params: {
   firstAmount?: number;
   imageUrl?: string;
   supplier?: string;
+  hotel?: string;
+  flights?: string;
+  checkin?: string;
+  checkout?: string;
+  days?: string;
+  nights?: string;
 }): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://voeair.com";
@@ -78,9 +97,16 @@ export function paymentSimpleLinkUrl(params: {
   if (params.customerName) q.set("cliente", params.customerName);
   if (params.imageUrl) q.set("img", params.imageUrl);
   if (params.supplier) q.set("fornec", params.supplier);
+  if (params.hotel) q.set("hotel", params.hotel);
+  if (params.flights) q.set("voos", params.flights);
+  if (params.checkin) q.set("cin", params.checkin);
+  if (params.checkout) q.set("cout", params.checkout);
+  if (params.days) q.set("dias", params.days);
+  if (params.nights) q.set("noites", params.nights);
   q.set("simples", "1");
   return `${origin}/pagar?${q.toString()}`;
 }
+
 
 // Link de pagamento por boleto bancário — cliente preenche a ficha de crédito.
 export function paymentBoletoLinkUrl(params: {
