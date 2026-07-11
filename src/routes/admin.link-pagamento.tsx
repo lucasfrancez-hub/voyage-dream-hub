@@ -111,6 +111,10 @@ function LinkGenerator() {
 
   function persistToCofre() {
     if (!url) return;
+    if (editingIdRef.current) {
+      deleteCofreEntry(editingIdRef.current);
+      editingIdRef.current = null;
+    }
     saveCofreEntry({
       customer: customer || undefined,
       customerPhone: customerPhone || undefined,
