@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link2, Copy, ExternalLink, MessageCircle, Vault, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { paymentSimpleLinkUrl, whatsappUrl, splitInstallments } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
-import { saveCofreEntry } from "@/lib/cofre-storage";
+import { saveCofreEntry, deleteCofreEntry, popEditEntry } from "@/lib/cofre-storage";
 
 export const Route = createFileRoute("/admin/link-cartao-simples")({
   component: LinkSimpleGenerator,
@@ -28,6 +28,35 @@ function LinkSimpleGenerator() {
   const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
   const [firstAmount, setFirstAmount] = useState("");
+  const editingIdRef = useRef<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    const entry = popEditEntry();
+    if (!entry) return;
+    editingIdRef.current = entry.id;
+    setIsEditing(true);
+    setCustomer(entry.customer ?? "");
+    setCustomerPhone(entry.customerPhone ?? "");
+    setDescription(entry.description ?? "");
+    setTotal(entry.total ? String(entry.total) : "");
+    setInstallments(entry.installments || 1);
+    setOrderRef(entry.orderRef ?? "");
+    setOrderNumber(entry.orderNumber ?? "");
+    setHotel(entry.hotel ?? "");
+    setFlights(entry.flights ?? "");
+    setCheckin(entry.checkin ?? "");
+    setCheckout(entry.checkout ?? "");
+    setDays(entry.days ?? "");
+    setNights(entry.nights ?? "");
+    setImageUrl(entry.imageUrl ?? "");
+    if (entry.firstAmount && entry.firstAmount > 0) {
+      setMode("first-higher");
+      setFirstAmount(String(entry.firstAmount));
+    }
+    toast.info("Editando link do cofre");
+  }, []);
+
 
   const totalNumber = Number(total.replace(",", ".")) || 0;
   const firstAmountNumber = Number(firstAmount.replace(",", ".")) || 0;
