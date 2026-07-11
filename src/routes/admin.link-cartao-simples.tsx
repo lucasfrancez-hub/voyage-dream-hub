@@ -18,6 +18,12 @@ function LinkSimpleGenerator() {
   const [installments, setInstallments] = useState(10);
   const [orderRef, setOrderRef] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
+  const [hotel, setHotel] = useState("");
+  const [flights, setFlights] = useState("");
+  const [checkin, setCheckin] = useState("");
+  const [checkout, setCheckout] = useState("");
+  const [days, setDays] = useState("");
+  const [nights, setNights] = useState("");
 
   const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
@@ -41,8 +47,14 @@ function LinkSimpleGenerator() {
       orderNumber: orderNumber.trim() || undefined,
       customerName: customer || undefined,
       imageUrl: imageUrl || undefined,
+      hotel: hotel.trim() || undefined,
+      flights: flights.trim() || undefined,
+      checkin: checkin.trim() || undefined,
+      checkout: checkout.trim() || undefined,
+      days: days.trim() || undefined,
+      nights: nights.trim() || undefined,
     });
-  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl]);
+  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, hotel, flights, checkin, checkout, days, nights]);
 
 
   const parcelaLabel = split.equal
@@ -65,6 +77,12 @@ function LinkSimpleGenerator() {
       orderRef: orderRef || undefined,
       orderNumber: orderNumber.trim() || undefined,
       imageUrl: imageUrl || undefined,
+      hotel: hotel.trim() || undefined,
+      flights: flights.trim() || undefined,
+      checkin: checkin.trim() || undefined,
+      checkout: checkout.trim() || undefined,
+      days: days.trim() || undefined,
+      nights: nights.trim() || undefined,
       url,
     });
   }
@@ -112,7 +130,15 @@ function LinkSimpleGenerator() {
             />
           </Field>
           <Field label="Descrição / referência *">
-            <input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} placeholder="Pacote Cancún 5 dias" />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={`${cls} min-h-[90px]`}
+              placeholder={"Pacote Cancún 5 dias\nInclui traslados e passeios"}
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Quebras de linha são preservadas no link do cliente.
+            </span>
           </Field>
           <Field label="Número do pedido (opcional)">
             <input
