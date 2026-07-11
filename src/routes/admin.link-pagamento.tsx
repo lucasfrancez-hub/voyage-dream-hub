@@ -57,8 +57,14 @@ function LinkGenerator() {
       route: tripRoute.trim() || undefined,
       travelDate: travelDate.trim() || undefined,
       passengers: passengers.trim() || undefined,
+      hotel: hotel.trim() || undefined,
+      flights: flights.trim() || undefined,
+      checkin: checkin.trim() || undefined,
+      checkout: checkout.trim() || undefined,
+      days: days.trim() || undefined,
+      nights: nights.trim() || undefined,
     });
-  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier, locator, tripRoute, travelDate, passengers]);
+  }, [totalNumber, installments, orderRef, orderNumber, description, customer, effectiveFirst, imageUrl, supplier, locator, tripRoute, travelDate, passengers, hotel, flights, checkin, checkout, days, nights]);
 
 
   const parcelaLabel = split.equal
@@ -86,6 +92,12 @@ function LinkGenerator() {
       route: tripRoute.trim() || undefined,
       travelDate: travelDate.trim() || undefined,
       passengers: passengers.trim() || undefined,
+      hotel: hotel.trim() || undefined,
+      flights: flights.trim() || undefined,
+      checkin: checkin.trim() || undefined,
+      checkout: checkout.trim() || undefined,
+      days: days.trim() || undefined,
+      nights: nights.trim() || undefined,
       url,
     });
   }
