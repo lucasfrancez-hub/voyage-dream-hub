@@ -509,14 +509,20 @@ function PayPage() {
                           <InfoRow label="Descrição do serviço" value={desc ?? "—"} />
                           {ref && <InfoRow label="Referência" value={ref} />}
                         </div>
-                        {(tripLocator || tripRoute || tripDate || tripPassengers) && (
+                        {(tripLocator || tripRoute || tripDate || tripPassengers || hasExtraTrip) && (
                           <div className="px-4 py-3 border-b border-border space-y-2">
                             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Informações da viagem</div>
                             <div className="grid sm:grid-cols-3 gap-3">
                               {tripLocator && <InfoRow label="Localizador" value={tripLocator} />}
                               {tripRoute && <InfoRow label="Rota" value={tripRoute} />}
                               {tripDate && <InfoRow label="Data / horários" value={tripDate} />}
+                              {tripCheckin && <InfoRow label="Check-in" value={tripCheckin} />}
+                              {tripCheckout && <InfoRow label="Check-out" value={tripCheckout} />}
+                              {tripDays && <InfoRow label="Dias" value={tripDays} />}
+                              {tripNights && <InfoRow label="Noites" value={tripNights} />}
                             </div>
+                            {tripHotel && <InfoRow label="Hotel / hospedagem" value={tripHotel} />}
+                            {tripFlights && <InfoRow label="Voos" value={tripFlights} />}
                             {tripPassengers && <InfoRow label="Passageiros" value={tripPassengers} />}
                           </div>
                         )}
