@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link2, Copy, ExternalLink, MessageCircle, Vault, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { paymentLinkUrl, whatsappUrl, splitInstallments } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
-import { saveCofreEntry } from "@/lib/cofre-storage";
+import { saveCofreEntry, deleteCofreEntry, popEditEntry } from "@/lib/cofre-storage";
 
 export const Route = createFileRoute("/admin/link-pagamento")({
   component: LinkGenerator,
@@ -33,6 +33,40 @@ function LinkGenerator() {
   const [imageUrl, setImageUrl] = useState("");
   const [mode, setMode] = useState<"equal" | "first-higher">("equal");
   const [firstAmount, setFirstAmount] = useState("");
+  const editingIdRef = useRef<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    const entry = popEditEntry();
+    if (!entry) return;
+    editingIdRef.current = entry.id;
+    setIsEditing(true);
+    setCustomer(entry.customer ?? "");
+    setCustomerPhone(entry.customerPhone ?? "");
+    setDescription(entry.description ?? "");
+    setSupplier(entry.supplier ?? "");
+    setTotal(entry.total ? String(entry.total) : "");
+    setInstallments(entry.installments || 1);
+    setOrderRef(entry.orderRef ?? "");
+    setOrderNumber(entry.orderNumber ?? "");
+    setLocator(entry.locator ?? "");
+    setTripRoute(entry.route ?? "");
+    setTravelDate(entry.travelDate ?? "");
+    setPassengers(entry.passengers ?? "");
+    setHotel(entry.hotel ?? "");
+    setFlights(entry.flights ?? "");
+    setCheckin(entry.checkin ?? "");
+    setCheckout(entry.checkout ?? "");
+    setDays(entry.days ?? "");
+    setNights(entry.nights ?? "");
+    setImageUrl(entry.imageUrl ?? "");
+    if (entry.firstAmount && entry.firstAmount > 0) {
+      setMode("first-higher");
+      setFirstAmount(String(entry.firstAmount));
+    }
+    toast.info("Editando link do cofre");
+  }, []);
+
 
   const totalNumber = Number(total.replace(",", ".")) || 0;
   const firstAmountNumber = Number(firstAmount.replace(",", ".")) || 0;
@@ -77,6 +111,10 @@ function LinkGenerator() {
 
   function persistToCofre() {
     if (!url) return;
+    if (editingIdRef.current) {
+      deleteCofreEntry(editingIdRef.current);
+      editingIdRef.current = null;
+    }
     saveCofreEntry({
       customer: customer || undefined,
       customerPhone: customerPhone || undefined,
@@ -110,7 +148,9 @@ function LinkGenerator() {
           <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
             <Link2 className="h-4 w-4" /> Gerar link de pagamento
           </div>
-          <h1 className="mt-1 font-display text-3xl font-bold">Link do cofre Via Air</h1>
+          <h1 className="mt-1 font-display text-3xl font-bold">
+            {isEditing ? "Editar link do cofre" : "Link do cofre Via Air"}
+          </h1>
         </div>
         <Link
           to="/admin/cofre"

@@ -67,3 +67,23 @@ export function deleteCofreEntry(id: string) {
 export function clearCofre() {
   localStorage.removeItem(KEY);
 }
+
+const EDIT_KEY = "viaair.cofre.edit.v1";
+
+export function stashEditEntry(entry: CofreEntry) {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(EDIT_KEY, JSON.stringify(entry));
+}
+
+export function popEditEntry(): CofreEntry | null {
+  if (typeof window === "undefined") return null;
+  const raw = sessionStorage.getItem(EDIT_KEY);
+  if (!raw) return null;
+  sessionStorage.removeItem(EDIT_KEY);
+  try {
+    return JSON.parse(raw) as CofreEntry;
+  } catch {
+    return null;
+  }
+}
+
