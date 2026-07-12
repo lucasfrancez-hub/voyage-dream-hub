@@ -587,6 +587,165 @@ function ItemCard({
   );
 }
 
+// ---- helpers de exibição ----
+function formatDate(v: string | null | undefined): string {
+  if (!v) return "";
+  const s = String(v);
+  const d = new Date(s.length === 10 ? `${s}T00:00:00` : s);
+  if (isNaN(d.getTime())) return s;
+  return d.toLocaleDateString("pt-BR");
+}
+function formatDT(v: string | null | undefined): string {
+  if (!v) return "";
+  const s = String(v);
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+type FlightGroup = { key: string; locator: string | null; items: OrderItem[] };
+function groupFlightItems(items: OrderItem[]): FlightGroup[] {
+  const map = new Map<string, FlightGroup>();
+  for (const it of items) {
+    const key = it.supplier_locator?.trim() || "__no_locator__";
+    if (!map.has(key)) map.set(key, { key, locator: it.supplier_locator?.trim() || null, items: [] });
+    map.get(key)!.items.push(it);
+  }
+  for (const g of map.values()) {
+    g.items.sort((a, b) => {
+      const da = (a.details as Record<string, unknown> | null)?.direction === "return" ? 1 : 0;
+      const db = (b.details as Record<string, unknown> | null)?.direction === "return" ? 1 : 0;
+      if (da !== db) return da - db;
+      return a.sort_order - b.sort_order;
+    });
+  }
+  return Array.from(map.values());
+}
+
+function FlightReservationCard({
+  locator, segments, passengers, onEdit, onDelete, onCancel, onReactivate,
+}: {
+  locator: string | null;
+  segments: OrderItem[];
+  passengers: OrderPassenger[];
+  onEdit: (it: OrderItem) => void;
+  onDelete: (it: OrderItem) => void;
+  onCancel: (it: OrderItem) => void;
+  onReactivate: (it: OrderItem) => void;
+}) {
+  const allCancelled = segments.every((s) => s.status === "cancelled");
+  const first = segments[0];
+  const d0 = (first?.details ?? {}) as Record<string, unknown>;
+  const supplier = typeof d0.supplier_name === "string" ? (d0.supplier_name as string) : "";
+  const ticket = typeof d0.ticket_number === "string" ? (d0.ticket_number as string) : "";
+  return (
+    <div className={`rounded-xl border p-4 ${allCancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)]">
+        {/* Coluna 1: localizador */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Plane className="h-3.5 w-3.5" /> Reserva aérea
+          </div>
+          <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
+            {locator ?? "—"}
+          </div>
+          {supplier && (
+            <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+              Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
+            </div>
+          )}
+          {ticket && (
+            <button
+              type="button"
+              onClick={() => { navigator.clipboard.writeText(ticket); toast.success("Bilhete copiado"); }}
+              className="mt-2 inline-flex items-center gap-1 rounded-md border border-brand-orange/40 bg-brand-orange/10 px-1.5 py-0.5 text-[10px] font-mono text-brand-orange hover:bg-brand-orange/20"
+              title="Copiar bilhete"
+            >
+              <Hash className="h-3 w-3" /> {ticket}
+            </button>
+          )}
+          {allCancelled && <div className="mt-1 text-[10px] font-semibold uppercase text-destructive">Cancelado</div>}
+        </div>
+
+        {/* Coluna 2: segmentos */}
+        <div className="min-w-0 space-y-2 border-l border-border pl-4">
+          {segments.map((seg) => {
+            const d = (seg.details ?? {}) as Record<string, unknown>;
+            const dir = (d.direction as string) || "";
+            const from = (d.from_iata as string) || (d.origin as string) || "";
+            const to = (d.to_iata as string) || (d.destination as string) || "";
+            const fromCity = d.from_city as string | undefined;
+            const toCity = d.to_city as string | undefined;
+            const flightNum = (d.flight_number as string) || "";
+            const airline = (d.airline as string) || "";
+            const cabin = ((d.cabin_class ?? d.cabin) as string) || "";
+            const dep = (d.depart_at ?? d.departure) as string | undefined;
+            const arr = (d.arrive_at ?? d.arrival) as string | undefined;
+            const cancelled = seg.status === "cancelled";
+            return (
+              <div key={seg.id} className={`rounded-lg border border-border/60 bg-muted/20 p-2.5 text-sm ${cancelled ? "opacity-60" : ""}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${dir === "return" ? "bg-brand-blue/15 text-brand-blue" : "bg-brand-orange/15 text-brand-orange"}`}>
+                      {dir === "return" ? "Volta" : dir === "outbound" ? "Ida" : "Trecho"}
+                    </span>
+                    {airline && <span className="text-xs text-muted-foreground">{airline}</span>}
+                    {flightNum && <span className="font-mono text-xs">{flightNum}</span>}
+                    {cabin && <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{cabin}</span>}
+                    {cancelled && <span className="text-[10px] font-semibold uppercase text-destructive">Cancelado</span>}
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    <Button size="sm" variant="ghost" onClick={() => onEdit(seg)}><Pencil className="h-3.5 w-3.5" /></Button>
+                    {cancelled ? (
+                      <Button size="sm" variant="ghost" onClick={() => onReactivate(seg)} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
+                    ) : (
+                      <Button size="sm" variant="ghost" onClick={() => onCancel(seg)} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={() => onDelete(seg)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                  </div>
+                </div>
+                <div className="mt-1.5 grid gap-1 sm:grid-cols-2">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Partida</div>
+                    <div className="font-medium">{from}{fromCity ? ` · ${fromCity}` : ""}</div>
+                    <div className="text-xs">{formatDT(dep)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Chegada</div>
+                    <div className="font-medium">{to}{toCity ? ` · ${toCity}` : ""}</div>
+                    <div className="text-xs">{formatDT(arr)}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Coluna 3: passageiros */}
+        <div className="min-w-0 border-l border-border pl-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Users className="h-3.5 w-3.5" /> Passageiros ({passengers.length})
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {passengers.length === 0 && <li className="text-xs text-muted-foreground">Nenhum passageiro</li>}
+            {passengers.map((p) => (
+              <li key={p.id} className="text-xs">
+                <div className="font-medium text-foreground">{p.full_name}</div>
+                <div className="text-muted-foreground">
+                  {p.passenger_type}
+                  {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 function ItemDialog({
   open, onOpenChange, initial, kind, onSave,
 }: {
