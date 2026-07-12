@@ -66,6 +66,7 @@ export const createAdminUser = createServerFn({ method: "POST" })
         email: z.string().email(),
         password: z.string().min(8).max(72),
         role: z.enum(["admin", "user"]),
+        fullName: z.string().trim().max(120).optional(),
       })
       .parse(input),
   )
@@ -76,12 +77,11 @@ export const createAdminUser = createServerFn({ method: "POST" })
       email: data.email,
       password: data.password,
       email_confirm: true,
+      user_metadata: data.fullName ? { full_name: data.fullName } : undefined,
     });
     if (error) throw new Error(error.message);
     const userId = created.user?.id;
     if (!userId) throw new Error("Falha ao criar usuário");
-    // Reconciliar role: o trigger handle_new_user_role já insere 'user' (ou 'admin' se for o 1º).
-    // Se pedido diferente do atual, ajustar.
     const { data: existing } = await supabaseAdmin
       .from("user_roles")
       .select("role")
@@ -90,7 +90,36 @@ export const createAdminUser = createServerFn({ method: "POST" })
     if (!hasRequested) {
       await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: data.role });
     }
+    if (data.fullName) {
+      await supabaseAdmin
+        .from("profiles")
+        .upsert({ id: userId, full_name: data.fullName });
+    }
     return { id: userId, email: created.user!.email ?? data.email };
+  });
+
+export const setAdminUserFullName = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        fullName: z.string().trim().max(120),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureGestor(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const name = data.fullName.length > 0 ? data.fullName : null;
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .upsert({ id: data.userId, full_name: name });
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      user_metadata: { full_name: name },
+    });
+    return { ok: true };
   });
 
 export const deleteAdminUser = createServerFn({ method: "POST" })
