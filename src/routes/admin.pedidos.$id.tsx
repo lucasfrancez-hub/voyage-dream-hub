@@ -1683,9 +1683,16 @@ function ItemDialog({
                 </div>
               ))}
 
-              <Button type="button" variant="outline" size="sm" onClick={addSegment} className="self-start">
-                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar trecho (conexão / volta)
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => addSegment("connection")}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar conexão
+                </Button>
+                {!hasReturn() && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => addSegment("return")}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar volta
+                  </Button>
+                )}
+              </div>
             </>
           ) : (
             <>
