@@ -387,7 +387,17 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   ctx.y -= 10;
 
   // Texto legal
-  const total = d.financials.reduce((s, f) => s + f.total, 0) || o.totalPrice;
+  const pkg = getPackageInfo(d);
+  let total: number;
+  if (pkg.isPackage) {
+    const fareNet = Math.max(0, pkg.fare - pkg.taxes);
+    const defaultCommission = Number((fareNet * 0.12).toFixed(2));
+    const commissionTotal = Number((fareNet * (pkg.commissionPct / 100)).toFixed(2));
+    const extra = Math.max(0, commissionTotal - defaultCommission);
+    total = Number((fareNet + pkg.taxes + extra).toFixed(2));
+  } else {
+    total = d.financials.reduce((s, f) => s + f.total, 0) || o.totalPrice;
+  }
   const legal =
     `A ${COMPANY.name}, declara que os serviços turísticos relacionados neste documento, ` +
     `adquiridos e quitados conforme formas de pagamento abaixo, pelo Sr.(a) ${payer.name} ` +
