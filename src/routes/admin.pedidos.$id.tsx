@@ -27,6 +27,7 @@ import {
   type OrderDetail, type OrderPassenger, type OrderItem, type OrderItemFinancial,
 } from "@/lib/orders.functions";
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
+import type { Json } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   component: OrderDetailPage,
