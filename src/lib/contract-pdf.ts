@@ -347,7 +347,7 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   text(ctx, `RECIBO - VENDA ${o.orderNumber} - ${createdDate}`, MARGIN, { size: 14, bold: true });
   ctx.y -= 22;
 
-  // Bloco pagante
+  // Bloco pagante (sempre exibido com todos os campos)
   const payer = {
     name: o.payerFullName || o.fullName,
     address: o.payerAddress ?? "",
@@ -357,34 +357,51 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
     state: o.payerState ?? "",
     zip: o.payerZip ?? "",
     cpf: o.payerCpf || o.cpf || "",
-    email: o.payerEmail || o.email,
-    phone: o.payerPhone || o.phone,
+    email: o.payerEmail || o.email || "",
+    phone: o.payerPhone || o.phone || "",
   };
-  const lineH = 14;
-  const bold = (label: string, val: string, x: number, y: number) => {
-    text(ctx, label, x, { size: 9.5, bold: true, y });
-    const lw = ctx.fontBold.widthOfTextAtSize(sanitize(label), 9.5);
-    text(ctx, " " + val, x + lw, { size: 9.5, y });
+
+  // caixa com fundo suave para destaque
+  const boxTop = ctx.y + 4;
+  const lineH = 13;
+  const rows = 5;
+  const boxH = rows * lineH + 12;
+  ctx.page.drawRectangle({
+    x: MARGIN - 4, y: boxTop - boxH, width: CONTENT_W + 8, height: boxH,
+    color: rgb(0.97, 0.97, 0.98),
+  });
+  ctx.page.drawRectangle({
+    x: MARGIN - 4, y: boxTop - boxH, width: 3, height: boxH, color: COLOR_BRAND,
+  });
+
+  const labelVal = (label: string, val: string, x: number, y: number) => {
+    text(ctx, label, x, { size: 9, bold: true, y, color: COLOR_MUTED });
+    const lw = ctx.fontBold.widthOfTextAtSize(sanitize(label), 9);
+    text(ctx, " " + (val || "—"), x + lw, { size: 9.5, y });
   };
-  bold("Pagante:", payer.name, MARGIN, ctx.y); ctx.y -= lineH;
-  const addrLine = [payer.address, payer.number].filter(Boolean).join(", ");
-  if (addrLine) { bold("Endereço:", addrLine, MARGIN, ctx.y); ctx.y -= lineH; }
-  if (payer.district || payer.city || payer.state || payer.zip) {
-    const s = [
-      payer.district && `Bairro: ${payer.district}`,
-      payer.city && `Cidade: ${payer.city}`,
-      payer.state && `UF: ${payer.state}`,
-      payer.zip && `CEP: ${payer.zip}`,
-    ].filter(Boolean).join("    ");
-    text(ctx, s, MARGIN, { size: 9.5 }); ctx.y -= lineH;
-  }
-  if (payer.cpf) { bold("CPF/CNPJ:", payer.cpf, MARGIN, ctx.y); ctx.y -= lineH; }
-  const emailPhone = [
-    payer.email && `E-mail: ${payer.email}`,
-    payer.phone && `Telefones: ${payer.phone}`,
-  ].filter(Boolean).join("    ");
-  if (emailPhone) { text(ctx, emailPhone, MARGIN, { size: 9.5 }); ctx.y -= lineH; }
-  ctx.y -= 10;
+
+  ctx.y -= 4;
+  // Linha 1: nome
+  labelVal("Pagante:", payer.name, MARGIN, ctx.y); ctx.y -= lineH;
+  // Linha 2: CPF + telefone + e-mail
+  const halfW = CONTENT_W / 2;
+  labelVal("CPF/CNPJ:", payer.cpf, MARGIN, ctx.y);
+  labelVal("Telefone:", payer.phone, MARGIN + halfW, ctx.y);
+  ctx.y -= lineH;
+  labelVal("E-mail:", payer.email, MARGIN, ctx.y);
+  ctx.y -= lineH;
+  // Linha 3: endereço, número
+  const addrLine = [payer.address, payer.number && `Nº ${payer.number}`].filter(Boolean).join(", ") || "—";
+  labelVal("Endereço:", addrLine, MARGIN, ctx.y); ctx.y -= lineH;
+  // Linha 4: bairro, cidade, UF, CEP
+  const locLine = [
+    payer.district && `Bairro: ${payer.district}`,
+    payer.city && `Cidade: ${payer.city}`,
+    payer.state && `UF: ${payer.state}`,
+    payer.zip && `CEP: ${payer.zip}`,
+  ].filter(Boolean).join("   ·   ") || "—";
+  labelVal("Local:", locLine, MARGIN, ctx.y); ctx.y -= lineH;
+  ctx.y -= 12;
 
   // Texto legal — usa SEMPRE o total do pedido (espelha o cabeçalho e o ajuste de comissão).
   const total = Number(o.totalPrice ?? 0)
@@ -398,6 +415,7 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   drawParagraph(ctx, legal, 9.5, 13);
   ctx.y -= 8;
 };
+
 
 
 
