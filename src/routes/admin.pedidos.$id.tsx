@@ -1505,7 +1505,6 @@ function ServiceReservationCard({
             {value > 0 && (
               <div>
                 Valor: <span className="text-foreground">{formatBRL(value)}</span>
-                {tax > 0 ? <> · Taxa: <span className="text-foreground">{formatBRL(tax)}</span></> : null}
               </div>
             )}
             {typeof d.notes === "string" && (d.notes as string).trim() && (
