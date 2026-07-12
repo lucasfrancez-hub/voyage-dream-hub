@@ -2185,7 +2185,7 @@ function ItemDialog({
 
 // =========== Contract ===========
 function ContractTab({ detail }: { detail: OrderDetail }) {
-  const { order, passengers } = detail;
+  const { order, passengers, payments } = detail;
   const snap = order.packageSnapshot as {
     card_capture?: {
       authorization?: AuthorizationData;
