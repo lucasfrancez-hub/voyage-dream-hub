@@ -392,13 +392,15 @@ function PassengerDialog({
 
 // =========== Items (hotel/flight/cancelled) ===========
 function ItemsTab({
-  orderId, items, kind, onChange,
+  orderId, items, kind, onChange, passengers,
 }: {
   orderId: string;
   items: OrderItem[];
   kind: "hotel" | "flight" | "cancelled";
   onChange: () => void;
+  passengers?: OrderPassenger[];
 }) {
+
   const upsert = useServerFn(upsertOrderItem);
   const del = useServerFn(deleteOrderItem);
   const setStatus = useServerFn(setOrderItemStatus);
