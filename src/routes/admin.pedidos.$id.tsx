@@ -465,6 +465,10 @@ function PassengersSection({
                       cpf: patch.cpf !== undefined ? patch.cpf : p.cpf,
                       ticket_number: patch.ticket_number !== undefined ? patch.ticket_number : p.ticket_number,
                       sort_order: p.sort_order,
+                      doc_type: patch.doc_type ?? p.doc_type,
+                      passport_number: patch.passport_number !== undefined ? patch.passport_number : p.passport_number,
+                      passport_issue_date: patch.passport_issue_date !== undefined ? patch.passport_issue_date : p.passport_issue_date,
+                      passport_expiry_date: patch.passport_expiry_date !== undefined ? patch.passport_expiry_date : p.passport_expiry_date,
                     });
                     // Se alterou o bilhete, replica em todos os aéreos: grava details.ticket_number e marca como Confirmado.
                     if (patch.ticket_number !== undefined) {
@@ -484,7 +488,6 @@ function PassengersSection({
                           },
                         }).catch(() => { /* toast já é global */ });
                       }
-                      // dispara refresh após o loop
                       setTimeout(() => onChange(), 250);
                     }
                   }}
