@@ -2683,14 +2683,6 @@ function PaymentsSection({
   );
 }
 
-function PaymentDialog({
-  open, onOpenChange, initial, onSave,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  initial: OrderPayment | null;
-  onSave: (data: Partial<OrderPayment> & { method: string; amount: number }) => void;
-}) {
 type PayerPatch = {
   payer_full_name?: string | null;
   payer_cpf?: string | null;
