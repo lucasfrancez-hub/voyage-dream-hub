@@ -520,6 +520,42 @@ function ItemsTab({
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           {isCancelledTab ? "Nenhum item cancelado." : "Nenhum item cadastrado. Clique em Adicionar para começar."}
         </div>
+      ) : isCancelledTab ? (
+        <div className="space-y-3">
+          {groupFlightItems(items.filter((i) => i.kind === "flight")).map((group) => (
+            <FlightReservationCard
+              key={group.key}
+              locator={group.locator}
+              segments={group.items}
+              passengers={passengers ?? []}
+              onEdit={(it) => { setEditing(it); setOpen(true); }}
+              onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
+              onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onReactivate={(it) => reactivate.mutate(it.id)}
+            />
+          ))}
+          {items.filter((i) => i.kind === "hotel").map((it) => (
+            <HotelReservationCard
+              key={it.id}
+              item={it}
+              passengers={passengers ?? []}
+              onEdit={() => { setEditing(it); setOpen(true); }}
+              onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
+              onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onReactivate={() => reactivate.mutate(it.id)}
+            />
+          ))}
+          {items.filter((i) => i.kind === "other").map((it) => (
+            <ItemCard
+              key={it.id}
+              item={it}
+              onEdit={() => { setEditing(it); setOpen(true); }}
+              onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
+              onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onReactivate={() => reactivate.mutate(it.id)}
+            />
+          ))}
+        </div>
       ) : kind === "flight" ? (
         <div className="space-y-3">
           {groupFlightItems(items).map((group) => (
@@ -563,6 +599,7 @@ function ItemsTab({
           ))}
         </div>
       )}
+
 
 
       <ItemDialog

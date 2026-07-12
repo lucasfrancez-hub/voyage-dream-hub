@@ -109,6 +109,11 @@ export const getOrderDetail = createServerFn({ method: "GET" })
     if (e1) throw new Error(e1.message);
     if (!order) throw new Error("Pedido não encontrado");
 
+    // Materializa hospedagem/aéreo/passageiros a partir do snapshot do pacote (idempotente)
+    await supabase.rpc("materialize_order_from_snapshot", { _order_id: data.id });
+
+
+
     const { data: passengers, error: e2 } = await supabase
       .from("order_passengers")
       .select("*")
