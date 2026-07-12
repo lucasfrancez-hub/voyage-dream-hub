@@ -13,6 +13,10 @@ export type OrderPassenger = {
   document: string | null;
   ticket_number: string | null;
   sort_order: number;
+  doc_type: "cpf" | "passport";
+  passport_number: string | null;
+  passport_issue_date: string | null;
+  passport_expiry_date: string | null;
 };
 
 export type OrderItem = {
