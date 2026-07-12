@@ -2039,3 +2039,167 @@ function PaymentDialog({
 void Copy;
 void DialogTrigger;
 
+// =========== Commission Adjust Dialog (quick) ===========
+function CommissionAdjustDialog({
+  open, onOpenChange, order, items, financials, onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  order: OrderHeader;
+  items: OrderItem[];
+  financials: OrderItemFinancial[];
+  onSaved: () => void;
+}) {
+  const upsert = useServerFn(upsertItemFinancial);
+  const snap = (order.packageSnapshot ?? {}) as Record<string, unknown>;
+  const isPackage =
+    !(snap as { manual?: boolean }).manual &&
+    !["payment_link", "payment_link_simple"].includes(String((snap as { kind?: string }).kind ?? "")) &&
+    Number((snap as { price_per_person?: number }).price_per_person ?? 0) > 0;
+  const pax = Math.max(1, (order.adults || 0) + (order.children || 0));
+  const pkgFare = isPackage ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
+  const pkgTaxes = isPackage ? Number((snap as { taxes?: number }).taxes ?? 0) : 0;
+
+  const [selectedItem, setSelectedItem] = useState<string>("");
+  const [sale, setSale] = useState(0);
+  const [tax, setTax] = useState(0);
+  const [pct, setPct] = useState(isPackage ? 12 : 10);
+  const [saving, setSaving] = useState(false);
+
+  useMemo(() => {
+    if (!open) return;
+    const first = items[0]?.id ?? "";
+    setSelectedItem(first);
+    const existing = financials.find((f) => f.order_item_id === first);
+    setSale(existing?.sale_value ?? pkgFare);
+    setTax(existing?.tax_value ?? pkgTaxes);
+    setPct(existing?.commission_pct ?? (isPackage ? 12 : 10));
+  }, [open, items, financials, pkgFare, pkgTaxes, isPackage]);
+
+  const onItemChange = (id: string) => {
+    setSelectedItem(id);
+    const existing = financials.find((f) => f.order_item_id === id);
+    setSale(existing?.sale_value ?? pkgFare);
+    setTax(existing?.tax_value ?? pkgTaxes);
+    setPct(existing?.commission_pct ?? (isPackage ? 12 : 10));
+  };
+
+  const base = Math.max(0, sale - tax);
+  const commission = Number((base * (pct / 100)).toFixed(2));
+  const total = Number(sale.toFixed(2));
+
+  const handleSave = async () => {
+    if (!selectedItem) { toast.error("Selecione um item"); return; }
+    setSaving(true);
+    try {
+      const existing = financials.find((f) => f.order_item_id === selectedItem);
+      await upsert({
+        data: {
+          id: existing?.id,
+          order_item_id: selectedItem,
+          sale_value: sale,
+          tax_value: tax,
+          discount_value: existing?.discount_value ?? 0,
+          commission_pct: pct,
+          commission_value: commission,
+          total,
+          supplier_name: existing?.supplier_name ?? null,
+          exchange_rate: existing?.exchange_rate ?? 1,
+          due_date: existing?.due_date ?? null,
+          notes: existing?.notes ?? null,
+        },
+      });
+      toast.success("Comissão atualizada");
+      onSaved();
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Percent className="h-4 w-4" /> Ajuste de comissão
+          </DialogTitle>
+        </DialogHeader>
+
+        {items.length === 0 ? (
+          <div className="text-sm text-muted-foreground py-6 text-center">
+            Adicione ao menos um item (aéreo, hotel ou serviço) para ajustar a comissão.
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            <div>
+              <Label className="text-xs">Item</Label>
+              <Select value={selectedItem} onValueChange={onItemChange}>
+                <SelectTrigger><SelectValue placeholder="Escolha um item" /></SelectTrigger>
+                <SelectContent>
+                  {items.map((it) => (
+                    <SelectItem key={it.id} value={it.id}>
+                      [{it.kind === "flight" ? "Aéreo" : it.kind === "hotel" ? "Hotel" : "Outro"}] {it.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Tarifa</Label>
+                <Input type="number" step="0.01" value={sale} onChange={(e) => setSale(Number(e.target.value))} />
+              </div>
+              <div>
+                <Label className="text-xs">Taxas (não comissiona)</Label>
+                <Input type="number" step="0.01" value={tax} onChange={(e) => setTax(Number(e.target.value))} />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm">Comissão sobre a tarifa</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number" step="0.5" min={0} max={100}
+                    value={pct}
+                    onChange={(e) => setPct(Number(e.target.value))}
+                    className="w-20 h-8 text-right"
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+              </div>
+              <Slider
+                value={[pct]}
+                min={0}
+                max={30}
+                step={0.5}
+                onValueChange={(v) => setPct(v[0])}
+              />
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                <span>Base: {formatBRL(base)} (tarifa − taxas)</span>
+                <span>
+                  Comissão: <span className="font-semibold text-brand-orange">{formatBRL(commission)}</span>
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground text-right">
+                Total da venda: <span className="font-semibold text-foreground">{formatBRL(total)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving || items.length === 0}>
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
