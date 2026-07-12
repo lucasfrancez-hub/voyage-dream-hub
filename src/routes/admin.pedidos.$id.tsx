@@ -67,6 +67,7 @@ function OrderDetailPage() {
   // TODOS os hooks antes de qualquer return condicional — Rules of Hooks.
   const [activeTab, setActiveTab] = useState<string>("hotel");
   const [openCommission, setOpenCommission] = useState(false);
+  const [openLog, setOpenLog] = useState<null | "notes_log" | "travel_reason_log">(null);
 
   const setOrderStatusFn = useServerFn(setOrderStatus);
   const updateOrderMetaFn = useServerFn(updateOrderMeta);
@@ -89,12 +90,7 @@ function OrderDetailPage() {
     onSuccess: () => { toast.success("Salvo"); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  const promptMeta = (label: string, current: string | null, key: "notes" | "travel_reason" | "coupon") => {
-    const v = window.prompt(label, current ?? "");
-    if (v === null) return;
-    metaMut.mutate({ [key]: v.trim() || null });
-  };
+  void metaMut; // reservado para futuras edições rápidas
 
   if (isLoading) {
     return (
