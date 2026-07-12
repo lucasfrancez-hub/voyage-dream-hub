@@ -128,11 +128,15 @@ export type Database = {
           birth_date: string | null
           cpf: string | null
           created_at: string
+          doc_type: string
           document: string | null
           full_name: string
           id: string
           order_id: string
           passenger_type: string
+          passport_expiry_date: string | null
+          passport_issue_date: string | null
+          passport_number: string | null
           sort_order: number
           ticket_number: string | null
           updated_at: string
@@ -141,11 +145,15 @@ export type Database = {
           birth_date?: string | null
           cpf?: string | null
           created_at?: string
+          doc_type?: string
           document?: string | null
           full_name: string
           id?: string
           order_id: string
           passenger_type?: string
+          passport_expiry_date?: string | null
+          passport_issue_date?: string | null
+          passport_number?: string | null
           sort_order?: number
           ticket_number?: string | null
           updated_at?: string
@@ -154,11 +162,15 @@ export type Database = {
           birth_date?: string | null
           cpf?: string | null
           created_at?: string
+          doc_type?: string
           document?: string | null
           full_name?: string
           id?: string
           order_id?: string
           passenger_type?: string
+          passport_expiry_date?: string | null
+          passport_issue_date?: string | null
+          passport_number?: string | null
           sort_order?: number
           ticket_number?: string | null
           updated_at?: string
