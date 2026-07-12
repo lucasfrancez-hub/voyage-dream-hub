@@ -433,6 +433,7 @@ function PassengersSection({
   const del = useServerFn(deletePassenger);
   const [editing, setEditing] = useState<OrderPassenger | null>(null);
   const [open, setOpen] = useState(false);
+  const [mondeOpen, setMondeOpen] = useState(false);
 
   const save = useMutation({
     mutationFn: async (p: Partial<OrderPassenger> & { order_id: string; full_name: string }) =>
@@ -455,9 +456,14 @@ function PassengersSection({
         <h2 className="text-sm font-semibold flex items-center gap-2">
           <Users className="h-4 w-4" /> Passageiros ({passengers.length})
         </h2>
-        <Button size="sm" variant="outline" onClick={openNew}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setMondeOpen(true)}>
+            <Cloud className="h-3.5 w-3.5 mr-1" /> Importar do Monde
+          </Button>
+          <Button size="sm" variant="outline" onClick={openNew}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+          </Button>
+        </div>
       </div>
       {passengers.length === 0 ? (
         <div className="text-sm text-muted-foreground text-center py-6">Nenhum passageiro cadastrado.</div>
