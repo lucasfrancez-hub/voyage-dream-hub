@@ -3,6 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
 
 // --------- Types ---------
+export type OrderLogEntry = { text: string; created_at: string; author?: string | null };
+
 export type OrderPassenger = {
   id: string;
   order_id: string;
