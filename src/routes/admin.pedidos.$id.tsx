@@ -540,58 +540,7 @@ function PassengerRow({
         <InlineText value={passenger.full_name} placeholder="Nome" className="font-medium"
           onCommit={(v) => v.trim() && v !== passenger.full_name && onPatch({ full_name: v.trim() })} />
       </td>
-      <td className="py-1 px-1 min-w-[340px]">
-        <div className="flex flex-nowrap items-center gap-1.5">
-          <Select
-            value={passenger.doc_type ?? "cpf"}
-            onValueChange={(v) => onPatch({ doc_type: v as "cpf" | "passport" })}
-          >
-            <SelectTrigger className="h-7 w-[110px] shrink-0 text-xs border-transparent hover:border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cpf">CPF</SelectItem>
-              <SelectItem value="passport">Passaporte</SelectItem>
-            </SelectContent>
-          </Select>
-          {passenger.doc_type === "passport" ? (
-            <>
-              <InlineText
-                value={passenger.passport_number ?? ""}
-                placeholder="nº passaporte"
-                className="text-xs font-mono w-[110px] shrink-0"
-                onCommit={(v) => (v || null) !== passenger.passport_number && onPatch({ passport_number: v || null })}
-              />
-              <InlineText
-                type="date"
-                value={passenger.passport_issue_date ?? ""}
-                placeholder="emissão"
-                className="text-xs w-[120px] shrink-0"
-                onCommit={(v) => (v || null) !== passenger.passport_issue_date && onPatch({ passport_issue_date: v || null })}
-              />
-              <InlineText
-                type="date"
-                value={passenger.passport_expiry_date ?? ""}
-                placeholder="validade"
-                className="text-xs w-[120px] shrink-0"
-                onCommit={(v) => (v || null) !== passenger.passport_expiry_date && onPatch({ passport_expiry_date: v || null })}
-              />
-            </>
-          ) : (
-            <InlineText
-              value={passenger.cpf ?? ""}
-              placeholder="CPF"
-              className="text-xs font-mono w-[160px] shrink-0"
-              onCommit={(v) => (v || null) !== passenger.cpf && onPatch({ cpf: v || null })}
-            />
-          )}
-        </div>
-      </td>
-      <td className="py-1 px-1">
-        <InlineText type="date" value={passenger.birth_date ?? ""} placeholder="—" className="text-xs"
-          onCommit={(v) => (v || null) !== passenger.birth_date && onPatch({ birth_date: v || null })} />
-      </td>
-      <td className="py-1 px-1">
+      <td className="py-1 px-1 w-[70px]">
         <Select value={passenger.passenger_type}
           onValueChange={(v) => onPatch({ passenger_type: v as "ADT" | "CHD" | "INF" })}>
           <SelectTrigger className="h-7 w-[70px] text-xs border-transparent hover:border-border">
@@ -604,10 +553,66 @@ function PassengerRow({
           </SelectContent>
         </Select>
       </td>
+      <td className="py-1 px-1 w-[130px]">
+        <InlineText type="date" value={passenger.birth_date ?? ""} placeholder="—" className="text-xs w-[120px]"
+          onCommit={(v) => (v || null) !== passenger.birth_date && onPatch({ birth_date: v || null })} />
+      </td>
+      <td className="py-1 px-1 min-w-[300px] align-top">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5">
+            <Select
+              value={passenger.doc_type ?? "cpf"}
+              onValueChange={(v) => onPatch({ doc_type: v as "cpf" | "passport" })}
+            >
+              <SelectTrigger className="h-7 w-[110px] shrink-0 text-xs border-transparent hover:border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cpf">CPF</SelectItem>
+                <SelectItem value="passport">Passaporte</SelectItem>
+              </SelectContent>
+            </Select>
+            {passenger.doc_type === "passport" ? (
+              <InlineText
+                value={passenger.passport_number ?? ""}
+                placeholder="nº passaporte"
+                className="text-xs font-mono w-[170px] shrink-0"
+                onCommit={(v) => (v || null) !== passenger.passport_number && onPatch({ passport_number: v || null })}
+              />
+            ) : (
+              <InlineText
+                value={passenger.cpf ?? ""}
+                placeholder="CPF"
+                className="text-xs font-mono w-[170px] shrink-0"
+                onCommit={(v) => (v || null) !== passenger.cpf && onPatch({ cpf: v || null })}
+              />
+            )}
+          </div>
+          {passenger.doc_type === "passport" && (
+            <div className="flex items-center gap-1.5 pl-[115px]">
+              <InlineText
+                type="date"
+                value={passenger.passport_issue_date ?? ""}
+                placeholder="emissão"
+                className="text-xs w-[130px] shrink-0"
+                onCommit={(v) => (v || null) !== passenger.passport_issue_date && onPatch({ passport_issue_date: v || null })}
+              />
+              <InlineText
+                type="date"
+                value={passenger.passport_expiry_date ?? ""}
+                placeholder="validade"
+                className="text-xs w-[130px] shrink-0"
+                onCommit={(v) => (v || null) !== passenger.passport_expiry_date && onPatch({ passport_expiry_date: v || null })}
+              />
+            </div>
+          )}
+        </div>
+      </td>
       <td className="py-1 px-1">
         <InlineText value={effectiveTicket ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
           onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
       </td>
+
 
 
       <td className="py-1 px-1 text-right">
