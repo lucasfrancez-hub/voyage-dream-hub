@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import { FileText, Copy, ExternalLink, MessageCircle, Vault } from "lucide-react";
 import { toast } from "sonner";
 import { paymentBoletoLinkUrl, whatsappUrl } from "@/lib/checkout-config";
