@@ -302,16 +302,17 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
 };
 
 const sectionTitle = (ctx: Ctx, s: string) => {
-  ensureSpace(ctx, 22);
-  ctx.y -= 6;
-  text(ctx, s, MARGIN, { size: 10, bold: true });
-  ctx.y -= 12;
+  ensureSpace(ctx, 30);
+  ctx.y -= 14;
+  text(ctx, s, MARGIN, { size: 11, bold: true });
+  ctx.y -= 8;
   ctx.page.drawLine({
-    start: { x: MARGIN, y: ctx.y + 2 }, end: { x: A4.w - MARGIN, y: ctx.y + 2 },
-    thickness: 0.5, color: COLOR_TEXT,
+    start: { x: MARGIN, y: ctx.y }, end: { x: A4.w - MARGIN, y: ctx.y },
+    thickness: 0.6, color: COLOR_TEXT,
   });
-  ctx.y -= 6;
+  ctx.y -= 12;
 };
+
 
 // ---------- Blocos do RECIBO ----------
 const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
