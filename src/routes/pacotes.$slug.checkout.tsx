@@ -245,6 +245,19 @@ function Checkout() {
                 boleto_installment_value: totalPrice / Math.max(boletoInstallments, 1),
               }
             : {}),
+          ...(payment === "pix"
+            ? {
+                pix_capture: {
+                  billing: {
+                    zip: pixAddress.cep,
+                    address: pixAddress.address,
+                    number: pixAddress.number,
+                    city: pixAddress.city,
+                    state: pixAddress.state,
+                  },
+                },
+              }
+            : {}),
           },
           full_name: primary.full_name,
           email: primary.email,
