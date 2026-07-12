@@ -1753,9 +1753,18 @@ function ItemDialog({
             const cleanMain = buildClean(details);
             let effectiveTitle = title.trim();
             if (kind === "flight") {
+              // Ida é obrigatória: exige origem+destino no trecho principal
+              const from = String(details.from_iata ?? details.origin ?? "").trim();
+              const to = String(details.to_iata ?? details.destination ?? "").trim();
+              if (!from || !to) {
+                toast.error("Preencha ao menos a origem e o destino da ida");
+                return;
+              }
+              // Volta é opcional: descarta trechos de volta vazios (sem origem/destino)
               effectiveTitle = segmentTitle(details);
             }
             if (!effectiveTitle) { toast.error("Preencha os dados do trecho"); return; }
+
 
             // Deriva status final (não deixa o usuário salvar um status incoerente)
             let finalStatus = status;
