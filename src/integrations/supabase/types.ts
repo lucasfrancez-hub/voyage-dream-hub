@@ -491,6 +491,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      detect_card_brand: { Args: { num: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       has_role: {
         Args: {
