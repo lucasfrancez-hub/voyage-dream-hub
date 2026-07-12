@@ -318,9 +318,10 @@ const sectionTitle = (ctx: Ctx, s: string) => {
 const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   const o = d.order;
   const createdDate = fmtDate(o.createdAt);
-  ctx.y -= 6;
-  text(ctx, `RECIBO - VENDA ${o.orderNumber} - ${createdDate}`, MARGIN, { size: 13, bold: true });
-  ctx.y -= 18;
+  // título do recibo com respiro
+  ctx.y -= 10;
+  text(ctx, `RECIBO - VENDA ${o.orderNumber} - ${createdDate}`, MARGIN, { size: 14, bold: true });
+  ctx.y -= 22;
 
   // Bloco pagante
   const payer = {
@@ -335,11 +336,11 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
     email: o.payerEmail || o.email,
     phone: o.payerPhone || o.phone,
   };
-  const lineH = 12;
+  const lineH = 14;
   const bold = (label: string, val: string, x: number, y: number) => {
-    text(ctx, label, x, { size: 9, bold: true, y });
-    const lw = ctx.fontBold.widthOfTextAtSize(sanitize(label), 9);
-    text(ctx, " " + val, x + lw, { size: 9, y });
+    text(ctx, label, x, { size: 9.5, bold: true, y });
+    const lw = ctx.fontBold.widthOfTextAtSize(sanitize(label), 9.5);
+    text(ctx, " " + val, x + lw, { size: 9.5, y });
   };
   bold("Pagante:", payer.name, MARGIN, ctx.y); ctx.y -= lineH;
   const addrLine = [payer.address, payer.number].filter(Boolean).join(", ");
@@ -350,16 +351,16 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
       payer.city && `Cidade: ${payer.city}`,
       payer.state && `UF: ${payer.state}`,
       payer.zip && `CEP: ${payer.zip}`,
-    ].filter(Boolean).join("   ");
-    text(ctx, s, MARGIN, { size: 9 }); ctx.y -= lineH;
+    ].filter(Boolean).join("    ");
+    text(ctx, s, MARGIN, { size: 9.5 }); ctx.y -= lineH;
   }
   if (payer.cpf) { bold("CPF/CNPJ:", payer.cpf, MARGIN, ctx.y); ctx.y -= lineH; }
   const emailPhone = [
     payer.email && `E-mail: ${payer.email}`,
     payer.phone && `Telefones: ${payer.phone}`,
-  ].filter(Boolean).join("   ");
-  if (emailPhone) { text(ctx, emailPhone, MARGIN, { size: 9 }); ctx.y -= lineH; }
-  ctx.y -= 6;
+  ].filter(Boolean).join("    ");
+  if (emailPhone) { text(ctx, emailPhone, MARGIN, { size: 9.5 }); ctx.y -= lineH; }
+  ctx.y -= 10;
 
   // Texto legal
   const total = d.financials.reduce((s, f) => s + f.total, 0) || o.totalPrice;
@@ -369,9 +370,10 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
     `totalizam a importância de ${brl(total)} (${numberToWords(total)}) que, considerada a ` +
     `posse transitória de tais valores e retenção de valor pelos serviços de intermediação, ` +
     `serão devidamente repassados por esta agência de viagens a cada um dos fornecedores contratados.`;
-  drawParagraph(ctx, legal, 9, 12);
-  ctx.y -= 6;
+  drawParagraph(ctx, legal, 9.5, 13);
+  ctx.y -= 8;
 };
+
 
 const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   const flights = d.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
