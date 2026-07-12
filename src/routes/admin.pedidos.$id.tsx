@@ -2118,8 +2118,10 @@ function FinanceTab({
                   <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(totalNet)}</td>
                   <td className="py-2 px-2"></td>
                 </tr>
-              ) : financials.length > 0 ? (
-                financials.map((f) => {
+              ) : (
+                <>
+                  {financials.map((f) => {
+
                   const it = itemsById[f.order_item_id];
                   return (
                     <tr key={f.id} className="border-b border-border/50">
