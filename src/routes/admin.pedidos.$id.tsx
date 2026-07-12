@@ -1641,11 +1641,46 @@ function FinanceTab({
     return m;
   }, [items]);
 
-  const totalSale = financials.reduce((a, f) => a + Number(f.sale_value || 0), 0);
-  const totalTax = financials.reduce((a, f) => a + Number(f.tax_value || 0), 0);
+  // Linhas "planejadas" a partir do pacote/itens quando ainda não há lançamento no financeiro.
+  // Pacote pronto → 1 linha "Pacote pronto".
+  // Sem pacote → 1 linha por item (aéreo/hotel/outro) sem valor, para o usuário lançar.
+  const plannedRows = useMemo<Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }>>(() => {
+    if (financials.length > 0) return [];
+    if (isPackageOrder) {
+      const commission = Number((packageFare * 0.12).toFixed(2));
+      return [{
+        __planned: true,
+        __itemId: null,
+        __label: "Pacote pronto",
+        supplier_name: null,
+        sale_value: packageFare,
+        tax_value: packageTaxes,
+        discount_value: 0,
+        commission_pct: 12,
+        commission_value: commission,
+        total: Number((packageFare + packageTaxes).toFixed(2)),
+      }];
+    }
+    return items.map((it) => ({
+      __planned: true,
+      __itemId: it.id,
+      __label: it.title,
+      supplier_name: null,
+      sale_value: 0,
+      tax_value: 0,
+      discount_value: 0,
+      commission_pct: defaultCommissionPct(it.kind, false),
+      commission_value: 0,
+      total: 0,
+    }));
+  }, [financials.length, isPackageOrder, packageFare, packageTaxes, items]);
+
+  const displayRows = financials.length > 0 ? financials : plannedRows;
+  const totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
+  const totalTax = displayRows.reduce((a, f) => a + Number(f.tax_value || 0), 0);
   const commissionBase = Math.max(0, totalSale - totalTax);
-  const totalCommission = financials.reduce((a, f) => a + Number(f.commission_value || 0), 0);
-  const totalNet = financials.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
+  const totalCommission = displayRows.reduce((a, f) => a + Number(f.commission_value || 0), 0);
+  const totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
 
   if (items.length === 0) {
     return (
