@@ -1544,14 +1544,17 @@ function HotelReservationCard({
 }
 
 function ServiceReservationCard({
-  item, passengers, onEdit, onDelete, onCancel, onReactivate,
+  item, passengers, allPassengers, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
 }: {
   item: OrderItem;
   passengers: OrderPassenger[];
+  allPassengers?: OrderPassenger[];
   onEdit: () => void;
   onDelete: () => void;
   onCancel: () => void;
   onReactivate: () => void;
+  onLink?: (passengerId: string, itemId: string) => void;
+  onUnlink?: (passengerId: string, itemId: string) => void;
 }) {
   const d = (item.details ?? {}) as Record<string, unknown>;
   const cancelled = item.status === "cancelled";
