@@ -2545,12 +2545,8 @@ function CommissionAdjustDialog({
                   Comissão: <span className="font-semibold text-brand-orange">{formatBRL(commission)}</span>
                 </span>
               </div>
-              <div className="mt-1 text-xs text-muted-foreground text-right">
-                Total da venda: <span className="font-semibold text-foreground">{formatBRL(total)}</span>
-                <span className="ml-1 opacity-70">
-                  {isPackage ? "(pacote já inclui 12%; só sobe acima disso)" : "(tarifa + taxas + comissão)"}
-                </span>
-              </div>
+            </div>
+
             </div>
           </div>
         )}
