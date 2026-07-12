@@ -310,6 +310,7 @@ function OrderDetailPage() {
       <PassengersSection
         orderId={order.id}
         passengers={detail.passengers}
+        flightItems={detail.items.filter((i) => i.kind === "flight" && i.status !== "cancelled")}
         onChange={invalidate}
       />
 
