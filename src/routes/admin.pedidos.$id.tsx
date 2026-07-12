@@ -2242,6 +2242,10 @@ function FinanceTab({
   let totalCommission: number;
   let totalNet: number;
 
+  // Taxa de RAV: 15% da comissão adicional (quando comissão > padrão).
+  // Cobrada pelo fornecedor, abatida do total.
+  const RAV_RATE = 0.15;
+  let packageRavTax = 0;
   if (isPackageOrder) {
     const currentPct = packagePct;
     const allExtraRows = [...savedExtraRows, ...extraItemRows];
@@ -2250,13 +2254,15 @@ function FinanceTab({
     const extrasCommission = allExtraRows.reduce((a, r) => a + Number(r.commission_value || 0), 0);
     const extrasTotal = allExtraRows.reduce((a, r) => a + Number(r.total || 0), 0);
     const packageCommission = Number((packageFareNet * (Number(currentPct) / 100)).toFixed(2));
+    const additionalCommission = Math.max(0, Number((packageCommission - packageDefaultCommission).toFixed(2)));
+    packageRavTax = Number((additionalCommission * RAV_RATE).toFixed(2));
     totalSale = packageFareNet + extrasSale;
-    totalTax = packageTaxes + extrasTax;
+    totalTax = Number((packageTaxes + extrasTax + packageRavTax).toFixed(2));
     commissionBase = packageFareNet + extrasSale;
     totalCommission = Number((packageCommission + extrasCommission).toFixed(2));
     // Delta sinalizado: pct < 12 reduz o total do pacote; pct > 12 aumenta.
     const delta = Number((packageCommission - packageDefaultCommission).toFixed(2));
-    totalNet = Number((packageFareNet + packageTaxes + delta + extrasTotal).toFixed(2));
+    totalNet = Number((packageFareNet + packageTaxes + delta + extrasTotal - packageRavTax).toFixed(2));
   } else {
     const displayRows = [...financials, ...plannedRows];
     totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
