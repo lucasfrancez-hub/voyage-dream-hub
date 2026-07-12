@@ -649,6 +649,10 @@ function PassengerDialog({
     cpf: initial?.cpf ?? "",
     ticket_number: initial?.ticket_number ?? "",
     document: initial?.document ?? "",
+    doc_type: (initial?.doc_type ?? "cpf") as "cpf" | "passport",
+    passport_number: initial?.passport_number ?? "",
+    passport_issue_date: initial?.passport_issue_date ?? "",
+    passport_expiry_date: initial?.passport_expiry_date ?? "",
   });
   // reset when initial changes
   useMemo(() => {
@@ -659,6 +663,10 @@ function PassengerDialog({
       cpf: initial?.cpf ?? "",
       ticket_number: initial?.ticket_number ?? "",
       document: initial?.document ?? "",
+      doc_type: (initial?.doc_type ?? "cpf") as "cpf" | "passport",
+      passport_number: initial?.passport_number ?? "",
+      passport_issue_date: initial?.passport_issue_date ?? "",
+      passport_expiry_date: initial?.passport_expiry_date ?? "",
     });
   }, [initial]);
 
@@ -690,16 +698,40 @@ function PassengerDialog({
               <Input type="date" value={form.birth_date ?? ""} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          <div>
+            <Label>Tipo de documento</Label>
+            <Select value={form.doc_type} onValueChange={(v) => setForm({ ...form, doc_type: v as "cpf" | "passport" })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cpf">CPF (brasileiro)</SelectItem>
+                <SelectItem value="passport">Passaporte (estrangeiro)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {form.doc_type === "cpf" ? (
             <div>
               <Label>CPF</Label>
-              <Input value={form.cpf ?? ""} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
+              <Input value={form.cpf ?? ""} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="000.000.000-00" />
             </div>
-            <div>
-              <Label>Documento (RG/Passaporte)</Label>
-              <Input value={form.document ?? ""} onChange={(e) => setForm({ ...form, document: e.target.value })} />
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Nº do passaporte</Label>
+                <Input value={form.passport_number ?? ""} onChange={(e) => setForm({ ...form, passport_number: e.target.value })} />
+              </div>
+              <div>
+                <Label>Data de emissão</Label>
+                <Input type="date" value={form.passport_issue_date ?? ""} onChange={(e) => setForm({ ...form, passport_issue_date: e.target.value })} />
+              </div>
+              <div>
+                <Label>Data de validade</Label>
+                <Input type="date" value={form.passport_expiry_date ?? ""} onChange={(e) => setForm({ ...form, passport_expiry_date: e.target.value })} />
+              </div>
             </div>
-          </div>
+          )}
+
           <div>
             <Label>Nº bilhete aéreo</Label>
             <Input value={form.ticket_number ?? ""} onChange={(e) => setForm({ ...form, ticket_number: e.target.value })} />
