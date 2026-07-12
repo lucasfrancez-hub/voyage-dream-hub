@@ -1437,6 +1437,309 @@ function FinanceDialog({
 }
 
 
+// =========== Payments ===========
+const PAYMENT_METHOD_OPTIONS: { value: string; label: string }[] = [
+  { value: "pix", label: "Pix" },
+  { value: "boleto", label: "Boleto" },
+  { value: "credit_card", label: "Cartão de crédito" },
+  { value: "debit_card", label: "Cartão de débito" },
+  { value: "financing", label: "Financiamento" },
+  { value: "transfer", label: "Transferência" },
+  { value: "cash", label: "Dinheiro" },
+  { value: "other", label: "Outro" },
+];
+
+const PAYMENT_STATUS_OPTIONS: { value: string; label: string; className: string }[] = [
+  { value: "paid", label: "PAGO", className: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" },
+  { value: "pending", label: "PENDENTE", className: "bg-amber-500/20 text-amber-600 dark:text-amber-400" },
+  { value: "cancelled", label: "CANCELADO", className: "bg-muted text-muted-foreground" },
+  { value: "refunded", label: "ESTORNADO", className: "bg-red-500/20 text-red-600 dark:text-red-400" },
+];
+
+function paymentMethodLabelShort(v: string) {
+  return PAYMENT_METHOD_OPTIONS.find((o) => o.value === v)?.label ?? v;
+}
+function paymentStatusBadge(v: string) {
+  return PAYMENT_STATUS_OPTIONS.find((o) => o.value === v) ?? { value: v, label: v.toUpperCase(), className: "bg-muted text-muted-foreground" };
+}
+function fmtDateTime(iso: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return `${d.toLocaleDateString("pt-BR")} ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}h`;
+}
+
+function PaymentsSection({
+  orderId, clientName, payments, onChange,
+}: {
+  orderId: string;
+  clientName: string;
+  payments: OrderPayment[];
+  onChange: () => void;
+}) {
+  const upsert = useServerFn(upsertOrderPayment);
+  const del = useServerFn(deleteOrderPayment);
+  const [editing, setEditing] = useState<OrderPayment | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const upsertMut = useMutation({
+    mutationFn: (data: Partial<OrderPayment> & { order_id: string; method: string; amount: number }) =>
+      upsert({ data }),
+    onSuccess: () => {
+      toast.success("Pagamento salvo");
+      setOpen(false);
+      setEditing(null);
+      onChange();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const delMut = useMutation({
+    mutationFn: (id: string) => del({ data: { id } }),
+    onSuccess: () => { toast.success("Pagamento removido"); onChange(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const grandTotal = payments
+    .filter((p) => p.status === "paid")
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  return (
+    <div className="mt-6 rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <h3 className="font-display font-semibold text-sm uppercase tracking-wider">Pagamentos</h3>
+          <span className="text-xs text-muted-foreground">({payments.length})</span>
+        </div>
+        <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
+          <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar pagamento
+        </Button>
+      </div>
+
+      {payments.length === 0 ? (
+        <div className="p-8 text-center text-sm text-muted-foreground">
+          Nenhum pagamento registrado ainda.
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {payments.map((p) => {
+            const badge = paymentStatusBadge(p.status);
+            return (
+              <div key={p.id} className="p-4">
+                {/* Header row */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-semibold">
+                      Pagamento{p.cashier_number ? ` – Caixa ${p.cashier_number}` : ""}
+                    </span>
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider ${badge.className}`}>
+                      {badge.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => {
+                      if (confirm("Remover este pagamento?")) delMut.mutate(p.id);
+                    }}>
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* FRT-style grid */}
+                <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1fr_auto] gap-4 items-start text-sm">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Descrição</div>
+                    <div className="font-medium">
+                      {paymentMethodLabelShort(p.method)}
+                      {p.installments && p.installment_amount
+                        ? ` – ${p.installments} X ${formatBRL(p.installment_amount)}`
+                        : ""}
+                      {p.card_brand ? ` · ${p.card_brand}` : ""}
+                      {p.card_last4 ? ` **** ${p.card_last4}` : ""}
+                    </div>
+                    {p.provider && <div className="text-muted-foreground text-xs mt-0.5">{p.provider}</div>}
+                    {p.proposal_number && <div className="text-muted-foreground text-xs">Proposta {p.proposal_number}</div>}
+                    {p.authorization_code && (
+                      <div className="text-muted-foreground text-xs">Autorização {p.authorization_code}</div>
+                    )}
+                    {p.description && <div className="text-muted-foreground text-xs mt-1">{p.description}</div>}
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Cliente</div>
+                    <div>{clientName}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Incluído por</div>
+                    <div>{p.added_by_name ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">{fmtDateTime(p.paid_at ?? p.created_at)}</div>
+                  </div>
+                  <div className="md:text-right">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Pago</div>
+                    <div className="font-semibold">{formatBRL(p.amount)}</div>
+                  </div>
+                </div>
+                {p.notes && (
+                  <div className="mt-2 text-xs text-muted-foreground border-l-2 border-border pl-2">{p.notes}</div>
+                )}
+              </div>
+            );
+          })}
+          <div className="flex items-center justify-between px-4 py-3 bg-muted/30 text-sm">
+            <span className="text-muted-foreground uppercase tracking-wider text-xs">Total pago</span>
+            <span className="font-semibold">{formatBRL(grandTotal)}</span>
+          </div>
+        </div>
+      )}
+
+      <PaymentDialog
+        open={open}
+        onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
+        initial={editing}
+        onSave={(data) => upsertMut.mutate({ ...data, order_id: orderId, id: editing?.id })}
+      />
+    </div>
+  );
+}
+
+function PaymentDialog({
+  open, onOpenChange, initial, onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initial: OrderPayment | null;
+  onSave: (data: Partial<OrderPayment> & { method: string; amount: number }) => void;
+}) {
+  const [form, setForm] = useState<Partial<OrderPayment>>({});
+  useMemo(() => {
+    setForm(initial ?? {
+      status: "paid",
+      method: "pix",
+      amount: 0,
+      paid_at: new Date().toISOString(),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial, open]);
+
+  const method = form.method ?? "pix";
+  const showCard = method === "credit_card" || method === "debit_card";
+  const showInstallments = method === "credit_card" || method === "financing";
+
+  const setField = <K extends keyof OrderPayment>(k: K, v: OrderPayment[K] | null) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{initial ? "Editar pagamento" : "Adicionar pagamento"}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <Label>Forma de pagamento</Label>
+            <Select value={method} onValueChange={(v) => setField("method", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PAYMENT_METHOD_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Status</Label>
+            <Select value={form.status ?? "paid"} onValueChange={(v) => setField("status", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PAYMENT_STATUS_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Valor pago (R$)</Label>
+            <Input type="number" step="0.01" value={form.amount ?? 0}
+              onChange={(e) => setField("amount", Number(e.target.value))} />
+          </div>
+          <div>
+            <Label>Nº do caixa</Label>
+            <Input value={form.cashier_number ?? ""} onChange={(e) => setField("cashier_number", e.target.value)} />
+          </div>
+          {showInstallments && (
+            <>
+              <div>
+                <Label>Parcelas</Label>
+                <Input type="number" min={1} value={form.installments ?? ""}
+                  onChange={(e) => setField("installments", e.target.value ? Number(e.target.value) : null)} />
+              </div>
+              <div>
+                <Label>Valor por parcela</Label>
+                <Input type="number" step="0.01" value={form.installment_amount ?? ""}
+                  onChange={(e) => setField("installment_amount", e.target.value ? Number(e.target.value) : null)} />
+              </div>
+            </>
+          )}
+          {showCard && (
+            <>
+              <div>
+                <Label>Bandeira</Label>
+                <Input value={form.card_brand ?? ""} onChange={(e) => setField("card_brand", e.target.value)} placeholder="Visa, Master, Elo…" />
+              </div>
+              <div>
+                <Label>Últimos 4 dígitos</Label>
+                <Input maxLength={4} value={form.card_last4 ?? ""} onChange={(e) => setField("card_last4", e.target.value)} />
+              </div>
+            </>
+          )}
+          <div>
+            <Label>Autorização (banco)</Label>
+            <Input value={form.authorization_code ?? ""} onChange={(e) => setField("authorization_code", e.target.value)} />
+          </div>
+          <div>
+            <Label>Fornecedor / Adquirente</Label>
+            <Input value={form.provider ?? ""} onChange={(e) => setField("provider", e.target.value)} placeholder="FunPay, Cielo…" />
+          </div>
+          <div>
+            <Label>Nº da proposta</Label>
+            <Input value={form.proposal_number ?? ""} onChange={(e) => setField("proposal_number", e.target.value)} />
+          </div>
+          <div>
+            <Label>Data do pagamento</Label>
+            <Input type="datetime-local"
+              value={form.paid_at ? new Date(form.paid_at).toISOString().slice(0, 16) : ""}
+              onChange={(e) => setField("paid_at", e.target.value ? new Date(e.target.value).toISOString() : null)} />
+          </div>
+          <div>
+            <Label>Incluído por</Label>
+            <Input value={form.added_by_name ?? ""} onChange={(e) => setField("added_by_name", e.target.value)} />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Descrição</Label>
+            <Input value={form.description ?? ""} onChange={(e) => setField("description", e.target.value)} placeholder="Ex.: FINANCIAMENTO – Aprovado" />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Observações</Label>
+            <Textarea value={form.notes ?? ""} onChange={(e) => setField("notes", e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => onSave({
+            ...form,
+            method: form.method ?? "pix",
+            amount: Number(form.amount ?? 0),
+          } as Partial<OrderPayment> & { method: string; amount: number })}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 // keep unused imports satisfied
 void Copy;
 void DialogTrigger;
+
