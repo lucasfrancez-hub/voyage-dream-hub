@@ -803,7 +803,11 @@ function ItemsTab({
   const [open, setOpen] = useState(false);
 
   const save = useMutation({
-    mutationFn: async (payload: Parameters<typeof upsert>[0]["data"]) => upsert({ data: payload }),
+    mutationFn: async (payload: Parameters<typeof upsert>[0]["data"]) => {
+      const result = await upsert({ data: payload });
+      await recalculateTotal({ data: { id: orderId } });
+      return result;
+    },
     onSuccess: () => { toast.success("Item salvo"); onChange(); setOpen(false); setEditing(null); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
@@ -3072,13 +3076,7 @@ function CommissionAdjustDialog({
     !(snap as { manual?: boolean }).manual &&
     !["payment_link", "payment_link_simple"].includes(String((snap as { kind?: string }).kind ?? "")) &&
     Number((snap as { price_per_person?: number }).price_per_person ?? 0) > 0;
-  const pax = Math.max(1, (order.adults || 0) + (order.children || 0));
-  const pkgTotal = isPackage ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
-  const pkgTaxes = isPackage ? Number((snap as { taxes?: number }).taxes ?? 0) : 0;
-  // Tarifa NET = total do pacote − taxas. Comissão padrão (12%) já está embutida nesse preço.
-  const pkgFareNet = Math.max(0, pkgTotal - pkgTaxes);
   const PKG_DEFAULT_PCT = 12;
-  const pkgDefaultCommission = Number((pkgFareNet * (PKG_DEFAULT_PCT / 100)).toFixed(2));
 
   const [sale, setSale] = useState(0);
   const [tax, setTax] = useState(0);
@@ -3088,29 +3086,25 @@ function CommissionAdjustDialog({
   useEffect(() => {
     if (!open) return;
     const r2 = (n: number) => Number(n.toFixed(2));
-    if (isPackage) {
-      // Pacote pronto: força tarifa NET e taxas do snapshot; ignora convenções antigas.
-      setSale(r2(pkgFareNet));
-      setTax(r2(pkgTaxes));
-    } else {
-      const relevant = items.map((it) => financials.find((f) => f.order_item_id === it.id)).filter(Boolean) as OrderItemFinancial[];
-      const sumSale = relevant.reduce((a, f) => a + Number(f.sale_value || 0), 0);
-      const sumTax = relevant.reduce((a, f) => a + Number(f.tax_value || 0), 0);
-      setSale(r2(sumSale));
-      setTax(r2(sumTax));
-    }
-    const relevant = items.map((it) => financials.find((f) => f.order_item_id === it.id)).filter(Boolean) as OrderItemFinancial[];
+    // Agrega TODOS os itens do financeiro (pacote pronto + extras).
+    const relevant = items
+      .map((it) => financials.find((f) => f.order_item_id === it.id))
+      .filter(Boolean) as OrderItemFinancial[];
+    const sumSale = relevant.reduce((a, f) => a + Number(f.sale_value || 0), 0);
+    const sumTax = relevant.reduce((a, f) => a + Number(f.tax_value || 0), 0);
+    setSale(r2(sumSale));
+    setTax(r2(sumTax));
     const firstWithPct = relevant.find((f) => f.commission_pct !== null && f.commission_pct !== undefined);
     setPct(firstWithPct ? Number(firstWithPct.commission_pct) : (isPackage ? PKG_DEFAULT_PCT : 10));
-  }, [open, items, financials, pkgFareNet, pkgTaxes, isPackage]);
+  }, [open, items, financials, isPackage]);
 
 
   // sale = tarifa NET (sem taxas). Comissão incide sobre a tarifa.
   const base = Math.max(0, sale);
   const commission = Number((base * (pct / 100)).toFixed(2));
-  // Pacote pronto: total = tarifa + taxas + delta sinalizado (comissão - 12%*tarifa).
-  // Se pct < 12, o total DIMINUI; se pct > 12, o total AUMENTA.
-  // Manual: total = tarifa + taxas + comissão.
+  // Pacote pronto: os 12% já estão embutidos no valor. Delta (positivo ou negativo)
+  // muda o total do pedido. Para pedido manual, comissão soma ao total.
+  const pkgDefaultCommission = isPackage ? Number((base * (PKG_DEFAULT_PCT / 100)).toFixed(2)) : 0;
   const total = isPackage
     ? Number((sale + tax + (commission - pkgDefaultCommission)).toFixed(2))
     : Number((sale + tax + commission).toFixed(2));
