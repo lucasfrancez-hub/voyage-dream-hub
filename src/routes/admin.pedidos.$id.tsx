@@ -1340,6 +1340,32 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between rounded-xl border border-border p-4">
           <div>
+            <div className="font-medium text-sm">Recibo + Contrato</div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              Gerado automaticamente com dados do pagador, serviços e forma de pagamento
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={async () => {
+              try {
+                const blob = await generateReceiptOnly(detail);
+                openBlobInNewTab(blob, `recibo-${order.orderNumber}.pdf`);
+              } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar recibo"); }
+            }}>
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Só recibo
+            </Button>
+            <Button size="sm" onClick={async () => {
+              try {
+                const blob = await generateReceiptAndContract(detail);
+                openBlobInNewTab(blob, `contrato-${order.orderNumber}.pdf`);
+              } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar contrato"); }
+            }}>
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Contrato + Recibo
+            </Button>
+          </div>
+        </div>
+        <div className="flex items-center justify-between rounded-xl border border-border p-4">
+          <div>
             <div className="font-medium text-sm">Autorização de débito</div>
             <div className="text-xs text-muted-foreground mt-0.5">
               {hasAuthorization ? "Gerada com assinatura digital do cliente" : "Sem autorização registrada (pedido sem checkout de cartão)"}
