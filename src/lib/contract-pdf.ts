@@ -43,7 +43,28 @@ const sanitize = (s: string | null | undefined): string => {
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/\u2026/g, "...")
+    .replace(/[\u2192\u27A1\u2794]/g, "->")
+    .replace(/\u2190/g, "<-")
+    .replace(/\u2194/g, "<->")
     .replace(/[^\x00-\xFF]/g, "?");
+};
+
+// Formata data/hora aceitando ISO ('YYYY-MM-DDTHH:mm') ou 'YYYY-MM-DD HH:mm'.
+// Extrai a hora diretamente da string para evitar deslocamento de timezone.
+const fmtDateTime = (s: string | null | undefined): string => {
+  if (!s) return "";
+  const str = String(s).trim();
+  const m = str.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+  const md = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (md) return `${md[3]}/${md[2]}/${md[1]}`;
+  return fmtDate(str, true);
+};
+
+const fmtTime = (s: string | null | undefined): string => {
+  if (!s) return "";
+  const m = String(s).match(/[T\s](\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : "";
 };
 
 const fmtDate = (iso: string | null | undefined, withTime = false): string => {
@@ -366,7 +387,17 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   ctx.y -= 10;
 
   // Texto legal
-  const total = d.financials.reduce((s, f) => s + f.total, 0) || o.totalPrice;
+  const pkg = getPackageInfo(d);
+  let total: number;
+  if (pkg.isPackage) {
+    const fareNet = Math.max(0, pkg.fare - pkg.taxes);
+    const defaultCommission = Number((fareNet * 0.12).toFixed(2));
+    const commissionTotal = Number((fareNet * (pkg.commissionPct / 100)).toFixed(2));
+    const extra = Math.max(0, commissionTotal - defaultCommission);
+    total = Number((fareNet + pkg.taxes + extra).toFixed(2));
+  } else {
+    total = d.financials.reduce((s, f) => s + f.total, 0) || o.totalPrice;
+  }
   const legal =
     `A ${COMPANY.name}, declara que os serviços turísticos relacionados neste documento, ` +
     `adquiridos e quitados conforme formas de pagamento abaixo, pelo Sr.(a) ${payer.name} ` +
@@ -377,6 +408,69 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   ctx.y -= 8;
 };
 
+
+// Detecta se pedido é pacote pronto e devolve tarifa/taxas do snapshot.
+type PackageInfo = { isPackage: boolean; pax: number; fare: number; taxes: number; commissionPct: number };
+const getPackageInfo = (d: OrderDetail): PackageInfo => {
+  const snap = (d.order.packageSnapshot ?? {}) as Record<string, unknown>;
+  const isPackage =
+    !(snap as { manual?: boolean }).manual &&
+    !["payment_link", "payment_link_simple"].includes(String((snap as { kind?: string }).kind ?? "")) &&
+    Number((snap as { price_per_person?: number }).price_per_person ?? 0) > 0;
+  const pax = Math.max(1, (d.order.adults || 0) + (d.order.children || 0));
+  const fare = isPackage ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
+  const taxes = isPackage ? Number((snap as { taxes?: number }).taxes ?? 0) : 0;
+  const commissionPct = Number(d.financials[0]?.commission_pct ?? 12);
+  return { isPackage, pax, fare, taxes, commissionPct };
+};
+
+type FlightRow = {
+  airlineCode: string;
+  airlineName: string;
+  flightNum: string;
+  fromIata: string;
+  fromCity: string;
+  toIata: string;
+  toCity: string;
+  depart: string | null;
+  arrive: string | null;
+};
+
+const collectFlightRows = (item: OrderItem): FlightRow[] => {
+  const det = (item.details ?? {}) as Record<string, unknown>;
+  const airlineName = (det.airline as string) ?? "";
+  const airlineCode =
+    (det.airline_code as string) ??
+    airlineName.slice(0, 2).toUpperCase();
+
+  const rawSegs = Array.isArray(det.segments) ? (det.segments as Array<Record<string, unknown>>) : [];
+  if (rawSegs.length > 0) {
+    return rawSegs.map((s) => ({
+      airlineName: (s.airline as string) ?? airlineName,
+      airlineCode:
+        (s.airline_code as string) ??
+        ((s.airline as string) ?? airlineName).slice(0, 2).toUpperCase(),
+      flightNum: (s.flight_number as string) ?? "",
+      fromIata: (s.from_iata as string) ?? "",
+      fromCity: (s.from_city as string) ?? "",
+      toIata: (s.to_iata as string) ?? "",
+      toCity: (s.to_city as string) ?? "",
+      depart: (s.depart_at as string) ?? (s.departure_at as string) ?? null,
+      arrive: (s.arrive_at as string) ?? (s.arrival_at as string) ?? null,
+    }));
+  }
+  return [{
+    airlineName,
+    airlineCode,
+    flightNum: (det.flight_number as string) ?? "",
+    fromIata: (det.from_iata as string) ?? "",
+    fromCity: (det.from_city as string) ?? "",
+    toIata: (det.to_iata as string) ?? "",
+    toCity: (det.to_city as string) ?? "",
+    depart: (det.depart_at as string) ?? (det.departure_at as string) ?? null,
+    arrive: (det.arrive_at as string) ?? (det.arrival_at as string) ?? null,
+  }];
+};
 
 const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   const flights = d.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
@@ -409,26 +503,32 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   // Voos (segmentos)
   const cols2: Col[] = [
     { header: "Cia", width: 40 },
-    { header: "Voo", width: 45 },
-    { header: "Classe", width: 45 },
-    { header: "Trecho", width: 260 },
-    { header: "Saída/Chegada", width: CONTENT_W - 40 - 45 - 45 - 260 },
+    { header: "Voo", width: 55 },
+    { header: "Trecho", width: 290 },
+    { header: "Saída", width: 60 },
+    { header: "Chegada", width: CONTENT_W - 40 - 55 - 290 - 60 },
   ];
   drawTableHeader(ctx, cols2);
   for (const f of flights) {
-    const det = (f.details ?? {}) as Record<string, unknown>;
-    const airline = (det.airline_code as string) ?? (det.airline as string)?.slice(0, 2)?.toUpperCase() ?? "";
-    const flightNum = (det.flight_number as string) ?? "";
-    const cls = (det.cabin_class as string) ?? (det.booking_class as string) ?? "";
-    const from = `${(det.from_iata as string) ?? ""} ${(det.from_city as string) ?? ""}`.trim();
-    const to = `${(det.to_iata as string) ?? ""} ${(det.to_city as string) ?? ""}`.trim();
-    const dep = fmtDate((det.departure_at as string) ?? null, true);
-    const arr = fmtDate((det.arrival_at as string) ?? null, true);
-    drawTableRow(ctx, cols2, [airline, flightNum, cls, `${from} → ${to}`, `${dep}\n${arr}`]);
+    const rows = collectFlightRows(f);
+    for (const r of rows) {
+      const from = [r.fromIata, r.fromCity].filter(Boolean).join(" ");
+      const to = [r.toIata, r.toCity].filter(Boolean).join(" ");
+      const depLine = r.depart ? `${fmtDateTime(r.depart)}` : "—";
+      const arrLine = r.arrive ? `${fmtDateTime(r.arrive)}` : "—";
+      drawTableRow(ctx, cols2, [
+        r.airlineCode,
+        r.flightNum,
+        `${from} -> ${to}`,
+        depLine,
+        arrLine,
+      ]);
+    }
   }
   ctx.y -= 6;
 
   // Passageiros / bilhete / valores
+  const pkg = getPackageInfo(d);
   const flightItemIds = new Set(flights.map((f) => f.id));
   const flightFins = d.financials.filter((f) => flightItemIds.has(f.order_item_id));
   const paxCols: Col[] = [
@@ -439,21 +539,36 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
     { header: "Total", width: CONTENT_W - 200 - 100 - 80 - 70, align: "right" },
   ];
   drawTableHeader(ctx, paxCols);
+
+  // Divisão por pax (usa snapshot do pacote quando aplicável; senão, divide financials pelo nº de pax)
+  const paxCount = Math.max(1, d.passengers.length || pkg.pax);
+  let perPax = { sale: 0, tax: 0, total: 0 };
+  if (pkg.isPackage) {
+    const fareNet = Math.max(0, pkg.fare - pkg.taxes);
+    const defaultCommission = Number((fareNet * 0.12).toFixed(2));
+    const commissionTotal = Number((fareNet * (pkg.commissionPct / 100)).toFixed(2));
+    const extra = Math.max(0, commissionTotal - defaultCommission);
+    const totalNet = fareNet + pkg.taxes + extra;
+    perPax = {
+      sale: fareNet / paxCount,
+      tax: pkg.taxes / paxCount,
+      total: totalNet / paxCount,
+    };
+  } else if (flightFins.length > 0) {
+    perPax = {
+      sale: flightFins.reduce((s, f) => s + f.sale_value, 0) / paxCount,
+      tax: flightFins.reduce((s, f) => s + f.tax_value, 0) / paxCount,
+      total: flightFins.reduce((s, f) => s + f.total, 0) / paxCount,
+    };
+  }
+
   for (const p of d.passengers) {
-    // busca um financial correspondente (heurística: divide por nº de pax)
-    const share = flightFins.length > 0 && d.passengers.length > 0
-      ? {
-          sale: flightFins.reduce((s, f) => s + f.sale_value, 0) / d.passengers.length,
-          tax: flightFins.reduce((s, f) => s + f.tax_value, 0) / d.passengers.length,
-          total: flightFins.reduce((s, f) => s + f.total, 0) / d.passengers.length,
-        }
-      : { sale: 0, tax: 0, total: 0 };
     drawTableRow(ctx, paxCols, [
       p.full_name,
       p.ticket_number ?? "—",
-      brl(share.sale),
-      brl(share.tax),
-      brl(share.total),
+      brl(perPax.sale),
+      brl(perPax.tax),
+      brl(perPax.total),
     ]);
   }
   ctx.y -= 6;
@@ -503,10 +618,26 @@ const drawOthers = (ctx: Ctx, d: OrderDetail) => {
 };
 
 const drawTotals = (ctx: Ctx, d: OrderDetail) => {
-  const produtos = d.financials.reduce((s, f) => s + f.sale_value, 0);
-  const taxas = d.financials.reduce((s, f) => s + f.tax_value, 0);
-  const desc = d.financials.reduce((s, f) => s + f.discount_value, 0);
-  const total = d.financials.reduce((s, f) => s + f.total, 0) || d.order.totalPrice;
+  const pkg = getPackageInfo(d);
+  let produtos: number;
+  let taxas: number;
+  let desc: number;
+  let total: number;
+  if (pkg.isPackage) {
+    const fareNet = Math.max(0, pkg.fare - pkg.taxes);
+    const defaultCommission = Number((fareNet * 0.12).toFixed(2));
+    const commissionTotal = Number((fareNet * (pkg.commissionPct / 100)).toFixed(2));
+    const extra = Math.max(0, commissionTotal - defaultCommission);
+    produtos = Number(fareNet.toFixed(2));
+    taxas = Number(pkg.taxes.toFixed(2));
+    desc = 0;
+    total = Number((fareNet + pkg.taxes + extra).toFixed(2));
+  } else {
+    produtos = d.financials.reduce((s, f) => s + f.sale_value, 0);
+    taxas = d.financials.reduce((s, f) => s + f.tax_value, 0);
+    desc = d.financials.reduce((s, f) => s + f.discount_value, 0);
+    total = d.financials.reduce((s, f) => s + f.total, 0) || d.order.totalPrice;
+  }
   sectionTitle(ctx, "Resumo Financeiro");
   const cols: Col[] = [
     { header: "Produtos", width: CONTENT_W / 4, align: "right" },
