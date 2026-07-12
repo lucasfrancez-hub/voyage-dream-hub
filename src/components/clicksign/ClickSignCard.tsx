@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -81,6 +81,19 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
     setOpenDialog(true);
   };
 
+  // Atalho externo (ex.: botão "Ações → Acionar contrato Clicksign")
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ orderId?: string; withAuth?: boolean }>;
+      if (ce.detail?.orderId && ce.detail.orderId !== order.id) return;
+      openSendDialog(ce.detail?.withAuth ?? isCreditCard);
+      document.getElementById("clicksign-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    window.addEventListener("clicksign:open-send", handler as EventListener);
+    return () => window.removeEventListener("clicksign:open-send", handler as EventListener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order.id, isCreditCard]);
+
   const createMut = useMutation({
     mutationFn: async () => {
       const cpfDigits = form.cpf.replace(/\D/g, "");
@@ -148,7 +161,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
   );
 
   return (
-    <div className="rounded-xl border border-border p-4">
+    <div id="clicksign-card" className="rounded-xl border border-border p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-medium text-sm flex items-center gap-2">
