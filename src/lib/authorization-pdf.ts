@@ -99,6 +99,7 @@ export async function buildAuthorizationBlob(opts: {
   createdAt: string;
   authorization: AuthorizationData;
   liveness: LivenessData | null;
+  pendingSignature?: boolean;
 }): Promise<Blob> {
   const doc = await buildAuthorizationDoc(opts);
   return doc.output("blob");
@@ -109,9 +110,10 @@ async function buildAuthorizationDoc(opts: {
   createdAt: string;
   authorization: AuthorizationData;
   liveness: LivenessData | null;
+  pendingSignature?: boolean;
 }): Promise<jsPDF> {
 
-  const { orderId, createdAt, authorization: a, liveness } = opts;
+  const { orderId, createdAt, authorization: a, liveness, pendingSignature } = opts;
   const numericFromUuid = (() => {
     const hex = orderId.replace(/-/g, "").slice(0, 12);
     const n = parseInt(hex, 16);
