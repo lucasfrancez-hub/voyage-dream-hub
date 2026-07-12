@@ -46,6 +46,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
   const createFn = useServerFn(createSignatureRequest);
   const cancelFn = useServerFn(cancelSignatureRequest);
   const resendFn = useServerFn(resendSignerEmail);
+  const syncFn = useServerFn(syncSignatureFromClickSign);
 
   const queryKey = ["clicksign", "status", order.id] as const;
   const { data, isLoading } = useQuery({
