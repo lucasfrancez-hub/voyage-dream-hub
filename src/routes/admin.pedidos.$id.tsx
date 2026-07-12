@@ -2151,10 +2151,11 @@ function CommissionAdjustDialog({
     setPct(firstPct ?? (isPackage ? 12 : 10));
   }, [open, items, financials, pkgFare, pkgTaxes, isPackage]);
 
-  const base = Math.max(0, sale - tax);
+  // Tarifa já é o valor total (pra todos os pax) sem taxas. Comissão incide direto sobre a tarifa.
+  const base = Math.max(0, sale);
   const commission = Number((base * (pct / 100)).toFixed(2));
-  // A comissão entra por cima: se você sobe a comissão, o total da venda sobe junto.
-  const total = Number((sale + commission).toFixed(2));
+  // Total da venda = tarifa + taxas + comissão. Ao subir o %, o total sobe.
+  const total = Number((sale + tax + commission).toFixed(2));
 
   const handleSave = async () => {
     if (items.length === 0) { toast.error("Adicione ao menos um item"); return; }
