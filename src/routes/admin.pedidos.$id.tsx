@@ -524,14 +524,17 @@ type PassengerPatch = Partial<Pick<OrderPassenger,
 >>;
 
 function PassengerRow({
-  passenger, onPatch, onDelete,
+  passenger, onPatch, onDelete, fallbackTicket,
 }: {
   passenger: OrderPassenger;
   onPatch: (patch: PassengerPatch) => void;
   onDelete: () => void;
+  fallbackTicket?: string;
 }) {
+  const effectiveTicket = passenger.ticket_number ?? (fallbackTicket || null);
   return (
     <tr className="border-b border-border/50 group">
+
       <td className="py-1 px-1">
         <InlineText value={passenger.full_name} placeholder="Nome" className="font-medium"
           onCommit={(v) => v.trim() && v !== passenger.full_name && onPatch({ full_name: v.trim() })} />
