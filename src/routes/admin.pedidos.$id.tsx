@@ -1725,26 +1725,24 @@ function FinanceTab({
             <Plus className="h-3.5 w-3.5 mr-1" /> Novo lançamento
           </Button>
         </div>
-        {financials.length === 0 ? (
-          <div className="text-sm text-muted-foreground text-center py-6">Nenhum lançamento financeiro ainda.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-xs text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="text-left py-2 px-2">Item</th>
-                  <th className="text-left py-2 px-2">Fornecedor</th>
-                  <th className="text-right py-2 px-2">Tarifa</th>
-                  <th className="text-right py-2 px-2">Taxas</th>
-                  <th className="text-right py-2 px-2">Desc.</th>
-                  <th className="text-right py-2 px-2">Comissão</th>
-                  <th className="text-left py-2 px-2">Vencto</th>
-                  <th className="text-right py-2 px-2">Total</th>
-                  <th className="w-24"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {financials.map((f) => {
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-xs text-muted-foreground border-b border-border">
+              <tr>
+                <th className="text-left py-2 px-2">Item</th>
+                <th className="text-left py-2 px-2">Fornecedor</th>
+                <th className="text-right py-2 px-2">Tarifa</th>
+                <th className="text-right py-2 px-2">Taxas</th>
+                <th className="text-right py-2 px-2">Desc.</th>
+                <th className="text-right py-2 px-2">Comissão</th>
+                <th className="text-left py-2 px-2">Vencto</th>
+                <th className="text-right py-2 px-2">Total</th>
+                <th className="w-24"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {financials.length > 0 ? (
+                financials.map((f) => {
                   const it = itemsById[f.order_item_id];
                   return (
                     <tr key={f.id} className="border-b border-border/50">
@@ -1769,11 +1767,44 @@ function FinanceTab({
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                })
+              ) : (
+                plannedRows.map((p, idx) => (
+                  <tr key={`planned-${idx}`} className="border-b border-border/50 bg-muted/20">
+                    <td className="py-2 px-2 text-xs">
+                      <span className="inline-flex items-center gap-1.5">
+                        {p.__label}
+                        <span className="rounded-md border border-dashed border-muted-foreground/40 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">A lançar</span>
+                      </span>
+                    </td>
+                    <td className="py-2 px-2 text-xs">—</td>
+                    <td className="py-2 px-2 text-right text-xs">{formatBRL(p.sale_value)}</td>
+                    <td className="py-2 px-2 text-right text-xs">{formatBRL(p.tax_value)}</td>
+                    <td className="py-2 px-2 text-right text-xs">{formatBRL(p.discount_value)}</td>
+                    <td className="py-2 px-2 text-right text-xs">
+                      {formatBRL(p.commission_value)}
+                      <div className="text-[10px] text-muted-foreground">{p.commission_pct}%</div>
+                    </td>
+                    <td className="py-2 px-2 text-xs">—</td>
+                    <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(p.total)}</td>
+                    <td className="py-2 px-2 text-right">
+                      <Button size="sm" variant="ghost" onClick={() => {
+                        setEditing(null);
+                        // Se for pacote pronto: pré-seleciona o 1º item; senão o item da linha.
+                        setSelectedItem(p.__itemId ?? items[0]?.id ?? null);
+                        setOpen(true);
+                      }}>
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+
 
         <FinanceDialog
           open={open}
