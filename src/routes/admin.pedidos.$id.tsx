@@ -84,7 +84,9 @@ function OrderDetailPage() {
 
   const hotelItems = detail.items.filter((i) => i.kind === "hotel" && i.status !== "cancelled");
   const flightItems = detail.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
+  const serviceItems = detail.items.filter((i) => i.kind === "other" && i.status !== "cancelled");
   const cancelledItems = detail.items.filter((i) => i.status === "cancelled");
+
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "orderDetail", id] });
 
