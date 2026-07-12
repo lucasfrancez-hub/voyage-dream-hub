@@ -58,6 +58,7 @@ function LinkGenerator() {
 
     // 1) Se veio do pedido com autogen=1, pré-preenche a partir da querystring
     if (s?.autogen === "1") {
+      autogenRef.current = true;
       if (s.customer) setCustomer(s.customer);
       if (s.phone) setCustomerPhone(String(s.phone).replace(/\D/g, ""));
       if (s.description) setDescription(s.description);
@@ -76,9 +77,9 @@ function LinkGenerator() {
       if (s.days) setDays(s.days);
       if (s.nights) setNights(s.nights);
       if (s.imageUrl) setImageUrl(s.imageUrl);
-      toast.success("Dados do pedido carregados — link gerado automaticamente");
       return;
     }
+
 
     // 2) Caso contrário, tenta popular do cofre (edição)
     const entry = popEditEntry();
