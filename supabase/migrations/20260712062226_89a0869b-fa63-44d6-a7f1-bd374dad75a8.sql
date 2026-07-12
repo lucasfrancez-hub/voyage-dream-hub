@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.materialize_order_from_snapshot(uuid) TO authenticated;
