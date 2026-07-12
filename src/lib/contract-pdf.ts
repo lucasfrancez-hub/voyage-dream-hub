@@ -1,6 +1,7 @@
 // Gera Recibo + Contrato (PDF) espelhando o modelo VIA AIR.
 // Roda no navegador via pdf-lib.
-import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont, PDFImage } from "pdf-lib";
+import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
 import type {
   OrderDetail,
   OrderHeader,
