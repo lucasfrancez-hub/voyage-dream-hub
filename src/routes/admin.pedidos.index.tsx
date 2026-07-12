@@ -85,6 +85,7 @@ function AdminOrders() {
   }, {});
 
   const [newOpen, setNewOpen] = useState(false);
+  const [mondeOpen, setMondeOpen] = useState(false);
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
@@ -95,11 +96,23 @@ function AdminOrders() {
             {orders?.length ?? 0} pedido(s) · resultado da busca: {filtered.length}
           </p>
         </div>
-        <Button onClick={() => setNewOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" /> Cadastrar pedido
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setMondeOpen(true)} className="gap-2">
+            <Cloud className="h-4 w-4" /> Importar do Monde
+          </Button>
+          <Button onClick={() => setNewOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" /> Cadastrar pedido
+          </Button>
+        </div>
       </div>
       <NewOrderDialog open={newOpen} onOpenChange={setNewOpen} />
+      <MondePersonSearchDialog
+        open={mondeOpen}
+        onOpenChange={setMondeOpen}
+        onPick={(p) => {
+          toast.success(`Cliente "${p.name}" carregado do Monde. Abra um pedido e use o botão de importar dentro dele para vincular como passageiro.`);
+        }}
+      />
 
 
       {/* Search bar (FRT style) */}
