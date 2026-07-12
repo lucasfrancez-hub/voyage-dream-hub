@@ -606,37 +606,28 @@ const drawOthers = (ctx: Ctx, d: OrderDetail) => {
 };
 
 const drawTotals = (ctx: Ctx, d: OrderDetail) => {
-  const pkg = getPackageInfo(d);
-  let produtos: number;
-  let taxas: number;
-  let desc: number;
-  let total: number;
-  if (pkg.isPackage) {
-    const fareNet = Math.max(0, pkg.fare - pkg.taxes);
-    const defaultCommission = Number((fareNet * 0.12).toFixed(2));
-    const commissionTotal = Number((fareNet * (pkg.commissionPct / 100)).toFixed(2));
-    const extra = Math.max(0, commissionTotal - defaultCommission);
-    produtos = Number(fareNet.toFixed(2));
-    taxas = Number(pkg.taxes.toFixed(2));
-    desc = 0;
-    total = Number((fareNet + pkg.taxes + extra).toFixed(2));
-  } else {
-    produtos = d.financials.reduce((s, f) => s + f.sale_value, 0);
-    taxas = d.financials.reduce((s, f) => s + f.tax_value, 0);
-    desc = d.financials.reduce((s, f) => s + f.discount_value, 0);
-    total = d.financials.reduce((s, f) => s + f.total, 0) || d.order.totalPrice;
-  }
+  // Espelha os itens do financeiro do pedido (fonte da verdade após ajuste de comissão).
+  const produtos = d.financials.reduce((s, f) => s + Number(f.sale_value || 0), 0);
+  const taxas = d.financials.reduce((s, f) => s + Number(f.tax_value || 0), 0);
+  const desc = d.financials.reduce((s, f) => s + Number(f.discount_value || 0), 0);
+  const comissao = d.financials.reduce((s, f) => s + Number(f.commission_value || 0), 0);
+  const total = Number(d.order.totalPrice ?? 0)
+    || d.financials.reduce((s, f) => s + Number(f.total || 0), 0);
+
   sectionTitle(ctx, "Resumo Financeiro");
+  const w = CONTENT_W / 5;
   const cols: Col[] = [
-    { header: "Produtos", width: CONTENT_W / 4, align: "right" },
-    { header: "Abatimentos", width: CONTENT_W / 4, align: "right" },
-    { header: "Taxas", width: CONTENT_W / 4, align: "right" },
-    { header: "Total", width: CONTENT_W / 4, align: "right" },
+    { header: "Tarifa", width: w, align: "right" },
+    { header: "Taxas", width: w, align: "right" },
+    { header: "Desconto", width: w, align: "right" },
+    { header: "Comissão", width: w, align: "right" },
+    { header: "Total", width: CONTENT_W - w * 4, align: "right" },
   ];
   drawTableHeader(ctx, cols);
-  drawTableRow(ctx, cols, [brl(produtos), brl(desc), brl(taxas), brl(total)]);
-  ctx.y -= 6;
+  drawTableRow(ctx, cols, [brl(produtos), brl(taxas), brl(desc), brl(comissao), brl(total)]);
+  ctx.y -= 8;
 };
+
 
 const drawPayments = (ctx: Ctx, d: OrderDetail) => {
   if (d.payments.length === 0) return;
