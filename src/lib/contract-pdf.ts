@@ -530,14 +530,19 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
     for (const r of rows) {
       const from = [r.fromIata, r.fromCity].filter(Boolean).join(" ");
       const to = [r.toIata, r.toCity].filter(Boolean).join(" ");
-      const depLine = r.depart ? `${fmtDateTime(r.depart)}` : "—";
-      const arrLine = r.arrive ? `${fmtDateTime(r.arrive)}` : "—";
+      // Data/hora em linhas separadas — evita quebra irregular e aperto vertical.
+      const fmtDT2 = (s: string | null): string => {
+        if (!s) return "—";
+        const dt = fmtDateTime(s);
+        const parts = dt.split(" ");
+        return parts.length >= 2 ? `${parts[0]}\n${parts[1]}` : dt;
+      };
       drawTableRow(ctx, cols2, [
         r.airlineCode,
         r.flightNum,
         `${from} -> ${to}`,
-        depLine,
-        arrLine,
+        fmtDT2(r.depart),
+        fmtDT2(r.arrive),
       ]);
     }
   }
