@@ -317,6 +317,23 @@ export const setOrderItemStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Confirma ou cancela o pedido inteiro (status do pedido + status de todos os itens)
+export const setOrderStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; status: "confirmed" | "cancelled" | "pending" }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { error: e1 } = await context.supabase.from("orders").update({ status: data.status }).eq("id", data.id);
+    if (e1) throw new Error(e1.message);
+    const itemStatus = data.status === "cancelled" ? "cancelled" : data.status === "confirmed" ? "confirmed" : "pending";
+    const { error: e2 } = await context.supabase.from("order_items").update({ status: itemStatus }).eq("order_id", data.id);
+    if (e2) throw new Error(e2.message);
+    return { ok: true };
+  });
+
+
+
 // --------- Financials ---------
 export const upsertItemFinancial = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
