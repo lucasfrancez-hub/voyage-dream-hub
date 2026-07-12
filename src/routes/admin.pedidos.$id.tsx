@@ -2354,6 +2354,24 @@ function FinanceTab({
                     </td>
                     <td className="py-2 px-2"></td>
                   </tr>
+                  {packageRavTax > 0 && (
+                    <tr className="border-b border-border/50 bg-amber-500/5">
+                      <td className="py-2 px-2 text-xs">
+                        <span className="inline-flex items-center gap-1.5">
+                          Taxas de RAV
+                          <span className="rounded-md border border-amber-500/40 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-amber-700 dark:text-amber-400">15% s/ acréscimo</span>
+                        </span>
+                      </td>
+                      <td className="py-2 px-2 text-xs">Fornecedor</td>
+                      <td className="py-2 px-2 text-right text-xs">—</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(packageRavTax)}</td>
+                      <td className="py-2 px-2 text-right text-xs">—</td>
+                      <td className="py-2 px-2 text-right text-xs">—</td>
+                      <td className="py-2 px-2 text-xs">—</td>
+                      <td className="py-2 px-2 text-right text-xs font-semibold text-destructive">−{formatBRL(packageRavTax)}</td>
+                      <td className="py-2 px-2"></td>
+                    </tr>
+                  )}
                    {savedExtraRows.map((f) => {
                      const it = itemsById[f.order_item_id];
                      return (
