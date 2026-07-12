@@ -897,9 +897,10 @@ function ItemsTab({
       ) : (
         <div className="space-y-3">
           {items.map((it) => (
-            <ItemCard
+            <ServiceReservationCard
               key={it.id}
               item={it}
+              passengers={passengers ?? []}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
@@ -908,6 +909,7 @@ function ItemsTab({
           ))}
         </div>
       )}
+
 
 
 
