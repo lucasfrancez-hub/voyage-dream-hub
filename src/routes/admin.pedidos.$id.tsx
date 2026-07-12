@@ -803,7 +803,11 @@ function ItemsTab({
   const [open, setOpen] = useState(false);
 
   const save = useMutation({
-    mutationFn: async (payload: Parameters<typeof upsert>[0]["data"]) => upsert({ data: payload }),
+    mutationFn: async (payload: Parameters<typeof upsert>[0]["data"]) => {
+      const result = await upsert({ data: payload });
+      await recalculateTotal({ data: { id: orderId } });
+      return result;
+    },
     onSuccess: () => { toast.success("Item salvo"); onChange(); setOpen(false); setEditing(null); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
