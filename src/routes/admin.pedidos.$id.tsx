@@ -405,13 +405,13 @@ function PassengerDialog({
   );
 }
 
-// =========== Items (hotel/flight/cancelled) ===========
+// =========== Items (hotel/flight/other/cancelled) ===========
 function ItemsTab({
   orderId, items, kind, onChange, passengers,
 }: {
   orderId: string;
   items: OrderItem[];
-  kind: "hotel" | "flight" | "cancelled";
+  kind: "hotel" | "flight" | "other" | "cancelled";
   onChange: () => void;
   passengers?: OrderPassenger[];
 }) {
@@ -441,14 +441,18 @@ function ItemsTab({
   });
 
   const isCancelledTab = kind === "cancelled";
-  const dialogKind: "hotel" | "flight" = isCancelledTab ? (editing?.kind === "flight" ? "flight" : "hotel") : kind;
+  const dialogKind: "hotel" | "flight" | "other" = isCancelledTab
+    ? (editing?.kind === "flight" ? "flight" : editing?.kind === "other" ? "other" : "hotel")
+    : kind;
+
+  const addLabel = kind === "hotel" ? "hospedagem" : kind === "flight" ? "aéreo" : "serviço";
 
   return (
     <div>
       {!isCancelledTab && (
         <div className="flex justify-end mb-3">
           <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
-            <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar {kind === "hotel" ? "hospedagem" : "aéreo"}
+            <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar {addLabel}
           </Button>
         </div>
       )}
@@ -468,6 +472,20 @@ function ItemsTab({
               onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={(it) => reactivate.mutate(it.id)}
+            />
+          ))}
+        </div>
+      ) : kind === "hotel" ? (
+        <div className="space-y-3">
+          {items.map((it) => (
+            <HotelReservationCard
+              key={it.id}
+              item={it}
+              passengers={passengers ?? []}
+              onEdit={() => { setEditing(it); setOpen(true); }}
+              onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
+              onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onReactivate={() => reactivate.mutate(it.id)}
             />
           ))}
         </div>
@@ -497,6 +515,8 @@ function ItemsTab({
     </div>
   );
 }
+
+
 
 function ItemCard({
   item, onEdit, onDelete, onCancel, onReactivate,
