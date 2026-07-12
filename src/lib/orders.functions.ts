@@ -62,12 +62,35 @@ export type OrderHeader = {
   packageSnapshot: Json;
 };
 
+export type OrderPayment = {
+  id: string;
+  order_id: string;
+  cashier_number: string | null;
+  status: "paid" | "pending" | "cancelled" | "refunded" | string;
+  method: string;
+  description: string | null;
+  installments: number | null;
+  installment_amount: number | null;
+  amount: number;
+  provider: string | null;
+  proposal_number: string | null;
+  authorization_code: string | null;
+  card_last4: string | null;
+  card_brand: string | null;
+  paid_at: string | null;
+  added_by_name: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
 export type OrderDetail = {
   order: OrderHeader;
   passengers: OrderPassenger[];
   items: OrderItem[];
   financials: OrderItemFinancial[];
+  payments: OrderPayment[];
 };
+
 
 // --------- getOrderDetail ---------
 export const getOrderDetail = createServerFn({ method: "GET" })
@@ -125,6 +148,33 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       }));
     }
 
+    const { data: paymentsRaw, error: e5 } = await supabase
+      .from("order_payments")
+      .select("*")
+      .eq("order_id", data.id)
+      .order("created_at", { ascending: true });
+    if (e5) throw new Error(e5.message);
+    const payments: OrderPayment[] = (paymentsRaw ?? []).map((p) => ({
+      id: p.id,
+      order_id: p.order_id,
+      cashier_number: p.cashier_number,
+      status: p.status,
+      method: p.method,
+      description: p.description,
+      installments: p.installments,
+      installment_amount: p.installment_amount === null ? null : Number(p.installment_amount),
+      amount: Number(p.amount),
+      provider: p.provider,
+      proposal_number: p.proposal_number,
+      authorization_code: p.authorization_code,
+      card_last4: p.card_last4,
+      card_brand: p.card_brand,
+      paid_at: p.paid_at,
+      added_by_name: p.added_by_name,
+      notes: p.notes,
+      created_at: p.created_at,
+    }));
+
     return {
       order: {
         id: order.id,
@@ -146,6 +196,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         airlineLocator: order.airline_locator ?? null,
         packageSnapshot: (order.package_snapshot ?? {}) as Json,
       },
+
       passengers: (passengers ?? []) as OrderPassenger[],
       items: (items ?? []).map((i) => ({
         id: i.id,
@@ -158,7 +209,9 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         sort_order: i.sort_order,
       })),
       financials,
+      payments,
     };
+
   });
 
 // --------- Passengers ---------
@@ -301,6 +354,57 @@ export const deleteItemFinancial = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// --------- Payments ---------
+export const upsertOrderPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: Partial<OrderPayment> & { order_id: string; method: string; amount: number }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const payload = {
+      order_id: data.order_id,
+      cashier_number: data.cashier_number ?? null,
+      status: data.status ?? "paid",
+      method: data.method,
+      description: data.description ?? null,
+      installments: data.installments ?? null,
+      installment_amount: data.installment_amount ?? null,
+      amount: data.amount,
+      provider: data.provider ?? null,
+      proposal_number: data.proposal_number ?? null,
+      authorization_code: data.authorization_code ?? null,
+      card_last4: data.card_last4 ?? null,
+      card_brand: data.card_brand ?? null,
+      paid_at: data.paid_at ?? null,
+      added_by_name: data.added_by_name ?? null,
+      notes: data.notes ?? null,
+    };
+    if (data.id) {
+      const { error } = await context.supabase.from("order_payments").update(payload).eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { id: data.id };
+    }
+    const { data: created, error } = await context.supabase
+      .from("order_payments")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { id: created.id };
+  });
+
+export const deleteOrderPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { error } = await context.supabase.from("order_payments").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 // --------- createOrder (cadastro manual) ---------
 export type CreateOrderInput = {
