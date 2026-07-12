@@ -65,7 +65,7 @@ function LinkSimpleGenerator() {
       if (s.days) setDays(s.days);
       if (s.nights) setNights(s.nights);
       if (s.imageUrl) setImageUrl(s.imageUrl);
-      toast.success("Dados do pedido carregados — link gerado automaticamente");
+      return;
       return;
     }
 
