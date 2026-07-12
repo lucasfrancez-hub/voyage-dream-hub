@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 
-export const Route = createFileRoute("/admin/pedidos")({
+export const Route = createFileRoute("/admin/pedidos/")({
   component: AdminOrders,
   head: () => ({ meta: [{ title: "Pedidos — Admin" }] }),
 });
@@ -34,7 +34,7 @@ function AdminOrders() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator")
+        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -51,11 +51,13 @@ function AdminOrders() {
     }
     if (!q) return true;
     const snap = (o.package_snapshot ?? {}) as { order_number?: string; title?: string };
+    const orderNumberCol = (o as { order_number?: string | null }).order_number ?? "";
     return (
       (o.full_name ?? "").toLowerCase().includes(q) ||
       (o.email ?? "").toLowerCase().includes(q) ||
       (o.cpf ?? "").toLowerCase().includes(q) ||
       (o.phone ?? "").toLowerCase().includes(q) ||
+      orderNumberCol.toLowerCase().includes(q) ||
       (snap.order_number ?? "").toString().toLowerCase().includes(q) ||
       (snap.title ?? "").toLowerCase().includes(q) ||
       (o.airline_locator ?? "").toLowerCase().includes(q) ||
@@ -155,13 +157,14 @@ function AdminOrders() {
                 };
                 const pm = paymentMethodLabel(o.payment_method);
                 const st = statusLabel(o.status);
-                const displayOrderNumber = snap.order_number?.trim() ?? shortId(o.id);
+                const displayOrderNumber =
+                  ((o as { order_number?: string | null }).order_number ?? snap.order_number ?? shortId(o.id));
                 return (
                   <tr key={o.id} className="border-b border-border/50 hover:bg-muted/30 transition">
                     <td className="py-3 px-3 align-top">
-                      <div className="font-mono text-xs font-semibold">{displayOrderNumber}</div>
+                      <div className="font-mono text-sm font-semibold">{displayOrderNumber}</div>
                       {o.airline_locator && (
-                        <div className="font-mono text-[10px] text-muted-foreground mt-0.5">{o.airline_locator}</div>
+                        <div className="font-mono text-[10px] text-muted-foreground mt-0.5">LOC {o.airline_locator}</div>
                       )}
                     </td>
                     <td className="py-3 px-3 align-top">
