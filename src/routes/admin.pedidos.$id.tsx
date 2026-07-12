@@ -1087,6 +1087,19 @@ function FlightReservationCard({
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Plane className="h-3.5 w-3.5" /> Reserva aérea
           </div>
+          {(() => {
+            const airlines = Array.from(new Set(
+              segments
+                .map((s) => ((s.details ?? {}) as Record<string, unknown>).airline as string | undefined)
+                .filter((x): x is string => !!x && x.trim().length > 0)
+            ));
+            if (airlines.length === 0) return null;
+            return (
+              <div className="mt-0.5 text-sm font-medium text-foreground">
+                {airlines.join(" · ")}
+              </div>
+            );
+          })()}
           <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
             {locator ?? "—"}
           </div>
@@ -1173,20 +1186,29 @@ function FlightReservationCard({
           </div>
           <ul className="mt-2 space-y-1.5">
             {passengers.length === 0 && <li className="text-xs text-muted-foreground">Nenhum passageiro</li>}
-            {passengers.map((p) => (
-              <li key={p.id} className="text-xs">
-                <div className="font-medium text-foreground">{p.full_name}</div>
-                <div className="text-muted-foreground">
-                  {p.passenger_type}
-                  {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
-                </div>
-                {p.ticket_number && (
-                  <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                    <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+            {passengers.map((p) => {
+              const isPassport = p.doc_type === "passport";
+              const docNum = isPassport ? p.passport_number : p.cpf;
+              return (
+                <li key={p.id} className="text-xs">
+                  <div className="font-medium text-foreground">{p.full_name}</div>
+                  <div className="text-muted-foreground">
+                    {p.passenger_type}
+                    {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
                   </div>
-                )}
-              </li>
-            ))}
+                  {docNum && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
+                    </div>
+                  )}
+                  {p.ticket_number && (
+                    <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                      <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
@@ -1279,20 +1301,29 @@ function HotelReservationCard({
           </div>
           <ul className="mt-2 space-y-1.5">
             {passengers.length === 0 && <li className="text-xs text-muted-foreground">Nenhum passageiro</li>}
-            {passengers.map((p) => (
-              <li key={p.id} className="text-xs">
-                <div className="font-medium text-foreground">{p.full_name}</div>
-                <div className="text-muted-foreground">
-                  {p.passenger_type}
-                  {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
-                </div>
-                {p.ticket_number && (
-                  <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                    <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+            {passengers.map((p) => {
+              const isPassport = p.doc_type === "passport";
+              const docNum = isPassport ? p.passport_number : p.cpf;
+              return (
+                <li key={p.id} className="text-xs">
+                  <div className="font-medium text-foreground">{p.full_name}</div>
+                  <div className="text-muted-foreground">
+                    {p.passenger_type}
+                    {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
                   </div>
-                )}
-              </li>
-            ))}
+                  {docNum && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
+                    </div>
+                  )}
+                  {p.ticket_number && (
+                    <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                      <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
