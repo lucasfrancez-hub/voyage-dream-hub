@@ -781,11 +781,17 @@ const drawContract = (ctx: Ctx) => {
   drawFooter(ctx);
   newPage(ctx);
   drawContractHeader(ctx);
-  ctx.y -= 4;
+  ctx.y -= 8;
+  // Título principal do contrato
+  const mainTitle = "CONTRATO DE PRESTAÇÃO DE SERVIÇO DE TURISMO";
+  const mtW = ctx.fontBold.widthOfTextAtSize(sanitize(mainTitle), 13);
+  text(ctx, mainTitle, (A4.w - mtW) / 2, { size: 13, bold: true });
+  ctx.y -= 22;
   text(ctx, "CONDIÇÕES GERAIS - VIA AIR AGÊNCIA E REPRESENTACOES LTDA", MARGIN, {
-    size: 11, bold: true,
+    size: 10, bold: true, color: COLOR_MUTED,
   });
   ctx.y -= 20;
+
   for (const c of CONTRACT_CLAUSES) {
     ensureSpace(ctx, 20, drawContractHeader);
     text(ctx, c.title, MARGIN, { size: 10, bold: true });
