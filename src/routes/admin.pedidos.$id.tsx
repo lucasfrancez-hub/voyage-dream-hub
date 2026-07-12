@@ -909,6 +909,19 @@ function FlightReservationCard({
           <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
             {locator ?? "—"}
           </div>
+          <div className="mt-1.5">
+            {(() => {
+              // Se todos os segmentos têm o mesmo status, mostra ele. Se estão mistos, mostra o "mais avançado".
+              const rank: Record<string, number> = { pending: 0, reserved: 1, confirmed: 2, cancelled: -1 };
+              const nonCancel = segments.filter((s) => s.status !== "cancelled");
+              const st = allCancelled ? "cancelled"
+                : nonCancel.reduce((acc, s) => (rank[s.status] > rank[acc] ? s.status : acc), nonCancel[0]?.status ?? "pending");
+              const b = itemStatusBadge(st);
+              return (
+                <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
+              );
+            })()}
+          </div>
           {supplier && (
             <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
               Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
@@ -924,7 +937,6 @@ function FlightReservationCard({
               <Hash className="h-3 w-3" /> {ticket}
             </button>
           )}
-          {allCancelled && <div className="mt-1 text-[10px] font-semibold uppercase text-destructive">Cancelado</div>}
         </div>
 
         {/* Coluna 2: segmentos */}
