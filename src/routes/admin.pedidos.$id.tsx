@@ -36,6 +36,7 @@ import { Slider } from "@/components/ui/slider";
 
 
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
+import { generateReceiptAndContract, generateReceiptOnly, openBlobInNewTab } from "@/lib/contract-pdf";
 import { OrderDocuments } from "@/components/OrderDocuments";
 import type { Json } from "@/integrations/supabase/types";
 
