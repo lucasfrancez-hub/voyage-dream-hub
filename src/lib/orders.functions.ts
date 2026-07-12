@@ -302,3 +302,49 @@ export const deleteItemFinancial = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// --------- createOrder (cadastro manual) ---------
+export type CreateOrderInput = {
+  full_name: string;
+  email: string;
+  phone: string;
+  cpf?: string | null;
+  payment_method: string;
+  total_price?: number;
+  adults?: number;
+  children?: number;
+  notes?: string | null;
+  supplier_name?: string | null;
+  airline_locator?: string | null;
+};
+
+export const createOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: CreateOrderInput) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const payload = {
+      full_name: data.full_name,
+      email: data.email,
+      phone: data.phone,
+      cpf: data.cpf ?? null,
+      payment_method: data.payment_method,
+      total_price: data.total_price ?? 0,
+      adults: data.adults ?? 1,
+      children: data.children ?? 0,
+      notes: data.notes ?? null,
+      supplier_name: data.supplier_name ?? null,
+      airline_locator: data.airline_locator ?? null,
+      status: "pending",
+      package_snapshot: { manual: true, title: "Pedido manual" },
+    };
+    const { data: created, error } = await context.supabase
+      .from("orders")
+      .insert(payload)
+      .select("id, order_number")
+      .single();
+    if (error) throw new Error(error.message);
+    return { id: created.id, order_number: created.order_number };
+  });
+
+
