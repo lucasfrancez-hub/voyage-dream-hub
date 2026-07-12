@@ -28,6 +28,7 @@ export type Database = {
           sale_value: number
           sort_order: number
           supplier_name: string | null
+          tax_value: number
           total: number
           updated_at: string
         }
@@ -44,6 +45,7 @@ export type Database = {
           sale_value?: number
           sort_order?: number
           supplier_name?: string | null
+          tax_value?: number
           total?: number
           updated_at?: string
         }
@@ -60,6 +62,7 @@ export type Database = {
           sale_value?: number
           sort_order?: number
           supplier_name?: string | null
+          tax_value?: number
           total?: number
           updated_at?: string
         }
