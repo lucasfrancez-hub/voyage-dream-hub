@@ -2151,10 +2151,11 @@ function CommissionAdjustDialog({
     setPct(firstPct ?? (isPackage ? 12 : 10));
   }, [open, items, financials, pkgFare, pkgTaxes, isPackage]);
 
-  const base = Math.max(0, sale - tax);
+  // Tarifa já é o valor total (pra todos os pax) sem taxas. Comissão incide direto sobre a tarifa.
+  const base = Math.max(0, sale);
   const commission = Number((base * (pct / 100)).toFixed(2));
-  // A comissão entra por cima: se você sobe a comissão, o total da venda sobe junto.
-  const total = Number((sale + commission).toFixed(2));
+  // Total da venda = tarifa + taxas + comissão. Ao subir o %, o total sobe.
+  const total = Number((sale + tax + commission).toFixed(2));
 
   const handleSave = async () => {
     if (items.length === 0) { toast.error("Adicione ao menos um item"); return; }
@@ -2180,9 +2181,9 @@ function CommissionAdjustDialog({
         const wTax = totalCurTax > 0 ? c.curTax / totalCurTax : equalShare;
         const itemSale = Number((sale * wSale).toFixed(2));
         const itemTax = Number((tax * wTax).toFixed(2));
-        const itemBase = Math.max(0, itemSale - itemTax);
+        const itemBase = Math.max(0, itemSale);
         const itemCommission = Number((itemBase * (pct / 100)).toFixed(2));
-        const itemTotal = Number((itemSale + itemCommission).toFixed(2));
+        const itemTotal = Number((itemSale + itemTax + itemCommission).toFixed(2));
         await upsert({
           data: {
             id: c.existing?.id,
@@ -2261,14 +2262,14 @@ function CommissionAdjustDialog({
                 onValueChange={(v) => setPct(v[0])}
               />
               <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                <span>Base: {formatBRL(base)} (tarifa − taxas)</span>
+                <span>Base: {formatBRL(base)} (só tarifa)</span>
                 <span>
                   Comissão: <span className="font-semibold text-brand-orange">{formatBRL(commission)}</span>
                 </span>
               </div>
               <div className="mt-1 text-xs text-muted-foreground text-right">
                 Total da venda: <span className="font-semibold text-foreground">{formatBRL(total)}</span>
-                <span className="ml-1 opacity-70">(tarifa + comissão)</span>
+                <span className="ml-1 opacity-70">(tarifa + taxas + comissão)</span>
               </div>
             </div>
           </div>
