@@ -354,6 +354,7 @@ async function buildAuthorizationDoc(opts: {
       : "Crédito à vista",
   );
   kv("Descrição do serviço", a.description ?? "—");
+  if (a.authorization_code) kv("Código de autorização (banco)", a.authorization_code);
   if (a.reference) kv("Referência", a.reference);
   y += 2;
 
