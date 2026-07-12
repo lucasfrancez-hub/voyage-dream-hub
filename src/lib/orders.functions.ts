@@ -273,6 +273,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       })),
       financials,
       payments,
+      itemPassengers,
     };
 
   });
