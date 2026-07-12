@@ -1886,6 +1886,18 @@ function ItemDialog({
             const cleanMain = buildClean(details);
             let effectiveTitle = title.trim();
             if (kind === "flight") {
+              // Localizador obrigatório: mínimo 6 alfanuméricos
+              const loc = locator.trim().toUpperCase();
+              if (!/^[A-Z0-9]{6,}$/.test(loc)) {
+                toast.error("Localizador inválido: mínimo 6 caracteres (letras e/ou números)");
+                return;
+              }
+              // Bilhete opcional; se preenchido, exige 13 dígitos no formato 000-0000000000
+              const ticket = String(details.ticket_number ?? "").trim();
+              if (ticket && !/^\d{3}-\d{10}$/.test(ticket)) {
+                toast.error("Número de bilhete inválido: use o formato 000-0000000000 (13 dígitos)");
+                return;
+              }
               // Ida é obrigatória: exige origem+destino no trecho principal
               const from = String(details.from_iata ?? details.origin ?? "").trim();
               const to = String(details.to_iata ?? details.destination ?? "").trim();
@@ -1893,6 +1905,7 @@ function ItemDialog({
                 toast.error("Preencha ao menos a origem e o destino da ida");
                 return;
               }
+
               // Volta é opcional: descarta trechos de volta vazios (sem origem/destino)
               effectiveTitle = segmentTitle(details);
             }
