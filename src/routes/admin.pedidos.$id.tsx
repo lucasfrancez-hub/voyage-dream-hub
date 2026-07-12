@@ -1459,6 +1459,7 @@ function ItemDialog({
     for (const [k, v] of Object.entries(initialDetails)) {
       if (typeof v === "string" || typeof v === "number") clean[k] = v;
     }
+    if (kind === "flight" && !initial && !clean.direction) clean.direction = "outbound";
     return clean;
   });
 
