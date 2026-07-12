@@ -2400,21 +2400,23 @@ function CommissionAdjustDialog({
 
   useEffect(() => {
     if (!open) return;
+    const r2 = (n: number) => Number(n.toFixed(2));
     if (isPackage) {
       // Pacote pronto: força tarifa NET e taxas do snapshot; ignora convenções antigas.
-      setSale(pkgFareNet);
-      setTax(pkgTaxes);
+      setSale(r2(pkgFareNet));
+      setTax(r2(pkgTaxes));
     } else {
       const relevant = items.map((it) => financials.find((f) => f.order_item_id === it.id)).filter(Boolean) as OrderItemFinancial[];
       const sumSale = relevant.reduce((a, f) => a + Number(f.sale_value || 0), 0);
       const sumTax = relevant.reduce((a, f) => a + Number(f.tax_value || 0), 0);
-      setSale(sumSale);
-      setTax(sumTax);
+      setSale(r2(sumSale));
+      setTax(r2(sumTax));
     }
     const relevant = items.map((it) => financials.find((f) => f.order_item_id === it.id)).filter(Boolean) as OrderItemFinancial[];
     const firstPct = relevant.find((f) => Number(f.commission_pct || 0) > 0)?.commission_pct;
     setPct(firstPct ?? (isPackage ? PKG_DEFAULT_PCT : 10));
   }, [open, items, financials, pkgFareNet, pkgTaxes, isPackage]);
+
 
   // sale = tarifa NET (sem taxas). Comissão incide sobre a tarifa.
   const base = Math.max(0, sale);
@@ -2543,15 +2545,10 @@ function CommissionAdjustDialog({
                   Comissão: <span className="font-semibold text-brand-orange">{formatBRL(commission)}</span>
                 </span>
               </div>
-              <div className="mt-1 text-xs text-muted-foreground text-right">
-                Total da venda: <span className="font-semibold text-foreground">{formatBRL(total)}</span>
-                <span className="ml-1 opacity-70">
-                  {isPackage ? "(pacote já inclui 12%; só sobe acima disso)" : "(tarifa + taxas + comissão)"}
-                </span>
-              </div>
             </div>
           </div>
         )}
+
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
