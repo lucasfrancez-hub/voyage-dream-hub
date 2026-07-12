@@ -779,6 +779,110 @@ function FlightReservationCard({
   );
 }
 
+function HotelReservationCard({
+  item, passengers, onEdit, onDelete, onCancel, onReactivate,
+}: {
+  item: OrderItem;
+  passengers: OrderPassenger[];
+  onEdit: () => void;
+  onDelete: () => void;
+  onCancel: () => void;
+  onReactivate: () => void;
+}) {
+  const d = (item.details ?? {}) as Record<string, unknown>;
+  const cancelled = item.status === "cancelled";
+  const supplier = typeof d.supplier_name === "string" ? (d.supplier_name as string) : "";
+  const stars = typeof d.hotel_stars === "number" ? (d.hotel_stars as number) : null;
+  const address = typeof d.address === "string" ? (d.address as string) : "";
+  const destination = typeof d.destination === "string" ? (d.destination as string) : "";
+  const room = typeof d.room === "string" ? (d.room as string) : "";
+  const board = ((d.board ?? d.meal_plan) as string) || "";
+  const ci = (d.check_in as string) || (d.checkin as string) || "";
+  const co = (d.check_out as string) || (d.checkout as string) || "";
+  const nights = typeof d.nights === "number" ? (d.nights as number) : null;
+  return (
+    <div className={`rounded-xl border p-4 ${cancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)]">
+        {/* Coluna 1: reserva / fornecedor */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Hotel className="h-3.5 w-3.5" /> Reserva hotel
+          </div>
+          <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
+            {item.supplier_locator?.trim() || "—"}
+          </div>
+          {supplier && (
+            <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+              Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
+            </div>
+          )}
+          <div className="mt-2 flex items-center gap-0.5">
+            <Button size="sm" variant="ghost" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>
+            {cancelled ? (
+              <Button size="sm" variant="ghost" onClick={onReactivate} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={onCancel} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onDelete}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+          </div>
+          {cancelled && <div className="mt-1 text-[10px] font-semibold uppercase text-destructive">Cancelado</div>}
+        </div>
+
+        {/* Coluna 2: detalhes */}
+        <div className="min-w-0 border-l border-border pl-4">
+          <div className="font-semibold">
+            {item.title}
+            {stars ? <span className="ml-2 text-xs text-brand-orange">{"★".repeat(stars)}</span> : null}
+          </div>
+          <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+            {destination && <div>{destination}</div>}
+            {address && <div>{address}</div>}
+            {room && <div>Quarto: <span className="text-foreground">{room}</span></div>}
+            {board && <div>Regime: <span className="text-foreground">{board}</span></div>}
+            {(ci || co) && (
+              <div>
+                Check-in <span className="text-foreground">{formatDate(ci)}</span>
+                {" · "}
+                Check-out <span className="text-foreground">{formatDate(co)}</span>
+                {nights !== null ? ` · ${nights} noite(s)` : ""}
+              </div>
+            )}
+            {typeof d.notes === "string" && (d.notes as string).trim() && (
+              <div className="mt-1 whitespace-pre-line text-xs">{d.notes as string}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Coluna 3: hóspedes */}
+        <div className="min-w-0 border-l border-border pl-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Users className="h-3.5 w-3.5" /> Hóspedes ({passengers.length})
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {passengers.length === 0 && <li className="text-xs text-muted-foreground">Nenhum passageiro</li>}
+            {passengers.map((p) => (
+              <li key={p.id} className="text-xs">
+                <div className="font-medium text-foreground">{p.full_name}</div>
+                <div className="text-muted-foreground">
+                  {p.passenger_type}
+                  {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                </div>
+                {p.ticket_number && (
+                  <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                    <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 
 
 function ItemDialog({
