@@ -1642,24 +1642,31 @@ function FinanceTab({
     return m;
   }, [items]);
 
-  // Linhas "planejadas" a partir do pacote/itens quando ainda não há lançamento no financeiro.
-  // Pacote pronto → 1 linha "Pacote pronto".
-  // Sem pacote → 1 linha por item (aéreo/hotel/outro) sem valor, para o usuário lançar.
+  // Convenções (novas):
+  // - sale_value = TARIFA NET (já sem taxas)
+  // - Base comissionável = sale_value (não subtrai taxas de novo)
+  // - Pacote pronto: os 12% de comissão JÁ estão embutidos no valor do pacote.
+  //   Total da venda só sobe se comissão > 12% (delta acima do padrão).
+  // - Manual (sem pacote): total = tarifa + taxas + comissão (soma normal).
+  const packageFareNet = Math.max(0, packageFare - packageTaxes);
+  const PACKAGE_DEFAULT_PCT = 12;
+  const packageDefaultCommission = Number((packageFareNet * (PACKAGE_DEFAULT_PCT / 100)).toFixed(2));
+
   const plannedRows = useMemo<Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }>>(() => {
     if (financials.length > 0) return [];
     if (isPackageOrder) {
-      const commission = Number((packageFare * 0.12).toFixed(2));
       return [{
         __planned: true,
         __itemId: null,
         __label: "Pacote pronto",
         supplier_name: null,
-        sale_value: packageFare,
+        sale_value: packageFareNet,
         tax_value: packageTaxes,
         discount_value: 0,
-        commission_pct: 12,
-        commission_value: commission,
-        total: Number((packageFare + packageTaxes).toFixed(2)),
+        commission_pct: PACKAGE_DEFAULT_PCT,
+        commission_value: packageDefaultCommission,
+        // No padrão 12%, total = tarifa + taxas (comissão já embutida).
+        total: Number((packageFareNet + packageTaxes).toFixed(2)),
       }];
     }
     return items.map((it) => ({
@@ -1674,14 +1681,34 @@ function FinanceTab({
       commission_value: 0,
       total: 0,
     }));
-  }, [financials.length, isPackageOrder, packageFare, packageTaxes, items]);
+  }, [financials.length, isPackageOrder, packageFareNet, packageTaxes, packageDefaultCommission, items]);
 
-  const displayRows = financials.length > 0 ? financials : plannedRows;
-  const totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
-  const totalTax = displayRows.reduce((a, f) => a + Number(f.tax_value || 0), 0);
-  const commissionBase = Math.max(0, totalSale - totalTax);
-  const totalCommission = displayRows.reduce((a, f) => a + Number(f.commission_value || 0), 0);
-  const totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
+  // Para pacote pronto, ignoramos valores gravados nos financials e derivamos tudo do snapshot,
+  // aplicando o % de comissão que estiver salvo (ou 12% padrão). Isso corrige dados antigos que
+  // foram gravados com convenção diferente.
+  let totalSale: number;
+  let totalTax: number;
+  let commissionBase: number;
+  let totalCommission: number;
+  let totalNet: number;
+
+  if (isPackageOrder) {
+    const currentPct = financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT;
+    totalSale = packageFareNet;
+    totalTax = packageTaxes;
+    commissionBase = packageFareNet;
+    totalCommission = Number((packageFareNet * (Number(currentPct) / 100)).toFixed(2));
+    const extra = Math.max(0, totalCommission - packageDefaultCommission);
+    totalNet = Number((packageFareNet + packageTaxes + extra).toFixed(2));
+  } else {
+    const displayRows = financials.length > 0 ? financials : plannedRows;
+    totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
+    totalTax = displayRows.reduce((a, f) => a + Number(f.tax_value || 0), 0);
+    commissionBase = Math.max(0, totalSale);
+    totalCommission = displayRows.reduce((a, f) => a + Number(f.commission_value || 0), 0);
+    totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
+  }
+
 
   if (items.length === 0) {
     return (
