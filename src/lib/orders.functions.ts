@@ -64,6 +64,16 @@ export type OrderHeader = {
   supplierOrderNumber: string | null;
   airlineLocator: string | null;
   packageSnapshot: Json;
+  payerFullName: string | null;
+  payerCpf: string | null;
+  payerEmail: string | null;
+  payerPhone: string | null;
+  payerZip: string | null;
+  payerAddress: string | null;
+  payerNumber: string | null;
+  payerDistrict: string | null;
+  payerCity: string | null;
+  payerState: string | null;
 };
 
 
