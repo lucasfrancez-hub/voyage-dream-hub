@@ -31,7 +31,9 @@ export type OrderItemFinancial = {
   order_item_id: string;
   supplier_name: string | null;
   sale_value: number;
+  tax_value: number;
   discount_value: number;
+
   commission_value: number;
   commission_pct: number;
   exchange_rate: number;
