@@ -229,3 +229,98 @@ function AdminOrders() {
     </div>
   );
 }
+
+function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const navigate = useNavigate();
+  const create = useServerFn(createOrder);
+  const [form, setForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    cpf: "",
+    payment_method: "credit_card",
+    total_price: 0,
+    adults: 1,
+    children: 0,
+    supplier_name: "",
+    airline_locator: "",
+    notes: "",
+  });
+
+  const mut = useMutation({
+    mutationFn: async () => create({ data: { ...form } }),
+    onSuccess: (r) => {
+      toast.success(`Pedido ${r.order_number} criado`);
+      onOpenChange(false);
+      navigate({ to: "/admin/pedidos/$id", params: { id: r.id } });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao criar pedido"),
+  });
+
+  const submit = () => {
+    if (!form.full_name || !form.email || !form.phone) {
+      toast.error("Preencha nome, e-mail e telefone");
+      return;
+    }
+    mut.mutate();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Cadastrar pedido manual</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+            <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label>Adultos</Label><Input type="number" min={0} value={form.adults} onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })} /></div>
+            <div><Label>Crianças</Label><Input type="number" min={0} value={form.children} onChange={(e) => setForm({ ...form, children: Number(e.target.value) })} /></div>
+            <div><Label>Total previsto (R$)</Label><Input type="number" step="0.01" value={form.total_price} onChange={(e) => setForm({ ...form, total_price: Number(e.target.value) })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Meio de pagamento</Label>
+              <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_card">Cartão de crédito</SelectItem>
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="transfer">Transferência</SelectItem>
+                  <SelectItem value="other">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Fornecedor</Label><Input value={form.supplier_name} onChange={(e) => setForm({ ...form, supplier_name: e.target.value })} /></div>
+          </div>
+          <div>
+            <Label>Localizador aéreo (opcional)</Label>
+            <Input value={form.airline_locator} onChange={(e) => setForm({ ...form, airline_locator: e.target.value })} />
+          </div>
+          <div>
+            <Label>Observações</Label>
+            <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Depois de criar, você entra na tela do pedido para adicionar hospedagem, aéreo, passageiros e lançamentos financeiros.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={submit} disabled={mut.isPending}>
+            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar pedido"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
