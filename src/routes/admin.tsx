@@ -93,57 +93,53 @@ function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-40">
-        <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-3">
-              <img src={viaAirLogo.url} alt="Via Air" className="h-8 w-auto" />
-            </Link>
-            <nav className="hidden md:flex items-center gap-1">
-              <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
-              <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-              <CartaoNav pathname={pathname} />
-
-              <NavItem to="/admin/link-boleto" icon={FileText} label="Link boleto" active={pathname.startsWith("/admin/link-boleto")} />
-              <NavItem to="/admin/cofre" icon={Vault} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
-              {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
-                <NavItem to="/admin/usuarios" icon={Users} label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
-              )}
-              <NavItem to="/admin/seguranca" icon={ShieldCheck} label="Segurança" active={pathname.startsWith("/admin/seguranca")} />
-            </nav>
-          </div>
-          <div className="flex items-center gap-2">
+      <header className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-40">
+        <div className="mx-auto max-w-7xl px-6 h-14 flex items-center justify-between gap-6">
+          <Link to="/" className="flex items-center gap-3 shrink-0">
+            <img src={viaAirLogo.url} alt="Via Air" className="h-7 w-auto" />
+          </Link>
+          <nav className="hidden md:flex items-center gap-1 flex-1">
+            <NavItem to="/admin/pacotes" label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
+            <NavItem to="/admin/pedidos" label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
+            <CartaoNav pathname={pathname} />
+            <NavItem to="/admin/link-boleto" label="Boleto" active={pathname.startsWith("/admin/link-boleto")} />
+            <NavItem to="/admin/cofre" label="Cofre" active={pathname.startsWith("/admin/cofre")} />
+            {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
+              <NavItem to="/admin/usuarios" label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
+            )}
+            <NavItem to="/admin/seguranca" label="Segurança" active={pathname.startsWith("/admin/seguranca")} />
+          </nav>
+          <div className="flex items-center gap-3 shrink-0">
             <a
               href="https://viaair.tur.br"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-brand-orange"
+              className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition"
             >
-              <Home className="h-4 w-4" /> Ver site
+              <Home className="h-3.5 w-3.5" /> Site
             </a>
             <button
               onClick={async () => {
                 await supabase.auth.signOut();
                 navigate({ to: "/auth" });
               }}
-              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-xs hover:border-brand-orange"
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition"
             >
               <LogOut className="h-3.5 w-3.5" /> Sair
             </button>
           </div>
         </div>
         <nav className="md:hidden border-t border-border overflow-x-auto">
-          <div className="mx-auto max-w-7xl px-6 py-2 flex items-center gap-1 whitespace-nowrap">
-            <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
-            <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
+          <div className="mx-auto max-w-7xl px-4 flex items-center gap-1 whitespace-nowrap">
+            <NavItem to="/admin/pacotes" label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
+            <NavItem to="/admin/pedidos" label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
             <CartaoNav pathname={pathname} />
-
-            <NavItem to="/admin/link-boleto" icon={FileText} label="Boleto" active={pathname.startsWith("/admin/link-boleto")} />
-            <NavItem to="/admin/cofre" icon={Vault} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
+            <NavItem to="/admin/link-boleto" label="Boleto" active={pathname.startsWith("/admin/link-boleto")} />
+            <NavItem to="/admin/cofre" label="Cofre" active={pathname.startsWith("/admin/cofre")} />
             {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
-              <NavItem to="/admin/usuarios" icon={Users} label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
+              <NavItem to="/admin/usuarios" label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
             )}
-            <NavItem to="/admin/seguranca" icon={ShieldCheck} label="Segurança" active={pathname.startsWith("/admin/seguranca")} />
+            <NavItem to="/admin/seguranca" label="Segurança" active={pathname.startsWith("/admin/seguranca")} />
           </div>
         </nav>
       </header>
@@ -155,23 +151,22 @@ function AdminLayout() {
 
 function NavItem({
   to,
-  icon: Icon,
   label,
   active,
 }: {
   to: string;
-  icon: React.ComponentType<{ className?: string }>;
   label: string;
   active: boolean;
 }) {
   return (
     <Link
       to={to}
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition ${
-        active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+      className={`relative inline-flex items-center px-3 py-3.5 text-[11px] font-semibold uppercase tracking-wider transition ${
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
       }`}
     >
-      <Icon className="h-4 w-4" /> {label}
+      {label}
+      {active && <span className="absolute left-3 right-3 bottom-0 h-0.5 bg-brand-orange" />}
     </Link>
   );
 }
@@ -184,11 +179,12 @@ function CartaoNav({ pathname }: { pathname: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
-          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+        className={`relative inline-flex items-center gap-1 px-3 py-3.5 text-[11px] font-semibold uppercase tracking-wider transition outline-none ${
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        <Link2 className="h-4 w-4" /> Cartão <ChevronDown className="h-3.5 w-3.5" />
+        Cartão <ChevronDown className="h-3 w-3" />
+        {active && <span className="absolute left-3 right-3 bottom-0 h-0.5 bg-brand-orange" />}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
         <DropdownMenuItem asChild>
