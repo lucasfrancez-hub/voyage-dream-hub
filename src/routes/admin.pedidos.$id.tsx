@@ -1405,8 +1405,18 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
 
 // =========== Finance ===========
 function FinanceTab({
-  items, financials, onChange,
-}: { items: OrderItem[]; financials: OrderItemFinancial[]; onChange: () => void }) {
+  order, items, financials, onChange,
+}: { order: OrderHeader; items: OrderItem[]; financials: OrderItemFinancial[]; onChange: () => void }) {
+  // Extrai valores do pacote pronto do snapshot para pré-preencher lançamentos
+  const snap = (order.packageSnapshot ?? {}) as Record<string, unknown>;
+  const isPackageOrder =
+    !(snap as { manual?: boolean }).manual &&
+    !["payment_link", "payment_link_simple"].includes(String((snap as { kind?: string }).kind ?? "")) &&
+    Number((snap as { price_per_person?: number }).price_per_person ?? 0) > 0;
+  const pax = Math.max(1, (order.adults || 0) + (order.children || 0));
+  const packageFare = isPackageOrder ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
+  const packageTaxes = isPackageOrder ? Number((snap as { taxes?: number }).taxes ?? 0) : 0;
+
   const upsert = useServerFn(upsertItemFinancial);
   const del = useServerFn(deleteItemFinancial);
   const [editing, setEditing] = useState<OrderItemFinancial | null>(null);
