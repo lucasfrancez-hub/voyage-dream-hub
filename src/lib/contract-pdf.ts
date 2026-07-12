@@ -35,6 +35,21 @@ const COMPANY = {
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 
+const toCents = (n: number) => Math.round((Number(n) || 0) * 100);
+const fromCents = (n: number) => n / 100;
+
+// Divide em centavos e entrega o eventual resto às primeiras linhas. Assim,
+// a soma exibida por passageiro é sempre idêntica ao total da coluna.
+const splitCents = (total: number, count: number): number[] => {
+  const safeCount = Math.max(1, count);
+  const cents = toCents(total);
+  const base = Math.trunc(cents / safeCount);
+  const remainder = cents - base * safeCount;
+  return Array.from({ length: safeCount }, (_, index) =>
+    fromCents(base + (index < remainder ? 1 : 0)),
+  );
+};
+
 // Sanitiza para WinAnsi (Helvetica) — remove chars fora do intervalo.
 const sanitize = (s: string | null | undefined): string => {
   if (!s) return "";
@@ -294,16 +309,31 @@ type Col = { header: string; width: number; align?: "left" | "right" | "center" 
 
 const drawTableHeader = (ctx: Ctx, cols: Col[]) => {
   const h = 18;
+  const bottom = ctx.y - h + 4;
   ctx.page.drawRectangle({
-    x: MARGIN, y: ctx.y - h + 4, width: CONTENT_W, height: h,
+    x: MARGIN, y: bottom, width: CONTENT_W, height: h,
     color: COLOR_HEADER_BG,
+    borderColor: COLOR_BORDER,
+    borderWidth: 0.6,
   });
-  let x = MARGIN + 6;
+  let x = MARGIN;
   for (const c of cols) {
-    text(ctx, c.header, x, { size: 8.5, bold: true, y: ctx.y - 7 });
+    const labelWidth = ctx.fontBold.widthOfTextAtSize(sanitize(c.header), 8.5);
+    const tx = c.align === "right"
+      ? x + c.width - 6 - labelWidth
+      : c.align === "center"
+        ? x + (c.width - labelWidth) / 2
+        : x + 6;
+    text(ctx, c.header, tx, { size: 8.5, bold: true, y: ctx.y - 7 });
     x += c.width;
+    if (x < MARGIN + CONTENT_W - 0.1) {
+      ctx.page.drawLine({
+        start: { x, y: bottom }, end: { x, y: bottom + h },
+        thickness: 0.4, color: COLOR_BORDER,
+      });
+    }
   }
-  ctx.y -= h + 4;
+  ctx.y = bottom;
 };
 
 const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
@@ -320,27 +350,37 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
   });
   const rowH = maxLines * lineH + 8;
   ensureSpace(ctx, rowH + 4);
-  let x = MARGIN + 6;
+  const top = ctx.y;
+  const bottom = top - rowH;
+  ctx.page.drawRectangle({
+    x: MARGIN, y: bottom, width: CONTENT_W, height: rowH,
+    borderColor: COLOR_BORDER, borderWidth: 0.5,
+  });
+  let x = MARGIN;
   for (let i = 0; i < cols.length; i++) {
     const c = cols[i];
     const lines = wrapped[i];
     for (let li = 0; li < lines.length; li++) {
       const s = lines[li];
-      let tx = x;
+      let tx = x + 6;
       if (c.align === "right") {
-        tx = x + c.width - 12 - ctx.font.widthOfTextAtSize(s, size);
+        tx = x + c.width - 6 - ctx.font.widthOfTextAtSize(s, size);
       } else if (c.align === "center") {
         tx = x + (c.width - ctx.font.widthOfTextAtSize(s, size)) / 2;
       }
-      text(ctx, s, tx, { size, y: ctx.y - 4 - li * lineH });
+      // O y do pdf-lib é a linha de base do texto. O recuo de 12 pt mantém
+      // letras e acentos inteiramente dentro da célula, sem tocar a borda.
+      text(ctx, s, tx, { size, y: ctx.y - 12 - li * lineH });
     }
     x += c.width;
+    if (i < cols.length - 1) {
+      ctx.page.drawLine({
+        start: { x, y: bottom }, end: { x, y: top },
+        thickness: 0.35, color: COLOR_BORDER,
+      });
+    }
   }
-  ctx.y -= rowH;
-  ctx.page.drawLine({
-    start: { x: MARGIN, y: ctx.y + 2 }, end: { x: A4.w - MARGIN, y: ctx.y + 2 },
-    thickness: 0.3, color: COLOR_BORDER,
-  });
+  ctx.y = bottom;
 };
 
 
@@ -488,6 +528,89 @@ const collectFlightRows = (item: OrderItem): FlightRow[] => {
   }];
 };
 
+type ReceiptAmounts = {
+  fare: number;
+  taxes: number;
+  discount: number;
+  total: number;
+};
+
+const receiptAmounts = (d: OrderDetail): ReceiptAmounts => {
+  const extrasNoFin = sumExtrasFromItems(d);
+  const financialTotal = d.financials.reduce((sum, f) => sum + Number(f.total || 0), 0) + extrasNoFin;
+  const orderTotal = Number(d.order.totalPrice ?? 0);
+  const total = fromCents(toCents(orderTotal || financialTotal));
+  const financialTaxes = d.financials.reduce((sum, f) => sum + Number(f.tax_value || 0), 0);
+  const snapshot = (d.order.packageSnapshot ?? {}) as Record<string, unknown>;
+  const snapshotTaxes = Number(snapshot.taxes ?? 0) || 0;
+  const taxes = fromCents(toCents(financialTaxes || snapshotTaxes));
+  const discount = fromCents(toCents(
+    d.financials.reduce((sum, f) => sum + Number(f.discount_value || 0), 0),
+  ));
+
+  // O total salvo é a fonte final do recibo. A tarifa é reconciliada a partir
+  // dele para que Tarifa + Taxas - Desconto seja sempre exatamente o Total.
+  const fare = fromCents(toCents(total - taxes + discount));
+  return { fare, taxes, discount, total };
+};
+
+const passengerAmounts = (d: OrderDetail): ReceiptAmounts => {
+  const flightIds = new Set(
+    d.items.filter((item) => item.kind === "flight" && item.status !== "cancelled").map((item) => item.id),
+  );
+  const flightFinancials = d.financials.filter((financial) => flightIds.has(financial.order_item_id));
+
+  // Em pedidos avulsos, mostra somente o financeiro da passagem. Em pacotes
+  // sem linhas financeiras (caso do checkout), usa o total consolidado.
+  if (flightFinancials.length === 0) return receiptAmounts(d);
+
+  const fare = fromCents(toCents(flightFinancials.reduce((sum, f) => sum + Number(f.sale_value || 0), 0)));
+  const taxes = fromCents(toCents(flightFinancials.reduce((sum, f) => sum + Number(f.tax_value || 0), 0)));
+  const discount = fromCents(toCents(flightFinancials.reduce((sum, f) => sum + Number(f.discount_value || 0), 0)));
+  const total = fromCents(toCents(fare + taxes - discount));
+  return { fare, taxes, discount, total };
+};
+
+const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
+  if (d.passengers.length === 0) return;
+
+  sectionTitle(ctx, "Passageiros", 72);
+  const amounts = passengerAmounts(d);
+  const showDiscount = amounts.discount > 0.005;
+  const cols: Col[] = showDiscount
+    ? [
+        { header: "Passageiro", width: 175 },
+        { header: "Nº Bilhete", width: 85 },
+        { header: "Tarifa", width: 68, align: "right" },
+        { header: "Taxas", width: 62, align: "right" },
+        { header: "Desconto", width: 65, align: "right" },
+        { header: "Total", width: CONTENT_W - 455, align: "right" },
+      ]
+    : [
+        { header: "Passageiro", width: 200 },
+        { header: "Nº Bilhete", width: 95 },
+        { header: "Tarifa", width: 75, align: "right" },
+        { header: "Taxas", width: 68, align: "right" },
+        { header: "Total", width: CONTENT_W - 438, align: "right" },
+      ];
+
+  drawTableHeader(ctx, cols);
+  const fares = splitCents(amounts.fare, d.passengers.length);
+  const taxes = splitCents(amounts.taxes, d.passengers.length);
+  const discounts = splitCents(amounts.discount, d.passengers.length);
+  const totals = fares.map((fare, index) =>
+    fromCents(toCents(fare + taxes[index] - discounts[index])),
+  );
+
+  d.passengers.forEach((passenger, index) => {
+    const row = showDiscount
+      ? [passenger.full_name, passenger.ticket_number ?? "—", brl(fares[index]), brl(taxes[index]), brl(discounts[index]), brl(totals[index])]
+      : [passenger.full_name, passenger.ticket_number ?? "—", brl(fares[index]), brl(taxes[index]), brl(totals[index])];
+    drawTableRow(ctx, cols, row);
+  });
+  ctx.y -= 4;
+};
+
 const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   const flights = d.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
   if (flights.length === 0) return;
@@ -518,11 +641,10 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
 
   // Voos (segmentos)
   const cols2: Col[] = [
-    { header: "Cia", width: 40 },
-    { header: "Voo", width: 55 },
-    { header: "Trecho", width: 290 },
-    { header: "Saída", width: 60 },
-    { header: "Chegada", width: CONTENT_W - 40 - 55 - 290 - 60 },
+    { header: "Cia", width: 38, align: "center" },
+    { header: "Voo", width: 54, align: "center" },
+    { header: "Trecho", width: 315 },
+    { header: "Saída / Chegada", width: CONTENT_W - 38 - 54 - 315, align: "center" },
   ];
   drawTableHeader(ctx, cols2);
   for (const f of flights) {
@@ -530,68 +652,15 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
     for (const r of rows) {
       const from = [r.fromIata, r.fromCity].filter(Boolean).join(" ");
       const to = [r.toIata, r.toCity].filter(Boolean).join(" ");
-      // Data/hora em linhas separadas — evita quebra irregular e aperto vertical.
-      const fmtDT2 = (s: string | null): string => {
-        if (!s) return "—";
-        const dt = fmtDateTime(s);
-        const parts = dt.split(" ");
-        return parts.length >= 2 ? `${parts[0]}\n${parts[1]}` : dt;
-      };
       drawTableRow(ctx, cols2, [
         r.airlineCode,
         r.flightNum,
-        `${from} -> ${to}`,
-        fmtDT2(r.depart),
-        fmtDT2(r.arrive),
+        `${from || "—"}\n${to || "—"}`,
+        `${fmtDateTime(r.depart) || "—"}\n${fmtDateTime(r.arrive) || "—"}`,
       ]);
     }
   }
-  ctx.y -= 6;
-
-  // Passageiros / bilhete / valores — total do pedido dividido pelo nº de passageiros
-  // (extras/serviços entram no "Resumo Financeiro", não são rateados aqui).
-  const paxCount = Math.max(1, d.passengers.length);
-  const flightFinIds = new Set(
-    d.items.filter((i) => i.kind === "flight" && i.status !== "cancelled").map((i) => i.id),
-  );
-  const flightFins = d.financials.filter((f) => flightFinIds.has(f.order_item_id));
-  const sumSale = flightFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
-  const sumTax = flightFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
-  const sumDisc = flightFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
-  const showDisc = sumDisc > 0.005;
-
-  const paxCols: Col[] = showDisc
-    ? [
-        { header: "Passageiro", width: 180 },
-        { header: "Nº Bilhete", width: 90 },
-        { header: "Tarifa", width: 70, align: "right" },
-        { header: "Taxas", width: 60, align: "right" },
-        { header: "Desc.", width: 55, align: "right" },
-        { header: "Total", width: CONTENT_W - 180 - 90 - 70 - 60 - 55, align: "right" },
-      ]
-    : [
-        { header: "Passageiro", width: 210 },
-        { header: "Nº Bilhete", width: 100 },
-        { header: "Tarifa", width: 80, align: "right" },
-        { header: "Taxas", width: 70, align: "right" },
-        { header: "Total", width: CONTENT_W - 210 - 100 - 80 - 70, align: "right" },
-      ];
-  drawTableHeader(ctx, paxCols);
-
-  // Valor por passageiro = (Tarifa + Taxas − Desconto) / passageiros.
-  // Comissão NÃO entra aqui — é ganho da agência, não custo do passageiro.
-  const perSale = sumSale / paxCount;
-  const perTax = sumTax / paxCount;
-  const perDisc = sumDisc / paxCount;
-  const perTotal = Number((perSale + perTax - perDisc).toFixed(2));
-
-  for (const p of d.passengers) {
-    const row = showDisc
-      ? [p.full_name, p.ticket_number ?? "—", brl(perSale), brl(perTax), brl(perDisc), brl(perTotal)]
-      : [p.full_name, p.ticket_number ?? "—", brl(perSale), brl(perTax), brl(perTotal)];
-    drawTableRow(ctx, paxCols, row);
-  }
-  ctx.y -= 8;
+  ctx.y -= 4;
 };
 
 
@@ -654,13 +723,9 @@ const sumExtrasFromItems = (d: OrderDetail): number => {
 };
 
 const drawTotals = (ctx: Ctx, d: OrderDetail) => {
-  // Recibo: NÃO exibe comissão (ganho interno da agência).
-  const extrasNoFin = sumExtrasFromItems(d);
-  const produtos = d.financials.reduce((s, f) => s + Number(f.sale_value || 0), 0) + extrasNoFin;
-  const taxas = d.financials.reduce((s, f) => s + Number(f.tax_value || 0), 0);
-  const desc = d.financials.reduce((s, f) => s + Number(f.discount_value || 0), 0);
-  const total = Number(d.order.totalPrice ?? 0)
-    || (d.financials.reduce((s, f) => s + Number(f.total || 0), 0) + extrasNoFin);
+  // Recibo: NÃO exibe comissão. Todos os campos são reconciliados com o total
+  // salvo para que a conta visível sempre feche.
+  const { fare: produtos, taxes: taxas, discount: desc, total } = receiptAmounts(d);
   const showDisc = desc > 0.005;
 
   sectionTitle(ctx, "Resumo Financeiro");
@@ -861,7 +926,8 @@ async function build(detail: OrderDetail, includeContract: boolean): Promise<Uin
 
   drawCompanyHeader(ctx);
   drawReciboBlock(ctx, detail);
-  // Ordem do recibo: Passageiro/Aéreo → Hospedagem → Outros Serviços → Resumo → Pagamentos.
+  // Ordem solicitada: Passageiros → Aéreo → Hospedagem → Outros Serviços.
+  drawPassengers(ctx, detail);
   drawFlights(ctx, detail);
   drawHotels(ctx, detail);
   drawOthers(ctx, detail);
