@@ -1218,6 +1218,13 @@ function ItemDialog({
     setDetails(clean);
   }, [initial]);
 
+  // Hotel: só existem 2 estados. Sem localizador = Solicitado; com localizador = Confirmado.
+  useMemo(() => {
+    if (kind !== "hotel") return;
+    setStatusVal(locator.trim() ? "confirmed" : "pending");
+  }, [locator, kind]);
+
+
   const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
 
   return (
