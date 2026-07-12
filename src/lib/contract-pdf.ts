@@ -927,10 +927,16 @@ async function build(detail: OrderDetail, includeContract: boolean): Promise<Uin
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const page = pdf.addPage([A4.w, A4.h]);
+  let logo: PDFImage | undefined;
+  try {
+    const res = await fetch(viaAirLogoAsset.url);
+    if (res.ok) logo = await pdf.embedPng(await res.arrayBuffer());
+  } catch { /* logo é opcional */ }
   const ctx: Ctx = {
     pdf, page, y: A4.h - MARGIN, font, fontBold,
     order: detail.order,
     pageHeader: drawReceiptContinuationHeader,
+    logo,
   };
 
   drawCompanyHeader(ctx);
