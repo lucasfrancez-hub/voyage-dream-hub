@@ -441,6 +441,21 @@ function ItemsTab({
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           {isCancelledTab ? "Nenhum item cancelado." : "Nenhum item cadastrado. Clique em Adicionar para começar."}
         </div>
+      ) : kind === "flight" ? (
+        <div className="space-y-3">
+          {groupFlightItems(items).map((group) => (
+            <FlightReservationCard
+              key={group.key}
+              locator={group.locator}
+              segments={group.items}
+              passengers={passengers ?? []}
+              onEdit={(it) => { setEditing(it); setOpen(true); }}
+              onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
+              onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onReactivate={(it) => reactivate.mutate(it.id)}
+            />
+          ))}
+        </div>
       ) : (
         <div className="space-y-3">
           {items.map((it) => (
@@ -455,6 +470,7 @@ function ItemsTab({
           ))}
         </div>
       )}
+
 
       <ItemDialog
         open={open}
