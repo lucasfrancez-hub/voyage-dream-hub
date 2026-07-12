@@ -1970,8 +1970,8 @@ function FinanceTab({
   const packageDefaultCommission = Number((packageFareNet * (PACKAGE_DEFAULT_PCT / 100)).toFixed(2));
 
   const plannedRows = useMemo<Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }>>(() => {
-    if (financials.length > 0) return [];
     if (isPackageOrder) {
+      if (financials.length > 0) return [];
       return [{
         __planned: true,
         __itemId: null,
@@ -1986,27 +1986,32 @@ function FinanceTab({
         total: Number((packageFareNet + packageTaxes).toFixed(2)),
       }];
     }
-    return items.map((it) => {
-      const d = (it.details ?? {}) as Record<string, unknown>;
-      const sale = Number(d.value ?? 0) || 0;
-      const tax = Number(d.tax_value ?? 0) || 0;
-      const pct = defaultCommissionPct(it.kind, false);
-      const commission = Number((Math.max(0, sale - tax) * (pct / 100)).toFixed(2));
-      return {
-        __planned: true,
-        __itemId: it.id,
-        __label: it.title,
-        supplier_name: null,
-        sale_value: sale,
-        tax_value: tax,
-        discount_value: 0,
-        commission_pct: pct,
-        commission_value: commission,
-        total: sale,
-      };
-    });
+    // Para itens avulsos: gera linha planejada para cada item que ainda não tem
+    // financeiro salvo, garantindo que o total sempre reflita todos os itens.
+    const savedItemIds = new Set(financials.map((f) => f.order_item_id).filter((x): x is string => !!x));
+    return items
+      .filter((it) => !savedItemIds.has(it.id))
+      .map((it) => {
+        const d = (it.details ?? {}) as Record<string, unknown>;
+        const sale = Number(d.value ?? 0) || 0;
+        const tax = Number(d.tax_value ?? 0) || 0;
+        const pct = defaultCommissionPct(it.kind, false);
+        const commission = Number((Math.max(0, sale - tax) * (pct / 100)).toFixed(2));
+        return {
+          __planned: true,
+          __itemId: it.id,
+          __label: it.title,
+          supplier_name: null,
+          sale_value: sale,
+          tax_value: tax,
+          discount_value: 0,
+          commission_pct: pct,
+          commission_value: commission,
+          total: sale,
+        };
+      });
+  }, [financials, isPackageOrder, packageFareNet, packageTaxes, packageDefaultCommission, items]);
 
-  }, [financials.length, isPackageOrder, packageFareNet, packageTaxes, packageDefaultCommission, items]);
 
   // Para pacote pronto, ignoramos valores gravados nos financials e derivamos tudo do snapshot,
   // aplicando o % de comissão que estiver salvo (ou 12% padrão). Isso corrige dados antigos que
