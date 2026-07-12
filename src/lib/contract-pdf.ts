@@ -368,7 +368,9 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
       } else if (c.align === "center") {
         tx = x + (c.width - ctx.font.widthOfTextAtSize(s, size)) / 2;
       }
-      text(ctx, s, tx, { size, y: ctx.y - 4 - li * lineH });
+      // O y do pdf-lib é a linha de base do texto. O recuo de 12 pt mantém
+      // letras e acentos inteiramente dentro da célula, sem tocar a borda.
+      text(ctx, s, tx, { size, y: ctx.y - 12 - li * lineH });
     }
     x += c.width;
     if (i < cols.length - 1) {
