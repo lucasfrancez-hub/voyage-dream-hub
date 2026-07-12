@@ -2746,7 +2746,7 @@ function PaymentsSection({
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-semibold">
-                      Pagamento{p.cashier_number ? ` – Caixa ${p.cashier_number}` : ""}
+                      Pagamento
                     </span>
                     <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider ${badge.className}`}>
                       {badge.label}
