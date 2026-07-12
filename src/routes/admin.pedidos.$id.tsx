@@ -29,8 +29,10 @@ import {
   getOrderDetail, upsertPassenger, deletePassenger,
   upsertOrderItem, deleteOrderItem, setOrderItemStatus,
   upsertItemFinancial, deleteItemFinancial,
-  type OrderDetail, type OrderPassenger, type OrderItem, type OrderItemFinancial,
+  upsertOrderPayment, deleteOrderPayment,
+  type OrderDetail, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment,
 } from "@/lib/orders.functions";
+
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
 import { OrderDocuments } from "@/components/OrderDocuments";
 import type { Json } from "@/integrations/supabase/types";
