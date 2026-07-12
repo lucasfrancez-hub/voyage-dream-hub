@@ -35,6 +35,8 @@ import {
   linkPassengerToItem, unlinkPassengerFromItem,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
+import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
+import { Cloud } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 
@@ -431,6 +433,7 @@ function PassengersSection({
   const del = useServerFn(deletePassenger);
   const [editing, setEditing] = useState<OrderPassenger | null>(null);
   const [open, setOpen] = useState(false);
+  const [mondeOpen, setMondeOpen] = useState(false);
 
   const save = useMutation({
     mutationFn: async (p: Partial<OrderPassenger> & { order_id: string; full_name: string }) =>
@@ -453,9 +456,14 @@ function PassengersSection({
         <h2 className="text-sm font-semibold flex items-center gap-2">
           <Users className="h-4 w-4" /> Passageiros ({passengers.length})
         </h2>
-        <Button size="sm" variant="outline" onClick={openNew}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setMondeOpen(true)}>
+            <Cloud className="h-3.5 w-3.5 mr-1" /> Importar do Monde
+          </Button>
+          <Button size="sm" variant="outline" onClick={openNew}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+          </Button>
+        </div>
       </div>
       {passengers.length === 0 ? (
         <div className="text-sm text-muted-foreground text-center py-6">Nenhum passageiro cadastrado.</div>
@@ -535,6 +543,25 @@ function PassengersSection({
         onOpenChange={setOpen}
         initial={editing}
         onSave={(payload) => save.mutate({ ...payload, order_id: orderId, id: editing?.id })}
+      />
+
+      <MondePersonSearchDialog
+        open={mondeOpen}
+        onOpenChange={setMondeOpen}
+        onPick={(person) => {
+          const hasCpf = !!(person.cpf && person.cpf.replace(/\D+/g, "").length >= 11);
+          save.mutate({
+            order_id: orderId,
+            full_name: person.name,
+            passenger_type: "ADT",
+            birth_date: person.birthDate,
+            cpf: hasCpf ? person.cpf : null,
+            doc_type: hasCpf ? "cpf" : (person.passportNumber ? "passport" : "cpf"),
+            passport_number: person.passportNumber,
+            passport_expiry_date: person.passportExpiration,
+            sort_order: passengers.length,
+          } as Partial<OrderPassenger> & { order_id: string; full_name: string });
+        }}
       />
     </div>
   );
