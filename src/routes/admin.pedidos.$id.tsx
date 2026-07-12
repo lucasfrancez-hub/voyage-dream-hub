@@ -1399,13 +1399,21 @@ function HotelReservationCard({
 
 
 function ItemDialog({
-  open, onOpenChange, initial, kind, onSave,
+  open, onOpenChange, initial, kind, onSave, siblings,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: OrderItem | null;
   kind: "hotel" | "flight" | "other";
-  onSave: (p: { kind: "hotel" | "flight" | "other"; title: string; supplier_locator: string | null; details: Json; status: "confirmed" | "reserved" | "cancelled" | "pending" }) => void;
+  siblings?: OrderItem[];
+  onSave: (p: {
+    kind: "hotel" | "flight" | "other";
+    title: string;
+    supplier_locator: string | null;
+    details: Json;
+    status: "confirmed" | "reserved" | "cancelled" | "pending";
+    siblings?: { id: string; details: Json }[];
+  }) => void;
 }) {
   const initialDetails = (initial?.details ?? {}) as Record<string, unknown>;
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -1418,17 +1426,27 @@ function ItemDialog({
     }
     return clean;
   });
+  // Trechos adicionais (ex.: volta) do mesmo aéreo — editados junto.
+  const flightSiblings = kind === "flight" ? (siblings ?? []) : [];
+  const cleanDetails = (raw: unknown): Record<string, string | number> => {
+    const clean: Record<string, string | number> = {};
+    for (const [k, v] of Object.entries((raw ?? {}) as Record<string, unknown>)) {
+      if (typeof v === "string" || typeof v === "number") clean[k] = v;
+    }
+    return clean;
+  };
+  const [sibDetails, setSibDetails] = useState<Record<string, string | number>[]>(
+    () => flightSiblings.map((s) => cleanDetails(s.details))
+  );
 
   useMemo(() => {
     setTitle(initial?.title ?? "");
     setLocator(initial?.supplier_locator ?? "");
     setStatusVal((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
-    const clean: Record<string, string | number> = {};
-    for (const [k, v] of Object.entries((initial?.details ?? {}) as Record<string, unknown>)) {
-      if (typeof v === "string" || typeof v === "number") clean[k] = v;
-    }
-    setDetails(clean);
-  }, [initial]);
+    setDetails(cleanDetails(initial?.details));
+    setSibDetails(flightSiblings.map((s) => cleanDetails(s.details)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial, siblings]);
 
   // Auto-status:
   // Hotel: sem localizador = Solicitado; com localizador = Confirmado.
@@ -1446,6 +1464,9 @@ function ItemDialog({
 
 
   const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
+  const setSibField = (idx: number, k: string, v: string) =>
+    setSibDetails((arr) => arr.map((d, i) => (i === idx ? { ...d, [k]: v } : d)));
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
