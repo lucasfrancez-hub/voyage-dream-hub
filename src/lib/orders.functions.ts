@@ -114,6 +114,7 @@ export type OrderDetail = {
   items: OrderItem[];
   financials: OrderItemFinancial[];
   payments: OrderPayment[];
+  itemPassengers: Record<string, string[]>; // order_item_id -> passenger_ids[]
 };
 
 
@@ -178,6 +179,18 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         notes: f.notes,
         sort_order: f.sort_order,
       }));
+    }
+
+    const itemPassengers: Record<string, string[]> = {};
+    if (itemIds.length > 0) {
+      const { data: links, error: eL } = await supabase
+        .from("order_item_passengers")
+        .select("order_item_id, passenger_id")
+        .in("order_item_id", itemIds);
+      if (eL) throw new Error(eL.message);
+      for (const l of links ?? []) {
+        (itemPassengers[l.order_item_id] ??= []).push(l.passenger_id);
+      }
     }
 
     const { data: paymentsRaw, error: e5 } = await supabase
@@ -260,6 +273,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       })),
       financials,
       payments,
+      itemPassengers,
     };
 
   });
@@ -712,4 +726,35 @@ export const createOrder = createServerFn({ method: "POST" })
     return { id: created.id, order_number: created.order_number };
   });
 
+// --------- Item ↔ Passenger links ---------
+export const linkPassengerToItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { order_id: string; order_item_id: string; passenger_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { error } = await context.supabase
+      .from("order_item_passengers")
+      .upsert(
+        { order_id: data.order_id, order_item_id: data.order_item_id, passenger_id: data.passenger_id },
+        { onConflict: "order_item_id,passenger_id", ignoreDuplicates: true },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const unlinkPassengerFromItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { order_item_id: string; passenger_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { error } = await context.supabase
+      .from("order_item_passengers")
+      .delete()
+      .eq("order_item_id", data.order_item_id)
+      .eq("passenger_id", data.passenger_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
 

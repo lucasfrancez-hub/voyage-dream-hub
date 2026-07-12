@@ -6,7 +6,7 @@ import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
   Package, Percent, Mail, Printer, CheckCircle2, MoreHorizontal, Signature,
-  Vault, ExternalLink,
+  Vault, ExternalLink, X, UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +32,7 @@ import {
   upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice, recalculateOrderTotal,
   upsertOrderPayment, deleteOrderPayment, updateOrderPayer,
   appendOrderLogEntry, deleteOrderLogEntry,
+  linkPassengerToItem, unlinkPassengerFromItem,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
 import { Slider } from "@/components/ui/slider";
@@ -337,6 +338,7 @@ function OrderDetailPage() {
               kind="hotel"
               onChange={invalidate}
               passengers={detail.passengers}
+              itemPassengers={detail.itemPassengers}
             />
           </TabsContent>
           <TabsContent value="flight" className="mt-4">
@@ -346,6 +348,7 @@ function OrderDetailPage() {
               kind="flight"
               onChange={invalidate}
               passengers={detail.passengers}
+              itemPassengers={detail.itemPassengers}
             />
           </TabsContent>
           <TabsContent value="service" className="mt-4">
@@ -355,6 +358,7 @@ function OrderDetailPage() {
               kind="other"
               onChange={invalidate}
               passengers={detail.passengers}
+              itemPassengers={detail.itemPassengers}
             />
           </TabsContent>
 
@@ -366,6 +370,7 @@ function OrderDetailPage() {
               kind="cancelled"
               onChange={invalidate}
               passengers={detail.passengers}
+              itemPassengers={detail.itemPassengers}
             />
           </TabsContent>
           <TabsContent value="contract" className="mt-4">
@@ -795,21 +800,57 @@ function PassengerDialog({
 
 // =========== Items (hotel/flight/other/cancelled) ===========
 function ItemsTab({
-  orderId, items, kind, onChange, passengers,
+  orderId, items, kind, onChange, passengers, itemPassengers,
 }: {
   orderId: string;
   items: OrderItem[];
   kind: "hotel" | "flight" | "other" | "cancelled";
   onChange: () => void;
   passengers?: OrderPassenger[];
+  itemPassengers?: Record<string, string[]>;
 }) {
 
   const upsert = useServerFn(upsertOrderItem);
   const del = useServerFn(deleteOrderItem);
   const setStatus = useServerFn(setOrderItemStatus);
   const recalculateTotal = useServerFn(recalculateOrderTotal);
+  const linkFn = useServerFn(linkPassengerToItem);
+  const unlinkFn = useServerFn(unlinkPassengerFromItem);
   const [editing, setEditing] = useState<OrderItem | null>(null);
   const [open, setOpen] = useState(false);
+
+  const allPax = passengers ?? [];
+  const linksMap = itemPassengers ?? {};
+
+  const paxForItem = (itemId: string): OrderPassenger[] => {
+    const ids = linksMap[itemId] ?? [];
+    const set = new Set(ids);
+    return allPax.filter((p) => set.has(p.id));
+  };
+  const paxForItems = (itemIds: string[]): OrderPassenger[] => {
+    const set = new Set<string>();
+    for (const iid of itemIds) for (const pid of linksMap[iid] ?? []) set.add(pid);
+    return allPax.filter((p) => set.has(p.id));
+  };
+
+  const linkMut = useMutation({
+    mutationFn: async ({ passengerId, itemIds }: { passengerId: string; itemIds: string[] }) => {
+      for (const iid of itemIds) {
+        await linkFn({ data: { order_id: orderId, order_item_id: iid, passenger_id: passengerId } });
+      }
+    },
+    onSuccess: () => onChange(),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+  const unlinkMut = useMutation({
+    mutationFn: async ({ passengerId, itemIds }: { passengerId: string; itemIds: string[] }) => {
+      for (const iid of itemIds) {
+        await unlinkFn({ data: { order_item_id: iid, passenger_id: passengerId } });
+      }
+    },
+    onSuccess: () => onChange(),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
 
   const save = useMutation({
     mutationFn: async (payload: Parameters<typeof upsert>[0]["data"]) => {
@@ -869,33 +910,42 @@ function ItemsTab({
               key={group.key}
               locator={group.locator}
               segments={group.items}
-              passengers={passengers ?? []}
+              passengers={paxForItems(group.items.map((s) => s.id))}
+              allPassengers={allPax}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
               onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={(it) => reactivate.mutate(it.id)}
+              onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
+              onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
             />
           ))}
           {items.filter((i) => i.kind === "hotel").map((it) => (
             <HotelReservationCard
               key={it.id}
               item={it}
-              passengers={passengers ?? []}
+              passengers={paxForItem(it.id)}
+              allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={() => reactivate.mutate(it.id)}
+              onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
+              onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
             />
           ))}
           {items.filter((i) => i.kind === "other").map((it) => (
             <ServiceReservationCard
               key={it.id}
               item={it}
-              passengers={passengers ?? []}
+              passengers={paxForItem(it.id)}
+              allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={() => reactivate.mutate(it.id)}
+              onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
+              onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
             />
           ))}
 
@@ -907,11 +957,14 @@ function ItemsTab({
               key={group.key}
               locator={group.locator}
               segments={group.items}
-              passengers={passengers ?? []}
+              passengers={paxForItems(group.items.map((s) => s.id))}
+              allPassengers={allPax}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
               onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={(it) => reactivate.mutate(it.id)}
+              onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
+              onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
             />
           ))}
         </div>
@@ -921,11 +974,14 @@ function ItemsTab({
             <HotelReservationCard
               key={it.id}
               item={it}
-              passengers={passengers ?? []}
+              passengers={paxForItem(it.id)}
+              allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={() => reactivate.mutate(it.id)}
+              onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
+              onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
             />
           ))}
         </div>
@@ -935,11 +991,14 @@ function ItemsTab({
             <ServiceReservationCard
               key={it.id}
               item={it}
-              passengers={passengers ?? []}
+              passengers={paxForItem(it.id)}
+              allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={() => reactivate.mutate(it.id)}
+              onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
+              onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
             />
           ))}
         </div>
@@ -1201,16 +1260,57 @@ function groupFlightItems(items: OrderItem[]): FlightGroup[] {
   return Array.from(map.values());
 }
 
+// Controles reutilizáveis: botão "×" ao lado do passageiro (desvincula do serviço)
+// e botão "+ passageiro" para vincular alguém do pedido que ainda não está no serviço.
+function UnlinkButton({ onClick, title = "Remover deste serviço" }: { onClick: () => void; title?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="inline-flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+    >
+      <X className="h-3 w-3" />
+    </button>
+  );
+}
+
+function AddPassengerMenu({
+  candidates, onPick,
+}: { candidates: OrderPassenger[]; onPick: (id: string) => void }) {
+  if (candidates.length === 0) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="sm" variant="ghost" className="mt-2 h-6 px-2 text-[11px]">
+          <UserPlus className="h-3 w-3 mr-1" /> Passageiro
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Adicionar ao serviço</DropdownMenuLabel>
+        {candidates.map((p) => (
+          <DropdownMenuItem key={p.id} onClick={() => onPick(p.id)}>
+            {p.full_name} <span className="ml-2 text-[10px] text-muted-foreground">{p.passenger_type}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function FlightReservationCard({
-  locator, segments, passengers, onEdit, onDelete, onCancel, onReactivate,
+  locator, segments, passengers, allPassengers, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
 }: {
   locator: string | null;
   segments: OrderItem[];
   passengers: OrderPassenger[];
+  allPassengers?: OrderPassenger[];
   onEdit: (it: OrderItem) => void;
   onDelete: (it: OrderItem) => void;
   onCancel: (it: OrderItem) => void;
   onReactivate: (it: OrderItem) => void;
+  onLink?: (passengerId: string, segmentIds: string[]) => void;
+  onUnlink?: (passengerId: string, segmentIds: string[]) => void;
 }) {
   const allCancelled = segments.every((s) => s.status === "cancelled");
   const first = segments[0];
@@ -1333,26 +1433,39 @@ function FlightReservationCard({
               const ticket = p.ticket_number || segTicket;
               return (
                 <li key={p.id} className="text-xs">
-                  <div className="font-medium text-foreground">{p.full_name}</div>
-                  <div className="text-muted-foreground">
-                    {p.passenger_type}
-                    {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground">{p.full_name}</div>
+                      <div className="text-muted-foreground">
+                        {p.passenger_type}
+                        {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                      </div>
+                      {docNum && (
+                        <div className="text-[10px] text-muted-foreground">
+                          {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
+                        </div>
+                      )}
+                      {ticket && (
+                        <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                          <Hash className="inline h-2.5 w-2.5" /> {ticket}
+                        </div>
+                      )}
+                    </div>
+                    {onUnlink && (
+                      <UnlinkButton onClick={() => onUnlink(p.id, segments.map((s) => s.id))} />
+                    )}
                   </div>
-                  {docNum && (
-                    <div className="text-[10px] text-muted-foreground">
-                      {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
-                    </div>
-                  )}
-                  {ticket && (
-                    <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                      <Hash className="inline h-2.5 w-2.5" /> {ticket}
-                    </div>
-                  )}
                 </li>
               );
             })}
 
           </ul>
+          {onLink && allPassengers && (
+            <AddPassengerMenu
+              candidates={allPassengers.filter((ap) => !passengers.some((p) => p.id === ap.id))}
+              onPick={(pid) => onLink(pid, segments.map((s) => s.id))}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -1360,14 +1473,17 @@ function FlightReservationCard({
 }
 
 function HotelReservationCard({
-  item, passengers, onEdit, onDelete, onCancel, onReactivate,
+  item, passengers, allPassengers, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
 }: {
   item: OrderItem;
   passengers: OrderPassenger[];
+  allPassengers?: OrderPassenger[];
   onEdit: () => void;
   onDelete: () => void;
   onCancel: () => void;
   onReactivate: () => void;
+  onLink?: (passengerId: string, itemId: string) => void;
+  onUnlink?: (passengerId: string, itemId: string) => void;
 }) {
   const d = (item.details ?? {}) as Record<string, unknown>;
   const cancelled = item.status === "cancelled";
@@ -1449,25 +1565,36 @@ function HotelReservationCard({
               const docNum = isPassport ? p.passport_number : p.cpf;
               return (
                 <li key={p.id} className="text-xs">
-                  <div className="font-medium text-foreground">{p.full_name}</div>
-                  <div className="text-muted-foreground">
-                    {p.passenger_type}
-                    {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground">{p.full_name}</div>
+                      <div className="text-muted-foreground">
+                        {p.passenger_type}
+                        {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                      </div>
+                      {docNum && (
+                        <div className="text-[10px] text-muted-foreground">
+                          {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
+                        </div>
+                      )}
+                      {p.ticket_number && (
+                        <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                          <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+                        </div>
+                      )}
+                    </div>
+                    {onUnlink && <UnlinkButton onClick={() => onUnlink(p.id, item.id)} />}
                   </div>
-                  {docNum && (
-                    <div className="text-[10px] text-muted-foreground">
-                      {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
-                    </div>
-                  )}
-                  {p.ticket_number && (
-                    <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                      <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
-                    </div>
-                  )}
                 </li>
               );
             })}
           </ul>
+          {onLink && allPassengers && (
+            <AddPassengerMenu
+              candidates={allPassengers.filter((ap) => !passengers.some((p) => p.id === ap.id))}
+              onPick={(pid) => onLink(pid, item.id)}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -1475,14 +1602,17 @@ function HotelReservationCard({
 }
 
 function ServiceReservationCard({
-  item, passengers, onEdit, onDelete, onCancel, onReactivate,
+  item, passengers, allPassengers, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
 }: {
   item: OrderItem;
   passengers: OrderPassenger[];
+  allPassengers?: OrderPassenger[];
   onEdit: () => void;
   onDelete: () => void;
   onCancel: () => void;
   onReactivate: () => void;
+  onLink?: (passengerId: string, itemId: string) => void;
+  onUnlink?: (passengerId: string, itemId: string) => void;
 }) {
   const d = (item.details ?? {}) as Record<string, unknown>;
   const cancelled = item.status === "cancelled";
@@ -1547,20 +1677,31 @@ function ServiceReservationCard({
               const docNum = isPassport ? p.passport_number : p.cpf;
               return (
                 <li key={p.id} className="text-xs">
-                  <div className="font-medium text-foreground">{p.full_name}</div>
-                  <div className="text-muted-foreground">
-                    {p.passenger_type}
-                    {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
-                  </div>
-                  {docNum && (
-                    <div className="text-[10px] text-muted-foreground">
-                      {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground">{p.full_name}</div>
+                      <div className="text-muted-foreground">
+                        {p.passenger_type}
+                        {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                      </div>
+                      {docNum && (
+                        <div className="text-[10px] text-muted-foreground">
+                          {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    {onUnlink && <UnlinkButton onClick={() => onUnlink(p.id, item.id)} />}
+                  </div>
                 </li>
               );
             })}
           </ul>
+          {onLink && allPassengers && (
+            <AddPassengerMenu
+              candidates={allPassengers.filter((ap) => !passengers.some((p) => p.id === ap.id))}
+              onPick={(pid) => onLink(pid, item.id)}
+            />
+          )}
         </div>
       </div>
     </div>
