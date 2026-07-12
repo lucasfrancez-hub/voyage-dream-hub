@@ -3150,6 +3150,17 @@ function PaymentDialog({
                 </Select>
               </div>
               <div>
+                <Label>
+                  Código de autorização (banco)
+                  {form.status === "paid" && <span className="text-brand-orange"> *</span>}
+                </Label>
+                <Input
+                  value={form.authorization_code ?? ""}
+                  onChange={(e) => setField("authorization_code", e.target.value)}
+                  placeholder="Ex.: 123456"
+                />
+              </div>
+              <div>
                 <Label>Status</Label>
                 <Select value={form.status ?? "paid"} onValueChange={(v) => setField("status", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
