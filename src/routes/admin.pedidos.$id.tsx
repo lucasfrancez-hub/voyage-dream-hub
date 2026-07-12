@@ -1723,13 +1723,25 @@ function ItemDialog({
 
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="0,00" /></div>
-                <div><Label>Quantidade</Label><Input type="number" value={String(details.quantity ?? "")} onChange={(e) => setField("quantity", e.target.value)} placeholder="1" /></div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Valor total (R$)</Label>
+                  <Input type="number" step="0.01" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="0,00" />
+                </div>
+                <div>
+                  <Label>Taxa inclusa (R$)</Label>
+                  <Input type="number" step="0.01" value={String(details.tax_value ?? "")} onChange={(e) => setField("tax_value", e.target.value)} placeholder="0,00" />
+                  <p className="mt-1 text-[10px] text-muted-foreground">Parte não comissionável.</p>
+                </div>
+                <div>
+                  <Label>Quantidade</Label>
+                  <Input type="number" value={String(details.quantity ?? "")} onChange={(e) => setField("quantity", e.target.value)} placeholder="1" />
+                </div>
               </div>
               <div><Label>Categoria</Label><Input value={String(details.category ?? "")} onChange={(e) => setField("category", e.target.value)} placeholder="Traslado, Passeio, Ingresso, Seguro…" /></div>
             </>
           )}
+
 
 
           <div>
@@ -1740,7 +1752,7 @@ function ItemDialog({
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => {
-            const numFields = new Set(["nights", "value", "quantity", "hotel_stars"]);
+            const numFields = new Set(["nights", "value", "quantity", "hotel_stars", "tax_value"]);
             const buildClean = (raw: Record<string, string | number>): Record<string, unknown> => {
               const cd: Record<string, unknown> = {};
               for (const [k, v] of Object.entries(raw)) {
@@ -1974,18 +1986,26 @@ function FinanceTab({
         total: Number((packageFareNet + packageTaxes).toFixed(2)),
       }];
     }
-    return items.map((it) => ({
-      __planned: true,
-      __itemId: it.id,
-      __label: it.title,
-      supplier_name: null,
-      sale_value: 0,
-      tax_value: 0,
-      discount_value: 0,
-      commission_pct: defaultCommissionPct(it.kind, false),
-      commission_value: 0,
-      total: 0,
-    }));
+    return items.map((it) => {
+      const d = (it.details ?? {}) as Record<string, unknown>;
+      const sale = Number(d.value ?? 0) || 0;
+      const tax = Number(d.tax_value ?? 0) || 0;
+      const pct = defaultCommissionPct(it.kind, false);
+      const commission = Number((Math.max(0, sale - tax) * (pct / 100)).toFixed(2));
+      return {
+        __planned: true,
+        __itemId: it.id,
+        __label: it.title,
+        supplier_name: null,
+        sale_value: sale,
+        tax_value: tax,
+        discount_value: 0,
+        commission_pct: pct,
+        commission_value: commission,
+        total: sale,
+      };
+    });
+
   }, [financials.length, isPackageOrder, packageFareNet, packageTaxes, packageDefaultCommission, items]);
 
   // Para pacote pronto, ignoramos valores gravados nos financials e derivamos tudo do snapshot,
@@ -2177,12 +2197,11 @@ function FinanceTab({
   );
 }
 
-function defaultCommissionPct(kind: OrderItem["kind"] | undefined, isPackage: boolean): number {
-  if (isPackage) return 12; // pacote pronto = 12% sobre a tarifa
-  if (kind === "flight") return 10;
-  if (kind === "hotel") return 12;
-  return 10;
+function defaultCommissionPct(_kind: OrderItem["kind"] | undefined, _isPackage: boolean): number {
+  // Padrão único: 12% para pacote pronto e para todos os itens avulsos.
+  return 12;
 }
+
 
 function FinanceDialog({
   open, onOpenChange, items, initial, selectedItem, setSelectedItem, packageDefaults, onSave,
@@ -2200,8 +2219,13 @@ function FinanceDialog({
   const selectedKind = selectedItemObj?.kind;
   const isPackage = !!packageDefaults;
 
-  const defaultSale = packageDefaults?.sale_value ?? 0;
-  const defaultTax = packageDefaults?.tax_value ?? 0;
+  // Se não for pacote pronto, tenta preencher valor/taxa a partir do próprio item selecionado
+  const itemDetails = (selectedItemObj?.details ?? {}) as Record<string, unknown>;
+  const itemSale = Number(itemDetails.value ?? 0) || 0;
+  const itemTax = Number(itemDetails.tax_value ?? 0) || 0;
+  const defaultSale = packageDefaults?.sale_value ?? itemSale;
+  const defaultTax = packageDefaults?.tax_value ?? itemTax;
+
 
   const [form, setForm] = useState({
     supplier_name: initial?.supplier_name ?? "",
