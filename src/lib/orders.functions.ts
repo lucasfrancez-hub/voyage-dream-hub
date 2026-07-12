@@ -480,6 +480,84 @@ export const updateOrderTotalPrice = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Recalcula o cabeçalho a partir do pacote e dos itens adicionais ativos.
+// Itens com details.value são adicionais avulsos; o valor informado já inclui as taxas.
+export const recalculateOrderTotal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { data: order, error: orderError } = await context.supabase
+      .from("orders")
+      .select("id, adults, children, package_snapshot")
+      .eq("id", data.id)
+      .single();
+    if (orderError) throw new Error(orderError.message);
+
+    const { data: items, error: itemsError } = await context.supabase
+      .from("order_items")
+      .select("id, details")
+      .eq("order_id", data.id)
+      .neq("status", "cancelled");
+    if (itemsError) throw new Error(itemsError.message);
+
+    const itemIds = (items ?? []).map((item) => item.id);
+    let financials: Array<{ order_item_id: string; commission_pct: number | string | null; total: number | string | null }> = [];
+    if (itemIds.length > 0) {
+      const { data: rows, error: financialError } = await context.supabase
+        .from("order_item_financials")
+        .select("order_item_id, commission_pct, total")
+        .in("order_item_id", itemIds);
+      if (financialError) throw new Error(financialError.message);
+      financials = rows ?? [];
+    }
+
+    const snapshot = (order.package_snapshot ?? {}) as Record<string, unknown>;
+    const packagePrice = Number(snapshot.price_per_person ?? 0) || 0;
+    const isPackage =
+      snapshot.manual !== true &&
+      !["payment_link", "payment_link_simple"].includes(String(snapshot.kind ?? "")) &&
+      packagePrice > 0;
+    const pax = Math.max(1, Number(order.adults || 0) + Number(order.children || 0));
+
+    const pricedItems = (items ?? []).map((item) => {
+      const details = (item.details ?? {}) as Record<string, unknown>;
+      return { id: item.id, gross: Math.max(0, Number(details.value ?? 0) || 0) };
+    });
+
+    let total = 0;
+    if (isPackage) {
+      const packageTotal = packagePrice * pax;
+      const packageTaxes = Math.max(0, Number(snapshot.taxes ?? 0) || 0);
+      const packageFare = Math.max(0, packageTotal - packageTaxes);
+      const pricedIds = new Set(pricedItems.filter((item) => item.gross > 0).map((item) => item.id));
+      const packageFinancial = financials.find((row) => !pricedIds.has(row.order_item_id));
+      const pct = Number(packageFinancial?.commission_pct ?? 12) || 0;
+      const commissionDelta = packageFare * ((pct - 12) / 100);
+      const extras = pricedItems.reduce((sum, item) => {
+        if (item.gross <= 0) return sum;
+        const saved = financials.find((row) => row.order_item_id === item.id);
+        return sum + (saved ? Number(saved.total ?? 0) || 0 : item.gross);
+      }, 0);
+      total = packageTotal + commissionDelta + extras;
+    } else {
+      total = pricedItems.reduce((sum, item) => {
+        const saved = financials.find((row) => row.order_item_id === item.id);
+        return sum + (saved ? Number(saved.total ?? 0) || 0 : item.gross);
+      }, 0);
+    }
+
+    const rounded = Math.max(0, Number(total.toFixed(2)));
+    const { error: updateError } = await context.supabase
+      .from("orders")
+      .update({ total_price: rounded } as never)
+      .eq("id", data.id);
+    if (updateError) throw new Error(updateError.message);
+    return { total_price: rounded };
+  });
+
 
 
 

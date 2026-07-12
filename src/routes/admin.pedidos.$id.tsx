@@ -28,7 +28,7 @@ import { paymentMethodLabel, statusLabel, itemStatusBadge } from "@/lib/order-la
 import {
   getOrderDetail, upsertPassenger, deletePassenger,
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
-  upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice,
+  upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice, recalculateOrderTotal,
   upsertOrderPayment, deleteOrderPayment, updateOrderPayer,
   appendOrderLogEntry, deleteOrderLogEntry,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
@@ -797,6 +797,7 @@ function ItemsTab({
   const upsert = useServerFn(upsertOrderItem);
   const del = useServerFn(deleteOrderItem);
   const setStatus = useServerFn(setOrderItemStatus);
+  const recalculateTotal = useServerFn(recalculateOrderTotal);
   const [editing, setEditing] = useState<OrderItem | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -806,15 +807,24 @@ function ItemsTab({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
   const remove = useMutation({
-    mutationFn: async (iid: string) => del({ data: { id: iid } }),
+    mutationFn: async (iid: string) => {
+      await del({ data: { id: iid } });
+      return recalculateTotal({ data: { id: orderId } });
+    },
     onSuccess: () => { toast.success("Item removido"); onChange(); },
   });
   const cancel = useMutation({
-    mutationFn: async (iid: string) => setStatus({ data: { id: iid, status: "cancelled" } }),
+    mutationFn: async (iid: string) => {
+      await setStatus({ data: { id: iid, status: "cancelled" } });
+      return recalculateTotal({ data: { id: orderId } });
+    },
     onSuccess: () => { toast.success("Item cancelado"); onChange(); },
   });
   const reactivate = useMutation({
-    mutationFn: async (iid: string) => setStatus({ data: { id: iid, status: "confirmed" } }),
+    mutationFn: async (iid: string) => {
+      await setStatus({ data: { id: iid, status: "confirmed" } });
+      return recalculateTotal({ data: { id: orderId } });
+    },
     onSuccess: () => { toast.success("Item reativado"); onChange(); },
   });
 
@@ -996,6 +1006,8 @@ function ItemsTab({
                 } });
               }
             }
+
+            await recalculateTotal({ data: { id: orderId } });
 
             toast.success("Item salvo");
             onChange();
@@ -1766,6 +1778,20 @@ function ItemDialog({
             )}
 
           </div>
+
+          {kind !== "other" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Valor total (R$)</Label>
+                <Input type="number" step="0.01" min="0" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="0,00" />
+              </div>
+              <div>
+                <Label>Taxas inclusas (R$)</Label>
+                <Input type="number" step="0.01" min="0" value={String(details.tax_value ?? "")} onChange={(e) => setField("tax_value", e.target.value)} placeholder="0,00" />
+                <p className="mt-1 text-[10px] text-muted-foreground">As taxas já fazem parte do valor total.</p>
+              </div>
+            </div>
+          )}
 
           {kind === "hotel" ? (
             <>
