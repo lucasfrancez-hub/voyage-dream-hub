@@ -965,7 +965,7 @@ export async function generateReceiptOnly(detail: OrderDetail): Promise<Blob> {
 
 /** Constrói AuthorizationData a partir do OrderDetail (para pedidos sem card_capture). */
 function buildAuthorizationFromOrder(detail: OrderDetail) {
-  const { order, passengers } = detail;
+  const { order, passengers, payments } = detail;
   const snap = (order.packageSnapshot ?? {}) as {
     card_capture?: { authorization?: import("./authorization-pdf").AuthorizationData; liveness?: import("./authorization-pdf").LivenessData | null };
     order_number?: string;
@@ -988,6 +988,14 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     ? Number((method.match(/\d+/) ?? ["1"])[0])
     : 1;
 
+  // Pacote pronto: puxa dados do cartão de order_payments (last4/brand)
+  const ccPayment = (payments ?? []).find(
+    (p) => (p.method ?? "").toLowerCase() === "credit_card",
+  );
+  const cardLast4 = ccPayment?.card_last4 ?? null;
+  const cardBrand = ccPayment?.card_brand ?? null;
+  const maskedCard = cardLast4 ? `**** **** **** ${cardLast4}` : undefined;
+
   const authorization: import("./authorization-pdf").AuthorizationData = {
     type: "credit_card",
     supplier: order.supplierName ?? "Via Air",
@@ -997,6 +1005,8 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     holder_email: order.payerEmail ?? order.email ?? "",
     holder_phone: order.payerPhone ?? order.phone ?? "",
     holder_birth_date: order.birthDate ?? "",
+    masked_card: maskedCard,
+    brand: cardBrand ?? undefined,
     amount: order.totalPrice,
     installments,
     description: `Pedido ${order.orderNumber}`,
