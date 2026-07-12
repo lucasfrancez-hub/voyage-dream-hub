@@ -2105,25 +2105,8 @@ function FinanceTab({
   const PACKAGE_DEFAULT_PCT = 12;
   const packageDefaultCommission = Number((packageFareNet * (PACKAGE_DEFAULT_PCT / 100)).toFixed(2));
 
-  const plannedRows = useMemo<Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }>>(() => {
-    if (isPackageOrder) {
-      if (financials.length > 0) return [];
-      return [{
-        __planned: true,
-        __itemId: null,
-        __label: "Pacote pronto",
-        supplier_name: null,
-        sale_value: packageFareNet,
-        tax_value: packageTaxes,
-        discount_value: 0,
-        commission_pct: PACKAGE_DEFAULT_PCT,
-        commission_value: packageDefaultCommission,
-        // No padrão 12%, total = tarifa + taxas (comissão já embutida).
-        total: Number((packageFareNet + packageTaxes).toFixed(2)),
-      }];
-    }
-    // Para itens avulsos: gera linha planejada para cada item que ainda não tem
-    // financeiro salvo, garantindo que o total sempre reflita todos os itens.
+  // Gera linhas planejadas para itens que ainda não têm financeiro salvo
+  const extraItemRows = useMemo(() => {
     const savedItemIds = new Set(financials.map((f) => f.order_item_id).filter((x): x is string => !!x));
     return items
       .filter((it) => !savedItemIds.has(it.id))
@@ -2131,22 +2114,49 @@ function FinanceTab({
         const d = (it.details ?? {}) as Record<string, unknown>;
         const sale = Number(d.value ?? 0) || 0;
         const tax = Number(d.tax_value ?? 0) || 0;
-        const pct = defaultCommissionPct(it.kind, false);
-        const commission = Number((Math.max(0, sale - tax) * (pct / 100)).toFixed(2));
+        if (sale <= 0 && tax <= 0) return null;
+        const pct = defaultCommissionPct(it.kind, isPackageOrder);
+        const saleNet = Math.max(0, sale - tax);
+        const commission = Number((saleNet * (pct / 100)).toFixed(2));
         return {
-          __planned: true,
+          __planned: true as const,
           __itemId: it.id,
           __label: it.title,
           supplier_name: null,
-          sale_value: sale,
+          sale_value: saleNet,
           tax_value: tax,
           discount_value: 0,
           commission_pct: pct,
           commission_value: commission,
-          total: sale,
+          total: Number((saleNet + tax).toFixed(2)),
         };
-      });
-  }, [financials, isPackageOrder, packageFareNet, packageTaxes, packageDefaultCommission, items]);
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+  }, [items, financials, isPackageOrder]);
+
+  const plannedRows = useMemo<Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }>>(() => {
+    if (isPackageOrder) {
+      const rows: Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }> = [];
+      if (financials.length === 0) {
+        rows.push({
+          __planned: true,
+          __itemId: null,
+          __label: "Pacote pronto",
+          supplier_name: null,
+          sale_value: packageFareNet,
+          tax_value: packageTaxes,
+          discount_value: 0,
+          commission_pct: PACKAGE_DEFAULT_PCT,
+          commission_value: packageDefaultCommission,
+          total: Number((packageFareNet + packageTaxes).toFixed(2)),
+        });
+      }
+      // Extras (serviços, hospedagem/aéreo adicionais) somam sobre o pacote
+      rows.push(...extraItemRows);
+      return rows;
+    }
+    return extraItemRows;
+  }, [financials, isPackageOrder, packageFareNet, packageTaxes, packageDefaultCommission, extraItemRows]);
 
 
   // Para pacote pronto, ignoramos valores gravados nos financials e derivamos tudo do snapshot,
@@ -2160,13 +2170,18 @@ function FinanceTab({
 
   if (isPackageOrder) {
     const currentPct = financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT;
-    totalSale = packageFareNet;
-    totalTax = packageTaxes;
-    commissionBase = packageFareNet;
-    totalCommission = Number((packageFareNet * (Number(currentPct) / 100)).toFixed(2));
-    // Delta sinalizado: pct < 12 reduz o total; pct > 12 aumenta.
-    const delta = Number((totalCommission - packageDefaultCommission).toFixed(2));
-    totalNet = Number((packageFareNet + packageTaxes + delta).toFixed(2));
+    const extrasSale = extraItemRows.reduce((a, r) => a + Number(r.sale_value || 0), 0);
+    const extrasTax = extraItemRows.reduce((a, r) => a + Number(r.tax_value || 0), 0);
+    const extrasCommission = extraItemRows.reduce((a, r) => a + Number(r.commission_value || 0), 0);
+    const extrasTotal = extraItemRows.reduce((a, r) => a + Number(r.total || 0), 0);
+    const packageCommission = Number((packageFareNet * (Number(currentPct) / 100)).toFixed(2));
+    totalSale = packageFareNet + extrasSale;
+    totalTax = packageTaxes + extrasTax;
+    commissionBase = packageFareNet + extrasSale;
+    totalCommission = Number((packageCommission + extrasCommission).toFixed(2));
+    // Delta sinalizado: pct < 12 reduz o total do pacote; pct > 12 aumenta.
+    const delta = Number((packageCommission - packageDefaultCommission).toFixed(2));
+    totalNet = Number((packageFareNet + packageTaxes + delta + extrasTotal).toFixed(2));
   } else {
     const displayRows = [...financials, ...plannedRows];
     totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
@@ -2175,7 +2190,9 @@ function FinanceTab({
     totalCommission = displayRows.reduce((a, f) => a + Number(f.commission_value || 0), 0);
     totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
   }
-  const packageDiscount = isPackageOrder ? Math.max(0, Number((packageDefaultCommission - totalCommission).toFixed(2))) : 0;
+  const packageDiscount = isPackageOrder
+    ? Math.max(0, Number((packageDefaultCommission - Number((packageFareNet * (Number(financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2))).toFixed(2)))
+    : 0;
 
 
 
