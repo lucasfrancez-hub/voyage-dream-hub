@@ -30,7 +30,7 @@ import {
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
   upsertItemFinancial, deleteItemFinancial,
   upsertOrderPayment, deleteOrderPayment,
-  type OrderDetail, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment,
+  type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment,
 } from "@/lib/orders.functions";
 import { Slider } from "@/components/ui/slider";
 
@@ -324,11 +324,13 @@ function OrderDetailPage() {
           </TabsContent>
           <TabsContent value="finance" className="mt-4">
             <FinanceTab
+              order={order}
               items={detail.items}
               financials={detail.financials}
               onChange={invalidate}
             />
           </TabsContent>
+
         </Tabs>
 
       </div>
@@ -1403,8 +1405,18 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
 
 // =========== Finance ===========
 function FinanceTab({
-  items, financials, onChange,
-}: { items: OrderItem[]; financials: OrderItemFinancial[]; onChange: () => void }) {
+  order, items, financials, onChange,
+}: { order: OrderHeader; items: OrderItem[]; financials: OrderItemFinancial[]; onChange: () => void }) {
+  // Extrai valores do pacote pronto do snapshot para pré-preencher lançamentos
+  const snap = (order.packageSnapshot ?? {}) as Record<string, unknown>;
+  const isPackageOrder =
+    !(snap as { manual?: boolean }).manual &&
+    !["payment_link", "payment_link_simple"].includes(String((snap as { kind?: string }).kind ?? "")) &&
+    Number((snap as { price_per_person?: number }).price_per_person ?? 0) > 0;
+  const pax = Math.max(1, (order.adults || 0) + (order.children || 0));
+  const packageFare = isPackageOrder ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
+  const packageTaxes = isPackageOrder ? Number((snap as { taxes?: number }).taxes ?? 0) : 0;
+
   const upsert = useServerFn(upsertItemFinancial);
   const del = useServerFn(deleteItemFinancial);
   const [editing, setEditing] = useState<OrderItemFinancial | null>(null);
@@ -1533,11 +1545,13 @@ function FinanceTab({
           initial={editing}
           selectedItem={selectedItem}
           setSelectedItem={setSelectedItem}
+          packageDefaults={isPackageOrder ? { sale_value: packageFare, tax_value: packageTaxes } : null}
           onSave={(payload) => {
             if (!selectedItem) { toast.error("Selecione um item"); return; }
             save.mutate({ ...payload, order_item_id: selectedItem, id: editing?.id });
           }}
         />
+
       </div>
     </div>
   );
@@ -1551,7 +1565,7 @@ function defaultCommissionPct(kind: OrderItem["kind"] | undefined, isPackage: bo
 }
 
 function FinanceDialog({
-  open, onOpenChange, items, initial, selectedItem, setSelectedItem, onSave,
+  open, onOpenChange, items, initial, selectedItem, setSelectedItem, packageDefaults, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -1559,17 +1573,20 @@ function FinanceDialog({
   initial: OrderItemFinancial | null;
   selectedItem: string | null;
   setSelectedItem: (v: string) => void;
+  packageDefaults: { sale_value: number; tax_value: number } | null;
   onSave: (p: Partial<OrderItemFinancial>) => void;
 }) {
   const selectedItemObj = items.find((i) => i.id === selectedItem);
   const selectedKind = selectedItemObj?.kind;
-  // Pacote pronto = item veio do snapshot (title tem "Porto Seguro" etc). Aproximação: qualquer item de hotel/flight que faça parte do pedido pronto usa 12%.
-  const isPackage = true; // sempre assumir base 12%; usuário pode ajustar com o slider
+  const isPackage = !!packageDefaults;
+
+  const defaultSale = packageDefaults?.sale_value ?? 0;
+  const defaultTax = packageDefaults?.tax_value ?? 0;
 
   const [form, setForm] = useState({
     supplier_name: initial?.supplier_name ?? "",
-    sale_value: initial?.sale_value ?? 0,
-    tax_value: initial?.tax_value ?? 0,
+    sale_value: initial?.sale_value ?? defaultSale,
+    tax_value: initial?.tax_value ?? defaultTax,
     discount_value: initial?.discount_value ?? 0,
     commission_value: initial?.commission_value ?? 0,
     commission_pct: initial?.commission_pct ?? defaultCommissionPct(selectedKind, isPackage),
@@ -1581,8 +1598,8 @@ function FinanceDialog({
 
   useMemo(() => {
     const basePct = initial?.commission_pct ?? defaultCommissionPct(selectedKind, isPackage);
-    const sale = initial?.sale_value ?? 0;
-    const tax = initial?.tax_value ?? 0;
+    const sale = initial?.sale_value ?? defaultSale;
+    const tax = initial?.tax_value ?? defaultTax;
     const disc = initial?.discount_value ?? 0;
     setForm({
       supplier_name: initial?.supplier_name ?? "",
@@ -1596,7 +1613,8 @@ function FinanceDialog({
       total: initial?.total ?? Number((sale - disc).toFixed(2)),
       notes: initial?.notes ?? "",
     });
-  }, [initial, selectedKind, isPackage]);
+  }, [initial, selectedKind, isPackage, defaultSale, defaultTax]);
+
 
   // Recalcula comissão sobre (tarifa − taxas) e total = tarifa − desconto
   const recalc = (patch: Partial<typeof form>) => {
