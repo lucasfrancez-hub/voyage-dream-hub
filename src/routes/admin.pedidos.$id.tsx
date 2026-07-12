@@ -1087,6 +1087,19 @@ function FlightReservationCard({
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Plane className="h-3.5 w-3.5" /> Reserva aérea
           </div>
+          {(() => {
+            const airlines = Array.from(new Set(
+              segments
+                .map((s) => ((s.details ?? {}) as Record<string, unknown>).airline as string | undefined)
+                .filter((x): x is string => !!x && x.trim().length > 0)
+            ));
+            if (airlines.length === 0) return null;
+            return (
+              <div className="mt-0.5 text-sm font-medium text-foreground">
+                {airlines.join(" · ")}
+              </div>
+            );
+          })()}
           <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
             {locator ?? "—"}
           </div>
