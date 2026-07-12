@@ -594,6 +594,7 @@ const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
         { header: "Total", width: CONTENT_W - 438, align: "right" },
       ];
 
+  drawTableHeader(ctx, cols);
   const fares = splitCents(amounts.fare, d.passengers.length);
   const taxes = splitCents(amounts.taxes, d.passengers.length);
   const discounts = splitCents(amounts.discount, d.passengers.length);
