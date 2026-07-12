@@ -29,7 +29,7 @@ import {
   getOrderDetail, upsertPassenger, deletePassenger,
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
   upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice,
-  upsertOrderPayment, deleteOrderPayment,
+  upsertOrderPayment, deleteOrderPayment, updateOrderPayer,
   appendOrderLogEntry, deleteOrderLogEntry,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
