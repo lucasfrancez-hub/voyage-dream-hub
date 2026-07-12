@@ -1175,7 +1175,16 @@ function FlightReservationCard({
               Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
             </div>
           )}
-          {/* Bilhete removido daqui — agora aparece embaixo do nome de cada passageiro. */}
+          {/* Ações unificadas da reserva (ida + volta) */}
+          <div className="mt-2 flex items-center gap-0.5">
+            <Button size="sm" variant="ghost" onClick={() => first && onEdit(first)} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
+            {allCancelled ? (
+              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Reativar todos os trechos desta reserva?")) segments.forEach((s) => onReactivate(s)); }} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Cancelar toda a reserva (ida e volta)?")) segments.filter((s) => s.status !== "cancelled").forEach((s) => onCancel(s)); }} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir toda a reserva (ida e volta)?")) segments.forEach((s) => onDelete(s)); }} title="Excluir"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+          </div>
         </div>
 
         {/* Coluna 2: segmentos */}
