@@ -2262,6 +2262,7 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
             </Button>
           </div>
         </div>
+        <ClickSignCard detail={detail} />
         <div className="flex items-center justify-between rounded-xl border border-border p-4">
           <div>
             <div className="font-medium text-sm">Autorização de débito</div>
