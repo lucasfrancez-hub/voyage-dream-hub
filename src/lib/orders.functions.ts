@@ -181,6 +181,18 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       }));
     }
 
+    const itemPassengers: Record<string, string[]> = {};
+    if (itemIds.length > 0) {
+      const { data: links, error: eL } = await supabase
+        .from("order_item_passengers")
+        .select("order_item_id, passenger_id")
+        .in("order_item_id", itemIds);
+      if (eL) throw new Error(eL.message);
+      for (const l of links ?? []) {
+        (itemPassengers[l.order_item_id] ??= []).push(l.passenger_id);
+      }
+    }
+
     const { data: paymentsRaw, error: e5 } = await supabase
       .from("order_payments")
       .select("*")
