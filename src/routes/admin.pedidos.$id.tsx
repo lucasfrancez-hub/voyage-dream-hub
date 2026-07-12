@@ -3093,16 +3093,34 @@ function CommissionAdjustDialog({
     if (!open) return;
     const r2 = (n: number) => Number(n.toFixed(2));
     // Agrega TODOS os itens do financeiro (pacote pronto + extras).
-    const relevant = items
-      .map((it) => financials.find((f) => f.order_item_id === it.id))
-      .filter(Boolean) as OrderItemFinancial[];
-    const sumSale = relevant.reduce((a, f) => a + Number(f.sale_value || 0), 0);
-    const sumTax = relevant.reduce((a, f) => a + Number(f.tax_value || 0), 0);
+    // Para itens sem financeiro salvo, usa o valor cadastrado no próprio item
+    // (details.value / details.tax_value) como valor planejado.
+    let sumSale = 0;
+    let sumTax = 0;
+    let firstPct: number | null = null;
+    for (const it of items) {
+      const f = financials.find((x) => x.order_item_id === it.id);
+      if (f) {
+        sumSale += Number(f.sale_value || 0);
+        sumTax += Number(f.tax_value || 0);
+        if (firstPct === null && f.commission_pct !== null && f.commission_pct !== undefined) {
+          firstPct = Number(f.commission_pct);
+        }
+      } else {
+        const d = (it.details ?? {}) as Record<string, unknown>;
+        const gross = Math.max(0, Number(d.value ?? 0) || 0);
+        const itemTax = Math.max(0, Math.min(gross, Number(d.tax_value ?? 0) || 0));
+        if (gross > 0) {
+          sumSale += Math.max(0, gross - itemTax);
+          sumTax += itemTax;
+        }
+      }
+    }
     setSale(r2(sumSale));
     setTax(r2(sumTax));
-    const firstWithPct = relevant.find((f) => f.commission_pct !== null && f.commission_pct !== undefined);
-    setPct(firstWithPct ? Number(firstWithPct.commission_pct) : (isPackage ? PKG_DEFAULT_PCT : 10));
+    setPct(firstPct !== null ? firstPct : (isPackage ? PKG_DEFAULT_PCT : 10));
   }, [open, items, financials, isPackage]);
+
 
 
   // sale = tarifa NET (sem taxas). Comissão incide sobre a tarifa.
@@ -3123,16 +3141,20 @@ function CommissionAdjustDialog({
       // Se nenhum item tem valor gravado, divide igualmente.
       const currents = items.map((it) => {
         const f = financials.find((x) => x.order_item_id === it.id);
+        const d = (it.details ?? {}) as Record<string, unknown>;
+        const gross = Math.max(0, Number(d.value ?? 0) || 0);
+        const itemTax = Math.max(0, Math.min(gross, Number(d.tax_value ?? 0) || 0));
         return {
           item: it,
           existing: f,
-          curSale: Number(f?.sale_value ?? 0),
-          curTax: Number(f?.tax_value ?? 0),
+          curSale: f ? Number(f.sale_value ?? 0) : Math.max(0, gross - itemTax),
+          curTax: f ? Number(f.tax_value ?? 0) : itemTax,
         };
       });
       const totalCurSale = currents.reduce((a, c) => a + c.curSale, 0);
       const totalCurTax = currents.reduce((a, c) => a + c.curTax, 0);
       const equalShare = 1 / items.length;
+
 
       for (const c of currents) {
         const wSale = totalCurSale > 0 ? c.curSale / totalCurSale : equalShare;
