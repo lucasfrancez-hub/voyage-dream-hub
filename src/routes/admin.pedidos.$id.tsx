@@ -1565,7 +1565,7 @@ function defaultCommissionPct(kind: OrderItem["kind"] | undefined, isPackage: bo
 }
 
 function FinanceDialog({
-  open, onOpenChange, items, initial, selectedItem, setSelectedItem, onSave,
+  open, onOpenChange, items, initial, selectedItem, setSelectedItem, packageDefaults, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -1573,17 +1573,20 @@ function FinanceDialog({
   initial: OrderItemFinancial | null;
   selectedItem: string | null;
   setSelectedItem: (v: string) => void;
+  packageDefaults: { sale_value: number; tax_value: number } | null;
   onSave: (p: Partial<OrderItemFinancial>) => void;
 }) {
   const selectedItemObj = items.find((i) => i.id === selectedItem);
   const selectedKind = selectedItemObj?.kind;
-  // Pacote pronto = item veio do snapshot (title tem "Porto Seguro" etc). Aproximação: qualquer item de hotel/flight que faça parte do pedido pronto usa 12%.
-  const isPackage = true; // sempre assumir base 12%; usuário pode ajustar com o slider
+  const isPackage = !!packageDefaults;
+
+  const defaultSale = packageDefaults?.sale_value ?? 0;
+  const defaultTax = packageDefaults?.tax_value ?? 0;
 
   const [form, setForm] = useState({
     supplier_name: initial?.supplier_name ?? "",
-    sale_value: initial?.sale_value ?? 0,
-    tax_value: initial?.tax_value ?? 0,
+    sale_value: initial?.sale_value ?? defaultSale,
+    tax_value: initial?.tax_value ?? defaultTax,
     discount_value: initial?.discount_value ?? 0,
     commission_value: initial?.commission_value ?? 0,
     commission_pct: initial?.commission_pct ?? defaultCommissionPct(selectedKind, isPackage),
@@ -1595,8 +1598,8 @@ function FinanceDialog({
 
   useMemo(() => {
     const basePct = initial?.commission_pct ?? defaultCommissionPct(selectedKind, isPackage);
-    const sale = initial?.sale_value ?? 0;
-    const tax = initial?.tax_value ?? 0;
+    const sale = initial?.sale_value ?? defaultSale;
+    const tax = initial?.tax_value ?? defaultTax;
     const disc = initial?.discount_value ?? 0;
     setForm({
       supplier_name: initial?.supplier_name ?? "",
@@ -1610,7 +1613,8 @@ function FinanceDialog({
       total: initial?.total ?? Number((sale - disc).toFixed(2)),
       notes: initial?.notes ?? "",
     });
-  }, [initial, selectedKind, isPackage]);
+  }, [initial, selectedKind, isPackage, defaultSale, defaultTax]);
+
 
   // Recalcula comissão sobre (tarifa − taxas) e total = tarifa − desconto
   const recalc = (patch: Partial<typeof form>) => {
