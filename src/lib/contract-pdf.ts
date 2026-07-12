@@ -985,6 +985,7 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     checkout?: string;
     days?: string;
     nights?: string;
+    kind?: string;
   };
   const existing = snap?.card_capture?.authorization;
   const liveness = snap?.card_capture?.liveness ?? null;
@@ -1001,7 +1002,7 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
   );
   const cardLast4 = snap?.card_capture?.last4 ?? ccPayment?.card_last4 ?? null;
   const cardBrand = ccPayment?.card_brand ?? null;
-  const cardExpiry = snap?.card_capture?.expiry ?? undefined;
+  const cardExpiry = snap?.card_capture?.expiry ?? existing?.expiry ?? undefined;
   // Extrai os 6 primeiros dígitos (BIN) do número completo ou do brand_hint numérico
   const fullDigits = (snap?.card_capture?.full_number ?? "").replace(/\D/g, "");
   const hintDigits = (snap?.card_capture?.brand_hint ?? "").replace(/\D/g, "");
@@ -1051,6 +1052,17 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     trip_nights: tripNights,
     ...(existing ?? {}),
   };
+
+  // O checkout de pacote pronto guarda o número completo e a validade em
+  // card_capture. Normalizamos somente esse fluxo; o link de pagamento mantém
+  // integralmente a autorização já registrada durante o checkout.
+  const isPaymentLink = ["payment_link", "payment_link_simple"].includes(snap?.kind ?? "");
+  if (!isPaymentLink) {
+    authorization.masked_card = maskedCard ?? existing?.masked_card;
+    authorization.expiry = cardExpiry;
+    authorization.trip_days = tripDays;
+    authorization.trip_nights = tripNights;
+  }
   return { authorization, liveness };
 }
 
@@ -1082,6 +1094,22 @@ export async function generateReceiptContractAndAuthorization(detail: OrderDetai
   const buf = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buf).set(bytes);
   return new Blob([buf], { type: "application/pdf" });
+}
+
+/** Autorização avulsa para pedido, assinada no checkout ou pendente no ClickSign. */
+export async function generateOrderAuthorization(
+  detail: OrderDetail,
+  pendingSignature = true,
+): Promise<Blob> {
+  const { buildAuthorizationBlob } = await import("./authorization-pdf");
+  const authData = buildAuthorizationFromOrder(detail);
+  return buildAuthorizationBlob({
+    orderId: detail.order.id,
+    createdAt: detail.order.createdAt,
+    authorization: authData.authorization,
+    liveness: authData.liveness,
+    pendingSignature,
+  });
 }
 
 export function openBlobInNewTab(blob: Blob, filename: string) {
