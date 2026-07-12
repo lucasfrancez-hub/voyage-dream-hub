@@ -963,6 +963,88 @@ export async function generateReceiptOnly(detail: OrderDetail): Promise<Blob> {
   return new Blob([buf], { type: "application/pdf" });
 }
 
+/** Constrói AuthorizationData a partir do OrderDetail (para pedidos sem card_capture). */
+function buildAuthorizationFromOrder(detail: OrderDetail) {
+  const { order, passengers } = detail;
+  const snap = (order.packageSnapshot ?? {}) as {
+    card_capture?: { authorization?: import("./authorization-pdf").AuthorizationData; liveness?: import("./authorization-pdf").LivenessData | null };
+    order_number?: string;
+    locator?: string;
+    route?: string;
+    travel_date?: string;
+    hotel?: string;
+    flights?: string;
+    checkin?: string;
+    checkout?: string;
+    days?: string;
+    nights?: string;
+  };
+  const existing = snap?.card_capture?.authorization;
+  const liveness = snap?.card_capture?.liveness ?? null;
+  const paxNames = passengers.map((p) => p.full_name).join(", ") || undefined;
+
+  const method = (order.paymentMethod ?? "").toLowerCase();
+  const installments = /credit_card|boleto/.test(method)
+    ? Number((method.match(/\d+/) ?? ["1"])[0])
+    : 1;
+
+  const authorization: import("./authorization-pdf").AuthorizationData = {
+    type: "credit_card",
+    supplier: order.supplierName ?? "Via Air",
+    representative: "Via Air Agência e Representações Ltda",
+    holder_name: order.payerFullName ?? order.fullName ?? "",
+    holder_cpf: order.payerCpf ?? order.cpf ?? "",
+    holder_email: order.payerEmail ?? order.email ?? "",
+    holder_phone: order.payerPhone ?? order.phone ?? "",
+    holder_birth_date: order.birthDate ?? "",
+    amount: order.totalPrice,
+    installments,
+    description: `Pedido ${order.orderNumber}`,
+    order_number: order.orderNumber,
+    trip_locator: snap?.locator ?? order.airlineLocator ?? null,
+    trip_route: snap?.route ?? null,
+    trip_date: snap?.travel_date ?? null,
+    trip_passengers: paxNames ?? null,
+    trip_hotel: snap?.hotel ?? null,
+    trip_flights: snap?.flights ?? null,
+    trip_checkin: snap?.checkin ?? null,
+    trip_checkout: snap?.checkout ?? null,
+    trip_days: snap?.days ?? null,
+    trip_nights: snap?.nights ?? null,
+    ...(existing ?? {}),
+  };
+  return { authorization, liveness };
+}
+
+/** Recibo + Contrato + Autorização de débito, tudo num único PDF. */
+export async function generateReceiptContractAndAuthorization(detail: OrderDetail): Promise<Blob> {
+  const { buildAuthorizationBlob } = await import("./authorization-pdf");
+  const [contractBlob, authData] = await Promise.all([
+    generateReceiptAndContract(detail),
+    Promise.resolve(buildAuthorizationFromOrder(detail)),
+  ]);
+  const authBlob = await buildAuthorizationBlob({
+    orderId: detail.order.id,
+    createdAt: detail.order.createdAt,
+    authorization: authData.authorization,
+    liveness: authData.liveness,
+  });
+
+  // Merge com pdf-lib
+  const merged = await PDFDocument.create();
+  const [aBytes, bBytes] = await Promise.all([contractBlob.arrayBuffer(), authBlob.arrayBuffer()]);
+  const [pdfA, pdfB] = await Promise.all([PDFDocument.load(aBytes), PDFDocument.load(bBytes)]);
+  const pagesA = await merged.copyPages(pdfA, pdfA.getPageIndices());
+  pagesA.forEach((p) => merged.addPage(p));
+  const pagesB = await merged.copyPages(pdfB, pdfB.getPageIndices());
+  pagesB.forEach((p) => merged.addPage(p));
+
+  const bytes = await merged.save();
+  const buf = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buf).set(bytes);
+  return new Blob([buf], { type: "application/pdf" });
+}
+
 export function openBlobInNewTab(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

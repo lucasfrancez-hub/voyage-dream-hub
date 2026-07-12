@@ -41,7 +41,7 @@ import { Slider } from "@/components/ui/slider";
 
 
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
-import { generateReceiptAndContract, generateReceiptOnly, openBlobInNewTab } from "@/lib/contract-pdf";
+import { generateReceiptAndContract, generateReceiptOnly, generateReceiptContractAndAuthorization, openBlobInNewTab } from "@/lib/contract-pdf";
 import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
 import type { Json } from "@/integrations/supabase/types";
@@ -2236,14 +2236,14 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
         <FileText className="h-4 w-4" /> Documentos do pedido
       </h3>
       <div className="space-y-3">
-        <div className="flex items-center justify-between rounded-xl border border-border p-4">
-          <div>
+        <div className="rounded-xl border border-border p-4">
+          <div className="mb-3">
             <div className="font-medium text-sm">Recibo + Contrato</div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              Gerado automaticamente com dados do pagador, serviços e forma de pagamento
+              Gerado automaticamente com dados do pagador, serviços e forma de pagamento. Use a versão <b>com autorização de débito</b> quando o pagamento for em cartão de crédito.
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={async () => {
               try {
                 const blob = await generateReceiptOnly(detail);
@@ -2252,13 +2252,21 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
             }}>
               <Download className="h-3.5 w-3.5 mr-1.5" /> Só recibo
             </Button>
-            <Button size="sm" onClick={async () => {
+            <Button size="sm" variant="outline" onClick={async () => {
               try {
                 const blob = await generateReceiptAndContract(detail);
                 openBlobInNewTab(blob, `contrato-${order.orderNumber}.pdf`);
               } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar contrato"); }
             }}>
-              <Download className="h-3.5 w-3.5 mr-1.5" /> Contrato + Recibo
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato
+            </Button>
+            <Button size="sm" onClick={async () => {
+              try {
+                const blob = await generateReceiptContractAndAuthorization(detail);
+                openBlobInNewTab(blob, `contrato-completo-${order.orderNumber}.pdf`);
+              } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF"); }
+            }}>
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato + Autorização
             </Button>
           </div>
         </div>

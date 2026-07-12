@@ -90,6 +90,26 @@ export async function generateAuthorizationPDF(opts: {
   authorization: AuthorizationData;
   liveness: LivenessData | null;
 }) {
+  const doc = await buildAuthorizationDoc(opts);
+  doc.save(`autorizacao-debito-${opts.orderId.slice(0, 8)}.pdf`);
+}
+
+export async function buildAuthorizationBlob(opts: {
+  orderId: string;
+  createdAt: string;
+  authorization: AuthorizationData;
+  liveness: LivenessData | null;
+}): Promise<Blob> {
+  const doc = await buildAuthorizationDoc(opts);
+  return doc.output("blob");
+}
+
+async function buildAuthorizationDoc(opts: {
+  orderId: string;
+  createdAt: string;
+  authorization: AuthorizationData;
+  liveness: LivenessData | null;
+}): Promise<jsPDF> {
 
   const { orderId, createdAt, authorization: a, liveness } = opts;
   const numericFromUuid = (() => {
@@ -520,5 +540,5 @@ export async function generateAuthorizationPDF(opts: {
     setInk();
   }
 
-  doc.save(`autorizacao-debito-${orderId.slice(0, 8)}.pdf`);
+  return doc;
 }
