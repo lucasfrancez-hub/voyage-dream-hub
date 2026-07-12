@@ -1172,8 +1172,9 @@ function ItemDialog({
               <Select value={status} onValueChange={(v) => setStatusVal(v as "confirmed" | "reserved" | "cancelled" | "pending")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="pending">Solicitado</SelectItem>
+                  <SelectItem value="reserved">Reservado</SelectItem>
                   <SelectItem value="confirmed">Confirmado</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
