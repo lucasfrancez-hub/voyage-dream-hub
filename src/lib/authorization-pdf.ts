@@ -205,6 +205,10 @@ async function buildAuthorizationDoc(opts: {
       } else {
         doc.text(fmtDate(a.signed_at), pageW - M - 23, 19.5, { align: "center" });
       }
+    }
+    setInk();
+  }
+
 
   function h1(t: string) {
     ensure(14);
