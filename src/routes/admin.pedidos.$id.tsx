@@ -1212,17 +1212,8 @@ function FlightReservationCard({
                     {airline && <span className="text-xs text-muted-foreground">{airline}</span>}
                     {flightNum && <span className="font-mono text-xs">{flightNum}</span>}
                     {cabin && <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{cabin}</span>}
-                    {cancelled && <span className="text-[10px] font-semibold uppercase text-destructive">Cancelado</span>}
-                  </div>
-                  <div className="flex items-center gap-0.5">
-                    <Button size="sm" variant="ghost" onClick={() => onEdit(seg)}><Pencil className="h-3.5 w-3.5" /></Button>
-                    {cancelled ? (
-                      <Button size="sm" variant="ghost" onClick={() => onReactivate(seg)} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
-                    ) : (
-                      <Button size="sm" variant="ghost" onClick={() => onCancel(seg)} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={() => onDelete(seg)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                  </div>
+                  {cancelled && <span className="text-[10px] font-semibold uppercase text-destructive">Cancelado</span>}
+                </div>
                 </div>
                 <div className="mt-1.5 grid gap-1 sm:grid-cols-2">
                   <div>
