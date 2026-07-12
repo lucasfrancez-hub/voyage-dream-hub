@@ -170,6 +170,83 @@ export type Database = {
           },
         ]
       }
+      order_payments: {
+        Row: {
+          added_by_name: string | null
+          amount: number
+          authorization_code: string | null
+          card_brand: string | null
+          card_last4: string | null
+          cashier_number: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          installment_amount: number | null
+          installments: number | null
+          method: string
+          notes: string | null
+          order_id: string
+          paid_at: string | null
+          proposal_number: string | null
+          provider: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          added_by_name?: string | null
+          amount: number
+          authorization_code?: string | null
+          card_brand?: string | null
+          card_last4?: string | null
+          cashier_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          installment_amount?: number | null
+          installments?: number | null
+          method: string
+          notes?: string | null
+          order_id: string
+          paid_at?: string | null
+          proposal_number?: string | null
+          provider?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          added_by_name?: string | null
+          amount?: number
+          authorization_code?: string | null
+          card_brand?: string | null
+          card_last4?: string | null
+          cashier_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          installment_amount?: number | null
+          installments?: number | null
+          method?: string
+          notes?: string | null
+          order_id?: string
+          paid_at?: string | null
+          proposal_number?: string | null
+          provider?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           adults: number
