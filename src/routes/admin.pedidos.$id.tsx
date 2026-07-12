@@ -2593,7 +2593,7 @@ function CommissionAdjustDialog({
                 <div className="flex items-center gap-2">
                   <Input
                     type="number" step="0.5" min={0} max={100}
-                    value={pct}
+                    value={Number.isFinite(pct) ? Number(pct.toFixed(2)) : 0}
                     onChange={(e) => setPct(Number(e.target.value))}
                     className="w-20 h-8 text-right"
                   />
@@ -2601,18 +2601,46 @@ function CommissionAdjustDialog({
                 </div>
               </div>
               <Slider
-                value={[pct]}
+                value={[Math.min(30, Math.max(0, pct))]}
                 min={0}
                 max={30}
                 step={0.5}
                 onValueChange={(v) => setPct(v[0])}
               />
-              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                <span>Base: {formatBRL(base)} (só tarifa)</span>
-                <span>
-                  Comissão: <span className="font-semibold text-brand-orange">{formatBRL(commission)}</span>
-                </span>
+              <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+                <span className="text-muted-foreground">Base: {formatBRL(base)} (só tarifa)</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">ou comissão R$</span>
+                  <Input
+                    type="number" step="0.01" min={0}
+                    value={Number(commission.toFixed(2))}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setPct(base > 0 ? Number(((v / base) * 100).toFixed(4)) : 0);
+                    }}
+                    className="w-24 h-8 text-right"
+                  />
+                </div>
               </div>
+              <div className="mt-1 text-right text-xs">
+                Comissão: <span className="font-semibold text-brand-orange">{formatBRL(commission)}</span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-brand-orange/30 bg-brand-orange/5 p-4 flex items-center justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Novo total do pedido</div>
+                {isPackage && (
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {pct < PKG_DEFAULT_PCT
+                      ? `Desconto aplicado: ${formatBRL(Math.max(0, pkgDefaultCommission - commission))}`
+                      : pct > PKG_DEFAULT_PCT
+                      ? `Acréscimo acima de ${PKG_DEFAULT_PCT}%: ${formatBRL(Math.max(0, commission - pkgDefaultCommission))}`
+                      : `Comissão padrão do pacote (${PKG_DEFAULT_PCT}%)`}
+                  </div>
+                )}
+              </div>
+              <div className="text-2xl font-bold text-brand-orange">{formatBRL(Math.max(0, total))}</div>
             </div>
           </div>
         )}
