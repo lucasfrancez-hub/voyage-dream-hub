@@ -338,6 +338,25 @@ export const setOrderStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Atualiza campos livres do pedido (observação, motivo, cupom)
+export const updateOrderMeta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; notes?: string | null; travel_reason?: string | null; coupon?: string | null }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const patch: Record<string, string | null> = {};
+    if (data.notes !== undefined) patch.notes = data.notes;
+    if (data.travel_reason !== undefined) patch.travel_reason = data.travel_reason;
+    if (data.coupon !== undefined) patch.coupon = data.coupon;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await context.supabase.from("orders").update(patch as never).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
+
 
 
 // --------- Financials ---------
