@@ -289,6 +289,7 @@ const drawCompanyHeader = (ctx: Ctx) => {
     end: { x: A4.w - MARGIN, y: A4.h - bandH - 8 },
     thickness: 0.5, color: COLOR_BORDER,
   });
+  drawLogo(ctx);
   ctx.y = A4.h - bandH - 24;
 };
 
