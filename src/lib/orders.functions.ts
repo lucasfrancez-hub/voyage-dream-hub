@@ -300,5 +300,3 @@ export const deleteItemFinancial = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// unused reference to keep TS import
-void ensureAdmin;
