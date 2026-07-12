@@ -1055,7 +1055,8 @@ function deriveItemStatus(item: OrderItem): OrderItem["status"] {
   if (item.kind === "hotel") {
     return loc ? "confirmed" : "pending";
   }
-  return item.status;
+  // Demais serviços (extras, translados, passeios etc.): localizador → confirmado; sem localizador → solicitado.
+  return loc ? "confirmed" : "pending";
 }
 
 
