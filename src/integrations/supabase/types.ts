@@ -266,6 +266,16 @@ export type Database = {
           order_number: string
           package_id: string | null
           package_snapshot: Json
+          payer_address: string | null
+          payer_city: string | null
+          payer_cpf: string | null
+          payer_district: string | null
+          payer_email: string | null
+          payer_full_name: string | null
+          payer_number: string | null
+          payer_phone: string | null
+          payer_state: string | null
+          payer_zip: string | null
           payment_method: string
           phone: string
           status: string
@@ -289,6 +299,16 @@ export type Database = {
           order_number?: string
           package_id?: string | null
           package_snapshot: Json
+          payer_address?: string | null
+          payer_city?: string | null
+          payer_cpf?: string | null
+          payer_district?: string | null
+          payer_email?: string | null
+          payer_full_name?: string | null
+          payer_number?: string | null
+          payer_phone?: string | null
+          payer_state?: string | null
+          payer_zip?: string | null
           payment_method: string
           phone: string
           status?: string
@@ -312,6 +332,16 @@ export type Database = {
           order_number?: string
           package_id?: string | null
           package_snapshot?: Json
+          payer_address?: string | null
+          payer_city?: string | null
+          payer_cpf?: string | null
+          payer_district?: string | null
+          payer_email?: string | null
+          payer_full_name?: string | null
+          payer_number?: string | null
+          payer_phone?: string | null
+          payer_state?: string | null
+          payer_zip?: string | null
           payment_method?: string
           phone?: string
           status?: string
