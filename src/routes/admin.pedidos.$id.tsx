@@ -929,14 +929,14 @@ function ItemDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {initial ? "Editar" : "Adicionar"} {kind === "hotel" ? "hospedagem" : "aéreo"}
+            {initial ? "Editar" : "Adicionar"} {kind === "hotel" ? "hospedagem" : kind === "flight" ? "aéreo" : "serviço"}
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-3 max-h-[65vh] overflow-y-auto pr-1">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <Label>{kind === "hotel" ? "Nome do hotel" : "Trecho / rota"}</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "hotel" ? "Ex: Trupial Hotel & Casino" : "Ex: GRU → CUR"} />
+              <Label>{kind === "hotel" ? "Nome do hotel" : kind === "flight" ? "Trecho / rota" : "Serviço"}</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "hotel" ? "Ex: Trupial Hotel & Casino" : kind === "flight" ? "Ex: GRU → CUR" : "Ex: Traslado, Passeio, Seguro viagem…"} />
             </div>
             <div>
               <Label>Localizador do fornecedor</Label>
