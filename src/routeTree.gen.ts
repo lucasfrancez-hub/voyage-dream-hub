@@ -27,6 +27,7 @@ import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
+import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 
 const PagarBoletoRoute = PagarBoletoRouteImport.update({
   id: '/pagar-boleto',
@@ -118,6 +119,11 @@ const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
   path: '/$slug/checkout',
   getParentRoute: () => PacotesRoute,
 } as any)
+const AdminPedidosIdRoute = AdminPedidosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminPedidosRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -132,10 +138,11 @@ export interface FileRoutesByFullPath {
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
-  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/pacotes/': typeof PacotesIndexRoute
+  '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
 }
@@ -151,10 +158,11 @@ export interface FileRoutesByTo {
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
-  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/pacotes': typeof PacotesIndexRoute
+  '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
 }
@@ -172,10 +180,11 @@ export interface FileRoutesById {
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
-  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/pacotes/': typeof PacotesIndexRoute
+  '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
 }
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/pacotes/'
+    | '/admin/pedidos/$id'
     | '/pacotes/$slug/checkout'
     | '/pacotes/$slug/'
   fileRoutesByTo: FileRoutesByTo
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/pacotes'
+    | '/admin/pedidos/$id'
     | '/pacotes/$slug/checkout'
     | '/pacotes/$slug'
   id:
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/pacotes/'
+    | '/admin/pedidos/$id'
     | '/pacotes/$slug/checkout'
     | '/pacotes/$slug/'
   fileRoutesById: FileRoutesById
@@ -379,8 +391,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
       parentRoute: typeof PacotesRoute
     }
+    '/admin/pedidos/$id': {
+      id: '/admin/pedidos/$id'
+      path: '/$id'
+      fullPath: '/admin/pedidos/$id'
+      preLoaderRoute: typeof AdminPedidosIdRouteImport
+      parentRoute: typeof AdminPedidosRoute
+    }
   }
 }
+
+interface AdminPedidosRouteChildren {
+  AdminPedidosIdRoute: typeof AdminPedidosIdRoute
+}
+
+const AdminPedidosRouteChildren: AdminPedidosRouteChildren = {
+  AdminPedidosIdRoute: AdminPedidosIdRoute,
+}
+
+const AdminPedidosRouteWithChildren = AdminPedidosRoute._addFileChildren(
+  AdminPedidosRouteChildren,
+)
 
 interface AdminRouteChildren {
   AdminCofreRoute: typeof AdminCofreRoute
@@ -388,7 +419,7 @@ interface AdminRouteChildren {
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
-  AdminPedidosRoute: typeof AdminPedidosRoute
+  AdminPedidosRoute: typeof AdminPedidosRouteWithChildren
   AdminSegurancaRoute: typeof AdminSegurancaRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
 }
@@ -399,7 +430,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
   AdminPacotesRoute: AdminPacotesRoute,
-  AdminPedidosRoute: AdminPedidosRoute,
+  AdminPedidosRoute: AdminPedidosRouteWithChildren,
   AdminSegurancaRoute: AdminSegurancaRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,
 }
