@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 
-export const Route = createFileRoute("/admin/pedidos")({
+export const Route = createFileRoute("/admin/pedidos/")({
   component: AdminOrders,
   head: () => ({ meta: [{ title: "Pedidos — Admin" }] }),
 });
