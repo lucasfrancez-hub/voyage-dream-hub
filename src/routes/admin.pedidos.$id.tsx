@@ -1267,7 +1267,12 @@ function ItemDialog({
               </Select>
               {kind === "hotel" && (
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Preencha o localizador da reserva para marcar como confirmado automaticamente.
+                  Sem localizador = Solicitado. Com localizador = Confirmado.
+                </p>
+              )}
+              {kind === "flight" && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Sem localizador nem bilhete = Solicitado. Só localizador = Reservado. Com bilhete = Confirmado.
                 </p>
               )}
             </div>
