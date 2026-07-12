@@ -512,6 +512,7 @@ function PassengersSection({
 
 type PassengerPatch = Partial<Pick<OrderPassenger,
   "full_name" | "passenger_type" | "birth_date" | "cpf" | "ticket_number"
+  | "doc_type" | "passport_number" | "passport_issue_date" | "passport_expiry_date"
 >>;
 
 function PassengerRow({
