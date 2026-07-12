@@ -175,6 +175,24 @@ type Ctx = {
   // Cabeçalho usado ao criar páginas de continuação da seção atual.
   // Recibo usa um cabeçalho enxuto; Contrato usa drawContractHeader.
   pageHeader?: (c: Ctx) => void;
+  logo?: PDFImage;
+};
+
+// Desenha a logo VIA AIR no canto superior direito da página.
+const drawLogo = (ctx: Ctx) => {
+  if (!ctx.logo) return;
+  const maxW = 110;
+  const maxH = 40;
+  const ratio = ctx.logo.width / ctx.logo.height;
+  let w = maxW;
+  let h = w / ratio;
+  if (h > maxH) { h = maxH; w = h * ratio; }
+  ctx.page.drawImage(ctx.logo, {
+    x: A4.w - MARGIN - w,
+    y: A4.h - MARGIN - h + 4,
+    width: w,
+    height: h,
+  });
 };
 
 const newPage = (ctx: Ctx) => {
