@@ -1038,6 +1038,7 @@ export async function generateReceiptContractAndAuthorization(detail: OrderDetai
     createdAt: detail.order.createdAt,
     authorization: authData.authorization,
     liveness: authData.liveness,
+    pendingSignature: true,
   });
 
   // Merge com pdf-lib

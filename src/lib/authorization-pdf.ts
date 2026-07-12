@@ -99,6 +99,7 @@ export async function buildAuthorizationBlob(opts: {
   createdAt: string;
   authorization: AuthorizationData;
   liveness: LivenessData | null;
+  pendingSignature?: boolean;
 }): Promise<Blob> {
   const doc = await buildAuthorizationDoc(opts);
   return doc.output("blob");
@@ -109,9 +110,10 @@ async function buildAuthorizationDoc(opts: {
   createdAt: string;
   authorization: AuthorizationData;
   liveness: LivenessData | null;
+  pendingSignature?: boolean;
 }): Promise<jsPDF> {
 
-  const { orderId, createdAt, authorization: a, liveness } = opts;
+  const { orderId, createdAt, authorization: a, liveness, pendingSignature } = opts;
   const numericFromUuid = (() => {
     const hex = orderId.replace(/-/g, "").slice(0, 12);
     const n = parseInt(hex, 16);
@@ -360,167 +362,176 @@ async function buildAuthorizationDoc(opts: {
     "Esta autorização é válida por 12 (doze) meses a partir da data da assinatura, registrada eletronicamente com data, hora, endereço IP, geolocalização, dados do dispositivo, verificação facial (liveness) e assinatura digital do portador, com validade jurídica nos termos da MP 2.200-2/2001.",
   );
 
-  // ── assinatura em card
-  ensure(52);
-  h1("Assinatura do portador");
-  const sigH = 42;
-  doc.setDrawColor(RULE[0], RULE[1], RULE[2]);
-  doc.setFillColor(252, 252, 253);
-  doc.roundedRect(M, y, contentW, sigH, 2, 2, "FD");
+  if (pendingSignature) {
+    // Fluxo ClickSign: apenas reconhecimento do portador; assinatura, biometria
+    // e evidências eletrônicas serão adicionadas pelo ClickSign no anexo final.
+    ensure(30);
+    h1("Reconhecimento do portador");
+    beginKvSection();
+    kv("Reconhecido por", a.holder_name ?? "—");
+    kv("CPF", a.holder_cpf ?? "—");
+    y += 2;
+    para(
+      "A assinatura eletrônica, verificação de identidade e demais evidências (data/hora, endereço IP, geolocalização e dispositivo) serão registradas no ato da assinatura via ClickSign e anexadas a este documento.",
+    );
+  } else {
+    // ── assinatura em card
+    ensure(52);
+    h1("Assinatura do portador");
+    const sigH = 42;
+    doc.setDrawColor(RULE[0], RULE[1], RULE[2]);
+    doc.setFillColor(252, 252, 253);
+    doc.roundedRect(M, y, contentW, sigH, 2, 2, "FD");
 
-  const sigBoxW = 88;
-  const sigBoxH = 34;
-  const sigX = M + 4;
-  const sigY = y + 4;
-  doc.setDrawColor(210, 214, 224);
-  doc.setLineDashPattern([1.2, 1.2], 0);
-  doc.rect(sigX, sigY, sigBoxW, sigBoxH, "S");
-  doc.setLineDashPattern([], 0);
+    const sigBoxW = 88;
+    const sigBoxH = 34;
+    const sigX = M + 4;
+    const sigY = y + 4;
+    doc.setDrawColor(210, 214, 224);
+    doc.setLineDashPattern([1.2, 1.2], 0);
+    doc.rect(sigX, sigY, sigBoxW, sigBoxH, "S");
+    doc.setLineDashPattern([], 0);
 
-  if (a.signature_data_url) {
-    try {
-      doc.addImage(a.signature_data_url, "PNG", sigX + 2, sigY + 2, sigBoxW - 4, sigBoxH - 4);
-    } catch {
+    if (a.signature_data_url) {
+      try {
+        doc.addImage(a.signature_data_url, "PNG", sigX + 2, sigY + 2, sigBoxW - 4, sigBoxH - 4);
+      } catch {
+        setMuted();
+        doc.setFontSize(8);
+        doc.text("assinatura capturada (imagem inválida)", sigX + sigBoxW / 2, sigY + sigBoxH / 2, { align: "center" });
+        setInk();
+      }
+    } else {
       setMuted();
       doc.setFontSize(8);
-      doc.text("assinatura capturada (imagem inválida)", sigX + sigBoxW / 2, sigY + sigBoxH / 2, { align: "center" });
+      doc.text("assinatura não capturada", sigX + sigBoxW / 2, sigY + sigBoxH / 2, { align: "center" });
       setInk();
     }
-  } else {
-    setMuted();
-    doc.setFontSize(8);
-    doc.text("assinatura não capturada", sigX + sigBoxW / 2, sigY + sigBoxH / 2, { align: "center" });
-    setInk();
-  }
 
-  // dados à direita da assinatura
-  const infoX = sigX + sigBoxW + 8;
-  const infoTop = y + 6;
-  const infoRow = (label: string, value: string, i: number) => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    setMuted();
-    doc.text(label.toUpperCase(), infoX, infoTop + i * 8);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    setInk();
-    doc.text(value, infoX, infoTop + i * 8 + 4);
-  };
-  infoRow("Assinado por", a.holder_name ?? "—", 0);
-  infoRow("CPF", a.holder_cpf ?? "—", 1);
-  infoRow("Data / hora", fmtDate(a.signed_at), 2);
-  infoRow("Termos", a.accepted_terms ? "ACEITOS (checkbox marcada)" : "não registrado", 3);
-
-  y += sigH + 6;
-
-  // ── página 2: biometria + evidências
-  doc.addPage();
-  drawHeaderBand(false);
-  y = 34;
-
-  h1("Verificação de biometria facial (prova de vida)");
-  if (liveness && liveness.photos?.length) {
-    beginKvSection();
-    kv("Capturado em", fmtDate(liveness.captured_at));
-    kv("Selfie válida até", fmtDate(liveness.selfie_valid_until));
-    kv(
-      "Método de verificação",
-      liveness.face_detector_used
-        ? "Detector facial nativo 3D + desafios ativos"
-        : "Desafios ativos com análise de movimento",
-    );
-    kv("Desafios executados", (liveness.challenges ?? []).join(" · ") || "—");
-    kv(
-      "Movimento mínimo entre capturas",
-      liveness.min_motion_score != null ? liveness.min_motion_score.toFixed(4) : "—",
-    );
-    kv(
-      "Scores por transição",
-      (liveness.motion_scores ?? []).map((s) => s.toFixed(4)).join(" · ") || "—",
-    );
-    y += 3;
-
-    // grid de fotos
-    const labelMap: Record<string, string> = {
-      fit: "Encaixe", near: "Aproximação", right: "Direita", left: "Esquerda", smile: "Sorriso",
-      front: "Frente",
-    };
-    const photos = liveness.photos.slice(0, 5);
-    const cols = photos.length;
-    const gap = 4;
-    const imgW = (contentW - gap * (cols - 1)) / cols;
-    const imgH = imgW * 1.25;
-    ensure(imgH + 12);
-
-    // pré-carrega para conhecer as proporções e evitar imagem esmagada
-    const dims = await Promise.all(
-      photos.map(
-        (src) =>
-          new Promise<{ w: number; h: number }>((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve({ w: img.naturalWidth || 4, h: img.naturalHeight || 3 });
-            img.onerror = () => resolve({ w: 4, h: 3 });
-            img.src = src;
-          }),
-      ),
-    );
-
-    photos.forEach((p, i) => {
-      const x = M + i * (imgW + gap);
-      // frame
-      doc.setDrawColor(RULE[0], RULE[1], RULE[2]);
-      doc.setFillColor(245, 246, 250);
-      doc.roundedRect(x, y, imgW, imgH, 1.5, 1.5, "FD");
-      // fit-contain dentro do frame preservando proporção
-      const boxW = imgW - 3;
-      const boxH = imgH - 3;
-      const { w: iw, h: ih } = dims[i];
-      const scale = Math.min(boxW / iw, boxH / ih);
-      const dw = iw * scale;
-      const dh = ih * scale;
-      const dx = x + 1.5 + (boxW - dw) / 2;
-      const dy = y + 1.5 + (boxH - dh) / 2;
-      try {
-        doc.addImage(p, "JPEG", dx, dy, dw, dh);
-      } catch {}
-      // legenda
-      const key = liveness.challenges?.[i];
-      const label = (key && labelMap[key]) || `#${i + 1}`;
+    // dados à direita da assinatura
+    const infoX = sigX + sigBoxW + 8;
+    const infoTop = y + 6;
+    const infoRow = (label: string, value: string, i: number) => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
       setMuted();
-      doc.text(label.toUpperCase(), x + imgW / 2, y + imgH + 5, { align: "center" });
-    });
-    setInk();
-    y += imgH + 10;
+      doc.text(label.toUpperCase(), infoX, infoTop + i * 8);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      setInk();
+      doc.text(value, infoX, infoTop + i * 8 + 4);
+    };
+    infoRow("Assinado por", a.holder_name ?? "—", 0);
+    infoRow("CPF", a.holder_cpf ?? "—", 1);
+    infoRow("Data / hora", fmtDate(a.signed_at), 2);
+    infoRow("Termos", a.accepted_terms ? "ACEITOS (checkbox marcada)" : "não registrado", 3);
 
-  } else {
+    y += sigH + 6;
+
+    // ── página 2: biometria + evidências
+    doc.addPage();
+    drawHeaderBand(false);
+    y = 34;
+
+    h1("Verificação de biometria facial (prova de vida)");
+    if (liveness && liveness.photos?.length) {
+      beginKvSection();
+      kv("Capturado em", fmtDate(liveness.captured_at));
+      kv("Selfie válida até", fmtDate(liveness.selfie_valid_until));
+      kv(
+        "Método de verificação",
+        liveness.face_detector_used
+          ? "Detector facial nativo 3D + desafios ativos"
+          : "Desafios ativos com análise de movimento",
+      );
+      kv("Desafios executados", (liveness.challenges ?? []).join(" · ") || "—");
+      kv(
+        "Movimento mínimo entre capturas",
+        liveness.min_motion_score != null ? liveness.min_motion_score.toFixed(4) : "—",
+      );
+      kv(
+        "Scores por transição",
+        (liveness.motion_scores ?? []).map((s) => s.toFixed(4)).join(" · ") || "—",
+      );
+      y += 3;
+
+      const labelMap: Record<string, string> = {
+        fit: "Encaixe", near: "Aproximação", right: "Direita", left: "Esquerda", smile: "Sorriso",
+        front: "Frente",
+      };
+      const photos = liveness.photos.slice(0, 5);
+      const cols = photos.length;
+      const gap = 4;
+      const imgW = (contentW - gap * (cols - 1)) / cols;
+      const imgH = imgW * 1.25;
+      ensure(imgH + 12);
+
+      const dims = await Promise.all(
+        photos.map(
+          (src) =>
+            new Promise<{ w: number; h: number }>((resolve) => {
+              const img = new Image();
+              img.onload = () => resolve({ w: img.naturalWidth || 4, h: img.naturalHeight || 3 });
+              img.onerror = () => resolve({ w: 4, h: 3 });
+              img.src = src;
+            }),
+        ),
+      );
+
+      photos.forEach((p, i) => {
+        const x = M + i * (imgW + gap);
+        doc.setDrawColor(RULE[0], RULE[1], RULE[2]);
+        doc.setFillColor(245, 246, 250);
+        doc.roundedRect(x, y, imgW, imgH, 1.5, 1.5, "FD");
+        const boxW = imgW - 3;
+        const boxH = imgH - 3;
+        const { w: iw, h: ih } = dims[i];
+        const scale = Math.min(boxW / iw, boxH / ih);
+        const dw = iw * scale;
+        const dh = ih * scale;
+        const dx = x + 1.5 + (boxW - dw) / 2;
+        const dy = y + 1.5 + (boxH - dh) / 2;
+        try {
+          doc.addImage(p, "JPEG", dx, dy, dw, dh);
+        } catch {}
+        const key = liveness.challenges?.[i];
+        const label = (key && labelMap[key]) || `#${i + 1}`;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7.5);
+        setMuted();
+        doc.text(label.toUpperCase(), x + imgW / 2, y + imgH + 5, { align: "center" });
+      });
+      setInk();
+      y += imgH + 10;
+
+    } else {
+      beginKvSection();
+      kv("Status", "não capturada");
+      y += 2;
+    }
+
+    h1("Registro eletrônico (evidência)");
     beginKvSection();
-    kv("Status", "não capturada");
-    y += 2;
+    kv("Endereço IP", a.ip_address ?? "não capturado");
+    if (a.ip_geo) {
+      const parts = [a.ip_geo.city, a.ip_geo.region, a.ip_geo.country].filter(Boolean).join(", ");
+      if (parts) kv("Localização por IP", parts);
+      if (a.ip_geo.org) kv("Operadora / rede", a.ip_geo.org);
+    }
+    if (a.geolocation) {
+      const src = a.geolocation.source === "ip" ? "aproximada por IP" : "GPS / Wi-Fi";
+      kv(
+        "Geolocalização",
+        `lat ${a.geolocation.latitude.toFixed(6)}, lng ${a.geolocation.longitude.toFixed(6)} (±${Math.round(a.geolocation.accuracy)}m · ${src})`,
+      );
+      kv("Mapa", `https://www.google.com/maps?q=${a.geolocation.latitude},${a.geolocation.longitude}`);
+    } else {
+      kv("Geolocalização", "não disponível");
+    }
+    kv("Fuso horário", a.timezone ?? "—");
+    kv("Idioma do dispositivo", a.language ?? "—");
+    kv("User-Agent", a.user_agent ?? "—");
   }
-
-  h1("Registro eletrônico (evidência)");
-  beginKvSection();
-  kv("Endereço IP", a.ip_address ?? "não capturado");
-  if (a.ip_geo) {
-    const parts = [a.ip_geo.city, a.ip_geo.region, a.ip_geo.country].filter(Boolean).join(", ");
-    if (parts) kv("Localização por IP", parts);
-    if (a.ip_geo.org) kv("Operadora / rede", a.ip_geo.org);
-  }
-  if (a.geolocation) {
-    const src = a.geolocation.source === "ip" ? "aproximada por IP" : "GPS / Wi-Fi";
-    kv(
-      "Geolocalização",
-      `lat ${a.geolocation.latitude.toFixed(6)}, lng ${a.geolocation.longitude.toFixed(6)} (±${Math.round(a.geolocation.accuracy)}m · ${src})`,
-    );
-    kv("Mapa", `https://www.google.com/maps?q=${a.geolocation.latitude},${a.geolocation.longitude}`);
-  } else {
-    kv("Geolocalização", "não disponível");
-  }
-  kv("Fuso horário", a.timezone ?? "—");
-  kv("Idioma do dispositivo", a.language ?? "—");
-  kv("User-Agent", a.user_agent ?? "—");
 
   // ── rodapé em todas as páginas
   const pages = doc.getNumberOfPages();
