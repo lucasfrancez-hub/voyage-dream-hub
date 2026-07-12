@@ -1800,6 +1800,8 @@ function FinanceTab({
     totalCommission = displayRows.reduce((a, f) => a + Number(f.commission_value || 0), 0);
     totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
   }
+  const packageDiscount = isPackageOrder ? Math.max(0, Number((packageDefaultCommission - totalCommission).toFixed(2))) : 0;
+
 
 
   if (items.length === 0) {
