@@ -603,7 +603,7 @@ function ItemDialog({
               kind,
               title: title.trim(),
               supplier_locator: locator.trim() || null,
-              details: cleanDetails,
+              details: cleanDetails as Json,
               status,
             });
           }}>Salvar</Button>
