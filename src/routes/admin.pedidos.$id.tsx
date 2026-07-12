@@ -1519,11 +1519,6 @@ function ServiceReservationCard({
           <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
             {category && <div>Categoria: <span className="text-foreground">{category}</span></div>}
             {qty ? <div>Quantidade: <span className="text-foreground">{qty}</span></div> : null}
-            {value > 0 && (
-              <div>
-                Valor: <span className="text-foreground">{formatBRL(value)}</span>
-              </div>
-            )}
             {typeof d.notes === "string" && (d.notes as string).trim() && (
               <div className="mt-1 whitespace-pre-line text-xs">{d.notes as string}</div>
             )}
