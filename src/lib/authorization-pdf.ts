@@ -125,7 +125,7 @@ async function buildAuthorizationDoc(opts: {
   // "Válido até" = geração + 12 meses. "Assinado em" segue rodapé da ClickSign
   // quando ainda não há data efetiva de assinatura.
   const signedAtLabel = pendingSignature
-    ? (a.signed_at ? fmtDate(a.signed_at) : "Conforme rodapé ClickSign")
+    ? (a.signed_at ? fmtDate(a.signed_at) : "Carimbo do tempo ICP-Brasil (Clicksign)")
     : fmtDate(a.signed_at);
   const validUntilLabel = (() => {
     if (pendingSignature) {
