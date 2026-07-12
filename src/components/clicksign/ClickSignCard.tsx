@@ -62,6 +62,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
     email: order.email ?? "",
     cpf: order.cpf ?? "",
     nascimento: order.birthDate ?? "",
+    telefone: order.phone ?? "",
   });
   // Reinicializa form quando abre
   const openSendDialog = () => {
@@ -70,6 +71,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
       email: order.email ?? "",
       cpf: order.cpf ?? "",
       nascimento: order.birthDate ?? "",
+      telefone: order.phone ?? "",
     });
     setOpenDialog(true);
   };
@@ -81,6 +83,8 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(form.nascimento)) throw new Error("Data de nascimento inválida (use YYYY-MM-DD)");
       if (!form.email.includes("@")) throw new Error("E-mail inválido");
       if (form.nome.trim().length < 2) throw new Error("Nome do cliente é obrigatório");
+      const phoneDigits = form.telefone.replace(/\D/g, "");
+      if (phoneDigits.length < 10) throw new Error("Telefone (WhatsApp) inválido — inclua DDD");
 
       const blob = await generateReceiptAndContract(detail);
       const pdfBase64 = await blobToBase64(blob);
@@ -89,12 +93,18 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
           pedidoId: order.id,
           pdfBase64,
           orderNumber: order.orderNumber,
-          cliente: { nome: form.nome.trim(), email: form.email.trim(), cpf: cpfDigits, nascimento: form.nascimento },
+          cliente: {
+            nome: form.nome.trim(),
+            email: form.email.trim(),
+            cpf: cpfDigits,
+            nascimento: form.nascimento,
+            telefone: form.telefone.trim(),
+          },
         },
       });
     },
     onSuccess: () => {
-      toast.success("Contrato enviado! O cliente receberá o e-mail em instantes.");
+      toast.success("Contrato enviado! O cliente receberá por e-mail e WhatsApp.");
       setOpenDialog(false);
       invalidate();
     },
