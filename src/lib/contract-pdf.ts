@@ -346,7 +346,7 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
 
 const sectionTitle = (ctx: Ctx, s: string, reserve = 80) => {
   // Reserva espaço para o título + cabeçalho + pelo menos 1 linha; evita órfãos entre páginas.
-  ensureSpace(ctx, reserve, drawContractHeader);
+  ensureSpace(ctx, reserve);
   ctx.y -= 14;
   text(ctx, s, MARGIN, { size: 11, bold: true });
   ctx.y -= 8;
