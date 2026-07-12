@@ -140,7 +140,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
             {assinatura && statusBadge(assinatura.status)}
           </div>
           <div className="text-xs text-muted-foreground mt-0.5">
-            {!assinatura && "Envia o contrato + recibo direto para o cliente assinar com biometria dinâmica."}
+            {!assinatura && "Envia o contrato + recibo direto para o cliente assinar (por e-mail e WhatsApp) com selfie dinâmica (prova de vida) + foto do documento."}
             {assinatura?.status === "running" && "Aguardando assinatura do cliente e/ou da agência."}
             {assinatura?.status === "closed" && `Assinado em ${assinatura.updated_at ? new Date(assinatura.updated_at).toLocaleString("pt-BR") : ""}.`}
             {assinatura?.status === "refused" && "O documento foi recusado por um signatário."}
