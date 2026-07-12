@@ -1641,11 +1641,46 @@ function FinanceTab({
     return m;
   }, [items]);
 
-  const totalSale = financials.reduce((a, f) => a + Number(f.sale_value || 0), 0);
-  const totalTax = financials.reduce((a, f) => a + Number(f.tax_value || 0), 0);
+  // Linhas "planejadas" a partir do pacote/itens quando ainda não há lançamento no financeiro.
+  // Pacote pronto → 1 linha "Pacote pronto".
+  // Sem pacote → 1 linha por item (aéreo/hotel/outro) sem valor, para o usuário lançar.
+  const plannedRows = useMemo<Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }>>(() => {
+    if (financials.length > 0) return [];
+    if (isPackageOrder) {
+      const commission = Number((packageFare * 0.12).toFixed(2));
+      return [{
+        __planned: true,
+        __itemId: null,
+        __label: "Pacote pronto",
+        supplier_name: null,
+        sale_value: packageFare,
+        tax_value: packageTaxes,
+        discount_value: 0,
+        commission_pct: 12,
+        commission_value: commission,
+        total: Number((packageFare + packageTaxes).toFixed(2)),
+      }];
+    }
+    return items.map((it) => ({
+      __planned: true,
+      __itemId: it.id,
+      __label: it.title,
+      supplier_name: null,
+      sale_value: 0,
+      tax_value: 0,
+      discount_value: 0,
+      commission_pct: defaultCommissionPct(it.kind, false),
+      commission_value: 0,
+      total: 0,
+    }));
+  }, [financials.length, isPackageOrder, packageFare, packageTaxes, items]);
+
+  const displayRows = financials.length > 0 ? financials : plannedRows;
+  const totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
+  const totalTax = displayRows.reduce((a, f) => a + Number(f.tax_value || 0), 0);
   const commissionBase = Math.max(0, totalSale - totalTax);
-  const totalCommission = financials.reduce((a, f) => a + Number(f.commission_value || 0), 0);
-  const totalNet = financials.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
+  const totalCommission = displayRows.reduce((a, f) => a + Number(f.commission_value || 0), 0);
+  const totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
 
   if (items.length === 0) {
     return (
@@ -1690,26 +1725,24 @@ function FinanceTab({
             <Plus className="h-3.5 w-3.5 mr-1" /> Novo lançamento
           </Button>
         </div>
-        {financials.length === 0 ? (
-          <div className="text-sm text-muted-foreground text-center py-6">Nenhum lançamento financeiro ainda.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-xs text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="text-left py-2 px-2">Item</th>
-                  <th className="text-left py-2 px-2">Fornecedor</th>
-                  <th className="text-right py-2 px-2">Tarifa</th>
-                  <th className="text-right py-2 px-2">Taxas</th>
-                  <th className="text-right py-2 px-2">Desc.</th>
-                  <th className="text-right py-2 px-2">Comissão</th>
-                  <th className="text-left py-2 px-2">Vencto</th>
-                  <th className="text-right py-2 px-2">Total</th>
-                  <th className="w-24"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {financials.map((f) => {
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-xs text-muted-foreground border-b border-border">
+              <tr>
+                <th className="text-left py-2 px-2">Item</th>
+                <th className="text-left py-2 px-2">Fornecedor</th>
+                <th className="text-right py-2 px-2">Tarifa</th>
+                <th className="text-right py-2 px-2">Taxas</th>
+                <th className="text-right py-2 px-2">Desc.</th>
+                <th className="text-right py-2 px-2">Comissão</th>
+                <th className="text-left py-2 px-2">Vencto</th>
+                <th className="text-right py-2 px-2">Total</th>
+                <th className="w-24"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {financials.length > 0 ? (
+                financials.map((f) => {
                   const it = itemsById[f.order_item_id];
                   return (
                     <tr key={f.id} className="border-b border-border/50">
@@ -1734,11 +1767,44 @@ function FinanceTab({
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                })
+              ) : (
+                plannedRows.map((p, idx) => (
+                  <tr key={`planned-${idx}`} className="border-b border-border/50 bg-muted/20">
+                    <td className="py-2 px-2 text-xs">
+                      <span className="inline-flex items-center gap-1.5">
+                        {p.__label}
+                        <span className="rounded-md border border-dashed border-muted-foreground/40 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">A lançar</span>
+                      </span>
+                    </td>
+                    <td className="py-2 px-2 text-xs">—</td>
+                    <td className="py-2 px-2 text-right text-xs">{formatBRL(p.sale_value)}</td>
+                    <td className="py-2 px-2 text-right text-xs">{formatBRL(p.tax_value)}</td>
+                    <td className="py-2 px-2 text-right text-xs">{formatBRL(p.discount_value)}</td>
+                    <td className="py-2 px-2 text-right text-xs">
+                      {formatBRL(p.commission_value)}
+                      <div className="text-[10px] text-muted-foreground">{p.commission_pct}%</div>
+                    </td>
+                    <td className="py-2 px-2 text-xs">—</td>
+                    <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(p.total)}</td>
+                    <td className="py-2 px-2 text-right">
+                      <Button size="sm" variant="ghost" onClick={() => {
+                        setEditing(null);
+                        // Se for pacote pronto: pré-seleciona o 1º item; senão o item da linha.
+                        setSelectedItem(p.__itemId ?? items[0]?.id ?? null);
+                        setOpen(true);
+                      }}>
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+
 
         <FinanceDialog
           open={open}
@@ -1872,9 +1938,9 @@ function FinanceDialog({
             </div>
           </div>
 
-          {/* Slider de comissão */}
+          {/* Comissão: só % sobre a tarifa (sem reguinha) */}
           <div className="rounded-xl border border-border bg-muted/30 p-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between">
               <Label className="text-sm">Comissão sobre a tarifa</Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -1886,13 +1952,6 @@ function FinanceDialog({
                 <span className="text-sm text-muted-foreground">%</span>
               </div>
             </div>
-            <Slider
-              value={[Number(form.commission_pct) || 0]}
-              min={0}
-              max={30}
-              step={0.5}
-              onValueChange={(v) => recalc({ commission_pct: v[0] })}
-            />
             <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
               <span>Base: {formatBRL(base)} (tarifa − taxas)</span>
               <span>
@@ -1900,6 +1959,7 @@ function FinanceDialog({
               </span>
             </div>
           </div>
+
 
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Câmbio</Label><Input type="number" step="0.0001" value={form.exchange_rate} onChange={(e) => setForm({ ...form, exchange_rate: Number(e.target.value) })} /></div>
