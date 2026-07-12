@@ -1,15 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-async function ensureAdmin(context: { supabase: ReturnType<typeof requireSupabaseAuthType>; userId: string }) {
-  const { data: isAdmin, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!isAdmin) throw new Error("Forbidden");
-}
-type requireSupabaseAuthType = never;
+import type { Json } from "@/integrations/supabase/types";
 
 // --------- Types ---------
 export type OrderPassenger = {
