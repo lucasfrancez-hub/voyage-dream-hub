@@ -165,6 +165,21 @@ function Checkout() {
 
 
 
+    if (payment === "pix") {
+      if (
+        !pixAddress.cep.trim() ||
+        !pixAddress.address.trim() ||
+        !pixAddress.number.trim() ||
+        !pixAddress.city.trim() ||
+        !pixAddress.state.trim()
+      ) {
+        toast.error("Preencha o endereço de cobrança (CEP, endereço, número, cidade e estado).");
+        return;
+      }
+    }
+
+
+
     setSubmitting(true);
     try {
       const newId = crypto.randomUUID();
