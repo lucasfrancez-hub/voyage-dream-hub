@@ -50,7 +50,9 @@ function LinkSimpleGenerator() {
       } catch { /* ignore */ }
     }
     if (s?.autogen === "1") {
+      autogenRef.current = true;
       if (s.customer) setCustomer(s.customer);
+
       if (s.phone) setCustomerPhone(String(s.phone).replace(/\D/g, ""));
       if (s.description) setDescription(s.description);
       if (s.total) setTotal(String(s.total));
