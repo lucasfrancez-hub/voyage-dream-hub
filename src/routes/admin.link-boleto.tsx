@@ -38,6 +38,7 @@ function LinkBoletoGenerator() {
       } catch { /* ignore */ }
     }
     if (s?.autogen === "1") {
+      autogenRef.current = true;
       if (s.customer) setCustomer(s.customer);
       if (s.phone) setCustomerPhone(String(s.phone).replace(/\D/g, ""));
       if (s.description) setDescription(s.description);
@@ -45,10 +46,10 @@ function LinkBoletoGenerator() {
       if (s.orderRef) setOrderRef(s.orderRef);
       if (s.orderNumber) setOrderNumber(s.orderNumber);
       if (s.imageUrl) setImageUrl(s.imageUrl);
-      toast.success("Dados do pedido carregados — link gerado automaticamente");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const totalNumber = Number(total.replace(",", ".")) || 0;
 
