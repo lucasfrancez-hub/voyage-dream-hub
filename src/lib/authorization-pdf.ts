@@ -120,6 +120,25 @@ async function buildAuthorizationDoc(opts: {
     return `#${String(n % 100000000).padStart(8, "0")}`;
   })();
   const displayOrderNumber = a.order_number && a.order_number.trim() ? a.order_number.trim() : numericFromUuid;
+
+  // ── Datas exibidas na autorização (fluxo ClickSign) ──
+  // "Válido até" = geração + 12 meses. "Assinado em" segue rodapé da ClickSign
+  // quando ainda não há data efetiva de assinatura.
+  const signedAtLabel = pendingSignature
+    ? (a.signed_at ? fmtDate(a.signed_at) : "Conforme rodapé ClickSign")
+    : fmtDate(a.signed_at);
+  const validUntilLabel = (() => {
+    if (pendingSignature) {
+      const base = new Date(createdAt || Date.now());
+      if (!isNaN(base.getTime())) {
+        const d = new Date(base);
+        d.setMonth(d.getMonth() + 12);
+        return fmtDate(d.toISOString());
+      }
+    }
+    return fmtDate(a.valid_until);
+  })();
+
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -179,10 +198,17 @@ async function buildAuthorizationDoc(opts: {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.text("Certificado digital", pageW - M - 23, 16.5, { align: "center" });
-      doc.text(fmtDate(a.signed_at), pageW - M - 23, 19.5, { align: "center" });
+      if (pendingSignature) {
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(BRAND[0], BRAND[1], BRAND[2]);
+        doc.text("ClickSign", pageW - M - 23, 19.5, { align: "center" });
+      } else {
+        doc.text(fmtDate(a.signed_at), pageW - M - 23, 19.5, { align: "center" });
+      }
     }
     setInk();
   }
+
 
   function h1(t: string) {
     ensure(14);
@@ -285,8 +311,8 @@ async function buildAuthorizationDoc(opts: {
   const pedidoDisplay = displayOrderNumber;
   chip("Pedido", pedidoDisplay, M, chipW);
 
-  chip("Assinado em", fmtDate(a.signed_at), M + chipW + 3, chipW);
-  chip("Válido até", fmtDate(a.valid_until), M + (chipW + 3) * 2, chipW);
+  chip("Assinado em", signedAtLabel, M + chipW + 3, chipW);
+  chip("Válido até", validUntilLabel, M + (chipW + 3) * 2, chipW);
   y += 16;
 
   // ── seções
