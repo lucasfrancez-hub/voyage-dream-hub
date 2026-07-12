@@ -41,26 +41,38 @@ function LinkGenerator() {
   const search = Route.useSearch();
 
   useEffect(() => {
+    // Fallback: se a nova aba perdeu a querystring, tenta sessionStorage
+    let s: Record<string, string | undefined> = { ...(search ?? {}) };
+    if (!s?.autogen) {
+      try {
+        const raw = sessionStorage.getItem("paymentLinkPrefill:/admin/link-pagamento");
+        if (raw) {
+          s = { ...(JSON.parse(raw) as Record<string, string>) };
+          sessionStorage.removeItem("paymentLinkPrefill:/admin/link-pagamento");
+        }
+      } catch { /* ignore */ }
+    }
+
     // 1) Se veio do pedido com autogen=1, pré-preenche a partir da querystring
-    if (search?.autogen === "1") {
-      if (search.customer) setCustomer(search.customer);
-      if (search.phone) setCustomerPhone(String(search.phone).replace(/\D/g, ""));
-      if (search.description) setDescription(search.description);
-      if (search.supplier) setSupplier(search.supplier);
-      if (search.total) setTotal(String(search.total));
-      if (search.orderRef) setOrderRef(search.orderRef);
-      if (search.orderNumber) setOrderNumber(search.orderNumber);
-      if (search.locator) setLocator(search.locator);
-      if (search.route) setTripRoute(search.route);
-      if (search.travelDate) setTravelDate(search.travelDate);
-      if (search.passengers) setPassengers(search.passengers);
-      if (search.hotel) setHotel(search.hotel);
-      if (search.flights) setFlights(search.flights);
-      if (search.checkin) setCheckin(search.checkin);
-      if (search.checkout) setCheckout(search.checkout);
-      if (search.days) setDays(search.days);
-      if (search.nights) setNights(search.nights);
-      if (search.imageUrl) setImageUrl(search.imageUrl);
+    if (s?.autogen === "1") {
+      if (s.customer) setCustomer(s.customer);
+      if (s.phone) setCustomerPhone(String(s.phone).replace(/\D/g, ""));
+      if (s.description) setDescription(s.description);
+      if (s.supplier) setSupplier(s.supplier);
+      if (s.total) setTotal(String(s.total));
+      if (s.orderRef) setOrderRef(s.orderRef);
+      if (s.orderNumber) setOrderNumber(s.orderNumber);
+      if (s.locator) setLocator(s.locator);
+      if (s.route) setTripRoute(s.route);
+      if (s.travelDate) setTravelDate(s.travelDate);
+      if (s.passengers) setPassengers(s.passengers);
+      if (s.hotel) setHotel(s.hotel);
+      if (s.flights) setFlights(s.flights);
+      if (s.checkin) setCheckin(s.checkin);
+      if (s.checkout) setCheckout(s.checkout);
+      if (s.days) setDays(s.days);
+      if (s.nights) setNights(s.nights);
+      if (s.imageUrl) setImageUrl(s.imageUrl);
       toast.success("Dados do pedido carregados — link gerado automaticamente");
       return;
     }

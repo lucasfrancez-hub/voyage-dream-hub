@@ -193,11 +193,11 @@ function OrderDetailPage() {
                     const search = {
                       customer: order.fullName,
                       phone: order.phone,
-                      total: String(order.totalPrice),
+                      total: String(order.totalPrice ?? ""),
                       orderRef: order.id,
                       orderNumber: order.orderNumber,
                       locator: order.airlineLocator ?? "",
-                      supplier: order.supplierName ?? "",
+                      supplier: order.supplierName || "Via Air",
                       description: desc,
                       passengers: pax,
                       hotel: hotelTxt,
@@ -216,6 +216,13 @@ function OrderDetailPage() {
                       for (const [k, v] of Object.entries(search)) {
                         if (v != null && String(v).length > 0) qs.set(k, String(v));
                       }
+                      // Fallback via sessionStorage caso a nova aba perca a querystring
+                      try {
+                        sessionStorage.setItem(
+                          `paymentLinkPrefill:${path}`,
+                          JSON.stringify(search),
+                        );
+                      } catch { /* ignore */ }
                       window.open(`${path}?${qs.toString()}`, "_blank", "noopener");
                     };
                     return (
