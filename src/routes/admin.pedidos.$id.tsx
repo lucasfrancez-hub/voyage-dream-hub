@@ -322,6 +322,7 @@ function OrderDetailPage() {
             <TabsTrigger value="service"><Package className="h-3.5 w-3.5 mr-1.5" /> Serviços ({serviceItems.length})</TabsTrigger>
             <TabsTrigger value="cancelled"><XCircle className="h-3.5 w-3.5 mr-1.5" /> Cancelados ({cancelledItems.length})</TabsTrigger>
             <TabsTrigger value="contract"><FileText className="h-3.5 w-3.5 mr-1.5" /> Contrato</TabsTrigger>
+            <TabsTrigger value="finance"><DollarSign className="h-3.5 w-3.5 mr-1.5" /> Financeiro</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hotel" className="mt-4">
@@ -1218,11 +1219,19 @@ function ItemDialog({
     setDetails(clean);
   }, [initial]);
 
-  // Hotel: só existem 2 estados. Sem localizador = Solicitado; com localizador = Confirmado.
+  // Auto-status:
+  // Hotel: sem localizador = Solicitado; com localizador = Confirmado.
+  // Aéreo: sem localizador e sem bilhete = Solicitado; só localizador = Reservado; com bilhete = Confirmado.
+  const ticketNumber = String(details.ticket_number ?? "").trim();
   useMemo(() => {
-    if (kind !== "hotel") return;
-    setStatusVal(locator.trim() ? "confirmed" : "pending");
-  }, [locator, kind]);
+    if (kind === "hotel") {
+      setStatusVal(locator.trim() ? "confirmed" : "pending");
+    } else if (kind === "flight") {
+      if (ticketNumber) setStatusVal("confirmed");
+      else if (locator.trim()) setStatusVal("reserved");
+      else setStatusVal("pending");
+    }
+  }, [locator, kind, ticketNumber]);
 
 
   const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
@@ -1258,7 +1267,12 @@ function ItemDialog({
               </Select>
               {kind === "hotel" && (
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Preencha o localizador da reserva para marcar como confirmado automaticamente.
+                  Sem localizador = Solicitado. Com localizador = Confirmado.
+                </p>
+              )}
+              {kind === "flight" && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Sem localizador nem bilhete = Solicitado. Só localizador = Reservado. Com bilhete = Confirmado.
                 </p>
               )}
             </div>
@@ -1356,12 +1370,20 @@ function ItemDialog({
               if (v === "" || v === undefined || v === null) continue;
               cleanDetails[k] = numFields.has(k) ? Number(v) : v;
             }
+            // Deriva status final (não deixa o usuário salvar um status incoerente)
+            let finalStatus = status;
+            if (status !== "cancelled") {
+              const loc = locator.trim();
+              const tkt = String(cleanDetails.ticket_number ?? "").trim();
+              if (kind === "hotel") finalStatus = loc ? "confirmed" : "pending";
+              else if (kind === "flight") finalStatus = tkt ? "confirmed" : loc ? "reserved" : "pending";
+            }
             onSave({
               kind,
               title: title.trim(),
               supplier_locator: locator.trim() || null,
               details: cleanDetails as Json,
-              status,
+              status: finalStatus,
             });
           }}>Salvar</Button>
         </DialogFooter>
