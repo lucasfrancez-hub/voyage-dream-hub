@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
+  Package, Percent, Mail, Printer, CheckCircle2, MoreHorizontal, Signature,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -84,7 +85,9 @@ function OrderDetailPage() {
 
   const hotelItems = detail.items.filter((i) => i.kind === "hotel" && i.status !== "cancelled");
   const flightItems = detail.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
+  const serviceItems = detail.items.filter((i) => i.kind === "other" && i.status !== "cancelled");
   const cancelledItems = detail.items.filter((i) => i.status === "cancelled");
+
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "orderDetail", id] });
 
@@ -124,7 +127,7 @@ function OrderDetailPage() {
             <div className="text-[11px] text-muted-foreground mt-1">
               Criado em {new Date(order.createdAt).toLocaleString("pt-BR")}
             </div>
-            <div className="mt-3 flex justify-end gap-2">
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm">Gerar link de pagamento</Button>
@@ -158,7 +161,56 @@ function OrderDetailPage() {
                   })()}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" /> Adicionar</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast.info("Anexos: aba Contrato → botão Anexar arquivo")}><FileText className="h-3.5 w-3.5 mr-2" /> Anexo (contrato/voucher)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Ajuste de comissão: aba Ajuste de comissão")}><Percent className="h-3.5 w-3.5 mr-2" /> Ajuste de comissão</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Observação — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Observação</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Motivo da viagem — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Motivo da viagem</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Cupom — em breve")}><Percent className="h-3.5 w-3.5 mr-2" /> Cupom</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline"><Printer className="h-3.5 w-3.5 mr-1" /> Imprimir</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast.info("Contrato (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Voucher (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Recibo (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Recibo</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline"><Mail className="h-3.5 w-3.5 mr-1" /> Enviar e-mail</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast.info("Envio de contrato — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Envio de confirmação — em breve")}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Confirmação</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Envio de pagamento — em breve")}><DollarSign className="h-3.5 w-3.5 mr-2" /> Pagamento ao cliente</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Envio de voucher — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline"><MoreHorizontal className="h-3.5 w-3.5 mr-1" /> Ações</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast.info("Confirmar pedido — em breve")}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Confirmar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Cancelar pedido — em breve")}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Docusign — em breve")}><Signature className="h-3.5 w-3.5 mr-2" /> Acionar contrato Docusign</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+
+
 
           </div>
         </div>
@@ -175,12 +227,13 @@ function OrderDetailPage() {
       {/* Tabs */}
       <div className="mt-6">
         <Tabs defaultValue="hotel">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="hotel"><Hotel className="h-3.5 w-3.5 mr-1.5" /> Hospedagem ({hotelItems.length})</TabsTrigger>
             <TabsTrigger value="flight"><Plane className="h-3.5 w-3.5 mr-1.5" /> Aéreo ({flightItems.length})</TabsTrigger>
+            <TabsTrigger value="service"><Package className="h-3.5 w-3.5 mr-1.5" /> Serviços ({serviceItems.length})</TabsTrigger>
             <TabsTrigger value="cancelled"><XCircle className="h-3.5 w-3.5 mr-1.5" /> Cancelados ({cancelledItems.length})</TabsTrigger>
             <TabsTrigger value="contract"><FileText className="h-3.5 w-3.5 mr-1.5" /> Contrato</TabsTrigger>
-            <TabsTrigger value="finance"><DollarSign className="h-3.5 w-3.5 mr-1.5" /> Financeiro</TabsTrigger>
+            <TabsTrigger value="finance"><Percent className="h-3.5 w-3.5 mr-1.5" /> Ajuste de comissão</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hotel" className="mt-4">
@@ -189,6 +242,7 @@ function OrderDetailPage() {
               items={hotelItems}
               kind="hotel"
               onChange={invalidate}
+              passengers={detail.passengers}
             />
           </TabsContent>
           <TabsContent value="flight" className="mt-4">
@@ -200,6 +254,14 @@ function OrderDetailPage() {
               passengers={detail.passengers}
             />
           </TabsContent>
+          <TabsContent value="service" className="mt-4">
+            <ItemsTab
+              orderId={order.id}
+              items={serviceItems}
+              kind="other"
+              onChange={invalidate}
+            />
+          </TabsContent>
 
           <TabsContent value="cancelled" className="mt-4">
             <ItemsTab
@@ -207,6 +269,7 @@ function OrderDetailPage() {
               items={cancelledItems}
               kind="cancelled"
               onChange={invalidate}
+              passengers={detail.passengers}
             />
           </TabsContent>
           <TabsContent value="contract" className="mt-4">
@@ -220,6 +283,7 @@ function OrderDetailPage() {
             />
           </TabsContent>
         </Tabs>
+
       </div>
     </div>
   );
@@ -390,13 +454,13 @@ function PassengerDialog({
   );
 }
 
-// =========== Items (hotel/flight/cancelled) ===========
+// =========== Items (hotel/flight/other/cancelled) ===========
 function ItemsTab({
   orderId, items, kind, onChange, passengers,
 }: {
   orderId: string;
   items: OrderItem[];
-  kind: "hotel" | "flight" | "cancelled";
+  kind: "hotel" | "flight" | "other" | "cancelled";
   onChange: () => void;
   passengers?: OrderPassenger[];
 }) {
@@ -426,14 +490,18 @@ function ItemsTab({
   });
 
   const isCancelledTab = kind === "cancelled";
-  const dialogKind: "hotel" | "flight" = isCancelledTab ? (editing?.kind === "flight" ? "flight" : "hotel") : kind;
+  const dialogKind: "hotel" | "flight" | "other" = isCancelledTab
+    ? (editing?.kind === "flight" ? "flight" : editing?.kind === "other" ? "other" : "hotel")
+    : kind;
+
+  const addLabel = kind === "hotel" ? "hospedagem" : kind === "flight" ? "aéreo" : "serviço";
 
   return (
     <div>
       {!isCancelledTab && (
         <div className="flex justify-end mb-3">
           <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
-            <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar {kind === "hotel" ? "hospedagem" : "aéreo"}
+            <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar {addLabel}
           </Button>
         </div>
       )}
@@ -453,6 +521,20 @@ function ItemsTab({
               onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={(it) => reactivate.mutate(it.id)}
+            />
+          ))}
+        </div>
+      ) : kind === "hotel" ? (
+        <div className="space-y-3">
+          {items.map((it) => (
+            <HotelReservationCard
+              key={it.id}
+              item={it}
+              passengers={passengers ?? []}
+              onEdit={() => { setEditing(it); setOpen(true); }}
+              onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
+              onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onReactivate={() => reactivate.mutate(it.id)}
             />
           ))}
         </div>
@@ -482,6 +564,8 @@ function ItemsTab({
     </div>
   );
 }
+
+
 
 function ItemCard({
   item, onEdit, onDelete, onCancel, onReactivate,
@@ -735,6 +819,113 @@ function FlightReservationCard({
                   {p.passenger_type}
                   {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
                 </div>
+                {p.ticket_number && (
+                  <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                    <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HotelReservationCard({
+  item, passengers, onEdit, onDelete, onCancel, onReactivate,
+}: {
+  item: OrderItem;
+  passengers: OrderPassenger[];
+  onEdit: () => void;
+  onDelete: () => void;
+  onCancel: () => void;
+  onReactivate: () => void;
+}) {
+  const d = (item.details ?? {}) as Record<string, unknown>;
+  const cancelled = item.status === "cancelled";
+  const supplier = typeof d.supplier_name === "string" ? (d.supplier_name as string) : "";
+  const stars = typeof d.hotel_stars === "number" ? (d.hotel_stars as number) : null;
+  const address = typeof d.address === "string" ? (d.address as string) : "";
+  const destination = typeof d.destination === "string" ? (d.destination as string) : "";
+  const room = typeof d.room === "string" ? (d.room as string) : "";
+  const board = ((d.board ?? d.meal_plan) as string) || "";
+  const ci = (d.check_in as string) || (d.checkin as string) || "";
+  const co = (d.check_out as string) || (d.checkout as string) || "";
+  const nights = typeof d.nights === "number" ? (d.nights as number) : null;
+  return (
+    <div className={`rounded-xl border p-4 ${cancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)]">
+        {/* Coluna 1: reserva / fornecedor */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Hotel className="h-3.5 w-3.5" /> Reserva hotel
+          </div>
+          <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
+            {item.supplier_locator?.trim() || "—"}
+          </div>
+          {supplier && (
+            <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+              Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
+            </div>
+          )}
+          <div className="mt-2 flex items-center gap-0.5">
+            <Button size="sm" variant="ghost" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>
+            {cancelled ? (
+              <Button size="sm" variant="ghost" onClick={onReactivate} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={onCancel} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onDelete}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+          </div>
+          {cancelled && <div className="mt-1 text-[10px] font-semibold uppercase text-destructive">Cancelado</div>}
+        </div>
+
+        {/* Coluna 2: detalhes */}
+        <div className="min-w-0 border-l border-border pl-4">
+          <div className="font-semibold">
+            {item.title}
+            {stars ? <span className="ml-2 text-xs text-brand-orange">{"★".repeat(stars)}</span> : null}
+          </div>
+          <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+            {destination && <div>{destination}</div>}
+            {address && <div>{address}</div>}
+            {room && <div>Quarto: <span className="text-foreground">{room}</span></div>}
+            {board && <div>Regime: <span className="text-foreground">{board}</span></div>}
+            {(ci || co) && (
+              <div>
+                Check-in <span className="text-foreground">{formatDate(ci)}</span>
+                {" · "}
+                Check-out <span className="text-foreground">{formatDate(co)}</span>
+                {nights !== null ? ` · ${nights} noite(s)` : ""}
+              </div>
+            )}
+            {typeof d.notes === "string" && (d.notes as string).trim() && (
+              <div className="mt-1 whitespace-pre-line text-xs">{d.notes as string}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Coluna 3: hóspedes */}
+        <div className="min-w-0 border-l border-border pl-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Users className="h-3.5 w-3.5" /> Hóspedes ({passengers.length})
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {passengers.length === 0 && <li className="text-xs text-muted-foreground">Nenhum passageiro</li>}
+            {passengers.map((p) => (
+              <li key={p.id} className="text-xs">
+                <div className="font-medium text-foreground">{p.full_name}</div>
+                <div className="text-muted-foreground">
+                  {p.passenger_type}
+                  {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                </div>
+                {p.ticket_number && (
+                  <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                    <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -746,14 +937,16 @@ function FlightReservationCard({
 
 
 
+
+
 function ItemDialog({
   open, onOpenChange, initial, kind, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: OrderItem | null;
-  kind: "hotel" | "flight";
-  onSave: (p: { kind: "hotel" | "flight"; title: string; supplier_locator: string | null; details: Json; status: "confirmed" | "cancelled" | "pending" }) => void;
+  kind: "hotel" | "flight" | "other";
+  onSave: (p: { kind: "hotel" | "flight" | "other"; title: string; supplier_locator: string | null; details: Json; status: "confirmed" | "cancelled" | "pending" }) => void;
 }) {
   const initialDetails = (initial?.details ?? {}) as Record<string, unknown>;
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -785,14 +978,14 @@ function ItemDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {initial ? "Editar" : "Adicionar"} {kind === "hotel" ? "hospedagem" : "aéreo"}
+            {initial ? "Editar" : "Adicionar"} {kind === "hotel" ? "hospedagem" : kind === "flight" ? "aéreo" : "serviço"}
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-3 max-h-[65vh] overflow-y-auto pr-1">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <Label>{kind === "hotel" ? "Nome do hotel" : "Trecho / rota"}</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "hotel" ? "Ex: Trupial Hotel & Casino" : "Ex: GRU → CUR"} />
+              <Label>{kind === "hotel" ? "Nome do hotel" : kind === "flight" ? "Trecho / rota" : "Serviço"}</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "hotel" ? "Ex: Trupial Hotel & Casino" : kind === "flight" ? "Ex: GRU → CUR" : "Ex: Traslado, Passeio, Seguro viagem…"} />
             </div>
             <div>
               <Label>Localizador do fornecedor</Label>
@@ -841,30 +1034,51 @@ function ItemDialog({
                 <div><Label>Regime</Label><Input value={String(details.board ?? "")} onChange={(e) => setField("board", e.target.value)} placeholder="Café da manhã, All inclusive..." /></div>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div><Label>Check-in</Label><Input type="date" value={String(details.checkin ?? "")} onChange={(e) => setField("checkin", e.target.value)} /></div>
-                <div><Label>Check-out</Label><Input type="date" value={String(details.checkout ?? "")} onChange={(e) => setField("checkout", e.target.value)} /></div>
+                <div><Label>Check-in</Label><Input type="date" value={String(details.check_in ?? details.checkin ?? "")} onChange={(e) => setField("check_in", e.target.value)} /></div>
+                <div><Label>Check-out</Label><Input type="date" value={String(details.check_out ?? details.checkout ?? "")} onChange={(e) => setField("check_out", e.target.value)} /></div>
                 <div><Label>Noites</Label><Input type="number" value={String(details.nights ?? "")} onChange={(e) => setField("nights", e.target.value)} /></div>
               </div>
               <div><Label>Hóspedes</Label><Input value={String(details.guests ?? "")} onChange={(e) => setField("guests", e.target.value)} placeholder="2 adultos, 1 criança..." /></div>
             </>
 
-          ) : (
+          ) : kind === "flight" ? (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Origem</Label><Input value={String(details.origin ?? "")} onChange={(e) => setField("origin", e.target.value)} placeholder="GRU" /></div>
-                <div><Label>Destino</Label><Input value={String(details.destination ?? "")} onChange={(e) => setField("destination", e.target.value)} placeholder="CUR" /></div>
+                <div><Label>Origem</Label><Input value={String(details.from_iata ?? details.origin ?? "")} onChange={(e) => setField("from_iata", e.target.value)} placeholder="GRU" /></div>
+                <div><Label>Destino</Label><Input value={String(details.to_iata ?? details.destination ?? "")} onChange={(e) => setField("to_iata", e.target.value)} placeholder="CUR" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Cia aérea</Label><Input value={String(details.airline ?? "")} onChange={(e) => setField("airline", e.target.value)} placeholder="LATAM" /></div>
                 <div><Label>Nº do voo</Label><Input value={String(details.flight_number ?? "")} onChange={(e) => setField("flight_number", e.target.value)} placeholder="LA 3331" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Partida</Label><Input type="datetime-local" value={String(details.departure ?? "")} onChange={(e) => setField("departure", e.target.value)} /></div>
-                <div><Label>Chegada</Label><Input type="datetime-local" value={String(details.arrival ?? "")} onChange={(e) => setField("arrival", e.target.value)} /></div>
+                <div><Label>Partida</Label><Input type="datetime-local" value={String(details.depart_at ?? details.departure ?? "")} onChange={(e) => setField("depart_at", e.target.value)} /></div>
+                <div><Label>Chegada</Label><Input type="datetime-local" value={String(details.arrive_at ?? details.arrival ?? "")} onChange={(e) => setField("arrive_at", e.target.value)} /></div>
               </div>
-              <div><Label>Classe / Cabine</Label><Input value={String(details.cabin ?? "")} onChange={(e) => setField("cabin", e.target.value)} placeholder="Econômica Light" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Classe / Cabine</Label><Input value={String(details.cabin_class ?? details.cabin ?? "")} onChange={(e) => setField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
+                <div>
+                  <Label>Direção</Label>
+                  <Select value={String(details.direction ?? "")} onValueChange={(v) => setField("direction", v)}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="outbound">Ida</SelectItem>
+                      <SelectItem value="return">Volta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="0,00" /></div>
+                <div><Label>Quantidade</Label><Input type="number" value={String(details.quantity ?? "")} onChange={(e) => setField("quantity", e.target.value)} placeholder="1" /></div>
+              </div>
+              <div><Label>Categoria</Label><Input value={String(details.category ?? "")} onChange={(e) => setField("category", e.target.value)} placeholder="Traslado, Passeio, Ingresso, Seguro…" /></div>
             </>
           )}
+
 
           <div>
             <Label>Observações</Label>
@@ -875,10 +1089,11 @@ function ItemDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => {
             if (!title.trim()) { toast.error("Título é obrigatório"); return; }
+            const numFields = new Set(["nights", "value", "quantity", "hotel_stars"]);
             const cleanDetails: Record<string, unknown> = {};
             for (const [k, v] of Object.entries(details)) {
               if (v === "" || v === undefined || v === null) continue;
-              cleanDetails[k] = k === "nights" ? Number(v) : v;
+              cleanDetails[k] = numFields.has(k) ? Number(v) : v;
             }
             onSave({
               kind,
