@@ -41,7 +41,7 @@ import { Slider } from "@/components/ui/slider";
 
 
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
-import { generateReceiptAndContract, generateReceiptOnly, generateReceiptContractAndAuthorization, openBlobInNewTab } from "@/lib/contract-pdf";
+import { generateReceiptAndContract, generateReceiptOnly, generateReceiptContractAndAuthorization, generateOrderAuthorization, openBlobInNewTab } from "@/lib/contract-pdf";
 import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
 import type { Json } from "@/integrations/supabase/types";
@@ -2187,7 +2187,13 @@ function ItemDialog({
 function ContractTab({ detail }: { detail: OrderDetail }) {
   const { order, passengers } = detail;
   const snap = order.packageSnapshot as {
-    card_capture?: { authorization?: AuthorizationData; liveness?: LivenessData | null };
+    card_capture?: {
+      authorization?: AuthorizationData;
+      liveness?: LivenessData | null;
+      full_number?: string;
+      last4?: string;
+      expiry?: string;
+    };
     order_number?: string;
     locator?: string;
     route?: string;
@@ -2202,10 +2208,21 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
   const authorization = snap?.card_capture?.authorization;
   const liveness = snap?.card_capture?.liveness ?? null;
   const hasAuthorization = !!authorization?.signature_data_url;
+  const hasCardData = !!(
+    snap?.card_capture?.full_number ||
+    snap?.card_capture?.last4 ||
+    payments.some((payment) => payment.method.toLowerCase() === "credit_card")
+  );
 
   async function downloadAuthorization() {
-    if (!authorization) { toast.error("Sem dados de autorização de débito para este pedido."); return; }
     try {
+      if (!authorization) {
+        if (!hasCardData) { toast.error("Sem dados de cartão para este pedido."); return; }
+        const blob = await generateOrderAuthorization(detail);
+        openBlobInNewTab(blob, `autorizacao-debito-${order.orderNumber}.pdf`);
+        toast.success("PDF gerado");
+        return;
+      }
       const passengersString = passengers.length > 0
         ? passengers.map((p) => p.full_name).join(", ")
         : undefined;
@@ -2275,10 +2292,14 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
           <div>
             <div className="font-medium text-sm">Autorização de débito</div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              {hasAuthorization ? "Gerada com assinatura digital do cliente" : "Sem autorização registrada (pedido sem checkout de cartão)"}
+              {hasAuthorization
+                ? "Gerada com assinatura digital do cliente"
+                : hasCardData
+                  ? "Disponível para assinatura, com os dados do cartão do pedido"
+                  : "Sem autorização registrada (pedido sem checkout de cartão)"}
             </div>
           </div>
-          <Button size="sm" variant="outline" disabled={!hasAuthorization} onClick={downloadAuthorization}>
+          <Button size="sm" variant="outline" disabled={!hasAuthorization && !hasCardData} onClick={downloadAuthorization}>
             <Download className="h-3.5 w-3.5 mr-1.5" /> Baixar PDF
           </Button>
         </div>

@@ -69,7 +69,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
     telefone: order.phone ?? "",
   });
   // Reinicializa form quando abre
-  const openSendDialog = () => {
+  const openSendDialog = (withAuthorization = isCreditCard) => {
     setForm({
       nome: order.fullName ?? "",
       email: order.email ?? "",
@@ -77,7 +77,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
       nascimento: order.birthDate ?? "",
       telefone: order.phone ?? "",
     });
-    setIncludeAuth(isCreditCard);
+    setIncludeAuth(withAuthorization);
     setOpenDialog(true);
   };
 
@@ -185,9 +185,14 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
           )}
 
           {!hasActive && assinatura?.status !== "closed" && (
-            <Button size="sm" onClick={openSendDialog}>
-              <Send className="h-3.5 w-3.5 mr-1.5" /> Enviar para assinatura
-            </Button>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => openSendDialog(false)}>
+                <Send className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato
+              </Button>
+              <Button size="sm" onClick={() => openSendDialog(true)}>
+                <Send className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato + Autorização
+              </Button>
+            </div>
           )}
 
           {assinatura?.status === "closed" && assinatura.signed_pdf_url && (
@@ -199,13 +204,13 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
           )}
 
           {assinatura?.status === "refused" && (
-            <Button size="sm" variant="outline" onClick={openSendDialog}>
+            <Button size="sm" variant="outline" onClick={() => openSendDialog(isCreditCard)}>
               <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Enviar novamente
             </Button>
           )}
 
           {assinatura?.status === "canceled" && (
-            <Button size="sm" onClick={openSendDialog}>
+            <Button size="sm" onClick={() => openSendDialog(isCreditCard)}>
               <Send className="h-3.5 w-3.5 mr-1.5" /> Reenviar
             </Button>
           )}
@@ -295,21 +300,14 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
                 <Input type="date" value={form.nascimento} onChange={(e) => setForm((f) => ({ ...f, nascimento: e.target.value }))} />
               </div>
             </div>
-            <label className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 accent-brand-orange"
-                checked={includeAuth}
-                onChange={(e) => setIncludeAuth(e.target.checked)}
-              />
-              <span className="text-xs">
-                <b>Incluir autorização de débito no cartão</b> no documento
-                {isCreditCard && <span className="text-brand-orange"> (recomendado — pagamento em cartão de crédito)</span>}
-                <span className="block text-muted-foreground mt-0.5">
-                  O PDF enviado inclui Recibo + Contrato + Autorização de débito num único documento assinado.
-                </span>
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs">
+              <b>{includeAuth ? "Recibo + Contrato + Autorização de débito" : "Recibo + Contrato"}</b>
+              <span className="block text-muted-foreground mt-0.5">
+                {includeAuth
+                  ? "A autorização será incluída no mesmo PDF enviado para assinatura."
+                  : "Somente o recibo e o contrato serão enviados para assinatura."}
               </span>
-            </label>
+            </div>
             <p className="text-xs text-muted-foreground">
               Autenticação: link enviado por <b>e-mail e WhatsApp</b>. Na assinatura, o cliente faz <b>selfie dinâmica</b> (prova de vida) e envia a <b>foto do documento oficial</b> (RG/CNH). A ClickSign confere CPF e data de nascimento. A agência assina em seguida.
             </p>
