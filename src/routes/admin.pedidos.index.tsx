@@ -303,7 +303,7 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
           </div>
           <div>
             <Label>Localizador aéreo (opcional)</Label>
-            <Input value={form.airline_locator} onChange={(e) => setForm({ ...form, airline_locator: e.target.value })} />
+            <Input value={form.airline_locator} onChange={(e) => setForm({ ...form, airline_locator: e.target.value.toUpperCase() })} />
           </div>
           <div>
             <Label>Observações</Label>
