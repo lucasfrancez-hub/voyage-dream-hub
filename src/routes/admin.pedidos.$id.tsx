@@ -2113,7 +2113,7 @@ function PaymentDialog({
 void Copy;
 void DialogTrigger;
 
-// =========== Commission Adjust Dialog (quick) ===========
+// =========== Commission Adjust Dialog (total-level, distributes proportionally) ===========
 function CommissionAdjustDialog({
   open, onOpenChange, order, items, financials, onSaved,
 }: {
@@ -2134,7 +2134,6 @@ function CommissionAdjustDialog({
   const pkgFare = isPackage ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
   const pkgTaxes = isPackage ? Number((snap as { taxes?: number }).taxes ?? 0) : 0;
 
-  const [selectedItem, setSelectedItem] = useState<string>("");
   const [sale, setSale] = useState(0);
   const [tax, setTax] = useState(0);
   const [pct, setPct] = useState(isPackage ? 12 : 10);
@@ -2142,48 +2141,66 @@ function CommissionAdjustDialog({
 
   useMemo(() => {
     if (!open) return;
-    const first = items[0]?.id ?? "";
-    setSelectedItem(first);
-    const existing = financials.find((f) => f.order_item_id === first);
-    setSale(existing?.sale_value ?? pkgFare);
-    setTax(existing?.tax_value ?? pkgTaxes);
-    setPct(existing?.commission_pct ?? (isPackage ? 12 : 10));
+    // Soma valores atuais dos itens; se não houver, cai para o pacote.
+    const relevant = items.map((it) => financials.find((f) => f.order_item_id === it.id)).filter(Boolean) as OrderItemFinancial[];
+    const sumSale = relevant.reduce((a, f) => a + Number(f.sale_value || 0), 0);
+    const sumTax = relevant.reduce((a, f) => a + Number(f.tax_value || 0), 0);
+    setSale(sumSale > 0 ? sumSale : pkgFare);
+    setTax(sumTax > 0 ? sumTax : pkgTaxes);
+    const firstPct = relevant.find((f) => Number(f.commission_pct || 0) > 0)?.commission_pct;
+    setPct(firstPct ?? (isPackage ? 12 : 10));
   }, [open, items, financials, pkgFare, pkgTaxes, isPackage]);
-
-  const onItemChange = (id: string) => {
-    setSelectedItem(id);
-    const existing = financials.find((f) => f.order_item_id === id);
-    setSale(existing?.sale_value ?? pkgFare);
-    setTax(existing?.tax_value ?? pkgTaxes);
-    setPct(existing?.commission_pct ?? (isPackage ? 12 : 10));
-  };
 
   const base = Math.max(0, sale - tax);
   const commission = Number((base * (pct / 100)).toFixed(2));
-  const total = Number(sale.toFixed(2));
+  // A comissão entra por cima: se você sobe a comissão, o total da venda sobe junto.
+  const total = Number((sale + commission).toFixed(2));
 
   const handleSave = async () => {
-    if (!selectedItem) { toast.error("Selecione um item"); return; }
+    if (items.length === 0) { toast.error("Adicione ao menos um item"); return; }
     setSaving(true);
     try {
-      const existing = financials.find((f) => f.order_item_id === selectedItem);
-      await upsert({
-        data: {
-          id: existing?.id,
-          order_item_id: selectedItem,
-          sale_value: sale,
-          tax_value: tax,
-          discount_value: existing?.discount_value ?? 0,
-          commission_pct: pct,
-          commission_value: commission,
-          total,
-          supplier_name: existing?.supplier_name ?? null,
-          exchange_rate: existing?.exchange_rate ?? 1,
-          due_date: existing?.due_date ?? null,
-          notes: existing?.notes ?? null,
-        },
+      // Distribui tarifa e taxas proporcionalmente ao peso atual de cada item.
+      // Se nenhum item tem valor gravado, divide igualmente.
+      const currents = items.map((it) => {
+        const f = financials.find((x) => x.order_item_id === it.id);
+        return {
+          item: it,
+          existing: f,
+          curSale: Number(f?.sale_value ?? 0),
+          curTax: Number(f?.tax_value ?? 0),
+        };
       });
-      toast.success("Comissão atualizada");
+      const totalCurSale = currents.reduce((a, c) => a + c.curSale, 0);
+      const totalCurTax = currents.reduce((a, c) => a + c.curTax, 0);
+      const equalShare = 1 / items.length;
+
+      for (const c of currents) {
+        const wSale = totalCurSale > 0 ? c.curSale / totalCurSale : equalShare;
+        const wTax = totalCurTax > 0 ? c.curTax / totalCurTax : equalShare;
+        const itemSale = Number((sale * wSale).toFixed(2));
+        const itemTax = Number((tax * wTax).toFixed(2));
+        const itemBase = Math.max(0, itemSale - itemTax);
+        const itemCommission = Number((itemBase * (pct / 100)).toFixed(2));
+        const itemTotal = Number((itemSale + itemCommission).toFixed(2));
+        await upsert({
+          data: {
+            id: c.existing?.id,
+            order_item_id: c.item.id,
+            sale_value: itemSale,
+            tax_value: itemTax,
+            discount_value: c.existing?.discount_value ?? 0,
+            commission_pct: pct,
+            commission_value: itemCommission,
+            total: itemTotal,
+            supplier_name: c.existing?.supplier_name ?? null,
+            exchange_rate: c.existing?.exchange_rate ?? 1,
+            due_date: c.existing?.due_date ?? null,
+            notes: c.existing?.notes ?? null,
+          },
+        });
+      }
+      toast.success("Comissão atualizada e distribuída entre os itens");
       onSaved();
       onOpenChange(false);
     } catch (e) {
@@ -2208,27 +2225,17 @@ function CommissionAdjustDialog({
           </div>
         ) : (
           <div className="grid gap-4">
-            <div>
-              <Label className="text-xs">Item</Label>
-              <Select value={selectedItem} onValueChange={onItemChange}>
-                <SelectTrigger><SelectValue placeholder="Escolha um item" /></SelectTrigger>
-                <SelectContent>
-                  {items.map((it) => (
-                    <SelectItem key={it.id} value={it.id}>
-                      [{it.kind === "flight" ? "Aéreo" : it.kind === "hotel" ? "Hotel" : "Outro"}] {it.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              O ajuste é aplicado no total do pedido e distribuído proporcionalmente entre os {items.length} {items.length === 1 ? "item" : "itens"} do financeiro.
+            </p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Tarifa</Label>
+                <Label className="text-xs">Tarifa total</Label>
                 <Input type="number" step="0.01" value={sale} onChange={(e) => setSale(Number(e.target.value))} />
               </div>
               <div>
-                <Label className="text-xs">Taxas (não comissiona)</Label>
+                <Label className="text-xs">Taxas totais (não comissionam)</Label>
                 <Input type="number" step="0.01" value={tax} onChange={(e) => setTax(Number(e.target.value))} />
               </div>
             </div>
@@ -2261,6 +2268,7 @@ function CommissionAdjustDialog({
               </div>
               <div className="mt-1 text-xs text-muted-foreground text-right">
                 Total da venda: <span className="font-semibold text-foreground">{formatBRL(total)}</span>
+                <span className="ml-1 opacity-70">(tarifa + comissão)</span>
               </div>
             </div>
           </div>
@@ -2276,4 +2284,5 @@ function CommissionAdjustDialog({
     </Dialog>
   );
 }
+
 
