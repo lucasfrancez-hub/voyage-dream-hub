@@ -81,6 +81,19 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
     setOpenDialog(true);
   };
 
+  // Atalho externo (ex.: botão "Ações → Acionar contrato Clicksign")
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ orderId?: string; withAuth?: boolean }>;
+      if (ce.detail?.orderId && ce.detail.orderId !== order.id) return;
+      openSendDialog(ce.detail?.withAuth ?? isCreditCard);
+      document.getElementById("clicksign-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    window.addEventListener("clicksign:open-send", handler as EventListener);
+    return () => window.removeEventListener("clicksign:open-send", handler as EventListener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order.id, isCreditCard]);
+
   const createMut = useMutation({
     mutationFn: async () => {
       const cpfDigits = form.cpf.replace(/\D/g, "");
