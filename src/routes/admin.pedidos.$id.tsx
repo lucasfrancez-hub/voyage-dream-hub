@@ -1416,21 +1416,9 @@ function ItemDialog({
               <Label>{kind === "hotel" ? "Nome do hotel" : kind === "flight" ? "Trecho / rota" : "Serviço"}</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "hotel" ? "Ex: Trupial Hotel & Casino" : kind === "flight" ? "Ex: GRU → CUR" : "Ex: Traslado, Passeio, Seguro viagem…"} />
             </div>
-            <div>
+            <div className={kind === "other" ? "" : "col-span-2"}>
               <Label>Localizador do fornecedor</Label>
               <Input value={locator} onChange={(e) => setLocator(e.target.value)} placeholder="Ex: JXJDZZ" />
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatusVal(v as "confirmed" | "reserved" | "cancelled" | "pending")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Solicitado</SelectItem>
-                  {kind !== "hotel" && <SelectItem value="reserved">Reservado</SelectItem>}
-                  <SelectItem value="confirmed">Confirmado</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
               {kind === "hotel" && (
                 <p className="text-[11px] text-muted-foreground mt-1">
                   Sem localizador = Solicitado. Com localizador = Confirmado.
@@ -1442,6 +1430,20 @@ function ItemDialog({
                 </p>
               )}
             </div>
+            {kind === "other" && (
+              <div>
+                <Label>Status</Label>
+                <Select value={status} onValueChange={(v) => setStatusVal(v as "confirmed" | "reserved" | "cancelled" | "pending")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Solicitado</SelectItem>
+                    <SelectItem value="confirmed">Confirmado</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
           </div>
 
 
