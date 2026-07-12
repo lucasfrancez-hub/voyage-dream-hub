@@ -28,6 +28,7 @@ import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
+import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 
 const PagarBoletoRoute = PagarBoletoRouteImport.update({
@@ -125,6 +126,12 @@ const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
   path: '/$slug/checkout',
   getParentRoute: () => PacotesRoute,
 } as any)
+const ApiPublicClicksignWebhookRoute =
+  ApiPublicClicksignWebhookRouteImport.update({
+    id: '/api/public/clicksign-webhook',
+    path: '/api/public/clicksign-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminPedidosIdRoute = AdminPedidosIdRouteImport.update({
   id: '/pedidos/$id',
   path: '/pedidos/$id',
@@ -149,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
+  '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
@@ -170,6 +178,7 @@ export interface FileRoutesByTo {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/pacotes': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
+  '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
@@ -193,6 +202,7 @@ export interface FileRoutesById {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
+  '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/pacotes/'
     | '/admin/pedidos/$id'
+    | '/api/public/clicksign-webhook'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/pacotes'
     | '/admin/pedidos/$id'
+    | '/api/public/clicksign-webhook'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos'
     | '/pacotes/$slug'
@@ -260,6 +272,7 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/pacotes/'
     | '/admin/pedidos/$id'
+    | '/api/public/clicksign-webhook'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
@@ -273,6 +286,7 @@ export interface RootRouteChildren {
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
   PagarBoletoRoute: typeof PagarBoletoRoute
+  ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -410,6 +424,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
       parentRoute: typeof PacotesRoute
     }
+    '/api/public/clicksign-webhook': {
+      id: '/api/public/clicksign-webhook'
+      path: '/api/public/clicksign-webhook'
+      fullPath: '/api/public/clicksign-webhook'
+      preLoaderRoute: typeof ApiPublicClicksignWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/pedidos/$id': {
       id: '/admin/pedidos/$id'
       path: '/pedidos/$id'
@@ -471,6 +492,7 @@ const rootRouteChildren: RootRouteChildren = {
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
   PagarBoletoRoute: PagarBoletoRoute,
+  ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -511,6 +511,118 @@ export type Database = {
         }
         Relationships: []
       }
+      pedido_assinatura_signers: {
+        Row: {
+          assinatura_id: string
+          clicksign_request_signature_key: string | null
+          clicksign_signer_key: string | null
+          cpf: string | null
+          created_at: string
+          email: string
+          id: string
+          nascimento: string | null
+          nome: string
+          papel: string
+          refused_at: string | null
+          signed_at: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assinatura_id: string
+          clicksign_request_signature_key?: string | null
+          clicksign_signer_key?: string | null
+          cpf?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          nascimento?: string | null
+          nome: string
+          papel: string
+          refused_at?: string | null
+          signed_at?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assinatura_id?: string
+          clicksign_request_signature_key?: string | null
+          clicksign_signer_key?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          nascimento?: string | null
+          nome?: string
+          papel?: string
+          refused_at?: string | null
+          signed_at?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_assinatura_signers_assinatura_id_fkey"
+            columns: ["assinatura_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_assinaturas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_assinaturas: {
+        Row: {
+          clicksign_document_key: string | null
+          created_at: string
+          created_by: string | null
+          deadline_at: string | null
+          id: string
+          pedido_id: string
+          raw_last_event: Json | null
+          signed_pdf_path: string | null
+          signed_pdf_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          clicksign_document_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline_at?: string | null
+          id?: string
+          pedido_id: string
+          raw_last_event?: Json | null
+          signed_pdf_path?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          clicksign_document_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline_at?: string | null
+          id?: string
+          pedido_id?: string
+          raw_last_event?: Json | null
+          signed_pdf_path?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_assinaturas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
