@@ -99,7 +99,9 @@ function OrderDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Hash className="h-3 w-3" /> {shortId(order.id)}
+              <Hash className="h-3 w-3" />
+              <span className="font-mono text-sm text-foreground font-semibold">{order.orderNumber}</span>
+              <span className="text-[10px] text-muted-foreground/70">ref {shortId(order.id)}</span>
               <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>
                 {st.label}
               </span>
