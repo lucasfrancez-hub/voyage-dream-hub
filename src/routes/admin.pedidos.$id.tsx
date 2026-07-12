@@ -40,7 +40,7 @@ import { Cloud } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 
-import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
+import { type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
 import { generateReceiptAndContract, generateReceiptOnly, generateReceiptContractAndAuthorization, generateOrderAuthorization, openBlobInNewTab } from "@/lib/contract-pdf";
 import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
