@@ -504,14 +504,14 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   }
   ctx.y -= 6;
 
-  // Passageiros / bilhete / valores — divide o total real do(s) voo(s) pelo nº de pax.
-  const flightItemIds = new Set(flights.map((f) => f.id));
-  const flightFins = d.financials.filter((f) => flightItemIds.has(f.order_item_id));
+  // Passageiros / bilhete / valores — usa TODO o financeiro do pedido dividido pelo nº de pax.
+  // (Em pacote pronto, os itens de voo não têm financials próprios; o total fica no pacote.)
+  const allFins = d.financials;
   const paxCount = Math.max(1, d.passengers.length);
-  const sumSale = flightFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
-  const sumTax = flightFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
-  const sumDisc = flightFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
-  const sumTotal = flightFins.reduce((s, f) => s + Number(f.total || 0), 0);
+  const sumSale = allFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
+  const sumTax = allFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
+  const sumDisc = allFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
+  const sumTotal = allFins.reduce((s, f) => s + Number(f.total || 0), 0);
   const showDisc = sumDisc > 0.005;
 
   const paxCols: Col[] = showDisc
