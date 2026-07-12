@@ -444,12 +444,13 @@ function PassengersSection({
             <thead className="text-xs text-muted-foreground border-b border-border">
               <tr>
                 <th className="text-left py-2 px-2">Nome</th>
-                <th className="text-left py-2 px-2">Tipo</th>
+                <th className="text-left py-2 px-2 min-w-[340px]">Documento</th>
                 <th className="text-left py-2 px-2">Nascimento</th>
-                <th className="text-left py-2 px-2 min-w-[280px]">Documento</th>
+                <th className="text-left py-2 px-2">Tipo</th>
                 <th className="text-left py-2 px-2">Bilhete</th>
                 <th className="w-16"></th>
               </tr>
+
             </thead>
             <tbody>
               {(() => {
