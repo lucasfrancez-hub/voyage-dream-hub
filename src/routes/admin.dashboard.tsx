@@ -73,9 +73,13 @@ function DashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_item_financials")
-        .select("order_id, commission_value, sale_value, tax_value");
+        .select("order_item_id, commission_value, sale_value, tax_value, order_items!inner(order_id)");
       if (error) throw error;
-      return data as unknown as FinancialRow[];
+      const rows = (data ?? []) as unknown as FinancialRow[];
+      return rows.map((r) => {
+        const oi = Array.isArray(r.order_items) ? r.order_items[0] : r.order_items;
+        return { ...r, order_id: oi?.order_id ?? "" } as FinancialRow & { order_id: string };
+      });
     },
   });
 
