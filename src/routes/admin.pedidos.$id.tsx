@@ -1938,9 +1938,9 @@ function FinanceDialog({
             </div>
           </div>
 
-          {/* Slider de comissão */}
+          {/* Comissão: só % sobre a tarifa (sem reguinha) */}
           <div className="rounded-xl border border-border bg-muted/30 p-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between">
               <Label className="text-sm">Comissão sobre a tarifa</Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -1952,13 +1952,6 @@ function FinanceDialog({
                 <span className="text-sm text-muted-foreground">%</span>
               </div>
             </div>
-            <Slider
-              value={[Number(form.commission_pct) || 0]}
-              min={0}
-              max={30}
-              step={0.5}
-              onValueChange={(v) => recalc({ commission_pct: v[0] })}
-            />
             <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
               <span>Base: {formatBRL(base)} (tarifa − taxas)</span>
               <span>
@@ -1966,6 +1959,7 @@ function FinanceDialog({
               </span>
             </div>
           </div>
+
 
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Câmbio</Label><Input type="number" step="0.0001" value={form.exchange_rate} onChange={(e) => setForm({ ...form, exchange_rate: Number(e.target.value) })} /></div>
