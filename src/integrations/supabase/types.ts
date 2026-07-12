@@ -275,6 +275,7 @@ export type Database = {
           full_name: string
           id: string
           notes: string | null
+          notes_log: Json
           order_number: string
           package_id: string | null
           package_snapshot: Json
@@ -295,6 +296,7 @@ export type Database = {
           supplier_order_number: string | null
           total_price: number
           travel_reason: string | null
+          travel_reason_log: Json
         }
         Insert: {
           adults?: number
@@ -308,6 +310,7 @@ export type Database = {
           full_name: string
           id?: string
           notes?: string | null
+          notes_log?: Json
           order_number?: string
           package_id?: string | null
           package_snapshot: Json
@@ -328,6 +331,7 @@ export type Database = {
           supplier_order_number?: string | null
           total_price: number
           travel_reason?: string | null
+          travel_reason_log?: Json
         }
         Update: {
           adults?: number
@@ -341,6 +345,7 @@ export type Database = {
           full_name?: string
           id?: string
           notes?: string | null
+          notes_log?: Json
           order_number?: string
           package_id?: string | null
           package_snapshot?: Json
@@ -361,6 +366,7 @@ export type Database = {
           supplier_order_number?: string | null
           total_price?: number
           travel_reason?: string | null
+          travel_reason_log?: Json
         }
         Relationships: [
           {
