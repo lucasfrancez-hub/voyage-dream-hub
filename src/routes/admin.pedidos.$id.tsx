@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
+  Package, Percent, Mail, Printer, CheckCircle2, MoreHorizontal, Signature,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
