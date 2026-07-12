@@ -1370,12 +1370,20 @@ function ItemDialog({
               if (v === "" || v === undefined || v === null) continue;
               cleanDetails[k] = numFields.has(k) ? Number(v) : v;
             }
+            // Deriva status final (não deixa o usuário salvar um status incoerente)
+            let finalStatus = status;
+            if (status !== "cancelled") {
+              const loc = locator.trim();
+              const tkt = String(cleanDetails.ticket_number ?? "").trim();
+              if (kind === "hotel") finalStatus = loc ? "confirmed" : "pending";
+              else if (kind === "flight") finalStatus = tkt ? "confirmed" : loc ? "reserved" : "pending";
+            }
             onSave({
               kind,
               title: title.trim(),
               supplier_locator: locator.trim() || null,
               details: cleanDetails as Json,
-              status,
+              status: finalStatus,
             });
           }}>Salvar</Button>
         </DialogFooter>
