@@ -2242,6 +2242,10 @@ function FinanceTab({
   let totalCommission: number;
   let totalNet: number;
 
+  // Taxa de RAV: 15% da comissão adicional (quando comissão > padrão).
+  // Cobrada pelo fornecedor, abatida do total.
+  const RAV_RATE = 0.15;
+  let packageRavTax = 0;
   if (isPackageOrder) {
     const currentPct = packagePct;
     const allExtraRows = [...savedExtraRows, ...extraItemRows];
@@ -2250,13 +2254,15 @@ function FinanceTab({
     const extrasCommission = allExtraRows.reduce((a, r) => a + Number(r.commission_value || 0), 0);
     const extrasTotal = allExtraRows.reduce((a, r) => a + Number(r.total || 0), 0);
     const packageCommission = Number((packageFareNet * (Number(currentPct) / 100)).toFixed(2));
+    const additionalCommission = Math.max(0, Number((packageCommission - packageDefaultCommission).toFixed(2)));
+    packageRavTax = Number((additionalCommission * RAV_RATE).toFixed(2));
     totalSale = packageFareNet + extrasSale;
-    totalTax = packageTaxes + extrasTax;
+    totalTax = Number((packageTaxes + extrasTax + packageRavTax).toFixed(2));
     commissionBase = packageFareNet + extrasSale;
     totalCommission = Number((packageCommission + extrasCommission).toFixed(2));
     // Delta sinalizado: pct < 12 reduz o total do pacote; pct > 12 aumenta.
     const delta = Number((packageCommission - packageDefaultCommission).toFixed(2));
-    totalNet = Number((packageFareNet + packageTaxes + delta + extrasTotal).toFixed(2));
+    totalNet = Number((packageFareNet + packageTaxes + delta + extrasTotal - packageRavTax).toFixed(2));
   } else {
     const displayRows = [...financials, ...plannedRows];
     totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
@@ -2348,6 +2354,24 @@ function FinanceTab({
                     </td>
                     <td className="py-2 px-2"></td>
                   </tr>
+                  {packageRavTax > 0 && (
+                    <tr className="border-b border-border/50 bg-amber-500/5">
+                      <td className="py-2 px-2 text-xs">
+                        <span className="inline-flex items-center gap-1.5">
+                          Taxas de RAV
+                          <span className="rounded-md border border-amber-500/40 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-amber-700 dark:text-amber-400">15% s/ acréscimo</span>
+                        </span>
+                      </td>
+                      <td className="py-2 px-2 text-xs">Fornecedor</td>
+                      <td className="py-2 px-2 text-right text-xs">—</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(packageRavTax)}</td>
+                      <td className="py-2 px-2 text-right text-xs">—</td>
+                      <td className="py-2 px-2 text-right text-xs">—</td>
+                      <td className="py-2 px-2 text-xs">—</td>
+                      <td className="py-2 px-2 text-right text-xs font-semibold text-destructive">−{formatBRL(packageRavTax)}</td>
+                      <td className="py-2 px-2"></td>
+                    </tr>
+                  )}
                    {savedExtraRows.map((f) => {
                      const it = itemsById[f.order_item_id];
                      return (
@@ -3150,8 +3174,13 @@ function CommissionAdjustDialog({
   // Pacote pronto: os 12% já estão embutidos no valor. Delta (positivo ou negativo)
   // muda o total do pedido. Para pedido manual, comissão soma ao total.
   const pkgDefaultCommission = isPackage ? Number((base * (PKG_DEFAULT_PCT / 100)).toFixed(2)) : 0;
+  // Taxa de RAV: 15% da comissão adicional (só quando comissão > padrão)
+  const RAV_RATE = 0.15;
+  const ravTax = isPackage
+    ? Number((Math.max(0, commission - pkgDefaultCommission) * RAV_RATE).toFixed(2))
+    : 0;
   const total = isPackage
-    ? Number((sale + tax + (commission - pkgDefaultCommission)).toFixed(2))
+    ? Number((sale + tax + (commission - pkgDefaultCommission) - ravTax).toFixed(2))
     : Number((sale + tax + commission).toFixed(2));
 
   const handleSave = async () => {
@@ -3299,12 +3328,19 @@ function CommissionAdjustDialog({
               <div className="min-w-0 flex-1">
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">Novo total do pedido</div>
                 {isPackage && (
-                  <div className="text-[10px] text-muted-foreground mt-1 leading-snug break-words">
-                    {pct < PKG_DEFAULT_PCT
-                      ? `Desconto aplicado: ${formatBRL(Math.max(0, pkgDefaultCommission - commission))}`
-                      : pct > PKG_DEFAULT_PCT
-                      ? `Acréscimo acima de ${PKG_DEFAULT_PCT}%: ${formatBRL(Math.max(0, commission - pkgDefaultCommission))}`
-                      : `Comissão padrão do pacote (${PKG_DEFAULT_PCT}%)`}
+                  <div className="text-[10px] text-muted-foreground mt-1 leading-snug break-words space-y-0.5">
+                    <div>
+                      {pct < PKG_DEFAULT_PCT
+                        ? `Desconto aplicado: ${formatBRL(Math.max(0, pkgDefaultCommission - commission))}`
+                        : pct > PKG_DEFAULT_PCT
+                        ? `Acréscimo acima de ${PKG_DEFAULT_PCT}%: ${formatBRL(Math.max(0, commission - pkgDefaultCommission))}`
+                        : `Comissão padrão do pacote (${PKG_DEFAULT_PCT}%)`}
+                    </div>
+                    {ravTax > 0 && (
+                      <div className="text-amber-700 dark:text-amber-400">
+                        Taxas de RAV (15% s/ acréscimo): −{formatBRL(ravTax)}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
