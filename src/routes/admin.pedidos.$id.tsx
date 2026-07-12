@@ -983,16 +983,8 @@ function FlightReservationCard({
               Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
             </div>
           )}
-          {ticket && (
-            <button
-              type="button"
-              onClick={() => { navigator.clipboard.writeText(ticket); toast.success("Bilhete copiado"); }}
-              className="mt-2 inline-flex items-center gap-1 rounded-md border border-brand-orange/40 bg-brand-orange/10 px-1.5 py-0.5 text-[10px] font-mono text-brand-orange hover:bg-brand-orange/20"
-              title="Copiar bilhete"
-            >
-              <Hash className="h-3 w-3" /> {ticket}
-            </button>
-          )}
+          {/* Bilhete removido daqui — agora aparece embaixo do nome de cada passageiro. */}
+          {void ticket}
         </div>
 
         {/* Coluna 2: segmentos */}
