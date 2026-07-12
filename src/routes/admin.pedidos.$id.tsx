@@ -1041,6 +1041,11 @@ function HotelReservationCard({
           <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
             {item.supplier_locator?.trim() || "—"}
           </div>
+          <div className="mt-1.5">
+            {(() => { const b = itemStatusBadge(item.status); return (
+              <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
+            ); })()}
+          </div>
           {supplier && (
             <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
               Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
@@ -1055,7 +1060,6 @@ function HotelReservationCard({
             )}
             <Button size="sm" variant="ghost" onClick={onDelete}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
           </div>
-          {cancelled && <div className="mt-1 text-[10px] font-semibold uppercase text-destructive">Cancelado</div>}
         </div>
 
         {/* Coluna 2: detalhes */}
