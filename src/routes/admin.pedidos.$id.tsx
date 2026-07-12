@@ -775,7 +775,16 @@ function PassengerDialog({
           <Button
             onClick={() => {
               if (!form.full_name.trim()) { toast.error("Nome é obrigatório"); return; }
-              onSave(form);
+              onSave({
+                ...form,
+                birth_date: form.birth_date || null,
+                passport_issue_date: form.passport_issue_date || null,
+                passport_expiry_date: form.passport_expiry_date || null,
+                cpf: form.cpf || null,
+                passport_number: form.passport_number || null,
+                ticket_number: form.ticket_number || null,
+                document: form.document || null,
+              } as any);
             }}
           >Salvar</Button>
         </DialogFooter>
