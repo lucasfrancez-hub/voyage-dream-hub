@@ -853,15 +853,17 @@ function ItemsTab({
             />
           ))}
           {items.filter((i) => i.kind === "other").map((it) => (
-            <ItemCard
+            <ServiceReservationCard
               key={it.id}
               item={it}
+              passengers={passengers ?? []}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={() => reactivate.mutate(it.id)}
             />
           ))}
+
         </div>
       ) : kind === "flight" ? (
         <div className="space-y-3">
@@ -895,9 +897,10 @@ function ItemsTab({
       ) : (
         <div className="space-y-3">
           {items.map((it) => (
-            <ItemCard
+            <ServiceReservationCard
               key={it.id}
               item={it}
+              passengers={passengers ?? []}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
@@ -906,6 +909,7 @@ function ItemsTab({
           ))}
         </div>
       )}
+
 
 
 
@@ -1431,6 +1435,106 @@ function HotelReservationCard({
     </div>
   );
 }
+
+function ServiceReservationCard({
+  item, passengers, onEdit, onDelete, onCancel, onReactivate,
+}: {
+  item: OrderItem;
+  passengers: OrderPassenger[];
+  onEdit: () => void;
+  onDelete: () => void;
+  onCancel: () => void;
+  onReactivate: () => void;
+}) {
+  const d = (item.details ?? {}) as Record<string, unknown>;
+  const cancelled = item.status === "cancelled";
+  const supplier = typeof d.supplier_name === "string" ? (d.supplier_name as string) : "";
+  const category = typeof d.category === "string" ? (d.category as string) : "";
+  const value = Number(d.value ?? 0) || 0;
+  const tax = Number(d.tax_value ?? 0) || 0;
+  const qty = typeof d.quantity === "number" ? (d.quantity as number) : (Number(d.quantity) || null);
+  return (
+    <div className={`rounded-xl border p-4 ${cancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)]">
+        {/* Coluna 1: reserva / fornecedor */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Package className="h-3.5 w-3.5" /> Reserva serviço
+          </div>
+          <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
+            {item.supplier_locator?.trim() || "—"}
+          </div>
+          <div className="mt-1.5">
+            {(() => { const b = itemStatusBadge(deriveItemStatus(item)); return (
+              <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
+            ); })()}
+          </div>
+          {supplier && (
+            <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+              Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
+            </div>
+          )}
+          <div className="mt-2 flex items-center gap-0.5">
+            <Button size="sm" variant="ghost" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>
+            {cancelled ? (
+              <Button size="sm" variant="ghost" onClick={onReactivate} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={onCancel} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onDelete}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+          </div>
+        </div>
+
+        {/* Coluna 2: detalhes */}
+        <div className="min-w-0 border-l border-border pl-4">
+          <div className="font-semibold">{item.title}</div>
+          <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+            {category && <div>Categoria: <span className="text-foreground">{category}</span></div>}
+            {qty ? <div>Quantidade: <span className="text-foreground">{qty}</span></div> : null}
+            {value > 0 && (
+              <div>
+                Valor: <span className="text-foreground">{formatBRL(value)}</span>
+                {tax > 0 ? <> · Taxa: <span className="text-foreground">{formatBRL(tax)}</span></> : null}
+              </div>
+            )}
+            {typeof d.notes === "string" && (d.notes as string).trim() && (
+              <div className="mt-1 whitespace-pre-line text-xs">{d.notes as string}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Coluna 3: passageiros */}
+        <div className="min-w-0 border-l border-border pl-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Users className="h-3.5 w-3.5" /> Passageiros ({passengers.length})
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {passengers.length === 0 && <li className="text-xs text-muted-foreground">Nenhum passageiro</li>}
+            {passengers.map((p) => {
+              const isPassport = p.doc_type === "passport";
+              const docNum = isPassport ? p.passport_number : p.cpf;
+              return (
+                <li key={p.id} className="text-xs">
+                  <div className="font-medium text-foreground">{p.full_name}</div>
+                  <div className="text-muted-foreground">
+                    {p.passenger_type}
+                    {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                  </div>
+                  {docNum && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 
 
@@ -1970,8 +2074,8 @@ function FinanceTab({
   const packageDefaultCommission = Number((packageFareNet * (PACKAGE_DEFAULT_PCT / 100)).toFixed(2));
 
   const plannedRows = useMemo<Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }>>(() => {
-    if (financials.length > 0) return [];
     if (isPackageOrder) {
+      if (financials.length > 0) return [];
       return [{
         __planned: true,
         __itemId: null,
@@ -1986,27 +2090,32 @@ function FinanceTab({
         total: Number((packageFareNet + packageTaxes).toFixed(2)),
       }];
     }
-    return items.map((it) => {
-      const d = (it.details ?? {}) as Record<string, unknown>;
-      const sale = Number(d.value ?? 0) || 0;
-      const tax = Number(d.tax_value ?? 0) || 0;
-      const pct = defaultCommissionPct(it.kind, false);
-      const commission = Number((Math.max(0, sale - tax) * (pct / 100)).toFixed(2));
-      return {
-        __planned: true,
-        __itemId: it.id,
-        __label: it.title,
-        supplier_name: null,
-        sale_value: sale,
-        tax_value: tax,
-        discount_value: 0,
-        commission_pct: pct,
-        commission_value: commission,
-        total: sale,
-      };
-    });
+    // Para itens avulsos: gera linha planejada para cada item que ainda não tem
+    // financeiro salvo, garantindo que o total sempre reflita todos os itens.
+    const savedItemIds = new Set(financials.map((f) => f.order_item_id).filter((x): x is string => !!x));
+    return items
+      .filter((it) => !savedItemIds.has(it.id))
+      .map((it) => {
+        const d = (it.details ?? {}) as Record<string, unknown>;
+        const sale = Number(d.value ?? 0) || 0;
+        const tax = Number(d.tax_value ?? 0) || 0;
+        const pct = defaultCommissionPct(it.kind, false);
+        const commission = Number((Math.max(0, sale - tax) * (pct / 100)).toFixed(2));
+        return {
+          __planned: true,
+          __itemId: it.id,
+          __label: it.title,
+          supplier_name: null,
+          sale_value: sale,
+          tax_value: tax,
+          discount_value: 0,
+          commission_pct: pct,
+          commission_value: commission,
+          total: sale,
+        };
+      });
+  }, [financials, isPackageOrder, packageFareNet, packageTaxes, packageDefaultCommission, items]);
 
-  }, [financials.length, isPackageOrder, packageFareNet, packageTaxes, packageDefaultCommission, items]);
 
   // Para pacote pronto, ignoramos valores gravados nos financials e derivamos tudo do snapshot,
   // aplicando o % de comissão que estiver salvo (ou 12% padrão). Isso corrige dados antigos que
@@ -2027,7 +2136,7 @@ function FinanceTab({
     const delta = Number((totalCommission - packageDefaultCommission).toFixed(2));
     totalNet = Number((packageFareNet + packageTaxes + delta).toFixed(2));
   } else {
-    const displayRows = financials.length > 0 ? financials : plannedRows;
+    const displayRows = [...financials, ...plannedRows];
     totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
     totalTax = displayRows.reduce((a, f) => a + Number(f.tax_value || 0), 0);
     commissionBase = Math.max(0, totalSale);
@@ -2113,8 +2222,10 @@ function FinanceTab({
                   <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(totalNet)}</td>
                   <td className="py-2 px-2"></td>
                 </tr>
-              ) : financials.length > 0 ? (
-                financials.map((f) => {
+              ) : (
+                <>
+                  {financials.map((f) => {
+
                   const it = itemsById[f.order_item_id];
                   return (
                     <tr key={f.id} className="border-b border-border/50">
@@ -2139,39 +2250,40 @@ function FinanceTab({
                       </td>
                     </tr>
                   );
-                })
-              ) : (
-                plannedRows.map((p, idx) => (
-                  <tr key={`planned-${idx}`} className="border-b border-border/50 bg-muted/20">
-                    <td className="py-2 px-2 text-xs">
-                      <span className="inline-flex items-center gap-1.5">
-                        {p.__label}
-                        <span className="rounded-md border border-dashed border-muted-foreground/40 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">A lançar</span>
-                      </span>
-                    </td>
-                    <td className="py-2 px-2 text-xs">—</td>
-                    <td className="py-2 px-2 text-right text-xs">{formatBRL(p.sale_value)}</td>
-                    <td className="py-2 px-2 text-right text-xs">{formatBRL(p.tax_value)}</td>
-                    <td className="py-2 px-2 text-right text-xs">{formatBRL(p.discount_value)}</td>
-                    <td className="py-2 px-2 text-right text-xs">
-                      {formatBRL(p.commission_value)}
-                      <div className="text-[10px] text-muted-foreground">{p.commission_pct}%</div>
-                    </td>
-                    <td className="py-2 px-2 text-xs">—</td>
-                    <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(p.total)}</td>
-                    <td className="py-2 px-2 text-right">
-                      <Button size="sm" variant="ghost" onClick={() => {
-                        setEditing(null);
-                        // Se for pacote pronto: pré-seleciona o 1º item; senão o item da linha.
-                        setSelectedItem(p.__itemId ?? items[0]?.id ?? null);
-                        setOpen(true);
-                      }}>
-                        <Plus className="h-3.5 w-3.5" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))
+                  })}
+                  {plannedRows.map((p, idx) => (
+
+                    <tr key={`planned-${idx}`} className="border-b border-border/50 bg-muted/20">
+                      <td className="py-2 px-2 text-xs">
+                        <span className="inline-flex items-center gap-1.5">
+                          {p.__label}
+                          <span className="rounded-md border border-dashed border-muted-foreground/40 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">A lançar</span>
+                        </span>
+                      </td>
+                      <td className="py-2 px-2 text-xs">—</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(p.sale_value)}</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(p.tax_value)}</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(p.discount_value)}</td>
+                      <td className="py-2 px-2 text-right text-xs">
+                        {formatBRL(p.commission_value)}
+                        <div className="text-[10px] text-muted-foreground">{p.commission_pct}%</div>
+                      </td>
+                      <td className="py-2 px-2 text-xs">—</td>
+                      <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(p.total)}</td>
+                      <td className="py-2 px-2 text-right">
+                        <Button size="sm" variant="ghost" onClick={() => {
+                          setEditing(null);
+                          setSelectedItem(p.__itemId ?? items[0]?.id ?? null);
+                          setOpen(true);
+                        }}>
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </>
               )}
+
             </tbody>
           </table>
         </div>
