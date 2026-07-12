@@ -182,6 +182,7 @@ export type Database = {
           full_name: string
           id: string
           notes: string | null
+          order_number: string
           package_id: string | null
           package_snapshot: Json
           payment_method: string
@@ -202,6 +203,7 @@ export type Database = {
           full_name: string
           id?: string
           notes?: string | null
+          order_number?: string
           package_id?: string | null
           package_snapshot: Json
           payment_method: string
@@ -222,6 +224,7 @@ export type Database = {
           full_name?: string
           id?: string
           notes?: string | null
+          order_number?: string
           package_id?: string | null
           package_snapshot?: Json
           payment_method?: string
@@ -351,6 +354,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_order_number: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
