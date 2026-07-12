@@ -120,24 +120,41 @@ function OrderDetailPage() {
               Criado em {new Date(order.createdAt).toLocaleString("pt-BR")}
             </div>
             <div className="mt-3 flex justify-end gap-2">
-              <Button
-                size="sm"
-                onClick={() => {
-                  const params = new URLSearchParams({
-                    customer: order.fullName,
-                    phone: order.phone,
-                    total: String(order.totalPrice),
-                    orderRef: order.id,
-                    orderNumber: order.orderNumber,
-                    locator: order.airlineLocator ?? "",
-                    supplier: order.supplierName ?? "",
-                  });
-                  navigate({ to: "/admin/link-pagamento", search: Object.fromEntries(params) as never });
-                }}
-              >
-                Enviar link de pagamento
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm">Gerar link de pagamento</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Escolha a modalidade</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {(() => {
+                    const search = {
+                      customer: order.fullName,
+                      phone: order.phone,
+                      total: String(order.totalPrice),
+                      orderRef: order.id,
+                      orderNumber: order.orderNumber,
+                      locator: order.airlineLocator ?? "",
+                      supplier: order.supplierName ?? "",
+                    };
+                    return (
+                      <>
+                        <DropdownMenuItem onClick={() => navigate({ to: "/admin/link-pagamento", search: search as never })}>
+                          <FileText className="h-3.5 w-3.5 mr-2" /> Seguro (personalizado)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate({ to: "/admin/link-cartao-simples", search: search as never })}>
+                          <DollarSign className="h-3.5 w-3.5 mr-2" /> Convencional (cartão simples)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate({ to: "/admin/link-boleto", search: search as never })}>
+                          <FileText className="h-3.5 w-3.5 mr-2" /> Boleto
+                        </DropdownMenuItem>
+                      </>
+                    );
+                  })()}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+
           </div>
         </div>
       </div>
