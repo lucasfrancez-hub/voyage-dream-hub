@@ -301,7 +301,9 @@ function OrderDetailPage() {
                   <DropdownMenuItem onClick={() => { if (confirm("Confirmar o pedido e todos os itens?")) orderStatusMut.mutate("confirmed"); }}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Confirmar</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { if (confirm("Cancelar o pedido e todos os itens?")) orderStatusMut.mutate("cancelled"); }}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { if (confirm("Reabrir o pedido como pendente?")) orderStatusMut.mutate("pending"); }}><RotateCcw className="h-3.5 w-3.5 mr-2" /> Reabrir</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info("Docusign — em breve")}><Signature className="h-3.5 w-3.5 mr-2" /> Acionar contrato Docusign</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    window.dispatchEvent(new CustomEvent("clicksign:open-send", { detail: { orderId: order.id, withAuth: true } }));
+                  }}><Signature className="h-3.5 w-3.5 mr-2 text-brand-orange" /> Acionar contrato Clicksign (Recibo + Contrato + Autorização)</DropdownMenuItem>
                 </DropdownMenuContent>
 
               </DropdownMenu>
