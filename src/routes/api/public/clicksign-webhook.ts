@@ -132,6 +132,14 @@ export const Route = createFileRoute("/api/public/clicksign-webhook")({
                   .upload(path, buf, { contentType: "application/pdf", upsert: true });
                 if (upErr) console.error("[clicksign-webhook] upload err:", upErr.message);
                 else signedPdfPath = path;
+
+                // Também anexa em "Vouchers e contratos" do pedido
+                const friendlyName = `${Date.now()}-contrato-assinado.pdf`;
+                const contratoPath = `${assinatura.pedido_id}/${friendlyName}`;
+                const { error: upErr2 } = await supabaseAdmin.storage
+                  .from("order-documents")
+                  .upload(contratoPath, buf, { contentType: "application/pdf", upsert: true });
+                if (upErr2) console.error("[clicksign-webhook] upload contrato err:", upErr2.message);
               } else {
                 console.error("[clicksign-webhook] falha ao baixar PDF assinado", pdfRes.status);
               }
