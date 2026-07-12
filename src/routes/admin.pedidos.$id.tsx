@@ -31,6 +31,7 @@ import {
   type OrderDetail, type OrderPassenger, type OrderItem, type OrderItemFinancial,
 } from "@/lib/orders.functions";
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
+import { OrderDocuments } from "@/components/OrderDocuments";
 import type { Json } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
@@ -762,9 +763,8 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
             <Download className="h-3.5 w-3.5 mr-1.5" /> Baixar PDF
           </Button>
         </div>
-        <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground text-center">
-          Outros contratos e vouchers podem ser anexados via aba de Documentos do pedido (em breve).
-        </div>
+        <OrderDocuments orderId={order.id} canManage />
+
       </div>
     </div>
   );
