@@ -611,19 +611,35 @@ const drawOthers = (ctx: Ctx, d: OrderDetail) => {
   drawTableHeader(ctx, cols);
   for (const o of others) {
     const f = finById.get(o.id);
-    drawTableRow(ctx, cols, [o.title, f?.supplier_name ?? "—", brl(f?.total ?? 0)]);
+    const det = (o.details ?? {}) as Record<string, unknown>;
+    // valor: usa o financeiro salvo; senão, o valor bruto informado no item
+    const rawVal = Number(f?.total ?? 0) || Number(det.value ?? 0) || 0;
+    const supplier = f?.supplier_name ?? (det.supplier_name as string) ?? "—";
+    drawTableRow(ctx, cols, [o.title, supplier, brl(rawVal)]);
   }
   ctx.y -= 6;
 };
 
+const sumExtrasFromItems = (d: OrderDetail): number => {
+  const finItemIds = new Set(d.financials.map((f) => f.order_item_id));
+  return d.items
+    .filter((i) => i.kind === "other" && i.status !== "cancelled" && !finItemIds.has(i.id))
+    .reduce((s, i) => {
+      const det = (i.details ?? {}) as Record<string, unknown>;
+      return s + (Number(det.value ?? 0) || 0);
+    }, 0);
+};
+
 const drawTotals = (ctx: Ctx, d: OrderDetail) => {
-  // Espelha os itens do financeiro do pedido (fonte da verdade após ajuste de comissão).
-  const produtos = d.financials.reduce((s, f) => s + Number(f.sale_value || 0), 0);
+  // Fonte da verdade: totalPrice do pedido. Detalha tarifa/taxas/desconto/comissão a partir
+  // do financeiro, somando extras que ainda não têm financeiro salvo.
+  const extrasNoFin = sumExtrasFromItems(d);
+  const produtos = d.financials.reduce((s, f) => s + Number(f.sale_value || 0), 0) + extrasNoFin;
   const taxas = d.financials.reduce((s, f) => s + Number(f.tax_value || 0), 0);
   const desc = d.financials.reduce((s, f) => s + Number(f.discount_value || 0), 0);
   const comissao = d.financials.reduce((s, f) => s + Number(f.commission_value || 0), 0);
   const total = Number(d.order.totalPrice ?? 0)
-    || d.financials.reduce((s, f) => s + Number(f.total || 0), 0);
+    || (d.financials.reduce((s, f) => s + Number(f.total || 0), 0) + extrasNoFin);
 
   sectionTitle(ctx, "Resumo Financeiro");
   const w = CONTENT_W / 5;
@@ -638,6 +654,8 @@ const drawTotals = (ctx: Ctx, d: OrderDetail) => {
   drawTableRow(ctx, cols, [brl(produtos), brl(taxas), brl(desc), brl(comissao), brl(total)]);
   ctx.y -= 8;
 };
+
+
 
 
 const drawPayments = (ctx: Ctx, d: OrderDetail) => {
