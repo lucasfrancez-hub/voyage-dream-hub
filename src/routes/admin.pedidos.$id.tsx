@@ -1209,6 +1209,14 @@ function FlightReservationCard({
                 </li>
               );
             })}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HotelReservationCard({
   item, passengers, onEdit, onDelete, onCancel, onReactivate,
 }: {
   item: OrderItem;
