@@ -2535,17 +2535,20 @@ function fmtDateTime(iso: string | null) {
 }
 
 function PaymentsSection({
-  orderId, clientName, payments, onChange,
+  orderId, order, clientName, payments, onChange,
 }: {
   orderId: string;
+  order: OrderHeader;
   clientName: string;
   payments: OrderPayment[];
   onChange: () => void;
 }) {
   const upsert = useServerFn(upsertOrderPayment);
   const del = useServerFn(deleteOrderPayment);
+  const updatePayer = useServerFn(updateOrderPayer);
   const [editing, setEditing] = useState<OrderPayment | null>(null);
   const [open, setOpen] = useState(false);
+
 
   const upsertMut = useMutation({
     mutationFn: (data: Partial<OrderPayment> & { order_id: string; method: string; amount: number }) =>
