@@ -401,21 +401,6 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
 
 
 
-// Detecta se pedido é pacote pronto e devolve tarifa/taxas do snapshot.
-type PackageInfo = { isPackage: boolean; pax: number; fare: number; taxes: number; commissionPct: number };
-const getPackageInfo = (d: OrderDetail): PackageInfo => {
-  const snap = (d.order.packageSnapshot ?? {}) as Record<string, unknown>;
-  const isPackage =
-    !(snap as { manual?: boolean }).manual &&
-    !["payment_link", "payment_link_simple"].includes(String((snap as { kind?: string }).kind ?? "")) &&
-    Number((snap as { price_per_person?: number }).price_per_person ?? 0) > 0;
-  const pax = Math.max(1, (d.order.adults || 0) + (d.order.children || 0));
-  const fare = isPackage ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
-  const taxes = isPackage ? Number((snap as { taxes?: number }).taxes ?? 0) : 0;
-  const commissionPct = Number(d.financials[0]?.commission_pct ?? 12);
-  return { isPackage, pax, fare, taxes, commissionPct };
-};
-
 type FlightRow = {
   airlineCode: string;
   airlineName: string;
