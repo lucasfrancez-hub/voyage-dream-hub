@@ -829,9 +829,10 @@ async function build(detail: OrderDetail, includeContract: boolean): Promise<Uin
 
   drawCompanyHeader(ctx);
   drawReciboBlock(ctx, detail);
-  drawFlights(ctx, detail);
   drawHotels(ctx, detail);
+  drawFlights(ctx, detail);
   drawOthers(ctx, detail);
+
   drawTotals(ctx, detail);
   drawPayments(ctx, detail);
 
