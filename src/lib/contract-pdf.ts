@@ -519,52 +519,48 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   }
   ctx.y -= 6;
 
-  // Passageiros / bilhete / valores
-  const pkg = getPackageInfo(d);
+  // Passageiros / bilhete / valores — divide o total real do(s) voo(s) pelo nº de pax.
   const flightItemIds = new Set(flights.map((f) => f.id));
   const flightFins = d.financials.filter((f) => flightItemIds.has(f.order_item_id));
-  const paxCols: Col[] = [
-    { header: "Passageiro", width: 200 },
-    { header: "Nº Bilhete", width: 100 },
-    { header: "Valor", width: 80, align: "right" },
-    { header: "Taxas", width: 70, align: "right" },
-    { header: "Total", width: CONTENT_W - 200 - 100 - 80 - 70, align: "right" },
-  ];
+  const paxCount = Math.max(1, d.passengers.length);
+  const sumSale = flightFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
+  const sumTax = flightFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
+  const sumDisc = flightFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
+  const sumTotal = flightFins.reduce((s, f) => s + Number(f.total || 0), 0);
+  const showDisc = sumDisc > 0.005;
+
+  const paxCols: Col[] = showDisc
+    ? [
+        { header: "Passageiro", width: 180 },
+        { header: "Nº Bilhete", width: 90 },
+        { header: "Tarifa", width: 70, align: "right" },
+        { header: "Taxas", width: 60, align: "right" },
+        { header: "Desc.", width: 55, align: "right" },
+        { header: "Total", width: CONTENT_W - 180 - 90 - 70 - 60 - 55, align: "right" },
+      ]
+    : [
+        { header: "Passageiro", width: 210 },
+        { header: "Nº Bilhete", width: 100 },
+        { header: "Tarifa", width: 80, align: "right" },
+        { header: "Taxas", width: 70, align: "right" },
+        { header: "Total", width: CONTENT_W - 210 - 100 - 80 - 70, align: "right" },
+      ];
   drawTableHeader(ctx, paxCols);
 
-  // Divisão por pax (usa snapshot do pacote quando aplicável; senão, divide financials pelo nº de pax)
-  const paxCount = Math.max(1, d.passengers.length || pkg.pax);
-  let perPax = { sale: 0, tax: 0, total: 0 };
-  if (pkg.isPackage) {
-    const fareNet = Math.max(0, pkg.fare - pkg.taxes);
-    const defaultCommission = Number((fareNet * 0.12).toFixed(2));
-    const commissionTotal = Number((fareNet * (pkg.commissionPct / 100)).toFixed(2));
-    const extra = Math.max(0, commissionTotal - defaultCommission);
-    const totalNet = fareNet + pkg.taxes + extra;
-    perPax = {
-      sale: fareNet / paxCount,
-      tax: pkg.taxes / paxCount,
-      total: totalNet / paxCount,
-    };
-  } else if (flightFins.length > 0) {
-    perPax = {
-      sale: flightFins.reduce((s, f) => s + f.sale_value, 0) / paxCount,
-      tax: flightFins.reduce((s, f) => s + f.tax_value, 0) / paxCount,
-      total: flightFins.reduce((s, f) => s + f.total, 0) / paxCount,
-    };
-  }
+  const perSale = sumSale / paxCount;
+  const perTax = sumTax / paxCount;
+  const perDisc = sumDisc / paxCount;
+  const perTotal = sumTotal / paxCount;
 
   for (const p of d.passengers) {
-    drawTableRow(ctx, paxCols, [
-      p.full_name,
-      p.ticket_number ?? "—",
-      brl(perPax.sale),
-      brl(perPax.tax),
-      brl(perPax.total),
-    ]);
+    const row = showDisc
+      ? [p.full_name, p.ticket_number ?? "—", brl(perSale), brl(perTax), brl(perDisc), brl(perTotal)]
+      : [p.full_name, p.ticket_number ?? "—", brl(perSale), brl(perTax), brl(perTotal)];
+    drawTableRow(ctx, paxCols, row);
   }
-  ctx.y -= 6;
+  ctx.y -= 8;
 };
+
 
 const drawHotels = (ctx: Ctx, d: OrderDetail) => {
   const hotels = d.items.filter((i) => i.kind === "hotel" && i.status !== "cancelled");
