@@ -114,6 +114,14 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
 
     const cpfDigits = data.cliente.cpf.replace(/\D/g, "");
 
+    // Normaliza telefone para E.164 (assume BR se não vier com +)
+    const phoneDigits = data.cliente.telefone.replace(/\D/g, "");
+    const phoneE164 = data.cliente.telefone.trim().startsWith("+")
+      ? `+${phoneDigits}`
+      : phoneDigits.startsWith("55")
+        ? `+${phoneDigits}`
+        : `+55${phoneDigits}`;
+
     // 2) Cria signers
     type SignerResp = { signer: { key: string } };
 
@@ -122,12 +130,14 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
       body: JSON.stringify({
         signer: {
           email: data.cliente.email,
+          phone_number: phoneE164,
           name: data.cliente.nome,
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
           has_documentation: true,
-          auths: ["email"],
-          selfie_enabled: true, // biometria dinâmica
+          auths: ["email", "whatsapp"],
+          selfie_enabled: true, // biometria facial dinâmica
+          official_document_enabled: true, // foto do documento (RG/CNH)
         },
       }),
     });
@@ -152,7 +162,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
         list: {
           document_key: documentKey,
           signer_key: clienteResp.signer.key,
-          sign_as: "party", // "parte"
+          sign_as: "party",
           refusable: true,
           message: `Contrato e recibo do pedido ${data.orderNumber}. Por favor, revise e assine.`,
         },
@@ -164,13 +174,13 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
         list: {
           document_key: documentKey,
           signer_key: agenciaResp.signer.key,
-          sign_as: "contractee", // "contratada"
+          sign_as: "contractee",
           refusable: false,
         },
       }),
     });
 
-    // 4) Dispara e-mails
+    // 4) Dispara notificações — cliente via e-mail + WhatsApp; agência via e-mail
     await csFetch(`/notifications`, {
       method: "POST",
       body: JSON.stringify({
@@ -178,6 +188,17 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
         message: `Olá! Seu contrato do pedido ${data.orderNumber} está pronto para assinatura.`,
       }),
     });
+    try {
+      await csFetch(`/notify_by_whatsapp`, {
+        method: "POST",
+        body: JSON.stringify({
+          request_signature_key: clienteList.list.request_signature_key,
+        }),
+      });
+    } catch (err) {
+      // WhatsApp pode falhar (número inválido, plano etc.) — não bloqueia o envio
+      console.warn("[ClickSign] WhatsApp notify falhou:", err);
+    }
     await csFetch(`/notifications`, {
       method: "POST",
       body: JSON.stringify({
