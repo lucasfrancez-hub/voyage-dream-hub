@@ -203,6 +203,9 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         totalPrice: Number(order.total_price),
         paymentMethod: order.payment_method,
         notes: order.notes,
+        travelReason: (order as { travel_reason?: string | null }).travel_reason ?? null,
+        coupon: (order as { coupon?: string | null }).coupon ?? null,
+
         supplierName: order.supplier_name ?? null,
         supplierOrderNumber: order.supplier_order_number ?? null,
         airlineLocator: order.airline_locator ?? null,
