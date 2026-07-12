@@ -62,12 +62,35 @@ export type OrderHeader = {
   packageSnapshot: Json;
 };
 
+export type OrderPayment = {
+  id: string;
+  order_id: string;
+  cashier_number: string | null;
+  status: "paid" | "pending" | "cancelled" | "refunded" | string;
+  method: string;
+  description: string | null;
+  installments: number | null;
+  installment_amount: number | null;
+  amount: number;
+  provider: string | null;
+  proposal_number: string | null;
+  authorization_code: string | null;
+  card_last4: string | null;
+  card_brand: string | null;
+  paid_at: string | null;
+  added_by_name: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
 export type OrderDetail = {
   order: OrderHeader;
   passengers: OrderPassenger[];
   items: OrderItem[];
   financials: OrderItemFinancial[];
+  payments: OrderPayment[];
 };
+
 
 // --------- getOrderDetail ---------
 export const getOrderDetail = createServerFn({ method: "GET" })
