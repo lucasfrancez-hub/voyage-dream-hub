@@ -1742,11 +1742,19 @@ function ItemDialog({
                 <Label>Bilhete</Label>
                 <Input
                   value={String(details.ticket_number ?? "")}
-                  onChange={(e) => setField("ticket_number", e.target.value)}
-                  placeholder="Ex: 957-2149876543"
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 13);
+                    const formatted = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3)}` : digits;
+                    setField("ticket_number", formatted);
+                  }}
+                  placeholder="Ex: 954-1234567890"
+                  maxLength={14}
+                  inputMode="numeric"
                 />
+                <p className="mt-1 text-[11px] text-muted-foreground">13 dígitos (formato 000-0000000000). Deixe em branco se ainda não emitiu.</p>
               </div>
             )}
+
           </div>
 
           {kind === "hotel" ? (
