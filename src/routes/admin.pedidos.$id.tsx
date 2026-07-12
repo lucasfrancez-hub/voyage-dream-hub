@@ -1965,6 +1965,7 @@ function ItemDialog({
               const tkt = String(cleanMain.ticket_number ?? "").trim();
               if (kind === "hotel") finalStatus = loc ? "confirmed" : "pending";
               else if (kind === "flight") finalStatus = tkt ? "confirmed" : loc ? "reserved" : "pending";
+              else finalStatus = loc ? "confirmed" : "pending";
             }
 
             const siblingsPayload = kind === "flight"
