@@ -919,37 +919,64 @@ function ItemsTab({
         }
         onSave={async (payload) => {
           try {
-            // 1) Salva o item editado (ou cria novo)
-            await upsert({ data: { ...payload, order_id: orderId, id: editing?.id } });
+            // 1) Salva o item principal (edita ou cria novo)
+            const mainRes = await upsert({ data: {
+              order_id: orderId,
+              id: editing?.id,
+              kind: payload.kind,
+              title: payload.title,
+              supplier_locator: payload.supplier_locator,
+              details: payload.details,
+              status: payload.status,
+              sort_order: editing?.sort_order ?? 0,
+            } });
 
-            // 2) Para AÉREO: propaga localizador + bilhete pra todos os outros aéreos do pedido,
-            //    e também os detalhes editados de cada trecho irmão (ida/volta juntos).
+            // 2) Para AÉREO: salva/cria/atualiza os trechos irmãos e propaga localizador + bilhete
             if (payload.kind === "flight") {
               const newLoc = payload.supplier_locator;
               const newDetails = (payload.details ?? {}) as Record<string, unknown>;
               const newTicket = String(newDetails.ticket_number ?? "").trim();
-              const sibMap = new Map<string, Record<string, unknown>>();
-              for (const s of payload.siblings ?? []) {
-                sibMap.set(s.id, (s.details ?? {}) as Record<string, unknown>);
+              const newSupplier = newDetails.supplier_name;
+              const statusFor = (): "confirmed" | "reserved" | "pending" =>
+                newTicket && newLoc ? "confirmed" : newLoc ? "reserved" : "pending";
+              const mainId = editing?.id ?? mainRes.id;
+
+              // Remove os trechos excluídos
+              for (const rid of payload.removedSiblingIds ?? []) {
+                await del({ data: { id: rid } });
               }
-              const otherFlights = items.filter((i) => i.kind === "flight" && i.id !== editing?.id && i.status !== "cancelled");
+
+              // Upsert de cada trecho irmão (novo ou existente)
+              for (const s of payload.siblings ?? []) {
+                const sd = { ...(s.details as Record<string, unknown>), ticket_number: newTicket };
+                if (newSupplier !== undefined && sd.supplier_name === undefined) sd.supplier_name = newSupplier;
+                await upsert({ data: {
+                  id: s.id,
+                  order_id: orderId,
+                  kind: "flight",
+                  title: s.title,
+                  supplier_locator: newLoc,
+                  details: sd as Json,
+                  sort_order: s.sort_order,
+                  status: statusFor(),
+                } });
+              }
+
+              // Propaga bilhete/localizador para outros aéreos do pedido que não pertencem a este grupo
+              const groupIds = new Set<string>([mainId, ...((payload.siblings ?? []).map((s) => s.id).filter((x): x is string => !!x))]);
+              const otherFlights = items.filter((i) => i.kind === "flight" && !groupIds.has(i.id) && i.status !== "cancelled");
               for (const fi of otherFlights) {
-                const base = sibMap.get(fi.id) ?? ((fi.details ?? {}) as Record<string, unknown>);
-                const fd = { ...base, ticket_number: newTicket };
-                const st: "confirmed" | "reserved" | "pending" = newTicket && newLoc
-                  ? "confirmed" : newLoc ? "reserved" : "pending";
-                await upsert({
-                  data: {
-                    id: fi.id,
-                    order_id: orderId,
-                    kind: "flight",
-                    title: fi.title,
-                    supplier_locator: newLoc,
-                    details: fd as Json,
-                    sort_order: fi.sort_order,
-                    status: st,
-                  },
-                });
+                const fd = { ...((fi.details ?? {}) as Record<string, unknown>), ticket_number: newTicket };
+                await upsert({ data: {
+                  id: fi.id,
+                  order_id: orderId,
+                  kind: "flight",
+                  title: fi.title,
+                  supplier_locator: newLoc,
+                  details: fd as Json,
+                  sort_order: fi.sort_order,
+                  status: statusFor(),
+                } });
               }
             }
 
