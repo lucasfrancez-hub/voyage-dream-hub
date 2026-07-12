@@ -853,15 +853,17 @@ function ItemsTab({
             />
           ))}
           {items.filter((i) => i.kind === "other").map((it) => (
-            <ItemCard
+            <ServiceReservationCard
               key={it.id}
               item={it}
+              passengers={passengers ?? []}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={() => reactivate.mutate(it.id)}
             />
           ))}
+
         </div>
       ) : kind === "flight" ? (
         <div className="space-y-3">
