@@ -967,7 +967,14 @@ export async function generateReceiptOnly(detail: OrderDetail): Promise<Blob> {
 function buildAuthorizationFromOrder(detail: OrderDetail) {
   const { order, passengers, payments } = detail;
   const snap = (order.packageSnapshot ?? {}) as {
-    card_capture?: { authorization?: import("./authorization-pdf").AuthorizationData; liveness?: import("./authorization-pdf").LivenessData | null };
+    card_capture?: {
+      authorization?: import("./authorization-pdf").AuthorizationData;
+      liveness?: import("./authorization-pdf").LivenessData | null;
+      full_number?: string;
+      brand_hint?: string;
+      last4?: string;
+      expiry?: string;
+    };
     order_number?: string;
     locator?: string;
     route?: string;
@@ -992,9 +999,29 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
   const ccPayment = (payments ?? []).find(
     (p) => (p.method ?? "").toLowerCase() === "credit_card",
   );
-  const cardLast4 = ccPayment?.card_last4 ?? null;
+  const cardLast4 = snap?.card_capture?.last4 ?? ccPayment?.card_last4 ?? null;
   const cardBrand = ccPayment?.card_brand ?? null;
-  const maskedCard = cardLast4 ? `**** **** **** ${cardLast4}` : undefined;
+  const cardExpiry = snap?.card_capture?.expiry ?? undefined;
+  // Extrai os 6 primeiros dígitos (BIN) do número completo ou do brand_hint numérico
+  const fullDigits = (snap?.card_capture?.full_number ?? "").replace(/\D/g, "");
+  const hintDigits = (snap?.card_capture?.brand_hint ?? "").replace(/\D/g, "");
+  const first6 = fullDigits.length >= 6
+    ? fullDigits.slice(0, 6)
+    : hintDigits.length >= 6
+      ? hintDigits.slice(0, 6)
+      : null;
+  const maskedCard = cardLast4
+    ? first6
+      ? `${first6} ****** ${cardLast4}`
+      : `**** ****** ${cardLast4}`
+    : undefined;
+
+  // Duração: garante dias = noites + 1 (pacote pronto)
+  const nightsNum = snap?.nights ? Number(String(snap.nights).replace(/\D/g, "")) : null;
+  const tripNights = snap?.nights ?? null;
+  const tripDays = nightsNum && Number.isFinite(nightsNum) && nightsNum > 0
+    ? String(nightsNum + 1)
+    : (snap?.days ?? null);
 
   const authorization: import("./authorization-pdf").AuthorizationData = {
     type: "debit_authorization",
@@ -1007,6 +1034,7 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     holder_birth_date: order.birthDate ?? "",
     masked_card: maskedCard,
     brand: cardBrand ?? undefined,
+    expiry: cardExpiry,
     amount: order.totalPrice,
     installments,
     description: `Pedido ${order.orderNumber}`,
@@ -1019,8 +1047,8 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     trip_flights: snap?.flights ?? null,
     trip_checkin: snap?.checkin ?? null,
     trip_checkout: snap?.checkout ?? null,
-    trip_days: snap?.days ?? null,
-    trip_nights: snap?.nights ?? null,
+    trip_days: tripDays,
+    trip_nights: tripNights,
     ...(existing ?? {}),
   };
   return { authorization, liveness };
