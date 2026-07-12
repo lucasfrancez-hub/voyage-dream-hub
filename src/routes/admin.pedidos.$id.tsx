@@ -2146,9 +2146,9 @@ function FinanceTab({
                       </td>
                     </tr>
                   );
-                })
-              ) : (
+                  })}
                   {plannedRows.map((p, idx) => (
+
                     <tr key={`planned-${idx}`} className="border-b border-border/50 bg-muted/20">
                       <td className="py-2 px-2 text-xs">
                         <span className="inline-flex items-center gap-1.5">
