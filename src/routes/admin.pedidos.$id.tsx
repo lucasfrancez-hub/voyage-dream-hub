@@ -2109,17 +2109,25 @@ function FinanceTab({
 
   const upsert = useServerFn(upsertItemFinancial);
   const del = useServerFn(deleteItemFinancial);
+  const recalculateTotal = useServerFn(recalculateOrderTotal);
   const [editing, setEditing] = useState<OrderItemFinancial | null>(null);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
   const save = useMutation({
-    mutationFn: async (payload: Parameters<typeof upsert>[0]["data"]) => upsert({ data: payload }),
+    mutationFn: async (payload: Parameters<typeof upsert>[0]["data"]) => {
+      const result = await upsert({ data: payload });
+      await recalculateTotal({ data: { id: order.id } });
+      return result;
+    },
     onSuccess: () => { toast.success("Lançamento salvo"); onChange(); setOpen(false); setEditing(null); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
   const remove = useMutation({
-    mutationFn: async (fid: string) => del({ data: { id: fid } }),
+    mutationFn: async (fid: string) => {
+      await del({ data: { id: fid } });
+      return recalculateTotal({ data: { id: order.id } });
+    },
     onSuccess: () => { toast.success("Lançamento removido"); onChange(); },
   });
 
@@ -2168,6 +2176,20 @@ function FinanceTab({
       .filter((x): x is NonNullable<typeof x> => x !== null);
   }, [items, financials, isPackageOrder]);
 
+  const savedExtraRows = useMemo(() => financials.filter((financial) => {
+    const item = itemsById[financial.order_item_id];
+    if (!item || item.status === "cancelled") return false;
+    const details = (item.details ?? {}) as Record<string, unknown>;
+    return (Number(details.value ?? 0) || 0) > 0;
+  }), [financials, itemsById]);
+
+  const packageFinancial = useMemo(() => financials.find((financial) => {
+    const item = itemsById[financial.order_item_id];
+    if (!item) return false;
+    const details = (item.details ?? {}) as Record<string, unknown>;
+    return (Number(details.value ?? 0) || 0) <= 0;
+  }), [financials, itemsById]);
+
   const plannedRows = useMemo<Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }>>(() => {
     if (isPackageOrder) {
       const rows: Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }> = [];
@@ -2203,11 +2225,12 @@ function FinanceTab({
   let totalNet: number;
 
   if (isPackageOrder) {
-    const currentPct = financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT;
-    const extrasSale = extraItemRows.reduce((a, r) => a + Number(r.sale_value || 0), 0);
-    const extrasTax = extraItemRows.reduce((a, r) => a + Number(r.tax_value || 0), 0);
-    const extrasCommission = extraItemRows.reduce((a, r) => a + Number(r.commission_value || 0), 0);
-    const extrasTotal = extraItemRows.reduce((a, r) => a + Number(r.total || 0), 0);
+    const currentPct = packageFinancial?.commission_pct ?? PACKAGE_DEFAULT_PCT;
+    const allExtraRows = [...savedExtraRows, ...extraItemRows];
+    const extrasSale = allExtraRows.reduce((a, r) => a + Number(r.sale_value || 0), 0);
+    const extrasTax = allExtraRows.reduce((a, r) => a + Number(r.tax_value || 0), 0);
+    const extrasCommission = allExtraRows.reduce((a, r) => a + Number(r.commission_value || 0), 0);
+    const extrasTotal = allExtraRows.reduce((a, r) => a + Number(r.total || 0), 0);
     const packageCommission = Number((packageFareNet * (Number(currentPct) / 100)).toFixed(2));
     totalSale = packageFareNet + extrasSale;
     totalTax = packageTaxes + extrasTax;
@@ -2225,7 +2248,7 @@ function FinanceTab({
     totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
   }
   const packageDiscount = isPackageOrder
-    ? Math.max(0, Number((packageDefaultCommission - Number((packageFareNet * (Number(financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2))).toFixed(2)))
+    ? Math.max(0, Number((packageDefaultCommission - Number((packageFareNet * (Number(packageFinancial?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2))).toFixed(2)))
     : 0;
 
 
@@ -2298,15 +2321,46 @@ function FinanceTab({
                     <td className="py-2 px-2 text-right text-xs">{formatBRL(packageTaxes)}</td>
                     <td className="py-2 px-2 text-right text-xs">{formatBRL(packageDiscount)}</td>
                     <td className="py-2 px-2 text-right text-xs">
-                      {formatBRL(Number((packageFareNet * (Number(financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2)))}
-                      <div className="text-[10px] text-muted-foreground">{financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT}%</div>
+                       {formatBRL(Number((packageFareNet * (Number(packageFinancial?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2)))}
+                       <div className="text-[10px] text-muted-foreground">{packageFinancial?.commission_pct ?? PACKAGE_DEFAULT_PCT}%</div>
                     </td>
                     <td className="py-2 px-2 text-xs">—</td>
                     <td className="py-2 px-2 text-right text-xs font-semibold">
-                      {formatBRL(Number((packageFareNet + packageTaxes + (Number((packageFareNet * (Number(financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2)) - packageDefaultCommission)).toFixed(2)))}
+                       {formatBRL(Number((packageFareNet + packageTaxes + (Number((packageFareNet * (Number(packageFinancial?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2)) - packageDefaultCommission)).toFixed(2)))}
                     </td>
                     <td className="py-2 px-2"></td>
                   </tr>
+                   {savedExtraRows.map((f) => {
+                     const it = itemsById[f.order_item_id];
+                     return (
+                       <tr key={f.id} className="border-b border-border/50">
+                         <td className="py-2 px-2 text-xs">
+                           <span className="inline-flex items-center gap-1.5">
+                             {it?.title ?? "—"}
+                             <span className="rounded-md border border-muted-foreground/40 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">Extra</span>
+                           </span>
+                         </td>
+                         <td className="py-2 px-2 text-xs">{f.supplier_name ?? "—"}</td>
+                         <td className="py-2 px-2 text-right text-xs">{formatBRL(f.sale_value)}</td>
+                         <td className="py-2 px-2 text-right text-xs">{formatBRL(f.tax_value)}</td>
+                         <td className="py-2 px-2 text-right text-xs">{formatBRL(f.discount_value)}</td>
+                         <td className="py-2 px-2 text-right text-xs">
+                           {formatBRL(f.commission_value)}
+                           <div className="text-[10px] text-muted-foreground">{f.commission_pct}%</div>
+                         </td>
+                         <td className="py-2 px-2 text-xs">{f.due_date ? new Date(f.due_date + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                         <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(f.total)}</td>
+                         <td className="py-2 px-2 text-right">
+                           <Button size="sm" variant="ghost" onClick={() => { setEditing(f); setSelectedItem(f.order_item_id); setOpen(true); }}>
+                             <Pencil className="h-3.5 w-3.5" />
+                           </Button>
+                           <Button size="sm" variant="ghost" onClick={() => confirm("Remover lançamento?") && remove.mutate(f.id)}>
+                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                           </Button>
+                         </td>
+                       </tr>
+                     );
+                   })}
                   {extraItemRows.map((p, idx) => (
                     <tr key={`pkg-extra-${idx}`} className="border-b border-border/50 bg-muted/20">
                       <td className="py-2 px-2 text-xs">
@@ -2441,10 +2495,10 @@ function FinanceDialog({
 
   // Se não for pacote pronto, tenta preencher valor/taxa a partir do próprio item selecionado
   const itemDetails = (selectedItemObj?.details ?? {}) as Record<string, unknown>;
-  const itemSale = Number(itemDetails.value ?? 0) || 0;
+  const itemGross = Number(itemDetails.value ?? 0) || 0;
   const itemTax = Number(itemDetails.tax_value ?? 0) || 0;
-  const defaultSale = packageDefaults?.sale_value ?? itemSale;
-  const defaultTax = packageDefaults?.tax_value ?? itemTax;
+  const defaultSale = Math.max(0, itemGross - itemTax);
+  const defaultTax = itemTax;
 
 
   const [form, setForm] = useState({
@@ -2470,30 +2524,30 @@ function FinanceDialog({
       sale_value: sale,
       tax_value: tax,
       discount_value: disc,
-      commission_value: initial?.commission_value ?? Number(((sale - tax) * (basePct / 100)).toFixed(2)),
+      commission_value: initial?.commission_value ?? Number((sale * (basePct / 100)).toFixed(2)),
       commission_pct: basePct,
       exchange_rate: initial?.exchange_rate ?? 1,
       due_date: initial?.due_date ?? "",
-      total: initial?.total ?? Number((sale - disc).toFixed(2)),
+      total: initial?.total ?? Number((sale + tax - disc).toFixed(2)),
       notes: initial?.notes ?? "",
     });
   }, [initial, selectedKind, isPackage, defaultSale, defaultTax]);
 
 
-  // Recalcula comissão sobre (tarifa − taxas) e total = tarifa − desconto
+  // Tarifa já é líquida de taxas; total = tarifa + taxas − desconto.
   const recalc = (patch: Partial<typeof form>) => {
     const next = { ...form, ...patch };
     const sale = Number(next.sale_value) || 0;
     const tax = Number(next.tax_value) || 0;
     const disc = Number(next.discount_value) || 0;
     const pct = Number(next.commission_pct) || 0;
-    const base = Math.max(0, sale - tax);
+    const base = Math.max(0, sale);
     next.commission_value = Number((base * (pct / 100)).toFixed(2));
-    next.total = Number((sale - disc).toFixed(2));
+    next.total = Number((sale + tax - disc).toFixed(2));
     setForm(next);
   };
 
-  const base = Math.max(0, (Number(form.sale_value) || 0) - (Number(form.tax_value) || 0));
+  const base = Math.max(0, Number(form.sale_value) || 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -2549,7 +2603,7 @@ function FinanceDialog({
               </div>
             </div>
             <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-              <span>Base: {formatBRL(base)} (tarifa − taxas)</span>
+               <span>Base: {formatBRL(base)} (tarifa sem taxas)</span>
               <span>
                 Comissão: <span className="font-semibold text-brand-orange">{formatBRL(form.commission_value)}</span>
               </span>
