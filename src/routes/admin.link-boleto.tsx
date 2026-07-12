@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FileText, Copy, ExternalLink, MessageCircle, Vault } from "lucide-react";
 import { toast } from "sonner";
 import { paymentBoletoLinkUrl, whatsappUrl } from "@/lib/checkout-config";
@@ -7,6 +7,7 @@ import { formatBRL } from "@/lib/format";
 import { saveCofreEntry } from "@/lib/cofre-storage";
 
 export const Route = createFileRoute("/admin/link-boleto")({
+  validateSearch: (s: Record<string, unknown>) => s as Record<string, string | undefined>,
   component: LinkBoletoGenerator,
 });
 
