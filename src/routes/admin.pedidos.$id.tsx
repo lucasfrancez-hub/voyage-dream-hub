@@ -526,27 +526,43 @@ function ItemCard({
           <div className="mt-1 text-sm text-muted-foreground grid gap-0.5">
             {isFlight ? (
               <>
-                {typeof d.origin === "string" && typeof d.destination === "string" && (
-                  <div>{d.origin as string} → {d.destination as string}</div>
-                )}
+                {(() => {
+                  const from = (d.from_iata as string) || (d.origin as string) || "";
+                  const to = (d.to_iata as string) || (d.destination as string) || "";
+                  const fromCity = d.from_city as string | undefined;
+                  const toCity = d.to_city as string | undefined;
+                  return (from || to) ? (
+                    <div>
+                      {from}{fromCity ? ` (${fromCity})` : ""} → {to}{toCity ? ` (${toCity})` : ""}
+                    </div>
+                  ) : null;
+                })()}
                 {typeof d.airline === "string" && <div>Cia: {d.airline as string}</div>}
                 {typeof d.flight_number === "string" && <div>Voo: {d.flight_number as string}</div>}
-                {typeof d.departure === "string" && <div>Partida: {d.departure as string}</div>}
-                {typeof d.arrival === "string" && <div>Chegada: {d.arrival as string}</div>}
-                {typeof d.cabin === "string" && <div>Cabine: {d.cabin as string}</div>}
+                {typeof (d.depart_at ?? d.departure) === "string" && (
+                  <div>Partida: {formatDT((d.depart_at ?? d.departure) as string)}</div>
+                )}
+                {typeof (d.arrive_at ?? d.arrival) === "string" && (
+                  <div>Chegada: {formatDT((d.arrive_at ?? d.arrival) as string)}</div>
+                )}
+                {typeof (d.cabin_class ?? d.cabin) === "string" && <div>Cabine: {(d.cabin_class ?? d.cabin) as string}</div>}
               </>
             ) : (
               <>
+                {typeof d.destination === "string" && <div>{d.destination as string}</div>}
                 {typeof d.address === "string" && <div>{d.address as string}</div>}
                 {typeof d.room === "string" && <div>Quarto: {d.room as string}</div>}
-                {typeof d.board === "string" && <div>Regime: {d.board as string}</div>}
-                {typeof d.checkin === "string" && typeof d.checkout === "string" && (
-                  <div>Check-in {d.checkin as string} · Check-out {d.checkout as string}</div>
-                )}
+                {typeof (d.board ?? d.meal_plan) === "string" && <div>Regime: {(d.board ?? d.meal_plan) as string}</div>}
+                {(() => {
+                  const ci = (d.check_in as string) || (d.checkin as string) || "";
+                  const co = (d.check_out as string) || (d.checkout as string) || "";
+                  return (ci || co) ? <div>Check-in {formatDate(ci)} · Check-out {formatDate(co)}</div> : null;
+                })()}
                 {typeof d.nights === "number" && <div>{d.nights as number} noite(s)</div>}
                 {typeof d.guests === "string" && <div>Hóspedes: {d.guests as string}</div>}
               </>
             )}
+
 
             {typeof d.notes === "string" && (d.notes as string).trim() && (
               <div className="mt-1 whitespace-pre-line text-xs">{d.notes as string}</div>
