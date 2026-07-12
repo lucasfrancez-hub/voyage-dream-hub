@@ -383,6 +383,86 @@ function PassengersSection({
   );
 }
 
+type PassengerPatch = Partial<Pick<OrderPassenger,
+  "full_name" | "passenger_type" | "birth_date" | "cpf" | "ticket_number"
+>>;
+
+function PassengerRow({
+  passenger, onPatch, onDelete,
+}: {
+  passenger: OrderPassenger;
+  onPatch: (patch: PassengerPatch) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <tr className="border-b border-border/50 group">
+      <td className="py-1 px-1">
+        <InlineText value={passenger.full_name} placeholder="Nome" className="font-medium"
+          onCommit={(v) => v.trim() && v !== passenger.full_name && onPatch({ full_name: v.trim() })} />
+      </td>
+      <td className="py-1 px-1">
+        <Select value={passenger.passenger_type}
+          onValueChange={(v) => onPatch({ passenger_type: v as "ADT" | "CHD" | "INF" })}>
+          <SelectTrigger className="h-7 w-[70px] text-xs border-transparent hover:border-border">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ADT">ADT</SelectItem>
+            <SelectItem value="CHD">CHD</SelectItem>
+            <SelectItem value="INF">INF</SelectItem>
+          </SelectContent>
+        </Select>
+      </td>
+      <td className="py-1 px-1">
+        <InlineText type="date" value={passenger.birth_date ?? ""} placeholder="—" className="text-xs"
+          onCommit={(v) => (v || null) !== passenger.birth_date && onPatch({ birth_date: v || null })} />
+      </td>
+      <td className="py-1 px-1">
+        <InlineText value={passenger.cpf ?? ""} placeholder="CPF" className="text-xs font-mono"
+          onCommit={(v) => (v || null) !== passenger.cpf && onPatch({ cpf: v || null })} />
+      </td>
+      <td className="py-1 px-1">
+        <InlineText value={passenger.ticket_number ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
+          onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
+      </td>
+      <td className="py-1 px-1 text-right">
+        <Button size="sm" variant="ghost" onClick={onDelete} className="opacity-0 group-hover:opacity-100 transition">
+          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+        </Button>
+      </td>
+    </tr>
+  );
+}
+
+function InlineText({
+  value, onCommit, placeholder, className, type = "text",
+}: {
+  value: string;
+  onCommit: (v: string) => void;
+  placeholder?: string;
+  className?: string;
+  type?: "text" | "date";
+}) {
+  const [v, setV] = useState(value);
+  useMemo(() => { setV(value); }, [value]);
+  return (
+    <input
+      type={type}
+      value={v}
+      placeholder={placeholder}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={() => onCommit(v)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); }
+        if (e.key === "Escape") { setV(value); (e.target as HTMLInputElement).blur(); }
+      }}
+      className={`w-full bg-transparent rounded px-2 py-1 border border-transparent hover:border-border focus:border-primary focus:outline-none focus:bg-background ${className ?? ""}`}
+    />
+  );
+}
+
+
+
 function PassengerDialog({
   open, onOpenChange, initial, onSave,
 }: {
