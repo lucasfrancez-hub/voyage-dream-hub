@@ -137,7 +137,9 @@ function AdminLayout() {
         <nav className="md:hidden border-t border-border overflow-x-auto">
           <div className="mx-auto max-w-7xl px-6 py-2 flex items-center gap-1 whitespace-nowrap">
             <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
+            <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" active={pathname.startsWith("/admin/dashboard")} />
             <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
+
             <CartaoNav pathname={pathname} />
 
             <NavItem to="/admin/link-boleto" icon={FileText} label="Boleto" active={pathname.startsWith("/admin/link-boleto")} />
