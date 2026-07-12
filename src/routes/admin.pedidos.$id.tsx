@@ -270,7 +270,6 @@ function OrderDetailPage() {
             <TabsTrigger value="service"><Package className="h-3.5 w-3.5 mr-1.5" /> Serviços ({serviceItems.length})</TabsTrigger>
             <TabsTrigger value="cancelled"><XCircle className="h-3.5 w-3.5 mr-1.5" /> Cancelados ({cancelledItems.length})</TabsTrigger>
             <TabsTrigger value="contract"><FileText className="h-3.5 w-3.5 mr-1.5" /> Contrato</TabsTrigger>
-            <TabsTrigger value="finance"><Percent className="h-3.5 w-3.5 mr-1.5" /> Ajuste de comissão</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hotel" className="mt-4">
