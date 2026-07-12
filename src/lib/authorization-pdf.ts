@@ -120,6 +120,25 @@ async function buildAuthorizationDoc(opts: {
     return `#${String(n % 100000000).padStart(8, "0")}`;
   })();
   const displayOrderNumber = a.order_number && a.order_number.trim() ? a.order_number.trim() : numericFromUuid;
+
+  // ── Datas exibidas na autorização (fluxo ClickSign) ──
+  // "Válido até" = geração + 12 meses. "Assinado em" segue rodapé da ClickSign
+  // quando ainda não há data efetiva de assinatura.
+  const signedAtLabel = pendingSignature
+    ? (a.signed_at ? fmtDate(a.signed_at) : "Conforme rodapé ClickSign")
+    : fmtDate(a.signed_at);
+  const validUntilLabel = (() => {
+    if (pendingSignature) {
+      const base = new Date(createdAt || Date.now());
+      if (!isNaN(base.getTime())) {
+        const d = new Date(base);
+        d.setMonth(d.getMonth() + 12);
+        return fmtDate(d.toISOString());
+      }
+    }
+    return fmtDate(a.valid_until);
+  })();
+
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
