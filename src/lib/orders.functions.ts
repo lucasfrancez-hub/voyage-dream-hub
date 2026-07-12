@@ -58,11 +58,14 @@ export type OrderHeader = {
   totalPrice: number;
   paymentMethod: string;
   notes: string | null;
+  travelReason: string | null;
+  coupon: string | null;
   supplierName: string | null;
   supplierOrderNumber: string | null;
   airlineLocator: string | null;
   packageSnapshot: Json;
 };
+
 
 export type OrderPayment = {
   id: string;
