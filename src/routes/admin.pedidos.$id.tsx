@@ -173,6 +173,25 @@ function OrderDetailPage() {
                   <DropdownMenuLabel>Escolha a modalidade</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {(() => {
+                    const snap = (order.packageSnapshot ?? {}) as Record<string, unknown>;
+                    const hotelItem = detail.items.find((i) => i.kind === "hotel" && i.status !== "cancelled");
+                    const flightItems = detail.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
+                    const pax = detail.passengers.map((p) => p.full_name).filter(Boolean).join("\n");
+                    const flightsTxt = flightItems.map((f) => f.title).join("\n");
+                    const hotelTxt = hotelItem?.title
+                      ?? (snap.hotel_name ? String(snap.hotel_name) : "");
+                    const checkin = snap.going_date ? String(snap.going_date) : "";
+                    const checkout = snap.return_date ? String(snap.return_date) : "";
+                    const nights = snap.nights != null ? String(snap.nights) : "";
+                    const destination = snap.destination ? String(snap.destination) : "";
+                    const origin = snap.origin ? String(snap.origin) : "";
+                    const packageTitle = snap.title ? String(snap.title) : "";
+                    const desc = packageTitle
+                      || [destination && `Pacote ${destination}`, origin && `saindo de ${origin}`].filter(Boolean).join(" ")
+                      || `Pedido ${order.orderNumber}`;
+                    const travelDate = checkin && checkout
+                      ? `${new Date(checkin + "T00:00").toLocaleDateString("pt-BR")} a ${new Date(checkout + "T00:00").toLocaleDateString("pt-BR")}`
+                      : "";
                     const search = {
                       customer: order.fullName,
                       phone: order.phone,
@@ -181,16 +200,35 @@ function OrderDetailPage() {
                       orderNumber: order.orderNumber,
                       locator: order.airlineLocator ?? "",
                       supplier: order.supplierName ?? "",
+                      description: desc,
+                      passengers: pax,
+                      hotel: hotelTxt,
+                      flights: flightsTxt,
+                      checkin,
+                      checkout,
+                      nights,
+                      days: nights ? String(Number(nights) + 1) : "",
+                      travelDate,
+                      route: [origin, destination].filter(Boolean).join(" → "),
+                      imageUrl: snap.image_url ? String(snap.image_url) : "",
+                      autogen: "1",
+                    };
+                    const openInNewTab = (path: string) => {
+                      const qs = new URLSearchParams();
+                      for (const [k, v] of Object.entries(search)) {
+                        if (v != null && String(v).length > 0) qs.set(k, String(v));
+                      }
+                      window.open(`${path}?${qs.toString()}`, "_blank", "noopener");
                     };
                     return (
                       <>
-                        <DropdownMenuItem onClick={() => navigate({ to: "/admin/link-pagamento", search: search as never })}>
+                        <DropdownMenuItem onClick={() => openInNewTab("/admin/link-pagamento")}>
                           <FileText className="h-3.5 w-3.5 mr-2" /> Seguro (personalizado)
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate({ to: "/admin/link-cartao-simples", search: search as never })}>
+                        <DropdownMenuItem onClick={() => openInNewTab("/admin/link-cartao-simples")}>
                           <DollarSign className="h-3.5 w-3.5 mr-2" /> Convencional (cartão simples)
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate({ to: "/admin/link-boleto", search: search as never })}>
+                        <DropdownMenuItem onClick={() => openInNewTab("/admin/link-boleto")}>
                           <FileText className="h-3.5 w-3.5 mr-2" /> Boleto
                         </DropdownMenuItem>
                       </>
@@ -198,6 +236,7 @@ function OrderDetailPage() {
                   })()}
                 </DropdownMenuContent>
               </DropdownMenu>
+
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
