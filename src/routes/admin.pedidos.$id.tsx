@@ -984,7 +984,6 @@ function FlightReservationCard({
             </div>
           )}
           {/* Bilhete removido daqui — agora aparece embaixo do nome de cada passageiro. */}
-          {void ticket}
         </div>
 
         {/* Coluna 2: segmentos */}
