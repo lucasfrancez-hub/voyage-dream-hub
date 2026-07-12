@@ -390,6 +390,41 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Adiciona/remove entradas nos históricos (observações / motivos de viagem).
+export const appendOrderLogEntry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; key: "notes_log" | "travel_reason_log"; text: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const text = data.text.trim();
+    if (!text) throw new Error("Texto vazio");
+    const { data: row, error: e1 } = await context.supabase.from("orders").select(data.key).eq("id", data.id).single();
+    if (e1) throw new Error(e1.message);
+    const current = Array.isArray((row as Record<string, unknown>)[data.key]) ? ((row as Record<string, OrderLogEntry[]>)[data.key]) : [];
+    const entry: OrderLogEntry = { text, created_at: new Date().toISOString() };
+    const next = [...current, entry];
+    const { error: e2 } = await context.supabase.from("orders").update({ [data.key]: next } as never).eq("id", data.id);
+    if (e2) throw new Error(e2.message);
+    return { ok: true };
+  });
+
+export const deleteOrderLogEntry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; key: "notes_log" | "travel_reason_log"; index: number }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { data: row, error: e1 } = await context.supabase.from("orders").select(data.key).eq("id", data.id).single();
+    if (e1) throw new Error(e1.message);
+    const current = Array.isArray((row as Record<string, unknown>)[data.key]) ? ((row as Record<string, OrderLogEntry[]>)[data.key]) : [];
+    const next = current.filter((_, i) => i !== data.index);
+    const { error: e2 } = await context.supabase.from("orders").update({ [data.key]: next } as never).eq("id", data.id);
+    if (e2) throw new Error(e2.message);
+    return { ok: true };
+  });
+
+
 // Atualiza somente o total_price do pedido (usado no ajuste de comissão).
 export const updateOrderTotalPrice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
