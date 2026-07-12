@@ -558,9 +558,6 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   const sumSale = flightFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
   const sumTax = flightFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
   const sumDisc = flightFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
-  const sumTotal = flightFins.length > 0
-    ? flightFins.reduce((s, f) => s + Number(f.total || 0), 0)
-    : Number(d.order.totalPrice ?? 0);
   const showDisc = sumDisc > 0.005;
 
   const paxCols: Col[] = showDisc
@@ -581,10 +578,12 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
       ];
   drawTableHeader(ctx, paxCols);
 
+  // Valor por passageiro = (Tarifa + Taxas − Desconto) / passageiros.
+  // Comissão NÃO entra aqui — é ganho da agência, não custo do passageiro.
   const perSale = sumSale / paxCount;
   const perTax = sumTax / paxCount;
   const perDisc = sumDisc / paxCount;
-  const perTotal = sumTotal / paxCount;
+  const perTotal = Number((perSale + perTax - perDisc).toFixed(2));
 
   for (const p of d.passengers) {
     const row = showDisc
