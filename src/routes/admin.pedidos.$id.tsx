@@ -228,9 +228,9 @@ function OrderDetailPage() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => toast.info("Envio de contrato — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => toast.info("Envio de confirmação — em breve")}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Confirmação</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info("Envio de pagamento — em breve")}><DollarSign className="h-3.5 w-3.5 mr-2" /> Pagamento ao cliente</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => toast.info("Envio de voucher — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
                 </DropdownMenuContent>
+
               </DropdownMenu>
 
               <DropdownMenu>
