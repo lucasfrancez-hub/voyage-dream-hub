@@ -1421,7 +1421,8 @@ function ItemDialog({
     supplier_locator: string | null;
     details: Json;
     status: "confirmed" | "reserved" | "cancelled" | "pending";
-    siblings?: { id: string; details: Json }[];
+    siblings?: { id?: string; title: string; details: Json; sort_order: number }[];
+    removedSiblingIds?: string[];
   }) => void;
 }) {
   const initialDetails = (initial?.details ?? {}) as Record<string, unknown>;
@@ -1435,8 +1436,7 @@ function ItemDialog({
     }
     return clean;
   });
-  // Trechos adicionais (ex.: volta) do mesmo aéreo — editados junto.
-  const flightSiblings = kind === "flight" ? (siblings ?? []) : [];
+
   const cleanDetails = (raw: unknown): Record<string, string | number> => {
     const clean: Record<string, string | number> = {};
     for (const [k, v] of Object.entries((raw ?? {}) as Record<string, unknown>)) {
@@ -1444,8 +1444,16 @@ function ItemDialog({
     }
     return clean;
   };
-  const [sibDetails, setSibDetails] = useState<Record<string, string | number>[]>(
-    () => flightSiblings.map((s) => cleanDetails(s.details))
+
+  // Segmentos adicionais do mesmo aéreo (ex.: volta / conexões).
+  // Segmento 0 = "main" (initial); segmentos 1+ = irmãos (podem ter id existente ou serem novos).
+  type Segment = { id?: string; details: Record<string, string | number> };
+  const [extraSegments, setExtraSegments] = useState<Segment[]>(
+    kind === "flight" ? (siblings ?? []).map((s) => ({ id: s.id, details: cleanDetails(s.details) })) : []
+  );
+  const originalSiblingIds = useMemo(
+    () => (kind === "flight" ? (siblings ?? []).map((s) => s.id) : []),
+    [siblings, kind]
   );
 
   useMemo(() => {
@@ -1453,9 +1461,13 @@ function ItemDialog({
     setLocator(initial?.supplier_locator ?? "");
     setStatusVal((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
     setDetails(cleanDetails(initial?.details));
-    setSibDetails(flightSiblings.map((s) => cleanDetails(s.details)));
+    setExtraSegments(
+      kind === "flight"
+        ? (siblings ?? []).map((s) => ({ id: s.id, details: cleanDetails(s.details) }))
+        : []
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial, siblings]);
+  }, [initial, siblings, kind]);
 
   // Auto-status:
   // Hotel: sem localizador = Solicitado; com localizador = Confirmado.
@@ -1473,9 +1485,73 @@ function ItemDialog({
 
 
   const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
-  const setSibField = (idx: number, k: string, v: string) =>
-    setSibDetails((arr) => arr.map((d, i) => (i === idx ? { ...d, [k]: v } : d)));
+  const setSegField = (idx: number, k: string, v: string) =>
+    setExtraSegments((arr) => arr.map((s, i) => (i === idx ? { ...s, details: { ...s.details, [k]: v } } : s)));
+  const addSegment = () => setExtraSegments((arr) => [...arr, { details: {} }]);
+  const removeSegment = (idx: number) => setExtraSegments((arr) => arr.filter((_, i) => i !== idx));
 
+  const segmentTitle = (d: Record<string, string | number>): string => {
+    const airline = String(d.airline ?? "").trim();
+    const flightNo = String(d.flight_number ?? "").trim();
+    const from = String(d.from_iata ?? d.origin ?? "").trim();
+    const to = String(d.to_iata ?? d.destination ?? "").trim();
+    const route = from && to ? `${from} → ${to}` : (from || to || "");
+    const prefix = [airline, flightNo].filter(Boolean).join(" ");
+    if (prefix && route) return `${prefix} — ${route}`;
+    return prefix || route || "Voo";
+  };
+
+  const renderFlightSegment = (
+    d: Record<string, string | number>,
+    label: string,
+    onChangeField: (k: string, v: string) => void,
+    onRemove?: () => void,
+  ) => (
+    <div className="rounded-lg border border-border/60 p-3 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+        {onRemove && (
+          <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={onRemove}>
+            Remover trecho
+          </Button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Origem</Label><Input value={String(d.from_iata ?? d.origin ?? "")} onChange={(e) => onChangeField("from_iata", e.target.value)} placeholder="GRU" /></div>
+        <div><Label>Destino</Label><Input value={String(d.to_iata ?? d.destination ?? "")} onChange={(e) => onChangeField("to_iata", e.target.value)} placeholder="CUR" /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Cia aérea</Label><Input value={String(d.airline ?? "")} onChange={(e) => onChangeField("airline", e.target.value)} placeholder="LATAM" /></div>
+        <div><Label>Nº do voo</Label><Input value={String(d.flight_number ?? "")} onChange={(e) => onChangeField("flight_number", e.target.value)} placeholder="LA 3331" /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Partida</Label><Input type="datetime-local" value={String(d.depart_at ?? d.departure ?? "")} onChange={(e) => onChangeField("depart_at", e.target.value)} /></div>
+        <div><Label>Chegada</Label><Input type="datetime-local" value={String(d.arrive_at ?? d.arrival ?? "")} onChange={(e) => onChangeField("arrive_at", e.target.value)} /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Classe / Cabine</Label><Input value={String(d.cabin_class ?? d.cabin ?? "")} onChange={(e) => onChangeField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
+        <div>
+          <Label>Tipo</Label>
+          <Select value={String(d.direction ?? "")} onValueChange={(v) => onChangeField("direction", v)}>
+            <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="outbound">Ida</SelectItem>
+              <SelectItem value="return">Volta</SelectItem>
+              <SelectItem value="connection">Conexão</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+
+  const labelForSegment = (d: Record<string, string | number>, isFirst: boolean, index: number): string => {
+    const dir = String(d.direction ?? "");
+    if (dir === "return") return "Volta";
+    if (dir === "outbound") return "Ida";
+    if (dir === "connection") return `Conexão ${index}`;
+    return isFirst ? "Trecho 1" : `Trecho ${index + 1}`;
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1487,10 +1563,12 @@ function ItemDialog({
         </DialogHeader>
         <div className="grid gap-3 max-h-[65vh] overflow-y-auto pr-1">
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <Label>{kind === "hotel" ? "Nome do hotel" : kind === "flight" ? "Trecho / rota" : "Serviço"}</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "hotel" ? "Ex: Trupial Hotel & Casino" : kind === "flight" ? "Ex: GRU → CUR" : "Ex: Traslado, Passeio, Seguro viagem…"} />
-            </div>
+            {kind !== "flight" && (
+              <div className="col-span-2">
+                <Label>{kind === "hotel" ? "Nome do hotel" : "Serviço"}</Label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "hotel" ? "Ex: Trupial Hotel & Casino" : "Ex: Traslado, Passeio, Seguro viagem…"} />
+              </div>
+            )}
             <div className={kind === "other" ? "" : "col-span-2"}>
               <Label>Localizador do fornecedor</Label>
               <Input value={locator} onChange={(e) => setLocator(e.target.value)} placeholder="Ex: JXJDZZ" />
@@ -1501,7 +1579,7 @@ function ItemDialog({
               )}
               {kind === "flight" && (
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Sem localizador nem bilhete = Solicitado. Só localizador = Reservado. Com bilhete = Confirmado.
+                  Compartilhado com todos os trechos. Sem localizador nem bilhete = Solicitado. Só localizador = Reservado. Com bilhete = Confirmado.
                 </p>
               )}
             </div>
@@ -1561,71 +1639,22 @@ function ItemDialog({
 
           ) : kind === "flight" ? (
             <>
-              <div className="rounded-lg border border-border/60 p-3 space-y-3">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {String(details.direction ?? "") === "return" ? "Volta" : String(details.direction ?? "") === "outbound" ? "Ida" : "Trecho"}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Origem</Label><Input value={String(details.from_iata ?? details.origin ?? "")} onChange={(e) => setField("from_iata", e.target.value)} placeholder="GRU" /></div>
-                  <div><Label>Destino</Label><Input value={String(details.to_iata ?? details.destination ?? "")} onChange={(e) => setField("to_iata", e.target.value)} placeholder="CUR" /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Cia aérea</Label><Input value={String(details.airline ?? "")} onChange={(e) => setField("airline", e.target.value)} placeholder="LATAM" /></div>
-                  <div><Label>Nº do voo</Label><Input value={String(details.flight_number ?? "")} onChange={(e) => setField("flight_number", e.target.value)} placeholder="LA 3331" /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Partida</Label><Input type="datetime-local" value={String(details.depart_at ?? details.departure ?? "")} onChange={(e) => setField("depart_at", e.target.value)} /></div>
-                  <div><Label>Chegada</Label><Input type="datetime-local" value={String(details.arrive_at ?? details.arrival ?? "")} onChange={(e) => setField("arrive_at", e.target.value)} /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Classe / Cabine</Label><Input value={String(details.cabin_class ?? details.cabin ?? "")} onChange={(e) => setField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
-                  <div>
-                    <Label>Direção</Label>
-                    <Select value={String(details.direction ?? "")} onValueChange={(v) => setField("direction", v)}>
-                      <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="outbound">Ida</SelectItem>
-                        <SelectItem value="return">Volta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
+              {renderFlightSegment(details, labelForSegment(details, true, 0), setField)}
 
-              {flightSiblings.map((sib, idx) => {
-                const sd = sibDetails[idx] ?? {};
-                const dirLabel = String(sd.direction ?? "") === "return" ? "Volta" : String(sd.direction ?? "") === "outbound" ? "Ida" : "Trecho";
-                return (
-                  <div key={sib.id} className="rounded-lg border border-border/60 p-3 space-y-3">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{dirLabel}</div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><Label>Origem</Label><Input value={String(sd.from_iata ?? sd.origin ?? "")} onChange={(e) => setSibField(idx, "from_iata", e.target.value)} placeholder="GRU" /></div>
-                      <div><Label>Destino</Label><Input value={String(sd.to_iata ?? sd.destination ?? "")} onChange={(e) => setSibField(idx, "to_iata", e.target.value)} placeholder="CUR" /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><Label>Cia aérea</Label><Input value={String(sd.airline ?? "")} onChange={(e) => setSibField(idx, "airline", e.target.value)} placeholder="LATAM" /></div>
-                      <div><Label>Nº do voo</Label><Input value={String(sd.flight_number ?? "")} onChange={(e) => setSibField(idx, "flight_number", e.target.value)} placeholder="LA 3332" /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><Label>Partida</Label><Input type="datetime-local" value={String(sd.depart_at ?? sd.departure ?? "")} onChange={(e) => setSibField(idx, "depart_at", e.target.value)} /></div>
-                      <div><Label>Chegada</Label><Input type="datetime-local" value={String(sd.arrive_at ?? sd.arrival ?? "")} onChange={(e) => setSibField(idx, "arrive_at", e.target.value)} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><Label>Classe / Cabine</Label><Input value={String(sd.cabin_class ?? sd.cabin ?? "")} onChange={(e) => setSibField(idx, "cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
-                      <div>
-                        <Label>Direção</Label>
-                        <Select value={String(sd.direction ?? "")} onValueChange={(v) => setSibField(idx, "direction", v)}>
-                          <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="outbound">Ida</SelectItem>
-                            <SelectItem value="return">Volta</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {extraSegments.map((seg, idx) => (
+                <div key={seg.id ?? `new-${idx}`}>
+                  {renderFlightSegment(
+                    seg.details,
+                    labelForSegment(seg.details, false, idx + 1),
+                    (k, v) => setSegField(idx, k, v),
+                    () => removeSegment(idx),
+                  )}
+                </div>
+              ))}
+
+              <Button type="button" variant="outline" size="sm" onClick={addSegment} className="self-start">
+                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar trecho (conexão / volta)
+              </Button>
             </>
           ) : (
             <>
@@ -1646,39 +1675,55 @@ function ItemDialog({
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => {
-            if (!title.trim()) { toast.error("Título é obrigatório"); return; }
             const numFields = new Set(["nights", "value", "quantity", "hotel_stars"]);
-            const cleanDetails: Record<string, unknown> = {};
-            for (const [k, v] of Object.entries(details)) {
-              if (v === "" || v === undefined || v === null) continue;
-              cleanDetails[k] = numFields.has(k) ? Number(v) : v;
+            const buildClean = (raw: Record<string, string | number>): Record<string, unknown> => {
+              const cd: Record<string, unknown> = {};
+              for (const [k, v] of Object.entries(raw)) {
+                if (v === "" || v === undefined || v === null) continue;
+                cd[k] = numFields.has(k) ? Number(v) : v;
+              }
+              return cd;
+            };
+
+            const cleanMain = buildClean(details);
+            let effectiveTitle = title.trim();
+            if (kind === "flight") {
+              effectiveTitle = segmentTitle(details);
             }
+            if (!effectiveTitle) { toast.error("Preencha os dados do trecho"); return; }
+
             // Deriva status final (não deixa o usuário salvar um status incoerente)
             let finalStatus = status;
             if (status !== "cancelled") {
               const loc = locator.trim();
-              const tkt = String(cleanDetails.ticket_number ?? "").trim();
+              const tkt = String(cleanMain.ticket_number ?? "").trim();
               if (kind === "hotel") finalStatus = loc ? "confirmed" : "pending";
               else if (kind === "flight") finalStatus = tkt ? "confirmed" : loc ? "reserved" : "pending";
             }
+
             const siblingsPayload = kind === "flight"
-              ? flightSiblings.map((sib, idx) => {
-                  const raw = sibDetails[idx] ?? {};
-                  const cd: Record<string, unknown> = {};
-                  for (const [k, v] of Object.entries(raw)) {
-                    if (v === "" || v === undefined || v === null) continue;
-                    cd[k] = numFields.has(k) ? Number(v) : v;
-                  }
-                  return { id: sib.id, details: cd as Json };
+              ? extraSegments.map((seg, idx) => {
+                  const cd = buildClean(seg.details);
+                  return {
+                    id: seg.id,
+                    title: segmentTitle(seg.details),
+                    details: cd as Json,
+                    sort_order: idx + 1,
+                  };
                 })
               : undefined;
+
+            const currentIds = new Set(extraSegments.map((s) => s.id).filter((x): x is string => !!x));
+            const removedSiblingIds = originalSiblingIds.filter((id) => !currentIds.has(id));
+
             onSave({
               kind,
-              title: title.trim(),
+              title: effectiveTitle,
               supplier_locator: locator.trim() || null,
-              details: cleanDetails as Json,
+              details: cleanMain as Json,
               status: finalStatus,
               siblings: siblingsPayload,
+              removedSiblingIds,
             });
           }}>Salvar</Button>
         </DialogFooter>
