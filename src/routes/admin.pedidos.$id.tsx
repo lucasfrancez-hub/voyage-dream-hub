@@ -2898,104 +2898,107 @@ function PaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>{initial ? "Editar pagamento" : "Adicionar pagamento"}</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <Label>Forma de pagamento</Label>
-            <Select value={method} onValueChange={(v) => setField("method", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PAYMENT_METHOD_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Status</Label>
-            <Select value={form.status ?? "paid"} onValueChange={(v) => setField("status", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PAYMENT_STATUS_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Valor pago (R$)</Label>
-            <Input type="number" step="0.01" value={form.amount ?? 0}
-              onChange={(e) => setField("amount", Number(e.target.value))} />
-          </div>
-          <div>
-            <Label>Nº do caixa</Label>
-            <Input value={form.cashier_number ?? ""} onChange={(e) => setField("cashier_number", e.target.value)} />
-          </div>
-          {showInstallments && (
-            <>
+        <Tabs defaultValue="pagamento" className="flex-1 min-h-0 flex flex-col">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
+            <TabsTrigger value="pagador">Dados do pagador</TabsTrigger>
+          </TabsList>
+          <TabsContent value="pagamento" className="flex-1 min-h-0 overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <Label>Parcelas</Label>
-                <Input type="number" min={1} value={form.installments ?? ""}
-                  onChange={(e) => setField("installments", e.target.value ? Number(e.target.value) : null)} />
+                <Label>Forma de pagamento</Label>
+                <Select value={method} onValueChange={(v) => setField("method", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_METHOD_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <Label>Valor por parcela</Label>
-                <Input type="number" step="0.01" value={form.installment_amount ?? ""}
-                  onChange={(e) => setField("installment_amount", e.target.value ? Number(e.target.value) : null)} />
-              </div>
-            </>
-          )}
-          {showCard && (
-            <>
-              <div>
-                <Label>Bandeira</Label>
-                <Input value={form.card_brand ?? ""} onChange={(e) => setField("card_brand", e.target.value)} placeholder="Visa, Master, Elo…" />
+                <Label>Status</Label>
+                <Select value={form.status ?? "paid"} onValueChange={(v) => setField("status", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_STATUS_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <Label>Últimos 4 dígitos</Label>
-                <Input maxLength={4} value={form.card_last4 ?? ""} onChange={(e) => setField("card_last4", e.target.value)} />
+                <Label>Valor pago (R$)</Label>
+                <Input type="number" step="0.01" value={form.amount ?? 0}
+                  onChange={(e) => setField("amount", Number(e.target.value))} />
               </div>
-            </>
-          )}
-          <div>
-            <Label>Autorização (banco)</Label>
-            <Input value={form.authorization_code ?? ""} onChange={(e) => setField("authorization_code", e.target.value)} />
-          </div>
-          <div>
-            <Label>Fornecedor / Adquirente</Label>
-            <Input value={form.provider ?? ""} onChange={(e) => setField("provider", e.target.value)} placeholder="FunPay, Cielo…" />
-          </div>
-          <div>
-            <Label>Nº da proposta</Label>
-            <Input value={form.proposal_number ?? ""} onChange={(e) => setField("proposal_number", e.target.value)} />
-          </div>
-          <div>
-            <Label>Data do pagamento</Label>
-            <Input type="datetime-local"
-              value={form.paid_at ? new Date(form.paid_at).toISOString().slice(0, 16) : ""}
-              onChange={(e) => setField("paid_at", e.target.value ? new Date(e.target.value).toISOString() : null)} />
-          </div>
-          <div>
-            <Label>Incluído por</Label>
-            <Input value={form.added_by_name ?? ""} onChange={(e) => setField("added_by_name", e.target.value)} />
-          </div>
-          <div className="md:col-span-2">
-            <Label>Descrição</Label>
-            <Input value={form.description ?? ""} onChange={(e) => setField("description", e.target.value)} placeholder="Ex.: FINANCIAMENTO – Aprovado" />
-          </div>
-          <div className="md:col-span-2">
-            <Label>Observações</Label>
-            <Textarea value={form.notes ?? ""} onChange={(e) => setField("notes", e.target.value)} />
-          </div>
-
-          {/* Dados do pagador — usados no contrato e no recibo */}
-          <div className="md:col-span-2 mt-2 rounded-lg border border-border/60 p-3 space-y-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Dados do pagador (contrato / recibo)
+              <div>
+                <Label>Nº do caixa</Label>
+                <Input value={form.cashier_number ?? ""} onChange={(e) => setField("cashier_number", e.target.value)} />
+              </div>
+              {showInstallments && (
+                <>
+                  <div>
+                    <Label>Parcelas</Label>
+                    <Input type="number" min={1} value={form.installments ?? ""}
+                      onChange={(e) => setField("installments", e.target.value ? Number(e.target.value) : null)} />
+                  </div>
+                  <div>
+                    <Label>Valor por parcela</Label>
+                    <Input type="number" step="0.01" value={form.installment_amount ?? ""}
+                      onChange={(e) => setField("installment_amount", e.target.value ? Number(e.target.value) : null)} />
+                  </div>
+                </>
+              )}
+              {showCard && (
+                <>
+                  <div>
+                    <Label>Bandeira</Label>
+                    <Input value={form.card_brand ?? ""} onChange={(e) => setField("card_brand", e.target.value)} placeholder="Visa, Master, Elo…" />
+                  </div>
+                  <div>
+                    <Label>Últimos 4 dígitos</Label>
+                    <Input maxLength={4} value={form.card_last4 ?? ""} onChange={(e) => setField("card_last4", e.target.value)} />
+                  </div>
+                </>
+              )}
+              <div>
+                <Label>Autorização (banco)</Label>
+                <Input value={form.authorization_code ?? ""} onChange={(e) => setField("authorization_code", e.target.value)} />
+              </div>
+              <div>
+                <Label>Fornecedor / Adquirente</Label>
+                <Input value={form.provider ?? ""} onChange={(e) => setField("provider", e.target.value)} placeholder="FunPay, Cielo…" />
+              </div>
+              <div>
+                <Label>Nº da proposta</Label>
+                <Input value={form.proposal_number ?? ""} onChange={(e) => setField("proposal_number", e.target.value)} />
+              </div>
+              <div>
+                <Label>Data do pagamento</Label>
+                <Input type="datetime-local"
+                  value={form.paid_at ? new Date(form.paid_at).toISOString().slice(0, 16) : ""}
+                  onChange={(e) => setField("paid_at", e.target.value ? new Date(e.target.value).toISOString() : null)} />
+              </div>
+              <div>
+                <Label>Incluído por</Label>
+                <Input value={form.added_by_name ?? ""} onChange={(e) => setField("added_by_name", e.target.value)} />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Descrição</Label>
+                <Input value={form.description ?? ""} onChange={(e) => setField("description", e.target.value)} placeholder="Ex.: FINANCIAMENTO – Aprovado" />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Observações</Label>
+                <Textarea value={form.notes ?? ""} onChange={(e) => setField("notes", e.target.value)} />
+              </div>
             </div>
+          </TabsContent>
+          <TabsContent value="pagador" className="flex-1 min-h-0 overflow-y-auto pr-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="md:col-span-2">
                 <Label>Solicitante (nome completo)</Label>
@@ -3029,19 +3032,17 @@ function PaymentDialog({
                 <Label>Cidade</Label>
                 <Input value={payer.payer_city ?? ""} onChange={(e) => setPayerField("payer_city", e.target.value)} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>UF</Label>
-                  <Input maxLength={2} value={payer.payer_state ?? ""} onChange={(e) => setPayerField("payer_state", e.target.value.toUpperCase())} />
-                </div>
-                <div>
-                  <Label>CEP</Label>
-                  <Input value={payer.payer_zip ?? ""} onChange={(e) => setPayerField("payer_zip", e.target.value)} placeholder="28890-052" />
-                </div>
+              <div>
+                <Label>UF</Label>
+                <Input maxLength={2} value={payer.payer_state ?? ""} onChange={(e) => setPayerField("payer_state", e.target.value.toUpperCase())} />
+              </div>
+              <div>
+                <Label>CEP</Label>
+                <Input value={payer.payer_zip ?? ""} onChange={(e) => setPayerField("payer_zip", e.target.value)} placeholder="28890-052" />
               </div>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -3053,6 +3054,7 @@ function PaymentDialog({
 
         </DialogFooter>
       </DialogContent>
+
     </Dialog>
   );
 }
