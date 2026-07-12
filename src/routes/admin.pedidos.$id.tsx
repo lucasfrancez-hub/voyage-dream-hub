@@ -2667,8 +2667,18 @@ function PaymentsSection({
         open={open}
         onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
         initial={editing}
-        onSave={(data) => upsertMut.mutate({ ...data, order_id: orderId, id: editing?.id })}
+        order={order}
+        onSave={async (data, payer) => {
+          try {
+            await updatePayer({ data: { id: orderId, ...payer } });
+          } catch (e) {
+            toast.error((e as Error).message);
+            return;
+          }
+          upsertMut.mutate({ ...data, order_id: orderId, id: editing?.id });
+        }}
       />
+
     </div>
   );
 }
