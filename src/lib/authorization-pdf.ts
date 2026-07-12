@@ -344,9 +344,10 @@ async function buildAuthorizationDoc(opts: {
   h1("Dados do cartão e cobrança");
   beginKvSection();
   kv("Bandeira", a.brand ?? "—");
-  kv("Número (mascarado)", a.masked_card ?? "—");
+  kv("Numeração do cartão", a.masked_card ?? "—");
   kv("Validade do cartão", a.expiry ?? "—");
   kv("Valor autorizado", a.amount != null ? formatBRL(a.amount) : "—");
+  if (a.authorization_code) kv("Código de autorização", a.authorization_code);
   kv(
     "Forma de pagamento",
     a.installments && a.installments > 1
@@ -354,7 +355,6 @@ async function buildAuthorizationDoc(opts: {
       : "Crédito à vista",
   );
   kv("Descrição do serviço", a.description ?? "—");
-  if (a.authorization_code) kv("Código de autorização", a.authorization_code);
   if (a.reference) kv("Referência", a.reference);
   y += 2;
 
