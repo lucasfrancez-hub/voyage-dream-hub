@@ -114,6 +114,7 @@ export type OrderDetail = {
   items: OrderItem[];
   financials: OrderItemFinancial[];
   payments: OrderPayment[];
+  itemPassengers: Record<string, string[]>; // order_item_id -> passenger_ids[]
 };
 
 
