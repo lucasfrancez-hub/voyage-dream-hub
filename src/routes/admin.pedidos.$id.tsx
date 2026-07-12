@@ -615,6 +615,28 @@ function ItemDialog({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Fornecedor (interno)</Label>
+              <Input
+                value={String(details.supplier_name ?? "")}
+                onChange={(e) => setField("supplier_name", e.target.value)}
+                placeholder={kind === "hotel" ? "Ex: CVC, Bancorbrás, Direto…" : "Ex: Latam Trade, Sabre, GDS…"}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Visível só pra você. Não aparece no voucher do cliente.</p>
+            </div>
+            {kind === "flight" && (
+              <div>
+                <Label>Bilhete</Label>
+                <Input
+                  value={String(details.ticket_number ?? "")}
+                  onChange={(e) => setField("ticket_number", e.target.value)}
+                  placeholder="Ex: 957-2149876543"
+                />
+              </div>
+            )}
+          </div>
+
           {kind === "hotel" ? (
             <>
               <div><Label>Endereço</Label><Input value={String(details.address ?? "")} onChange={(e) => setField("address", e.target.value)} /></div>
@@ -629,6 +651,7 @@ function ItemDialog({
               </div>
               <div><Label>Hóspedes</Label><Input value={String(details.guests ?? "")} onChange={(e) => setField("guests", e.target.value)} placeholder="2 adultos, 1 criança..." /></div>
             </>
+
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3">
