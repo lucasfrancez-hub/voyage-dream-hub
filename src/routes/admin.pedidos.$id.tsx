@@ -1698,9 +1698,18 @@ function ItemDialog({
               </div>
             )}
             <div className={kind === "other" ? "" : "col-span-2"}>
-              <Label>Localizador do fornecedor</Label>
-              <Input value={locator} onChange={(e) => setLocator(e.target.value)} placeholder="Ex: JXJDZZ" />
+              <Label>Localizador do fornecedor{kind === "flight" ? " *" : ""}</Label>
+              <Input
+                value={locator}
+                onChange={(e) => setLocator(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+                placeholder="Ex: JXJDZZ"
+                maxLength={12}
+              />
+              {kind === "flight" && (
+                <p className="mt-1 text-[11px] text-muted-foreground">Obrigatório · mínimo 6 caracteres (letras e/ou números).</p>
+              )}
             </div>
+
             {kind === "other" && (
               <div>
                 <Label>Status</Label>
@@ -1733,11 +1742,19 @@ function ItemDialog({
                 <Label>Bilhete</Label>
                 <Input
                   value={String(details.ticket_number ?? "")}
-                  onChange={(e) => setField("ticket_number", e.target.value)}
-                  placeholder="Ex: 957-2149876543"
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 13);
+                    const formatted = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3)}` : digits;
+                    setField("ticket_number", formatted);
+                  }}
+                  placeholder="Ex: 954-1234567890"
+                  maxLength={14}
+                  inputMode="numeric"
                 />
+                <p className="mt-1 text-[11px] text-muted-foreground">13 dígitos (formato 000-0000000000). Deixe em branco se ainda não emitiu.</p>
               </div>
             )}
+
           </div>
 
           {kind === "hotel" ? (
@@ -1869,6 +1886,18 @@ function ItemDialog({
             const cleanMain = buildClean(details);
             let effectiveTitle = title.trim();
             if (kind === "flight") {
+              // Localizador obrigatório: mínimo 6 alfanuméricos
+              const loc = locator.trim().toUpperCase();
+              if (!/^[A-Z0-9]{6,}$/.test(loc)) {
+                toast.error("Localizador inválido: mínimo 6 caracteres (letras e/ou números)");
+                return;
+              }
+              // Bilhete opcional; se preenchido, exige 13 dígitos no formato 000-0000000000
+              const ticket = String(details.ticket_number ?? "").trim();
+              if (ticket && !/^\d{3}-\d{10}$/.test(ticket)) {
+                toast.error("Número de bilhete inválido: use o formato 000-0000000000 (13 dígitos)");
+                return;
+              }
               // Ida é obrigatória: exige origem+destino no trecho principal
               const from = String(details.from_iata ?? details.origin ?? "").trim();
               const to = String(details.to_iata ?? details.destination ?? "").trim();
@@ -1876,6 +1905,7 @@ function ItemDialog({
                 toast.error("Preencha ao menos a origem e o destino da ida");
                 return;
               }
+
               // Volta é opcional: descarta trechos de volta vazios (sem origem/destino)
               effectiveTitle = segmentTitle(details);
             }
