@@ -338,6 +338,7 @@ function OrderDetailPage() {
               kind="hotel"
               onChange={invalidate}
               passengers={detail.passengers}
+              itemPassengers={detail.itemPassengers}
             />
           </TabsContent>
           <TabsContent value="flight" className="mt-4">
@@ -347,6 +348,7 @@ function OrderDetailPage() {
               kind="flight"
               onChange={invalidate}
               passengers={detail.passengers}
+              itemPassengers={detail.itemPassengers}
             />
           </TabsContent>
           <TabsContent value="service" className="mt-4">
@@ -356,6 +358,7 @@ function OrderDetailPage() {
               kind="other"
               onChange={invalidate}
               passengers={detail.passengers}
+              itemPassengers={detail.itemPassengers}
             />
           </TabsContent>
 
@@ -367,6 +370,7 @@ function OrderDetailPage() {
               kind="cancelled"
               onChange={invalidate}
               passengers={detail.passengers}
+              itemPassengers={detail.itemPassengers}
             />
           </TabsContent>
           <TabsContent value="contract" className="mt-4">
