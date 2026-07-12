@@ -652,7 +652,7 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
         trip_days: authorization.trip_days ?? snap?.days ?? null,
         trip_nights: authorization.trip_nights ?? snap?.nights ?? null,
       };
-      await generateAuthorizationPDF({ authorization: enriched, liveness });
+      await generateAuthorizationPDF({ orderId: order.id, createdAt: order.createdAt, authorization: enriched, liveness });
       toast.success("PDF gerado");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF");
