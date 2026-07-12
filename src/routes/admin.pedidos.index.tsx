@@ -83,14 +83,23 @@ function AdminOrders() {
     return acc;
   }, {});
 
+  const [newOpen, setNewOpen] = useState(false);
+
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold">Pedidos</h1>
-        <p className="text-sm text-muted-foreground">
-          {orders?.length ?? 0} pedido(s) · resultado da busca: {filtered.length}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-display font-bold">Pedidos</h1>
+          <p className="text-sm text-muted-foreground">
+            {orders?.length ?? 0} pedido(s) · resultado da busca: {filtered.length}
+          </p>
+        </div>
+        <Button onClick={() => setNewOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" /> Cadastrar pedido
+        </Button>
       </div>
+      <NewOrderDialog open={newOpen} onOpenChange={setNewOpen} />
+
 
       {/* Search bar (FRT style) */}
       <div className="mt-4 rounded-2xl border border-border bg-card p-4">
