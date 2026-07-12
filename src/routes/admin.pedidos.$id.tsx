@@ -1512,8 +1512,13 @@ function ItemDialog({
   const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
   const setSegField = (idx: number, k: string, v: string) =>
     setExtraSegments((arr) => arr.map((s, i) => (i === idx ? { ...s, details: { ...s.details, [k]: v } } : s)));
-  const addSegment = () => setExtraSegments((arr) => [...arr, { details: {} }]);
+  const addSegment = (direction: "return" | "connection") =>
+    setExtraSegments((arr) => [...arr, { details: { direction } }]);
   const removeSegment = (idx: number) => setExtraSegments((arr) => arr.filter((_, i) => i !== idx));
+  const hasReturn = () => {
+    if (String(details.direction ?? "") === "return") return true;
+    return extraSegments.some((s) => String(s.details.direction ?? "") === "return");
+  };
 
   const segmentTitle = (d: Record<string, string | number>): string => {
     const airline = String(d.airline ?? "").trim();
