@@ -2258,21 +2258,46 @@ function FinanceTab({
             </thead>
             <tbody>
               {isPackageOrder ? (
-                // Pacote pronto: uma linha única refletindo o resumo.
-                <tr className="border-b border-border/50">
-                  <td className="py-2 px-2 text-xs">Pacote pronto</td>
-                  <td className="py-2 px-2 text-xs">—</td>
-                  <td className="py-2 px-2 text-right text-xs">{formatBRL(totalSale)}</td>
-                  <td className="py-2 px-2 text-right text-xs">{formatBRL(totalTax)}</td>
-                  <td className="py-2 px-2 text-right text-xs">{formatBRL(packageDiscount)}</td>
-                  <td className="py-2 px-2 text-right text-xs">
-                    {formatBRL(totalCommission)}
-                    <div className="text-[10px] text-muted-foreground">{financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT}%</div>
-                  </td>
-                  <td className="py-2 px-2 text-xs">—</td>
-                  <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(totalNet)}</td>
-                  <td className="py-2 px-2"></td>
-                </tr>
+                <>
+                  <tr className="border-b border-border/50">
+                    <td className="py-2 px-2 text-xs">Pacote pronto</td>
+                    <td className="py-2 px-2 text-xs">—</td>
+                    <td className="py-2 px-2 text-right text-xs">{formatBRL(packageFareNet)}</td>
+                    <td className="py-2 px-2 text-right text-xs">{formatBRL(packageTaxes)}</td>
+                    <td className="py-2 px-2 text-right text-xs">{formatBRL(packageDiscount)}</td>
+                    <td className="py-2 px-2 text-right text-xs">
+                      {formatBRL(Number((packageFareNet * (Number(financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2)))}
+                      <div className="text-[10px] text-muted-foreground">{financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT}%</div>
+                    </td>
+                    <td className="py-2 px-2 text-xs">—</td>
+                    <td className="py-2 px-2 text-right text-xs font-semibold">
+                      {formatBRL(Number((packageFareNet + packageTaxes + (Number((packageFareNet * (Number(financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2)) - packageDefaultCommission)).toFixed(2)))}
+                    </td>
+                    <td className="py-2 px-2"></td>
+                  </tr>
+                  {extraItemRows.map((p, idx) => (
+                    <tr key={`pkg-extra-${idx}`} className="border-b border-border/50 bg-muted/20">
+                      <td className="py-2 px-2 text-xs">
+                        <span className="inline-flex items-center gap-1.5">
+                          {p.__label}
+                          <span className="rounded-md border border-dashed border-muted-foreground/40 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">Extra</span>
+                        </span>
+                      </td>
+                      <td className="py-2 px-2 text-xs">—</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(p.sale_value)}</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(p.tax_value)}</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(p.discount_value)}</td>
+                      <td className="py-2 px-2 text-right text-xs">
+                        {formatBRL(p.commission_value)}
+                        <div className="text-[10px] text-muted-foreground">{p.commission_pct}%</div>
+                      </td>
+                      <td className="py-2 px-2 text-xs">—</td>
+                      <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(p.total)}</td>
+                      <td className="py-2 px-2"></td>
+                    </tr>
+                  ))}
+                </>
+
               ) : (
                 <>
                   {financials.map((f) => {
