@@ -7,8 +7,10 @@ import { formatBRL } from "@/lib/format";
 import { saveCofreEntry, deleteCofreEntry, popEditEntry } from "@/lib/cofre-storage";
 
 export const Route = createFileRoute("/admin/link-pagamento")({
+  validateSearch: (s: Record<string, unknown>) => s as Record<string, string | undefined>,
   component: LinkGenerator,
 });
+
 
 function LinkGenerator() {
   const [customer, setCustomer] = useState("");
