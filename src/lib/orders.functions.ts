@@ -22,7 +22,7 @@ export type OrderItem = {
   status: "confirmed" | "cancelled" | "pending";
   title: string;
   supplier_locator: string | null;
-  details: Record<string, unknown>;
+  details: Json;
   sort_order: number;
 };
 
