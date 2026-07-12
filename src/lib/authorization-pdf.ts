@@ -540,5 +540,5 @@ async function buildAuthorizationDoc(opts: {
     setInk();
   }
 
-  doc.save(`autorizacao-debito-${orderId.slice(0, 8)}.pdf`);
+  return doc;
 }
