@@ -263,7 +263,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Autenticação: e-mail + biometria dinâmica (a ClickSign confere CPF e data de nascimento na hora da assinatura). A agência assina automaticamente em seguida.
+              Autenticação: link enviado por <b>e-mail e WhatsApp</b>. Na assinatura, o cliente faz <b>selfie dinâmica</b> (prova de vida) e envia a <b>foto do documento oficial</b> (RG/CNH). A ClickSign confere CPF e data de nascimento. A agência assina em seguida.
             </p>
           </div>
           <DialogFooter>
