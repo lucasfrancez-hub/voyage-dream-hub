@@ -197,17 +197,26 @@ const drawParagraph = (ctx: Ctx, s: string, size = 9, lineH = 12, indent = 0) =>
 
 // ---------- Cabeçalho VIA AIR (topo da pág. 1) ----------
 const drawCompanyHeader = (ctx: Ctx) => {
+  const bandH = 110;
   // Faixa lateral colorida
-  ctx.page.drawRectangle({ x: 0, y: A4.h - 90, width: 6, height: 90, color: COLOR_BRAND });
+  ctx.page.drawRectangle({ x: 0, y: A4.h - bandH, width: 6, height: bandH, color: COLOR_BRAND });
   const topY = A4.h - MARGIN;
+  const lh = 13;
   text(ctx, COMPANY.name, MARGIN, { y: topY - 4, size: 12, bold: true });
-  text(ctx, `CNPJ: ${COMPANY.cnpj}`, MARGIN, { y: topY - 20, size: 8, color: COLOR_MUTED });
-  text(ctx, COMPANY.address, MARGIN, { y: topY - 32, size: 8, color: COLOR_MUTED });
-  text(ctx, COMPANY.cityLine, MARGIN, { y: topY - 44, size: 8, color: COLOR_MUTED });
-  text(ctx, `Telefone: ${COMPANY.phone}`, MARGIN, { y: topY - 56, size: 8, color: COLOR_MUTED });
-  text(ctx, `E-mail: ${COMPANY.email}`, MARGIN, { y: topY - 68, size: 8, color: COLOR_MUTED });
-  ctx.y = A4.h - 100;
+  text(ctx, `CNPJ: ${COMPANY.cnpj}`, MARGIN, { y: topY - 4 - lh * 1.4, size: 8, color: COLOR_MUTED });
+  text(ctx, COMPANY.address, MARGIN, { y: topY - 4 - lh * 2.4, size: 8, color: COLOR_MUTED });
+  text(ctx, COMPANY.cityLine, MARGIN, { y: topY - 4 - lh * 3.4, size: 8, color: COLOR_MUTED });
+  text(ctx, `Telefone: ${COMPANY.phone}`, MARGIN, { y: topY - 4 - lh * 4.4, size: 8, color: COLOR_MUTED });
+  text(ctx, `E-mail: ${COMPANY.email}`, MARGIN, { y: topY - 4 - lh * 5.4, size: 8, color: COLOR_MUTED });
+  // separador leve
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: A4.h - bandH - 8 },
+    end: { x: A4.w - MARGIN, y: A4.h - bandH - 8 },
+    thickness: 0.5, color: COLOR_BORDER,
+  });
+  ctx.y = A4.h - bandH - 24;
 };
+
 
 // ---------- Cabeçalho das páginas do CONTRATO ----------
 const drawContractHeader = (ctx: Ctx) => {
