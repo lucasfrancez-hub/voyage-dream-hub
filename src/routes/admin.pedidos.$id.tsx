@@ -1251,13 +1251,19 @@ function ItemDialog({
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Solicitado</SelectItem>
-                  <SelectItem value="reserved">Reservado</SelectItem>
+                  {kind !== "hotel" && <SelectItem value="reserved">Reservado</SelectItem>}
                   <SelectItem value="confirmed">Confirmado</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
+              {kind === "hotel" && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Preencha o localizador da reserva para marcar como confirmado automaticamente.
+                </p>
+              )}
             </div>
           </div>
+
 
           <div className="grid grid-cols-2 gap-3">
             <div>
