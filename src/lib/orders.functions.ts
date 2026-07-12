@@ -13,6 +13,10 @@ export type OrderPassenger = {
   document: string | null;
   ticket_number: string | null;
   sort_order: number;
+  doc_type: "cpf" | "passport";
+  passport_number: string | null;
+  passport_issue_date: string | null;
+  passport_expiry_date: string | null;
 };
 
 export type OrderItem = {
@@ -265,6 +269,10 @@ export const upsertPassenger = createServerFn({ method: "POST" })
       document: data.document ?? null,
       ticket_number: data.ticket_number ?? null,
       sort_order: data.sort_order ?? 0,
+      doc_type: data.doc_type ?? "cpf",
+      passport_number: data.passport_number ?? null,
+      passport_issue_date: data.passport_issue_date ?? null,
+      passport_expiry_date: data.passport_expiry_date ?? null,
     };
     if (data.id) {
       const { error } = await context.supabase.from("order_passengers").update(payload).eq("id", data.id);

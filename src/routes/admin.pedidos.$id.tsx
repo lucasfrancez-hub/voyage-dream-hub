@@ -445,7 +445,7 @@ function PassengersSection({
                 <th className="text-left py-2 px-2">Nome</th>
                 <th className="text-left py-2 px-2">Tipo</th>
                 <th className="text-left py-2 px-2">Nascimento</th>
-                <th className="text-left py-2 px-2">CPF</th>
+                <th className="text-left py-2 px-2 min-w-[280px]">Documento</th>
                 <th className="text-left py-2 px-2">Bilhete</th>
                 <th className="w-16"></th>
               </tr>
@@ -465,6 +465,10 @@ function PassengersSection({
                       cpf: patch.cpf !== undefined ? patch.cpf : p.cpf,
                       ticket_number: patch.ticket_number !== undefined ? patch.ticket_number : p.ticket_number,
                       sort_order: p.sort_order,
+                      doc_type: patch.doc_type ?? p.doc_type,
+                      passport_number: patch.passport_number !== undefined ? patch.passport_number : p.passport_number,
+                      passport_issue_date: patch.passport_issue_date !== undefined ? patch.passport_issue_date : p.passport_issue_date,
+                      passport_expiry_date: patch.passport_expiry_date !== undefined ? patch.passport_expiry_date : p.passport_expiry_date,
                     });
                     // Se alterou o bilhete, replica em todos os aéreos: grava details.ticket_number e marca como Confirmado.
                     if (patch.ticket_number !== undefined) {
@@ -484,7 +488,6 @@ function PassengersSection({
                           },
                         }).catch(() => { /* toast já é global */ });
                       }
-                      // dispara refresh após o loop
                       setTimeout(() => onChange(), 250);
                     }
                   }}
@@ -509,6 +512,7 @@ function PassengersSection({
 
 type PassengerPatch = Partial<Pick<OrderPassenger,
   "full_name" | "passenger_type" | "birth_date" | "cpf" | "ticket_number"
+  | "doc_type" | "passport_number" | "passport_issue_date" | "passport_expiry_date"
 >>;
 
 function PassengerRow({
@@ -542,8 +546,51 @@ function PassengerRow({
           onCommit={(v) => (v || null) !== passenger.birth_date && onPatch({ birth_date: v || null })} />
       </td>
       <td className="py-1 px-1">
-        <InlineText value={passenger.cpf ?? ""} placeholder="CPF" className="text-xs font-mono"
-          onCommit={(v) => (v || null) !== passenger.cpf && onPatch({ cpf: v || null })} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Select
+            value={passenger.doc_type ?? "cpf"}
+            onValueChange={(v) => onPatch({ doc_type: v as "cpf" | "passport" })}
+          >
+            <SelectTrigger className="h-7 w-[110px] text-xs border-transparent hover:border-border">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cpf">CPF</SelectItem>
+              <SelectItem value="passport">Passaporte</SelectItem>
+            </SelectContent>
+          </Select>
+          {passenger.doc_type === "passport" ? (
+            <>
+              <InlineText
+                value={passenger.passport_number ?? ""}
+                placeholder="nº passaporte"
+                className="text-xs font-mono"
+                onCommit={(v) => (v || null) !== passenger.passport_number && onPatch({ passport_number: v || null })}
+              />
+              <InlineText
+                type="date"
+                value={passenger.passport_issue_date ?? ""}
+                placeholder="emissão"
+                className="text-xs"
+                onCommit={(v) => (v || null) !== passenger.passport_issue_date && onPatch({ passport_issue_date: v || null })}
+              />
+              <InlineText
+                type="date"
+                value={passenger.passport_expiry_date ?? ""}
+                placeholder="validade"
+                className="text-xs"
+                onCommit={(v) => (v || null) !== passenger.passport_expiry_date && onPatch({ passport_expiry_date: v || null })}
+              />
+            </>
+          ) : (
+            <InlineText
+              value={passenger.cpf ?? ""}
+              placeholder="CPF"
+              className="text-xs font-mono"
+              onCommit={(v) => (v || null) !== passenger.cpf && onPatch({ cpf: v || null })}
+            />
+          )}
+        </div>
       </td>
       <td className="py-1 px-1">
         <InlineText value={passenger.ticket_number ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
@@ -602,6 +649,10 @@ function PassengerDialog({
     cpf: initial?.cpf ?? "",
     ticket_number: initial?.ticket_number ?? "",
     document: initial?.document ?? "",
+    doc_type: (initial?.doc_type ?? "cpf") as "cpf" | "passport",
+    passport_number: initial?.passport_number ?? "",
+    passport_issue_date: initial?.passport_issue_date ?? "",
+    passport_expiry_date: initial?.passport_expiry_date ?? "",
   });
   // reset when initial changes
   useMemo(() => {
@@ -612,6 +663,10 @@ function PassengerDialog({
       cpf: initial?.cpf ?? "",
       ticket_number: initial?.ticket_number ?? "",
       document: initial?.document ?? "",
+      doc_type: (initial?.doc_type ?? "cpf") as "cpf" | "passport",
+      passport_number: initial?.passport_number ?? "",
+      passport_issue_date: initial?.passport_issue_date ?? "",
+      passport_expiry_date: initial?.passport_expiry_date ?? "",
     });
   }, [initial]);
 
@@ -643,16 +698,40 @@ function PassengerDialog({
               <Input type="date" value={form.birth_date ?? ""} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          <div>
+            <Label>Tipo de documento</Label>
+            <Select value={form.doc_type} onValueChange={(v) => setForm({ ...form, doc_type: v as "cpf" | "passport" })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cpf">CPF (brasileiro)</SelectItem>
+                <SelectItem value="passport">Passaporte (estrangeiro)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {form.doc_type === "cpf" ? (
             <div>
               <Label>CPF</Label>
-              <Input value={form.cpf ?? ""} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
+              <Input value={form.cpf ?? ""} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="000.000.000-00" />
             </div>
-            <div>
-              <Label>Documento (RG/Passaporte)</Label>
-              <Input value={form.document ?? ""} onChange={(e) => setForm({ ...form, document: e.target.value })} />
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Nº do passaporte</Label>
+                <Input value={form.passport_number ?? ""} onChange={(e) => setForm({ ...form, passport_number: e.target.value })} />
+              </div>
+              <div>
+                <Label>Data de emissão</Label>
+                <Input type="date" value={form.passport_issue_date ?? ""} onChange={(e) => setForm({ ...form, passport_issue_date: e.target.value })} />
+              </div>
+              <div>
+                <Label>Data de validade</Label>
+                <Input type="date" value={form.passport_expiry_date ?? ""} onChange={(e) => setForm({ ...form, passport_expiry_date: e.target.value })} />
+              </div>
             </div>
-          </div>
+          )}
+
           <div>
             <Label>Nº bilhete aéreo</Label>
             <Input value={form.ticket_number ?? ""} onChange={(e) => setForm({ ...form, ticket_number: e.target.value })} />
