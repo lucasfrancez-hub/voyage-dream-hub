@@ -1769,7 +1769,25 @@ function FinanceTab({
               </tr>
             </thead>
             <tbody>
-              {financials.length > 0 ? (
+              {isPackageOrder ? (
+                // Pacote pronto: uma linha única refletindo o resumo.
+                <tr className="border-b border-border/50">
+                  <td className="py-2 px-2 text-xs">Pacote pronto</td>
+                  <td className="py-2 px-2 text-xs">—</td>
+                  <td className="py-2 px-2 text-right text-xs">{formatBRL(totalSale)}</td>
+                  <td className="py-2 px-2 text-right text-xs">{formatBRL(totalTax)}</td>
+                  <td className="py-2 px-2 text-right text-xs">{formatBRL(0)}</td>
+                  <td className="py-2 px-2 text-right text-xs">
+                    {formatBRL(totalCommission)}
+                    <div className="text-[10px] text-muted-foreground">{financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT}%</div>
+                  </td>
+                  <td className="py-2 px-2 text-xs">—</td>
+                  <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(totalNet)}</td>
+                  <td className="py-2 px-2 text-right text-xs text-muted-foreground">
+                    Ajuste em "Ações → Comissão"
+                  </td>
+                </tr>
+              ) : financials.length > 0 ? (
                 financials.map((f) => {
                   const it = itemsById[f.order_item_id];
                   return (
