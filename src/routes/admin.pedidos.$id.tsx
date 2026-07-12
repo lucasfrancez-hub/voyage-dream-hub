@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
@@ -28,7 +28,7 @@ import { paymentMethodLabel, statusLabel, itemStatusBadge } from "@/lib/order-la
 import {
   getOrderDetail, upsertPassenger, deletePassenger,
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
-  upsertItemFinancial, deleteItemFinancial,
+  upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice,
   upsertOrderPayment, deleteOrderPayment,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment,
 } from "@/lib/orders.functions";
@@ -1729,8 +1729,9 @@ function FinanceTab({
     totalTax = packageTaxes;
     commissionBase = packageFareNet;
     totalCommission = Number((packageFareNet * (Number(currentPct) / 100)).toFixed(2));
-    const extra = Math.max(0, totalCommission - packageDefaultCommission);
-    totalNet = Number((packageFareNet + packageTaxes + extra).toFixed(2));
+    // Delta sinalizado: pct < 12 reduz o total; pct > 12 aumenta.
+    const delta = Number((totalCommission - packageDefaultCommission).toFixed(2));
+    totalNet = Number((packageFareNet + packageTaxes + delta).toFixed(2));
   } else {
     const displayRows = financials.length > 0 ? financials : plannedRows;
     totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
@@ -2378,6 +2379,7 @@ function CommissionAdjustDialog({
   onSaved: () => void;
 }) {
   const upsert = useServerFn(upsertItemFinancial);
+  const updateTotal = useServerFn(updateOrderTotalPrice);
   const snap = (order.packageSnapshot ?? {}) as Record<string, unknown>;
   const isPackage =
     !(snap as { manual?: boolean }).manual &&
@@ -2396,10 +2398,10 @@ function CommissionAdjustDialog({
   const [pct, setPct] = useState(isPackage ? PKG_DEFAULT_PCT : 10);
   const [saving, setSaving] = useState(false);
 
-  useMemo(() => {
+  useEffect(() => {
     if (!open) return;
     if (isPackage) {
-      // Pacote pronto: força valores do snapshot; ignora convenções antigas gravadas.
+      // Pacote pronto: força tarifa NET e taxas do snapshot; ignora convenções antigas.
       setSale(pkgFareNet);
       setTax(pkgTaxes);
     } else {
@@ -2417,10 +2419,11 @@ function CommissionAdjustDialog({
   // sale = tarifa NET (sem taxas). Comissão incide sobre a tarifa.
   const base = Math.max(0, sale);
   const commission = Number((base * (pct / 100)).toFixed(2));
-  // Pacote pronto: total só sobe quando comissão passa dos 12% padrão (delta acima).
+  // Pacote pronto: total = tarifa + taxas + delta sinalizado (comissão - 12%*tarifa).
+  // Se pct < 12, o total DIMINUI; se pct > 12, o total AUMENTA.
   // Manual: total = tarifa + taxas + comissão.
   const total = isPackage
-    ? Number((sale + tax + Math.max(0, commission - pkgDefaultCommission)).toFixed(2))
+    ? Number((sale + tax + (commission - pkgDefaultCommission)).toFixed(2))
     : Number((sale + tax + commission).toFixed(2));
 
   const handleSave = async () => {
@@ -2450,8 +2453,9 @@ function CommissionAdjustDialog({
         const itemBase = Math.max(0, itemSale);
         const itemCommission = Number((itemBase * (pct / 100)).toFixed(2));
         const itemDefaultComm = isPackage ? Number((itemSale * (PKG_DEFAULT_PCT / 100)).toFixed(2)) : 0;
+        // Delta sinalizado por item também.
         const itemTotal = isPackage
-          ? Number((itemSale + itemTax + Math.max(0, itemCommission - itemDefaultComm)).toFixed(2))
+          ? Number((itemSale + itemTax + (itemCommission - itemDefaultComm)).toFixed(2))
           : Number((itemSale + itemTax + itemCommission).toFixed(2));
 
         await upsert({
@@ -2471,7 +2475,9 @@ function CommissionAdjustDialog({
           },
         });
       }
-      toast.success("Comissão atualizada e distribuída entre os itens");
+      // Reflete o novo total no cabeçalho do pedido.
+      await updateTotal({ data: { id: order.id, total_price: Math.max(0, total) } });
+      toast.success("Comissão atualizada e refletida no total do pedido");
       onSaved();
       onOpenChange(false);
     } catch (e) {
