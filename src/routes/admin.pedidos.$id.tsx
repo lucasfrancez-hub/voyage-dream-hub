@@ -896,8 +896,8 @@ function ItemDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: OrderItem | null;
-  kind: "hotel" | "flight";
-  onSave: (p: { kind: "hotel" | "flight"; title: string; supplier_locator: string | null; details: Json; status: "confirmed" | "cancelled" | "pending" }) => void;
+  kind: "hotel" | "flight" | "other";
+  onSave: (p: { kind: "hotel" | "flight" | "other"; title: string; supplier_locator: string | null; details: Json; status: "confirmed" | "cancelled" | "pending" }) => void;
 }) {
   const initialDetails = (initial?.details ?? {}) as Record<string, unknown>;
   const [title, setTitle] = useState(initial?.title ?? "");
