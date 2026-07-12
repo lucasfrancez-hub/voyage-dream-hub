@@ -1459,6 +1459,7 @@ function ItemDialog({
     for (const [k, v] of Object.entries(initialDetails)) {
       if (typeof v === "string" || typeof v === "number") clean[k] = v;
     }
+    if (kind === "flight" && !initial && !clean.direction) clean.direction = "outbound";
     return clean;
   });
 
@@ -1512,8 +1513,13 @@ function ItemDialog({
   const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
   const setSegField = (idx: number, k: string, v: string) =>
     setExtraSegments((arr) => arr.map((s, i) => (i === idx ? { ...s, details: { ...s.details, [k]: v } } : s)));
-  const addSegment = () => setExtraSegments((arr) => [...arr, { details: {} }]);
+  const addSegment = (direction: "return" | "connection") =>
+    setExtraSegments((arr) => [...arr, { details: { direction } }]);
   const removeSegment = (idx: number) => setExtraSegments((arr) => arr.filter((_, i) => i !== idx));
+  const hasReturn = () => {
+    if (String(details.direction ?? "") === "return") return true;
+    return extraSegments.some((s) => String(s.details.direction ?? "") === "return");
+  };
 
   const segmentTitle = (d: Record<string, string | number>): string => {
     const airline = String(d.airline ?? "").trim();
@@ -1677,9 +1683,16 @@ function ItemDialog({
                 </div>
               ))}
 
-              <Button type="button" variant="outline" size="sm" onClick={addSegment} className="self-start">
-                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar trecho (conexão / volta)
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => addSegment("connection")}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar conexão
+                </Button>
+                {!hasReturn() && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => addSegment("return")}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar volta
+                  </Button>
+                )}
+              </div>
             </>
           ) : (
             <>
