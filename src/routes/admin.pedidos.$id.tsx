@@ -2353,31 +2353,44 @@ function CommissionAdjustDialog({
     !["payment_link", "payment_link_simple"].includes(String((snap as { kind?: string }).kind ?? "")) &&
     Number((snap as { price_per_person?: number }).price_per_person ?? 0) > 0;
   const pax = Math.max(1, (order.adults || 0) + (order.children || 0));
-  const pkgFare = isPackage ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
+  const pkgTotal = isPackage ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
   const pkgTaxes = isPackage ? Number((snap as { taxes?: number }).taxes ?? 0) : 0;
+  // Tarifa NET = total do pacote − taxas. Comissão padrão (12%) já está embutida nesse preço.
+  const pkgFareNet = Math.max(0, pkgTotal - pkgTaxes);
+  const PKG_DEFAULT_PCT = 12;
+  const pkgDefaultCommission = Number((pkgFareNet * (PKG_DEFAULT_PCT / 100)).toFixed(2));
 
   const [sale, setSale] = useState(0);
   const [tax, setTax] = useState(0);
-  const [pct, setPct] = useState(isPackage ? 12 : 10);
+  const [pct, setPct] = useState(isPackage ? PKG_DEFAULT_PCT : 10);
   const [saving, setSaving] = useState(false);
 
   useMemo(() => {
     if (!open) return;
-    // Soma valores atuais dos itens; se não houver, cai para o pacote.
+    if (isPackage) {
+      // Pacote pronto: força valores do snapshot; ignora convenções antigas gravadas.
+      setSale(pkgFareNet);
+      setTax(pkgTaxes);
+    } else {
+      const relevant = items.map((it) => financials.find((f) => f.order_item_id === it.id)).filter(Boolean) as OrderItemFinancial[];
+      const sumSale = relevant.reduce((a, f) => a + Number(f.sale_value || 0), 0);
+      const sumTax = relevant.reduce((a, f) => a + Number(f.tax_value || 0), 0);
+      setSale(sumSale);
+      setTax(sumTax);
+    }
     const relevant = items.map((it) => financials.find((f) => f.order_item_id === it.id)).filter(Boolean) as OrderItemFinancial[];
-    const sumSale = relevant.reduce((a, f) => a + Number(f.sale_value || 0), 0);
-    const sumTax = relevant.reduce((a, f) => a + Number(f.tax_value || 0), 0);
-    setSale(sumSale > 0 ? sumSale : pkgFare);
-    setTax(sumTax > 0 ? sumTax : pkgTaxes);
     const firstPct = relevant.find((f) => Number(f.commission_pct || 0) > 0)?.commission_pct;
-    setPct(firstPct ?? (isPackage ? 12 : 10));
-  }, [open, items, financials, pkgFare, pkgTaxes, isPackage]);
+    setPct(firstPct ?? (isPackage ? PKG_DEFAULT_PCT : 10));
+  }, [open, items, financials, pkgFareNet, pkgTaxes, isPackage]);
 
-  // Tarifa já é o valor total (pra todos os pax) sem taxas. Comissão incide direto sobre a tarifa.
+  // sale = tarifa NET (sem taxas). Comissão incide sobre a tarifa.
   const base = Math.max(0, sale);
   const commission = Number((base * (pct / 100)).toFixed(2));
-  // Total da venda = tarifa + taxas + comissão. Ao subir o %, o total sobe.
-  const total = Number((sale + tax + commission).toFixed(2));
+  // Pacote pronto: total só sobe quando comissão passa dos 12% padrão (delta acima).
+  // Manual: total = tarifa + taxas + comissão.
+  const total = isPackage
+    ? Number((sale + tax + Math.max(0, commission - pkgDefaultCommission)).toFixed(2))
+    : Number((sale + tax + commission).toFixed(2));
 
   const handleSave = async () => {
     if (items.length === 0) { toast.error("Adicione ao menos um item"); return; }
@@ -2405,7 +2418,11 @@ function CommissionAdjustDialog({
         const itemTax = Number((tax * wTax).toFixed(2));
         const itemBase = Math.max(0, itemSale);
         const itemCommission = Number((itemBase * (pct / 100)).toFixed(2));
-        const itemTotal = Number((itemSale + itemTax + itemCommission).toFixed(2));
+        const itemDefaultComm = isPackage ? Number((itemSale * (PKG_DEFAULT_PCT / 100)).toFixed(2)) : 0;
+        const itemTotal = isPackage
+          ? Number((itemSale + itemTax + Math.max(0, itemCommission - itemDefaultComm)).toFixed(2))
+          : Number((itemSale + itemTax + itemCommission).toFixed(2));
+
         await upsert({
           data: {
             id: c.existing?.id,
