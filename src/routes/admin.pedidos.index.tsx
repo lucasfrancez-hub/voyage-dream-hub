@@ -51,11 +51,13 @@ function AdminOrders() {
     }
     if (!q) return true;
     const snap = (o.package_snapshot ?? {}) as { order_number?: string; title?: string };
+    const orderNumberCol = (o as { order_number?: string | null }).order_number ?? "";
     return (
       (o.full_name ?? "").toLowerCase().includes(q) ||
       (o.email ?? "").toLowerCase().includes(q) ||
       (o.cpf ?? "").toLowerCase().includes(q) ||
       (o.phone ?? "").toLowerCase().includes(q) ||
+      orderNumberCol.toLowerCase().includes(q) ||
       (snap.order_number ?? "").toString().toLowerCase().includes(q) ||
       (snap.title ?? "").toLowerCase().includes(q) ||
       (o.airline_locator ?? "").toLowerCase().includes(q) ||
