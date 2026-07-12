@@ -58,7 +58,7 @@ export type OrderHeader = {
   supplierName: string | null;
   supplierOrderNumber: string | null;
   airlineLocator: string | null;
-  packageSnapshot: Record<string, unknown>;
+  packageSnapshot: Json;
 };
 
 export type OrderDetail = {
