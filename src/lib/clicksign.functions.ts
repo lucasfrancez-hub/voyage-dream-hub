@@ -58,7 +58,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
     pedidoId: string;
     pdfBase64: string; // sem prefixo data:
     orderNumber: string;
-    cliente: { nome: string; email: string; cpf: string; nascimento: string /* YYYY-MM-DD */ };
+    cliente: { nome: string; email: string; cpf: string; nascimento: string /* YYYY-MM-DD */; telefone: string };
     deadlineDays?: number;
   }) =>
     z
@@ -71,6 +71,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
           email: z.string().email(),
           cpf: z.string().min(11),
           nascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data no formato YYYY-MM-DD"),
+          telefone: z.string().min(8, "Telefone (WhatsApp) do cliente é obrigatório"),
         }),
         deadlineDays: z.number().int().min(1).max(90).optional(),
       })
