@@ -155,13 +155,14 @@ function AdminOrders() {
                 };
                 const pm = paymentMethodLabel(o.payment_method);
                 const st = statusLabel(o.status);
-                const displayOrderNumber = snap.order_number?.trim() ?? shortId(o.id);
+                const displayOrderNumber =
+                  ((o as { order_number?: string | null }).order_number ?? snap.order_number ?? shortId(o.id));
                 return (
                   <tr key={o.id} className="border-b border-border/50 hover:bg-muted/30 transition">
                     <td className="py-3 px-3 align-top">
-                      <div className="font-mono text-xs font-semibold">{displayOrderNumber}</div>
+                      <div className="font-mono text-sm font-semibold">{displayOrderNumber}</div>
                       {o.airline_locator && (
-                        <div className="font-mono text-[10px] text-muted-foreground mt-0.5">{o.airline_locator}</div>
+                        <div className="font-mono text-[10px] text-muted-foreground mt-0.5">LOC {o.airline_locator}</div>
                       )}
                     </td>
                     <td className="py-3 px-3 align-top">
