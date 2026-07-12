@@ -2459,7 +2459,7 @@ function FinanceTab({
           initial={editing}
           selectedItem={selectedItem}
           setSelectedItem={setSelectedItem}
-          packageDefaults={isPackageOrder ? { sale_value: packageFare, tax_value: packageTaxes } : null}
+         packageDefaults={isPackageOrder ? { sale_value: packageFare, tax_value: packageTaxes } : null}
           onSave={(payload) => {
             if (!selectedItem) { toast.error("Selecione um item"); return; }
             save.mutate({ ...payload, order_item_id: selectedItem, id: editing?.id });
@@ -2496,7 +2496,7 @@ function FinanceDialog({
   // Se não for pacote pronto, tenta preencher valor/taxa a partir do próprio item selecionado
   const itemDetails = (selectedItemObj?.details ?? {}) as Record<string, unknown>;
   const itemGross = Number(itemDetails.value ?? 0) || 0;
-  const itemTax = Number(itemDetails.tax_value ?? 0) || 0;
+  const itemTax = Math.max(0, Math.min(itemGross, Number(itemDetails.tax_value ?? 0) || 0));
   const defaultSale = Math.max(0, itemGross - itemTax);
   const defaultTax = itemTax;
 

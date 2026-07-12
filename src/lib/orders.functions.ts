@@ -524,7 +524,9 @@ export const recalculateOrderTotal = createServerFn({ method: "POST" })
 
     const pricedItems = (items ?? []).map((item) => {
       const details = (item.details ?? {}) as Record<string, unknown>;
-      return { id: item.id, gross: Math.max(0, Number(details.value ?? 0) || 0) };
+      const gross = Math.max(0, Number(details.value ?? 0) || 0);
+      const tax = Math.max(0, Math.min(gross, Number(details.tax_value ?? 0) || 0));
+      return { id: item.id, gross, tax };
     });
 
     let total = 0;
