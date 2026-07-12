@@ -641,18 +641,18 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
       const enriched: AuthorizationData = {
         ...authorization,
         order_number: authorization.order_number ?? snap?.order_number,
-        locator: authorization.locator ?? snap?.locator,
-        route: authorization.route ?? snap?.route,
-        travel_date: authorization.travel_date ?? snap?.travel_date,
-        passengers: authorization.passengers ?? passengersString,
-        hotel: authorization.hotel ?? snap?.hotel,
-        flights: authorization.flights ?? snap?.flights,
-        checkin: authorization.checkin ?? snap?.checkin,
-        checkout: authorization.checkout ?? snap?.checkout,
-        days: authorization.days ?? snap?.days,
-        nights: authorization.nights ?? snap?.nights,
+        trip_locator: authorization.trip_locator ?? snap?.locator ?? null,
+        trip_route: authorization.trip_route ?? snap?.route ?? null,
+        trip_date: authorization.trip_date ?? snap?.travel_date ?? null,
+        trip_passengers: authorization.trip_passengers ?? passengersString ?? null,
+        trip_hotel: authorization.trip_hotel ?? snap?.hotel ?? null,
+        trip_flights: authorization.trip_flights ?? snap?.flights ?? null,
+        trip_checkin: authorization.trip_checkin ?? snap?.checkin ?? null,
+        trip_checkout: authorization.trip_checkout ?? snap?.checkout ?? null,
+        trip_days: authorization.trip_days ?? snap?.days ?? null,
+        trip_nights: authorization.trip_nights ?? snap?.nights ?? null,
       };
-      await generateAuthorizationPDF(enriched, liveness);
+      await generateAuthorizationPDF({ authorization: enriched, liveness });
       toast.success("PDF gerado");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF");
