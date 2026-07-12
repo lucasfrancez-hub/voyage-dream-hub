@@ -43,7 +43,28 @@ const sanitize = (s: string | null | undefined): string => {
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/\u2026/g, "...")
+    .replace(/[\u2192\u27A1\u2794]/g, "->")
+    .replace(/\u2190/g, "<-")
+    .replace(/\u2194/g, "<->")
     .replace(/[^\x00-\xFF]/g, "?");
+};
+
+// Formata data/hora aceitando ISO ('YYYY-MM-DDTHH:mm') ou 'YYYY-MM-DD HH:mm'.
+// Extrai a hora diretamente da string para evitar deslocamento de timezone.
+const fmtDateTime = (s: string | null | undefined): string => {
+  if (!s) return "";
+  const str = String(s).trim();
+  const m = str.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+  const md = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (md) return `${md[3]}/${md[2]}/${md[1]}`;
+  return fmtDate(str, true);
+};
+
+const fmtTime = (s: string | null | undefined): string => {
+  if (!s) return "";
+  const m = String(s).match(/[T\s](\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : "";
 };
 
 const fmtDate = (iso: string | null | undefined, withTime = false): string => {
