@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import { FileText, Copy, ExternalLink, MessageCircle, Vault } from "lucide-react";
 import { toast } from "sonner";
 import { paymentBoletoLinkUrl, whatsappUrl } from "@/lib/checkout-config";
@@ -20,8 +21,11 @@ function LinkBoletoGenerator() {
   const [orderNumber, setOrderNumber] = useState("");
 
   const [imageUrl, setImageUrl] = useState("");
+  const autogenRef = useRef(false);
+  const autoRanRef = useRef(false);
 
   const search = Route.useSearch();
+
   useEffect(() => {
     let s: Record<string, string | undefined> = { ...(search ?? {}) };
     if (!s?.autogen) {
@@ -34,6 +38,7 @@ function LinkBoletoGenerator() {
       } catch { /* ignore */ }
     }
     if (s?.autogen === "1") {
+      autogenRef.current = true;
       if (s.customer) setCustomer(s.customer);
       if (s.phone) setCustomerPhone(String(s.phone).replace(/\D/g, ""));
       if (s.description) setDescription(s.description);
@@ -41,10 +46,10 @@ function LinkBoletoGenerator() {
       if (s.orderRef) setOrderRef(s.orderRef);
       if (s.orderNumber) setOrderNumber(s.orderNumber);
       if (s.imageUrl) setImageUrl(s.imageUrl);
-      toast.success("Dados do pedido carregados — link gerado automaticamente");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const totalNumber = Number(total.replace(",", ".")) || 0;
 
@@ -79,6 +84,22 @@ function LinkBoletoGenerator() {
       url,
     });
   }
+
+  useEffect(() => {
+    if (!autogenRef.current || autoRanRef.current) return;
+    if (!url) return;
+    autoRanRef.current = true;
+    persistToCofre();
+    try { navigator.clipboard.writeText(url); } catch { /* ignore */ }
+    const wa = customerPhone
+      ? `https://wa.me/${customerPhone}?text=${encodeURIComponent(whatsMessage)}`
+      : whatsappUrl(whatsMessage);
+    toast.success("Link gerado, salvo no cofre e copiado");
+    window.open(wa, "_blank", "noopener");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
+
+
 
 
   return (
