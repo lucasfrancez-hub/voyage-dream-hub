@@ -197,8 +197,10 @@ function OrderDetailPage() {
               items={flightItems}
               kind="flight"
               onChange={invalidate}
+              passengers={detail.passengers}
             />
           </TabsContent>
+
           <TabsContent value="cancelled" className="mt-4">
             <ItemsTab
               orderId={order.id}
