@@ -1432,6 +1432,106 @@ function HotelReservationCard({
   );
 }
 
+function ServiceReservationCard({
+  item, passengers, onEdit, onDelete, onCancel, onReactivate,
+}: {
+  item: OrderItem;
+  passengers: OrderPassenger[];
+  onEdit: () => void;
+  onDelete: () => void;
+  onCancel: () => void;
+  onReactivate: () => void;
+}) {
+  const d = (item.details ?? {}) as Record<string, unknown>;
+  const cancelled = item.status === "cancelled";
+  const supplier = typeof d.supplier_name === "string" ? (d.supplier_name as string) : "";
+  const category = typeof d.category === "string" ? (d.category as string) : "";
+  const value = Number(d.value ?? 0) || 0;
+  const tax = Number(d.tax_value ?? 0) || 0;
+  const qty = typeof d.quantity === "number" ? (d.quantity as number) : (Number(d.quantity) || null);
+  return (
+    <div className={`rounded-xl border p-4 ${cancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)]">
+        {/* Coluna 1: reserva / fornecedor */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Package className="h-3.5 w-3.5" /> Reserva serviço
+          </div>
+          <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
+            {item.supplier_locator?.trim() || "—"}
+          </div>
+          <div className="mt-1.5">
+            {(() => { const b = itemStatusBadge(deriveItemStatus(item)); return (
+              <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
+            ); })()}
+          </div>
+          {supplier && (
+            <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+              Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
+            </div>
+          )}
+          <div className="mt-2 flex items-center gap-0.5">
+            <Button size="sm" variant="ghost" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>
+            {cancelled ? (
+              <Button size="sm" variant="ghost" onClick={onReactivate} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={onCancel} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onDelete}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+          </div>
+        </div>
+
+        {/* Coluna 2: detalhes */}
+        <div className="min-w-0 border-l border-border pl-4">
+          <div className="font-semibold">{item.title}</div>
+          <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+            {category && <div>Categoria: <span className="text-foreground">{category}</span></div>}
+            {qty ? <div>Quantidade: <span className="text-foreground">{qty}</span></div> : null}
+            {value > 0 && (
+              <div>
+                Valor: <span className="text-foreground">{formatBRL(value)}</span>
+                {tax > 0 ? <> · Taxa: <span className="text-foreground">{formatBRL(tax)}</span></> : null}
+              </div>
+            )}
+            {typeof d.notes === "string" && (d.notes as string).trim() && (
+              <div className="mt-1 whitespace-pre-line text-xs">{d.notes as string}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Coluna 3: passageiros */}
+        <div className="min-w-0 border-l border-border pl-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Users className="h-3.5 w-3.5" /> Passageiros ({passengers.length})
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {passengers.length === 0 && <li className="text-xs text-muted-foreground">Nenhum passageiro</li>}
+            {passengers.map((p) => {
+              const isPassport = p.doc_type === "passport";
+              const docNum = isPassport ? p.passport_number : p.cpf;
+              return (
+                <li key={p.id} className="text-xs">
+                  <div className="font-medium text-foreground">{p.full_name}</div>
+                  <div className="text-muted-foreground">
+                    {p.passenger_type}
+                    {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                  </div>
+                  {docNum && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 
 
