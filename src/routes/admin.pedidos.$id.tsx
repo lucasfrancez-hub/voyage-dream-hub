@@ -2654,10 +2654,11 @@ const PAYMENT_METHOD_OPTIONS: { value: string; label: string }[] = [
 ];
 
 const PAYMENT_STATUS_OPTIONS: { value: string; label: string; className: string }[] = [
-  { value: "paid", label: "PAGO", className: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" },
+  { value: "paid", label: "APROVADO", className: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" },
   { value: "pending", label: "PENDENTE", className: "bg-amber-500/20 text-amber-600 dark:text-amber-400" },
+  { value: "rejected", label: "REJEITADO", className: "bg-red-500/20 text-red-600 dark:text-red-400" },
   { value: "cancelled", label: "CANCELADO", className: "bg-muted text-muted-foreground" },
-  { value: "refunded", label: "ESTORNADO", className: "bg-red-500/20 text-red-600 dark:text-red-400" },
+  { value: "refunded", label: "ESTORNADO", className: "bg-orange-500/20 text-orange-600 dark:text-orange-400" },
 ];
 
 function paymentMethodLabelShort(v: string) {
