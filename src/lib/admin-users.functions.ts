@@ -14,6 +14,7 @@ async function ensureGestor(ctx: { supabase: any; userId: string; claims: any })
 export type AdminUser = {
   id: string;
   email: string;
+  fullName: string | null;
   createdAt: string;
   lastSignInAt: string | null;
   role: "admin" | "user";
@@ -36,15 +37,21 @@ export const listAdminUsers = createServerFn({ method: "GET" })
     if (rolesErr) throw new Error(rolesErr.message);
     const roleMap = new Map<string, "admin" | "user">();
     (roles ?? []).forEach((r: any) => {
-      // admin wins over user
       if (r.role === "admin" || !roleMap.has(r.user_id)) {
         roleMap.set(r.user_id, r.role);
       }
     });
 
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name");
+    const nameMap = new Map<string, string | null>();
+    (profiles ?? []).forEach((p: any) => nameMap.set(p.id, p.full_name ?? null));
+
     return (data.users ?? []).map((u) => ({
       id: u.id,
       email: u.email ?? "",
+      fullName: nameMap.get(u.id) ?? null,
       createdAt: u.created_at,
       lastSignInAt: u.last_sign_in_at ?? null,
       role: roleMap.get(u.id) ?? "user",
