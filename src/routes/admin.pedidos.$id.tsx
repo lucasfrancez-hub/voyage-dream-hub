@@ -2219,8 +2219,13 @@ function FinanceDialog({
   const selectedKind = selectedItemObj?.kind;
   const isPackage = !!packageDefaults;
 
-  const defaultSale = packageDefaults?.sale_value ?? 0;
-  const defaultTax = packageDefaults?.tax_value ?? 0;
+  // Se não for pacote pronto, tenta preencher valor/taxa a partir do próprio item selecionado
+  const itemDetails = (selectedItemObj?.details ?? {}) as Record<string, unknown>;
+  const itemSale = Number(itemDetails.value ?? 0) || 0;
+  const itemTax = Number(itemDetails.tax_value ?? 0) || 0;
+  const defaultSale = packageDefaults?.sale_value ?? itemSale;
+  const defaultTax = packageDefaults?.tax_value ?? itemTax;
+
 
   const [form, setForm] = useState({
     supplier_name: initial?.supplier_name ?? "",
