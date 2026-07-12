@@ -325,8 +325,9 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
 };
 
 
-const sectionTitle = (ctx: Ctx, s: string) => {
-  ensureSpace(ctx, 30);
+const sectionTitle = (ctx: Ctx, s: string, reserve = 80) => {
+  // Reserva espaço para o título + cabeçalho + pelo menos 1 linha; evita órfãos entre páginas.
+  ensureSpace(ctx, reserve, drawContractHeader);
   ctx.y -= 14;
   text(ctx, s, MARGIN, { size: 11, bold: true });
   ctx.y -= 8;
@@ -334,8 +335,9 @@ const sectionTitle = (ctx: Ctx, s: string) => {
     start: { x: MARGIN, y: ctx.y }, end: { x: A4.w - MARGIN, y: ctx.y },
     thickness: 0.6, color: COLOR_TEXT,
   });
-  ctx.y -= 12;
+  ctx.y -= 14;
 };
+
 
 
 // ---------- Blocos do RECIBO ----------
