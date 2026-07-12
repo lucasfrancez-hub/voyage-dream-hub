@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, UserPlus, Trash2, ShieldCheck, Loader2 } from "lucide-react";
+import { Users, UserPlus, Trash2, ShieldCheck, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import {
   listAdminUsers,
   createAdminUser,
   deleteAdminUser,
   setAdminUserRole,
+  setAdminUserFullName,
 } from "@/lib/admin-users.functions";
 
 export const Route = createFileRoute("/admin/usuarios")({
@@ -21,6 +22,7 @@ function UsersPage() {
   const create = useServerFn(createAdminUser);
   const del = useServerFn(deleteAdminUser);
   const setRole = useServerFn(setAdminUserRole);
+  const setName = useServerFn(setAdminUserFullName);
 
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
@@ -28,12 +30,13 @@ function UsersPage() {
   });
 
   const createMut = useMutation({
-    mutationFn: (input: { email: string; password: string; role: "admin" | "user" }) =>
+    mutationFn: (input: { email: string; password: string; role: "admin" | "user"; fullName?: string }) =>
       create({ data: input }),
     onSuccess: () => {
       toast.success("Usuário criado");
       setEmail("");
       setPassword("");
+      setFullName("");
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao criar"),
@@ -58,8 +61,19 @@ function UsersPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
+  const nameMut = useMutation({
+    mutationFn: (input: { userId: string; fullName: string }) =>
+      setName({ data: input }),
+    onSuccess: () => {
+      toast.success("Nome atualizado");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar nome"),
+  });
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [role, setNewRole] = useState<"admin" | "user">("user");
 
   function submit(e: React.FormEvent) {
@@ -68,7 +82,7 @@ function UsersPage() {
       toast.error("Informe e-mail e senha com ao menos 8 caracteres");
       return;
     }
-    createMut.mutate({ email, password, role });
+    createMut.mutate({ email, password, role, fullName: fullName.trim() || undefined });
   }
 
   return (
@@ -85,7 +99,17 @@ function UsersPage() {
         <h2 className="font-semibold flex items-center gap-2">
           <UserPlus className="h-4 w-4 text-brand-orange" /> Criar novo usuário
         </h2>
-        <form onSubmit={submit} className="mt-4 grid sm:grid-cols-[1fr_1fr_140px_auto] gap-3 items-end">
+        <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block sm:col-span-2">
+            <span className="block text-xs text-muted-foreground mb-1.5">Nome completo</span>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className={cls}
+              placeholder="Ex.: Lucas Silva"
+            />
+          </label>
           <label className="block">
             <span className="block text-xs text-muted-foreground mb-1.5">E-mail</span>
             <input
@@ -116,14 +140,16 @@ function UsersPage() {
               <option value="admin">Admin</option>
             </select>
           </label>
-          <button
-            type="submit"
-            disabled={createMut.isPending}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition disabled:opacity-60"
-          >
-            {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-            Criar
-          </button>
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={createMut.isPending}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition disabled:opacity-60"
+            >
+              {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+              Criar
+            </button>
+          </div>
         </form>
       </section>
 
@@ -137,47 +163,103 @@ function UsersPage() {
         )}
         <div className="divide-y divide-border">
           {(usersQuery.data ?? []).map((u) => (
-            <div key={u.id} className="p-4 flex flex-wrap items-center gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="font-medium truncate">{u.email}</div>
-                <div className="text-xs text-muted-foreground">
-                  Criado em {new Date(u.createdAt).toLocaleDateString("pt-BR")}
-                  {u.lastSignInAt
-                    ? ` · Último acesso ${new Date(u.lastSignInAt).toLocaleString("pt-BR")}`
-                    : " · Nunca acessou"}
-                </div>
-              </div>
-              <select
-                value={u.role}
-                onChange={(e) =>
-                  roleMut.mutate({ userId: u.id, role: e.target.value as "admin" | "user" })
-                }
-                className="rounded-full border border-border bg-background px-3 py-1.5 text-xs"
-              >
-                <option value="user">Operador</option>
-                <option value="admin">Admin</option>
-              </select>
-              {u.role === "admin" && (
-                <span className="inline-flex items-center gap-1 text-xs text-brand-orange">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Admin
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm(`Remover ${u.email}?`)) delMut.mutate(u.id);
-                }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Remover
-              </button>
-            </div>
+            <UserRow
+              key={u.id}
+              user={u}
+              savingName={nameMut.isPending && nameMut.variables?.userId === u.id}
+              onSaveName={(name) => nameMut.mutate({ userId: u.id, fullName: name })}
+              onChangeRole={(r) => roleMut.mutate({ userId: u.id, role: r })}
+              onDelete={() => {
+                if (confirm(`Remover ${u.email}?`)) delMut.mutate(u.id);
+              }}
+            />
           ))}
           {usersQuery.data?.length === 0 && (
             <div className="p-6 text-sm text-muted-foreground">Nenhum usuário ainda.</div>
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function UserRow({
+  user,
+  savingName,
+  onSaveName,
+  onChangeRole,
+  onDelete,
+}: {
+  user: {
+    id: string;
+    email: string;
+    fullName: string | null;
+    createdAt: string;
+    lastSignInAt: string | null;
+    role: "admin" | "user";
+  };
+  savingName: boolean;
+  onSaveName: (name: string) => void;
+  onChangeRole: (r: "admin" | "user") => void;
+  onDelete: () => void;
+}) {
+  const [name, setName] = useState(user.fullName ?? "");
+  useEffect(() => {
+    setName(user.fullName ?? "");
+  }, [user.fullName]);
+  const dirty = name.trim() !== (user.fullName ?? "").trim();
+
+  return (
+    <div className="p-4 grid gap-3 md:grid-cols-[1.4fr_1fr_auto_auto] md:items-center">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nome completo"
+            className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm"
+          />
+          {dirty && (
+            <button
+              type="button"
+              disabled={savingName}
+              onClick={() => onSaveName(name.trim())}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand-orange px-3 py-1.5 text-xs font-medium text-brand-orange hover:bg-brand-orange/10 disabled:opacity-60"
+            >
+              {savingName ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              Salvar
+            </button>
+          )}
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground truncate">
+          {user.email} · Criado em {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+          {user.lastSignInAt
+            ? ` · Último acesso ${new Date(user.lastSignInAt).toLocaleString("pt-BR")}`
+            : " · Nunca acessou"}
+        </div>
+      </div>
+      <select
+        value={user.role}
+        onChange={(e) => onChangeRole(e.target.value as "admin" | "user")}
+        className="rounded-full border border-border bg-background px-3 py-1.5 text-xs"
+      >
+        <option value="user">Operador</option>
+        <option value="admin">Admin</option>
+      </select>
+      {user.role === "admin" ? (
+        <span className="inline-flex items-center gap-1 text-xs text-brand-orange">
+          <ShieldCheck className="h-3.5 w-3.5" /> Admin
+        </span>
+      ) : (
+        <span />
+      )}
+      <button
+        type="button"
+        onClick={onDelete}
+        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
+      >
+        <Trash2 className="h-3.5 w-3.5" /> Remover
+      </button>
     </div>
   );
 }
