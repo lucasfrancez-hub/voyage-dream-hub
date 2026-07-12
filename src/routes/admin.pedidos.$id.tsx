@@ -1877,9 +1877,7 @@ function FinanceTab({
                   </td>
                   <td className="py-2 px-2 text-xs">—</td>
                   <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(totalNet)}</td>
-                  <td className="py-2 px-2 text-right text-xs text-muted-foreground">
-                    Ajuste em "Ações → Comissão"
-                  </td>
+                  <td className="py-2 px-2"></td>
                 </tr>
               ) : financials.length > 0 ? (
                 financials.map((f) => {
