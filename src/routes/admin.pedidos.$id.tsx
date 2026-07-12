@@ -1642,24 +1642,31 @@ function FinanceTab({
     return m;
   }, [items]);
 
-  // Linhas "planejadas" a partir do pacote/itens quando ainda não há lançamento no financeiro.
-  // Pacote pronto → 1 linha "Pacote pronto".
-  // Sem pacote → 1 linha por item (aéreo/hotel/outro) sem valor, para o usuário lançar.
+  // Convenções (novas):
+  // - sale_value = TARIFA NET (já sem taxas)
+  // - Base comissionável = sale_value (não subtrai taxas de novo)
+  // - Pacote pronto: os 12% de comissão JÁ estão embutidos no valor do pacote.
+  //   Total da venda só sobe se comissão > 12% (delta acima do padrão).
+  // - Manual (sem pacote): total = tarifa + taxas + comissão (soma normal).
+  const packageFareNet = Math.max(0, packageFare - packageTaxes);
+  const PACKAGE_DEFAULT_PCT = 12;
+  const packageDefaultCommission = Number((packageFareNet * (PACKAGE_DEFAULT_PCT / 100)).toFixed(2));
+
   const plannedRows = useMemo<Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }>>(() => {
     if (financials.length > 0) return [];
     if (isPackageOrder) {
-      const commission = Number((packageFare * 0.12).toFixed(2));
       return [{
         __planned: true,
         __itemId: null,
         __label: "Pacote pronto",
         supplier_name: null,
-        sale_value: packageFare,
+        sale_value: packageFareNet,
         tax_value: packageTaxes,
         discount_value: 0,
-        commission_pct: 12,
-        commission_value: commission,
-        total: Number((packageFare + packageTaxes).toFixed(2)),
+        commission_pct: PACKAGE_DEFAULT_PCT,
+        commission_value: packageDefaultCommission,
+        // No padrão 12%, total = tarifa + taxas (comissão já embutida).
+        total: Number((packageFareNet + packageTaxes).toFixed(2)),
       }];
     }
     return items.map((it) => ({
@@ -1674,14 +1681,34 @@ function FinanceTab({
       commission_value: 0,
       total: 0,
     }));
-  }, [financials.length, isPackageOrder, packageFare, packageTaxes, items]);
+  }, [financials.length, isPackageOrder, packageFareNet, packageTaxes, packageDefaultCommission, items]);
 
-  const displayRows = financials.length > 0 ? financials : plannedRows;
-  const totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
-  const totalTax = displayRows.reduce((a, f) => a + Number(f.tax_value || 0), 0);
-  const commissionBase = Math.max(0, totalSale - totalTax);
-  const totalCommission = displayRows.reduce((a, f) => a + Number(f.commission_value || 0), 0);
-  const totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
+  // Para pacote pronto, ignoramos valores gravados nos financials e derivamos tudo do snapshot,
+  // aplicando o % de comissão que estiver salvo (ou 12% padrão). Isso corrige dados antigos que
+  // foram gravados com convenção diferente.
+  let totalSale: number;
+  let totalTax: number;
+  let commissionBase: number;
+  let totalCommission: number;
+  let totalNet: number;
+
+  if (isPackageOrder) {
+    const currentPct = financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT;
+    totalSale = packageFareNet;
+    totalTax = packageTaxes;
+    commissionBase = packageFareNet;
+    totalCommission = Number((packageFareNet * (Number(currentPct) / 100)).toFixed(2));
+    const extra = Math.max(0, totalCommission - packageDefaultCommission);
+    totalNet = Number((packageFareNet + packageTaxes + extra).toFixed(2));
+  } else {
+    const displayRows = financials.length > 0 ? financials : plannedRows;
+    totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
+    totalTax = displayRows.reduce((a, f) => a + Number(f.tax_value || 0), 0);
+    commissionBase = Math.max(0, totalSale);
+    totalCommission = displayRows.reduce((a, f) => a + Number(f.commission_value || 0), 0);
+    totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
+  }
+
 
   if (items.length === 0) {
     return (
@@ -1742,7 +1769,25 @@ function FinanceTab({
               </tr>
             </thead>
             <tbody>
-              {financials.length > 0 ? (
+              {isPackageOrder ? (
+                // Pacote pronto: uma linha única refletindo o resumo.
+                <tr className="border-b border-border/50">
+                  <td className="py-2 px-2 text-xs">Pacote pronto</td>
+                  <td className="py-2 px-2 text-xs">—</td>
+                  <td className="py-2 px-2 text-right text-xs">{formatBRL(totalSale)}</td>
+                  <td className="py-2 px-2 text-right text-xs">{formatBRL(totalTax)}</td>
+                  <td className="py-2 px-2 text-right text-xs">{formatBRL(0)}</td>
+                  <td className="py-2 px-2 text-right text-xs">
+                    {formatBRL(totalCommission)}
+                    <div className="text-[10px] text-muted-foreground">{financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT}%</div>
+                  </td>
+                  <td className="py-2 px-2 text-xs">—</td>
+                  <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(totalNet)}</td>
+                  <td className="py-2 px-2 text-right text-xs text-muted-foreground">
+                    Ajuste em "Ações → Comissão"
+                  </td>
+                </tr>
+              ) : financials.length > 0 ? (
                 financials.map((f) => {
                   const it = itemsById[f.order_item_id];
                   return (
@@ -2308,31 +2353,44 @@ function CommissionAdjustDialog({
     !["payment_link", "payment_link_simple"].includes(String((snap as { kind?: string }).kind ?? "")) &&
     Number((snap as { price_per_person?: number }).price_per_person ?? 0) > 0;
   const pax = Math.max(1, (order.adults || 0) + (order.children || 0));
-  const pkgFare = isPackage ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
+  const pkgTotal = isPackage ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
   const pkgTaxes = isPackage ? Number((snap as { taxes?: number }).taxes ?? 0) : 0;
+  // Tarifa NET = total do pacote − taxas. Comissão padrão (12%) já está embutida nesse preço.
+  const pkgFareNet = Math.max(0, pkgTotal - pkgTaxes);
+  const PKG_DEFAULT_PCT = 12;
+  const pkgDefaultCommission = Number((pkgFareNet * (PKG_DEFAULT_PCT / 100)).toFixed(2));
 
   const [sale, setSale] = useState(0);
   const [tax, setTax] = useState(0);
-  const [pct, setPct] = useState(isPackage ? 12 : 10);
+  const [pct, setPct] = useState(isPackage ? PKG_DEFAULT_PCT : 10);
   const [saving, setSaving] = useState(false);
 
   useMemo(() => {
     if (!open) return;
-    // Soma valores atuais dos itens; se não houver, cai para o pacote.
+    if (isPackage) {
+      // Pacote pronto: força valores do snapshot; ignora convenções antigas gravadas.
+      setSale(pkgFareNet);
+      setTax(pkgTaxes);
+    } else {
+      const relevant = items.map((it) => financials.find((f) => f.order_item_id === it.id)).filter(Boolean) as OrderItemFinancial[];
+      const sumSale = relevant.reduce((a, f) => a + Number(f.sale_value || 0), 0);
+      const sumTax = relevant.reduce((a, f) => a + Number(f.tax_value || 0), 0);
+      setSale(sumSale);
+      setTax(sumTax);
+    }
     const relevant = items.map((it) => financials.find((f) => f.order_item_id === it.id)).filter(Boolean) as OrderItemFinancial[];
-    const sumSale = relevant.reduce((a, f) => a + Number(f.sale_value || 0), 0);
-    const sumTax = relevant.reduce((a, f) => a + Number(f.tax_value || 0), 0);
-    setSale(sumSale > 0 ? sumSale : pkgFare);
-    setTax(sumTax > 0 ? sumTax : pkgTaxes);
     const firstPct = relevant.find((f) => Number(f.commission_pct || 0) > 0)?.commission_pct;
-    setPct(firstPct ?? (isPackage ? 12 : 10));
-  }, [open, items, financials, pkgFare, pkgTaxes, isPackage]);
+    setPct(firstPct ?? (isPackage ? PKG_DEFAULT_PCT : 10));
+  }, [open, items, financials, pkgFareNet, pkgTaxes, isPackage]);
 
-  // Tarifa já é o valor total (pra todos os pax) sem taxas. Comissão incide direto sobre a tarifa.
+  // sale = tarifa NET (sem taxas). Comissão incide sobre a tarifa.
   const base = Math.max(0, sale);
   const commission = Number((base * (pct / 100)).toFixed(2));
-  // Total da venda = tarifa + taxas + comissão. Ao subir o %, o total sobe.
-  const total = Number((sale + tax + commission).toFixed(2));
+  // Pacote pronto: total só sobe quando comissão passa dos 12% padrão (delta acima).
+  // Manual: total = tarifa + taxas + comissão.
+  const total = isPackage
+    ? Number((sale + tax + Math.max(0, commission - pkgDefaultCommission)).toFixed(2))
+    : Number((sale + tax + commission).toFixed(2));
 
   const handleSave = async () => {
     if (items.length === 0) { toast.error("Adicione ao menos um item"); return; }
@@ -2360,7 +2418,11 @@ function CommissionAdjustDialog({
         const itemTax = Number((tax * wTax).toFixed(2));
         const itemBase = Math.max(0, itemSale);
         const itemCommission = Number((itemBase * (pct / 100)).toFixed(2));
-        const itemTotal = Number((itemSale + itemTax + itemCommission).toFixed(2));
+        const itemDefaultComm = isPackage ? Number((itemSale * (PKG_DEFAULT_PCT / 100)).toFixed(2)) : 0;
+        const itemTotal = isPackage
+          ? Number((itemSale + itemTax + Math.max(0, itemCommission - itemDefaultComm)).toFixed(2))
+          : Number((itemSale + itemTax + itemCommission).toFixed(2));
+
         await upsert({
           data: {
             id: c.existing?.id,
@@ -2446,7 +2508,9 @@ function CommissionAdjustDialog({
               </div>
               <div className="mt-1 text-xs text-muted-foreground text-right">
                 Total da venda: <span className="font-semibold text-foreground">{formatBRL(total)}</span>
-                <span className="ml-1 opacity-70">(tarifa + taxas + comissão)</span>
+                <span className="ml-1 opacity-70">
+                  {isPackage ? "(pacote já inclui 12%; só sobe acima disso)" : "(tarifa + taxas + comissão)"}
+                </span>
               </div>
             </div>
           </div>
