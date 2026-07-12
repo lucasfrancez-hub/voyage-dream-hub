@@ -135,7 +135,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
           has_documentation: true,
-          auths: ["whatsapp"],
+          auths: ["email"],
           selfie_enabled: true, // Selfie dinâmica (prova de vida)
           official_document_enabled: true, // Foto do documento oficial (RG/CNH)
         },
