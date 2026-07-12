@@ -907,8 +907,48 @@ function ItemsTab({
         onOpenChange={setOpen}
         initial={editing}
         kind={dialogKind}
-        onSave={(payload) => save.mutate({ ...payload, order_id: orderId, id: editing?.id })}
+        onSave={async (payload) => {
+          try {
+            // 1) Salva o item editado (ou cria novo)
+            await upsert({ data: { ...payload, order_id: orderId, id: editing?.id } });
+
+            // 2) Para AÉREO: propaga localizador + bilhete pra todos os outros aéreos do pedido.
+            //    Assim ida/volta ficam sempre com o mesmo localizador e o mesmo bilhete,
+            //    e o status é derivado do trio (localizador + bilhete).
+            if (payload.kind === "flight") {
+              const newLoc = payload.supplier_locator;
+              const newDetails = (payload.details ?? {}) as Record<string, unknown>;
+              const newTicket = String(newDetails.ticket_number ?? "").trim();
+              const otherFlights = items.filter((i) => i.kind === "flight" && i.id !== editing?.id && i.status !== "cancelled");
+              for (const fi of otherFlights) {
+                const fd = { ...((fi.details ?? {}) as Record<string, unknown>), ticket_number: newTicket };
+                const st: "confirmed" | "reserved" | "pending" = newTicket && newLoc
+                  ? "confirmed" : newLoc ? "reserved" : "pending";
+                await upsert({
+                  data: {
+                    id: fi.id,
+                    order_id: orderId,
+                    kind: "flight",
+                    title: fi.title,
+                    supplier_locator: newLoc,
+                    details: fd as Json,
+                    sort_order: fi.sort_order,
+                    status: st,
+                  },
+                });
+              }
+            }
+
+            toast.success("Item salvo");
+            onChange();
+            setOpen(false);
+            setEditing(null);
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+          }
+        }}
       />
+
     </div>
   );
 }
