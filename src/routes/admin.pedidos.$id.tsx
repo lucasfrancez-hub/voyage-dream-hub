@@ -2475,8 +2475,8 @@ function CommissionAdjustDialog({
       setTax(r2(sumTax));
     }
     const relevant = items.map((it) => financials.find((f) => f.order_item_id === it.id)).filter(Boolean) as OrderItemFinancial[];
-    const firstPct = relevant.find((f) => Number(f.commission_pct || 0) > 0)?.commission_pct;
-    setPct(firstPct ?? (isPackage ? PKG_DEFAULT_PCT : 10));
+    const firstWithPct = relevant.find((f) => f.commission_pct !== null && f.commission_pct !== undefined);
+    setPct(firstWithPct ? Number(firstWithPct.commission_pct) : (isPackage ? PKG_DEFAULT_PCT : 10));
   }, [open, items, financials, pkgFareNet, pkgTaxes, isPackage]);
 
 
