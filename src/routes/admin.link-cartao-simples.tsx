@@ -66,7 +66,7 @@ function LinkSimpleGenerator() {
       if (s.nights) setNights(s.nights);
       if (s.imageUrl) setImageUrl(s.imageUrl);
       return;
-      return;
+
     }
 
     const entry = popEditEntry();
