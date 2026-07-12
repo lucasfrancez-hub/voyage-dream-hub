@@ -127,7 +127,7 @@ function OrderDetailPage() {
             <div className="text-[11px] text-muted-foreground mt-1">
               Criado em {new Date(order.createdAt).toLocaleString("pt-BR")}
             </div>
-            <div className="mt-3 flex justify-end gap-2">
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm">Gerar link de pagamento</Button>
@@ -161,7 +161,56 @@ function OrderDetailPage() {
                   })()}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" /> Adicionar</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast.info("Anexos: aba Contrato → botão Anexar arquivo")}><FileText className="h-3.5 w-3.5 mr-2" /> Anexo (contrato/voucher)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Ajuste de comissão: aba Ajuste de comissão")}><Percent className="h-3.5 w-3.5 mr-2" /> Ajuste de comissão</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Observação — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Observação</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Motivo da viagem — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Motivo da viagem</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Cupom — em breve")}><Percent className="h-3.5 w-3.5 mr-2" /> Cupom</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline"><Printer className="h-3.5 w-3.5 mr-1" /> Imprimir</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast.info("Contrato (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Voucher (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Recibo (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Recibo</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline"><Mail className="h-3.5 w-3.5 mr-1" /> Enviar e-mail</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast.info("Envio de contrato — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Envio de confirmação — em breve")}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Confirmação</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Envio de pagamento — em breve")}><DollarSign className="h-3.5 w-3.5 mr-2" /> Pagamento ao cliente</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Envio de voucher — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline"><MoreHorizontal className="h-3.5 w-3.5 mr-1" /> Ações</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast.info("Confirmar pedido — em breve")}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Confirmar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Cancelar pedido — em breve")}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Docusign — em breve")}><Signature className="h-3.5 w-3.5 mr-2" /> Acionar contrato Docusign</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+
+
 
           </div>
         </div>
