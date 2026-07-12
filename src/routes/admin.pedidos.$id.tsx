@@ -455,16 +455,39 @@ function PassengersSection({
                 <PassengerRow
                   key={p.id}
                   passenger={p}
-                  onPatch={(patch) => save.mutate({
-                    order_id: orderId,
-                    id: p.id,
-                    full_name: patch.full_name ?? p.full_name,
-                    passenger_type: patch.passenger_type ?? p.passenger_type,
-                    birth_date: patch.birth_date !== undefined ? patch.birth_date : p.birth_date,
-                    cpf: patch.cpf !== undefined ? patch.cpf : p.cpf,
-                    ticket_number: patch.ticket_number !== undefined ? patch.ticket_number : p.ticket_number,
-                    sort_order: p.sort_order,
-                  })}
+                  onPatch={(patch) => {
+                    save.mutate({
+                      order_id: orderId,
+                      id: p.id,
+                      full_name: patch.full_name ?? p.full_name,
+                      passenger_type: patch.passenger_type ?? p.passenger_type,
+                      birth_date: patch.birth_date !== undefined ? patch.birth_date : p.birth_date,
+                      cpf: patch.cpf !== undefined ? patch.cpf : p.cpf,
+                      ticket_number: patch.ticket_number !== undefined ? patch.ticket_number : p.ticket_number,
+                      sort_order: p.sort_order,
+                    });
+                    // Se alterou o bilhete, replica em todos os aéreos: grava details.ticket_number e marca como Confirmado.
+                    if (patch.ticket_number !== undefined) {
+                      const newTicket = patch.ticket_number;
+                      for (const fi of flightItems) {
+                        const details = { ...((fi.details ?? {}) as Record<string, unknown>), ticket_number: newTicket ?? "" };
+                        upsertItem({
+                          data: {
+                            id: fi.id,
+                            order_id: orderId,
+                            kind: "flight",
+                            title: fi.title,
+                            supplier_locator: fi.supplier_locator,
+                            details: details as Json,
+                            sort_order: fi.sort_order,
+                            status: newTicket ? "confirmed" : (fi.supplier_locator ? "reserved" : "pending"),
+                          },
+                        }).catch(() => { /* toast já é global */ });
+                      }
+                      // dispara refresh após o loop
+                      setTimeout(() => onChange(), 250);
+                    }
+                  }}
                   onDelete={() => confirm("Remover passageiro?") && remove.mutate(p.id)}
                 />
               ))}
