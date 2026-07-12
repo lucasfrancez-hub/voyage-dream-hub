@@ -1091,9 +1091,10 @@ function FlightReservationCard({
           </div>
           <div className="mt-1.5">
             {(() => {
-              // Se todos os segmentos têm o mesmo status, mostra ele. Se estão mistos, mostra o "mais avançado".
+              // Deriva status real de cada segmento antes de agregar.
               const rank: Record<string, number> = { pending: 0, reserved: 1, confirmed: 2, cancelled: -1 };
-              const nonCancel = segments.filter((s) => s.status !== "cancelled");
+              const derived = segments.map((s) => ({ ...s, status: deriveItemStatus(s) }));
+              const nonCancel = derived.filter((s) => s.status !== "cancelled");
               const st = allCancelled ? "cancelled"
                 : nonCancel.reduce((acc, s) => (rank[s.status] > rank[acc] ? s.status : acc), nonCancel[0]?.status ?? "pending");
               const b = itemStatusBadge(st);
