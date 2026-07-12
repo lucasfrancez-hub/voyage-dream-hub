@@ -553,13 +553,20 @@ export const recalculateOrderTotal = createServerFn({ method: "POST" })
       const pct = packageRows[0] && packageRows.every((row) => Number(row.commission_pct ?? 12) === Number(packageRows[0].commission_pct ?? 12))
         ? Number(packageRows[0].commission_pct ?? 12)
         : 12;
-      const commissionDelta = packageFare * ((pct - 12) / 100);
+      // Mantém exatamente a mesma regra exibida no Financeiro: 12% já estão
+      // embutidos no pacote e a taxa de RAV retém 15% apenas do acréscimo de
+      // comissão. Todos os passos são arredondados em centavos para evitar
+      // que uma edição posterior recrie divergência no cabeçalho/PDF.
+      const defaultCommission = Number((packageFare * 0.12).toFixed(2));
+      const currentCommission = Number((packageFare * (pct / 100)).toFixed(2));
+      const commissionDelta = Number((currentCommission - defaultCommission).toFixed(2));
+      const ravTax = Number((Math.max(0, commissionDelta) * 0.15).toFixed(2));
       const extras = pricedItems.reduce((sum, item) => {
         if (item.gross <= 0) return sum;
         const saved = financials.find((row) => row.order_item_id === item.id);
         return sum + (saved ? Number(saved.total ?? 0) || 0 : item.gross);
       }, 0);
-      total = packageTotal + commissionDelta + extras;
+      total = packageTotal + commissionDelta + extras - ravTax;
     } else {
       total = pricedItems.reduce((sum, item) => {
         const saved = financials.find((row) => row.order_item_id === item.id);
