@@ -295,6 +295,21 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
                 <Input type="date" value={form.nascimento} onChange={(e) => setForm((f) => ({ ...f, nascimento: e.target.value }))} />
               </div>
             </div>
+            <label className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-brand-orange"
+                checked={includeAuth}
+                onChange={(e) => setIncludeAuth(e.target.checked)}
+              />
+              <span className="text-xs">
+                <b>Incluir autorização de débito no cartão</b> no documento
+                {isCreditCard && <span className="text-brand-orange"> (recomendado — pagamento em cartão de crédito)</span>}
+                <span className="block text-muted-foreground mt-0.5">
+                  O PDF enviado inclui Recibo + Contrato + Autorização de débito num único documento assinado.
+                </span>
+              </span>
+            </label>
             <p className="text-xs text-muted-foreground">
               Autenticação: link enviado por <b>e-mail e WhatsApp</b>. Na assinatura, o cliente faz <b>selfie dinâmica</b> (prova de vida) e envia a <b>foto do documento oficial</b> (RG/CNH). A ClickSign confere CPF e data de nascimento. A agência assina em seguida.
             </p>
