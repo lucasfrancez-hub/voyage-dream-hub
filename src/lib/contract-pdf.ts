@@ -654,27 +654,32 @@ const sumExtrasFromItems = (d: OrderDetail): number => {
 };
 
 const drawTotals = (ctx: Ctx, d: OrderDetail) => {
-  // Fonte da verdade: totalPrice do pedido. Detalha tarifa/taxas/desconto/comissão a partir
-  // do financeiro, somando extras que ainda não têm financeiro salvo.
+  // Recibo: NÃO exibe comissão (ganho interno da agência).
   const extrasNoFin = sumExtrasFromItems(d);
   const produtos = d.financials.reduce((s, f) => s + Number(f.sale_value || 0), 0) + extrasNoFin;
   const taxas = d.financials.reduce((s, f) => s + Number(f.tax_value || 0), 0);
   const desc = d.financials.reduce((s, f) => s + Number(f.discount_value || 0), 0);
-  const comissao = d.financials.reduce((s, f) => s + Number(f.commission_value || 0), 0);
   const total = Number(d.order.totalPrice ?? 0)
     || (d.financials.reduce((s, f) => s + Number(f.total || 0), 0) + extrasNoFin);
+  const showDisc = desc > 0.005;
 
   sectionTitle(ctx, "Resumo Financeiro");
-  const w = CONTENT_W / 5;
-  const cols: Col[] = [
-    { header: "Tarifa", width: w, align: "right" },
-    { header: "Taxas", width: w, align: "right" },
-    { header: "Desconto", width: w, align: "right" },
-    { header: "Comissão", width: w, align: "right" },
-    { header: "Total", width: CONTENT_W - w * 4, align: "right" },
-  ];
+  const cols: Col[] = showDisc
+    ? [
+        { header: "Tarifa", width: CONTENT_W / 4, align: "right" },
+        { header: "Taxas", width: CONTENT_W / 4, align: "right" },
+        { header: "Desconto", width: CONTENT_W / 4, align: "right" },
+        { header: "Total", width: CONTENT_W - (CONTENT_W / 4) * 3, align: "right" },
+      ]
+    : [
+        { header: "Tarifa", width: CONTENT_W / 3, align: "right" },
+        { header: "Taxas", width: CONTENT_W / 3, align: "right" },
+        { header: "Total", width: CONTENT_W - (CONTENT_W / 3) * 2, align: "right" },
+      ];
   drawTableHeader(ctx, cols);
-  drawTableRow(ctx, cols, [brl(produtos), brl(taxas), brl(desc), brl(comissao), brl(total)]);
+  drawTableRow(ctx, cols, showDisc
+    ? [brl(produtos), brl(taxas), brl(desc), brl(total)]
+    : [brl(produtos), brl(taxas), brl(total)]);
   ctx.y -= 8;
 };
 
