@@ -311,8 +311,8 @@ async function buildAuthorizationDoc(opts: {
   const pedidoDisplay = displayOrderNumber;
   chip("Pedido", pedidoDisplay, M, chipW);
 
-  chip("Assinado em", fmtDate(a.signed_at), M + chipW + 3, chipW);
-  chip("Válido até", fmtDate(a.valid_until), M + (chipW + 3) * 2, chipW);
+  chip("Assinado em", signedAtLabel, M + chipW + 3, chipW);
+  chip("Válido até", validUntilLabel, M + (chipW + 3) * 2, chipW);
   y += 16;
 
   // ── seções
