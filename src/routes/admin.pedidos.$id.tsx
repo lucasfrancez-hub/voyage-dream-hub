@@ -95,6 +95,36 @@ function OrderDetailPage() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "orderDetail", id] });
 
+  const [activeTab, setActiveTab] = useState<string>("hotel");
+
+  const setOrderStatusFn = useServerFn(setOrderStatus);
+  const updateOrderMetaFn = useServerFn(updateOrderMeta);
+
+  const orderStatusMut = useMutation({
+    mutationFn: (status: "confirmed" | "cancelled" | "pending") =>
+      setOrderStatusFn({ data: { id: order.id, status } }),
+    onSuccess: (_r, status) => {
+      toast.success(status === "confirmed" ? "Pedido confirmado" : status === "cancelled" ? "Pedido cancelado" : "Pedido reaberto");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const metaMut = useMutation({
+    mutationFn: (patch: { notes?: string | null; travel_reason?: string | null; coupon?: string | null }) =>
+      updateOrderMetaFn({ data: { id: order.id, ...patch } }),
+    onSuccess: () => { toast.success("Salvo"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const promptMeta = (label: string, current: string | null, key: "notes" | "travel_reason" | "coupon") => {
+    const v = window.prompt(label, current ?? "");
+    if (v === null) return;
+    metaMut.mutate({ [key]: v.trim() || null });
+  };
+
+
+
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
       <div className="flex items-center gap-2 mb-4">
