@@ -197,12 +197,14 @@ async function buildAuthorizationDoc(opts: {
       doc.setTextColor(210, 214, 224);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
-      doc.text("Certificado digital", pageW - M - 23, 16.5, { align: "center" });
       if (pendingSignature) {
+        doc.setFontSize(6.5);
+        doc.text("Certificado ICP-Brasil", pageW - M - 23, 16.5, { align: "center" });
         doc.setFont("helvetica", "bold");
         doc.setTextColor(BRAND[0], BRAND[1], BRAND[2]);
-        doc.text("ClickSign", pageW - M - 23, 19.5, { align: "center" });
+        doc.text("Clicksign", pageW - M - 23, 19.5, { align: "center" });
       } else {
+        doc.text("Certificado digital", pageW - M - 23, 16.5, { align: "center" });
         doc.text(fmtDate(a.signed_at), pageW - M - 23, 19.5, { align: "center" });
       }
     }
