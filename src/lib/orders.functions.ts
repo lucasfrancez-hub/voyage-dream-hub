@@ -223,8 +223,8 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         notes: order.notes,
         travelReason: (order as { travel_reason?: string | null }).travel_reason ?? null,
         coupon: (order as { coupon?: string | null }).coupon ?? null,
-        notesLog: Array.isArray((order as { notes_log?: unknown }).notes_log) ? ((order as { notes_log: OrderLogEntry[] }).notes_log) : [],
-        travelReasonLog: Array.isArray((order as { travel_reason_log?: unknown }).travel_reason_log) ? ((order as { travel_reason_log: OrderLogEntry[] }).travel_reason_log) : [],
+        notesLog: Array.isArray((order as { notes_log?: unknown }).notes_log) ? ((order as unknown as { notes_log: OrderLogEntry[] }).notes_log) : [],
+        travelReasonLog: Array.isArray((order as { travel_reason_log?: unknown }).travel_reason_log) ? ((order as unknown as { travel_reason_log: OrderLogEntry[] }).travel_reason_log) : [],
 
 
         supplierName: order.supplier_name ?? null,
