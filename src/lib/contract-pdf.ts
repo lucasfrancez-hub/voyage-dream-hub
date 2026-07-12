@@ -997,9 +997,9 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
   const maskedCard = cardLast4 ? `**** **** **** ${cardLast4}` : undefined;
 
   const authorization: import("./authorization-pdf").AuthorizationData = {
-    type: "credit_card",
+    type: "debit_authorization",
     supplier: order.supplierName ?? "Via Air",
-    representative: "Via Air Agência e Representações Ltda",
+    representative: "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
     holder_name: order.payerFullName ?? order.fullName ?? "",
     holder_cpf: order.payerCpf ?? order.cpf ?? "",
     holder_email: order.payerEmail ?? order.email ?? "",
