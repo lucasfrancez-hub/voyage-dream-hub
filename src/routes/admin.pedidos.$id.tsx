@@ -97,6 +97,8 @@ function OrderDetailPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "orderDetail", id] });
 
   const [activeTab, setActiveTab] = useState<string>("hotel");
+  const [openCommission, setOpenCommission] = useState(false);
+
 
   const setOrderStatusFn = useServerFn(setOrderStatus);
   const updateOrderMetaFn = useServerFn(updateOrderMeta);
