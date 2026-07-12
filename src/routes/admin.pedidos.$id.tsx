@@ -2183,12 +2183,6 @@ function FinanceTab({
     return (Number(details.value ?? 0) || 0) > 0;
   }), [financials, itemsById]);
 
-  const packageFinancial = useMemo(() => financials.find((financial) => {
-    const item = itemsById[financial.order_item_id];
-    if (!item) return false;
-    const details = (item.details ?? {}) as Record<string, unknown>;
-    return (Number(details.value ?? 0) || 0) <= 0;
-  }), [financials, itemsById]);
   const packagePct = useMemo(() => {
     const packageRows = financials.filter((financial) => {
       const item = itemsById[financial.order_item_id];
