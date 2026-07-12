@@ -29,7 +29,7 @@ import {
   getOrderDetail, upsertPassenger, deletePassenger,
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
   upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice,
-  upsertOrderPayment, deleteOrderPayment,
+  upsertOrderPayment, deleteOrderPayment, updateOrderPayer,
   appendOrderLogEntry, deleteOrderLogEntry,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
@@ -377,10 +377,12 @@ function OrderDetailPage() {
       {/* Payments */}
       <PaymentsSection
         orderId={order.id}
+        order={order}
         clientName={order.fullName}
         payments={detail.payments}
         onChange={invalidate}
       />
+
 
       <CommissionAdjustDialog
         open={openCommission}
@@ -2533,17 +2535,20 @@ function fmtDateTime(iso: string | null) {
 }
 
 function PaymentsSection({
-  orderId, clientName, payments, onChange,
+  orderId, order, clientName, payments, onChange,
 }: {
   orderId: string;
+  order: OrderHeader;
   clientName: string;
   payments: OrderPayment[];
   onChange: () => void;
 }) {
   const upsert = useServerFn(upsertOrderPayment);
   const del = useServerFn(deleteOrderPayment);
+  const updatePayer = useServerFn(updateOrderPayer);
   const [editing, setEditing] = useState<OrderPayment | null>(null);
   const [open, setOpen] = useState(false);
+
 
   const upsertMut = useMutation({
     mutationFn: (data: Partial<OrderPayment> & { order_id: string; method: string; amount: number }) =>
@@ -2662,21 +2667,47 @@ function PaymentsSection({
         open={open}
         onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
         initial={editing}
-        onSave={(data) => upsertMut.mutate({ ...data, order_id: orderId, id: editing?.id })}
+        order={order}
+        onSave={async (data, payer) => {
+          try {
+            await updatePayer({ data: { id: orderId, ...payer } });
+          } catch (e) {
+            toast.error((e as Error).message);
+            return;
+          }
+          upsertMut.mutate({ ...data, order_id: orderId, id: editing?.id });
+        }}
       />
+
     </div>
   );
 }
 
+type PayerPatch = {
+  payer_full_name?: string | null;
+  payer_cpf?: string | null;
+  payer_ie_rg?: string | null;
+  payer_email?: string | null;
+  payer_phone?: string | null;
+  payer_zip?: string | null;
+  payer_address?: string | null;
+  payer_number?: string | null;
+  payer_district?: string | null;
+  payer_city?: string | null;
+  payer_state?: string | null;
+};
+
 function PaymentDialog({
-  open, onOpenChange, initial, onSave,
+  open, onOpenChange, initial, order, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: OrderPayment | null;
-  onSave: (data: Partial<OrderPayment> & { method: string; amount: number }) => void;
+  order: OrderHeader;
+  onSave: (data: Partial<OrderPayment> & { method: string; amount: number }, payer: PayerPatch) => void;
 }) {
   const [form, setForm] = useState<Partial<OrderPayment>>({});
+  const [payer, setPayer] = useState<PayerPatch>({});
   useMemo(() => {
     setForm(initial ?? {
       status: "paid",
@@ -2684,8 +2715,22 @@ function PaymentDialog({
       amount: 0,
       paid_at: new Date().toISOString(),
     });
+    // Pré-preenche dados do pagador a partir do pedido, com fallback nos dados do cliente principal.
+    setPayer({
+      payer_full_name: order.payerFullName ?? order.fullName ?? "",
+      payer_cpf: order.payerCpf ?? order.cpf ?? "",
+      payer_ie_rg: order.payerIeRg ?? "",
+      payer_email: order.payerEmail ?? order.email ?? "",
+      payer_phone: order.payerPhone ?? order.phone ?? "",
+      payer_zip: order.payerZip ?? "",
+      payer_address: order.payerAddress ?? "",
+      payer_number: order.payerNumber ?? "",
+      payer_district: order.payerDistrict ?? "",
+      payer_city: order.payerCity ?? "",
+      payer_state: order.payerState ?? "",
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial, open]);
+  }, [initial, open, order.id]);
 
   const method = form.method ?? "pix";
   const showCard = method === "credit_card" || method === "debit_card";
@@ -2693,6 +2738,8 @@ function PaymentDialog({
 
   const setField = <K extends keyof OrderPayment>(k: K, v: OrderPayment[K] | null) =>
     setForm((f) => ({ ...f, [k]: v }));
+  const setPayerField = (k: keyof PayerPatch, v: string) => setPayer((p) => ({ ...p, [k]: v }));
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -2788,14 +2835,67 @@ function PaymentDialog({
             <Label>Observações</Label>
             <Textarea value={form.notes ?? ""} onChange={(e) => setField("notes", e.target.value)} />
           </div>
+
+          {/* Dados do pagador — usados no contrato e no recibo */}
+          <div className="md:col-span-2 mt-2 rounded-lg border border-border/60 p-3 space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Dados do pagador (contrato / recibo)
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="md:col-span-2">
+                <Label>Solicitante (nome completo)</Label>
+                <Input value={payer.payer_full_name ?? ""} onChange={(e) => setPayerField("payer_full_name", e.target.value)} />
+              </div>
+              <div>
+                <Label>CPF / CNPJ</Label>
+                <Input value={payer.payer_cpf ?? ""} onChange={(e) => setPayerField("payer_cpf", e.target.value)} />
+              </div>
+              <div>
+                <Label>IE / RG</Label>
+                <Input value={payer.payer_ie_rg ?? ""} onChange={(e) => setPayerField("payer_ie_rg", e.target.value)} />
+              </div>
+              <div>
+                <Label>E-mail</Label>
+                <Input type="email" value={payer.payer_email ?? ""} onChange={(e) => setPayerField("payer_email", e.target.value)} />
+              </div>
+              <div>
+                <Label>Telefones</Label>
+                <Input value={payer.payer_phone ?? ""} onChange={(e) => setPayerField("payer_phone", e.target.value)} placeholder="(22) 99951-0018" />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Endereço</Label>
+                <Input value={payer.payer_address ?? ""} onChange={(e) => setPayerField("payer_address", e.target.value)} placeholder="Rua Espírito Santo 63" />
+              </div>
+              <div>
+                <Label>Bairro</Label>
+                <Input value={payer.payer_district ?? ""} onChange={(e) => setPayerField("payer_district", e.target.value)} />
+              </div>
+              <div>
+                <Label>Cidade</Label>
+                <Input value={payer.payer_city ?? ""} onChange={(e) => setPayerField("payer_city", e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>UF</Label>
+                  <Input maxLength={2} value={payer.payer_state ?? ""} onChange={(e) => setPayerField("payer_state", e.target.value.toUpperCase())} />
+                </div>
+                <div>
+                  <Label>CEP</Label>
+                  <Input value={payer.payer_zip ?? ""} onChange={(e) => setPayerField("payer_zip", e.target.value)} placeholder="28890-052" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => onSave({
             ...form,
             method: form.method ?? "pix",
             amount: Number(form.amount ?? 0),
-          } as Partial<OrderPayment> & { method: string; amount: number })}>Salvar</Button>
+          } as Partial<OrderPayment> & { method: string; amount: number }, payer)}>Salvar</Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>

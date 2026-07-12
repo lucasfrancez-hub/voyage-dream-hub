@@ -74,6 +74,8 @@ export type OrderHeader = {
   packageSnapshot: Json;
   payerFullName: string | null;
   payerCpf: string | null;
+  payerIeRg: string | null;
+
   payerEmail: string | null;
   payerPhone: string | null;
   payerZip: string | null;
@@ -233,6 +235,8 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         packageSnapshot: (order.package_snapshot ?? {}) as Json,
         payerFullName: (order as { payer_full_name?: string | null }).payer_full_name ?? null,
         payerCpf: (order as { payer_cpf?: string | null }).payer_cpf ?? null,
+        payerIeRg: (order as { payer_ie_rg?: string | null }).payer_ie_rg ?? null,
+
         payerEmail: (order as { payer_email?: string | null }).payer_email ?? null,
         payerPhone: (order as { payer_phone?: string | null }).payer_phone ?? null,
         payerZip: (order as { payer_zip?: string | null }).payer_zip ?? null,
@@ -389,6 +393,42 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// Atualiza dados do pagador (usados em contrato e recibo).
+export const updateOrderPayer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    id: string;
+    payer_full_name?: string | null;
+    payer_cpf?: string | null;
+    payer_ie_rg?: string | null;
+    payer_email?: string | null;
+    payer_phone?: string | null;
+    payer_zip?: string | null;
+    payer_address?: string | null;
+    payer_number?: string | null;
+    payer_district?: string | null;
+    payer_city?: string | null;
+    payer_state?: string | null;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const patch: Record<string, string | null> = {};
+    const keys = [
+      "payer_full_name", "payer_cpf", "payer_ie_rg", "payer_email", "payer_phone",
+      "payer_zip", "payer_address", "payer_number", "payer_district", "payer_city", "payer_state",
+    ] as const;
+    for (const k of keys) {
+      const v = (data as Record<string, string | null | undefined>)[k];
+      if (v !== undefined) patch[k] = v;
+    }
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await context.supabase.from("orders").update(patch as never).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 // Adiciona/remove entradas nos históricos (observações / motivos de viagem).
 export const appendOrderLogEntry = createServerFn({ method: "POST" })

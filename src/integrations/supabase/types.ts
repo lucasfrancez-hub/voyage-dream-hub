@@ -285,6 +285,7 @@ export type Database = {
           payer_district: string | null
           payer_email: string | null
           payer_full_name: string | null
+          payer_ie_rg: string | null
           payer_number: string | null
           payer_phone: string | null
           payer_state: string | null
@@ -320,6 +321,7 @@ export type Database = {
           payer_district?: string | null
           payer_email?: string | null
           payer_full_name?: string | null
+          payer_ie_rg?: string | null
           payer_number?: string | null
           payer_phone?: string | null
           payer_state?: string | null
@@ -355,6 +357,7 @@ export type Database = {
           payer_district?: string | null
           payer_email?: string | null
           payer_full_name?: string | null
+          payer_ie_rg?: string | null
           payer_number?: string | null
           payer_phone?: string | null
           payer_state?: string | null
