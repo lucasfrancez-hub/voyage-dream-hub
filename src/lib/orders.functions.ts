@@ -355,6 +355,57 @@ export const deleteItemFinancial = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// --------- Payments ---------
+export const upsertOrderPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: Partial<OrderPayment> & { order_id: string; method: string; amount: number }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const payload = {
+      order_id: data.order_id,
+      cashier_number: data.cashier_number ?? null,
+      status: data.status ?? "paid",
+      method: data.method,
+      description: data.description ?? null,
+      installments: data.installments ?? null,
+      installment_amount: data.installment_amount ?? null,
+      amount: data.amount,
+      provider: data.provider ?? null,
+      proposal_number: data.proposal_number ?? null,
+      authorization_code: data.authorization_code ?? null,
+      card_last4: data.card_last4 ?? null,
+      card_brand: data.card_brand ?? null,
+      paid_at: data.paid_at ?? null,
+      added_by_name: data.added_by_name ?? null,
+      notes: data.notes ?? null,
+    };
+    if (data.id) {
+      const { error } = await context.supabase.from("order_payments").update(payload).eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { id: data.id };
+    }
+    const { data: created, error } = await context.supabase
+      .from("order_payments")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { id: created.id };
+  });
+
+export const deleteOrderPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { error } = await context.supabase.from("order_payments").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 // --------- createOrder (cadastro manual) ---------
 export type CreateOrderInput = {
   full_name: string;
