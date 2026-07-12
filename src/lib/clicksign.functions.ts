@@ -279,7 +279,7 @@ export const getSignatureStatus = createServerFn({ method: "GET" })
       signedPdfUrl = signed?.signedUrl ?? null;
     }
 
-    return { assinatura: { ...assinatura, signed_pdf_url: signedPdfUrl }, signers: signers ?? [] };
+    return { assinatura: { ...assinatura, signed_pdf_url: signedPdfUrl }, signers: (signers ?? []) as SignerRow[] };
   });
 
 // -----------------------------------------------------------------------------
