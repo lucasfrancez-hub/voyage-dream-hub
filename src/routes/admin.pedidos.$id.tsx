@@ -3328,12 +3328,19 @@ function CommissionAdjustDialog({
               <div className="min-w-0 flex-1">
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">Novo total do pedido</div>
                 {isPackage && (
-                  <div className="text-[10px] text-muted-foreground mt-1 leading-snug break-words">
-                    {pct < PKG_DEFAULT_PCT
-                      ? `Desconto aplicado: ${formatBRL(Math.max(0, pkgDefaultCommission - commission))}`
-                      : pct > PKG_DEFAULT_PCT
-                      ? `Acréscimo acima de ${PKG_DEFAULT_PCT}%: ${formatBRL(Math.max(0, commission - pkgDefaultCommission))}`
-                      : `Comissão padrão do pacote (${PKG_DEFAULT_PCT}%)`}
+                  <div className="text-[10px] text-muted-foreground mt-1 leading-snug break-words space-y-0.5">
+                    <div>
+                      {pct < PKG_DEFAULT_PCT
+                        ? `Desconto aplicado: ${formatBRL(Math.max(0, pkgDefaultCommission - commission))}`
+                        : pct > PKG_DEFAULT_PCT
+                        ? `Acréscimo acima de ${PKG_DEFAULT_PCT}%: ${formatBRL(Math.max(0, commission - pkgDefaultCommission))}`
+                        : `Comissão padrão do pacote (${PKG_DEFAULT_PCT}%)`}
+                    </div>
+                    {ravTax > 0 && (
+                      <div className="text-amber-700 dark:text-amber-400">
+                        Taxas de RAV (15% s/ acréscimo): −{formatBRL(ravTax)}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
