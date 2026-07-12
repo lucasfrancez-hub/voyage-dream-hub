@@ -544,6 +544,25 @@ function PassengersSection({
         initial={editing}
         onSave={(payload) => save.mutate({ ...payload, order_id: orderId, id: editing?.id })}
       />
+
+      <MondePersonSearchDialog
+        open={mondeOpen}
+        onOpenChange={setMondeOpen}
+        onPick={(person) => {
+          const hasCpf = !!(person.cpf && person.cpf.replace(/\D+/g, "").length >= 11);
+          save.mutate({
+            order_id: orderId,
+            full_name: person.name,
+            passenger_type: "ADT",
+            birth_date: person.birthDate,
+            cpf: hasCpf ? person.cpf : null,
+            doc_type: hasCpf ? "cpf" : (person.passportNumber ? "passport" : "cpf"),
+            passport_number: person.passportNumber,
+            passport_expiry_date: person.passportExpiration,
+            sort_order: passengers.length,
+          } as Partial<OrderPassenger> & { order_id: string; full_name: string });
+        }}
+      />
     </div>
   );
 }
