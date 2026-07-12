@@ -2262,14 +2262,14 @@ function CommissionAdjustDialog({
                 onValueChange={(v) => setPct(v[0])}
               />
               <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                <span>Base: {formatBRL(base)} (tarifa − taxas)</span>
+                <span>Base: {formatBRL(base)} (só tarifa)</span>
                 <span>
                   Comissão: <span className="font-semibold text-brand-orange">{formatBRL(commission)}</span>
                 </span>
               </div>
               <div className="mt-1 text-xs text-muted-foreground text-right">
                 Total da venda: <span className="font-semibold text-foreground">{formatBRL(total)}</span>
-                <span className="ml-1 opacity-70">(tarifa + comissão)</span>
+                <span className="ml-1 opacity-70">(tarifa + taxas + comissão)</span>
               </div>
             </div>
           </div>
