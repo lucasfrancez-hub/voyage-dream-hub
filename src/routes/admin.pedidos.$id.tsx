@@ -346,8 +346,10 @@ function OrderDetailPage() {
               items={serviceItems}
               kind="other"
               onChange={invalidate}
+              passengers={detail.passengers}
             />
           </TabsContent>
+
 
           <TabsContent value="cancelled" className="mt-4">
             <ItemsTab
