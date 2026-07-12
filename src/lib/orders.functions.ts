@@ -401,7 +401,7 @@ export const appendOrderLogEntry = createServerFn({ method: "POST" })
     if (!text) throw new Error("Texto vazio");
     const { data: row, error: e1 } = await context.supabase.from("orders").select(data.key).eq("id", data.id).single();
     if (e1) throw new Error(e1.message);
-    const current = Array.isArray((row as Record<string, unknown>)[data.key]) ? ((row as Record<string, OrderLogEntry[]>)[data.key]) : [];
+    const current = Array.isArray((row as unknown as Record<string, unknown>)[data.key]) ? ((row as unknown as Record<string, OrderLogEntry[]>)[data.key]) : [];
     const entry: OrderLogEntry = { text, created_at: new Date().toISOString() };
     const next = [...current, entry];
     const { error: e2 } = await context.supabase.from("orders").update({ [data.key]: next } as never).eq("id", data.id);
@@ -417,7 +417,7 @@ export const deleteOrderLogEntry = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
     const { data: row, error: e1 } = await context.supabase.from("orders").select(data.key).eq("id", data.id).single();
     if (e1) throw new Error(e1.message);
-    const current = Array.isArray((row as Record<string, unknown>)[data.key]) ? ((row as Record<string, OrderLogEntry[]>)[data.key]) : [];
+    const current = Array.isArray((row as unknown as Record<string, unknown>)[data.key]) ? ((row as unknown as Record<string, OrderLogEntry[]>)[data.key]) : [];
     const next = current.filter((_, i) => i !== data.index);
     const { error: e2 } = await context.supabase.from("orders").update({ [data.key]: next } as never).eq("id", data.id);
     if (e2) throw new Error(e2.message);
