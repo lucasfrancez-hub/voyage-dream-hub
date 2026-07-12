@@ -124,6 +124,15 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao reenviar"),
   });
 
+  const syncMut = useMutation({
+    mutationFn: async (assinaturaId: string) => syncFn({ data: { assinaturaId } }),
+    onSuccess: (r) => {
+      toast.success(`Sincronizado (ClickSign: ${r.clicksignStatus})`);
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao sincronizar"),
+  });
+
   const assinatura = data?.assinatura;
   const signers = data?.signers ?? [];
 
