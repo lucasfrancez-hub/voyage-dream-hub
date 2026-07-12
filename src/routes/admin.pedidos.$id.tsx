@@ -1226,7 +1226,7 @@ function HotelReservationCard({
             {item.supplier_locator?.trim() || "—"}
           </div>
           <div className="mt-1.5">
-            {(() => { const b = itemStatusBadge(item.status); return (
+            {(() => { const b = itemStatusBadge(deriveItemStatus(item)); return (
               <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
             ); })()}
           </div>
