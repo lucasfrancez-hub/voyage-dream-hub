@@ -2455,9 +2455,14 @@ function CommissionAdjustDialog({
         const itemBase = Math.max(0, itemSale);
         const itemCommission = Number((itemBase * (pct / 100)).toFixed(2));
         const itemDefaultComm = isPackage ? Number((itemSale * (PKG_DEFAULT_PCT / 100)).toFixed(2)) : 0;
-        // Delta sinalizado por item também.
+        // Se pacote e comissão < 12% (base), a diferença vira desconto.
+        const itemDiscount = isPackage && itemCommission < itemDefaultComm
+          ? Number((itemDefaultComm - itemCommission).toFixed(2))
+          : 0;
+        // Total: pacote = tarifa + taxas + delta positivo (só sobe acima de 12%) − desconto.
+        // Manual: tarifa + taxas + comissão.
         const itemTotal = isPackage
-          ? Number((itemSale + itemTax + (itemCommission - itemDefaultComm)).toFixed(2))
+          ? Number((itemSale + itemTax + Math.max(0, itemCommission - itemDefaultComm) - itemDiscount).toFixed(2))
           : Number((itemSale + itemTax + itemCommission).toFixed(2));
 
         await upsert({
@@ -2466,7 +2471,7 @@ function CommissionAdjustDialog({
             order_item_id: c.item.id,
             sale_value: itemSale,
             tax_value: itemTax,
-            discount_value: c.existing?.discount_value ?? 0,
+            discount_value: itemDiscount,
             commission_pct: pct,
             commission_value: itemCommission,
             total: itemTotal,
@@ -2477,6 +2482,7 @@ function CommissionAdjustDialog({
           },
         });
       }
+
       // Reflete o novo total no cabeçalho do pedido.
       await updateTotal({ data: { id: order.id, total_price: Math.max(0, total) } });
       toast.success("Comissão atualizada e refletida no total do pedido");
