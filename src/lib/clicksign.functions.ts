@@ -136,7 +136,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
           birthday: data.cliente.nascimento,
           has_documentation: true,
           auths: ["email"],
-          selfie_enabled: true, // Selfie dinâmica (prova de vida)
+          liveness_enabled: true, // Prova de vida (selfie dinâmica com movimento)
           official_document_enabled: true, // Foto do documento oficial (RG/CNH)
         },
       }),
