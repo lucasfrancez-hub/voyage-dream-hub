@@ -796,21 +796,57 @@ function PassengerDialog({
 
 // =========== Items (hotel/flight/other/cancelled) ===========
 function ItemsTab({
-  orderId, items, kind, onChange, passengers,
+  orderId, items, kind, onChange, passengers, itemPassengers,
 }: {
   orderId: string;
   items: OrderItem[];
   kind: "hotel" | "flight" | "other" | "cancelled";
   onChange: () => void;
   passengers?: OrderPassenger[];
+  itemPassengers?: Record<string, string[]>;
 }) {
 
   const upsert = useServerFn(upsertOrderItem);
   const del = useServerFn(deleteOrderItem);
   const setStatus = useServerFn(setOrderItemStatus);
   const recalculateTotal = useServerFn(recalculateOrderTotal);
+  const linkFn = useServerFn(linkPassengerToItem);
+  const unlinkFn = useServerFn(unlinkPassengerFromItem);
   const [editing, setEditing] = useState<OrderItem | null>(null);
   const [open, setOpen] = useState(false);
+
+  const allPax = passengers ?? [];
+  const linksMap = itemPassengers ?? {};
+
+  const paxForItem = (itemId: string): OrderPassenger[] => {
+    const ids = linksMap[itemId] ?? [];
+    const set = new Set(ids);
+    return allPax.filter((p) => set.has(p.id));
+  };
+  const paxForItems = (itemIds: string[]): OrderPassenger[] => {
+    const set = new Set<string>();
+    for (const iid of itemIds) for (const pid of linksMap[iid] ?? []) set.add(pid);
+    return allPax.filter((p) => set.has(p.id));
+  };
+
+  const linkMut = useMutation({
+    mutationFn: async ({ passengerId, itemIds }: { passengerId: string; itemIds: string[] }) => {
+      for (const iid of itemIds) {
+        await linkFn({ data: { order_id: orderId, order_item_id: iid, passenger_id: passengerId } });
+      }
+    },
+    onSuccess: () => onChange(),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+  const unlinkMut = useMutation({
+    mutationFn: async ({ passengerId, itemIds }: { passengerId: string; itemIds: string[] }) => {
+      for (const iid of itemIds) {
+        await unlinkFn({ data: { order_item_id: iid, passenger_id: passengerId } });
+      }
+    },
+    onSuccess: () => onChange(),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
 
   const save = useMutation({
     mutationFn: async (payload: Parameters<typeof upsert>[0]["data"]) => {
@@ -870,33 +906,42 @@ function ItemsTab({
               key={group.key}
               locator={group.locator}
               segments={group.items}
-              passengers={passengers ?? []}
+              passengers={paxForItems(group.items.map((s) => s.id))}
+              allPassengers={allPax}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
               onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={(it) => reactivate.mutate(it.id)}
+              onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
+              onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
             />
           ))}
           {items.filter((i) => i.kind === "hotel").map((it) => (
             <HotelReservationCard
               key={it.id}
               item={it}
-              passengers={passengers ?? []}
+              passengers={paxForItem(it.id)}
+              allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={() => reactivate.mutate(it.id)}
+              onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
+              onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
             />
           ))}
           {items.filter((i) => i.kind === "other").map((it) => (
             <ServiceReservationCard
               key={it.id}
               item={it}
-              passengers={passengers ?? []}
+              passengers={paxForItem(it.id)}
+              allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={() => reactivate.mutate(it.id)}
+              onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
+              onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
             />
           ))}
 
@@ -908,11 +953,14 @@ function ItemsTab({
               key={group.key}
               locator={group.locator}
               segments={group.items}
-              passengers={passengers ?? []}
+              passengers={paxForItems(group.items.map((s) => s.id))}
+              allPassengers={allPax}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
               onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={(it) => reactivate.mutate(it.id)}
+              onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
+              onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
             />
           ))}
         </div>
@@ -922,11 +970,14 @@ function ItemsTab({
             <HotelReservationCard
               key={it.id}
               item={it}
-              passengers={passengers ?? []}
+              passengers={paxForItem(it.id)}
+              allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={() => reactivate.mutate(it.id)}
+              onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
+              onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
             />
           ))}
         </div>
@@ -936,11 +987,14 @@ function ItemsTab({
             <ServiceReservationCard
               key={it.id}
               item={it}
-              passengers={passengers ?? []}
+              passengers={paxForItem(it.id)}
+              allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
               onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
               onReactivate={() => reactivate.mutate(it.id)}
+              onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
+              onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
             />
           ))}
         </div>
