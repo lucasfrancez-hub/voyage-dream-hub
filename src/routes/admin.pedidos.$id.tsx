@@ -2546,10 +2546,9 @@ function CommissionAdjustDialog({
                 </span>
               </div>
             </div>
-
-            </div>
           </div>
         )}
+
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
