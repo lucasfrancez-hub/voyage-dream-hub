@@ -464,9 +464,9 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   labelVal("Local:", locLine, MARGIN, ctx.y); ctx.y -= lineH;
   ctx.y -= 12;
 
-  // Texto legal — usa SEMPRE o total do pedido (espelha o cabeçalho e o ajuste de comissão).
-  const total = Number(o.totalPrice ?? 0)
-    || d.financials.reduce((s, f) => s + Number(f.total || 0), 0);
+  // Usa a mesma fonte consolidada das tabelas abaixo. Assim, o valor por
+  // passageiro, o resumo financeiro e o texto legal nunca divergem entre si.
+  const total = receiptAmounts(d).total;
   const legal =
     `A ${COMPANY.name}, declara que os serviços turísticos relacionados neste documento, ` +
     `adquiridos e quitados conforme formas de pagamento abaixo, pelo Sr.(a) ${payer.name} ` +
@@ -539,7 +539,9 @@ const receiptAmounts = (d: OrderDetail): ReceiptAmounts => {
   const extrasNoFin = sumExtrasFromItems(d);
   const financialTotal = d.financials.reduce((sum, f) => sum + Number(f.total || 0), 0) + extrasNoFin;
   const orderTotal = Number(d.order.totalPrice ?? 0);
-  const total = fromCents(toCents(orderTotal || financialTotal));
+  // total_price é a fonte oficial inclusive quando o pedido vale zero. O
+  // financeiro só é contingência para dados antigos ou inválidos.
+  const total = fromCents(toCents(Number.isFinite(orderTotal) ? orderTotal : financialTotal));
   const financialTaxes = d.financials.reduce((sum, f) => sum + Number(f.tax_value || 0), 0);
   const snapshot = (d.order.packageSnapshot ?? {}) as Record<string, unknown>;
   const snapshotTaxes = Number(snapshot.taxes ?? 0) || 0;
@@ -554,28 +556,13 @@ const receiptAmounts = (d: OrderDetail): ReceiptAmounts => {
   return { fare, taxes, discount, total };
 };
 
-const passengerAmounts = (d: OrderDetail): ReceiptAmounts => {
-  const flightIds = new Set(
-    d.items.filter((item) => item.kind === "flight" && item.status !== "cancelled").map((item) => item.id),
-  );
-  const flightFinancials = d.financials.filter((financial) => flightIds.has(financial.order_item_id));
-
-  // Em pedidos avulsos, mostra somente o financeiro da passagem. Em pacotes
-  // sem linhas financeiras (caso do checkout), usa o total consolidado.
-  if (flightFinancials.length === 0) return receiptAmounts(d);
-
-  const fare = fromCents(toCents(flightFinancials.reduce((sum, f) => sum + Number(f.sale_value || 0), 0)));
-  const taxes = fromCents(toCents(flightFinancials.reduce((sum, f) => sum + Number(f.tax_value || 0), 0)));
-  const discount = fromCents(toCents(flightFinancials.reduce((sum, f) => sum + Number(f.discount_value || 0), 0)));
-  const total = fromCents(toCents(fare + taxes - discount));
-  return { fare, taxes, discount, total };
-};
-
 const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
   if (d.passengers.length === 0) return;
 
   sectionTitle(ctx, "Passageiros", 72);
-  const amounts = passengerAmounts(d);
+  // A tabela de passageiros representa o rateio do pedido completo, não só
+  // do aéreo. Cada coluna é dividida em centavos para a soma fechar exata.
+  const amounts = receiptAmounts(d);
   const showDiscount = amounts.discount > 0.005;
   const cols: Col[] = showDiscount
     ? [
