@@ -2835,7 +2835,59 @@ function PaymentDialog({
             <Label>Observações</Label>
             <Textarea value={form.notes ?? ""} onChange={(e) => setField("notes", e.target.value)} />
           </div>
+
+          {/* Dados do pagador — usados no contrato e no recibo */}
+          <div className="md:col-span-2 mt-2 rounded-lg border border-border/60 p-3 space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Dados do pagador (contrato / recibo)
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="md:col-span-2">
+                <Label>Solicitante (nome completo)</Label>
+                <Input value={payer.payer_full_name ?? ""} onChange={(e) => setPayerField("payer_full_name", e.target.value)} />
+              </div>
+              <div>
+                <Label>CPF / CNPJ</Label>
+                <Input value={payer.payer_cpf ?? ""} onChange={(e) => setPayerField("payer_cpf", e.target.value)} />
+              </div>
+              <div>
+                <Label>IE / RG</Label>
+                <Input value={payer.payer_ie_rg ?? ""} onChange={(e) => setPayerField("payer_ie_rg", e.target.value)} />
+              </div>
+              <div>
+                <Label>E-mail</Label>
+                <Input type="email" value={payer.payer_email ?? ""} onChange={(e) => setPayerField("payer_email", e.target.value)} />
+              </div>
+              <div>
+                <Label>Telefones</Label>
+                <Input value={payer.payer_phone ?? ""} onChange={(e) => setPayerField("payer_phone", e.target.value)} placeholder="(22) 99951-0018" />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Endereço</Label>
+                <Input value={payer.payer_address ?? ""} onChange={(e) => setPayerField("payer_address", e.target.value)} placeholder="Rua Espírito Santo 63" />
+              </div>
+              <div>
+                <Label>Bairro</Label>
+                <Input value={payer.payer_district ?? ""} onChange={(e) => setPayerField("payer_district", e.target.value)} />
+              </div>
+              <div>
+                <Label>Cidade</Label>
+                <Input value={payer.payer_city ?? ""} onChange={(e) => setPayerField("payer_city", e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>UF</Label>
+                  <Input maxLength={2} value={payer.payer_state ?? ""} onChange={(e) => setPayerField("payer_state", e.target.value.toUpperCase())} />
+                </div>
+                <div>
+                  <Label>CEP</Label>
+                  <Input value={payer.payer_zip ?? ""} onChange={(e) => setPayerField("payer_zip", e.target.value)} placeholder="28890-052" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => onSave({
