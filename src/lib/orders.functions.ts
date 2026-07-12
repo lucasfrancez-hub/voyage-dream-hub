@@ -330,6 +330,7 @@ export const upsertItemFinancial = createServerFn({ method: "POST" })
       order_item_id: data.order_item_id,
       supplier_name: data.supplier_name ?? null,
       sale_value: data.sale_value ?? 0,
+      tax_value: data.tax_value ?? 0,
       discount_value: data.discount_value ?? 0,
       commission_value: data.commission_value ?? 0,
       commission_pct: data.commission_pct ?? 0,
@@ -338,7 +339,8 @@ export const upsertItemFinancial = createServerFn({ method: "POST" })
       total: data.total ?? 0,
       notes: data.notes ?? null,
       sort_order: data.sort_order ?? 0,
-    };
+    } as never;
+
     if (data.id) {
       const { error } = await context.supabase.from("order_item_financials").update(payload).eq("id", data.id);
       if (error) throw new Error(error.message);
