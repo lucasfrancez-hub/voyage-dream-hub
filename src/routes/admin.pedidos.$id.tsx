@@ -1566,18 +1566,8 @@ function ItemDialog({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Classe / Cabine</Label><Input value={String(d.cabin_class ?? d.cabin ?? "")} onChange={(e) => onChangeField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
-        <div>
-          <Label>Tipo</Label>
-          <Select value={String(d.direction ?? "")} onValueChange={(v) => onChangeField("direction", v)}>
-            <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="outbound">Ida</SelectItem>
-              <SelectItem value="return">Volta</SelectItem>
-              <SelectItem value="connection">Conexão</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
+
     </div>
   );
 
