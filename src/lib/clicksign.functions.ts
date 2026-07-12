@@ -244,7 +244,7 @@ export const getSignatureStatus = createServerFn({ method: "GET" })
       .limit(1)
       .maybeSingle();
 
-    if (!assinatura) return { assinatura: null, signers: [] as Array<Record<string, unknown>> };
+    if (!assinatura) return { assinatura: null, signers: [] as SignerRow[] };
 
     const { data: signers } = await supabase
       .from("pedido_assinatura_signers")
