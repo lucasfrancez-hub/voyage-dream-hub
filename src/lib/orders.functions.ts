@@ -148,6 +148,33 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       }));
     }
 
+    const { data: paymentsRaw, error: e5 } = await supabase
+      .from("order_payments")
+      .select("*")
+      .eq("order_id", data.id)
+      .order("created_at", { ascending: true });
+    if (e5) throw new Error(e5.message);
+    const payments: OrderPayment[] = (paymentsRaw ?? []).map((p) => ({
+      id: p.id,
+      order_id: p.order_id,
+      cashier_number: p.cashier_number,
+      status: p.status,
+      method: p.method,
+      description: p.description,
+      installments: p.installments,
+      installment_amount: p.installment_amount === null ? null : Number(p.installment_amount),
+      amount: Number(p.amount),
+      provider: p.provider,
+      proposal_number: p.proposal_number,
+      authorization_code: p.authorization_code,
+      card_last4: p.card_last4,
+      card_brand: p.card_brand,
+      paid_at: p.paid_at,
+      added_by_name: p.added_by_name,
+      notes: p.notes,
+      created_at: p.created_at,
+    }));
+
     return {
       order: {
         id: order.id,
@@ -169,6 +196,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         airlineLocator: order.airline_locator ?? null,
         packageSnapshot: (order.package_snapshot ?? {}) as Json,
       },
+
       passengers: (passengers ?? []) as OrderPassenger[],
       items: (items ?? []).map((i) => ({
         id: i.id,
