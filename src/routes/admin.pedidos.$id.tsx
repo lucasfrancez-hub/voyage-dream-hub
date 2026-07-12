@@ -346,29 +346,32 @@ function PassengersSection({
                 <th className="text-left py-2 px-2">Nascimento</th>
                 <th className="text-left py-2 px-2">CPF</th>
                 <th className="text-left py-2 px-2">Bilhete</th>
-                <th className="w-24"></th>
+                <th className="w-16"></th>
               </tr>
             </thead>
             <tbody>
               {passengers.map((p) => (
-                <tr key={p.id} className="border-b border-border/50">
-                  <td className="py-2 px-2 font-medium">{p.full_name}</td>
-                  <td className="py-2 px-2 text-xs">{p.passenger_type}</td>
-                  <td className="py-2 px-2 text-xs">{p.birth_date ? new Date(p.birth_date + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
-                  <td className="py-2 px-2 text-xs font-mono">{p.cpf ?? "—"}</td>
-                  <td className="py-2 px-2 text-xs font-mono">{p.ticket_number ?? "—"}</td>
-                  <td className="py-2 px-2 text-right">
-                    <Button size="sm" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" onClick={() => confirm("Remover passageiro?") && remove.mutate(p.id)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  </td>
-                </tr>
+                <PassengerRow
+                  key={p.id}
+                  passenger={p}
+                  onPatch={(patch) => save.mutate({
+                    order_id: orderId,
+                    id: p.id,
+                    full_name: patch.full_name ?? p.full_name,
+                    passenger_type: patch.passenger_type ?? p.passenger_type,
+                    birth_date: patch.birth_date !== undefined ? patch.birth_date : p.birth_date,
+                    cpf: patch.cpf !== undefined ? patch.cpf : p.cpf,
+                    ticket_number: patch.ticket_number !== undefined ? patch.ticket_number : p.ticket_number,
+                    sort_order: p.sort_order,
+                  })}
+                  onDelete={() => confirm("Remover passageiro?") && remove.mutate(p.id)}
+                />
               ))}
             </tbody>
           </table>
         </div>
       )}
+
 
       <PassengerDialog
         open={open}
