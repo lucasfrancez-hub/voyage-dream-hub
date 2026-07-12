@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { formatBRL } from "@/lib/format";
-import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
+import { paymentMethodLabel, statusLabel, itemStatusBadge } from "@/lib/order-labels";
 import {
   getOrderDetail, upsertPassenger, deletePassenger,
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
@@ -102,7 +102,7 @@ function OrderDetailPage() {
   const updateOrderMetaFn = useServerFn(updateOrderMeta);
 
   const orderStatusMut = useMutation({
-    mutationFn: (status: "confirmed" | "cancelled" | "pending") =>
+    mutationFn: (status: "confirmed" | "reserved" | "cancelled" | "pending") =>
       setOrderStatusFn({ data: { id: order.id, status } }),
     onSuccess: (_r, status) => {
       toast.success(status === "confirmed" ? "Pedido confirmado" : status === "cancelled" ? "Pedido cancelado" : "Pedido reaberto");
@@ -780,7 +780,9 @@ function ItemCard({
                 <Hash className="h-3 w-3" /> {d.ticket_number as string}
               </button>
             )}
-            {isCancelled && <span className="text-destructive font-semibold uppercase text-[10px]">Cancelado</span>}
+            {(() => { const b = itemStatusBadge(item.status); return (
+              <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
+            ); })()}
           </div>
           <div className="mt-1 font-semibold">{item.title}</div>
           <div className="mt-1 text-sm text-muted-foreground grid gap-0.5">
@@ -909,6 +911,19 @@ function FlightReservationCard({
           <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
             {locator ?? "—"}
           </div>
+          <div className="mt-1.5">
+            {(() => {
+              // Se todos os segmentos têm o mesmo status, mostra ele. Se estão mistos, mostra o "mais avançado".
+              const rank: Record<string, number> = { pending: 0, reserved: 1, confirmed: 2, cancelled: -1 };
+              const nonCancel = segments.filter((s) => s.status !== "cancelled");
+              const st = allCancelled ? "cancelled"
+                : nonCancel.reduce((acc, s) => (rank[s.status] > rank[acc] ? s.status : acc), nonCancel[0]?.status ?? "pending");
+              const b = itemStatusBadge(st);
+              return (
+                <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
+              );
+            })()}
+          </div>
           {supplier && (
             <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
               Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
@@ -924,7 +939,6 @@ function FlightReservationCard({
               <Hash className="h-3 w-3" /> {ticket}
             </button>
           )}
-          {allCancelled && <div className="mt-1 text-[10px] font-semibold uppercase text-destructive">Cancelado</div>}
         </div>
 
         {/* Coluna 2: segmentos */}
@@ -1041,6 +1055,11 @@ function HotelReservationCard({
           <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
             {item.supplier_locator?.trim() || "—"}
           </div>
+          <div className="mt-1.5">
+            {(() => { const b = itemStatusBadge(item.status); return (
+              <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
+            ); })()}
+          </div>
           {supplier && (
             <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
               Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
@@ -1055,7 +1074,6 @@ function HotelReservationCard({
             )}
             <Button size="sm" variant="ghost" onClick={onDelete}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
           </div>
-          {cancelled && <div className="mt-1 text-[10px] font-semibold uppercase text-destructive">Cancelado</div>}
         </div>
 
         {/* Coluna 2: detalhes */}
@@ -1122,12 +1140,12 @@ function ItemDialog({
   onOpenChange: (v: boolean) => void;
   initial: OrderItem | null;
   kind: "hotel" | "flight" | "other";
-  onSave: (p: { kind: "hotel" | "flight" | "other"; title: string; supplier_locator: string | null; details: Json; status: "confirmed" | "cancelled" | "pending" }) => void;
+  onSave: (p: { kind: "hotel" | "flight" | "other"; title: string; supplier_locator: string | null; details: Json; status: "confirmed" | "reserved" | "cancelled" | "pending" }) => void;
 }) {
   const initialDetails = (initial?.details ?? {}) as Record<string, unknown>;
   const [title, setTitle] = useState(initial?.title ?? "");
   const [locator, setLocator] = useState(initial?.supplier_locator ?? "");
-  const [status, setStatusVal] = useState<"confirmed" | "cancelled" | "pending">((initial?.status ?? "confirmed") as "confirmed" | "cancelled" | "pending");
+  const [status, setStatusVal] = useState<"confirmed" | "reserved" | "cancelled" | "pending">((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
   const [details, setDetails] = useState<Record<string, string | number>>(() => {
     const clean: Record<string, string | number> = {};
     for (const [k, v] of Object.entries(initialDetails)) {
@@ -1139,7 +1157,7 @@ function ItemDialog({
   useMemo(() => {
     setTitle(initial?.title ?? "");
     setLocator(initial?.supplier_locator ?? "");
-    setStatusVal((initial?.status ?? "confirmed") as "confirmed" | "cancelled" | "pending");
+    setStatusVal((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
     const clean: Record<string, string | number> = {};
     for (const [k, v] of Object.entries((initial?.details ?? {}) as Record<string, unknown>)) {
       if (typeof v === "string" || typeof v === "number") clean[k] = v;
@@ -1169,11 +1187,12 @@ function ItemDialog({
             </div>
             <div>
               <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatusVal(v as "confirmed" | "cancelled" | "pending")}>
+              <Select value={status} onValueChange={(v) => setStatusVal(v as "confirmed" | "reserved" | "cancelled" | "pending")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="pending">Solicitado</SelectItem>
+                  <SelectItem value="reserved">Reservado</SelectItem>
                   <SelectItem value="confirmed">Confirmado</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
               </Select>

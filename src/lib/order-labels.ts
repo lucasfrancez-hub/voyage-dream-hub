@@ -46,3 +46,25 @@ export function statusLabel(status: string | null | undefined): {
   };
   return map[s] ?? { label: s, className: "bg-muted text-muted-foreground" };
 }
+
+// Status por ITEM (aéreo/hospedagem/outros): fluxo solicitado → reservado → confirmado.
+export const ITEM_STATUSES = [
+  { value: "pending", label: "Solicitado" },
+  { value: "reserved", label: "Reservado" },
+  { value: "confirmed", label: "Confirmado" },
+  { value: "cancelled", label: "Cancelado" },
+] as const;
+
+export function itemStatusBadge(status: string | null | undefined): {
+  label: string;
+  className: string;
+} {
+  const s = (status || "pending").toLowerCase();
+  const map: Record<string, { label: string; className: string }> = {
+    pending:   { label: "SOLICITADO", className: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
+    reserved:  { label: "RESERVADO",  className: "bg-sky-500/15 text-sky-500 border-sky-500/30" },
+    confirmed: { label: "CONFIRMADO", className: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
+    cancelled: { label: "CANCELADO",  className: "bg-red-500/15 text-red-500 border-red-500/30" },
+  };
+  return map[s] ?? { label: s.toUpperCase(), className: "bg-muted text-muted-foreground border-border" };
+}

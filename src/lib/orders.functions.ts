@@ -19,7 +19,7 @@ export type OrderItem = {
   id: string;
   order_id: string;
   kind: "hotel" | "flight" | "other";
-  status: "confirmed" | "cancelled" | "pending";
+  status: "confirmed" | "reserved" | "cancelled" | "pending";
   title: string;
   supplier_locator: string | null;
   details: Json;
@@ -346,7 +346,7 @@ export const setOrderItemStatus = createServerFn({ method: "POST" })
 // Confirma ou cancela o pedido inteiro (status do pedido + status de todos os itens)
 export const setOrderStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string; status: "confirmed" | "cancelled" | "pending" }) => input)
+  .inputValidator((input: { id: string; status: "confirmed" | "reserved" | "cancelled" | "pending" }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
