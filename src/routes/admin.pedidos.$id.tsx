@@ -912,21 +912,30 @@ function ItemsTab({
         onOpenChange={setOpen}
         initial={editing}
         kind={dialogKind}
+        siblings={
+          editing && editing.kind === "flight"
+            ? items.filter((i) => i.kind === "flight" && i.status !== "cancelled" && i.id !== editing.id)
+            : undefined
+        }
         onSave={async (payload) => {
           try {
             // 1) Salva o item editado (ou cria novo)
             await upsert({ data: { ...payload, order_id: orderId, id: editing?.id } });
 
-            // 2) Para AÉREO: propaga localizador + bilhete pra todos os outros aéreos do pedido.
-            //    Assim ida/volta ficam sempre com o mesmo localizador e o mesmo bilhete,
-            //    e o status é derivado do trio (localizador + bilhete).
+            // 2) Para AÉREO: propaga localizador + bilhete pra todos os outros aéreos do pedido,
+            //    e também os detalhes editados de cada trecho irmão (ida/volta juntos).
             if (payload.kind === "flight") {
               const newLoc = payload.supplier_locator;
               const newDetails = (payload.details ?? {}) as Record<string, unknown>;
               const newTicket = String(newDetails.ticket_number ?? "").trim();
+              const sibMap = new Map<string, Record<string, unknown>>();
+              for (const s of payload.siblings ?? []) {
+                sibMap.set(s.id, (s.details ?? {}) as Record<string, unknown>);
+              }
               const otherFlights = items.filter((i) => i.kind === "flight" && i.id !== editing?.id && i.status !== "cancelled");
               for (const fi of otherFlights) {
-                const fd = { ...((fi.details ?? {}) as Record<string, unknown>), ticket_number: newTicket };
+                const base = sibMap.get(fi.id) ?? ((fi.details ?? {}) as Record<string, unknown>);
+                const fd = { ...base, ticket_number: newTicket };
                 const st: "confirmed" | "reserved" | "pending" = newTicket && newLoc
                   ? "confirmed" : newLoc ? "reserved" : "pending";
                 await upsert({
