@@ -780,7 +780,9 @@ function ItemCard({
                 <Hash className="h-3 w-3" /> {d.ticket_number as string}
               </button>
             )}
-            {isCancelled && <span className="text-destructive font-semibold uppercase text-[10px]">Cancelado</span>}
+            {(() => { const b = itemStatusBadge(item.status); return (
+              <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
+            ); })()}
           </div>
           <div className="mt-1 font-semibold">{item.title}</div>
           <div className="mt-1 text-sm text-muted-foreground grid gap-0.5">
