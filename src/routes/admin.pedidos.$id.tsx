@@ -1375,26 +1375,39 @@ function FlightReservationCard({
               const ticket = p.ticket_number || segTicket;
               return (
                 <li key={p.id} className="text-xs">
-                  <div className="font-medium text-foreground">{p.full_name}</div>
-                  <div className="text-muted-foreground">
-                    {p.passenger_type}
-                    {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground">{p.full_name}</div>
+                      <div className="text-muted-foreground">
+                        {p.passenger_type}
+                        {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
+                      </div>
+                      {docNum && (
+                        <div className="text-[10px] text-muted-foreground">
+                          {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
+                        </div>
+                      )}
+                      {ticket && (
+                        <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                          <Hash className="inline h-2.5 w-2.5" /> {ticket}
+                        </div>
+                      )}
+                    </div>
+                    {onUnlink && (
+                      <UnlinkButton onClick={() => onUnlink(p.id, segments.map((s) => s.id))} />
+                    )}
                   </div>
-                  {docNum && (
-                    <div className="text-[10px] text-muted-foreground">
-                      {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
-                    </div>
-                  )}
-                  {ticket && (
-                    <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                      <Hash className="inline h-2.5 w-2.5" /> {ticket}
-                    </div>
-                  )}
                 </li>
               );
             })}
 
           </ul>
+          {onLink && allPassengers && (
+            <AddPassengerMenu
+              candidates={allPassengers.filter((ap) => !passengers.some((p) => p.id === ap.id))}
+              onPick={(pid) => onLink(pid, segments.map((s) => s.id))}
+            />
+          )}
         </div>
       </div>
     </div>
