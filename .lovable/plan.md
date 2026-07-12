@@ -1,63 +1,34 @@
-## Objetivo
-Gerar automaticamente **Recibo + Contrato** (PDF único no formato do modelo VIA AIR anexado) para qualquer pedido, puxando dados do pagador, serviços, valores e forma de pagamento já cadastrados no pedido. E garantir que esses dados do pagador sejam coletados também no checkout do pacote pronto e no link Pix — hoje só o link de boleto pede endereço completo.
 
-## Escopo
+## O que muda
 
-### 1. Coletar dados do pagador em todos os checkouts
-Hoje só o **link-boleto** pede endereço/CPF/telefone. Vou padronizar os mesmos campos em:
-- `pacotes.$slug.checkout.tsx` (checkout do pacote pronto — Pix, Cartão)
-- `admin.link-pagamento.tsx` (seguro/personalizado)
-- `admin.link-cartao-simples.tsx` (cartão simples)
+Hoje todo passageiro cadastrado no pedido aparece automaticamente em todos os serviços (aéreo, hospedagem, outros) — sem opção de desvincular de um serviço específico. A ideia é manter o vínculo automático na criação, mas permitir remover o passageiro de um serviço sem afetar os outros.
 
-Campos: nome completo, CPF/CNPJ, e-mail, telefone, CEP, endereço, número, bairro, cidade, UF. Todos salvos em `orders.payer_*` (novas colunas) e/ou no snapshot para servirem à geração de contrato.
+## Como vai funcionar
 
-### 2. Contrato/Recibo automático (PDF)
-Novo módulo `src/lib/contract-pdf.ts` que monta o PDF (via `pdf-lib` — funciona no Worker) espelhando o modelo:
-
-- **Cabeçalho fixo VIA AIR** — CNPJ, endereço, telefone, e-mail, logo.
-- **Recibo (pág. 1)** — "RECIBO - VENDA {order_number} - {data}", bloco "Pagante" com todos os dados do pagador, texto legal com valor por extenso.
-- **Serviços** condicionais pelo que o pedido tem:
-  - Se houver `order_items.kind='flight'`: tabela **Passagem Aérea** (Cia + Localizador), tabela de voos (segmentos ida/volta), tabela de passageiros (nº bilhete + tarifa + taxas + total).
-  - Se houver `kind='hotel'`: tabela **Hospedagem** (hotel, check-in/out, noites, regime, hóspedes).
-  - Se houver `kind='other'`: tabela **Outros serviços** (título, fornecedor, valor).
-- **Resumo financeiro** — Produtos / Abatimentos / Taxas / Total (a partir de `order_item_financials`).
-- **Pagamentos** — bloco "Pagamento para o Fornecedor" listando cada linha de `order_payments` (método + parcelas + valor + autorização quando existir).
-- **Contrato (págs. 2–4)** — texto integral das Condições Gerais do modelo, com cabeçalho "VENDA Nº / CONTRATADA / CONTRATANTE" em cada página.
-- Rodapé "Paranavaí, {data} - {hora}" + espaço para assinatura do contratante.
-
-### 3. Botões que já existem passam a funcionar
-No `admin.pedidos.$id.tsx`:
-- **Imprimir → Contrato**: gera o PDF e abre em nova aba.
-- **Imprimir → Recibo**: gera só a página 1.
-- **Enviar e-mail → Contrato**: anexa o PDF ao e-mail do pagador (usa a infra de e-mail já configurada).
-- Também vou expor um botão "Baixar contrato" na aba **Contrato**.
+- Ao adicionar um passageiro no pedido, ele é vinculado automaticamente a todos os serviços que já existem (aéreo, hospedagem e outros).
+- Ao adicionar um novo serviço, todos os passageiros do pedido são vinculados a ele automaticamente.
+- Em cada card de serviço, cada passageiro terá um botãozinho de remover que o desvincula apenas daquele serviço. Não apaga o passageiro do pedido nem afeta outros serviços.
+- Também terá um botão "Adicionar passageiro" no card do serviço, listando os passageiros do pedido que ainda não estão vinculados àquele serviço específico.
+- No PDF de recibo/contrato, cada serviço passa a listar somente os passageiros efetivamente vinculados a ele.
 
 ## Detalhes técnicos
 
-```text
-src/
-├── lib/
-│   └── contract-pdf.ts          ← montagem do PDF (pdf-lib, roda no client)
-├── routes/
-│   ├── admin.pedidos.$id.tsx    ← ligar botões Imprimir/Enviar
-│   ├── admin.link-boleto.tsx    ← já pede endereço; padronizar salvamento
-│   ├── admin.link-pagamento.tsx ← + campos endereço
-│   ├── admin.link-cartao-simples.tsx ← + campos endereço
-│   └── pacotes.$slug.checkout.tsx ← + campos endereço (Pix/Cartão)
-```
+1. Nova tabela `order_item_passengers`:
+   - `order_item_id` (FK → order_items, ON DELETE CASCADE)
+   - `passenger_id` (FK → order_passengers, ON DELETE CASCADE)
+   - `order_id` (para RLS/consulta rápida)
+   - UNIQUE(order_item_id, passenger_id)
+   - RLS: admin faz tudo; dono do pedido lê.
+   - GRANTs para `authenticated` e `service_role`.
 
-Migração (será enviada em call separada para aprovação):
-- `orders`: colunas `payer_full_name`, `payer_cpf`, `payer_email`, `payer_phone`, `payer_zip`, `payer_address`, `payer_number`, `payer_district`, `payer_city`, `payer_state`.
-- Preenchidas pelos checkouts; fallback para `orders.full_name/email` já existentes quando ausentes.
+2. Backfill: para pedidos existentes, criar links entre todos os itens e todos os passageiros do mesmo pedido.
 
-Texto das Condições Gerais: hard-coded a partir do modelo anexado (idêntico ao PDF que você mandou).
+3. Trigger `AFTER INSERT` em `order_items` e `order_passengers` para autolinkar contrapartes existentes no mesmo pedido (mantém o comportamento "novo passageiro/serviço entra atrelado a tudo").
 
-## Fora deste escopo (fica para depois)
-- Assinatura digital / DocuSign (já é outro item da lista).
-- Envio automático agendado (por ora, só sob demanda pelos botões).
-- Personalização das cláusulas via UI (o texto vem do modelo; se quiser editar depois, criamos um editor).
+4. Ajustes em `src/lib/orders.functions.ts`: expor `passenger_ids` em cada `order_item` no `getOrderDetail`, e criar/expor server functions `linkPassengerToItem` / `unlinkPassengerFromItem`.
 
-## Confirmações rápidas
-1. **Logo VIA AIR**: uso a que já está no projeto?
-2. **E-mail de destino** do "Enviar → Contrato": pagador (payer_email) ou cliente do pedido (`orders.full_name/email`)?
-3. **Pix no checkout do pacote pronto**: quer que eu já ative Pix como opção de pagamento no `pacotes.$slug.checkout.tsx`, ou por enquanto só coletar endereço e manter as formas atuais?
+5. UI em `src/routes/admin.pedidos.$id.tsx`:
+   - `FlightGroupCard`, `HotelCard` e `OtherCard` recebem lista filtrada de passageiros e mostram botão "×" em cada nome para desvincular.
+   - Botão "+ Passageiro" em cada card com dropdown dos passageiros ainda não vinculados.
+
+6. `src/lib/contract-pdf.ts`: passar a filtrar passageiros por item usando os links, em vez de repetir todos.
