@@ -119,9 +119,29 @@ function OrderDetailPage() {
             <div className="text-[11px] text-muted-foreground mt-1">
               Criado em {new Date(order.createdAt).toLocaleString("pt-BR")}
             </div>
+            <div className="mt-3 flex justify-end gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  const params = new URLSearchParams({
+                    customer: order.fullName,
+                    phone: order.phone,
+                    total: String(order.totalPrice),
+                    orderRef: order.id,
+                    orderNumber: order.orderNumber,
+                    locator: order.airlineLocator ?? "",
+                    supplier: order.supplierName ?? "",
+                  });
+                  navigate({ to: "/admin/link-pagamento", search: Object.fromEntries(params) as never });
+                }}
+              >
+                Enviar link de pagamento
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
 
       {/* Passageiros */}
       <PassengersSection
@@ -812,6 +832,12 @@ function FinanceTab({
   );
 }
 
+function defaultCommissionPct(kind: OrderItem["kind"] | undefined): number {
+  if (kind === "flight") return 10;
+  if (kind === "hotel") return 12;
+  return 0;
+}
+
 function FinanceDialog({
   open, onOpenChange, items, initial, selectedItem, setSelectedItem, onSave,
 }: {
@@ -823,6 +849,8 @@ function FinanceDialog({
   setSelectedItem: (v: string) => void;
   onSave: (p: Partial<OrderItemFinancial>) => void;
 }) {
+  const selectedKind = items.find((i) => i.id === selectedItem)?.kind;
+
   const [form, setForm] = useState({
     supplier_name: initial?.supplier_name ?? "",
     sale_value: initial?.sale_value ?? 0,
@@ -841,13 +869,29 @@ function FinanceDialog({
       sale_value: initial?.sale_value ?? 0,
       discount_value: initial?.discount_value ?? 0,
       commission_value: initial?.commission_value ?? 0,
-      commission_pct: initial?.commission_pct ?? 0,
+      commission_pct: initial?.commission_pct ?? (initial ? 0 : defaultCommissionPct(selectedKind)),
       exchange_rate: initial?.exchange_rate ?? 1,
       due_date: initial?.due_date ?? "",
       total: initial?.total ?? 0,
       notes: initial?.notes ?? "",
     });
-  }, [initial]);
+  }, [initial, selectedKind]);
+
+  // Auto-recalc totals whenever sale / discount / commission_pct change
+  const recalc = (patch: Partial<typeof form>) => {
+    const next = { ...form, ...patch };
+    const sale = Number(next.sale_value) || 0;
+    const disc = Number(next.discount_value) || 0;
+    const pct = Number(next.commission_pct) || 0;
+    next.commission_value = Number((sale * (pct / 100)).toFixed(2));
+    next.total = Number((sale - disc).toFixed(2));
+    setForm(next);
+  };
+
+  const applyDefaultPct = () => {
+    const pct = defaultCommissionPct(selectedKind);
+    recalc({ commission_pct: pct });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -858,7 +902,7 @@ function FinanceDialog({
         <div className="grid gap-3">
           <div>
             <Label>Item</Label>
-            <Select value={selectedItem ?? ""} onValueChange={setSelectedItem}>
+            <Select value={selectedItem ?? ""} onValueChange={(v) => { setSelectedItem(v); const k = items.find((i) => i.id === v)?.kind; if (!initial) recalc({ commission_pct: defaultCommissionPct(k) }); }}>
               <SelectTrigger><SelectValue placeholder="Escolha um item" /></SelectTrigger>
               <SelectContent>
                 {items.map((it) => (
@@ -868,19 +912,26 @@ function FinanceDialog({
                 ))}
               </SelectContent>
             </Select>
+            {selectedKind && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Comissão padrão para {selectedKind === "flight" ? "aéreo" : selectedKind === "hotel" ? "hospedagem" : "outros"}: {defaultCommissionPct(selectedKind)}%
+                {" · "}
+                <button type="button" className="underline" onClick={applyDefaultPct}>aplicar</button>
+              </p>
+            )}
           </div>
           <div>
             <Label>Fornecedor</Label>
             <Input value={form.supplier_name ?? ""} onChange={(e) => setForm({ ...form, supplier_name: e.target.value })} />
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div><Label>Venda</Label><Input type="number" step="0.01" value={form.sale_value} onChange={(e) => setForm({ ...form, sale_value: Number(e.target.value) })} /></div>
-            <div><Label>Desconto</Label><Input type="number" step="0.01" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: Number(e.target.value) })} /></div>
+            <div><Label>Venda</Label><Input type="number" step="0.01" value={form.sale_value} onChange={(e) => recalc({ sale_value: Number(e.target.value) })} /></div>
+            <div><Label>Desconto</Label><Input type="number" step="0.01" value={form.discount_value} onChange={(e) => recalc({ discount_value: Number(e.target.value) })} /></div>
             <div><Label>Câmbio</Label><Input type="number" step="0.0001" value={form.exchange_rate} onChange={(e) => setForm({ ...form, exchange_rate: Number(e.target.value) })} /></div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Comissão R$</Label><Input type="number" step="0.01" value={form.commission_value} onChange={(e) => setForm({ ...form, commission_value: Number(e.target.value) })} /></div>
-            <div><Label>Comissão %</Label><Input type="number" step="0.01" value={form.commission_pct} onChange={(e) => setForm({ ...form, commission_pct: Number(e.target.value) })} /></div>
+            <div><Label>Comissão %</Label><Input type="number" step="0.01" value={form.commission_pct} onChange={(e) => recalc({ commission_pct: Number(e.target.value) })} /></div>
             <div><Label>Vencimento</Label><Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
           </div>
           <div>
@@ -900,6 +951,7 @@ function FinanceDialog({
     </Dialog>
   );
 }
+
 
 // keep unused imports satisfied
 void Copy;

@@ -1,15 +1,25 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Search, ExternalLink, Loader2 } from "lucide-react";
+import { Search, ExternalLink, Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
+import { createOrder } from "@/lib/orders.functions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/admin/pedidos/")({
   component: AdminOrders,
   head: () => ({ meta: [{ title: "Pedidos — Admin" }] }),
 });
+
 
 const STATUS_FILTERS = [
   { value: "all", label: "Todos" },
@@ -73,14 +83,23 @@ function AdminOrders() {
     return acc;
   }, {});
 
+  const [newOpen, setNewOpen] = useState(false);
+
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold">Pedidos</h1>
-        <p className="text-sm text-muted-foreground">
-          {orders?.length ?? 0} pedido(s) · resultado da busca: {filtered.length}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-display font-bold">Pedidos</h1>
+          <p className="text-sm text-muted-foreground">
+            {orders?.length ?? 0} pedido(s) · resultado da busca: {filtered.length}
+          </p>
+        </div>
+        <Button onClick={() => setNewOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" /> Cadastrar pedido
+        </Button>
       </div>
+      <NewOrderDialog open={newOpen} onOpenChange={setNewOpen} />
+
 
       {/* Search bar (FRT style) */}
       <div className="mt-4 rounded-2xl border border-border bg-card p-4">
@@ -210,3 +229,98 @@ function AdminOrders() {
     </div>
   );
 }
+
+function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const navigate = useNavigate();
+  const create = useServerFn(createOrder);
+  const [form, setForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    cpf: "",
+    payment_method: "credit_card",
+    total_price: 0,
+    adults: 1,
+    children: 0,
+    supplier_name: "",
+    airline_locator: "",
+    notes: "",
+  });
+
+  const mut = useMutation({
+    mutationFn: async () => create({ data: { ...form } }),
+    onSuccess: (r) => {
+      toast.success(`Pedido ${r.order_number} criado`);
+      onOpenChange(false);
+      navigate({ to: "/admin/pedidos/$id", params: { id: r.id } });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao criar pedido"),
+  });
+
+  const submit = () => {
+    if (!form.full_name || !form.email || !form.phone) {
+      toast.error("Preencha nome, e-mail e telefone");
+      return;
+    }
+    mut.mutate();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Cadastrar pedido manual</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+            <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label>Adultos</Label><Input type="number" min={0} value={form.adults} onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })} /></div>
+            <div><Label>Crianças</Label><Input type="number" min={0} value={form.children} onChange={(e) => setForm({ ...form, children: Number(e.target.value) })} /></div>
+            <div><Label>Total previsto (R$)</Label><Input type="number" step="0.01" value={form.total_price} onChange={(e) => setForm({ ...form, total_price: Number(e.target.value) })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Meio de pagamento</Label>
+              <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_card">Cartão de crédito</SelectItem>
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="transfer">Transferência</SelectItem>
+                  <SelectItem value="other">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Fornecedor</Label><Input value={form.supplier_name} onChange={(e) => setForm({ ...form, supplier_name: e.target.value })} /></div>
+          </div>
+          <div>
+            <Label>Localizador aéreo (opcional)</Label>
+            <Input value={form.airline_locator} onChange={(e) => setForm({ ...form, airline_locator: e.target.value })} />
+          </div>
+          <div>
+            <Label>Observações</Label>
+            <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Depois de criar, você entra na tela do pedido para adicionar hospedagem, aéreo, passageiros e lançamentos financeiros.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={submit} disabled={mut.isPending}>
+            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar pedido"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
