@@ -1219,11 +1219,19 @@ function ItemDialog({
     setDetails(clean);
   }, [initial]);
 
-  // Hotel: só existem 2 estados. Sem localizador = Solicitado; com localizador = Confirmado.
+  // Auto-status:
+  // Hotel: sem localizador = Solicitado; com localizador = Confirmado.
+  // Aéreo: sem localizador e sem bilhete = Solicitado; só localizador = Reservado; com bilhete = Confirmado.
+  const ticketNumber = String(details.ticket_number ?? "").trim();
   useMemo(() => {
-    if (kind !== "hotel") return;
-    setStatusVal(locator.trim() ? "confirmed" : "pending");
-  }, [locator, kind]);
+    if (kind === "hotel") {
+      setStatusVal(locator.trim() ? "confirmed" : "pending");
+    } else if (kind === "flight") {
+      if (ticketNumber) setStatusVal("confirmed");
+      else if (locator.trim()) setStatusVal("reserved");
+      else setStatusVal("pending");
+    }
+  }, [locator, kind, ticketNumber]);
 
 
   const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
