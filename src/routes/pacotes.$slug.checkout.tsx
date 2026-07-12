@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange, maskCPF } from "@/lib/format";
 import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
-import { CardForm, useCardData } from "@/components/CardForm";
+import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/components/BoletoForm";
 import { DateBRInput } from "@/components/DateBRInput";
 
