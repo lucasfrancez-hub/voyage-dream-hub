@@ -2774,6 +2774,14 @@ function PaymentsSection({
                       <div className="text-muted-foreground text-xs">Autorização {p.authorization_code}</div>
                     )}
                     {p.description && <div className="text-muted-foreground text-xs mt-1">{p.description}</div>}
+                    {(p.method === "credit_card" || p.method === "debit_card") && (
+                      <Link
+                        to="/admin/cofre"
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-brand-orange hover:underline"
+                      >
+                        <Vault className="h-3.5 w-3.5" /> Abrir cofre <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    )}
                   </div>
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Cliente</div>
