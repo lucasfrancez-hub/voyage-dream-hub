@@ -140,7 +140,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
             {assinatura && statusBadge(assinatura.status)}
           </div>
           <div className="text-xs text-muted-foreground mt-0.5">
-            {!assinatura && "Envia o contrato + recibo direto para o cliente assinar com biometria dinâmica."}
+            {!assinatura && "Envia o contrato + recibo direto para o cliente assinar (por e-mail e WhatsApp) com selfie dinâmica (prova de vida) + foto do documento."}
             {assinatura?.status === "running" && "Aguardando assinatura do cliente e/ou da agência."}
             {assinatura?.status === "closed" && `Assinado em ${assinatura.updated_at ? new Date(assinatura.updated_at).toLocaleString("pt-BR") : ""}.`}
             {assinatura?.status === "refused" && "O documento foi recusado por um signatário."}
@@ -263,7 +263,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Autenticação: e-mail + biometria dinâmica (a ClickSign confere CPF e data de nascimento na hora da assinatura). A agência assina automaticamente em seguida.
+              Autenticação: link enviado por <b>e-mail e WhatsApp</b>. Na assinatura, o cliente faz <b>selfie dinâmica</b> (prova de vida) e envia a <b>foto do documento oficial</b> (RG/CNH). A ClickSign confere CPF e data de nascimento. A agência assina em seguida.
             </p>
           </div>
           <DialogFooter>
