@@ -221,6 +221,7 @@ const drawReceiptContinuationHeader = (ctx: Ctx) => {
     start: { x: MARGIN, y: topY - 24 }, end: { x: A4.w - MARGIN, y: topY - 24 },
     thickness: 0.5, color: COLOR_BORDER,
   });
+  drawLogo(ctx);
   ctx.y = topY - 38;
 };
 
