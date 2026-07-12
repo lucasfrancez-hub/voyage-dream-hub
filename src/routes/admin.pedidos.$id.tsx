@@ -1733,9 +1733,16 @@ function ItemDialog({
               <Label>Localizador do fornecedor{kind === "flight" ? " *" : ""}</Label>
               <Input
                 value={locator}
-                onChange={(e) => setLocator(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+                onChange={(e) => {
+                  const raw = e.target.value.toUpperCase();
+                  // Aéreo: apenas letras/números (PNR). Hotel/outros: mantém traço e espaço, sempre em maiúsculas.
+                  const cleaned = kind === "flight"
+                    ? raw.replace(/[^A-Z0-9]/g, "")
+                    : raw.replace(/[^A-Z0-9\-\s/]/g, "");
+                  setLocator(cleaned);
+                }}
                 placeholder="Ex: JXJDZZ"
-                maxLength={12}
+                maxLength={kind === "flight" ? 12 : 32}
               />
               {kind === "flight" && (
                 <p className="mt-1 text-[11px] text-muted-foreground">Obrigatório · mínimo 6 caracteres (letras e/ou números).</p>
