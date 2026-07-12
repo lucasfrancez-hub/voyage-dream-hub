@@ -22,10 +22,11 @@ type OrderRow = {
 };
 
 type FinancialRow = {
-  order_id: string;
+  order_item_id: string;
   commission_value: number | null;
   sale_value: number | null;
   tax_value: number | null;
+  order_items: { order_id: string } | { order_id: string }[] | null;
 };
 
 type ItemRow = {
