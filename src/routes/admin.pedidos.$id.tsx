@@ -907,8 +907,48 @@ function ItemsTab({
         onOpenChange={setOpen}
         initial={editing}
         kind={dialogKind}
-        onSave={(payload) => save.mutate({ ...payload, order_id: orderId, id: editing?.id })}
+        onSave={async (payload) => {
+          try {
+            // 1) Salva o item editado (ou cria novo)
+            await upsert({ data: { ...payload, order_id: orderId, id: editing?.id } });
+
+            // 2) Para AÉREO: propaga localizador + bilhete pra todos os outros aéreos do pedido.
+            //    Assim ida/volta ficam sempre com o mesmo localizador e o mesmo bilhete,
+            //    e o status é derivado do trio (localizador + bilhete).
+            if (payload.kind === "flight") {
+              const newLoc = payload.supplier_locator;
+              const newDetails = (payload.details ?? {}) as Record<string, unknown>;
+              const newTicket = String(newDetails.ticket_number ?? "").trim();
+              const otherFlights = items.filter((i) => i.kind === "flight" && i.id !== editing?.id && i.status !== "cancelled");
+              for (const fi of otherFlights) {
+                const fd = { ...((fi.details ?? {}) as Record<string, unknown>), ticket_number: newTicket };
+                const st: "confirmed" | "reserved" | "pending" = newTicket && newLoc
+                  ? "confirmed" : newLoc ? "reserved" : "pending";
+                await upsert({
+                  data: {
+                    id: fi.id,
+                    order_id: orderId,
+                    kind: "flight",
+                    title: fi.title,
+                    supplier_locator: newLoc,
+                    details: fd as Json,
+                    sort_order: fi.sort_order,
+                    status: st,
+                  },
+                });
+              }
+            }
+
+            toast.success("Item salvo");
+            onChange();
+            setOpen(false);
+            setEditing(null);
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+          }
+        }}
       />
+
     </div>
   );
 }
@@ -1416,21 +1456,9 @@ function ItemDialog({
               <Label>{kind === "hotel" ? "Nome do hotel" : kind === "flight" ? "Trecho / rota" : "Serviço"}</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "hotel" ? "Ex: Trupial Hotel & Casino" : kind === "flight" ? "Ex: GRU → CUR" : "Ex: Traslado, Passeio, Seguro viagem…"} />
             </div>
-            <div>
+            <div className={kind === "other" ? "" : "col-span-2"}>
               <Label>Localizador do fornecedor</Label>
               <Input value={locator} onChange={(e) => setLocator(e.target.value)} placeholder="Ex: JXJDZZ" />
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatusVal(v as "confirmed" | "reserved" | "cancelled" | "pending")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Solicitado</SelectItem>
-                  {kind !== "hotel" && <SelectItem value="reserved">Reservado</SelectItem>}
-                  <SelectItem value="confirmed">Confirmado</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
               {kind === "hotel" && (
                 <p className="text-[11px] text-muted-foreground mt-1">
                   Sem localizador = Solicitado. Com localizador = Confirmado.
@@ -1442,6 +1470,20 @@ function ItemDialog({
                 </p>
               )}
             </div>
+            {kind === "other" && (
+              <div>
+                <Label>Status</Label>
+                <Select value={status} onValueChange={(v) => setStatusVal(v as "confirmed" | "reserved" | "cancelled" | "pending")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Solicitado</SelectItem>
+                    <SelectItem value="confirmed">Confirmado</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
           </div>
 
 
