@@ -853,12 +853,17 @@ async function build(detail: OrderDetail, includeContract: boolean): Promise<Uin
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const page = pdf.addPage([A4.w, A4.h]);
-  const ctx: Ctx = { pdf, page, y: A4.h - MARGIN, font, fontBold, order: detail.order };
+  const ctx: Ctx = {
+    pdf, page, y: A4.h - MARGIN, font, fontBold,
+    order: detail.order,
+    pageHeader: drawReceiptContinuationHeader,
+  };
 
   drawCompanyHeader(ctx);
   drawReciboBlock(ctx, detail);
-  drawHotels(ctx, detail);
+  // Ordem do recibo: Passageiro/Aéreo → Hospedagem → Outros Serviços → Resumo → Pagamentos.
   drawFlights(ctx, detail);
+  drawHotels(ctx, detail);
   drawOthers(ctx, detail);
 
   drawTotals(ctx, detail);
@@ -881,7 +886,11 @@ async function build(detail: OrderDetail, includeContract: boolean): Promise<Uin
   const cw = ctx.font.widthOfTextAtSize(sanitize(clientName), 8);
   text(ctx, clientName, A4.w - MARGIN - cw, { size: 8, color: COLOR_MUTED });
 
-  if (includeContract) drawContract(ctx);
+  if (includeContract) {
+    // A partir daqui, páginas de continuação usam o cabeçalho do CONTRATO.
+    ctx.pageHeader = drawContractHeader;
+    drawContract(ctx);
+  }
   drawFooter(ctx);
 
   return await pdf.save();
