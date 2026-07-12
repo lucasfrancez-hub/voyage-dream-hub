@@ -37,11 +37,11 @@ async function csFetch<T = unknown>(path: string, init: RequestInit = {}): Promi
   return text ? (JSON.parse(text) as T) : ({} as T);
 }
 
-async function assertAdmin(context: {
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> };
-  userId: string;
-}) {
-  const { data: isAdmin } = await context.supabase.rpc("has_role", {
+async function assertAdmin(context: { supabase: unknown; userId: string }) {
+  const sb = context.supabase as {
+    rpc: (fn: "has_role", args: { _user_id: string; _role: "admin" | "user" | "moderator" }) => Promise<{ data: boolean | null }>;
+  };
+  const { data: isAdmin } = await sb.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
   });
