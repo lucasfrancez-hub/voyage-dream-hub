@@ -6,6 +6,7 @@ import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
   Package, Percent, Mail, Printer, CheckCircle2, MoreHorizontal, Signature,
+  Vault, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -2653,10 +2654,11 @@ const PAYMENT_METHOD_OPTIONS: { value: string; label: string }[] = [
 ];
 
 const PAYMENT_STATUS_OPTIONS: { value: string; label: string; className: string }[] = [
-  { value: "paid", label: "PAGO", className: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" },
+  { value: "paid", label: "APROVADO", className: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" },
   { value: "pending", label: "PENDENTE", className: "bg-amber-500/20 text-amber-600 dark:text-amber-400" },
+  { value: "rejected", label: "REJEITADO", className: "bg-red-500/20 text-red-600 dark:text-red-400" },
   { value: "cancelled", label: "CANCELADO", className: "bg-muted text-muted-foreground" },
-  { value: "refunded", label: "ESTORNADO", className: "bg-red-500/20 text-red-600 dark:text-red-400" },
+  { value: "refunded", label: "ESTORNADO", className: "bg-orange-500/20 text-orange-600 dark:text-orange-400" },
 ];
 
 function paymentMethodLabelShort(v: string) {
@@ -2772,6 +2774,14 @@ function PaymentsSection({
                       <div className="text-muted-foreground text-xs">Autorização {p.authorization_code}</div>
                     )}
                     {p.description && <div className="text-muted-foreground text-xs mt-1">{p.description}</div>}
+                    {(p.method === "credit_card" || p.method === "debit_card") && (
+                      <Link
+                        to="/admin/cofre"
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-brand-orange hover:underline"
+                      >
+                        <Vault className="h-3.5 w-3.5" /> Abrir cofre <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    )}
                   </div>
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Cliente</div>
