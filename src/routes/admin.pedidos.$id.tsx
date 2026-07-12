@@ -119,9 +119,29 @@ function OrderDetailPage() {
             <div className="text-[11px] text-muted-foreground mt-1">
               Criado em {new Date(order.createdAt).toLocaleString("pt-BR")}
             </div>
+            <div className="mt-3 flex justify-end gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  const params = new URLSearchParams({
+                    customer: order.fullName,
+                    phone: order.phone,
+                    total: String(order.totalPrice),
+                    orderRef: order.id,
+                    orderNumber: order.orderNumber,
+                    locator: order.airlineLocator ?? "",
+                    supplier: order.supplierName ?? "",
+                  });
+                  navigate({ to: "/admin/link-pagamento", search: Object.fromEntries(params) as never });
+                }}
+              >
+                Enviar link de pagamento
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
 
       {/* Passageiros */}
       <PassengersSection
