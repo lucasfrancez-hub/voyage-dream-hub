@@ -362,6 +362,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      materialize_order_from_snapshot: {
+        Args: { _order_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"
