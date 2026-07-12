@@ -161,6 +161,23 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
         <div className="flex gap-2 shrink-0">
           {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
 
+          {assinatura && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={syncMut.isPending}
+              onClick={() => syncMut.mutate(assinatura.id)}
+              title="Buscar status atual na ClickSign e baixar PDF se assinado"
+            >
+              {syncMut.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Sincronizar
+            </Button>
+          )}
+
           {!hasActive && assinatura?.status !== "closed" && (
             <Button size="sm" onClick={openSendDialog}>
               <Send className="h-3.5 w-3.5 mr-1.5" /> Enviar para assinatura
