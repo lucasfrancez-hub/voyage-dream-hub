@@ -1607,16 +1607,6 @@ function ItemDialog({
             <div className={kind === "other" ? "" : "col-span-2"}>
               <Label>Localizador do fornecedor</Label>
               <Input value={locator} onChange={(e) => setLocator(e.target.value)} placeholder="Ex: JXJDZZ" />
-              {kind === "hotel" && (
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Sem localizador = Solicitado. Com localizador = Confirmado.
-                </p>
-              )}
-              {kind === "flight" && (
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Compartilhado com todos os trechos. Sem localizador nem bilhete = Solicitado. Só localizador = Reservado. Com bilhete = Confirmado.
-                </p>
-              )}
             </div>
             {kind === "other" && (
               <div>
