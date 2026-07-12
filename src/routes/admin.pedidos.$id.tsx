@@ -344,10 +344,20 @@ function OrderDetailPage() {
         payments={detail.payments}
         onChange={invalidate}
       />
+
+      <CommissionAdjustDialog
+        open={openCommission}
+        onOpenChange={setOpenCommission}
+        order={order}
+        items={detail.items.filter((i) => i.status !== "cancelled")}
+        financials={detail.financials}
+        onSaved={invalidate}
+      />
     </div>
 
   );
 }
+
 
 // =========== Passengers ===========
 function PassengersSection({
