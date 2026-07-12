@@ -900,6 +900,26 @@ function ItemsTab({
 }
 
 
+// Deriva o status "real" de um item aéreo/hotel a partir dos dados,
+// ignorando o status armazenado quando ele está inconsistente.
+// Aéreo: bilhete + localizador → confirmado; só localizador → reservado; nada → solicitado (pending).
+// Hotel: localizador → confirmado; sem localizador → solicitado (pending).
+function deriveItemStatus(item: OrderItem): OrderItem["status"] {
+  if (item.status === "cancelled") return "cancelled";
+  const d = (item.details ?? {}) as Record<string, unknown>;
+  const loc = (item.supplier_locator ?? "").trim();
+  if (item.kind === "flight") {
+    const tkt = String(d.ticket_number ?? "").trim();
+    if (tkt && loc) return "confirmed";
+    if (loc) return "reserved";
+    return "pending";
+  }
+  if (item.kind === "hotel") {
+    return loc ? "confirmed" : "pending";
+  }
+  return item.status;
+}
+
 
 function ItemCard({
   item, onEdit, onDelete, onCancel, onReactivate,
@@ -938,7 +958,7 @@ function ItemCard({
                 <Hash className="h-3 w-3" /> {d.ticket_number as string}
               </button>
             )}
-            {(() => { const b = itemStatusBadge(item.status); return (
+            {(() => { const b = itemStatusBadge(deriveItemStatus(item)); return (
               <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
             ); })()}
           </div>
@@ -1071,9 +1091,10 @@ function FlightReservationCard({
           </div>
           <div className="mt-1.5">
             {(() => {
-              // Se todos os segmentos têm o mesmo status, mostra ele. Se estão mistos, mostra o "mais avançado".
+              // Deriva status real de cada segmento antes de agregar.
               const rank: Record<string, number> = { pending: 0, reserved: 1, confirmed: 2, cancelled: -1 };
-              const nonCancel = segments.filter((s) => s.status !== "cancelled");
+              const derived = segments.map((s) => ({ ...s, status: deriveItemStatus(s) }));
+              const nonCancel = derived.filter((s) => s.status !== "cancelled");
               const st = allCancelled ? "cancelled"
                 : nonCancel.reduce((acc, s) => (rank[s.status] > rank[acc] ? s.status : acc), nonCancel[0]?.status ?? "pending");
               const b = itemStatusBadge(st);
@@ -1205,7 +1226,7 @@ function HotelReservationCard({
             {item.supplier_locator?.trim() || "—"}
           </div>
           <div className="mt-1.5">
-            {(() => { const b = itemStatusBadge(item.status); return (
+            {(() => { const b = itemStatusBadge(deriveItemStatus(item)); return (
               <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${b.className}`}>{b.label}</span>
             ); })()}
           </div>
