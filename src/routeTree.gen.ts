@@ -23,6 +23,7 @@ import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
+import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
@@ -99,6 +100,11 @@ const AdminLinkBoletoRoute = AdminLinkBoletoRouteImport.update({
   path: '/link-boleto',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCofreRoute = AdminCofreRouteImport.update({
   id: '/cofre',
   path: '/cofre',
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/pagar'
     | '/pagar-boleto'
     | '/admin/cofre'
+    | '/admin/dashboard'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/pagar'
     | '/pagar-boleto'
     | '/admin/cofre'
+    | '/admin/dashboard'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/pagar'
     | '/pagar-boleto'
     | '/admin/cofre'
+    | '/admin/dashboard'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -363,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLinkBoletoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cofre': {
       id: '/admin/cofre'
       path: '/cofre'
@@ -403,6 +422,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminCofreRoute: typeof AdminCofreRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
@@ -415,6 +435,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCofreRoute: AdminCofreRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
