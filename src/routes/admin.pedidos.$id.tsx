@@ -948,7 +948,7 @@ function ItemsTab({
 
               // Upsert de cada trecho irmão (novo ou existente)
               for (const s of payload.siblings ?? []) {
-                const sd = { ...(s.details as Record<string, unknown>), ticket_number: newTicket };
+                const sd: Record<string, unknown> = { ...(s.details as Record<string, unknown>), ticket_number: newTicket };
                 if (newSupplier !== undefined && sd.supplier_name === undefined) sd.supplier_name = newSupplier;
                 await upsert({ data: {
                   id: s.id,
