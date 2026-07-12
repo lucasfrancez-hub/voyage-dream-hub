@@ -386,18 +386,9 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   if (emailPhone) { text(ctx, emailPhone, MARGIN, { size: 9.5 }); ctx.y -= lineH; }
   ctx.y -= 10;
 
-  // Texto legal
-  const pkg = getPackageInfo(d);
-  let total: number;
-  if (pkg.isPackage) {
-    const fareNet = Math.max(0, pkg.fare - pkg.taxes);
-    const defaultCommission = Number((fareNet * 0.12).toFixed(2));
-    const commissionTotal = Number((fareNet * (pkg.commissionPct / 100)).toFixed(2));
-    const extra = Math.max(0, commissionTotal - defaultCommission);
-    total = Number((fareNet + pkg.taxes + extra).toFixed(2));
-  } else {
-    total = d.financials.reduce((s, f) => s + f.total, 0) || o.totalPrice;
-  }
+  // Texto legal — usa SEMPRE o total do pedido (espelha o cabeçalho e o ajuste de comissão).
+  const total = Number(o.totalPrice ?? 0)
+    || d.financials.reduce((s, f) => s + Number(f.total || 0), 0);
   const legal =
     `A ${COMPANY.name}, declara que os serviços turísticos relacionados neste documento, ` +
     `adquiridos e quitados conforme formas de pagamento abaixo, pelo Sr.(a) ${payer.name} ` +
@@ -409,20 +400,6 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
 };
 
 
-// Detecta se pedido é pacote pronto e devolve tarifa/taxas do snapshot.
-type PackageInfo = { isPackage: boolean; pax: number; fare: number; taxes: number; commissionPct: number };
-const getPackageInfo = (d: OrderDetail): PackageInfo => {
-  const snap = (d.order.packageSnapshot ?? {}) as Record<string, unknown>;
-  const isPackage =
-    !(snap as { manual?: boolean }).manual &&
-    !["payment_link", "payment_link_simple"].includes(String((snap as { kind?: string }).kind ?? "")) &&
-    Number((snap as { price_per_person?: number }).price_per_person ?? 0) > 0;
-  const pax = Math.max(1, (d.order.adults || 0) + (d.order.children || 0));
-  const fare = isPackage ? Number((snap as { price_per_person?: number }).price_per_person ?? 0) * pax : 0;
-  const taxes = isPackage ? Number((snap as { taxes?: number }).taxes ?? 0) : 0;
-  const commissionPct = Number(d.financials[0]?.commission_pct ?? 12);
-  return { isPackage, pax, fare, taxes, commissionPct };
-};
 
 type FlightRow = {
   airlineCode: string;
@@ -527,52 +504,48 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   }
   ctx.y -= 6;
 
-  // Passageiros / bilhete / valores
-  const pkg = getPackageInfo(d);
+  // Passageiros / bilhete / valores — divide o total real do(s) voo(s) pelo nº de pax.
   const flightItemIds = new Set(flights.map((f) => f.id));
   const flightFins = d.financials.filter((f) => flightItemIds.has(f.order_item_id));
-  const paxCols: Col[] = [
-    { header: "Passageiro", width: 200 },
-    { header: "Nº Bilhete", width: 100 },
-    { header: "Valor", width: 80, align: "right" },
-    { header: "Taxas", width: 70, align: "right" },
-    { header: "Total", width: CONTENT_W - 200 - 100 - 80 - 70, align: "right" },
-  ];
+  const paxCount = Math.max(1, d.passengers.length);
+  const sumSale = flightFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
+  const sumTax = flightFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
+  const sumDisc = flightFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
+  const sumTotal = flightFins.reduce((s, f) => s + Number(f.total || 0), 0);
+  const showDisc = sumDisc > 0.005;
+
+  const paxCols: Col[] = showDisc
+    ? [
+        { header: "Passageiro", width: 180 },
+        { header: "Nº Bilhete", width: 90 },
+        { header: "Tarifa", width: 70, align: "right" },
+        { header: "Taxas", width: 60, align: "right" },
+        { header: "Desc.", width: 55, align: "right" },
+        { header: "Total", width: CONTENT_W - 180 - 90 - 70 - 60 - 55, align: "right" },
+      ]
+    : [
+        { header: "Passageiro", width: 210 },
+        { header: "Nº Bilhete", width: 100 },
+        { header: "Tarifa", width: 80, align: "right" },
+        { header: "Taxas", width: 70, align: "right" },
+        { header: "Total", width: CONTENT_W - 210 - 100 - 80 - 70, align: "right" },
+      ];
   drawTableHeader(ctx, paxCols);
 
-  // Divisão por pax (usa snapshot do pacote quando aplicável; senão, divide financials pelo nº de pax)
-  const paxCount = Math.max(1, d.passengers.length || pkg.pax);
-  let perPax = { sale: 0, tax: 0, total: 0 };
-  if (pkg.isPackage) {
-    const fareNet = Math.max(0, pkg.fare - pkg.taxes);
-    const defaultCommission = Number((fareNet * 0.12).toFixed(2));
-    const commissionTotal = Number((fareNet * (pkg.commissionPct / 100)).toFixed(2));
-    const extra = Math.max(0, commissionTotal - defaultCommission);
-    const totalNet = fareNet + pkg.taxes + extra;
-    perPax = {
-      sale: fareNet / paxCount,
-      tax: pkg.taxes / paxCount,
-      total: totalNet / paxCount,
-    };
-  } else if (flightFins.length > 0) {
-    perPax = {
-      sale: flightFins.reduce((s, f) => s + f.sale_value, 0) / paxCount,
-      tax: flightFins.reduce((s, f) => s + f.tax_value, 0) / paxCount,
-      total: flightFins.reduce((s, f) => s + f.total, 0) / paxCount,
-    };
-  }
+  const perSale = sumSale / paxCount;
+  const perTax = sumTax / paxCount;
+  const perDisc = sumDisc / paxCount;
+  const perTotal = sumTotal / paxCount;
 
   for (const p of d.passengers) {
-    drawTableRow(ctx, paxCols, [
-      p.full_name,
-      p.ticket_number ?? "—",
-      brl(perPax.sale),
-      brl(perPax.tax),
-      brl(perPax.total),
-    ]);
+    const row = showDisc
+      ? [p.full_name, p.ticket_number ?? "—", brl(perSale), brl(perTax), brl(perDisc), brl(perTotal)]
+      : [p.full_name, p.ticket_number ?? "—", brl(perSale), brl(perTax), brl(perTotal)];
+    drawTableRow(ctx, paxCols, row);
   }
-  ctx.y -= 6;
+  ctx.y -= 8;
 };
+
 
 const drawHotels = (ctx: Ctx, d: OrderDetail) => {
   const hotels = d.items.filter((i) => i.kind === "hotel" && i.status !== "cancelled");
@@ -618,37 +591,28 @@ const drawOthers = (ctx: Ctx, d: OrderDetail) => {
 };
 
 const drawTotals = (ctx: Ctx, d: OrderDetail) => {
-  const pkg = getPackageInfo(d);
-  let produtos: number;
-  let taxas: number;
-  let desc: number;
-  let total: number;
-  if (pkg.isPackage) {
-    const fareNet = Math.max(0, pkg.fare - pkg.taxes);
-    const defaultCommission = Number((fareNet * 0.12).toFixed(2));
-    const commissionTotal = Number((fareNet * (pkg.commissionPct / 100)).toFixed(2));
-    const extra = Math.max(0, commissionTotal - defaultCommission);
-    produtos = Number(fareNet.toFixed(2));
-    taxas = Number(pkg.taxes.toFixed(2));
-    desc = 0;
-    total = Number((fareNet + pkg.taxes + extra).toFixed(2));
-  } else {
-    produtos = d.financials.reduce((s, f) => s + f.sale_value, 0);
-    taxas = d.financials.reduce((s, f) => s + f.tax_value, 0);
-    desc = d.financials.reduce((s, f) => s + f.discount_value, 0);
-    total = d.financials.reduce((s, f) => s + f.total, 0) || d.order.totalPrice;
-  }
+  // Espelha os itens do financeiro do pedido (fonte da verdade após ajuste de comissão).
+  const produtos = d.financials.reduce((s, f) => s + Number(f.sale_value || 0), 0);
+  const taxas = d.financials.reduce((s, f) => s + Number(f.tax_value || 0), 0);
+  const desc = d.financials.reduce((s, f) => s + Number(f.discount_value || 0), 0);
+  const comissao = d.financials.reduce((s, f) => s + Number(f.commission_value || 0), 0);
+  const total = Number(d.order.totalPrice ?? 0)
+    || d.financials.reduce((s, f) => s + Number(f.total || 0), 0);
+
   sectionTitle(ctx, "Resumo Financeiro");
+  const w = CONTENT_W / 5;
   const cols: Col[] = [
-    { header: "Produtos", width: CONTENT_W / 4, align: "right" },
-    { header: "Abatimentos", width: CONTENT_W / 4, align: "right" },
-    { header: "Taxas", width: CONTENT_W / 4, align: "right" },
-    { header: "Total", width: CONTENT_W / 4, align: "right" },
+    { header: "Tarifa", width: w, align: "right" },
+    { header: "Taxas", width: w, align: "right" },
+    { header: "Desconto", width: w, align: "right" },
+    { header: "Comissão", width: w, align: "right" },
+    { header: "Total", width: CONTENT_W - w * 4, align: "right" },
   ];
   drawTableHeader(ctx, cols);
-  drawTableRow(ctx, cols, [brl(produtos), brl(desc), brl(taxas), brl(total)]);
-  ctx.y -= 6;
+  drawTableRow(ctx, cols, [brl(produtos), brl(taxas), brl(desc), brl(comissao), brl(total)]);
+  ctx.y -= 8;
 };
+
 
 const drawPayments = (ctx: Ctx, d: OrderDetail) => {
   if (d.payments.length === 0) return;
