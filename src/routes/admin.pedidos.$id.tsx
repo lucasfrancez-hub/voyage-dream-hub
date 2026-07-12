@@ -2032,7 +2032,7 @@ function FinanceTab({
     const delta = Number((totalCommission - packageDefaultCommission).toFixed(2));
     totalNet = Number((packageFareNet + packageTaxes + delta).toFixed(2));
   } else {
-    const displayRows = financials.length > 0 ? financials : plannedRows;
+    const displayRows = [...financials, ...plannedRows];
     totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
     totalTax = displayRows.reduce((a, f) => a + Number(f.tax_value || 0), 0);
     commissionBase = Math.max(0, totalSale);
