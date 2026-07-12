@@ -377,10 +377,12 @@ function OrderDetailPage() {
       {/* Payments */}
       <PaymentsSection
         orderId={order.id}
+        order={order}
         clientName={order.fullName}
         payments={detail.payments}
         onChange={invalidate}
       />
+
 
       <CommissionAdjustDialog
         open={openCommission}
