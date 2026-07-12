@@ -302,7 +302,10 @@ function OrderDetailPage() {
                   <DropdownMenuItem onClick={() => { if (confirm("Cancelar o pedido e todos os itens?")) orderStatusMut.mutate("cancelled"); }}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { if (confirm("Reabrir o pedido como pendente?")) orderStatusMut.mutate("pending"); }}><RotateCcw className="h-3.5 w-3.5 mr-2" /> Reabrir</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
-                    window.dispatchEvent(new CustomEvent("clicksign:open-send", { detail: { orderId: order.id, withAuth: true } }));
+                    setActiveTab("contract");
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent("clicksign:open-send", { detail: { orderId: order.id, withAuth: true } }));
+                    }, 150);
                   }}><Signature className="h-3.5 w-3.5 mr-2 text-brand-orange" /> Acionar contrato Clicksign</DropdownMenuItem>
                 </DropdownMenuContent>
 
