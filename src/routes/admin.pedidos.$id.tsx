@@ -43,6 +43,7 @@ import { Slider } from "@/components/ui/slider";
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
 import { generateReceiptAndContract, generateReceiptOnly, openBlobInNewTab } from "@/lib/contract-pdf";
 import { OrderDocuments } from "@/components/OrderDocuments";
+import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
 import type { Json } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
