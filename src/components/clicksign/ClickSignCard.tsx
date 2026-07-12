@@ -13,7 +13,7 @@ import {
 import {
   createSignatureRequest, getSignatureStatus, cancelSignatureRequest, resendSignerEmail, syncSignatureFromClickSign,
 } from "@/lib/clicksign.functions";
-import { generateReceiptAndContract } from "@/lib/contract-pdf";
+import { generateReceiptAndContract, generateReceiptContractAndAuthorization } from "@/lib/contract-pdf";
 import type { OrderDetail } from "@/lib/orders.functions";
 
 async function blobToBase64(blob: Blob): Promise<string> {
