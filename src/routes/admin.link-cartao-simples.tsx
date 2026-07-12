@@ -7,8 +7,10 @@ import { formatBRL } from "@/lib/format";
 import { saveCofreEntry, deleteCofreEntry, popEditEntry } from "@/lib/cofre-storage";
 
 export const Route = createFileRoute("/admin/link-cartao-simples")({
+  validateSearch: (s: Record<string, unknown>) => s as Record<string, string | undefined>,
   component: LinkSimpleGenerator,
 });
+
 
 function LinkSimpleGenerator() {
   const [customer, setCustomer] = useState("");
@@ -31,7 +33,27 @@ function LinkSimpleGenerator() {
   const editingIdRef = useRef<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
+  const search = Route.useSearch();
+
   useEffect(() => {
+    if (search?.autogen === "1") {
+      if (search.customer) setCustomer(search.customer);
+      if (search.phone) setCustomerPhone(String(search.phone).replace(/\D/g, ""));
+      if (search.description) setDescription(search.description);
+      if (search.total) setTotal(String(search.total));
+      if (search.orderRef) setOrderRef(search.orderRef);
+      if (search.orderNumber) setOrderNumber(search.orderNumber);
+      if (search.hotel) setHotel(search.hotel);
+      if (search.flights) setFlights(search.flights);
+      if (search.checkin) setCheckin(search.checkin);
+      if (search.checkout) setCheckout(search.checkout);
+      if (search.days) setDays(search.days);
+      if (search.nights) setNights(search.nights);
+      if (search.imageUrl) setImageUrl(search.imageUrl);
+      toast.success("Dados do pedido carregados — link gerado automaticamente");
+      return;
+    }
+
     const entry = popEditEntry();
     if (!entry) return;
     editingIdRef.current = entry.id;
@@ -55,7 +77,9 @@ function LinkSimpleGenerator() {
       setFirstAmount(String(entry.firstAmount));
     }
     toast.info("Editando link do cofre");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
 
   const totalNumber = Number(total.replace(",", ".")) || 0;
