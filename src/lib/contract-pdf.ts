@@ -310,6 +310,7 @@ const drawContractHeader = (ctx: Ctx) => {
     thickness: 0.5,
     color: COLOR_BORDER,
   });
+  drawLogo(ctx);
   ctx.y = topY - 82;
 };
 
