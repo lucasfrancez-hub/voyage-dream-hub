@@ -156,6 +156,9 @@ type Ctx = {
   font: PDFFont;
   fontBold: PDFFont;
   order: OrderHeader;
+  // Cabeçalho usado ao criar páginas de continuação da seção atual.
+  // Recibo usa um cabeçalho enxuto; Contrato usa drawContractHeader.
+  pageHeader?: (c: Ctx) => void;
 };
 
 const newPage = (ctx: Ctx) => {
@@ -167,8 +170,24 @@ const ensureSpace = (ctx: Ctx, needed: number, drawHeader?: (c: Ctx) => void) =>
   if (ctx.y - needed < MARGIN + 40) {
     drawFooter(ctx);
     newPage(ctx);
-    if (drawHeader) drawHeader(ctx);
+    const h = drawHeader ?? ctx.pageHeader;
+    if (h) h(ctx);
   }
+};
+
+// Cabeçalho enxuto para continuação de páginas do RECIBO (sem venda/contratante).
+const drawReceiptContinuationHeader = (ctx: Ctx) => {
+  const topY = A4.h - MARGIN;
+  ctx.page.drawRectangle({ x: 0, y: topY - 4, width: 6, height: 24, color: COLOR_BRAND });
+  text(ctx, COMPANY.name, MARGIN, { y: topY - 2, size: 10, bold: true });
+  text(ctx, `Recibo - Venda Nº ${ctx.order.orderNumber} (continuação)`, MARGIN, {
+    y: topY - 14, size: 8, color: COLOR_MUTED,
+  });
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: topY - 24 }, end: { x: A4.w - MARGIN, y: topY - 24 },
+    thickness: 0.5, color: COLOR_BORDER,
+  });
+  ctx.y = topY - 38;
 };
 
 const text = (
