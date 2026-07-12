@@ -43,6 +43,7 @@ export type OrderItemFinancial = {
 
 export type OrderHeader = {
   id: string;
+  orderNumber: string;
   createdAt: string;
   status: string;
   fullName: string;
