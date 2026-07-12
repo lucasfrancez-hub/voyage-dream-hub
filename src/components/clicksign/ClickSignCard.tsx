@@ -57,7 +57,10 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
 
   const invalidate = () => qc.invalidateQueries({ queryKey });
 
+  const isCreditCard = (order.paymentMethod ?? "").toLowerCase().startsWith("credit_card");
+
   const [openDialog, setOpenDialog] = useState(false);
+  const [includeAuth, setIncludeAuth] = useState(isCreditCard);
   const [form, setForm] = useState({
     nome: order.fullName ?? "",
     email: order.email ?? "",
@@ -74,6 +77,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
       nascimento: order.birthDate ?? "",
       telefone: order.phone ?? "",
     });
+    setIncludeAuth(isCreditCard);
     setOpenDialog(true);
   };
 
@@ -87,7 +91,9 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
       const phoneDigits = form.telefone.replace(/\D/g, "");
       if (phoneDigits.length < 10) throw new Error("Telefone (WhatsApp) inválido — inclua DDD");
 
-      const blob = await generateReceiptAndContract(detail);
+      const blob = includeAuth
+        ? await generateReceiptContractAndAuthorization(detail)
+        : await generateReceiptAndContract(detail);
       const pdfBase64 = await blobToBase64(blob);
       return createFn({
         data: {
