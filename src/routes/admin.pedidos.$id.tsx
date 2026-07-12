@@ -1870,7 +1870,7 @@ function FinanceTab({
                   <td className="py-2 px-2 text-xs">—</td>
                   <td className="py-2 px-2 text-right text-xs">{formatBRL(totalSale)}</td>
                   <td className="py-2 px-2 text-right text-xs">{formatBRL(totalTax)}</td>
-                  <td className="py-2 px-2 text-right text-xs">{formatBRL(0)}</td>
+                  <td className="py-2 px-2 text-right text-xs">{formatBRL(packageDiscount)}</td>
                   <td className="py-2 px-2 text-right text-xs">
                     {formatBRL(totalCommission)}
                     <div className="text-[10px] text-muted-foreground">{financials[0]?.commission_pct ?? PACKAGE_DEFAULT_PCT}%</div>
