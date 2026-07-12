@@ -667,10 +667,15 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
-    // Pagamento manual novo: "Incluído por" default = e-mail do usuário logado
+    // Pagamento manual novo: "Incluído por" default = nome completo do usuário logado (fallback e-mail)
     if (!payload.added_by_name) {
+      const { data: prof } = await context.supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", context.userId)
+        .maybeSingle();
       const email = (context.claims as { email?: string } | undefined)?.email ?? null;
-      payload.added_by_name = email;
+      payload.added_by_name = (prof?.full_name && prof.full_name.trim()) ? prof.full_name : email;
     }
     const { data: created, error } = await context.supabase
       .from("order_payments")
