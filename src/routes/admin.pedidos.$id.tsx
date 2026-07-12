@@ -216,9 +216,19 @@ function OrderDetailPage() {
                   <Button size="sm" variant="outline"><Printer className="h-3.5 w-3.5 mr-1" /> Imprimir</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => toast.info("Contrato (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato</DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      const blob = await generateReceiptAndContract(detail);
+                      openBlobInNewTab(blob, `contrato-${order.orderNumber}.pdf`);
+                    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar contrato"); }
+                  }}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato + Recibo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      const blob = await generateReceiptOnly(detail);
+                      openBlobInNewTab(blob, `recibo-${order.orderNumber}.pdf`);
+                    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar recibo"); }
+                  }}><FileText className="h-3.5 w-3.5 mr-2" /> Recibo</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => toast.info("Voucher (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info("Recibo (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Recibo</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
