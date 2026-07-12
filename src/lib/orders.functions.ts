@@ -128,6 +128,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
     return {
       order: {
         id: order.id,
+        orderNumber: (order as { order_number?: string | null }).order_number ?? order.id.slice(0, 8).toUpperCase(),
         createdAt: order.created_at,
         status: order.status,
         fullName: order.full_name,
