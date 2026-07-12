@@ -14,6 +14,162 @@ export type Database = {
   }
   public: {
     Tables: {
+      order_item_financials: {
+        Row: {
+          commission_pct: number
+          commission_value: number
+          created_at: string
+          discount_value: number
+          due_date: string | null
+          exchange_rate: number
+          id: string
+          notes: string | null
+          order_item_id: string
+          sale_value: number
+          sort_order: number
+          supplier_name: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          commission_pct?: number
+          commission_value?: number
+          created_at?: string
+          discount_value?: number
+          due_date?: string | null
+          exchange_rate?: number
+          id?: string
+          notes?: string | null
+          order_item_id: string
+          sale_value?: number
+          sort_order?: number
+          supplier_name?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          commission_pct?: number
+          commission_value?: number
+          created_at?: string
+          discount_value?: number
+          due_date?: string | null
+          exchange_rate?: number
+          id?: string
+          notes?: string | null
+          order_item_id?: string
+          sale_value?: number
+          sort_order?: number
+          supplier_name?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_financials_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          details: Json
+          id: string
+          kind: string
+          order_id: string
+          sort_order: number
+          status: string
+          supplier_locator: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          id?: string
+          kind: string
+          order_id: string
+          sort_order?: number
+          status?: string
+          supplier_locator?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          id?: string
+          kind?: string
+          order_id?: string
+          sort_order?: number
+          status?: string
+          supplier_locator?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_passengers: {
+        Row: {
+          birth_date: string | null
+          cpf: string | null
+          created_at: string
+          document: string | null
+          full_name: string
+          id: string
+          order_id: string
+          passenger_type: string
+          sort_order: number
+          ticket_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          birth_date?: string | null
+          cpf?: string | null
+          created_at?: string
+          document?: string | null
+          full_name: string
+          id?: string
+          order_id: string
+          passenger_type?: string
+          sort_order?: number
+          ticket_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          birth_date?: string | null
+          cpf?: string | null
+          created_at?: string
+          document?: string | null
+          full_name?: string
+          id?: string
+          order_id?: string
+          passenger_type?: string
+          sort_order?: number
+          ticket_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_passengers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           adults: number
