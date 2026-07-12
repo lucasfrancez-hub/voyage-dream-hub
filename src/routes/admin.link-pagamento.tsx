@@ -37,6 +37,9 @@ function LinkGenerator() {
   const [firstAmount, setFirstAmount] = useState("");
   const editingIdRef = useRef<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const autogenRef = useRef(false);
+  const autoRanRef = useRef(false);
+
 
   const search = Route.useSearch();
 
