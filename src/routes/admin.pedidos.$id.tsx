@@ -1040,10 +1040,11 @@ function ItemDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => {
             if (!title.trim()) { toast.error("Título é obrigatório"); return; }
+            const numFields = new Set(["nights", "value", "quantity", "hotel_stars"]);
             const cleanDetails: Record<string, unknown> = {};
             for (const [k, v] of Object.entries(details)) {
               if (v === "" || v === undefined || v === null) continue;
-              cleanDetails[k] = k === "nights" ? Number(v) : v;
+              cleanDetails[k] = numFields.has(k) ? Number(v) : v;
             }
             onSave({
               kind,
