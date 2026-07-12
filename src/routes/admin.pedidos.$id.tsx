@@ -1202,6 +1202,44 @@ function groupFlightItems(items: OrderItem[]): FlightGroup[] {
   return Array.from(map.values());
 }
 
+// Controles reutilizáveis: botão "×" ao lado do passageiro (desvincula do serviço)
+// e botão "+ passageiro" para vincular alguém do pedido que ainda não está no serviço.
+function UnlinkButton({ onClick, title = "Remover deste serviço" }: { onClick: () => void; title?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="inline-flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+    >
+      <X className="h-3 w-3" />
+    </button>
+  );
+}
+
+function AddPassengerMenu({
+  candidates, onPick,
+}: { candidates: OrderPassenger[]; onPick: (id: string) => void }) {
+  if (candidates.length === 0) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="sm" variant="ghost" className="mt-2 h-6 px-2 text-[11px]">
+          <UserPlus className="h-3 w-3 mr-1" /> Passageiro
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Adicionar ao serviço</DropdownMenuLabel>
+        {candidates.map((p) => (
+          <DropdownMenuItem key={p.id} onClick={() => onPick(p.id)}>
+            {p.full_name} <span className="ml-2 text-[10px] text-muted-foreground">{p.passenger_type}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function FlightReservationCard({
   locator, segments, passengers, onEdit, onDelete, onCancel, onReactivate,
 }: {
