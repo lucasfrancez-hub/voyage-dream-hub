@@ -310,6 +310,7 @@ function OrderDetailPage() {
       <PassengersSection
         orderId={order.id}
         passengers={detail.passengers}
+        flightItems={detail.items.filter((i) => i.kind === "flight" && i.status !== "cancelled")}
         onChange={invalidate}
       />
 
@@ -401,9 +402,10 @@ function OrderDetailPage() {
 
 // =========== Passengers ===========
 function PassengersSection({
-  orderId, passengers, onChange,
-}: { orderId: string; passengers: OrderPassenger[]; onChange: () => void }) {
+  orderId, passengers, flightItems, onChange,
+}: { orderId: string; passengers: OrderPassenger[]; flightItems: OrderItem[]; onChange: () => void }) {
   const upsert = useServerFn(upsertPassenger);
+  const upsertItem = useServerFn(upsertOrderItem);
   const del = useServerFn(deletePassenger);
   const [editing, setEditing] = useState<OrderPassenger | null>(null);
   const [open, setOpen] = useState(false);
@@ -453,16 +455,39 @@ function PassengersSection({
                 <PassengerRow
                   key={p.id}
                   passenger={p}
-                  onPatch={(patch) => save.mutate({
-                    order_id: orderId,
-                    id: p.id,
-                    full_name: patch.full_name ?? p.full_name,
-                    passenger_type: patch.passenger_type ?? p.passenger_type,
-                    birth_date: patch.birth_date !== undefined ? patch.birth_date : p.birth_date,
-                    cpf: patch.cpf !== undefined ? patch.cpf : p.cpf,
-                    ticket_number: patch.ticket_number !== undefined ? patch.ticket_number : p.ticket_number,
-                    sort_order: p.sort_order,
-                  })}
+                  onPatch={(patch) => {
+                    save.mutate({
+                      order_id: orderId,
+                      id: p.id,
+                      full_name: patch.full_name ?? p.full_name,
+                      passenger_type: patch.passenger_type ?? p.passenger_type,
+                      birth_date: patch.birth_date !== undefined ? patch.birth_date : p.birth_date,
+                      cpf: patch.cpf !== undefined ? patch.cpf : p.cpf,
+                      ticket_number: patch.ticket_number !== undefined ? patch.ticket_number : p.ticket_number,
+                      sort_order: p.sort_order,
+                    });
+                    // Se alterou o bilhete, replica em todos os aéreos: grava details.ticket_number e marca como Confirmado.
+                    if (patch.ticket_number !== undefined) {
+                      const newTicket = patch.ticket_number;
+                      for (const fi of flightItems) {
+                        const details = { ...((fi.details ?? {}) as Record<string, unknown>), ticket_number: newTicket ?? "" };
+                        upsertItem({
+                          data: {
+                            id: fi.id,
+                            order_id: orderId,
+                            kind: "flight",
+                            title: fi.title,
+                            supplier_locator: fi.supplier_locator,
+                            details: details as Json,
+                            sort_order: fi.sort_order,
+                            status: newTicket ? "confirmed" : (fi.supplier_locator ? "reserved" : "pending"),
+                          },
+                        }).catch(() => { /* toast já é global */ });
+                      }
+                      // dispara refresh após o loop
+                      setTimeout(() => onChange(), 250);
+                    }
+                  }}
                   onDelete={() => confirm("Remover passageiro?") && remove.mutate(p.id)}
                 />
               ))}
@@ -953,7 +978,7 @@ function FlightReservationCard({
   const first = segments[0];
   const d0 = (first?.details ?? {}) as Record<string, unknown>;
   const supplier = typeof d0.supplier_name === "string" ? (d0.supplier_name as string) : "";
-  const ticket = typeof d0.ticket_number === "string" ? (d0.ticket_number as string) : "";
+  
   return (
     <div className={`rounded-xl border p-4 ${allCancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
       <div className="grid gap-4 md:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)]">
@@ -983,16 +1008,7 @@ function FlightReservationCard({
               Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
             </div>
           )}
-          {ticket && (
-            <button
-              type="button"
-              onClick={() => { navigator.clipboard.writeText(ticket); toast.success("Bilhete copiado"); }}
-              className="mt-2 inline-flex items-center gap-1 rounded-md border border-brand-orange/40 bg-brand-orange/10 px-1.5 py-0.5 text-[10px] font-mono text-brand-orange hover:bg-brand-orange/20"
-              title="Copiar bilhete"
-            >
-              <Hash className="h-3 w-3" /> {ticket}
-            </button>
-          )}
+          {/* Bilhete removido daqui — agora aparece embaixo do nome de cada passageiro. */}
         </div>
 
         {/* Coluna 2: segmentos */}
