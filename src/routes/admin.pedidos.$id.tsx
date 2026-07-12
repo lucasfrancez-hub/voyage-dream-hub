@@ -1055,7 +1055,8 @@ function deriveItemStatus(item: OrderItem): OrderItem["status"] {
   if (item.kind === "hotel") {
     return loc ? "confirmed" : "pending";
   }
-  return item.status;
+  // Demais serviços (extras, translados, passeios etc.): localizador → confirmado; sem localizador → solicitado.
+  return loc ? "confirmed" : "pending";
 }
 
 
@@ -1964,6 +1965,7 @@ function ItemDialog({
               const tkt = String(cleanMain.ticket_number ?? "").trim();
               if (kind === "hotel") finalStatus = loc ? "confirmed" : "pending";
               else if (kind === "flight") finalStatus = tkt ? "confirmed" : loc ? "reserved" : "pending";
+              else finalStatus = loc ? "confirmed" : "pending";
             }
 
             const siblingsPayload = kind === "flight"
