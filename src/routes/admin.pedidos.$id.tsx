@@ -1200,6 +1200,10 @@ function FlightReservationCard({
             {passengers.map((p) => {
               const isPassport = p.doc_type === "passport";
               const docNum = isPassport ? p.passport_number : p.cpf;
+              const segTicket = segments
+                .map((s) => String(((s.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
+                .find(Boolean) ?? "";
+              const ticket = p.ticket_number || segTicket;
               return (
                 <li key={p.id} className="text-xs">
                   <div className="font-medium text-foreground">{p.full_name}</div>
@@ -1212,14 +1216,15 @@ function FlightReservationCard({
                       {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
                     </div>
                   )}
-                  {p.ticket_number && (
+                  {ticket && (
                     <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                      <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+                      <Hash className="inline h-2.5 w-2.5" /> {ticket}
                     </div>
                   )}
                 </li>
               );
             })}
+
           </ul>
         </div>
       </div>
