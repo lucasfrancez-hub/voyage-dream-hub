@@ -36,6 +36,7 @@ import { Slider } from "@/components/ui/slider";
 
 
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
+import { generateReceiptAndContract, generateReceiptOnly, openBlobInNewTab } from "@/lib/contract-pdf";
 import { OrderDocuments } from "@/components/OrderDocuments";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -215,9 +216,19 @@ function OrderDetailPage() {
                   <Button size="sm" variant="outline"><Printer className="h-3.5 w-3.5 mr-1" /> Imprimir</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => toast.info("Contrato (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato</DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      const blob = await generateReceiptAndContract(detail);
+                      openBlobInNewTab(blob, `contrato-${order.orderNumber}.pdf`);
+                    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar contrato"); }
+                  }}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato + Recibo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      const blob = await generateReceiptOnly(detail);
+                      openBlobInNewTab(blob, `recibo-${order.orderNumber}.pdf`);
+                    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar recibo"); }
+                  }}><FileText className="h-3.5 w-3.5 mr-2" /> Recibo</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => toast.info("Voucher (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info("Recibo (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Recibo</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -1327,6 +1338,32 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
         <FileText className="h-4 w-4" /> Documentos do pedido
       </h3>
       <div className="space-y-3">
+        <div className="flex items-center justify-between rounded-xl border border-border p-4">
+          <div>
+            <div className="font-medium text-sm">Recibo + Contrato</div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              Gerado automaticamente com dados do pagador, serviços e forma de pagamento
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={async () => {
+              try {
+                const blob = await generateReceiptOnly(detail);
+                openBlobInNewTab(blob, `recibo-${order.orderNumber}.pdf`);
+              } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar recibo"); }
+            }}>
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Só recibo
+            </Button>
+            <Button size="sm" onClick={async () => {
+              try {
+                const blob = await generateReceiptAndContract(detail);
+                openBlobInNewTab(blob, `contrato-${order.orderNumber}.pdf`);
+              } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar contrato"); }
+            }}>
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Contrato + Recibo
+            </Button>
+          </div>
+        </div>
         <div className="flex items-center justify-between rounded-xl border border-border p-4">
           <div>
             <div className="font-medium text-sm">Autorização de débito</div>
