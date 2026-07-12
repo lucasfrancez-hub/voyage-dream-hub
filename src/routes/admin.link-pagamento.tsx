@@ -187,6 +187,23 @@ function LinkGenerator() {
     });
   }
 
+  // Auto: quando vem do pedido (autogen), assim que o link estiver pronto,
+  // salva no cofre, copia e abre o WhatsApp automaticamente.
+  useEffect(() => {
+    if (!autogenRef.current || autoRanRef.current) return;
+    if (!url) return;
+    autoRanRef.current = true;
+    persistToCofre();
+    try { navigator.clipboard.writeText(url); } catch { /* ignore */ }
+    const wa = customerPhone
+      ? `https://wa.me/${customerPhone}?text=${encodeURIComponent(whatsMessage)}`
+      : whatsappUrl(whatsMessage);
+    toast.success("Link gerado, salvo no cofre e copiado");
+    window.open(wa, "_blank", "noopener");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
+
+
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
