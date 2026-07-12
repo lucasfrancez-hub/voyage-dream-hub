@@ -197,17 +197,26 @@ const drawParagraph = (ctx: Ctx, s: string, size = 9, lineH = 12, indent = 0) =>
 
 // ---------- Cabeçalho VIA AIR (topo da pág. 1) ----------
 const drawCompanyHeader = (ctx: Ctx) => {
+  const bandH = 110;
   // Faixa lateral colorida
-  ctx.page.drawRectangle({ x: 0, y: A4.h - 90, width: 6, height: 90, color: COLOR_BRAND });
+  ctx.page.drawRectangle({ x: 0, y: A4.h - bandH, width: 6, height: bandH, color: COLOR_BRAND });
   const topY = A4.h - MARGIN;
+  const lh = 13;
   text(ctx, COMPANY.name, MARGIN, { y: topY - 4, size: 12, bold: true });
-  text(ctx, `CNPJ: ${COMPANY.cnpj}`, MARGIN, { y: topY - 20, size: 8, color: COLOR_MUTED });
-  text(ctx, COMPANY.address, MARGIN, { y: topY - 32, size: 8, color: COLOR_MUTED });
-  text(ctx, COMPANY.cityLine, MARGIN, { y: topY - 44, size: 8, color: COLOR_MUTED });
-  text(ctx, `Telefone: ${COMPANY.phone}`, MARGIN, { y: topY - 56, size: 8, color: COLOR_MUTED });
-  text(ctx, `E-mail: ${COMPANY.email}`, MARGIN, { y: topY - 68, size: 8, color: COLOR_MUTED });
-  ctx.y = A4.h - 100;
+  text(ctx, `CNPJ: ${COMPANY.cnpj}`, MARGIN, { y: topY - 4 - lh * 1.4, size: 8, color: COLOR_MUTED });
+  text(ctx, COMPANY.address, MARGIN, { y: topY - 4 - lh * 2.4, size: 8, color: COLOR_MUTED });
+  text(ctx, COMPANY.cityLine, MARGIN, { y: topY - 4 - lh * 3.4, size: 8, color: COLOR_MUTED });
+  text(ctx, `Telefone: ${COMPANY.phone}`, MARGIN, { y: topY - 4 - lh * 4.4, size: 8, color: COLOR_MUTED });
+  text(ctx, `E-mail: ${COMPANY.email}`, MARGIN, { y: topY - 4 - lh * 5.4, size: 8, color: COLOR_MUTED });
+  // separador leve
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: A4.h - bandH - 8 },
+    end: { x: A4.w - MARGIN, y: A4.h - bandH - 8 },
+    thickness: 0.5, color: COLOR_BORDER,
+  });
+  ctx.y = A4.h - bandH - 24;
 };
+
 
 // ---------- Cabeçalho das páginas do CONTRATO ----------
 const drawContractHeader = (ctx: Ctx) => {
@@ -244,32 +253,34 @@ const drawFooter = (ctx: Ctx) => {
 type Col = { header: string; width: number; align?: "left" | "right" | "center" };
 
 const drawTableHeader = (ctx: Ctx, cols: Col[]) => {
-  const h = 16;
+  const h = 18;
   ctx.page.drawRectangle({
     x: MARGIN, y: ctx.y - h + 4, width: CONTENT_W, height: h,
     color: COLOR_HEADER_BG,
   });
-  let x = MARGIN + 4;
+  let x = MARGIN + 6;
   for (const c of cols) {
-    text(ctx, c.header, x, { size: 8, bold: true, y: ctx.y - 6 });
+    text(ctx, c.header, x, { size: 8.5, bold: true, y: ctx.y - 7 });
     x += c.width;
   }
-  ctx.y -= h + 2;
+  ctx.y -= h + 4;
 };
 
 const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
-  const size = 8;
+  const size = 8.5;
+  const lineH = 12;
   // altura conforme a célula mais alta
   let maxLines = 1;
   const wrapped: string[][] = cols.map((c, i) => {
-    const lines = wrap(ctx.font, size, cells[i] ?? "", c.width - 8);
-    if (lines.length > maxLines) maxLines = lines.length;
-    return lines;
+    const raw = (cells[i] ?? "").split("\n");
+    const out: string[] = [];
+    for (const seg of raw) out.push(...wrap(ctx.font, size, seg, c.width - 12));
+    if (out.length > maxLines) maxLines = out.length;
+    return out;
   });
-  const lineH = 10;
-  const rowH = maxLines * lineH + 4;
+  const rowH = maxLines * lineH + 8;
   ensureSpace(ctx, rowH + 4);
-  let x = MARGIN + 4;
+  let x = MARGIN + 6;
   for (let i = 0; i < cols.length; i++) {
     const c = cols[i];
     const lines = wrapped[i];
@@ -277,11 +288,11 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
       const s = lines[li];
       let tx = x;
       if (c.align === "right") {
-        tx = x + c.width - 8 - ctx.font.widthOfTextAtSize(s, size);
+        tx = x + c.width - 12 - ctx.font.widthOfTextAtSize(s, size);
       } else if (c.align === "center") {
         tx = x + (c.width - ctx.font.widthOfTextAtSize(s, size)) / 2;
       }
-      text(ctx, s, tx, { size, y: ctx.y - li * lineH });
+      text(ctx, s, tx, { size, y: ctx.y - 4 - li * lineH });
     }
     x += c.width;
   }
@@ -292,25 +303,28 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
   });
 };
 
+
 const sectionTitle = (ctx: Ctx, s: string) => {
-  ensureSpace(ctx, 22);
-  ctx.y -= 6;
-  text(ctx, s, MARGIN, { size: 10, bold: true });
-  ctx.y -= 12;
+  ensureSpace(ctx, 30);
+  ctx.y -= 14;
+  text(ctx, s, MARGIN, { size: 11, bold: true });
+  ctx.y -= 8;
   ctx.page.drawLine({
-    start: { x: MARGIN, y: ctx.y + 2 }, end: { x: A4.w - MARGIN, y: ctx.y + 2 },
-    thickness: 0.5, color: COLOR_TEXT,
+    start: { x: MARGIN, y: ctx.y }, end: { x: A4.w - MARGIN, y: ctx.y },
+    thickness: 0.6, color: COLOR_TEXT,
   });
-  ctx.y -= 6;
+  ctx.y -= 12;
 };
+
 
 // ---------- Blocos do RECIBO ----------
 const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   const o = d.order;
   const createdDate = fmtDate(o.createdAt);
-  ctx.y -= 6;
-  text(ctx, `RECIBO - VENDA ${o.orderNumber} - ${createdDate}`, MARGIN, { size: 13, bold: true });
-  ctx.y -= 18;
+  // título do recibo com respiro
+  ctx.y -= 10;
+  text(ctx, `RECIBO - VENDA ${o.orderNumber} - ${createdDate}`, MARGIN, { size: 14, bold: true });
+  ctx.y -= 22;
 
   // Bloco pagante
   const payer = {
@@ -325,11 +339,11 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
     email: o.payerEmail || o.email,
     phone: o.payerPhone || o.phone,
   };
-  const lineH = 12;
+  const lineH = 14;
   const bold = (label: string, val: string, x: number, y: number) => {
-    text(ctx, label, x, { size: 9, bold: true, y });
-    const lw = ctx.fontBold.widthOfTextAtSize(sanitize(label), 9);
-    text(ctx, " " + val, x + lw, { size: 9, y });
+    text(ctx, label, x, { size: 9.5, bold: true, y });
+    const lw = ctx.fontBold.widthOfTextAtSize(sanitize(label), 9.5);
+    text(ctx, " " + val, x + lw, { size: 9.5, y });
   };
   bold("Pagante:", payer.name, MARGIN, ctx.y); ctx.y -= lineH;
   const addrLine = [payer.address, payer.number].filter(Boolean).join(", ");
@@ -340,16 +354,16 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
       payer.city && `Cidade: ${payer.city}`,
       payer.state && `UF: ${payer.state}`,
       payer.zip && `CEP: ${payer.zip}`,
-    ].filter(Boolean).join("   ");
-    text(ctx, s, MARGIN, { size: 9 }); ctx.y -= lineH;
+    ].filter(Boolean).join("    ");
+    text(ctx, s, MARGIN, { size: 9.5 }); ctx.y -= lineH;
   }
   if (payer.cpf) { bold("CPF/CNPJ:", payer.cpf, MARGIN, ctx.y); ctx.y -= lineH; }
   const emailPhone = [
     payer.email && `E-mail: ${payer.email}`,
     payer.phone && `Telefones: ${payer.phone}`,
-  ].filter(Boolean).join("   ");
-  if (emailPhone) { text(ctx, emailPhone, MARGIN, { size: 9 }); ctx.y -= lineH; }
-  ctx.y -= 6;
+  ].filter(Boolean).join("    ");
+  if (emailPhone) { text(ctx, emailPhone, MARGIN, { size: 9.5 }); ctx.y -= lineH; }
+  ctx.y -= 10;
 
   // Texto legal
   const total = d.financials.reduce((s, f) => s + f.total, 0) || o.totalPrice;
@@ -359,9 +373,10 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
     `totalizam a importância de ${brl(total)} (${numberToWords(total)}) que, considerada a ` +
     `posse transitória de tais valores e retenção de valor pelos serviços de intermediação, ` +
     `serão devidamente repassados por esta agência de viagens a cada um dos fornecedores contratados.`;
-  drawParagraph(ctx, legal, 9, 12);
-  ctx.y -= 6;
+  drawParagraph(ctx, legal, 9.5, 13);
+  ctx.y -= 8;
 };
+
 
 const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   const flights = d.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
