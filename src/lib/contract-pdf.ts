@@ -253,32 +253,34 @@ const drawFooter = (ctx: Ctx) => {
 type Col = { header: string; width: number; align?: "left" | "right" | "center" };
 
 const drawTableHeader = (ctx: Ctx, cols: Col[]) => {
-  const h = 16;
+  const h = 18;
   ctx.page.drawRectangle({
     x: MARGIN, y: ctx.y - h + 4, width: CONTENT_W, height: h,
     color: COLOR_HEADER_BG,
   });
-  let x = MARGIN + 4;
+  let x = MARGIN + 6;
   for (const c of cols) {
-    text(ctx, c.header, x, { size: 8, bold: true, y: ctx.y - 6 });
+    text(ctx, c.header, x, { size: 8.5, bold: true, y: ctx.y - 7 });
     x += c.width;
   }
-  ctx.y -= h + 2;
+  ctx.y -= h + 4;
 };
 
 const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
-  const size = 8;
+  const size = 8.5;
+  const lineH = 12;
   // altura conforme a célula mais alta
   let maxLines = 1;
   const wrapped: string[][] = cols.map((c, i) => {
-    const lines = wrap(ctx.font, size, cells[i] ?? "", c.width - 8);
-    if (lines.length > maxLines) maxLines = lines.length;
-    return lines;
+    const raw = (cells[i] ?? "").split("\n");
+    const out: string[] = [];
+    for (const seg of raw) out.push(...wrap(ctx.font, size, seg, c.width - 12));
+    if (out.length > maxLines) maxLines = out.length;
+    return out;
   });
-  const lineH = 10;
-  const rowH = maxLines * lineH + 4;
+  const rowH = maxLines * lineH + 8;
   ensureSpace(ctx, rowH + 4);
-  let x = MARGIN + 4;
+  let x = MARGIN + 6;
   for (let i = 0; i < cols.length; i++) {
     const c = cols[i];
     const lines = wrapped[i];
@@ -286,11 +288,11 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
       const s = lines[li];
       let tx = x;
       if (c.align === "right") {
-        tx = x + c.width - 8 - ctx.font.widthOfTextAtSize(s, size);
+        tx = x + c.width - 12 - ctx.font.widthOfTextAtSize(s, size);
       } else if (c.align === "center") {
         tx = x + (c.width - ctx.font.widthOfTextAtSize(s, size)) / 2;
       }
-      text(ctx, s, tx, { size, y: ctx.y - li * lineH });
+      text(ctx, s, tx, { size, y: ctx.y - 4 - li * lineH });
     }
     x += c.width;
   }
@@ -300,6 +302,7 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
     thickness: 0.3, color: COLOR_BORDER,
   });
 };
+
 
 const sectionTitle = (ctx: Ctx, s: string) => {
   ensureSpace(ctx, 30);
