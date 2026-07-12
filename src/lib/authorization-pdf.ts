@@ -328,8 +328,8 @@ async function buildAuthorizationDoc(opts: {
   // ── seções
   h1("Fornecedor e representante");
   beginKvSection();
-  kv("Fornecedor", a.supplier ?? "—");
-  kv("Representante", a.representative ?? "Via Air Agência e Representações Ltda");
+  kv("Fornecedor", (a.supplier ?? "—").toUpperCase());
+  kv("Representante", (a.representative ?? "Via Air Agência e Representações Ltda").toUpperCase());
   y += 2;
 
   h1("Portador do cartão");
