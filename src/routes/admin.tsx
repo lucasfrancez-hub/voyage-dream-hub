@@ -101,7 +101,9 @@ function AdminLayout() {
             </Link>
             <nav className="hidden md:flex items-center gap-1">
               <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
+              <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" active={pathname.startsWith("/admin/dashboard")} />
               <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
+
               <CartaoNav pathname={pathname} />
 
               <NavItem to="/admin/link-boleto" icon={FileText} label="Link boleto" active={pathname.startsWith("/admin/link-boleto")} />
