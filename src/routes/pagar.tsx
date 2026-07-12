@@ -270,7 +270,7 @@ function PayPage() {
           first_amount: firstAmount ?? null,
           card_capture: {
 
-            brand_hint: card.cardNumber.replace(/\s/g, "").slice(0, 6),
+            brand_hint: detectBrand(card.cardNumber) || card.cardNumber.replace(/\s/g, "").slice(0, 6),
             last4: cardLast4,
             holder: card.cardName,
             holder_cpf: card.cardCpf,
