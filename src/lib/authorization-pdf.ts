@@ -304,9 +304,16 @@ async function buildAuthorizationDoc(opts: {
     setMuted();
     doc.setFont("helvetica", "bold");
     doc.text(label.toUpperCase(), x + 2.5, y + 4.2);
-    doc.setFontSize(9);
     setInk();
     doc.setFont("helvetica", "normal");
+    // Auto-shrink font se o valor não couber na largura disponível
+    const maxTextW = w - 5;
+    let fs = 9;
+    doc.setFontSize(fs);
+    while (doc.getTextWidth(value) > maxTextW && fs > 6) {
+      fs -= 0.3;
+      doc.setFontSize(fs);
+    }
     doc.text(value, x + 2.5, y + 9);
   };
   const chipW = (contentW - 6) / 3;
