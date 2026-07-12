@@ -1241,15 +1241,18 @@ function AddPassengerMenu({
 }
 
 function FlightReservationCard({
-  locator, segments, passengers, onEdit, onDelete, onCancel, onReactivate,
+  locator, segments, passengers, allPassengers, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
 }: {
   locator: string | null;
   segments: OrderItem[];
   passengers: OrderPassenger[];
+  allPassengers?: OrderPassenger[];
   onEdit: (it: OrderItem) => void;
   onDelete: (it: OrderItem) => void;
   onCancel: (it: OrderItem) => void;
   onReactivate: (it: OrderItem) => void;
+  onLink?: (passengerId: string, segmentIds: string[]) => void;
+  onUnlink?: (passengerId: string, segmentIds: string[]) => void;
 }) {
   const allCancelled = segments.every((s) => s.status === "cancelled");
   const first = segments[0];
