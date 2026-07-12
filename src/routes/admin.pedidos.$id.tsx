@@ -444,9 +444,9 @@ function PassengersSection({
             <thead className="text-xs text-muted-foreground border-b border-border">
               <tr>
                 <th className="text-left py-2 px-2">Nome</th>
-                <th className="text-left py-2 px-2 min-w-[340px]">Documento</th>
-                <th className="text-left py-2 px-2">Nascimento</th>
-                <th className="text-left py-2 px-2">Tipo</th>
+                <th className="text-left py-2 px-2 w-[70px]">Tipo</th>
+                <th className="text-left py-2 px-2 w-[130px]">Nascimento</th>
+                <th className="text-left py-2 px-2 min-w-[300px]">Documento</th>
                 <th className="text-left py-2 px-2">Bilhete</th>
                 <th className="w-16"></th>
               </tr>
@@ -540,58 +540,7 @@ function PassengerRow({
         <InlineText value={passenger.full_name} placeholder="Nome" className="font-medium"
           onCommit={(v) => v.trim() && v !== passenger.full_name && onPatch({ full_name: v.trim() })} />
       </td>
-      <td className="py-1 px-1 min-w-[340px]">
-        <div className="flex flex-nowrap items-center gap-1.5">
-          <Select
-            value={passenger.doc_type ?? "cpf"}
-            onValueChange={(v) => onPatch({ doc_type: v as "cpf" | "passport" })}
-          >
-            <SelectTrigger className="h-7 w-[110px] shrink-0 text-xs border-transparent hover:border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cpf">CPF</SelectItem>
-              <SelectItem value="passport">Passaporte</SelectItem>
-            </SelectContent>
-          </Select>
-          {passenger.doc_type === "passport" ? (
-            <>
-              <InlineText
-                value={passenger.passport_number ?? ""}
-                placeholder="nº passaporte"
-                className="text-xs font-mono w-[110px] shrink-0"
-                onCommit={(v) => (v || null) !== passenger.passport_number && onPatch({ passport_number: v || null })}
-              />
-              <InlineText
-                type="date"
-                value={passenger.passport_issue_date ?? ""}
-                placeholder="emissão"
-                className="text-xs w-[120px] shrink-0"
-                onCommit={(v) => (v || null) !== passenger.passport_issue_date && onPatch({ passport_issue_date: v || null })}
-              />
-              <InlineText
-                type="date"
-                value={passenger.passport_expiry_date ?? ""}
-                placeholder="validade"
-                className="text-xs w-[120px] shrink-0"
-                onCommit={(v) => (v || null) !== passenger.passport_expiry_date && onPatch({ passport_expiry_date: v || null })}
-              />
-            </>
-          ) : (
-            <InlineText
-              value={passenger.cpf ?? ""}
-              placeholder="CPF"
-              className="text-xs font-mono w-[160px] shrink-0"
-              onCommit={(v) => (v || null) !== passenger.cpf && onPatch({ cpf: v || null })}
-            />
-          )}
-        </div>
-      </td>
-      <td className="py-1 px-1">
-        <InlineText type="date" value={passenger.birth_date ?? ""} placeholder="—" className="text-xs"
-          onCommit={(v) => (v || null) !== passenger.birth_date && onPatch({ birth_date: v || null })} />
-      </td>
-      <td className="py-1 px-1">
+      <td className="py-1 px-1 w-[70px]">
         <Select value={passenger.passenger_type}
           onValueChange={(v) => onPatch({ passenger_type: v as "ADT" | "CHD" | "INF" })}>
           <SelectTrigger className="h-7 w-[70px] text-xs border-transparent hover:border-border">
@@ -604,10 +553,66 @@ function PassengerRow({
           </SelectContent>
         </Select>
       </td>
+      <td className="py-1 px-1 w-[130px]">
+        <InlineText type="date" value={passenger.birth_date ?? ""} placeholder="—" className="text-xs w-[120px]"
+          onCommit={(v) => (v || null) !== passenger.birth_date && onPatch({ birth_date: v || null })} />
+      </td>
+      <td className="py-1 px-1 min-w-[300px] align-top">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5">
+            <Select
+              value={passenger.doc_type ?? "cpf"}
+              onValueChange={(v) => onPatch({ doc_type: v as "cpf" | "passport" })}
+            >
+              <SelectTrigger className="h-7 w-[110px] shrink-0 text-xs border-transparent hover:border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cpf">CPF</SelectItem>
+                <SelectItem value="passport">Passaporte</SelectItem>
+              </SelectContent>
+            </Select>
+            {passenger.doc_type === "passport" ? (
+              <InlineText
+                value={passenger.passport_number ?? ""}
+                placeholder="nº passaporte"
+                className="text-xs font-mono w-[170px] shrink-0"
+                onCommit={(v) => (v || null) !== passenger.passport_number && onPatch({ passport_number: v || null })}
+              />
+            ) : (
+              <InlineText
+                value={passenger.cpf ?? ""}
+                placeholder="CPF"
+                className="text-xs font-mono w-[170px] shrink-0"
+                onCommit={(v) => (v || null) !== passenger.cpf && onPatch({ cpf: v || null })}
+              />
+            )}
+          </div>
+          {passenger.doc_type === "passport" && (
+            <div className="flex items-center gap-1.5 pl-[115px]">
+              <InlineText
+                type="date"
+                value={passenger.passport_issue_date ?? ""}
+                placeholder="emissão"
+                className="text-xs w-[130px] shrink-0"
+                onCommit={(v) => (v || null) !== passenger.passport_issue_date && onPatch({ passport_issue_date: v || null })}
+              />
+              <InlineText
+                type="date"
+                value={passenger.passport_expiry_date ?? ""}
+                placeholder="validade"
+                className="text-xs w-[130px] shrink-0"
+                onCommit={(v) => (v || null) !== passenger.passport_expiry_date && onPatch({ passport_expiry_date: v || null })}
+              />
+            </div>
+          )}
+        </div>
+      </td>
       <td className="py-1 px-1">
         <InlineText value={effectiveTicket ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
           onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
       </td>
+
 
 
       <td className="py-1 px-1 text-right">
@@ -907,21 +912,30 @@ function ItemsTab({
         onOpenChange={setOpen}
         initial={editing}
         kind={dialogKind}
+        siblings={
+          editing && editing.kind === "flight"
+            ? items.filter((i) => i.kind === "flight" && i.status !== "cancelled" && i.id !== editing.id)
+            : undefined
+        }
         onSave={async (payload) => {
           try {
             // 1) Salva o item editado (ou cria novo)
             await upsert({ data: { ...payload, order_id: orderId, id: editing?.id } });
 
-            // 2) Para AÉREO: propaga localizador + bilhete pra todos os outros aéreos do pedido.
-            //    Assim ida/volta ficam sempre com o mesmo localizador e o mesmo bilhete,
-            //    e o status é derivado do trio (localizador + bilhete).
+            // 2) Para AÉREO: propaga localizador + bilhete pra todos os outros aéreos do pedido,
+            //    e também os detalhes editados de cada trecho irmão (ida/volta juntos).
             if (payload.kind === "flight") {
               const newLoc = payload.supplier_locator;
               const newDetails = (payload.details ?? {}) as Record<string, unknown>;
               const newTicket = String(newDetails.ticket_number ?? "").trim();
+              const sibMap = new Map<string, Record<string, unknown>>();
+              for (const s of payload.siblings ?? []) {
+                sibMap.set(s.id, (s.details ?? {}) as Record<string, unknown>);
+              }
               const otherFlights = items.filter((i) => i.kind === "flight" && i.id !== editing?.id && i.status !== "cancelled");
               for (const fi of otherFlights) {
-                const fd = { ...((fi.details ?? {}) as Record<string, unknown>), ticket_number: newTicket };
+                const base = sibMap.get(fi.id) ?? ((fi.details ?? {}) as Record<string, unknown>);
+                const fd = { ...base, ticket_number: newTicket };
                 const st: "confirmed" | "reserved" | "pending" = newTicket && newLoc
                   ? "confirmed" : newLoc ? "reserved" : "pending";
                 await upsert({
@@ -1394,13 +1408,21 @@ function HotelReservationCard({
 
 
 function ItemDialog({
-  open, onOpenChange, initial, kind, onSave,
+  open, onOpenChange, initial, kind, onSave, siblings,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: OrderItem | null;
   kind: "hotel" | "flight" | "other";
-  onSave: (p: { kind: "hotel" | "flight" | "other"; title: string; supplier_locator: string | null; details: Json; status: "confirmed" | "reserved" | "cancelled" | "pending" }) => void;
+  siblings?: OrderItem[];
+  onSave: (p: {
+    kind: "hotel" | "flight" | "other";
+    title: string;
+    supplier_locator: string | null;
+    details: Json;
+    status: "confirmed" | "reserved" | "cancelled" | "pending";
+    siblings?: { id: string; details: Json }[];
+  }) => void;
 }) {
   const initialDetails = (initial?.details ?? {}) as Record<string, unknown>;
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -1413,17 +1435,27 @@ function ItemDialog({
     }
     return clean;
   });
+  // Trechos adicionais (ex.: volta) do mesmo aéreo — editados junto.
+  const flightSiblings = kind === "flight" ? (siblings ?? []) : [];
+  const cleanDetails = (raw: unknown): Record<string, string | number> => {
+    const clean: Record<string, string | number> = {};
+    for (const [k, v] of Object.entries((raw ?? {}) as Record<string, unknown>)) {
+      if (typeof v === "string" || typeof v === "number") clean[k] = v;
+    }
+    return clean;
+  };
+  const [sibDetails, setSibDetails] = useState<Record<string, string | number>[]>(
+    () => flightSiblings.map((s) => cleanDetails(s.details))
+  );
 
   useMemo(() => {
     setTitle(initial?.title ?? "");
     setLocator(initial?.supplier_locator ?? "");
     setStatusVal((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
-    const clean: Record<string, string | number> = {};
-    for (const [k, v] of Object.entries((initial?.details ?? {}) as Record<string, unknown>)) {
-      if (typeof v === "string" || typeof v === "number") clean[k] = v;
-    }
-    setDetails(clean);
-  }, [initial]);
+    setDetails(cleanDetails(initial?.details));
+    setSibDetails(flightSiblings.map((s) => cleanDetails(s.details)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial, siblings]);
 
   // Auto-status:
   // Hotel: sem localizador = Solicitado; com localizador = Confirmado.
@@ -1441,6 +1473,9 @@ function ItemDialog({
 
 
   const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
+  const setSibField = (idx: number, k: string, v: string) =>
+    setSibDetails((arr) => arr.map((d, i) => (i === idx ? { ...d, [k]: v } : d)));
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1526,31 +1561,71 @@ function ItemDialog({
 
           ) : kind === "flight" ? (
             <>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Origem</Label><Input value={String(details.from_iata ?? details.origin ?? "")} onChange={(e) => setField("from_iata", e.target.value)} placeholder="GRU" /></div>
-                <div><Label>Destino</Label><Input value={String(details.to_iata ?? details.destination ?? "")} onChange={(e) => setField("to_iata", e.target.value)} placeholder="CUR" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Cia aérea</Label><Input value={String(details.airline ?? "")} onChange={(e) => setField("airline", e.target.value)} placeholder="LATAM" /></div>
-                <div><Label>Nº do voo</Label><Input value={String(details.flight_number ?? "")} onChange={(e) => setField("flight_number", e.target.value)} placeholder="LA 3331" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Partida</Label><Input type="datetime-local" value={String(details.depart_at ?? details.departure ?? "")} onChange={(e) => setField("depart_at", e.target.value)} /></div>
-                <div><Label>Chegada</Label><Input type="datetime-local" value={String(details.arrive_at ?? details.arrival ?? "")} onChange={(e) => setField("arrive_at", e.target.value)} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Classe / Cabine</Label><Input value={String(details.cabin_class ?? details.cabin ?? "")} onChange={(e) => setField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
-                <div>
-                  <Label>Direção</Label>
-                  <Select value={String(details.direction ?? "")} onValueChange={(v) => setField("direction", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="outbound">Ida</SelectItem>
-                      <SelectItem value="return">Volta</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="rounded-lg border border-border/60 p-3 space-y-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {String(details.direction ?? "") === "return" ? "Volta" : String(details.direction ?? "") === "outbound" ? "Ida" : "Trecho"}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Origem</Label><Input value={String(details.from_iata ?? details.origin ?? "")} onChange={(e) => setField("from_iata", e.target.value)} placeholder="GRU" /></div>
+                  <div><Label>Destino</Label><Input value={String(details.to_iata ?? details.destination ?? "")} onChange={(e) => setField("to_iata", e.target.value)} placeholder="CUR" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Cia aérea</Label><Input value={String(details.airline ?? "")} onChange={(e) => setField("airline", e.target.value)} placeholder="LATAM" /></div>
+                  <div><Label>Nº do voo</Label><Input value={String(details.flight_number ?? "")} onChange={(e) => setField("flight_number", e.target.value)} placeholder="LA 3331" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Partida</Label><Input type="datetime-local" value={String(details.depart_at ?? details.departure ?? "")} onChange={(e) => setField("depart_at", e.target.value)} /></div>
+                  <div><Label>Chegada</Label><Input type="datetime-local" value={String(details.arrive_at ?? details.arrival ?? "")} onChange={(e) => setField("arrive_at", e.target.value)} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Classe / Cabine</Label><Input value={String(details.cabin_class ?? details.cabin ?? "")} onChange={(e) => setField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
+                  <div>
+                    <Label>Direção</Label>
+                    <Select value={String(details.direction ?? "")} onValueChange={(v) => setField("direction", v)}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="outbound">Ida</SelectItem>
+                        <SelectItem value="return">Volta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
+
+              {flightSiblings.map((sib, idx) => {
+                const sd = sibDetails[idx] ?? {};
+                const dirLabel = String(sd.direction ?? "") === "return" ? "Volta" : String(sd.direction ?? "") === "outbound" ? "Ida" : "Trecho";
+                return (
+                  <div key={sib.id} className="rounded-lg border border-border/60 p-3 space-y-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{dirLabel}</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label>Origem</Label><Input value={String(sd.from_iata ?? sd.origin ?? "")} onChange={(e) => setSibField(idx, "from_iata", e.target.value)} placeholder="GRU" /></div>
+                      <div><Label>Destino</Label><Input value={String(sd.to_iata ?? sd.destination ?? "")} onChange={(e) => setSibField(idx, "to_iata", e.target.value)} placeholder="CUR" /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label>Cia aérea</Label><Input value={String(sd.airline ?? "")} onChange={(e) => setSibField(idx, "airline", e.target.value)} placeholder="LATAM" /></div>
+                      <div><Label>Nº do voo</Label><Input value={String(sd.flight_number ?? "")} onChange={(e) => setSibField(idx, "flight_number", e.target.value)} placeholder="LA 3332" /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label>Partida</Label><Input type="datetime-local" value={String(sd.depart_at ?? sd.departure ?? "")} onChange={(e) => setSibField(idx, "depart_at", e.target.value)} /></div>
+                      <div><Label>Chegada</Label><Input type="datetime-local" value={String(sd.arrive_at ?? sd.arrival ?? "")} onChange={(e) => setSibField(idx, "arrive_at", e.target.value)} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label>Classe / Cabine</Label><Input value={String(sd.cabin_class ?? sd.cabin ?? "")} onChange={(e) => setSibField(idx, "cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
+                      <div>
+                        <Label>Direção</Label>
+                        <Select value={String(sd.direction ?? "")} onValueChange={(v) => setSibField(idx, "direction", v)}>
+                          <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="outbound">Ida</SelectItem>
+                            <SelectItem value="return">Volta</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </>
           ) : (
             <>
@@ -1586,12 +1661,24 @@ function ItemDialog({
               if (kind === "hotel") finalStatus = loc ? "confirmed" : "pending";
               else if (kind === "flight") finalStatus = tkt ? "confirmed" : loc ? "reserved" : "pending";
             }
+            const siblingsPayload = kind === "flight"
+              ? flightSiblings.map((sib, idx) => {
+                  const raw = sibDetails[idx] ?? {};
+                  const cd: Record<string, unknown> = {};
+                  for (const [k, v] of Object.entries(raw)) {
+                    if (v === "" || v === undefined || v === null) continue;
+                    cd[k] = numFields.has(k) ? Number(v) : v;
+                  }
+                  return { id: sib.id, details: cd as Json };
+                })
+              : undefined;
             onSave({
               kind,
               title: title.trim(),
               supplier_locator: locator.trim() || null,
               details: cleanDetails as Json,
               status: finalStatus,
+              siblings: siblingsPayload,
             });
           }}>Salvar</Button>
         </DialogFooter>
