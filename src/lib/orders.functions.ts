@@ -142,7 +142,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         supplierName: order.supplier_name ?? null,
         supplierOrderNumber: order.supplier_order_number ?? null,
         airlineLocator: order.airline_locator ?? null,
-        packageSnapshot: (order.package_snapshot ?? {}) as Record<string, unknown>,
+        packageSnapshot: (order.package_snapshot ?? {}) as Json,
       },
       passengers: (passengers ?? []) as OrderPassenger[],
       items: (items ?? []).map((i) => ({
@@ -152,7 +152,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         status: i.status as OrderItem["status"],
         title: i.title,
         supplier_locator: i.supplier_locator,
-        details: (i.details ?? {}) as Record<string, unknown>,
+        details: (i.details ?? {}) as Json,
         sort_order: i.sort_order,
       })),
       financials,
