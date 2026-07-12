@@ -1038,6 +1038,7 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     expiry: cardExpiry,
     amount: order.totalPrice,
     installments,
+    authorization_code: ccPayment?.authorization_code ?? existing?.authorization_code ?? null,
     description: `Pedido ${order.orderNumber}`,
     order_number: order.orderNumber,
     trip_locator: snap?.locator ?? order.airlineLocator ?? null,
