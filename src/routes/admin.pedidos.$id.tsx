@@ -28,7 +28,7 @@ import { paymentMethodLabel, statusLabel, itemStatusBadge } from "@/lib/order-la
 import {
   getOrderDetail, upsertPassenger, deletePassenger,
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
-  upsertItemFinancial, deleteItemFinancial,
+  upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice,
   upsertOrderPayment, deleteOrderPayment,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment,
 } from "@/lib/orders.functions";
