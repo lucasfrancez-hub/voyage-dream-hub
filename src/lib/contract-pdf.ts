@@ -524,14 +524,19 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   }
   ctx.y -= 6;
 
-  // Passageiros / bilhete / valores — usa TODO o financeiro do pedido dividido pelo nº de pax.
-  // (Em pacote pronto, os itens de voo não têm financials próprios; o total fica no pacote.)
-  const allFins = d.financials;
+  // Passageiros / bilhete / valores — total do pedido dividido pelo nº de passageiros
+  // (extras/serviços entram no "Resumo Financeiro", não são rateados aqui).
   const paxCount = Math.max(1, d.passengers.length);
-  const sumSale = allFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
-  const sumTax = allFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
-  const sumDisc = allFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
-  const sumTotal = allFins.reduce((s, f) => s + Number(f.total || 0), 0);
+  const flightFinIds = new Set(
+    d.items.filter((i) => i.kind === "flight" && i.status !== "cancelled").map((i) => i.id),
+  );
+  const flightFins = d.financials.filter((f) => flightFinIds.has(f.order_item_id));
+  const sumSale = flightFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
+  const sumTax = flightFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
+  const sumDisc = flightFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
+  const sumTotal = flightFins.length > 0
+    ? flightFins.reduce((s, f) => s + Number(f.total || 0), 0)
+    : Number(d.order.totalPrice ?? 0);
   const showDisc = sumDisc > 0.005;
 
   const paxCols: Col[] = showDisc
@@ -565,6 +570,7 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   }
   ctx.y -= 8;
 };
+
 
 
 const drawHotels = (ctx: Ctx, d: OrderDetail) => {
