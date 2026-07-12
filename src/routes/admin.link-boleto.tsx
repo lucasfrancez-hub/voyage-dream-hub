@@ -21,8 +21,11 @@ function LinkBoletoGenerator() {
   const [orderNumber, setOrderNumber] = useState("");
 
   const [imageUrl, setImageUrl] = useState("");
+  const autogenRef = useRef(false);
+  const autoRanRef = useRef(false);
 
   const search = Route.useSearch();
+
   useEffect(() => {
     let s: Record<string, string | undefined> = { ...(search ?? {}) };
     if (!s?.autogen) {
