@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { formatBRL } from "@/lib/format";
-import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
+import { paymentMethodLabel, statusLabel, itemStatusBadge } from "@/lib/order-labels";
 import {
   getOrderDetail, upsertPassenger, deletePassenger,
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
