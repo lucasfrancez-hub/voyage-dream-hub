@@ -30,7 +30,7 @@ import {
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
   upsertItemFinancial, deleteItemFinancial,
   upsertOrderPayment, deleteOrderPayment,
-  type OrderDetail, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment,
+  type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment,
 } from "@/lib/orders.functions";
 import { Slider } from "@/components/ui/slider";
 
