@@ -3141,16 +3141,20 @@ function CommissionAdjustDialog({
       // Se nenhum item tem valor gravado, divide igualmente.
       const currents = items.map((it) => {
         const f = financials.find((x) => x.order_item_id === it.id);
+        const d = (it.details ?? {}) as Record<string, unknown>;
+        const gross = Math.max(0, Number(d.value ?? 0) || 0);
+        const itemTax = Math.max(0, Math.min(gross, Number(d.tax_value ?? 0) || 0));
         return {
           item: it,
           existing: f,
-          curSale: Number(f?.sale_value ?? 0),
-          curTax: Number(f?.tax_value ?? 0),
+          curSale: f ? Number(f.sale_value ?? 0) : Math.max(0, gross - itemTax),
+          curTax: f ? Number(f.tax_value ?? 0) : itemTax,
         };
       });
       const totalCurSale = currents.reduce((a, c) => a + c.curSale, 0);
       const totalCurTax = currents.reduce((a, c) => a + c.curTax, 0);
       const equalShare = 1 / items.length;
+
 
       for (const c of currents) {
         const wSale = totalCurSale > 0 ? c.curSale / totalCurSale : equalShare;
