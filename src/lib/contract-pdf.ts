@@ -156,6 +156,9 @@ type Ctx = {
   font: PDFFont;
   fontBold: PDFFont;
   order: OrderHeader;
+  // Cabeçalho usado ao criar páginas de continuação da seção atual.
+  // Recibo usa um cabeçalho enxuto; Contrato usa drawContractHeader.
+  pageHeader?: (c: Ctx) => void;
 };
 
 const newPage = (ctx: Ctx) => {
@@ -167,8 +170,24 @@ const ensureSpace = (ctx: Ctx, needed: number, drawHeader?: (c: Ctx) => void) =>
   if (ctx.y - needed < MARGIN + 40) {
     drawFooter(ctx);
     newPage(ctx);
-    if (drawHeader) drawHeader(ctx);
+    const h = drawHeader ?? ctx.pageHeader;
+    if (h) h(ctx);
   }
+};
+
+// Cabeçalho enxuto para continuação de páginas do RECIBO (sem venda/contratante).
+const drawReceiptContinuationHeader = (ctx: Ctx) => {
+  const topY = A4.h - MARGIN;
+  ctx.page.drawRectangle({ x: 0, y: topY - 4, width: 6, height: 24, color: COLOR_BRAND });
+  text(ctx, COMPANY.name, MARGIN, { y: topY - 2, size: 10, bold: true });
+  text(ctx, `Recibo - Venda Nº ${ctx.order.orderNumber} (continuação)`, MARGIN, {
+    y: topY - 14, size: 8, color: COLOR_MUTED,
+  });
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: topY - 24 }, end: { x: A4.w - MARGIN, y: topY - 24 },
+    thickness: 0.5, color: COLOR_BORDER,
+  });
+  ctx.y = topY - 38;
 };
 
 const text = (
@@ -210,7 +229,7 @@ const wrap = (font: PDFFont, size: number, s: string, maxWidth: number): string[
 const drawParagraph = (ctx: Ctx, s: string, size = 9, lineH = 12, indent = 0) => {
   const lines = wrap(ctx.font, size, s, CONTENT_W - indent);
   for (const line of lines) {
-    ensureSpace(ctx, lineH, drawContractHeader);
+    ensureSpace(ctx, lineH);
     text(ctx, line, MARGIN + indent, { size });
     ctx.y -= lineH;
   }
@@ -327,7 +346,7 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
 
 const sectionTitle = (ctx: Ctx, s: string, reserve = 80) => {
   // Reserva espaço para o título + cabeçalho + pelo menos 1 linha; evita órfãos entre páginas.
-  ensureSpace(ctx, reserve, drawContractHeader);
+  ensureSpace(ctx, reserve);
   ctx.y -= 14;
   text(ctx, s, MARGIN, { size: 11, bold: true });
   ctx.y -= 8;
@@ -511,14 +530,19 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
     for (const r of rows) {
       const from = [r.fromIata, r.fromCity].filter(Boolean).join(" ");
       const to = [r.toIata, r.toCity].filter(Boolean).join(" ");
-      const depLine = r.depart ? `${fmtDateTime(r.depart)}` : "—";
-      const arrLine = r.arrive ? `${fmtDateTime(r.arrive)}` : "—";
+      // Data/hora em linhas separadas — evita quebra irregular e aperto vertical.
+      const fmtDT2 = (s: string | null): string => {
+        if (!s) return "—";
+        const dt = fmtDateTime(s);
+        const parts = dt.split(" ");
+        return parts.length >= 2 ? `${parts[0]}\n${parts[1]}` : dt;
+      };
       drawTableRow(ctx, cols2, [
         r.airlineCode,
         r.flightNum,
         `${from} -> ${to}`,
-        depLine,
-        arrLine,
+        fmtDT2(r.depart),
+        fmtDT2(r.arrive),
       ]);
     }
   }
@@ -534,9 +558,6 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   const sumSale = flightFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
   const sumTax = flightFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
   const sumDisc = flightFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
-  const sumTotal = flightFins.length > 0
-    ? flightFins.reduce((s, f) => s + Number(f.total || 0), 0)
-    : Number(d.order.totalPrice ?? 0);
   const showDisc = sumDisc > 0.005;
 
   const paxCols: Col[] = showDisc
@@ -557,10 +578,12 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
       ];
   drawTableHeader(ctx, paxCols);
 
+  // Valor por passageiro = (Tarifa + Taxas − Desconto) / passageiros.
+  // Comissão NÃO entra aqui — é ganho da agência, não custo do passageiro.
   const perSale = sumSale / paxCount;
   const perTax = sumTax / paxCount;
   const perDisc = sumDisc / paxCount;
-  const perTotal = sumTotal / paxCount;
+  const perTotal = Number((perSale + perTax - perDisc).toFixed(2));
 
   for (const p of d.passengers) {
     const row = showDisc
@@ -631,27 +654,32 @@ const sumExtrasFromItems = (d: OrderDetail): number => {
 };
 
 const drawTotals = (ctx: Ctx, d: OrderDetail) => {
-  // Fonte da verdade: totalPrice do pedido. Detalha tarifa/taxas/desconto/comissão a partir
-  // do financeiro, somando extras que ainda não têm financeiro salvo.
+  // Recibo: NÃO exibe comissão (ganho interno da agência).
   const extrasNoFin = sumExtrasFromItems(d);
   const produtos = d.financials.reduce((s, f) => s + Number(f.sale_value || 0), 0) + extrasNoFin;
   const taxas = d.financials.reduce((s, f) => s + Number(f.tax_value || 0), 0);
   const desc = d.financials.reduce((s, f) => s + Number(f.discount_value || 0), 0);
-  const comissao = d.financials.reduce((s, f) => s + Number(f.commission_value || 0), 0);
   const total = Number(d.order.totalPrice ?? 0)
     || (d.financials.reduce((s, f) => s + Number(f.total || 0), 0) + extrasNoFin);
+  const showDisc = desc > 0.005;
 
   sectionTitle(ctx, "Resumo Financeiro");
-  const w = CONTENT_W / 5;
-  const cols: Col[] = [
-    { header: "Tarifa", width: w, align: "right" },
-    { header: "Taxas", width: w, align: "right" },
-    { header: "Desconto", width: w, align: "right" },
-    { header: "Comissão", width: w, align: "right" },
-    { header: "Total", width: CONTENT_W - w * 4, align: "right" },
-  ];
+  const cols: Col[] = showDisc
+    ? [
+        { header: "Tarifa", width: CONTENT_W / 4, align: "right" },
+        { header: "Taxas", width: CONTENT_W / 4, align: "right" },
+        { header: "Desconto", width: CONTENT_W / 4, align: "right" },
+        { header: "Total", width: CONTENT_W - (CONTENT_W / 4) * 3, align: "right" },
+      ]
+    : [
+        { header: "Tarifa", width: CONTENT_W / 3, align: "right" },
+        { header: "Taxas", width: CONTENT_W / 3, align: "right" },
+        { header: "Total", width: CONTENT_W - (CONTENT_W / 3) * 2, align: "right" },
+      ];
   drawTableHeader(ctx, cols);
-  drawTableRow(ctx, cols, [brl(produtos), brl(taxas), brl(desc), brl(comissao), brl(total)]);
+  drawTableRow(ctx, cols, showDisc
+    ? [brl(produtos), brl(taxas), brl(desc), brl(total)]
+    : [brl(produtos), brl(taxas), brl(total)]);
   ctx.y -= 8;
 };
 
@@ -825,12 +853,17 @@ async function build(detail: OrderDetail, includeContract: boolean): Promise<Uin
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const page = pdf.addPage([A4.w, A4.h]);
-  const ctx: Ctx = { pdf, page, y: A4.h - MARGIN, font, fontBold, order: detail.order };
+  const ctx: Ctx = {
+    pdf, page, y: A4.h - MARGIN, font, fontBold,
+    order: detail.order,
+    pageHeader: drawReceiptContinuationHeader,
+  };
 
   drawCompanyHeader(ctx);
   drawReciboBlock(ctx, detail);
-  drawHotels(ctx, detail);
+  // Ordem do recibo: Passageiro/Aéreo → Hospedagem → Outros Serviços → Resumo → Pagamentos.
   drawFlights(ctx, detail);
+  drawHotels(ctx, detail);
   drawOthers(ctx, detail);
 
   drawTotals(ctx, detail);
@@ -853,7 +886,11 @@ async function build(detail: OrderDetail, includeContract: boolean): Promise<Uin
   const cw = ctx.font.widthOfTextAtSize(sanitize(clientName), 8);
   text(ctx, clientName, A4.w - MARGIN - cw, { size: 8, color: COLOR_MUTED });
 
-  if (includeContract) drawContract(ctx);
+  if (includeContract) {
+    // A partir daqui, páginas de continuação usam o cabeçalho do CONTRATO.
+    ctx.pageHeader = drawContractHeader;
+    drawContract(ctx);
+  }
   drawFooter(ctx);
 
   return await pdf.save();
