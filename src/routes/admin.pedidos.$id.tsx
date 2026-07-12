@@ -1581,13 +1581,11 @@ function ItemDialog({
     </div>
   );
 
-  const labelForSegment = (d: Record<string, string | number>, isFirst: boolean, index: number): string => {
-    const dir = String(d.direction ?? "");
-    if (dir === "return") return "Volta";
-    if (dir === "outbound") return "Ida";
-    if (dir === "connection") return `Conexão ${index}`;
-    return isFirst ? "Trecho 1" : `Trecho ${index + 1}`;
+  const legLabel = (isReturn: boolean, indexInLeg: number): string => {
+    if (indexInLeg === 0) return isReturn ? "Volta" : "Ida";
+    return `Conexão ${indexInLeg}`;
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
