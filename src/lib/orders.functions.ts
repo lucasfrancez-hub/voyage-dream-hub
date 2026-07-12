@@ -31,7 +31,9 @@ export type OrderItemFinancial = {
   order_item_id: string;
   supplier_name: string | null;
   sale_value: number;
+  tax_value: number;
   discount_value: number;
+
   commission_value: number;
   commission_pct: number;
   exchange_rate: number;
@@ -56,11 +58,14 @@ export type OrderHeader = {
   totalPrice: number;
   paymentMethod: string;
   notes: string | null;
+  travelReason: string | null;
+  coupon: string | null;
   supplierName: string | null;
   supplierOrderNumber: string | null;
   airlineLocator: string | null;
   packageSnapshot: Json;
 };
+
 
 export type OrderPayment = {
   id: string;
@@ -142,7 +147,9 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         order_item_id: f.order_item_id,
         supplier_name: f.supplier_name,
         sale_value: Number(f.sale_value),
+        tax_value: Number((f as { tax_value?: number | string | null }).tax_value ?? 0),
         discount_value: Number(f.discount_value),
+
         commission_value: Number(f.commission_value),
         commission_pct: Number(f.commission_pct),
         exchange_rate: Number(f.exchange_rate),
@@ -196,6 +203,9 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         totalPrice: Number(order.total_price),
         paymentMethod: order.payment_method,
         notes: order.notes,
+        travelReason: (order as { travel_reason?: string | null }).travel_reason ?? null,
+        coupon: (order as { coupon?: string | null }).coupon ?? null,
+
         supplierName: order.supplier_name ?? null,
         supplierOrderNumber: order.supplier_order_number ?? null,
         airlineLocator: order.airline_locator ?? null,
@@ -313,6 +323,42 @@ export const setOrderItemStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Confirma ou cancela o pedido inteiro (status do pedido + status de todos os itens)
+export const setOrderStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; status: "confirmed" | "cancelled" | "pending" }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { error: e1 } = await context.supabase.from("orders").update({ status: data.status }).eq("id", data.id);
+    if (e1) throw new Error(e1.message);
+    const itemStatus = data.status === "cancelled" ? "cancelled" : data.status === "confirmed" ? "confirmed" : "pending";
+    const { error: e2 } = await context.supabase.from("order_items").update({ status: itemStatus }).eq("order_id", data.id);
+    if (e2) throw new Error(e2.message);
+    return { ok: true };
+  });
+
+// Atualiza campos livres do pedido (observação, motivo, cupom)
+export const updateOrderMeta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; notes?: string | null; travel_reason?: string | null; coupon?: string | null }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const patch: Record<string, string | null> = {};
+    if (data.notes !== undefined) patch.notes = data.notes;
+    if (data.travel_reason !== undefined) patch.travel_reason = data.travel_reason;
+    if (data.coupon !== undefined) patch.coupon = data.coupon;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await context.supabase.from("orders").update(patch as never).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
+
+
+
 // --------- Financials ---------
 export const upsertItemFinancial = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -326,6 +372,7 @@ export const upsertItemFinancial = createServerFn({ method: "POST" })
       order_item_id: data.order_item_id,
       supplier_name: data.supplier_name ?? null,
       sale_value: data.sale_value ?? 0,
+      tax_value: data.tax_value ?? 0,
       discount_value: data.discount_value ?? 0,
       commission_value: data.commission_value ?? 0,
       commission_pct: data.commission_pct ?? 0,
@@ -334,7 +381,8 @@ export const upsertItemFinancial = createServerFn({ method: "POST" })
       total: data.total ?? 0,
       notes: data.notes ?? null,
       sort_order: data.sort_order ?? 0,
-    };
+    } as never;
+
     if (data.id) {
       const { error } = await context.supabase.from("order_item_financials").update(payload).eq("id", data.id);
       if (error) throw new Error(error.message);
