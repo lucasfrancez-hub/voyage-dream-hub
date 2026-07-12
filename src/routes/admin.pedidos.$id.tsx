@@ -604,9 +604,10 @@ function PassengerRow({
         </div>
       </td>
       <td className="py-1 px-1">
-        <InlineText value={passenger.ticket_number ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
+        <InlineText value={effectiveTicket ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
           onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
       </td>
+
       <td className="py-1 px-1 text-right">
         <Button size="sm" variant="ghost" onClick={onDelete} className="opacity-0 group-hover:opacity-100 transition">
           <Trash2 className="h-3.5 w-3.5 text-destructive" />
