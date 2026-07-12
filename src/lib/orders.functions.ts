@@ -535,8 +535,10 @@ export const recalculateOrderTotal = createServerFn({ method: "POST" })
       const packageTaxes = Math.max(0, Number(snapshot.taxes ?? 0) || 0);
       const packageFare = Math.max(0, packageTotal - packageTaxes);
       const pricedIds = new Set(pricedItems.filter((item) => item.gross > 0).map((item) => item.id));
-      const packageFinancial = financials.find((row) => !pricedIds.has(row.order_item_id));
-      const pct = Number(packageFinancial?.commission_pct ?? 12) || 0;
+      const packageRows = financials.filter((row) => !pricedIds.has(row.order_item_id));
+      const pct = packageRows[0] && packageRows.every((row) => Number(row.commission_pct ?? 12) === Number(packageRows[0].commission_pct ?? 12))
+        ? Number(packageRows[0].commission_pct ?? 12)
+        : 12;
       const commissionDelta = packageFare * ((pct - 12) / 100);
       const extras = pricedItems.reduce((sum, item) => {
         if (item.gross <= 0) return sum;

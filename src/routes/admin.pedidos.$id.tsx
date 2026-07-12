@@ -2189,6 +2189,19 @@ function FinanceTab({
     const details = (item.details ?? {}) as Record<string, unknown>;
     return (Number(details.value ?? 0) || 0) <= 0;
   }), [financials, itemsById]);
+  const packagePct = useMemo(() => {
+    const packageRows = financials.filter((financial) => {
+      const item = itemsById[financial.order_item_id];
+      if (!item) return false;
+      const details = (item.details ?? {}) as Record<string, unknown>;
+      return (Number(details.value ?? 0) || 0) <= 0;
+    });
+    if (packageRows.length === 0) return PACKAGE_DEFAULT_PCT;
+    const first = Number(packageRows[0].commission_pct ?? PACKAGE_DEFAULT_PCT);
+    return packageRows.every((row) => Number(row.commission_pct ?? PACKAGE_DEFAULT_PCT) === first)
+      ? first
+      : PACKAGE_DEFAULT_PCT;
+  }, [financials, itemsById]);
 
   const plannedRows = useMemo<Array<Partial<OrderItemFinancial> & { __planned?: boolean; __itemId?: string | null; __label?: string }>>(() => {
     if (isPackageOrder) {
@@ -2225,7 +2238,7 @@ function FinanceTab({
   let totalNet: number;
 
   if (isPackageOrder) {
-    const currentPct = packageFinancial?.commission_pct ?? PACKAGE_DEFAULT_PCT;
+    const currentPct = packagePct;
     const allExtraRows = [...savedExtraRows, ...extraItemRows];
     const extrasSale = allExtraRows.reduce((a, r) => a + Number(r.sale_value || 0), 0);
     const extrasTax = allExtraRows.reduce((a, r) => a + Number(r.tax_value || 0), 0);
@@ -2248,7 +2261,7 @@ function FinanceTab({
     totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
   }
   const packageDiscount = isPackageOrder
-    ? Math.max(0, Number((packageDefaultCommission - Number((packageFareNet * (Number(packageFinancial?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2))).toFixed(2)))
+    ? Math.max(0, Number((packageDefaultCommission - Number((packageFareNet * (packagePct / 100)).toFixed(2))).toFixed(2)))
     : 0;
 
 
@@ -2321,12 +2334,12 @@ function FinanceTab({
                     <td className="py-2 px-2 text-right text-xs">{formatBRL(packageTaxes)}</td>
                     <td className="py-2 px-2 text-right text-xs">{formatBRL(packageDiscount)}</td>
                     <td className="py-2 px-2 text-right text-xs">
-                       {formatBRL(Number((packageFareNet * (Number(packageFinancial?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2)))}
-                       <div className="text-[10px] text-muted-foreground">{packageFinancial?.commission_pct ?? PACKAGE_DEFAULT_PCT}%</div>
+                       {formatBRL(Number((packageFareNet * (packagePct / 100)).toFixed(2)))}
+                       <div className="text-[10px] text-muted-foreground">{packagePct}%</div>
                     </td>
                     <td className="py-2 px-2 text-xs">—</td>
                     <td className="py-2 px-2 text-right text-xs font-semibold">
-                       {formatBRL(Number((packageFareNet + packageTaxes + (Number((packageFareNet * (Number(packageFinancial?.commission_pct ?? PACKAGE_DEFAULT_PCT) / 100)).toFixed(2)) - packageDefaultCommission)).toFixed(2)))}
+                       {formatBRL(Number((packageFareNet + packageTaxes + (Number((packageFareNet * (packagePct / 100)).toFixed(2)) - packageDefaultCommission)).toFixed(2)))}
                     </td>
                     <td className="py-2 px-2"></td>
                   </tr>
