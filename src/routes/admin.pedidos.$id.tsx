@@ -3196,10 +3196,6 @@ function PaymentDialog({
                 </>
               )}
               <div>
-                <Label>Autorização (banco)</Label>
-                <Input value={form.authorization_code ?? ""} onChange={(e) => setField("authorization_code", e.target.value)} />
-              </div>
-              <div>
                 <Label>Fornecedor / Adquirente</Label>
                 <Input value={form.provider ?? ""} onChange={(e) => setField("provider", e.target.value)} placeholder="FunPay, Cielo…" />
               </div>
