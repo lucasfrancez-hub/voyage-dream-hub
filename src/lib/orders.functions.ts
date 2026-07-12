@@ -209,7 +209,9 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         sort_order: i.sort_order,
       })),
       financials,
+      payments,
     };
+
   });
 
 // --------- Passengers ---------
