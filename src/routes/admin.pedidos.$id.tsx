@@ -324,11 +324,13 @@ function OrderDetailPage() {
           </TabsContent>
           <TabsContent value="finance" className="mt-4">
             <FinanceTab
+              order={order}
               items={detail.items}
               financials={detail.financials}
               onChange={invalidate}
             />
           </TabsContent>
+
         </Tabs>
 
       </div>
