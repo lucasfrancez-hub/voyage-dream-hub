@@ -1517,13 +1517,14 @@ function ItemDialog({
   const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
   const setSegField = (idx: number, k: string, v: string) =>
     setExtraSegments((arr) => arr.map((s, i) => (i === idx ? { ...s, details: { ...s.details, [k]: v } } : s)));
-  const addSegment = (direction: "return" | "connection") =>
+  const addSegment = (direction: "outbound" | "return") =>
     setExtraSegments((arr) => [...arr, { details: { direction } }]);
   const removeSegment = (idx: number) => setExtraSegments((arr) => arr.filter((_, i) => i !== idx));
   const hasReturn = () => {
     if (String(details.direction ?? "") === "return") return true;
     return extraSegments.some((s) => String(s.details.direction ?? "") === "return");
   };
+
 
   const segmentTitle = (d: Record<string, string | number>): string => {
     const airline = String(d.airline ?? "").trim();
@@ -1565,28 +1566,16 @@ function ItemDialog({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Classe / Cabine</Label><Input value={String(d.cabin_class ?? d.cabin ?? "")} onChange={(e) => onChangeField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
-        <div>
-          <Label>Tipo</Label>
-          <Select value={String(d.direction ?? "")} onValueChange={(v) => onChangeField("direction", v)}>
-            <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="outbound">Ida</SelectItem>
-              <SelectItem value="return">Volta</SelectItem>
-              <SelectItem value="connection">Conexão</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
+
     </div>
   );
 
-  const labelForSegment = (d: Record<string, string | number>, isFirst: boolean, index: number): string => {
-    const dir = String(d.direction ?? "");
-    if (dir === "return") return "Volta";
-    if (dir === "outbound") return "Ida";
-    if (dir === "connection") return `Conexão ${index}`;
-    return isFirst ? "Trecho 1" : `Trecho ${index + 1}`;
+  const legLabel = (isReturn: boolean, indexInLeg: number): string => {
+    if (indexInLeg === 0) return isReturn ? "Volta" : "Ida";
+    return `Conexão ${indexInLeg}`;
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1663,31 +1652,75 @@ function ItemDialog({
             </>
 
           ) : kind === "flight" ? (
-            <>
-              {renderFlightSegment(details, labelForSegment(details, true, 0), setField)}
+            (() => {
+              // Agrupa por perna. Main sempre é o primeiro da ida.
+              const outboundExtras: { seg: Segment; idx: number }[] = [];
+              const returnExtras: { seg: Segment; idx: number }[] = [];
+              extraSegments.forEach((seg, idx) => {
+                const dir = String(seg.details.direction ?? "");
+                if (dir === "return") returnExtras.push({ seg, idx });
+                else outboundExtras.push({ seg, idx });
+              });
+              const hasRet = returnExtras.length > 0;
+              return (
+                <>
+                  {/* IDA */}
+                  <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-3 space-y-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-brand-orange">Ida</div>
+                    {renderFlightSegment(details, legLabel(false, 0), setField)}
+                    {outboundExtras.map(({ seg, idx }, i) => (
+                      <div key={seg.id ?? `out-${idx}`}>
+                        {renderFlightSegment(
+                          seg.details,
+                          legLabel(false, i + 1),
+                          (k, v) => setSegField(idx, k, v),
+                          () => removeSegment(idx),
+                        )}
+                      </div>
+                    ))}
+                    <Button type="button" variant="outline" size="sm" onClick={() => addSegment("outbound")}>
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar trecho (conexão)
+                    </Button>
+                  </div>
 
-              {extraSegments.map((seg, idx) => (
-                <div key={seg.id ?? `new-${idx}`}>
-                  {renderFlightSegment(
-                    seg.details,
-                    labelForSegment(seg.details, false, idx + 1),
-                    (k, v) => setSegField(idx, k, v),
-                    () => removeSegment(idx),
+                  {/* VOLTA */}
+                  {hasRet ? (
+                    <div className="rounded-xl border border-brand-blue/40 bg-brand-blue/5 p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-brand-blue">Volta</div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                          onClick={() => returnExtras.forEach(({ idx }) => removeSegment(idx))}
+                        >
+                          Remover volta
+                        </Button>
+                      </div>
+                      {returnExtras.map(({ seg, idx }, i) => (
+                        <div key={seg.id ?? `ret-${idx}`}>
+                          {renderFlightSegment(
+                            seg.details,
+                            legLabel(true, i),
+                            (k, v) => setSegField(idx, k, v),
+                            i === 0 ? undefined : () => removeSegment(idx),
+                          )}
+                        </div>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" onClick={() => addSegment("return")}>
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar trecho (conexão)
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button type="button" variant="outline" size="sm" onClick={() => addSegment("return")}>
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar volta
+                    </Button>
                   )}
-                </div>
-              ))}
+                </>
+              );
+            })()
 
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => addSegment("connection")}>
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar conexão
-                </Button>
-                {!hasReturn() && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => addSegment("return")}>
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar volta
-                  </Button>
-                )}
-              </div>
-            </>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3">
