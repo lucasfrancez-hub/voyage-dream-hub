@@ -64,6 +64,8 @@ export type OrderHeader = {
   notes: string | null;
   travelReason: string | null;
   coupon: string | null;
+  notesLog: OrderLogEntry[];
+  travelReasonLog: OrderLogEntry[];
   supplierName: string | null;
   supplierOrderNumber: string | null;
   airlineLocator: string | null;
