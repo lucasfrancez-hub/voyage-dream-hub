@@ -953,7 +953,7 @@ function FlightReservationCard({
   const first = segments[0];
   const d0 = (first?.details ?? {}) as Record<string, unknown>;
   const supplier = typeof d0.supplier_name === "string" ? (d0.supplier_name as string) : "";
-  const ticket = typeof d0.ticket_number === "string" ? (d0.ticket_number as string) : "";
+  void d0;
   return (
     <div className={`rounded-xl border p-4 ${allCancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
       <div className="grid gap-4 md:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)]">
