@@ -15,6 +15,7 @@ export type AuthorizationData = {
   expiry?: string;
   amount?: number;
   installments?: number;
+  authorization_code?: string | null;
   description?: string | null;
   reference?: string | null;
   order_number?: string | null;
