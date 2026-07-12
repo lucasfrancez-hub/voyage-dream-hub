@@ -177,12 +177,13 @@ function OrderDetailPage() {
       {/* Tabs */}
       <div className="mt-6">
         <Tabs defaultValue="hotel">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="hotel"><Hotel className="h-3.5 w-3.5 mr-1.5" /> Hospedagem ({hotelItems.length})</TabsTrigger>
             <TabsTrigger value="flight"><Plane className="h-3.5 w-3.5 mr-1.5" /> Aéreo ({flightItems.length})</TabsTrigger>
+            <TabsTrigger value="service"><Package className="h-3.5 w-3.5 mr-1.5" /> Serviços ({serviceItems.length})</TabsTrigger>
             <TabsTrigger value="cancelled"><XCircle className="h-3.5 w-3.5 mr-1.5" /> Cancelados ({cancelledItems.length})</TabsTrigger>
             <TabsTrigger value="contract"><FileText className="h-3.5 w-3.5 mr-1.5" /> Contrato</TabsTrigger>
-            <TabsTrigger value="finance"><DollarSign className="h-3.5 w-3.5 mr-1.5" /> Financeiro</TabsTrigger>
+            <TabsTrigger value="finance"><Percent className="h-3.5 w-3.5 mr-1.5" /> Ajuste de comissão</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hotel" className="mt-4">
@@ -191,6 +192,7 @@ function OrderDetailPage() {
               items={hotelItems}
               kind="hotel"
               onChange={invalidate}
+              passengers={detail.passengers}
             />
           </TabsContent>
           <TabsContent value="flight" className="mt-4">
@@ -202,6 +204,14 @@ function OrderDetailPage() {
               passengers={detail.passengers}
             />
           </TabsContent>
+          <TabsContent value="service" className="mt-4">
+            <ItemsTab
+              orderId={order.id}
+              items={serviceItems}
+              kind="other"
+              onChange={invalidate}
+            />
+          </TabsContent>
 
           <TabsContent value="cancelled" className="mt-4">
             <ItemsTab
@@ -209,6 +219,7 @@ function OrderDetailPage() {
               items={cancelledItems}
               kind="cancelled"
               onChange={invalidate}
+              passengers={detail.passengers}
             />
           </TabsContent>
           <TabsContent value="contract" className="mt-4">
@@ -222,6 +233,7 @@ function OrderDetailPage() {
             />
           </TabsContent>
         </Tabs>
+
       </div>
     </div>
   );
