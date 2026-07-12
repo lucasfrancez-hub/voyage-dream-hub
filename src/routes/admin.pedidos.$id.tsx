@@ -2379,6 +2379,7 @@ function CommissionAdjustDialog({
   onSaved: () => void;
 }) {
   const upsert = useServerFn(upsertItemFinancial);
+  const updateTotal = useServerFn(updateOrderTotalPrice);
   const snap = (order.packageSnapshot ?? {}) as Record<string, unknown>;
   const isPackage =
     !(snap as { manual?: boolean }).manual &&
@@ -2397,10 +2398,10 @@ function CommissionAdjustDialog({
   const [pct, setPct] = useState(isPackage ? PKG_DEFAULT_PCT : 10);
   const [saving, setSaving] = useState(false);
 
-  useMemo(() => {
+  useEffect(() => {
     if (!open) return;
     if (isPackage) {
-      // Pacote pronto: força valores do snapshot; ignora convenções antigas gravadas.
+      // Pacote pronto: força tarifa NET e taxas do snapshot; ignora convenções antigas.
       setSale(pkgFareNet);
       setTax(pkgTaxes);
     } else {
@@ -2418,10 +2419,11 @@ function CommissionAdjustDialog({
   // sale = tarifa NET (sem taxas). Comissão incide sobre a tarifa.
   const base = Math.max(0, sale);
   const commission = Number((base * (pct / 100)).toFixed(2));
-  // Pacote pronto: total só sobe quando comissão passa dos 12% padrão (delta acima).
+  // Pacote pronto: total = tarifa + taxas + delta sinalizado (comissão - 12%*tarifa).
+  // Se pct < 12, o total DIMINUI; se pct > 12, o total AUMENTA.
   // Manual: total = tarifa + taxas + comissão.
   const total = isPackage
-    ? Number((sale + tax + Math.max(0, commission - pkgDefaultCommission)).toFixed(2))
+    ? Number((sale + tax + (commission - pkgDefaultCommission)).toFixed(2))
     : Number((sale + tax + commission).toFixed(2));
 
   const handleSave = async () => {
@@ -2451,8 +2453,9 @@ function CommissionAdjustDialog({
         const itemBase = Math.max(0, itemSale);
         const itemCommission = Number((itemBase * (pct / 100)).toFixed(2));
         const itemDefaultComm = isPackage ? Number((itemSale * (PKG_DEFAULT_PCT / 100)).toFixed(2)) : 0;
+        // Delta sinalizado por item também.
         const itemTotal = isPackage
-          ? Number((itemSale + itemTax + Math.max(0, itemCommission - itemDefaultComm)).toFixed(2))
+          ? Number((itemSale + itemTax + (itemCommission - itemDefaultComm)).toFixed(2))
           : Number((itemSale + itemTax + itemCommission).toFixed(2));
 
         await upsert({
@@ -2472,7 +2475,9 @@ function CommissionAdjustDialog({
           },
         });
       }
-      toast.success("Comissão atualizada e distribuída entre os itens");
+      // Reflete o novo total no cabeçalho do pedido.
+      await updateTotal({ data: { id: order.id, total_price: Math.max(0, total) } });
+      toast.success("Comissão atualizada e refletida no total do pedido");
       onSaved();
       onOpenChange(false);
     } catch (e) {
