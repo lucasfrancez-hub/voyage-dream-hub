@@ -325,8 +325,9 @@ const drawTableRow = (ctx: Ctx, cols: Col[], cells: string[]) => {
 };
 
 
-const sectionTitle = (ctx: Ctx, s: string) => {
-  ensureSpace(ctx, 30);
+const sectionTitle = (ctx: Ctx, s: string, reserve = 80) => {
+  // Reserva espaço para o título + cabeçalho + pelo menos 1 linha; evita órfãos entre páginas.
+  ensureSpace(ctx, reserve, drawContractHeader);
   ctx.y -= 14;
   text(ctx, s, MARGIN, { size: 11, bold: true });
   ctx.y -= 8;
@@ -334,8 +335,9 @@ const sectionTitle = (ctx: Ctx, s: string) => {
     start: { x: MARGIN, y: ctx.y }, end: { x: A4.w - MARGIN, y: ctx.y },
     thickness: 0.6, color: COLOR_TEXT,
   });
-  ctx.y -= 12;
+  ctx.y -= 14;
 };
+
 
 
 // ---------- Blocos do RECIBO ----------
@@ -347,7 +349,7 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   text(ctx, `RECIBO - VENDA ${o.orderNumber} - ${createdDate}`, MARGIN, { size: 14, bold: true });
   ctx.y -= 22;
 
-  // Bloco pagante
+  // Bloco pagante (sempre exibido com todos os campos)
   const payer = {
     name: o.payerFullName || o.fullName,
     address: o.payerAddress ?? "",
@@ -357,34 +359,51 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
     state: o.payerState ?? "",
     zip: o.payerZip ?? "",
     cpf: o.payerCpf || o.cpf || "",
-    email: o.payerEmail || o.email,
-    phone: o.payerPhone || o.phone,
+    email: o.payerEmail || o.email || "",
+    phone: o.payerPhone || o.phone || "",
   };
-  const lineH = 14;
-  const bold = (label: string, val: string, x: number, y: number) => {
-    text(ctx, label, x, { size: 9.5, bold: true, y });
-    const lw = ctx.fontBold.widthOfTextAtSize(sanitize(label), 9.5);
-    text(ctx, " " + val, x + lw, { size: 9.5, y });
+
+  // caixa com fundo suave para destaque
+  const boxTop = ctx.y + 4;
+  const lineH = 13;
+  const rows = 5;
+  const boxH = rows * lineH + 12;
+  ctx.page.drawRectangle({
+    x: MARGIN - 4, y: boxTop - boxH, width: CONTENT_W + 8, height: boxH,
+    color: rgb(0.97, 0.97, 0.98),
+  });
+  ctx.page.drawRectangle({
+    x: MARGIN - 4, y: boxTop - boxH, width: 3, height: boxH, color: COLOR_BRAND,
+  });
+
+  const labelVal = (label: string, val: string, x: number, y: number) => {
+    text(ctx, label, x, { size: 9, bold: true, y, color: COLOR_MUTED });
+    const lw = ctx.fontBold.widthOfTextAtSize(sanitize(label), 9);
+    text(ctx, " " + (val || "—"), x + lw, { size: 9.5, y });
   };
-  bold("Pagante:", payer.name, MARGIN, ctx.y); ctx.y -= lineH;
-  const addrLine = [payer.address, payer.number].filter(Boolean).join(", ");
-  if (addrLine) { bold("Endereço:", addrLine, MARGIN, ctx.y); ctx.y -= lineH; }
-  if (payer.district || payer.city || payer.state || payer.zip) {
-    const s = [
-      payer.district && `Bairro: ${payer.district}`,
-      payer.city && `Cidade: ${payer.city}`,
-      payer.state && `UF: ${payer.state}`,
-      payer.zip && `CEP: ${payer.zip}`,
-    ].filter(Boolean).join("    ");
-    text(ctx, s, MARGIN, { size: 9.5 }); ctx.y -= lineH;
-  }
-  if (payer.cpf) { bold("CPF/CNPJ:", payer.cpf, MARGIN, ctx.y); ctx.y -= lineH; }
-  const emailPhone = [
-    payer.email && `E-mail: ${payer.email}`,
-    payer.phone && `Telefones: ${payer.phone}`,
-  ].filter(Boolean).join("    ");
-  if (emailPhone) { text(ctx, emailPhone, MARGIN, { size: 9.5 }); ctx.y -= lineH; }
-  ctx.y -= 10;
+
+  ctx.y -= 4;
+  // Linha 1: nome
+  labelVal("Pagante:", payer.name, MARGIN, ctx.y); ctx.y -= lineH;
+  // Linha 2: CPF + telefone + e-mail
+  const halfW = CONTENT_W / 2;
+  labelVal("CPF/CNPJ:", payer.cpf, MARGIN, ctx.y);
+  labelVal("Telefone:", payer.phone, MARGIN + halfW, ctx.y);
+  ctx.y -= lineH;
+  labelVal("E-mail:", payer.email, MARGIN, ctx.y);
+  ctx.y -= lineH;
+  // Linha 3: endereço, número
+  const addrLine = [payer.address, payer.number && `Nº ${payer.number}`].filter(Boolean).join(", ") || "—";
+  labelVal("Endereço:", addrLine, MARGIN, ctx.y); ctx.y -= lineH;
+  // Linha 4: bairro, cidade, UF, CEP
+  const locLine = [
+    payer.district && `Bairro: ${payer.district}`,
+    payer.city && `Cidade: ${payer.city}`,
+    payer.state && `UF: ${payer.state}`,
+    payer.zip && `CEP: ${payer.zip}`,
+  ].filter(Boolean).join("   ·   ") || "—";
+  labelVal("Local:", locLine, MARGIN, ctx.y); ctx.y -= lineH;
+  ctx.y -= 12;
 
   // Texto legal — usa SEMPRE o total do pedido (espelha o cabeçalho e o ajuste de comissão).
   const total = Number(o.totalPrice ?? 0)
@@ -398,6 +417,7 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   drawParagraph(ctx, legal, 9.5, 13);
   ctx.y -= 8;
 };
+
 
 
 
@@ -504,14 +524,19 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   }
   ctx.y -= 6;
 
-  // Passageiros / bilhete / valores — usa TODO o financeiro do pedido dividido pelo nº de pax.
-  // (Em pacote pronto, os itens de voo não têm financials próprios; o total fica no pacote.)
-  const allFins = d.financials;
+  // Passageiros / bilhete / valores — total do pedido dividido pelo nº de passageiros
+  // (extras/serviços entram no "Resumo Financeiro", não são rateados aqui).
   const paxCount = Math.max(1, d.passengers.length);
-  const sumSale = allFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
-  const sumTax = allFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
-  const sumDisc = allFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
-  const sumTotal = allFins.reduce((s, f) => s + Number(f.total || 0), 0);
+  const flightFinIds = new Set(
+    d.items.filter((i) => i.kind === "flight" && i.status !== "cancelled").map((i) => i.id),
+  );
+  const flightFins = d.financials.filter((f) => flightFinIds.has(f.order_item_id));
+  const sumSale = flightFins.reduce((s, f) => s + Number(f.sale_value || 0), 0);
+  const sumTax = flightFins.reduce((s, f) => s + Number(f.tax_value || 0), 0);
+  const sumDisc = flightFins.reduce((s, f) => s + Number(f.discount_value || 0), 0);
+  const sumTotal = flightFins.length > 0
+    ? flightFins.reduce((s, f) => s + Number(f.total || 0), 0)
+    : Number(d.order.totalPrice ?? 0);
   const showDisc = sumDisc > 0.005;
 
   const paxCols: Col[] = showDisc
@@ -545,6 +570,7 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
   }
   ctx.y -= 8;
 };
+
 
 
 const drawHotels = (ctx: Ctx, d: OrderDetail) => {
@@ -585,19 +611,35 @@ const drawOthers = (ctx: Ctx, d: OrderDetail) => {
   drawTableHeader(ctx, cols);
   for (const o of others) {
     const f = finById.get(o.id);
-    drawTableRow(ctx, cols, [o.title, f?.supplier_name ?? "—", brl(f?.total ?? 0)]);
+    const det = (o.details ?? {}) as Record<string, unknown>;
+    // valor: usa o financeiro salvo; senão, o valor bruto informado no item
+    const rawVal = Number(f?.total ?? 0) || Number(det.value ?? 0) || 0;
+    const supplier = f?.supplier_name ?? (det.supplier_name as string) ?? "—";
+    drawTableRow(ctx, cols, [o.title, supplier, brl(rawVal)]);
   }
   ctx.y -= 6;
 };
 
+const sumExtrasFromItems = (d: OrderDetail): number => {
+  const finItemIds = new Set(d.financials.map((f) => f.order_item_id));
+  return d.items
+    .filter((i) => i.kind === "other" && i.status !== "cancelled" && !finItemIds.has(i.id))
+    .reduce((s, i) => {
+      const det = (i.details ?? {}) as Record<string, unknown>;
+      return s + (Number(det.value ?? 0) || 0);
+    }, 0);
+};
+
 const drawTotals = (ctx: Ctx, d: OrderDetail) => {
-  // Espelha os itens do financeiro do pedido (fonte da verdade após ajuste de comissão).
-  const produtos = d.financials.reduce((s, f) => s + Number(f.sale_value || 0), 0);
+  // Fonte da verdade: totalPrice do pedido. Detalha tarifa/taxas/desconto/comissão a partir
+  // do financeiro, somando extras que ainda não têm financeiro salvo.
+  const extrasNoFin = sumExtrasFromItems(d);
+  const produtos = d.financials.reduce((s, f) => s + Number(f.sale_value || 0), 0) + extrasNoFin;
   const taxas = d.financials.reduce((s, f) => s + Number(f.tax_value || 0), 0);
   const desc = d.financials.reduce((s, f) => s + Number(f.discount_value || 0), 0);
   const comissao = d.financials.reduce((s, f) => s + Number(f.commission_value || 0), 0);
   const total = Number(d.order.totalPrice ?? 0)
-    || d.financials.reduce((s, f) => s + Number(f.total || 0), 0);
+    || (d.financials.reduce((s, f) => s + Number(f.total || 0), 0) + extrasNoFin);
 
   sectionTitle(ctx, "Resumo Financeiro");
   const w = CONTENT_W / 5;
@@ -612,6 +654,8 @@ const drawTotals = (ctx: Ctx, d: OrderDetail) => {
   drawTableRow(ctx, cols, [brl(produtos), brl(taxas), brl(desc), brl(comissao), brl(total)]);
   ctx.y -= 8;
 };
+
+
 
 
 const drawPayments = (ctx: Ctx, d: OrderDetail) => {
@@ -737,11 +781,17 @@ const drawContract = (ctx: Ctx) => {
   drawFooter(ctx);
   newPage(ctx);
   drawContractHeader(ctx);
-  ctx.y -= 4;
+  ctx.y -= 8;
+  // Título principal do contrato
+  const mainTitle = "CONTRATO DE PRESTAÇÃO DE SERVIÇO DE TURISMO";
+  const mtW = ctx.fontBold.widthOfTextAtSize(sanitize(mainTitle), 13);
+  text(ctx, mainTitle, (A4.w - mtW) / 2, { size: 13, bold: true });
+  ctx.y -= 22;
   text(ctx, "CONDIÇÕES GERAIS - VIA AIR AGÊNCIA E REPRESENTACOES LTDA", MARGIN, {
-    size: 11, bold: true,
+    size: 10, bold: true, color: COLOR_MUTED,
   });
   ctx.y -= 20;
+
   for (const c of CONTRACT_CLAUSES) {
     ensureSpace(ctx, 20, drawContractHeader);
     text(ctx, c.title, MARGIN, { size: 10, bold: true });
@@ -779,9 +829,10 @@ async function build(detail: OrderDetail, includeContract: boolean): Promise<Uin
 
   drawCompanyHeader(ctx);
   drawReciboBlock(ctx, detail);
-  drawFlights(ctx, detail);
   drawHotels(ctx, detail);
+  drawFlights(ctx, detail);
   drawOthers(ctx, detail);
+
   drawTotals(ctx, detail);
   drawPayments(ctx, detail);
 
