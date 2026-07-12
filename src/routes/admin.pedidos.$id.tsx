@@ -287,7 +287,16 @@ function OrderDetailPage() {
         </Tabs>
 
       </div>
+
+      {/* Payments */}
+      <PaymentsSection
+        orderId={order.id}
+        clientName={order.fullName}
+        payments={detail.payments}
+        onChange={invalidate}
+      />
     </div>
+
   );
 }
 
