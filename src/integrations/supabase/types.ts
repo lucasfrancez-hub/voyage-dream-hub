@@ -76,6 +76,52 @@ export type Database = {
           },
         ]
       }
+      order_item_passengers: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          order_item_id: string
+          passenger_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          order_item_id: string
+          passenger_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          order_item_id?: string
+          passenger_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_passengers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_passengers_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_passengers_passenger_id_fkey"
+            columns: ["passenger_id"]
+            isOneToOne: false
+            referencedRelation: "order_passengers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
