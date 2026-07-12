@@ -69,6 +69,13 @@ function Checkout() {
   const { data: card, patch: patchCard } = useCardData();
   const [boleto, setBoleto] = useState<BoletoData>(emptyBoleto);
   const [notes, setNotes] = useState("");
+  const [pixAddress, setPixAddress] = useState({
+    cep: "",
+    address: "",
+    number: "",
+    city: "",
+    state: "PR",
+  });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
@@ -158,6 +165,21 @@ function Checkout() {
 
 
 
+    if (payment === "pix") {
+      if (
+        !pixAddress.cep.trim() ||
+        !pixAddress.address.trim() ||
+        !pixAddress.number.trim() ||
+        !pixAddress.city.trim() ||
+        !pixAddress.state.trim()
+      ) {
+        toast.error("Preencha o endereço de cobrança (CEP, endereço, número, cidade e estado).");
+        return;
+      }
+    }
+
+
+
     setSubmitting(true);
     try {
       const newId = crypto.randomUUID();
@@ -221,6 +243,19 @@ function Checkout() {
                 boleto_capture: boleto,
                 boleto_installments: boletoInstallments,
                 boleto_installment_value: totalPrice / Math.max(boletoInstallments, 1),
+              }
+            : {}),
+          ...(payment === "pix"
+            ? {
+                pix_capture: {
+                  billing: {
+                    zip: pixAddress.cep,
+                    address: pixAddress.address,
+                    number: pixAddress.number,
+                    city: pixAddress.city,
+                    state: pixAddress.state,
+                  },
+                },
               }
             : {}),
           },
@@ -511,7 +546,73 @@ function Checkout() {
                   />
                 </div>
               )}
+
+              {payment === "pix" && (
+                <div className="mt-6 pt-6 border-t border-border space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold">Endereço de cobrança</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Usamos esses dados para gerar o contrato e o recibo da sua reserva.
+                    </p>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <label className="block">
+                      <span className="block text-xs text-muted-foreground mb-1.5">CEP *</span>
+                      <input
+                        value={pixAddress.cep}
+                        onChange={(e) => setPixAddress((p) => ({ ...p, cep: e.target.value }))}
+                        className={inputCls}
+                        placeholder="00000-000"
+                        maxLength={9}
+                        required
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="block text-xs text-muted-foreground mb-1.5">Endereço *</span>
+                      <input
+                        value={pixAddress.address}
+                        onChange={(e) => setPixAddress((p) => ({ ...p, address: e.target.value }))}
+                        className={inputCls}
+                        placeholder="Rua / Avenida"
+                        maxLength={200}
+                        required
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="block text-xs text-muted-foreground mb-1.5">Número *</span>
+                      <input
+                        value={pixAddress.number}
+                        onChange={(e) => setPixAddress((p) => ({ ...p, number: e.target.value }))}
+                        className={inputCls}
+                        maxLength={20}
+                        required
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="block text-xs text-muted-foreground mb-1.5">Cidade *</span>
+                      <input
+                        value={pixAddress.city}
+                        onChange={(e) => setPixAddress((p) => ({ ...p, city: e.target.value }))}
+                        className={inputCls}
+                        maxLength={120}
+                        required
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="block text-xs text-muted-foreground mb-1.5">Estado *</span>
+                      <input
+                        value={pixAddress.state}
+                        onChange={(e) => setPixAddress((p) => ({ ...p, state: e.target.value.toUpperCase().slice(0, 2) }))}
+                        className={inputCls}
+                        maxLength={2}
+                        required
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
             </Card>
+
 
             {/* Observações */}
             <Card title="Observações (opcional)">
