@@ -35,6 +35,8 @@ import {
   linkPassengerToItem, unlinkPassengerFromItem,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
+import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
+import { Cloud } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 
