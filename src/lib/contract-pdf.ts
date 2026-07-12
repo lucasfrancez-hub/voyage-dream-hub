@@ -386,18 +386,9 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   if (emailPhone) { text(ctx, emailPhone, MARGIN, { size: 9.5 }); ctx.y -= lineH; }
   ctx.y -= 10;
 
-  // Texto legal
-  const pkg = getPackageInfo(d);
-  let total: number;
-  if (pkg.isPackage) {
-    const fareNet = Math.max(0, pkg.fare - pkg.taxes);
-    const defaultCommission = Number((fareNet * 0.12).toFixed(2));
-    const commissionTotal = Number((fareNet * (pkg.commissionPct / 100)).toFixed(2));
-    const extra = Math.max(0, commissionTotal - defaultCommission);
-    total = Number((fareNet + pkg.taxes + extra).toFixed(2));
-  } else {
-    total = d.financials.reduce((s, f) => s + f.total, 0) || o.totalPrice;
-  }
+  // Texto legal — usa SEMPRE o total do pedido (espelha o cabeçalho e o ajuste de comissão).
+  const total = Number(o.totalPrice ?? 0)
+    || d.financials.reduce((s, f) => s + Number(f.total || 0), 0);
   const legal =
     `A ${COMPANY.name}, declara que os serviços turísticos relacionados neste documento, ` +
     `adquiridos e quitados conforme formas de pagamento abaixo, pelo Sr.(a) ${payer.name} ` +
@@ -407,6 +398,7 @@ const drawReciboBlock = (ctx: Ctx, d: OrderDetail) => {
   drawParagraph(ctx, legal, 9.5, 13);
   ctx.y -= 8;
 };
+
 
 
 // Detecta se pedido é pacote pronto e devolve tarifa/taxas do snapshot.
