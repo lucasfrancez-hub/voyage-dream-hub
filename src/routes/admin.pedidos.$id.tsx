@@ -1752,7 +1752,7 @@ function ItemDialog({
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => {
-            const numFields = new Set(["nights", "value", "quantity", "hotel_stars"]);
+            const numFields = new Set(["nights", "value", "quantity", "hotel_stars", "tax_value"]);
             const buildClean = (raw: Record<string, string | number>): Record<string, unknown> => {
               const cd: Record<string, unknown> = {};
               for (const [k, v] of Object.entries(raw)) {
