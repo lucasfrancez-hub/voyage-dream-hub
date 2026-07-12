@@ -1372,8 +1372,11 @@ function FinanceTab({
     return m;
   }, [items]);
 
+  const totalSale = financials.reduce((a, f) => a + Number(f.sale_value || 0), 0);
+  const totalTax = financials.reduce((a, f) => a + Number(f.tax_value || 0), 0);
+  const commissionBase = Math.max(0, totalSale - totalTax);
   const totalCommission = financials.reduce((a, f) => a + Number(f.commission_value || 0), 0);
-  const totalSale = financials.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
+  const totalNet = financials.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
 
   if (items.length === 0) {
     return (
@@ -1384,97 +1387,112 @@ function FinanceTab({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <DollarSign className="h-4 w-4" /> Financeiro por item
-        </h3>
-        <Button size="sm" onClick={() => { setEditing(null); setSelectedItem(items[0]?.id ?? null); setOpen(true); }}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Novo lançamento
-        </Button>
-      </div>
-      {financials.length === 0 ? (
-        <div className="text-sm text-muted-foreground text-center py-6">Nenhum lançamento financeiro ainda.</div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs text-muted-foreground border-b border-border">
-              <tr>
-                <th className="text-left py-2 px-2">Item</th>
-                <th className="text-left py-2 px-2">Fornecedor</th>
-                <th className="text-right py-2 px-2">Venda</th>
-                <th className="text-right py-2 px-2">Desc.</th>
-                <th className="text-right py-2 px-2">Comis. pagar</th>
-                <th className="text-right py-2 px-2">Câmbio</th>
-                <th className="text-left py-2 px-2">Vencto</th>
-                <th className="text-right py-2 px-2">Total</th>
-                <th className="w-24"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {financials.map((f) => {
-                const it = itemsById[f.order_item_id];
-                return (
-                  <tr key={f.id} className="border-b border-border/50">
-                    <td className="py-2 px-2 text-xs">{it?.title ?? "—"}</td>
-                    <td className="py-2 px-2 text-xs">{f.supplier_name ?? "—"}</td>
-                    <td className="py-2 px-2 text-right text-xs">{formatBRL(f.sale_value)}</td>
-                    <td className="py-2 px-2 text-right text-xs">{formatBRL(f.discount_value)}</td>
-                    <td className="py-2 px-2 text-right text-xs">
-                      {formatBRL(f.commission_value)}
-                      <div className="text-[10px] text-muted-foreground">{f.commission_pct}%</div>
-                    </td>
-                    <td className="py-2 px-2 text-right text-xs">{f.exchange_rate}</td>
-                    <td className="py-2 px-2 text-xs">{f.due_date ? new Date(f.due_date + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
-                    <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(f.total)}</td>
-                    <td className="py-2 px-2 text-right">
-                      <Button size="sm" variant="ghost" onClick={() => { setEditing(f); setSelectedItem(f.order_item_id); setOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => confirm("Remover lançamento?") && remove.mutate(f.id)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot className="text-xs">
-              <tr>
-                <td colSpan={4} className="py-2 px-2 text-right text-muted-foreground">Comissão total</td>
-                <td colSpan={4} className="py-2 px-2 text-right font-semibold text-brand-orange">{formatBRL(totalCommission)}</td>
-                <td></td>
-              </tr>
-              <tr>
-                <td colSpan={4} className="py-2 px-2 text-right text-muted-foreground">Total (venda)</td>
-                <td colSpan={4} className="py-2 px-2 text-right font-semibold">{formatBRL(totalSale)}</td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
+    <div className="space-y-4">
+      {/* Resumo comissão */}
+      <div className="rounded-2xl border border-border bg-card p-5 grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Tarifa total</div>
+          <div className="font-semibold">{formatBRL(totalSale)}</div>
         </div>
-      )}
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Taxas</div>
+          <div className="font-semibold">{formatBRL(totalTax)}</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Base comissionável</div>
+          <div className="font-semibold">{formatBRL(commissionBase)}</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Comissão total</div>
+          <div className="font-semibold text-brand-orange">{formatBRL(totalCommission)}</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total venda</div>
+          <div className="font-semibold">{formatBRL(totalNet)}</div>
+        </div>
+      </div>
 
-      <FinanceDialog
-        open={open}
-        onOpenChange={setOpen}
-        items={items}
-        initial={editing}
-        selectedItem={selectedItem}
-        setSelectedItem={setSelectedItem}
-        onSave={(payload) => {
-          if (!selectedItem) { toast.error("Selecione um item"); return; }
-          save.mutate({ ...payload, order_item_id: selectedItem, id: editing?.id });
-        }}
-      />
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <DollarSign className="h-4 w-4" /> Financeiro por item
+          </h3>
+          <Button size="sm" onClick={() => { setEditing(null); setSelectedItem(items[0]?.id ?? null); setOpen(true); }}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Novo lançamento
+          </Button>
+        </div>
+        {financials.length === 0 ? (
+          <div className="text-sm text-muted-foreground text-center py-6">Nenhum lançamento financeiro ainda.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="text-left py-2 px-2">Item</th>
+                  <th className="text-left py-2 px-2">Fornecedor</th>
+                  <th className="text-right py-2 px-2">Tarifa</th>
+                  <th className="text-right py-2 px-2">Taxas</th>
+                  <th className="text-right py-2 px-2">Desc.</th>
+                  <th className="text-right py-2 px-2">Comissão</th>
+                  <th className="text-left py-2 px-2">Vencto</th>
+                  <th className="text-right py-2 px-2">Total</th>
+                  <th className="w-24"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {financials.map((f) => {
+                  const it = itemsById[f.order_item_id];
+                  return (
+                    <tr key={f.id} className="border-b border-border/50">
+                      <td className="py-2 px-2 text-xs">{it?.title ?? "—"}</td>
+                      <td className="py-2 px-2 text-xs">{f.supplier_name ?? "—"}</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(f.sale_value)}</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(f.tax_value)}</td>
+                      <td className="py-2 px-2 text-right text-xs">{formatBRL(f.discount_value)}</td>
+                      <td className="py-2 px-2 text-right text-xs">
+                        {formatBRL(f.commission_value)}
+                        <div className="text-[10px] text-muted-foreground">{f.commission_pct}%</div>
+                      </td>
+                      <td className="py-2 px-2 text-xs">{f.due_date ? new Date(f.due_date + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                      <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(f.total)}</td>
+                      <td className="py-2 px-2 text-right">
+                        <Button size="sm" variant="ghost" onClick={() => { setEditing(f); setSelectedItem(f.order_item_id); setOpen(true); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => confirm("Remover lançamento?") && remove.mutate(f.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <FinanceDialog
+          open={open}
+          onOpenChange={setOpen}
+          items={items}
+          initial={editing}
+          selectedItem={selectedItem}
+          setSelectedItem={setSelectedItem}
+          onSave={(payload) => {
+            if (!selectedItem) { toast.error("Selecione um item"); return; }
+            save.mutate({ ...payload, order_item_id: selectedItem, id: editing?.id });
+          }}
+        />
+      </div>
     </div>
   );
 }
 
-function defaultCommissionPct(kind: OrderItem["kind"] | undefined): number {
+function defaultCommissionPct(kind: OrderItem["kind"] | undefined, isPackage: boolean): number {
+  if (isPackage) return 12; // pacote pronto = 12% sobre a tarifa
   if (kind === "flight") return 10;
   if (kind === "hotel") return 12;
-  return 0;
+  return 10;
 }
 
 function FinanceDialog({
@@ -1488,14 +1506,18 @@ function FinanceDialog({
   setSelectedItem: (v: string) => void;
   onSave: (p: Partial<OrderItemFinancial>) => void;
 }) {
-  const selectedKind = items.find((i) => i.id === selectedItem)?.kind;
+  const selectedItemObj = items.find((i) => i.id === selectedItem);
+  const selectedKind = selectedItemObj?.kind;
+  // Pacote pronto = item veio do snapshot (title tem "Porto Seguro" etc). Aproximação: qualquer item de hotel/flight que faça parte do pedido pronto usa 12%.
+  const isPackage = true; // sempre assumir base 12%; usuário pode ajustar com o slider
 
   const [form, setForm] = useState({
     supplier_name: initial?.supplier_name ?? "",
     sale_value: initial?.sale_value ?? 0,
+    tax_value: initial?.tax_value ?? 0,
     discount_value: initial?.discount_value ?? 0,
     commission_value: initial?.commission_value ?? 0,
-    commission_pct: initial?.commission_pct ?? 0,
+    commission_pct: initial?.commission_pct ?? defaultCommissionPct(selectedKind, isPackage),
     exchange_rate: initial?.exchange_rate ?? 1,
     due_date: initial?.due_date ?? "",
     total: initial?.total ?? 0,
@@ -1503,34 +1525,38 @@ function FinanceDialog({
   });
 
   useMemo(() => {
+    const basePct = initial?.commission_pct ?? defaultCommissionPct(selectedKind, isPackage);
+    const sale = initial?.sale_value ?? 0;
+    const tax = initial?.tax_value ?? 0;
+    const disc = initial?.discount_value ?? 0;
     setForm({
       supplier_name: initial?.supplier_name ?? "",
-      sale_value: initial?.sale_value ?? 0,
-      discount_value: initial?.discount_value ?? 0,
-      commission_value: initial?.commission_value ?? 0,
-      commission_pct: initial?.commission_pct ?? (initial ? 0 : defaultCommissionPct(selectedKind)),
+      sale_value: sale,
+      tax_value: tax,
+      discount_value: disc,
+      commission_value: initial?.commission_value ?? Number(((sale - tax) * (basePct / 100)).toFixed(2)),
+      commission_pct: basePct,
       exchange_rate: initial?.exchange_rate ?? 1,
       due_date: initial?.due_date ?? "",
-      total: initial?.total ?? 0,
+      total: initial?.total ?? Number((sale - disc).toFixed(2)),
       notes: initial?.notes ?? "",
     });
-  }, [initial, selectedKind]);
+  }, [initial, selectedKind, isPackage]);
 
-  // Auto-recalc totals whenever sale / discount / commission_pct change
+  // Recalcula comissão sobre (tarifa − taxas) e total = tarifa − desconto
   const recalc = (patch: Partial<typeof form>) => {
     const next = { ...form, ...patch };
     const sale = Number(next.sale_value) || 0;
+    const tax = Number(next.tax_value) || 0;
     const disc = Number(next.discount_value) || 0;
     const pct = Number(next.commission_pct) || 0;
-    next.commission_value = Number((sale * (pct / 100)).toFixed(2));
+    const base = Math.max(0, sale - tax);
+    next.commission_value = Number((base * (pct / 100)).toFixed(2));
     next.total = Number((sale - disc).toFixed(2));
     setForm(next);
   };
 
-  const applyDefaultPct = () => {
-    const pct = defaultCommissionPct(selectedKind);
-    recalc({ commission_pct: pct });
-  };
+  const base = Math.max(0, (Number(form.sale_value) || 0) - (Number(form.tax_value) || 0));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1538,10 +1564,10 @@ function FinanceDialog({
         <DialogHeader>
           <DialogTitle>{initial ? "Editar lançamento" : "Novo lançamento financeiro"}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           <div>
             <Label>Item</Label>
-            <Select value={selectedItem ?? ""} onValueChange={(v) => { setSelectedItem(v); const k = items.find((i) => i.id === v)?.kind; if (!initial) recalc({ commission_pct: defaultCommissionPct(k) }); }}>
+            <Select value={selectedItem ?? ""} onValueChange={(v) => { setSelectedItem(v); const k = items.find((i) => i.id === v)?.kind; if (!initial) recalc({ commission_pct: defaultCommissionPct(k, isPackage) }); }}>
               <SelectTrigger><SelectValue placeholder="Escolha um item" /></SelectTrigger>
               <SelectContent>
                 {items.map((it) => (
@@ -1551,31 +1577,59 @@ function FinanceDialog({
                 ))}
               </SelectContent>
             </Select>
-            {selectedKind && (
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Comissão padrão para {selectedKind === "flight" ? "aéreo" : selectedKind === "hotel" ? "hospedagem" : "outros"}: {defaultCommissionPct(selectedKind)}%
-                {" · "}
-                <button type="button" className="underline" onClick={applyDefaultPct}>aplicar</button>
-              </p>
-            )}
           </div>
           <div>
             <Label>Fornecedor</Label>
             <Input value={form.supplier_name ?? ""} onChange={(e) => setForm({ ...form, supplier_name: e.target.value })} />
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div><Label>Venda</Label><Input type="number" step="0.01" value={form.sale_value} onChange={(e) => recalc({ sale_value: Number(e.target.value) })} /></div>
-            <div><Label>Desconto</Label><Input type="number" step="0.01" value={form.discount_value} onChange={(e) => recalc({ discount_value: Number(e.target.value) })} /></div>
-            <div><Label>Câmbio</Label><Input type="number" step="0.0001" value={form.exchange_rate} onChange={(e) => setForm({ ...form, exchange_rate: Number(e.target.value) })} /></div>
+            <div>
+              <Label>Tarifa</Label>
+              <Input type="number" step="0.01" value={form.sale_value} onChange={(e) => recalc({ sale_value: Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label>Taxas (não comissiona)</Label>
+              <Input type="number" step="0.01" value={form.tax_value} onChange={(e) => recalc({ tax_value: Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label>Desconto</Label>
+              <Input type="number" step="0.01" value={form.discount_value} onChange={(e) => recalc({ discount_value: Number(e.target.value) })} />
+            </div>
           </div>
+
+          {/* Slider de comissão */}
+          <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm">Comissão sobre a tarifa</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number" step="0.5" min={0} max={100}
+                  value={form.commission_pct}
+                  onChange={(e) => recalc({ commission_pct: Number(e.target.value) })}
+                  className="w-20 h-8 text-right"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+            </div>
+            <Slider
+              value={[Number(form.commission_pct) || 0]}
+              min={0}
+              max={30}
+              step={0.5}
+              onValueChange={(v) => recalc({ commission_pct: v[0] })}
+            />
+            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+              <span>Base: {formatBRL(base)} (tarifa − taxas)</span>
+              <span>
+                Comissão: <span className="font-semibold text-brand-orange">{formatBRL(form.commission_value)}</span>
+              </span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-3 gap-3">
-            <div><Label>Comissão R$</Label><Input type="number" step="0.01" value={form.commission_value} onChange={(e) => setForm({ ...form, commission_value: Number(e.target.value) })} /></div>
-            <div><Label>Comissão %</Label><Input type="number" step="0.01" value={form.commission_pct} onChange={(e) => recalc({ commission_pct: Number(e.target.value) })} /></div>
+            <div><Label>Câmbio</Label><Input type="number" step="0.0001" value={form.exchange_rate} onChange={(e) => setForm({ ...form, exchange_rate: Number(e.target.value) })} /></div>
             <div><Label>Vencimento</Label><Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
-          </div>
-          <div>
-            <Label>Total</Label>
-            <Input type="number" step="0.01" value={form.total} onChange={(e) => setForm({ ...form, total: Number(e.target.value) })} />
+            <div><Label>Total (venda)</Label><Input type="number" step="0.01" value={form.total} onChange={(e) => setForm({ ...form, total: Number(e.target.value) })} /></div>
           </div>
           <div>
             <Label>Observações</Label>
@@ -1590,6 +1644,8 @@ function FinanceDialog({
     </Dialog>
   );
 }
+
+
 
 
 // =========== Payments ===========
