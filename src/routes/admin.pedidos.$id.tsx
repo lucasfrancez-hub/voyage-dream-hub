@@ -2691,7 +2691,31 @@ function PaymentDialog({
   initial: OrderPayment | null;
   onSave: (data: Partial<OrderPayment> & { method: string; amount: number }) => void;
 }) {
+type PayerPatch = {
+  payer_full_name?: string | null;
+  payer_cpf?: string | null;
+  payer_ie_rg?: string | null;
+  payer_email?: string | null;
+  payer_phone?: string | null;
+  payer_zip?: string | null;
+  payer_address?: string | null;
+  payer_number?: string | null;
+  payer_district?: string | null;
+  payer_city?: string | null;
+  payer_state?: string | null;
+};
+
+function PaymentDialog({
+  open, onOpenChange, initial, order, onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initial: OrderPayment | null;
+  order: OrderHeader;
+  onSave: (data: Partial<OrderPayment> & { method: string; amount: number }, payer: PayerPatch) => void;
+}) {
   const [form, setForm] = useState<Partial<OrderPayment>>({});
+  const [payer, setPayer] = useState<PayerPatch>({});
   useMemo(() => {
     setForm(initial ?? {
       status: "paid",
@@ -2699,8 +2723,22 @@ function PaymentDialog({
       amount: 0,
       paid_at: new Date().toISOString(),
     });
+    // Pré-preenche dados do pagador a partir do pedido, com fallback nos dados do cliente principal.
+    setPayer({
+      payer_full_name: order.payerFullName ?? order.fullName ?? "",
+      payer_cpf: order.payerCpf ?? order.cpf ?? "",
+      payer_ie_rg: order.payerIeRg ?? "",
+      payer_email: order.payerEmail ?? order.email ?? "",
+      payer_phone: order.payerPhone ?? order.phone ?? "",
+      payer_zip: order.payerZip ?? "",
+      payer_address: order.payerAddress ?? "",
+      payer_number: order.payerNumber ?? "",
+      payer_district: order.payerDistrict ?? "",
+      payer_city: order.payerCity ?? "",
+      payer_state: order.payerState ?? "",
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial, open]);
+  }, [initial, open, order.id]);
 
   const method = form.method ?? "pix";
   const showCard = method === "credit_card" || method === "debit_card";
@@ -2708,6 +2746,8 @@ function PaymentDialog({
 
   const setField = <K extends keyof OrderPayment>(k: K, v: OrderPayment[K] | null) =>
     setForm((f) => ({ ...f, [k]: v }));
+  const setPayerField = (k: keyof PayerPatch, v: string) => setPayer((p) => ({ ...p, [k]: v }));
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
