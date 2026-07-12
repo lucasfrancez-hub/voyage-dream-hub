@@ -358,3 +358,99 @@ export const resendSignerEmail = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+// -----------------------------------------------------------------------------
+// syncSignatureFromClickSign — busca status atual + baixa PDF assinado
+// (útil quando o webhook não foi entregue)
+// -----------------------------------------------------------------------------
+
+export const syncSignatureFromClickSign = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { assinaturaId: string }) =>
+    z.object({ assinaturaId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabase } = context;
+
+    const { data: a } = await supabase
+      .from("pedido_assinaturas")
+      .select("id,pedido_id,clicksign_document_key,status,signed_pdf_path")
+      .eq("id", data.assinaturaId)
+      .maybeSingle();
+    if (!a) throw new Error("Assinatura não encontrada");
+    if (!a.clicksign_document_key) throw new Error("Sem document_key da ClickSign");
+
+    type DocFull = {
+      document: {
+        key: string;
+        status: string; // running | closed | canceled | refused
+        finished_at?: string | null;
+        downloads?: { signed_file_url?: string; original_file_url?: string };
+        signers?: Array<{ key?: string; sign_at?: string | null; refusal?: string | null }>;
+      };
+    };
+    const doc = await csFetch<DocFull>(`/documents/${a.clicksign_document_key}`, { method: "GET" });
+    const csStatus = doc.document.status;
+
+    const { data: signers } = await supabase
+      .from("pedido_assinatura_signers")
+      .select("id,clicksign_signer_key,status")
+      .eq("assinatura_id", a.id);
+
+    // Atualiza cada signatário
+    for (const s of signers ?? []) {
+      const match = doc.document.signers?.find((x) => x.key === s.clicksign_signer_key);
+      if (!match) continue;
+      if (match.sign_at && s.status !== "signed") {
+        await supabase
+          .from("pedido_assinatura_signers")
+          .update({ status: "signed", signed_at: match.sign_at })
+          .eq("id", s.id);
+      } else if (match.refusal && s.status !== "refused") {
+        await supabase
+          .from("pedido_assinatura_signers")
+          .update({ status: "refused", refused_at: new Date().toISOString() })
+          .eq("id", s.id);
+      }
+    }
+
+    // Se fechado, baixa PDF e anexa em Vouchers e contratos
+    let downloadedPath: string | null = a.signed_pdf_path;
+    if (csStatus === "closed" || csStatus === "auto_closed" || csStatus === "finished") {
+      const signedUrl = doc.document.downloads?.signed_file_url;
+      if (signedUrl) {
+        try {
+          const pdfRes = await fetch(signedUrl);
+          if (pdfRes.ok) {
+            const buf = new Uint8Array(await pdfRes.arrayBuffer());
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+            const path = `${a.pedido_id}/${a.clicksign_document_key}.pdf`;
+            const { error: e1 } = await supabaseAdmin.storage
+              .from("assinaturas")
+              .upload(path, buf, { contentType: "application/pdf", upsert: true });
+            if (!e1) downloadedPath = path;
+
+            const friendlyName = `${Date.now()}-contrato-assinado.pdf`;
+            const contratoPath = `${a.pedido_id}/${friendlyName}`;
+            await supabaseAdmin.storage
+              .from("order-documents")
+              .upload(contratoPath, buf, { contentType: "application/pdf", upsert: true });
+          }
+        } catch (err) {
+          console.error("[syncSignature] erro ao baixar PDF:", err);
+        }
+      }
+      await supabase
+        .from("pedido_assinaturas")
+        .update({ status: "closed", ...(downloadedPath ? { signed_pdf_path: downloadedPath } : {}) })
+        .eq("id", a.id);
+    } else if (csStatus === "refused") {
+      await supabase.from("pedido_assinaturas").update({ status: "refused" }).eq("id", a.id);
+    } else if (csStatus === "canceled") {
+      await supabase.from("pedido_assinaturas").update({ status: "canceled" }).eq("id", a.id);
+    }
+
+    return { ok: true, clicksignStatus: csStatus };
+  });
