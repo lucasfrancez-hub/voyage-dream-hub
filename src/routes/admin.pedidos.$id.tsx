@@ -2842,7 +2842,8 @@ function PaymentDialog({
             ...form,
             method: form.method ?? "pix",
             amount: Number(form.amount ?? 0),
-          } as Partial<OrderPayment> & { method: string; amount: number })}>Salvar</Button>
+          } as Partial<OrderPayment> & { method: string; amount: number }, payer)}>Salvar</Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
