@@ -205,7 +205,7 @@ function OrderDetailPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => toast.info("Anexos: aba Contrato → botão Anexar arquivo")}><FileText className="h-3.5 w-3.5 mr-2" /> Anexo (contrato/voucher)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveTab("finance")}><Percent className="h-3.5 w-3.5 mr-2" /> Ajuste de comissão</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setOpenCommission(true)}><Percent className="h-3.5 w-3.5 mr-2" /> Ajuste de comissão</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => promptMeta("Observação do pedido", order.notes, "notes")}><FileText className="h-3.5 w-3.5 mr-2" /> Observação</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => promptMeta("Motivo da viagem", order.travelReason, "travel_reason")}><FileText className="h-3.5 w-3.5 mr-2" /> Motivo da viagem</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => promptMeta("Cupom aplicado", order.coupon, "coupon")}><Percent className="h-3.5 w-3.5 mr-2" /> Cupom</DropdownMenuItem>
