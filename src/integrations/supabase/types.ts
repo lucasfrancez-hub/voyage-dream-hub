@@ -256,6 +256,7 @@ export type Database = {
           airline_locator: string | null
           birth_date: string | null
           children: number
+          coupon: string | null
           cpf: string | null
           created_at: string
           email: string
@@ -271,12 +272,14 @@ export type Database = {
           supplier_name: string | null
           supplier_order_number: string | null
           total_price: number
+          travel_reason: string | null
         }
         Insert: {
           adults?: number
           airline_locator?: string | null
           birth_date?: string | null
           children?: number
+          coupon?: string | null
           cpf?: string | null
           created_at?: string
           email: string
@@ -292,12 +295,14 @@ export type Database = {
           supplier_name?: string | null
           supplier_order_number?: string | null
           total_price: number
+          travel_reason?: string | null
         }
         Update: {
           adults?: number
           airline_locator?: string | null
           birth_date?: string | null
           children?: number
+          coupon?: string | null
           cpf?: string | null
           created_at?: string
           email?: string
@@ -313,6 +318,7 @@ export type Database = {
           supplier_name?: string | null
           supplier_order_number?: string | null
           total_price?: number
+          travel_reason?: string | null
         }
         Relationships: [
           {
