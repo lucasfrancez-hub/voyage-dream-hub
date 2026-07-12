@@ -390,6 +390,15 @@ function OrderDetailPage() {
         financials={detail.financials}
         onSaved={invalidate}
       />
+
+      <OrderLogDialog
+        open={openLog !== null}
+        onOpenChange={(v) => !v && setOpenLog(null)}
+        orderId={order.id}
+        logKey={openLog ?? "notes_log"}
+        entries={openLog === "travel_reason_log" ? (order.travelReasonLog ?? []) : (order.notesLog ?? [])}
+        onChange={invalidate}
+      />
     </div>
 
   );
