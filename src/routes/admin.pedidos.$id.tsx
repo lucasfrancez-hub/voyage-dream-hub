@@ -770,6 +770,11 @@ function FlightReservationCard({
                   {p.passenger_type}
                   {p.birth_date ? ` · ${formatDate(p.birth_date)}` : ""}
                 </div>
+                {p.ticket_number && (
+                  <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                    <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
