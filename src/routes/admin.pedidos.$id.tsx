@@ -452,10 +452,15 @@ function PassengersSection({
               </tr>
             </thead>
             <tbody>
-              {passengers.map((p) => (
+              {(() => {
+                const fallbackTicket = flightItems
+                  .map((fi) => String(((fi.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
+                  .find(Boolean) ?? "";
+                return passengers.map((p) => (
                 <PassengerRow
                   key={p.id}
                   passenger={p}
+                  fallbackTicket={fallbackTicket}
                   onPatch={(patch) => {
                     save.mutate({
                       order_id: orderId,
@@ -494,8 +499,10 @@ function PassengersSection({
                   }}
                   onDelete={() => confirm("Remover passageiro?") && remove.mutate(p.id)}
                 />
-              ))}
+                ));
+              })()}
             </tbody>
+
           </table>
         </div>
       )}
