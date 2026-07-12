@@ -478,9 +478,27 @@ function ItemCard({
     <div className={`rounded-xl border p-4 ${isCancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {isFlight ? <Plane className="h-3.5 w-3.5" /> : <Hotel className="h-3.5 w-3.5" />}
             {item.supplier_locator && <span className="font-mono">{item.supplier_locator}</span>}
+            {typeof d.supplier_name === "string" && (d.supplier_name as string).trim() && (
+              <span className="rounded-md border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                Fornecedor: {d.supplier_name as string}
+              </span>
+            )}
+            {isFlight && typeof d.ticket_number === "string" && (d.ticket_number as string).trim() && (
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(d.ticket_number as string);
+                  toast.success("Bilhete copiado");
+                }}
+                className="inline-flex items-center gap-1 rounded-md border border-brand-orange/40 bg-brand-orange/10 px-1.5 py-0.5 text-[10px] font-mono text-brand-orange hover:bg-brand-orange/20"
+                title="Copiar bilhete"
+              >
+                <Hash className="h-3 w-3" /> {d.ticket_number as string}
+              </button>
+            )}
             {isCancelled && <span className="text-destructive font-semibold uppercase text-[10px]">Cancelado</span>}
           </div>
           <div className="mt-1 font-semibold">{item.title}</div>
@@ -508,6 +526,7 @@ function ItemCard({
                 {typeof d.guests === "string" && <div>Hóspedes: {d.guests as string}</div>}
               </>
             )}
+
             {typeof d.notes === "string" && (d.notes as string).trim() && (
               <div className="mt-1 whitespace-pre-line text-xs">{d.notes as string}</div>
             )}
