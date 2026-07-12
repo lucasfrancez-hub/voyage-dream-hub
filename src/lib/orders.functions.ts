@@ -667,6 +667,11 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
+    // Pagamento manual novo: "Incluído por" default = e-mail do usuário logado
+    if (!payload.added_by_name) {
+      const email = (context.claims as { email?: string } | undefined)?.email ?? null;
+      payload.added_by_name = email;
+    }
     const { data: created, error } = await context.supabase
       .from("order_payments")
       .insert(payload)
