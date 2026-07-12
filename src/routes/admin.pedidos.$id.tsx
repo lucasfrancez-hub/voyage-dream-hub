@@ -402,9 +402,10 @@ function OrderDetailPage() {
 
 // =========== Passengers ===========
 function PassengersSection({
-  orderId, passengers, onChange,
-}: { orderId: string; passengers: OrderPassenger[]; onChange: () => void }) {
+  orderId, passengers, flightItems, onChange,
+}: { orderId: string; passengers: OrderPassenger[]; flightItems: OrderItem[]; onChange: () => void }) {
   const upsert = useServerFn(upsertPassenger);
+  const upsertItem = useServerFn(upsertOrderItem);
   const del = useServerFn(deletePassenger);
   const [editing, setEditing] = useState<OrderPassenger | null>(null);
   const [open, setOpen] = useState(false);
