@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -260,86 +260,22 @@ function AdminPackages() {
       </div>
 
       {editing && (
-        <PackageEditor
-          editing={editing}
-          setEditing={setEditing}
-          saving={saving}
-          onSave={save}
-        />
-      )}
-    </div>
-  );
-}
-
-type EditorTab = "dados" | "conteudo" | "voos";
-
-function PackageEditor({
-  editing,
-  setEditing,
-  saving,
-  onSave,
-}: {
-  editing: Partial<PackageRow>;
-  setEditing: (v: Partial<PackageRow> | null) => void;
-  saving: boolean;
-  onSave: () => void;
-}) {
-  const [tab, setTab] = useState<EditorTab>("dados");
-
-  // Reset to first tab whenever a different record is opened
-  useEffect(() => {
-    setTab("dados");
-  }, [editing.id]);
-
-  const tabs: { id: EditorTab; label: string }[] = [
-    { id: "dados", label: "Dados principais" },
-    { id: "conteudo", label: "Conteúdo" },
-    { id: "voos", label: "Voos" },
-  ];
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl max-h-[92vh] rounded-2xl bg-card border border-border flex flex-col overflow-hidden">
-        <div className="sticky top-0 z-10 border-b border-border bg-card">
-          <div className="flex items-center justify-between gap-4 px-6 py-4">
-            <h2 className="text-xl font-semibold">
-              {editing.id ? "Editar pacote" : "Novo pacote"}
-            </h2>
-            <button
-              onClick={() => setEditing(null)}
-              aria-label="Fechar"
-              className="rounded-full p-1.5 hover:bg-muted transition text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="px-6 flex items-center gap-1 overflow-x-auto">
-            {tabs.map((t) => {
-              const active = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setTab(t.id)}
-                  className={`relative px-3 py-2.5 text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition ${
-                    active
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {t.label}
-                  {active && (
-                    <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-brand-orange" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {tab === "dados" && (
-            <div className="grid sm:grid-cols-2 gap-3">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl max-h-[92vh] rounded-2xl bg-card border border-border flex flex-col overflow-hidden">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card px-6 py-4">
+              <h2 className="text-xl font-semibold">
+                {editing.id ? "Editar pacote" : "Novo pacote"}
+              </h2>
+              <button
+                onClick={() => setEditing(null)}
+                aria-label="Fechar"
+                className="rounded-full p-1.5 hover:bg-muted transition text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              <div className="grid sm:grid-cols-2 gap-3">
               <FormField label="Slug (URL) *">
                 <input
                   className={inp}
@@ -468,29 +404,6 @@ function PackageEditor({
                   placeholder="https://…"
                 />
               </FormField>
-              <FormField label="Fornecedor (interno — não aparece pro cliente)" wide>
-                <input
-                  className={inp}
-                  value={editing.supplier_name ?? ""}
-                  onChange={(e) => setEditing({ ...editing, supplier_name: e.target.value })}
-                  placeholder="Ex: CVC, Nascimento, Flytour…"
-                />
-              </FormField>
-              <FormField label="Ativo" wide>
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={editing.is_active ?? true}
-                    onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
-                  />
-                  <span className="text-sm">Mostrar no site</span>
-                </label>
-              </FormField>
-            </div>
-          )}
-
-          {tab === "conteudo" && (
-            <div className="grid sm:grid-cols-2 gap-3">
               <FormField label="Resumo curto" wide>
                 <textarea
                   className={`${inp} min-h-[70px]`}
@@ -500,14 +413,14 @@ function PackageEditor({
               </FormField>
               <FormField label="Roteiro (uma linha por dia)" wide>
                 <textarea
-                  className={`${inp} min-h-[180px]`}
+                  className={`${inp} min-h-[120px]`}
                   value={editing.itinerary ?? ""}
                   onChange={(e) => setEditing({ ...editing, itinerary: e.target.value })}
                 />
               </FormField>
               <FormField label="O que inclui (um por linha)" wide>
                 <textarea
-                  className={`${inp} min-h-[160px]`}
+                  className={`${inp} min-h-[100px]`}
                   value={
                     Array.isArray(editing.includes)
                       ? editing.includes.join("\n")
@@ -516,11 +429,7 @@ function PackageEditor({
                   onChange={(e) => setEditing({ ...editing, includes: e.target.value as unknown as string[] })}
                 />
               </FormField>
-            </div>
-          )}
 
-          {tab === "voos" && (
-            <div className="grid sm:grid-cols-2 gap-3">
               <FlightFieldset
                 title="Voo de ida"
                 value={editing.outbound_flight ?? null}
@@ -531,27 +440,49 @@ function PackageEditor({
                 value={editing.return_flight ?? null}
                 onChange={(f) => setEditing({ ...editing, return_flight: f })}
               />
-            </div>
-          )}
-        </div>
 
-        <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-border bg-card px-6 py-4">
-          <button
-            onClick={() => setEditing(null)}
-            className="rounded-full border border-border px-4 py-2 text-sm"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={onSave}
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Salvar
-          </button>
+              <FormField label="Fornecedor (interno — não aparece pro cliente)" wide>
+                <input
+                  className={inp}
+                  value={editing.supplier_name ?? ""}
+                  onChange={(e) => setEditing({ ...editing, supplier_name: e.target.value })}
+                  placeholder="Ex: CVC, Nascimento, Flytour…"
+                />
+              </FormField>
+
+
+              <FormField label="Ativo" wide>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={editing.is_active ?? true}
+                    onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
+                  />
+                  <span className="text-sm">Mostrar no site</span>
+                </label>
+              </FormField>
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-border bg-card px-6 py-4">
+              <button
+                onClick={() => setEditing(null)}
+                className="rounded-full border border-border px-4 py-2 text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={save}
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Salvar
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
