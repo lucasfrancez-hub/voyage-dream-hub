@@ -1652,12 +1652,24 @@ function ItemDialog({
               if (kind === "hotel") finalStatus = loc ? "confirmed" : "pending";
               else if (kind === "flight") finalStatus = tkt ? "confirmed" : loc ? "reserved" : "pending";
             }
+            const siblingsPayload = kind === "flight"
+              ? flightSiblings.map((sib, idx) => {
+                  const raw = sibDetails[idx] ?? {};
+                  const cd: Record<string, unknown> = {};
+                  for (const [k, v] of Object.entries(raw)) {
+                    if (v === "" || v === undefined || v === null) continue;
+                    cd[k] = numFields.has(k) ? Number(v) : v;
+                  }
+                  return { id: sib.id, details: cd as Json };
+                })
+              : undefined;
             onSave({
               kind,
               title: title.trim(),
               supplier_locator: locator.trim() || null,
               details: cleanDetails as Json,
               status: finalStatus,
+              siblings: siblingsPayload,
             });
           }}>Salvar</Button>
         </DialogFooter>
