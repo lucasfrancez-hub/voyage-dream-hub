@@ -2746,7 +2746,7 @@ function PaymentsSection({
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-semibold">
-                      Pagamento{p.cashier_number ? ` – Caixa ${p.cashier_number}` : ""}
+                      Pagamento
                     </span>
                     <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider ${badge.className}`}>
                       {badge.label}
@@ -2811,9 +2811,28 @@ function PaymentsSection({
               </div>
             );
           })}
-          <div className="flex items-center justify-between px-4 py-3 bg-muted/30 text-sm">
-            <span className="text-muted-foreground uppercase tracking-wider text-xs">Total pago</span>
-            <span className="font-semibold">{formatBRL(grandTotal)}</span>
+          <div className="px-4 py-3 bg-muted/30 text-sm space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground uppercase tracking-wider text-xs">Total da venda</span>
+              <span className="font-medium">{formatBRL(order.totalPrice)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground uppercase tracking-wider text-xs">Total pago</span>
+              <span className="font-medium">{formatBRL(grandTotal)}</span>
+            </div>
+            {(() => {
+              const saldo = grandTotal - order.totalPrice;
+              const pendente = saldo < -0.005;
+              const excedente = saldo > 0.005;
+              return (
+                <div className="flex items-center justify-between border-t border-border pt-1.5">
+                  <span className="uppercase tracking-wider text-xs font-semibold">Saldo</span>
+                  <span className={`font-bold ${pendente ? "text-destructive" : excedente ? "text-brand-orange" : "text-muted-foreground"}`}>
+                    {pendente ? `- ${formatBRL(Math.abs(saldo))}` : formatBRL(saldo)}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
