@@ -229,7 +229,7 @@ const wrap = (font: PDFFont, size: number, s: string, maxWidth: number): string[
 const drawParagraph = (ctx: Ctx, s: string, size = 9, lineH = 12, indent = 0) => {
   const lines = wrap(ctx.font, size, s, CONTENT_W - indent);
   for (const line of lines) {
-    ensureSpace(ctx, lineH, drawContractHeader);
+    ensureSpace(ctx, lineH);
     text(ctx, line, MARGIN + indent, { size });
     ctx.y -= lineH;
   }
