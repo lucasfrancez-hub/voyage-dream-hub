@@ -1552,31 +1552,71 @@ function ItemDialog({
 
           ) : kind === "flight" ? (
             <>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Origem</Label><Input value={String(details.from_iata ?? details.origin ?? "")} onChange={(e) => setField("from_iata", e.target.value)} placeholder="GRU" /></div>
-                <div><Label>Destino</Label><Input value={String(details.to_iata ?? details.destination ?? "")} onChange={(e) => setField("to_iata", e.target.value)} placeholder="CUR" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Cia aérea</Label><Input value={String(details.airline ?? "")} onChange={(e) => setField("airline", e.target.value)} placeholder="LATAM" /></div>
-                <div><Label>Nº do voo</Label><Input value={String(details.flight_number ?? "")} onChange={(e) => setField("flight_number", e.target.value)} placeholder="LA 3331" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Partida</Label><Input type="datetime-local" value={String(details.depart_at ?? details.departure ?? "")} onChange={(e) => setField("depart_at", e.target.value)} /></div>
-                <div><Label>Chegada</Label><Input type="datetime-local" value={String(details.arrive_at ?? details.arrival ?? "")} onChange={(e) => setField("arrive_at", e.target.value)} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Classe / Cabine</Label><Input value={String(details.cabin_class ?? details.cabin ?? "")} onChange={(e) => setField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
-                <div>
-                  <Label>Direção</Label>
-                  <Select value={String(details.direction ?? "")} onValueChange={(v) => setField("direction", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="outbound">Ida</SelectItem>
-                      <SelectItem value="return">Volta</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="rounded-lg border border-border/60 p-3 space-y-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {String(details.direction ?? "") === "return" ? "Volta" : String(details.direction ?? "") === "outbound" ? "Ida" : "Trecho"}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Origem</Label><Input value={String(details.from_iata ?? details.origin ?? "")} onChange={(e) => setField("from_iata", e.target.value)} placeholder="GRU" /></div>
+                  <div><Label>Destino</Label><Input value={String(details.to_iata ?? details.destination ?? "")} onChange={(e) => setField("to_iata", e.target.value)} placeholder="CUR" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Cia aérea</Label><Input value={String(details.airline ?? "")} onChange={(e) => setField("airline", e.target.value)} placeholder="LATAM" /></div>
+                  <div><Label>Nº do voo</Label><Input value={String(details.flight_number ?? "")} onChange={(e) => setField("flight_number", e.target.value)} placeholder="LA 3331" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Partida</Label><Input type="datetime-local" value={String(details.depart_at ?? details.departure ?? "")} onChange={(e) => setField("depart_at", e.target.value)} /></div>
+                  <div><Label>Chegada</Label><Input type="datetime-local" value={String(details.arrive_at ?? details.arrival ?? "")} onChange={(e) => setField("arrive_at", e.target.value)} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Classe / Cabine</Label><Input value={String(details.cabin_class ?? details.cabin ?? "")} onChange={(e) => setField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
+                  <div>
+                    <Label>Direção</Label>
+                    <Select value={String(details.direction ?? "")} onValueChange={(v) => setField("direction", v)}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="outbound">Ida</SelectItem>
+                        <SelectItem value="return">Volta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
+
+              {flightSiblings.map((sib, idx) => {
+                const sd = sibDetails[idx] ?? {};
+                const dirLabel = String(sd.direction ?? "") === "return" ? "Volta" : String(sd.direction ?? "") === "outbound" ? "Ida" : "Trecho";
+                return (
+                  <div key={sib.id} className="rounded-lg border border-border/60 p-3 space-y-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{dirLabel}</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label>Origem</Label><Input value={String(sd.from_iata ?? sd.origin ?? "")} onChange={(e) => setSibField(idx, "from_iata", e.target.value)} placeholder="GRU" /></div>
+                      <div><Label>Destino</Label><Input value={String(sd.to_iata ?? sd.destination ?? "")} onChange={(e) => setSibField(idx, "to_iata", e.target.value)} placeholder="CUR" /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label>Cia aérea</Label><Input value={String(sd.airline ?? "")} onChange={(e) => setSibField(idx, "airline", e.target.value)} placeholder="LATAM" /></div>
+                      <div><Label>Nº do voo</Label><Input value={String(sd.flight_number ?? "")} onChange={(e) => setSibField(idx, "flight_number", e.target.value)} placeholder="LA 3332" /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label>Partida</Label><Input type="datetime-local" value={String(sd.depart_at ?? sd.departure ?? "")} onChange={(e) => setSibField(idx, "depart_at", e.target.value)} /></div>
+                      <div><Label>Chegada</Label><Input type="datetime-local" value={String(sd.arrive_at ?? sd.arrival ?? "")} onChange={(e) => setSibField(idx, "arrive_at", e.target.value)} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label>Classe / Cabine</Label><Input value={String(sd.cabin_class ?? sd.cabin ?? "")} onChange={(e) => setSibField(idx, "cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
+                      <div>
+                        <Label>Direção</Label>
+                        <Select value={String(sd.direction ?? "")} onValueChange={(v) => setSibField(idx, "direction", v)}>
+                          <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="outbound">Ida</SelectItem>
+                            <SelectItem value="return">Volta</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </>
           ) : (
             <>
