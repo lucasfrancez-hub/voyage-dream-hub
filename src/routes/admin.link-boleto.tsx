@@ -21,6 +21,31 @@ function LinkBoletoGenerator() {
 
   const [imageUrl, setImageUrl] = useState("");
 
+  const search = Route.useSearch();
+  useEffect(() => {
+    let s: Record<string, string | undefined> = { ...(search ?? {}) };
+    if (!s?.autogen) {
+      try {
+        const raw = sessionStorage.getItem("paymentLinkPrefill:/admin/link-boleto");
+        if (raw) {
+          s = { ...(JSON.parse(raw) as Record<string, string>) };
+          sessionStorage.removeItem("paymentLinkPrefill:/admin/link-boleto");
+        }
+      } catch { /* ignore */ }
+    }
+    if (s?.autogen === "1") {
+      if (s.customer) setCustomer(s.customer);
+      if (s.phone) setCustomerPhone(String(s.phone).replace(/\D/g, ""));
+      if (s.description) setDescription(s.description);
+      if (s.total) setTotal(String(s.total));
+      if (s.orderRef) setOrderRef(s.orderRef);
+      if (s.orderNumber) setOrderNumber(s.orderNumber);
+      if (s.imageUrl) setImageUrl(s.imageUrl);
+      toast.success("Dados do pedido carregados — link gerado automaticamente");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const totalNumber = Number(total.replace(",", ".")) || 0;
 
   const url = useMemo(() => {
