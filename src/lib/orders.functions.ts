@@ -235,6 +235,8 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         packageSnapshot: (order.package_snapshot ?? {}) as Json,
         payerFullName: (order as { payer_full_name?: string | null }).payer_full_name ?? null,
         payerCpf: (order as { payer_cpf?: string | null }).payer_cpf ?? null,
+        payerIeRg: (order as { payer_ie_rg?: string | null }).payer_ie_rg ?? null,
+
         payerEmail: (order as { payer_email?: string | null }).payer_email ?? null,
         payerPhone: (order as { payer_phone?: string | null }).payer_phone ?? null,
         payerZip: (order as { payer_zip?: string | null }).payer_zip ?? null,
