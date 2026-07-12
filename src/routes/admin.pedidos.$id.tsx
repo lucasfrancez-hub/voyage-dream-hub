@@ -102,7 +102,7 @@ function OrderDetailPage() {
   const updateOrderMetaFn = useServerFn(updateOrderMeta);
 
   const orderStatusMut = useMutation({
-    mutationFn: (status: "confirmed" | "cancelled" | "pending") =>
+    mutationFn: (status: "confirmed" | "reserved" | "cancelled" | "pending") =>
       setOrderStatusFn({ data: { id: order.id, status } }),
     onSuccess: (_r, status) => {
       toast.success(status === "confirmed" ? "Pedido confirmado" : status === "cancelled" ? "Pedido cancelado" : "Pedido reaberto");
@@ -1122,12 +1122,12 @@ function ItemDialog({
   onOpenChange: (v: boolean) => void;
   initial: OrderItem | null;
   kind: "hotel" | "flight" | "other";
-  onSave: (p: { kind: "hotel" | "flight" | "other"; title: string; supplier_locator: string | null; details: Json; status: "confirmed" | "cancelled" | "pending" }) => void;
+  onSave: (p: { kind: "hotel" | "flight" | "other"; title: string; supplier_locator: string | null; details: Json; status: "confirmed" | "reserved" | "cancelled" | "pending" }) => void;
 }) {
   const initialDetails = (initial?.details ?? {}) as Record<string, unknown>;
   const [title, setTitle] = useState(initial?.title ?? "");
   const [locator, setLocator] = useState(initial?.supplier_locator ?? "");
-  const [status, setStatusVal] = useState<"confirmed" | "cancelled" | "pending">((initial?.status ?? "confirmed") as "confirmed" | "cancelled" | "pending");
+  const [status, setStatusVal] = useState<"confirmed" | "reserved" | "cancelled" | "pending">((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
   const [details, setDetails] = useState<Record<string, string | number>>(() => {
     const clean: Record<string, string | number> = {};
     for (const [k, v] of Object.entries(initialDetails)) {
@@ -1139,7 +1139,7 @@ function ItemDialog({
   useMemo(() => {
     setTitle(initial?.title ?? "");
     setLocator(initial?.supplier_locator ?? "");
-    setStatusVal((initial?.status ?? "confirmed") as "confirmed" | "cancelled" | "pending");
+    setStatusVal((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
     const clean: Record<string, string | number> = {};
     for (const [k, v] of Object.entries((initial?.details ?? {}) as Record<string, unknown>)) {
       if (typeof v === "string" || typeof v === "number") clean[k] = v;
@@ -1169,7 +1169,7 @@ function ItemDialog({
             </div>
             <div>
               <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatusVal(v as "confirmed" | "cancelled" | "pending")}>
+              <Select value={status} onValueChange={(v) => setStatusVal(v as "confirmed" | "reserved" | "cancelled" | "pending")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="confirmed">Confirmado</SelectItem>
