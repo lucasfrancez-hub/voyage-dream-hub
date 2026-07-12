@@ -1986,18 +1986,26 @@ function FinanceTab({
         total: Number((packageFareNet + packageTaxes).toFixed(2)),
       }];
     }
-    return items.map((it) => ({
-      __planned: true,
-      __itemId: it.id,
-      __label: it.title,
-      supplier_name: null,
-      sale_value: 0,
-      tax_value: 0,
-      discount_value: 0,
-      commission_pct: defaultCommissionPct(it.kind, false),
-      commission_value: 0,
-      total: 0,
-    }));
+    return items.map((it) => {
+      const d = (it.details ?? {}) as Record<string, unknown>;
+      const sale = Number(d.value ?? 0) || 0;
+      const tax = Number(d.tax_value ?? 0) || 0;
+      const pct = defaultCommissionPct(it.kind, false);
+      const commission = Number((Math.max(0, sale - tax) * (pct / 100)).toFixed(2));
+      return {
+        __planned: true,
+        __itemId: it.id,
+        __label: it.title,
+        supplier_name: null,
+        sale_value: sale,
+        tax_value: tax,
+        discount_value: 0,
+        commission_pct: pct,
+        commission_value: commission,
+        total: sale,
+      };
+    });
+
   }, [financials.length, isPackageOrder, packageFareNet, packageTaxes, packageDefaultCommission, items]);
 
   // Para pacote pronto, ignoramos valores gravados nos financials e derivamos tudo do snapshot,
