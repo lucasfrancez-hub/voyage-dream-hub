@@ -198,10 +198,13 @@ async function buildAuthorizationDoc(opts: {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.text("Certificado digital", pageW - M - 23, 16.5, { align: "center" });
-      doc.text(fmtDate(a.signed_at), pageW - M - 23, 19.5, { align: "center" });
-    }
-    setInk();
-  }
+      if (pendingSignature) {
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(BRAND[0], BRAND[1], BRAND[2]);
+        doc.text("ClickSign", pageW - M - 23, 19.5, { align: "center" });
+      } else {
+        doc.text(fmtDate(a.signed_at), pageW - M - 23, 19.5, { align: "center" });
+      }
 
   function h1(t: string) {
     ensure(14);
