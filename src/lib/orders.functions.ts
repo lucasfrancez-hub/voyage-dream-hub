@@ -144,7 +144,9 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         order_item_id: f.order_item_id,
         supplier_name: f.supplier_name,
         sale_value: Number(f.sale_value),
+        tax_value: Number((f as { tax_value?: number | string | null }).tax_value ?? 0),
         discount_value: Number(f.discount_value),
+
         commission_value: Number(f.commission_value),
         commission_pct: Number(f.commission_pct),
         exchange_rate: Number(f.exchange_rate),
