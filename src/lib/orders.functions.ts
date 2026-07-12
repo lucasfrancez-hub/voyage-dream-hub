@@ -3,6 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
 
 // --------- Types ---------
+export type OrderLogEntry = { text: string; created_at: string; author?: string | null };
+
 export type OrderPassenger = {
   id: string;
   order_id: string;
@@ -64,6 +66,8 @@ export type OrderHeader = {
   notes: string | null;
   travelReason: string | null;
   coupon: string | null;
+  notesLog: OrderLogEntry[];
+  travelReasonLog: OrderLogEntry[];
   supplierName: string | null;
   supplierOrderNumber: string | null;
   airlineLocator: string | null;
@@ -219,6 +223,9 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         notes: order.notes,
         travelReason: (order as { travel_reason?: string | null }).travel_reason ?? null,
         coupon: (order as { coupon?: string | null }).coupon ?? null,
+        notesLog: Array.isArray((order as { notes_log?: unknown }).notes_log) ? ((order as unknown as { notes_log: OrderLogEntry[] }).notes_log) : [],
+        travelReasonLog: Array.isArray((order as { travel_reason_log?: unknown }).travel_reason_log) ? ((order as unknown as { travel_reason_log: OrderLogEntry[] }).travel_reason_log) : [],
+
 
         supplierName: order.supplier_name ?? null,
         supplierOrderNumber: order.supplier_order_number ?? null,
@@ -382,6 +389,41 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// Adiciona/remove entradas nos históricos (observações / motivos de viagem).
+export const appendOrderLogEntry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; key: "notes_log" | "travel_reason_log"; text: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const text = data.text.trim();
+    if (!text) throw new Error("Texto vazio");
+    const { data: row, error: e1 } = await context.supabase.from("orders").select(data.key).eq("id", data.id).single();
+    if (e1) throw new Error(e1.message);
+    const current = Array.isArray((row as unknown as Record<string, unknown>)[data.key]) ? ((row as unknown as Record<string, OrderLogEntry[]>)[data.key]) : [];
+    const entry: OrderLogEntry = { text, created_at: new Date().toISOString() };
+    const next = [...current, entry];
+    const { error: e2 } = await context.supabase.from("orders").update({ [data.key]: next } as never).eq("id", data.id);
+    if (e2) throw new Error(e2.message);
+    return { ok: true };
+  });
+
+export const deleteOrderLogEntry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; key: "notes_log" | "travel_reason_log"; index: number }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { data: row, error: e1 } = await context.supabase.from("orders").select(data.key).eq("id", data.id).single();
+    if (e1) throw new Error(e1.message);
+    const current = Array.isArray((row as unknown as Record<string, unknown>)[data.key]) ? ((row as unknown as Record<string, OrderLogEntry[]>)[data.key]) : [];
+    const next = current.filter((_, i) => i !== data.index);
+    const { error: e2 } = await context.supabase.from("orders").update({ [data.key]: next } as never).eq("id", data.id);
+    if (e2) throw new Error(e2.message);
+    return { ok: true };
+  });
+
 
 // Atualiza somente o total_price do pedido (usado no ajuste de comissão).
 export const updateOrderTotalPrice = createServerFn({ method: "POST" })

@@ -30,7 +30,8 @@ import {
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
   upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice,
   upsertOrderPayment, deleteOrderPayment,
-  type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment,
+  appendOrderLogEntry, deleteOrderLogEntry,
+  type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
 import { Slider } from "@/components/ui/slider";
 
@@ -66,6 +67,7 @@ function OrderDetailPage() {
   // TODOS os hooks antes de qualquer return condicional — Rules of Hooks.
   const [activeTab, setActiveTab] = useState<string>("hotel");
   const [openCommission, setOpenCommission] = useState(false);
+  const [openLog, setOpenLog] = useState<null | "notes_log" | "travel_reason_log">(null);
 
   const setOrderStatusFn = useServerFn(setOrderStatus);
   const updateOrderMetaFn = useServerFn(updateOrderMeta);
@@ -88,12 +90,7 @@ function OrderDetailPage() {
     onSuccess: () => { toast.success("Salvo"); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  const promptMeta = (label: string, current: string | null, key: "notes" | "travel_reason" | "coupon") => {
-    const v = window.prompt(label, current ?? "");
-    if (v === null) return;
-    metaMut.mutate({ [key]: v.trim() || null });
-  };
+  void metaMut; // reservado para futuras edições rápidas
 
   if (isLoading) {
     return (
@@ -244,11 +241,9 @@ function OrderDetailPage() {
                   <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" /> Adicionar</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => toast.info("Anexos: aba Contrato → botão Anexar arquivo")}><FileText className="h-3.5 w-3.5 mr-2" /> Anexo (contrato/voucher)</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setOpenCommission(true)}><Percent className="h-3.5 w-3.5 mr-2" /> Ajuste de comissão</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => promptMeta("Observação do pedido", order.notes, "notes")}><FileText className="h-3.5 w-3.5 mr-2" /> Observação</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => promptMeta("Motivo da viagem", order.travelReason, "travel_reason")}><FileText className="h-3.5 w-3.5 mr-2" /> Motivo da viagem</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => promptMeta("Cupom aplicado", order.coupon, "coupon")}><Percent className="h-3.5 w-3.5 mr-2" /> Cupom</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setOpenLog("notes_log")}><FileText className="h-3.5 w-3.5 mr-2" /> Observação ({order.notesLog?.length ?? 0})</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setOpenLog("travel_reason_log")}><FileText className="h-3.5 w-3.5 mr-2" /> Motivo da viagem ({order.travelReasonLog?.length ?? 0})</DropdownMenuItem>
                 </DropdownMenuContent>
 
               </DropdownMenu>
@@ -394,6 +389,15 @@ function OrderDetailPage() {
         items={detail.items.filter((i) => i.status !== "cancelled")}
         financials={detail.financials}
         onSaved={invalidate}
+      />
+
+      <OrderLogDialog
+        open={openLog !== null}
+        onOpenChange={(v) => !v && setOpenLog(null)}
+        orderId={order.id}
+        logKey={openLog ?? "notes_log"}
+        entries={openLog === "travel_reason_log" ? (order.travelReasonLog ?? []) : (order.notesLog ?? [])}
+        onChange={invalidate}
       />
     </div>
 
@@ -2824,5 +2828,98 @@ function CommissionAdjustDialog({
     </Dialog>
   );
 }
+
+// =========== Order log dialog (observações / motivos de viagem) ===========
+function OrderLogDialog({
+  open, onOpenChange, orderId, logKey, entries, onChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  orderId: string;
+  logKey: "notes_log" | "travel_reason_log";
+  entries: OrderLogEntry[];
+  onChange: () => void;
+}) {
+  const appendFn = useServerFn(appendOrderLogEntry);
+  const deleteFn = useServerFn(deleteOrderLogEntry);
+  const [text, setText] = useState("");
+  const title = logKey === "notes_log" ? "Observações do pedido" : "Motivos da viagem";
+  const placeholder = logKey === "notes_log" ? "Ex: Cliente pediu assento na janela..." : "Ex: Lua de mel, aniversário...";
+
+  useEffect(() => { if (!open) setText(""); }, [open]);
+
+  const add = useMutation({
+    mutationFn: () => appendFn({ data: { id: orderId, key: logKey, text } }),
+    onSuccess: () => { toast.success("Adicionado"); setText(""); onChange(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const del = useMutation({
+    mutationFn: (index: number) => deleteFn({ data: { id: orderId, key: logKey, index } }),
+    onSuccess: () => { toast.success("Removido"); onChange(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const fmtDate = (iso: string) => {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch { return iso; }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label>Nova entrada</Label>
+            <Textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} />
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => add.mutate()} disabled={!text.trim() || add.isPending}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Histórico ({entries.length})
+            </div>
+            {entries.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                Nenhuma entrada cadastrada.
+              </div>
+            ) : (
+              <div className="max-h-[40vh] overflow-y-auto space-y-2 pr-1">
+                {entries.map((entry, idx) => (
+                  <div key={`${entry.created_at}-${idx}`} className="rounded-lg border border-border/60 bg-muted/30 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-[11px] text-muted-foreground">{fmtDate(entry.created_at)}</div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                        onClick={() => confirm("Remover esta entrada?") && del.mutate(idx)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <div className="mt-1 text-sm whitespace-pre-wrap break-words">{entry.text}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 
