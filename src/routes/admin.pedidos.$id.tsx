@@ -3174,8 +3174,13 @@ function CommissionAdjustDialog({
   // Pacote pronto: os 12% já estão embutidos no valor. Delta (positivo ou negativo)
   // muda o total do pedido. Para pedido manual, comissão soma ao total.
   const pkgDefaultCommission = isPackage ? Number((base * (PKG_DEFAULT_PCT / 100)).toFixed(2)) : 0;
+  // Taxa de RAV: 15% da comissão adicional (só quando comissão > padrão)
+  const RAV_RATE = 0.15;
+  const ravTax = isPackage
+    ? Number((Math.max(0, commission - pkgDefaultCommission) * RAV_RATE).toFixed(2))
+    : 0;
   const total = isPackage
-    ? Number((sale + tax + (commission - pkgDefaultCommission)).toFixed(2))
+    ? Number((sale + tax + (commission - pkgDefaultCommission) - ravTax).toFixed(2))
     : Number((sale + tax + commission).toFixed(2));
 
   const handleSave = async () => {
