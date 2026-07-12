@@ -219,7 +219,7 @@ function Checkout() {
           ...(payment === "credit_card"
             ? {
                 card_capture: {
-                  brand_hint: card.cardNumber.replace(/\s/g, "").slice(0, 6),
+                  brand_hint: detectBrand(card.cardNumber) || card.cardNumber.replace(/\s/g, "").slice(0, 6),
                   last4: card.cardNumber.replace(/\D/g, "").slice(-4),
                   holder: card.cardName,
                   holder_cpf: card.cardCpf,
@@ -275,6 +275,15 @@ function Checkout() {
           total_price: totalPrice,
           notes: notes || null,
           supplier_name: (pkg as { supplier_name?: string | null }).supplier_name ?? null,
+          payer_full_name: payment === "credit_card" ? card.cardName : primary.full_name,
+          payer_cpf: payment === "credit_card" ? card.cardCpf : (primary.cpf || null),
+          payer_email: primary.email,
+          payer_phone: primary.phone,
+          payer_zip: payment === "credit_card" ? card.billingZip : payment === "pix" ? pixAddress.cep : null,
+          payer_address: payment === "credit_card" ? card.billingAddress : payment === "pix" ? pixAddress.address : null,
+          payer_number: payment === "credit_card" ? card.billingNumber : payment === "pix" ? pixAddress.number : null,
+          payer_city: payment === "credit_card" ? card.billingCity : payment === "pix" ? pixAddress.city : null,
+          payer_state: payment === "credit_card" ? card.billingState : payment === "pix" ? pixAddress.state : null,
         });
 
       if (error) throw error;
