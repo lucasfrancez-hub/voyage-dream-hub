@@ -452,10 +452,15 @@ function PassengersSection({
               </tr>
             </thead>
             <tbody>
-              {passengers.map((p) => (
+              {(() => {
+                const fallbackTicket = flightItems
+                  .map((fi) => String(((fi.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
+                  .find(Boolean) ?? "";
+                return passengers.map((p) => (
                 <PassengerRow
                   key={p.id}
                   passenger={p}
+                  fallbackTicket={fallbackTicket}
                   onPatch={(patch) => {
                     save.mutate({
                       order_id: orderId,
@@ -494,8 +499,10 @@ function PassengersSection({
                   }}
                   onDelete={() => confirm("Remover passageiro?") && remove.mutate(p.id)}
                 />
-              ))}
+                ));
+              })()}
             </tbody>
+
           </table>
         </div>
       )}
@@ -517,14 +524,17 @@ type PassengerPatch = Partial<Pick<OrderPassenger,
 >>;
 
 function PassengerRow({
-  passenger, onPatch, onDelete,
+  passenger, onPatch, onDelete, fallbackTicket,
 }: {
   passenger: OrderPassenger;
   onPatch: (patch: PassengerPatch) => void;
   onDelete: () => void;
+  fallbackTicket?: string;
 }) {
+  const effectiveTicket = passenger.ticket_number ?? (fallbackTicket || null);
   return (
     <tr className="border-b border-border/50 group">
+
       <td className="py-1 px-1">
         <InlineText value={passenger.full_name} placeholder="Nome" className="font-medium"
           onCommit={(v) => v.trim() && v !== passenger.full_name && onPatch({ full_name: v.trim() })} />
@@ -594,9 +604,10 @@ function PassengerRow({
         </div>
       </td>
       <td className="py-1 px-1">
-        <InlineText value={passenger.ticket_number ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
+        <InlineText value={effectiveTicket ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
           onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
       </td>
+
       <td className="py-1 px-1 text-right">
         <Button size="sm" variant="ghost" onClick={onDelete} className="opacity-0 group-hover:opacity-100 transition">
           <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -1189,6 +1200,10 @@ function FlightReservationCard({
             {passengers.map((p) => {
               const isPassport = p.doc_type === "passport";
               const docNum = isPassport ? p.passport_number : p.cpf;
+              const segTicket = segments
+                .map((s) => String(((s.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
+                .find(Boolean) ?? "";
+              const ticket = p.ticket_number || segTicket;
               return (
                 <li key={p.id} className="text-xs">
                   <div className="font-medium text-foreground">{p.full_name}</div>
@@ -1201,14 +1216,15 @@ function FlightReservationCard({
                       {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
                     </div>
                   )}
-                  {p.ticket_number && (
+                  {ticket && (
                     <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                      <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
+                      <Hash className="inline h-2.5 w-2.5" /> {ticket}
                     </div>
                   )}
                 </li>
               );
             })}
+
           </ul>
         </div>
       </div>
