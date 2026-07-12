@@ -900,6 +900,26 @@ function ItemsTab({
 }
 
 
+// Deriva o status "real" de um item aéreo/hotel a partir dos dados,
+// ignorando o status armazenado quando ele está inconsistente.
+// Aéreo: bilhete + localizador → confirmado; só localizador → reservado; nada → solicitado (pending).
+// Hotel: localizador → confirmado; sem localizador → solicitado (pending).
+function deriveItemStatus(item: OrderItem): OrderItem["status"] {
+  if (item.status === "cancelled") return "cancelled";
+  const d = (item.details ?? {}) as Record<string, unknown>;
+  const loc = (item.supplier_locator ?? "").trim();
+  if (item.kind === "flight") {
+    const tkt = String(d.ticket_number ?? "").trim();
+    if (tkt && loc) return "confirmed";
+    if (loc) return "reserved";
+    return "pending";
+  }
+  if (item.kind === "hotel") {
+    return loc ? "confirmed" : "pending";
+  }
+  return item.status;
+}
+
 
 function ItemCard({
   item, onEdit, onDelete, onCancel, onReactivate,
