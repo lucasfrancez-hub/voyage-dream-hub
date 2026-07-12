@@ -1096,8 +1096,11 @@ export async function generateReceiptContractAndAuthorization(detail: OrderDetai
   return new Blob([buf], { type: "application/pdf" });
 }
 
-/** Autorização avulsa para pedido, ainda pendente de assinatura no ClickSign. */
-export async function generateOrderAuthorization(detail: OrderDetail): Promise<Blob> {
+/** Autorização avulsa para pedido, assinada no checkout ou pendente no ClickSign. */
+export async function generateOrderAuthorization(
+  detail: OrderDetail,
+  pendingSignature = true,
+): Promise<Blob> {
   const { buildAuthorizationBlob } = await import("./authorization-pdf");
   const authData = buildAuthorizationFromOrder(detail);
   return buildAuthorizationBlob({
@@ -1105,7 +1108,7 @@ export async function generateOrderAuthorization(detail: OrderDetail): Promise<B
     createdAt: detail.order.createdAt,
     authorization: authData.authorization,
     liveness: authData.liveness,
-    pendingSignature: true,
+    pendingSignature,
   });
 }
 

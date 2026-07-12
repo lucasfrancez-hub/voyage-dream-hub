@@ -2216,31 +2216,9 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
 
   async function downloadAuthorization() {
     try {
-      if (!authorization) {
-        if (!hasCardData) { toast.error("Sem dados de cartão para este pedido."); return; }
-        const blob = await generateOrderAuthorization(detail);
-        openBlobInNewTab(blob, `autorizacao-debito-${order.orderNumber}.pdf`);
-        toast.success("PDF gerado");
-        return;
-      }
-      const passengersString = passengers.length > 0
-        ? passengers.map((p) => p.full_name).join(", ")
-        : undefined;
-      const enriched: AuthorizationData = {
-        ...authorization,
-        order_number: authorization.order_number ?? snap?.order_number,
-        trip_locator: authorization.trip_locator ?? snap?.locator ?? null,
-        trip_route: authorization.trip_route ?? snap?.route ?? null,
-        trip_date: authorization.trip_date ?? snap?.travel_date ?? null,
-        trip_passengers: authorization.trip_passengers ?? passengersString ?? null,
-        trip_hotel: authorization.trip_hotel ?? snap?.hotel ?? null,
-        trip_flights: authorization.trip_flights ?? snap?.flights ?? null,
-        trip_checkin: authorization.trip_checkin ?? snap?.checkin ?? null,
-        trip_checkout: authorization.trip_checkout ?? snap?.checkout ?? null,
-        trip_days: authorization.trip_days ?? snap?.days ?? null,
-        trip_nights: authorization.trip_nights ?? snap?.nights ?? null,
-      };
-      await generateAuthorizationPDF({ orderId: order.id, createdAt: order.createdAt, authorization: enriched, liveness });
+      if (!authorization && !hasCardData) { toast.error("Sem dados de cartão para este pedido."); return; }
+      const blob = await generateOrderAuthorization(detail, !hasAuthorization);
+      openBlobInNewTab(blob, `autorizacao-debito-${order.orderNumber}.pdf`);
       toast.success("PDF gerado");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF");
