@@ -2181,9 +2181,9 @@ function CommissionAdjustDialog({
         const wTax = totalCurTax > 0 ? c.curTax / totalCurTax : equalShare;
         const itemSale = Number((sale * wSale).toFixed(2));
         const itemTax = Number((tax * wTax).toFixed(2));
-        const itemBase = Math.max(0, itemSale - itemTax);
+        const itemBase = Math.max(0, itemSale);
         const itemCommission = Number((itemBase * (pct / 100)).toFixed(2));
-        const itemTotal = Number((itemSale + itemCommission).toFixed(2));
+        const itemTotal = Number((itemSale + itemTax + itemCommission).toFixed(2));
         await upsert({
           data: {
             id: c.existing?.id,
