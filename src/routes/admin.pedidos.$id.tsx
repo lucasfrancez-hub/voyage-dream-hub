@@ -1753,9 +1753,18 @@ function ItemDialog({
             const cleanMain = buildClean(details);
             let effectiveTitle = title.trim();
             if (kind === "flight") {
+              // Ida é obrigatória: exige origem+destino no trecho principal
+              const from = String(details.from_iata ?? details.origin ?? "").trim();
+              const to = String(details.to_iata ?? details.destination ?? "").trim();
+              if (!from || !to) {
+                toast.error("Preencha ao menos a origem e o destino da ida");
+                return;
+              }
+              // Volta é opcional: descarta trechos de volta vazios (sem origem/destino)
               effectiveTitle = segmentTitle(details);
             }
             if (!effectiveTitle) { toast.error("Preencha os dados do trecho"); return; }
+
 
             // Deriva status final (não deixa o usuário salvar um status incoerente)
             let finalStatus = status;
@@ -1767,16 +1776,24 @@ function ItemDialog({
             }
 
             const siblingsPayload = kind === "flight"
-              ? extraSegments.map((seg, idx) => {
-                  const cd = buildClean(seg.details);
-                  return {
-                    id: seg.id,
-                    title: segmentTitle(seg.details),
-                    details: cd as Json,
-                    sort_order: idx + 1,
-                  };
-                })
+              ? extraSegments
+                  .filter((seg) => {
+                    const from = String(seg.details.from_iata ?? seg.details.origin ?? "").trim();
+                    const to = String(seg.details.to_iata ?? seg.details.destination ?? "").trim();
+                    // mantém trechos com id (edição) mesmo vazios; descarta novos vazios
+                    return seg.id || from || to;
+                  })
+                  .map((seg, idx) => {
+                    const cd = buildClean(seg.details);
+                    return {
+                      id: seg.id,
+                      title: segmentTitle(seg.details),
+                      details: cd as Json,
+                      sort_order: idx + 1,
+                    };
+                  })
               : undefined;
+
 
             const currentIds = new Set(extraSegments.map((s) => s.id).filter((x): x is string => !!x));
             const removedSiblingIds = originalSiblingIds.filter((id) => !currentIds.has(id));
