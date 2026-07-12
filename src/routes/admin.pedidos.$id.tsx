@@ -1747,7 +1747,7 @@ function ItemDialog({
                     const formatted = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3)}` : digits;
                     setField("ticket_number", formatted);
                   }}
-                  placeholder="Ex: 954-1234567890"
+                  placeholder="Bilhete"
                   maxLength={14}
                   inputMode="numeric"
                 />
