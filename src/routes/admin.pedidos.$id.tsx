@@ -1723,13 +1723,25 @@ function ItemDialog({
 
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="0,00" /></div>
-                <div><Label>Quantidade</Label><Input type="number" value={String(details.quantity ?? "")} onChange={(e) => setField("quantity", e.target.value)} placeholder="1" /></div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Valor total (R$)</Label>
+                  <Input type="number" step="0.01" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="0,00" />
+                </div>
+                <div>
+                  <Label>Taxa inclusa (R$)</Label>
+                  <Input type="number" step="0.01" value={String(details.tax_value ?? "")} onChange={(e) => setField("tax_value", e.target.value)} placeholder="0,00" />
+                  <p className="mt-1 text-[10px] text-muted-foreground">Parte não comissionável.</p>
+                </div>
+                <div>
+                  <Label>Quantidade</Label>
+                  <Input type="number" value={String(details.quantity ?? "")} onChange={(e) => setField("quantity", e.target.value)} placeholder="1" />
+                </div>
               </div>
               <div><Label>Categoria</Label><Input value={String(details.category ?? "")} onChange={(e) => setField("category", e.target.value)} placeholder="Traslado, Passeio, Ingresso, Seguro…" /></div>
             </>
           )}
+
 
 
           <div>
