@@ -2627,11 +2627,11 @@ function CommissionAdjustDialog({
               </div>
             </div>
 
-            <div className="rounded-xl border border-brand-orange/30 bg-brand-orange/5 p-4 flex items-center justify-between">
-              <div>
+            <div className="rounded-xl border border-brand-orange/30 bg-brand-orange/5 p-4 flex items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">Novo total do pedido</div>
                 {isPackage && (
-                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                  <div className="text-[10px] text-muted-foreground mt-1 leading-snug break-words">
                     {pct < PKG_DEFAULT_PCT
                       ? `Desconto aplicado: ${formatBRL(Math.max(0, pkgDefaultCommission - commission))}`
                       : pct > PKG_DEFAULT_PCT
@@ -2640,7 +2640,7 @@ function CommissionAdjustDialog({
                   </div>
                 )}
               </div>
-              <div className="text-2xl font-bold text-brand-orange">{formatBRL(Math.max(0, total))}</div>
+              <div className="shrink-0 text-2xl font-bold text-brand-orange leading-none whitespace-nowrap">{formatBRL(Math.max(0, total))}</div>
             </div>
           </div>
         )}
