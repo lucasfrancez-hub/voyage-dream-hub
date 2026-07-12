@@ -74,6 +74,8 @@ export type OrderHeader = {
   packageSnapshot: Json;
   payerFullName: string | null;
   payerCpf: string | null;
+  payerIeRg: string | null;
+
   payerEmail: string | null;
   payerPhone: string | null;
   payerZip: string | null;
