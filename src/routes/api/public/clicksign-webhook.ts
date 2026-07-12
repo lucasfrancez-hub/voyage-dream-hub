@@ -82,7 +82,7 @@ export const Route = createFileRoute("/api/public/clicksign-webhook")({
         // Log bruto do último evento
         await supabaseAdmin
           .from("pedido_assinaturas")
-          .update({ raw_last_event: payload as unknown as Record<string, unknown> })
+          .update({ raw_last_event: JSON.parse(JSON.stringify(payload)) })
           .eq("id", assinatura.id);
 
         const signerKey = payload.event?.data?.signer?.key;
