@@ -2189,12 +2189,11 @@ function FinanceTab({
   );
 }
 
-function defaultCommissionPct(kind: OrderItem["kind"] | undefined, isPackage: boolean): number {
-  if (isPackage) return 12; // pacote pronto = 12% sobre a tarifa
-  if (kind === "flight") return 10;
-  if (kind === "hotel") return 12;
-  return 10;
+function defaultCommissionPct(_kind: OrderItem["kind"] | undefined, _isPackage: boolean): number {
+  // Padrão único: 12% para pacote pronto e para todos os itens avulsos.
+  return 12;
 }
+
 
 function FinanceDialog({
   open, onOpenChange, items, initial, selectedItem, setSelectedItem, packageDefaults, onSave,
