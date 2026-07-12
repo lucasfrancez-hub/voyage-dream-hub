@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.generate_order_number() TO authenticated, service_role;
