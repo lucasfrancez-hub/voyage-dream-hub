@@ -1,6 +1,7 @@
 // Gera Recibo + Contrato (PDF) espelhando o modelo VIA AIR.
 // Roda no navegador via pdf-lib.
-import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont, PDFImage } from "pdf-lib";
+import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
 import type {
   OrderDetail,
   OrderHeader,
@@ -174,6 +175,24 @@ type Ctx = {
   // Cabeçalho usado ao criar páginas de continuação da seção atual.
   // Recibo usa um cabeçalho enxuto; Contrato usa drawContractHeader.
   pageHeader?: (c: Ctx) => void;
+  logo?: PDFImage;
+};
+
+// Desenha a logo VIA AIR no canto superior direito da página.
+const drawLogo = (ctx: Ctx) => {
+  if (!ctx.logo) return;
+  const maxW = 110;
+  const maxH = 40;
+  const ratio = ctx.logo.width / ctx.logo.height;
+  let w = maxW;
+  let h = w / ratio;
+  if (h > maxH) { h = maxH; w = h * ratio; }
+  ctx.page.drawImage(ctx.logo, {
+    x: A4.w - MARGIN - w,
+    y: A4.h - MARGIN - h + 4,
+    width: w,
+    height: h,
+  });
 };
 
 const newPage = (ctx: Ctx) => {
@@ -202,6 +221,7 @@ const drawReceiptContinuationHeader = (ctx: Ctx) => {
     start: { x: MARGIN, y: topY - 24 }, end: { x: A4.w - MARGIN, y: topY - 24 },
     thickness: 0.5, color: COLOR_BORDER,
   });
+  drawLogo(ctx);
   ctx.y = topY - 38;
 };
 
@@ -269,6 +289,7 @@ const drawCompanyHeader = (ctx: Ctx) => {
     end: { x: A4.w - MARGIN, y: A4.h - bandH - 8 },
     thickness: 0.5, color: COLOR_BORDER,
   });
+  drawLogo(ctx);
   ctx.y = A4.h - bandH - 24;
 };
 
@@ -289,6 +310,7 @@ const drawContractHeader = (ctx: Ctx) => {
     thickness: 0.5,
     color: COLOR_BORDER,
   });
+  drawLogo(ctx);
   ctx.y = topY - 82;
 };
 
@@ -905,10 +927,16 @@ async function build(detail: OrderDetail, includeContract: boolean): Promise<Uin
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const page = pdf.addPage([A4.w, A4.h]);
+  let logo: PDFImage | undefined;
+  try {
+    const res = await fetch(viaAirLogoAsset.url);
+    if (res.ok) logo = await pdf.embedPng(await res.arrayBuffer());
+  } catch { /* logo é opcional */ }
   const ctx: Ctx = {
     pdf, page, y: A4.h - MARGIN, font, fontBold,
     order: detail.order,
     pageHeader: drawReceiptContinuationHeader,
+    logo,
   };
 
   drawCompanyHeader(ctx);
