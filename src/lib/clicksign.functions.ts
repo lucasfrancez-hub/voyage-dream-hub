@@ -229,6 +229,24 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
 // getSignatureStatus
 // -----------------------------------------------------------------------------
 
+export type SignerRow = {
+  id: string;
+  assinatura_id: string;
+  clicksign_signer_key: string | null;
+  clicksign_request_signature_key: string | null;
+  papel: "cliente" | "agencia" | "testemunha";
+  nome: string;
+  email: string;
+  cpf: string | null;
+  nascimento: string | null;
+  status: "pending" | "signed" | "refused";
+  signed_at: string | null;
+  refused_at: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export const getSignatureStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { pedidoId: string }) => z.object({ pedidoId: z.string().uuid() }).parse(input))
