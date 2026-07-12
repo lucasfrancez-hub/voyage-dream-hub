@@ -589,19 +589,19 @@ function PassengerRow({
             )}
           </div>
           {passenger.doc_type === "passport" && (
-            <div className="flex items-center gap-1.5 pl-[115px]">
+            <div className="grid grid-cols-2 gap-1.5 max-w-[286px]">
               <InlineText
                 type="date"
                 value={passenger.passport_issue_date ?? ""}
                 placeholder="emissão"
-                className="text-xs w-[130px] shrink-0"
+                className="text-xs w-full"
                 onCommit={(v) => (v || null) !== passenger.passport_issue_date && onPatch({ passport_issue_date: v || null })}
               />
               <InlineText
                 type="date"
                 value={passenger.passport_expiry_date ?? ""}
                 placeholder="validade"
-                className="text-xs w-[130px] shrink-0"
+                className="text-xs w-full"
                 onCommit={(v) => (v || null) !== passenger.passport_expiry_date && onPatch({ passport_expiry_date: v || null })}
               />
             </div>
