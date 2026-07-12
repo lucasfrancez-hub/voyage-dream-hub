@@ -1698,9 +1698,18 @@ function ItemDialog({
               </div>
             )}
             <div className={kind === "other" ? "" : "col-span-2"}>
-              <Label>Localizador do fornecedor</Label>
-              <Input value={locator} onChange={(e) => setLocator(e.target.value)} placeholder="Ex: JXJDZZ" />
+              <Label>Localizador do fornecedor{kind === "flight" ? " *" : ""}</Label>
+              <Input
+                value={locator}
+                onChange={(e) => setLocator(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+                placeholder="Ex: JXJDZZ"
+                maxLength={12}
+              />
+              {kind === "flight" && (
+                <p className="mt-1 text-[11px] text-muted-foreground">Obrigatório · mínimo 6 caracteres (letras e/ou números).</p>
+              )}
             </div>
+
             {kind === "other" && (
               <div>
                 <Label>Status</Label>
