@@ -42,6 +42,8 @@ export type OrderItemFinancial = {
 
   commission_value: number;
   commission_pct: number;
+  is_commissionable: boolean;
+  rav_value: number;
   exchange_rate: number;
   due_date: string | null;
   total: number;
@@ -173,6 +175,8 @@ export const getOrderDetail = createServerFn({ method: "GET" })
 
         commission_value: Number(f.commission_value),
         commission_pct: Number(f.commission_pct),
+        is_commissionable: (f as { is_commissionable?: boolean | null }).is_commissionable ?? true,
+        rav_value: Number((f as { rav_value?: number | string | null }).rav_value ?? 0),
         exchange_rate: Number(f.exchange_rate),
         due_date: f.due_date,
         total: Number(f.total),
@@ -605,6 +609,8 @@ export const upsertItemFinancial = createServerFn({ method: "POST" })
       discount_value: data.discount_value ?? 0,
       commission_value: data.commission_value ?? 0,
       commission_pct: data.commission_pct ?? 0,
+      is_commissionable: data.is_commissionable ?? true,
+      rav_value: data.rav_value ?? 0,
       exchange_rate: data.exchange_rate ?? 1,
       due_date: data.due_date && data.due_date !== "" ? data.due_date : null,
       total: data.total ?? 0,

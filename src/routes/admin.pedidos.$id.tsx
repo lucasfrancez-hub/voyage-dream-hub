@@ -23,6 +23,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 
 import { formatBRL } from "@/lib/format";
 import { paymentMethodLabel, statusLabel, itemStatusBadge } from "@/lib/order-labels";
@@ -2819,6 +2820,8 @@ function FinanceDialog({
     discount_value: initial?.discount_value ?? 0,
     commission_value: initial?.commission_value ?? 0,
     commission_pct: initial?.commission_pct ?? defaultCommissionPct(selectedKind, isPackage),
+    is_commissionable: initial?.is_commissionable ?? true,
+    rav_value: initial?.rav_value ?? 0,
     exchange_rate: initial?.exchange_rate ?? 1,
     due_date: initial?.due_date ?? "",
     total: initial?.total ?? 0,
@@ -2830,22 +2833,26 @@ function FinanceDialog({
     const sale = initial?.sale_value ?? defaultSale;
     const tax = initial?.tax_value ?? defaultTax;
     const disc = initial?.discount_value ?? 0;
+    const commissionable = initial?.is_commissionable ?? true;
+    const effectivePct = commissionable ? basePct : 0;
     setForm({
       supplier_name: initial?.supplier_name ?? defaultSupplier,
       sale_value: sale,
       tax_value: tax,
       discount_value: disc,
-      commission_value: initial?.commission_value ?? Number((sale * (basePct / 100)).toFixed(2)),
+      commission_value: initial?.commission_value ?? Number((sale * (effectivePct / 100)).toFixed(2)),
       commission_pct: basePct,
+      is_commissionable: commissionable,
+      rav_value: initial?.rav_value ?? 0,
       exchange_rate: initial?.exchange_rate ?? 1,
       due_date: initial?.due_date ?? "",
-      total: initial?.total ?? Number((sale + Number((sale * (basePct / 100)).toFixed(2)) + tax - disc).toFixed(2)),
+      total: initial?.total ?? Number((sale + tax - disc).toFixed(2)),
       notes: initial?.notes ?? "",
     });
   }, [initial, selectedKind, isPackage, defaultSale, defaultTax, defaultSupplier]);
 
 
-  // Tarifa é líquida de taxas; total (venda) = tarifa + comissão + taxas − desconto.
+  // Total (venda) = tarifa + taxas − desconto. Comissão e RAV são internos (agência).
   const recalc = (patch: Partial<typeof form>) => {
     const next = { ...form, ...patch };
     const sale = Number(next.sale_value) || 0;
@@ -2853,8 +2860,9 @@ function FinanceDialog({
     const disc = Number(next.discount_value) || 0;
     const pct = Number(next.commission_pct) || 0;
     const base = Math.max(0, sale);
-    next.commission_value = Number((base * (pct / 100)).toFixed(2));
-    next.total = Number((sale + next.commission_value + tax - disc).toFixed(2));
+    const effectivePct = next.is_commissionable ? pct : 0;
+    next.commission_value = Number((base * (effectivePct / 100)).toFixed(2));
+    next.total = Number((sale + tax - disc).toFixed(2));
     setForm(next);
   };
 
@@ -2899,27 +2907,44 @@ function FinanceDialog({
             </div>
           </div>
 
-          {/* Comissão: só % sobre a tarifa (sem reguinha) */}
-          <div className="rounded-xl border border-border bg-muted/30 p-4">
+          {/* Comissionável + comissão padrão (não editável por item) */}
+          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Comissão sobre a tarifa</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number" step="0.5" min={0} max={100}
-                  value={form.commission_pct}
-                  onChange={(e) => recalc({ commission_pct: Number(e.target.value) })}
-                  className="w-20 h-8 text-right"
-                />
-                <span className="text-sm text-muted-foreground">%</span>
+              <div>
+                <Label className="text-sm">Comissionável</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Desligue para produtos que não pagam comissão.</p>
               </div>
+              <Switch
+                checked={form.is_commissionable}
+                onCheckedChange={(v) => recalc({ is_commissionable: v })}
+              />
             </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-               <span>Base: {formatBRL(base)} (tarifa sem taxas)</span>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Base: {formatBRL(base)} · {form.is_commissionable ? `${form.commission_pct}% (padrão)` : "sem comissão"}</span>
               <span>
                 Comissão: <span className="font-semibold text-brand-orange">{formatBRL(form.commission_value)}</span>
               </span>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>RAV (comissão adicional R$)</Label>
+              <Input
+                type="number" step="0.01" min={0}
+                value={form.rav_value}
+                onChange={(e) => setForm({ ...form, rav_value: Number(e.target.value) })}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Somado à comissão para efeito de recebimento.</p>
+            </div>
+            <div className="flex items-end">
+              <div className="text-xs text-muted-foreground w-full text-right">
+                Comissão + RAV: <span className="font-semibold text-brand-orange">{formatBRL(Number(form.commission_value) + Number(form.rav_value || 0))}</span>
+              </div>
+            </div>
+          </div>
+
+
 
 
           <div className="grid grid-cols-3 gap-3">
