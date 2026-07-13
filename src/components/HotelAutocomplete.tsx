@@ -116,7 +116,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     <div className="relative" ref={wrapRef}>
       <div className="flex items-center justify-between mb-1">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
-          {mode === "live" ? <><Radio className="h-3 w-3 text-brand-orange" /> Ao vivo (TripAdvisor)</> : <><Pencil className="h-3 w-3 text-brand-orange" /> Manual</>}
+          {mode === "live" ? <><Radio className="h-3 w-3 text-brand-orange" /> TripAdvisor</> : <><Pencil className="h-3 w-3 text-brand-orange" /> Manual</>}
         </span>
         <button
           type="button"
