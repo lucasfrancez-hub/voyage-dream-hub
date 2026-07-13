@@ -23,8 +23,10 @@ export type Database = {
           due_date: string | null
           exchange_rate: number
           id: string
+          is_commissionable: boolean
           notes: string | null
           order_item_id: string
+          rav_value: number
           sale_value: number
           sort_order: number
           supplier_name: string | null
@@ -40,8 +42,10 @@ export type Database = {
           due_date?: string | null
           exchange_rate?: number
           id?: string
+          is_commissionable?: boolean
           notes?: string | null
           order_item_id: string
+          rav_value?: number
           sale_value?: number
           sort_order?: number
           supplier_name?: string | null
@@ -57,8 +61,10 @@ export type Database = {
           due_date?: string | null
           exchange_rate?: number
           id?: string
+          is_commissionable?: boolean
           notes?: string | null
           order_item_id?: string
+          rav_value?: number
           sale_value?: number
           sort_order?: number
           supplier_name?: string | null
