@@ -554,17 +554,24 @@ const drawVoucherIdCard = (ctx: Ctx) => {
   const h = 24;
   ensureSpace(ctx, h + 10);
   const y = ctx.y - h;
-  const w = 218;
-  drawRoundedRect(ctx.page, MARGIN, y, w, h, COLOR_NAVY, 5);
-  drawIcon(ctx.page, "ticket", MARGIN + 10, y + (h - 10) / 2, 10, COLOR_ORANGE);
-  const label = `${t.voucherId}: `;
   const labelSize = 9.5;
+  const label = `${t.voucherId}: `;
+  const number = String(ctx.order.orderNumber);
+  const iconPad = 10;
+  const iconW = 10;
+  const gapIconText = 8;
+  const rightPad = 14;
+  const labelW = measure(ctx.fontBold, label, labelSize);
+  const numberW = measure(ctx.fontBold, number, labelSize);
+  const w = iconPad + iconW + gapIconText + labelW + numberW + rightPad;
+  drawRoundedRect(ctx.page, MARGIN, y, w, h, COLOR_NAVY, 5);
+  drawIcon(ctx.page, "ticket", MARGIN + iconPad, y + (h - iconW) / 2, iconW, COLOR_ORANGE);
+  const textX = MARGIN + iconPad + iconW + gapIconText;
   ctx.page.drawText(sanitize(label), {
-    x: MARGIN + 28, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_ORANGE,
+    x: textX, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_ORANGE,
   });
-  const lw = measure(ctx.fontBold, label, labelSize);
-  ctx.page.drawText(sanitize(String(ctx.order.orderNumber)), {
-    x: MARGIN + 28 + lw, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_WHITE,
+  ctx.page.drawText(sanitize(number), {
+    x: textX + labelW, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_WHITE,
   });
   ctx.y = y - 10;
 };
@@ -594,13 +601,16 @@ const drawSectionHeader = (
   title: string,
   rightText?: string,
 ) => {
-  const cy = y - 18;
-  // Círculo azul
-  ctx.page.drawCircle({ x: MARGIN + 22, y: cy + 8, size: 12, color: COLOR_NAVY });
-  drawIcon(ctx.page, icon, MARGIN + 22 - 6, cy + 2, 12, COLOR_WHITE);
+  // Empurra o círculo do ícone totalmente para dentro do card (não pode estourar borda)
+  const cy = y - 22;
+  const circleR = 11;
+  const circleCX = MARGIN + 14 + circleR; // margem interna de 14 até borda esquerda do círculo
+  const circleCY = cy + 8;
+  ctx.page.drawCircle({ x: circleCX, y: circleCY, size: circleR, color: COLOR_NAVY });
+  drawIcon(ctx.page, icon, circleCX - circleR * 0.55, circleCY - circleR * 0.55, circleR * 1.1, COLOR_WHITE);
   // Título
   ctx.page.drawText(sanitize(title), {
-    x: MARGIN + 44, y: cy + 4, size: 11.5, font: ctx.fontBold, color: COLOR_NAVY,
+    x: circleCX + circleR + 10, y: cy + 4, size: 11.5, font: ctx.fontBold, color: COLOR_NAVY,
   });
   if (rightText) {
     const size = 9;
@@ -961,54 +971,23 @@ const drawFlightLegBlock = (
 
 
 
-  // Malinha (luggage-tag) com QR e texto embaixo na coluna direita
+  // QR + divisor tracejado vertical + legenda embaixo (estilo original)
   if (qr) {
-    const tagW = qrColW - 8;
-    const tagX = outerX + segColW + 6;
-    const qrSize = 52;
-    const textAreaH = 22;
-    const padTop = 8;
-    const tagH = padTop + qrSize + 6 + textAreaH;
-    const tagY = segmentsTopY - tagH - 2;
-
-    // "Alça" da malinha no topo
-    const handleR = 3;
-    const handleX = tagX + tagW / 2;
-    const handleTopY = tagY + tagH + 5;
-    ctx.page.drawLine({
-      start: { x: handleX, y: tagY + tagH },
-      end: { x: handleX, y: handleTopY },
-      thickness: 1, color: COLOR_NAVY,
-    });
-    ctx.page.drawCircle({ x: handleX, y: handleTopY, size: handleR, color: COLOR_NAVY });
-    ctx.page.drawCircle({ x: handleX, y: handleTopY, size: handleR - 1.2, color: COLOR_WHITE });
-
-    // Frame da mala
-    drawRoundedBorder(ctx.page, tagX, tagY, tagW, tagH, COLOR_NAVY, 8, 0.9);
-
-    // QR
-    const qrX = tagX + (tagW - qrSize) / 2;
-    const qrY = tagY + textAreaH + 6;
+    const dividerX = outerX + segColW + 6;
+    drawDashedVLine(ctx.page, dividerX, cardBotY + 6, segmentsTopY - 2, COLOR_BORDER);
+    const qrSize = 62;
+    const qrX = outerX + segColW + 16;
+    const qrY = segmentsTopY - qrSize - 6;
     if (qr.img) {
       ctx.page.drawImage(qr.img, { x: qrX, y: qrY, width: qrSize, height: qrSize });
       addLinkAnnotation(ctx, qrX, qrY, qrSize, qrSize, qr.url);
     }
-
-    // Divisor entre QR e texto
-    const sepY = tagY + textAreaH + 2;
-    ctx.page.drawLine({
-      start: { x: tagX + 4, y: sepY }, end: { x: tagX + tagW - 4, y: sepY },
-      thickness: 0.5, color: COLOR_BORDER,
-    });
-
-    // Texto dentro da parte de baixo
     const lines = T(ctx).verifiqueCia.split("\n");
-    const lineSize = 6;
-    let ly = tagY + textAreaH - 8;
+    let ly = qrY - 8;
     for (const ln of lines) {
-      const lw = measure(ctx.font, ln, lineSize);
+      const lw = measure(ctx.font, ln, 6.5);
       ctx.page.drawText(sanitize(ln), {
-        x: tagX + (tagW - lw) / 2, y: ly, size: lineSize, font: ctx.fontBold, color: COLOR_NAVY,
+        x: qrX + (qrSize - lw) / 2, y: ly, size: 6.5, font: ctx.font, color: COLOR_MUTED,
       });
       ly -= 8;
     }
@@ -1149,24 +1128,40 @@ const drawAereoSection = async (
 };
 
 // ---------- Hospedagem ----------
-const fetchImageBytes = async (url: string): Promise<Uint8Array | null> => {
+const fetchImageBytes = async (url: string): Promise<{ bytes: Uint8Array; contentType: string } | null> => {
   try {
     const r = await fetch(url, { mode: "cors" });
-    if (!r.ok) return null;
-    return new Uint8Array(await r.arrayBuffer());
-  } catch {
+    if (!r.ok) {
+      console.warn("fetchImageBytes: HTTP", r.status, url);
+      return null;
+    }
+    const contentType = (r.headers.get("content-type") ?? "").toLowerCase();
+    return { bytes: new Uint8Array(await r.arrayBuffer()), contentType };
+  } catch (e) {
+    console.warn("fetchImageBytes: failed", url, e);
     return null;
   }
 };
 
 const embedRemotePhoto = async (pdf: PDFDocument, url: string): Promise<PDFImage | null> => {
-  const bytes = await fetchImageBytes(url);
-  if (!bytes) return null;
+  const res = await fetchImageBytes(url);
+  if (!res) return null;
+  const { bytes, contentType } = res;
+  const isPngUrl = /\.png(\?|$)/i.test(url) || contentType.includes("png");
+  const isSvg = contentType.includes("svg") || /\.svg(\?|$)/i.test(url);
+  if (isSvg) {
+    console.warn("embedRemotePhoto: SVG images not supported by pdf-lib", url);
+    return null;
+  }
   try {
-    if (/\.png(\?|$)/i.test(url)) return await pdf.embedPng(bytes);
-    return await pdf.embedJpg(bytes);
+    return isPngUrl ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
   } catch {
-    try { return await pdf.embedPng(bytes); } catch { return null; }
+    try { return await pdf.embedPng(bytes); } catch {
+      try { return await pdf.embedJpg(bytes); } catch (e) {
+        console.warn("embedRemotePhoto: could not embed", url, e);
+        return null;
+      }
+    }
   }
 };
 
@@ -1353,12 +1348,15 @@ const drawInfoAndEmergency = (ctx: Ctx) => {
   const rightX = MARGIN + colW + gap;
   drawRoundedBorder(ctx.page, rightX, top - boxH, colW, boxH, COLOR_BORDER, 10, 0.7);
 
-  // Cabeçalho vermelho
-  const cy = top - 18;
-  ctx.page.drawCircle({ x: rightX + 22, y: cy + 8, size: 12, color: COLOR_RED });
-  drawIcon(ctx.page, "phone", rightX + 22 - 5, cy + 2, 10, COLOR_WHITE);
+  // Cabeçalho vermelho (círculo totalmente dentro do card)
+  const cy = top - 22;
+  const eCircleR = 11;
+  const eCircleCX = rightX + 14 + eCircleR;
+  const eCircleCY = cy + 8;
+  ctx.page.drawCircle({ x: eCircleCX, y: eCircleCY, size: eCircleR, color: COLOR_RED });
+  drawIcon(ctx.page, "phone", eCircleCX - eCircleR * 0.55, eCircleCY - eCircleR * 0.55, eCircleR * 1.1, COLOR_WHITE);
   ctx.page.drawText(sanitize(t.emerg), {
-    x: rightX + 44, y: cy + 4, size: 11.5, font: ctx.fontBold, color: COLOR_RED,
+    x: eCircleCX + eCircleR + 10, y: cy + 4, size: 11.5, font: ctx.fontBold, color: COLOR_RED,
   });
 
   const eLines = wrap(ctx.font, 9, t.emergText, colW - 30);
