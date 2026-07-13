@@ -374,8 +374,13 @@ const drawIcon = (page: PDFPage, kind: IconKind, x: number, y: number, size: num
       break;
     }
     case "calendar": {
-      page.drawRectangle({ x, y, width: s, height: s * 0.85, borderColor: color, borderWidth: s * 0.08 });
-      page.drawRectangle({ x, y: y + s * 0.7, width: s, height: s * 0.15, color });
+      // Corpo do calendário
+      page.drawRectangle({ x, y, width: s, height: s * 0.8, borderColor: color, borderWidth: s * 0.08, color: COLOR_WHITE });
+      // Faixa superior colorida
+      page.drawRectangle({ x, y: y + s * 0.65, width: s, height: s * 0.15, color });
+      // Argolinhas no topo
+      page.drawLine({ start: { x: x + s * 0.28, y: y + s * 0.78 }, end: { x: x + s * 0.28, y: y + s * 0.95 }, thickness: s * 0.09, color });
+      page.drawLine({ start: { x: x + s * 0.72, y: y + s * 0.78 }, end: { x: x + s * 0.72, y: y + s * 0.95 }, thickness: s * 0.09, color });
       break;
     }
     case "moon": {
