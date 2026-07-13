@@ -129,7 +129,7 @@ function PackageDetails() {
                 <div className="h-11 w-11 rounded-xl bg-muted/50 border border-border flex items-center justify-center shrink-0">
                   <Hotel className="h-5 w-5 text-brand-orange" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <h3 className="font-semibold">Hospedagem</h3>
                   <div className="mt-1 flex items-center gap-2">
                     <span>{pkg.hotel_name}</span>
@@ -141,6 +141,12 @@ function PackageDetails() {
                       </span>
                     ) : null}
                   </div>
+                  {(pkg as unknown as { tripadvisor_address?: string | null }).tripadvisor_address && (
+                    <div className="mt-1 text-xs text-muted-foreground flex items-start gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-brand-orange mt-0.5 shrink-0" />
+                      <span>{(pkg as unknown as { tripadvisor_address: string }).tripadvisor_address}</span>
+                    </div>
+                  )}
                   {pkg.meal_plan && (
                     <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
                       <Check className="h-3.5 w-3.5" />
@@ -149,8 +155,54 @@ function PackageDetails() {
                   )}
                 </div>
               </div>
+
+              {(() => {
+                const photos = ((pkg as unknown as { tripadvisor_photos?: string[] | null }).tripadvisor_photos) ?? [];
+                const taUrl = (pkg as unknown as { tripadvisor_url?: string | null }).tripadvisor_url ?? null;
+                if (photos.length === 0 && !taUrl) return null;
+                return (
+                  <div className="mt-4">
+                    {photos.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {photos.slice(0, 4).map((src, i) => (
+                          <a
+                            key={i}
+                            href={taUrl ?? src}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border group"
+                          >
+                            <img
+                              src={src}
+                              alt={`${pkg.hotel_name} — foto ${i + 1}`}
+                              loading="lazy"
+                              className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    {taUrl && (
+                      <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+                        <span className="text-[11px] text-muted-foreground">
+                          Fotos e informações via TripAdvisor
+                        </span>
+                        <a
+                          href={taUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-medium text-brand-orange hover:bg-brand-orange/20 transition"
+                        >
+                          Ver mais no TripAdvisor <ArrowRight className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </section>
           )}
+
 
           {(pkg.outbound_flight || pkg.return_flight) && (
             <section>
