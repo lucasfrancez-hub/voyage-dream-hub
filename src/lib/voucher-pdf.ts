@@ -2011,7 +2011,7 @@ export async function generateVoucher(
 
   // Serviços (transfers, ingressos, transporte terrestre, etc.)
   for (const s of others) {
-    drawServiceSection(ctx, s);
+    await drawServiceSection(ctx, s);
   }
 
   drawInfoAndEmergency(ctx);
