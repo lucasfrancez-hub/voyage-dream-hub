@@ -519,8 +519,8 @@ const drawSimpleTable = (
   if (rows.length === 0) return;
   const cols = headers.length;
   const colW = CONTENT_W / cols;
-  const headerH = 22;
-  const rowH = 22;
+  const headerH = 18;
+  const rowH = 17;
   ensureSpace(ctx, headerH + rowH * rows.length + 10);
 
   // Header
@@ -529,8 +529,8 @@ const drawSimpleTable = (
     x: MARGIN, y: hY, width: CONTENT_W, height: headerH, color: COLOR_PILL_BG,
   });
   headers.forEach((h, i) => {
-    const tx = MARGIN + i * colW + 10;
-    drawText(ctx, h, tx, { y: hY + 7, size: 9, bold: true, color: COLOR_BRAND_BLUE });
+    const tx = MARGIN + i * colW + 8;
+    drawText(ctx, h, tx, { y: hY + 5, size: 7.5, bold: true, color: COLOR_BRAND_BLUE });
   });
   ctx.y = hY;
 
@@ -544,14 +544,14 @@ const drawSimpleTable = (
       });
     }
     r.forEach((cell, i) => {
-      const tx = MARGIN + i * colW + 10;
-      const lines = wrap(ctx.font, 9, cell || "-", colW - 20);
-      drawText(ctx, lines[0] ?? "-", tx, { y: rY + 7, size: 9, color: COLOR_TEXT });
+      const tx = MARGIN + i * colW + 8;
+      const lines = wrap(ctx.font, 8, cell || "-", colW - 16);
+      drawText(ctx, lines[0] ?? "-", tx, { y: rY + 5, size: 8, color: COLOR_TEXT });
     });
     ctx.y = rY;
   });
 
-  ctx.y -= 16;
+  ctx.y -= 12;
 };
 
 // Desenha estrelas com fallback em círculos preenchidos/vazios (WinAnsi safe)
