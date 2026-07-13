@@ -865,18 +865,22 @@ const drawFlightLegBlock = (
   });
 
   const t = T(ctx);
-  const infoTextX = outerX + chipW + 12;
   if (locator) {
-    const lab = `${t.localizador}: `;
-    const labW = measure(ctx.font, lab, 9);
-    ctx.page.drawText(sanitize(lab), {
-      x: infoTextX, y: chipY + 5, size: 9, font: ctx.font, color: COLOR_MUTED,
-    });
-    ctx.page.drawText(sanitize(locator), {
-      x: infoTextX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_NAVY,
+    // Chip do localizador da companhia (mesmo estilo do chip da hospedagem)
+    const locChipSize = 9;
+    const locChipText = `${t.localizador}: ${locator}`;
+    const locChipTw = measure(ctx.fontBold, locChipText, locChipSize);
+    const locChipW = locChipTw + 24;
+    const locChipH = 20;
+    const locChipX = outerX + chipW + 10;
+    const locChipY = chipY + (chipH - locChipH) / 2;
+    drawRoundedRect(ctx.page, locChipX, locChipY, locChipW, locChipH, COLOR_NAVY_SOFT, 6);
+    ctx.page.drawText(sanitize(locChipText), {
+      x: locChipX + 12, y: locChipY + 6, size: locChipSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
   }
   void ticket;
+
 
   let cy = chipY - 10;
   
