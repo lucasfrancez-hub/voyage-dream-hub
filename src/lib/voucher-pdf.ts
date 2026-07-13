@@ -586,6 +586,28 @@ const drawMapPin = (page: PDFPage, x: number, y: number, size = 12) => {
 };
 
 // ---------- Item renderers ----------
+const fetchImageBytes = async (url: string): Promise<Uint8Array | null> => {
+  try {
+    const r = await fetch(url, { mode: "cors" });
+    if (!r.ok) return null;
+    const buf = await r.arrayBuffer();
+    return new Uint8Array(buf);
+  } catch {
+    return null;
+  }
+};
+
+const embedRemotePhoto = async (pdf: PDFDocument, url: string): Promise<PDFImage | null> => {
+  const bytes = await fetchImageBytes(url);
+  if (!bytes) return null;
+  try {
+    if (/\.png(\?|$)/i.test(url)) return await pdf.embedPng(bytes);
+    return await pdf.embedJpg(bytes);
+  } catch {
+    try { return await pdf.embedPng(bytes); } catch { return null; }
+  }
+};
+
 const renderHotelItem = async (
   ctx: Ctx,
   item: OrderItem,
@@ -605,21 +627,38 @@ const renderHotelItem = async (
   const room = String(d.room ?? "").trim();
   const board = String(d.board ?? "").trim();
   const guests = String(d.guests ?? "").trim();
+  const description = String(d.description ?? "").trim();
+  const policies = String(d.policies ?? "").trim();
   const locator = item.supplier_locator ?? "";
+  const taUrl = String(d.tripadvisor_url ?? "").trim();
+  let photos: string[] = [];
+  try {
+    if (typeof d.tripadvisor_photos_json === "string" && d.tripadvisor_photos_json) {
+      const parsed = JSON.parse(d.tripadvisor_photos_json as string);
+      if (Array.isArray(parsed)) photos = parsed.filter((u) => typeof u === "string").slice(0, 4);
+    } else if (Array.isArray(d.tripadvisor_photos)) {
+      photos = (d.tripadvisor_photos as unknown[]).filter((u): u is string => typeof u === "string").slice(0, 4);
+    }
+  } catch { photos = []; }
 
   ensureSpace(ctx, 260);
 
   drawSectionPill(ctx, t.hotel, {
+    icon: "bed",
     rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
   });
 
-  // Nome do hotel grande + estrelas ao lado
-  drawFieldTitle(ctx, hotelName, 15);
+  // Nome do hotel grande + estrelas ao lado (fonte display)
+  const titleSize = 18;
+  ensureSpace(ctx, titleSize + 8);
+  ctx.page.drawText(sanitize(hotelName), {
+    x: MARGIN, y: ctx.y - titleSize + 2, size: titleSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
+  });
   if (stars > 0) {
-    // desenha estrelas ao lado do título (uma linha acima da posição atual)
-    const titleW = measure(ctx.fontBold, hotelName, 15);
-    drawStars(ctx.page, MARGIN + titleW + 10, ctx.y + 4, stars, 10);
+    const titleW = measure(ctx.fontDisplay, hotelName, titleSize);
+    drawStars(ctx.page, MARGIN + titleW + 12, ctx.y - titleSize + 5, stars, 10);
   }
+  ctx.y -= titleSize + 10;
 
   // Endereço com pin de mapa
   if (address) {
@@ -628,31 +667,31 @@ const renderHotelItem = async (
     const addrX = MARGIN + pinSize + pinGap;
     const addrW = CONTENT_W - pinSize - pinGap;
     const addrLines = wrap(ctx.font, 9.5, address, addrW);
-    // pin alinhado à primeira linha
-    drawMapPin(ctx.page, MARGIN, ctx.y - 2, pinSize);
+    drawMapPin(ctx.page, MARGIN, ctx.y - 4, pinSize);
     for (let i = 0; i < Math.min(addrLines.length, 2); i++) {
       drawText(ctx, addrLines[i], addrX, { size: 9.5, color: COLOR_MUTED });
-      ctx.y -= 12;
+      ctx.y -= 13;
     }
-    ctx.y -= 2;
+    ctx.y -= 6;
   }
 
-
-  // Linha de dados essenciais em 4 blocos "Rótulo: valor"
+  // Linha de dados essenciais em 4 blocos "Rótulo: valor" com ícones
+  ensureSpace(ctx, 40);
   const colW = CONTENT_W / 4;
   const rowY = ctx.y - 14;
-  const cells: Array<{ label: string; value: string }> = [
-    { label: t.checkin, value: fmtDateShort(checkin, ctx.lang) || "-" },
-    { label: t.checkout, value: fmtDateShort(checkout, ctx.lang) || "-" },
-    { label: t.nights, value: nights || (checkin && checkout ? String(diffDays(checkin, checkout)) : "-") },
-    { label: t.guests, value: guests || "-" },
+  const cells: Array<{ label: string; value: string; icon: IconKind }> = [
+    { label: t.checkin, value: fmtDateShort(checkin, ctx.lang) || "-", icon: "calendar" },
+    { label: t.checkout, value: fmtDateShort(checkout, ctx.lang) || "-", icon: "calendar" },
+    { label: t.nights, value: nights || (checkin && checkout ? String(diffDays(checkin, checkout)) : "-"), icon: "moon" },
+    { label: t.guests, value: guests || "-", icon: "users" },
   ];
   cells.forEach((c, i) => {
     const x = MARGIN + i * colW;
-    drawText(ctx, c.label.toUpperCase(), x, { y: rowY, size: 7.5, bold: true, color: COLOR_BRAND_BLUE_SOFT });
-    drawText(ctx, c.value, x, { y: rowY - 12, size: 10, bold: true, color: COLOR_TEXT });
+    drawIcon(ctx.page, c.icon, x, rowY - 1, 9, COLOR_BRAND_BLUE_SOFT);
+    drawText(ctx, c.label.toUpperCase(), x + 14, { y: rowY, size: 7.5, bold: true, color: COLOR_BRAND_BLUE_SOFT });
+    drawText(ctx, c.value, x, { y: rowY - 14, size: 10.5, bold: true, color: COLOR_TEXT });
   });
-  ctx.y = rowY - 26;
+  ctx.y = rowY - 30;
 
   // Quarto / Regime como linhas inline
   if (room || board) {
@@ -709,8 +748,78 @@ const renderHotelItem = async (
     ctx.y = boxTop - boxH - 18;
   }
 
+  // Galeria de fotos do TripAdvisor
+  if (photos.length > 0) {
+    ensureSpace(ctx, 120);
+    const gap = 8;
+    const tW = (CONTENT_W - gap * (photos.length - 1)) / photos.length;
+    const tH = 84;
+    const rowTop = ctx.y;
+    let anyEmbedded = false;
+    for (let i = 0; i < photos.length; i++) {
+      const img = await embedRemotePhoto(ctx.pdf, photos[i]);
+      if (!img) continue;
+      anyEmbedded = true;
+      const x = MARGIN + i * (tW + gap);
+      const y = rowTop - tH;
+      // fit cover (cropping via scale — pdf-lib não corta, então usa fit)
+      const ratio = img.width / img.height;
+      let w = tW, h = w / ratio;
+      if (h < tH) { h = tH; w = h * ratio; }
+      const dx = x + (tW - Math.min(w, tW)) / 2;
+      ctx.page.drawRectangle({ x, y, width: tW, height: tH, color: COLOR_ROW_ALT });
+      ctx.page.drawImage(img, { x: dx, y, width: Math.min(w, tW), height: tH });
+      ctx.page.drawRectangle({ x, y, width: tW, height: tH, borderColor: COLOR_BORDER, borderWidth: 0.5 });
+    }
+    if (anyEmbedded) {
+      ctx.y = rowTop - tH - 6;
+      const cred = ctx.lang === "pt" ? "Fotos: TripAdvisor" : "Photos: TripAdvisor";
+      drawText(ctx, cred, MARGIN, { size: 7.5, color: COLOR_MUTED });
+      ctx.y -= 14;
+    }
+  }
+
+  // Descrição do hotel
+  if (description) {
+    ensureSpace(ctx, 40);
+    drawText(ctx, ctx.lang === "pt" ? "SOBRE O HOTEL" : "ABOUT THE HOTEL", MARGIN, {
+      size: 8, bold: true, color: COLOR_BRAND_BLUE_SOFT,
+    });
+    ctx.y -= 12;
+    const lines = wrap(ctx.font, 9.5, description, CONTENT_W);
+    const maxLines = 6;
+    for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
+      ensureSpace(ctx, 12);
+      drawText(ctx, lines[i], MARGIN, { size: 9.5, color: COLOR_TEXT });
+      ctx.y -= 12;
+    }
+    if (taUrl) {
+      drawText(ctx, ctx.lang === "pt" ? "Fonte: TripAdvisor" : "Source: TripAdvisor", MARGIN, {
+        size: 7.5, color: COLOR_MUTED,
+      });
+      ctx.y -= 12;
+    }
+    ctx.y -= 4;
+  }
+
+  // Políticas do hotel
+  if (policies) {
+    ensureSpace(ctx, 50);
+    drawSectionPill(ctx, ctx.lang === "pt" ? "Políticas do hotel" : "Hotel policies", {
+      icon: "policy", color: COLOR_BRAND_BLUE_SOFT,
+    });
+    const lines = wrap(ctx.font, 9.5, policies, CONTENT_W - 10);
+    for (const ln of lines) {
+      ensureSpace(ctx, 12);
+      drawText(ctx, `• ${ln}`, MARGIN, { size: 9.5, color: COLOR_TEXT });
+      ctx.y -= 13;
+    }
+    ctx.y -= 6;
+  }
+
   ctx.y -= 6;
 };
+
 
 const renderFlightItem = (ctx: Ctx, item: OrderItem) => {
   const t = T(ctx);
