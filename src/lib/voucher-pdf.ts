@@ -1280,7 +1280,7 @@ export async function generateVoucher(
         console.error("hotel map error", e);
       }
     }
-    await drawHotelSection(ctx, h, mapData);
+    await drawHotelSection(ctx, h, mapData, detail.passengers.length);
   }
 
   drawInfoAndEmergency(ctx);
