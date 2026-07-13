@@ -2916,7 +2916,7 @@ function FinanceDialog({
             <Label>Fornecedor</Label>
             <Input value={form.supplier_name ?? ""} onChange={(e) => setForm({ ...form, supplier_name: e.target.value })} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div>
               <Label>Tarifa</Label>
               <Input type="number" step="0.01" value={form.sale_value} onChange={(e) => recalc({ sale_value: Number(e.target.value) })} />
@@ -2929,6 +2929,18 @@ function FinanceDialog({
               <Label>Desconto</Label>
               <Input type="number" step="0.01" value={form.discount_value} onChange={(e) => recalc({ discount_value: Number(e.target.value) })} />
             </div>
+            <div>
+              <Label className="flex items-center gap-1">
+                RAV
+                <span className="rounded-md border border-brand-orange/40 bg-brand-orange/10 px-1 py-0 text-[9px] font-semibold uppercase tracking-wider text-brand-orange">extra</span>
+              </Label>
+              <Input
+                type="number" step="0.01" min={0}
+                value={form.rav_value}
+                onChange={(e) => setForm({ ...form, rav_value: Number(e.target.value) })}
+                placeholder="0,00"
+              />
+            </div>
           </div>
 
           {/* Comissionável + comissão padrão (não editável por item) */}
@@ -2936,7 +2948,7 @@ function FinanceDialog({
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm">Comissionável</Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Desligue para produtos que não pagam comissão.</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Desligue para produtos que não pagam comissão. RAV é somado à parte, sem desconto.</p>
               </div>
               <Switch
                 checked={form.is_commissionable}
@@ -2946,25 +2958,8 @@ function FinanceDialog({
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Base: {formatBRL(base)} · {form.is_commissionable ? `${form.commission_pct}% (padrão)` : "sem comissão"}</span>
               <span>
-                Comissão: <span className="font-semibold text-brand-orange">{formatBRL(form.commission_value)}</span>
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>RAV (comissão adicional R$)</Label>
-              <Input
-                type="number" step="0.01" min={0}
-                value={form.rav_value}
-                onChange={(e) => setForm({ ...form, rav_value: Number(e.target.value) })}
-              />
-              <p className="mt-1 text-[11px] text-muted-foreground">Somado à comissão para efeito de recebimento.</p>
-            </div>
-            <div className="flex items-end">
-              <div className="text-xs text-muted-foreground w-full text-right">
                 Comissão + RAV: <span className="font-semibold text-brand-orange">{formatBRL(Number(form.commission_value) + Number(form.rav_value || 0))}</span>
-              </div>
+              </span>
             </div>
           </div>
 
