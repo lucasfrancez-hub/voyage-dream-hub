@@ -1449,29 +1449,29 @@ function FlightReservationCard({
   const d0 = (first?.details ?? {}) as Record<string, unknown>;
   const supplier = typeof d0.supplier_name === "string" ? (d0.supplier_name as string) : "";
 
-  // Bagagens: agrega de todos os segmentos; se nenhum flag setado, fallback ao packageSnapshot
-  const bags = (() => {
-    let personal = false, carry = false, checked = false;
-    for (const s of segments) {
-      const d = (s.details ?? {}) as Record<string, unknown>;
-      personal ||= !!d.personal_item;
-      carry ||= !!d.carry_on;
-      checked ||= !!d.checked_bag;
-    }
-    if (!personal && !carry && !checked && packageSnapshot && typeof packageSnapshot === "object") {
-      const snap = packageSnapshot as Record<string, unknown>;
-      const dirs = new Set(segments.map((s) => String(((s.details ?? {}) as Record<string, unknown>).direction ?? "outbound")));
-      const sources: Record<string, unknown>[] = [];
-      if (dirs.has("outbound") && snap.outbound_flight && typeof snap.outbound_flight === "object") sources.push(snap.outbound_flight as Record<string, unknown>);
-      if (dirs.has("return") && snap.return_flight && typeof snap.return_flight === "object") sources.push(snap.return_flight as Record<string, unknown>);
-      for (const src of sources) {
-        personal ||= !!src.personal_item;
-        carry ||= !!src.carry_on;
-        checked ||= !!src.checked_bag;
+  // Bagagens por segmento: usa flags do próprio trecho; se ausentes, cai no packageSnapshot
+  // (outbound_flight/return_flight) conforme a direção do trecho.
+  const snap = (packageSnapshot && typeof packageSnapshot === "object")
+    ? (packageSnapshot as Record<string, unknown>) : null;
+  const bagsFor = (seg: OrderItem) => {
+    const d = (seg.details ?? {}) as Record<string, unknown>;
+    let personal = !!d.personal_item;
+    let carry = !!d.carry_on;
+    let checked = !!d.checked_bag;
+    if (!personal && !carry && !checked && snap) {
+      const dir = String(d.direction ?? "outbound");
+      const src = dir === "return" ? snap.return_flight : snap.outbound_flight;
+      if (src && typeof src === "object") {
+        const s = src as Record<string, unknown>;
+        personal ||= !!s.personal_item;
+        carry ||= !!s.carry_on;
+        checked ||= !!s.checked_bag;
       }
     }
     return { personal, carry, checked, any: personal || carry || checked };
-  })();
+  };
+
+
   
   return (
     <div className={`rounded-xl border p-4 ${allCancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
@@ -1527,13 +1527,6 @@ function FlightReservationCard({
               Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
             </div>
           )}
-          {bags.any && (
-            <div className="mt-2 flex items-center gap-1.5" title="Bagagens incluídas neste voo">
-              <Backpack className={`h-4 w-4 ${bags.personal ? "text-brand-orange" : "text-muted-foreground/30"}`} aria-label="Bolsa/mochila" />
-              <Briefcase className={`h-4 w-4 ${bags.carry ? "text-brand-orange" : "text-muted-foreground/30"}`} aria-label="Bagagem de mão" />
-              <Luggage className={`h-4 w-4 ${bags.checked ? "text-brand-orange" : "text-muted-foreground/30"}`} aria-label="Bagagem despachada" />
-            </div>
-          )}
           {/* Ações unificadas da reserva (ida + volta) */}
           <div className="mt-2 flex items-center gap-0.5">
             <Button size="sm" variant="ghost" onClick={() => first && onEdit(first)} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
@@ -1561,6 +1554,7 @@ function FlightReservationCard({
             const dep = (d.depart_at ?? d.departure) as string | undefined;
             const arr = (d.arrive_at ?? d.arrival) as string | undefined;
             const cancelled = seg.status === "cancelled";
+            const sb = bagsFor(seg);
             return (
               <div key={seg.id} className={`rounded-lg border border-border/60 bg-muted/20 p-2.5 text-sm ${cancelled ? "opacity-60" : ""}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1574,7 +1568,7 @@ function FlightReservationCard({
                   {cancelled && <span className="text-[10px] font-semibold uppercase text-destructive">Cancelado</span>}
                 </div>
                 </div>
-                <div className="mt-1.5 grid gap-1 sm:grid-cols-2">
+                <div className="mt-1.5 grid gap-1 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
                   <div>
                     <div className="text-xs text-muted-foreground">Partida</div>
                     <div className="font-medium">{from}{fromCity ? ` · ${fromCity}` : ""}</div>
@@ -1585,6 +1579,13 @@ function FlightReservationCard({
                     <div className="font-medium">{to}{toCity ? ` · ${toCity}` : ""}</div>
                     <div className="text-xs">{formatDT(arr)}</div>
                   </div>
+                  {sb.any && (
+                    <div className="flex items-center justify-end gap-1.5 sm:pl-2" title="Bagagens deste voo">
+                      {sb.personal && <Backpack className="h-4 w-4 text-brand-orange" aria-label="Bolsa/mochila" />}
+                      {sb.carry && <Briefcase className="h-4 w-4 text-brand-orange" aria-label="Bagagem de mão" />}
+                      {sb.checked && <Luggage className="h-4 w-4 text-brand-orange" aria-label="Bagagem despachada" />}
+                    </div>
+                  )}
                 </div>
               </div>
             );
