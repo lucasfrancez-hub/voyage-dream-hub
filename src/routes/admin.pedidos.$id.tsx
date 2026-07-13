@@ -2910,17 +2910,19 @@ function FinanceDialog({
   }, [initial, selectedKind, isPackage, defaultSale, defaultTax, defaultSupplier]);
 
 
-  // Total (venda) = tarifa + taxas − desconto. Comissão e RAV são internos (agência).
+  // Total (venda) = tarifa + taxas − desconto + RAV. RAV é receita adicional
+  // cobrada do cliente, então soma no total do item e no total da venda.
   const recalc = (patch: Partial<typeof form>) => {
     const next = { ...form, ...patch };
     const sale = Number(next.sale_value) || 0;
     const tax = Number(next.tax_value) || 0;
     const disc = Number(next.discount_value) || 0;
+    const rav = Number(next.rav_value) || 0;
     const pct = Number(next.commission_pct) || 0;
     const base = Math.max(0, sale);
     const effectivePct = next.is_commissionable ? pct : 0;
     next.commission_value = Number((base * (effectivePct / 100)).toFixed(2));
-    next.total = Number((sale + tax - disc).toFixed(2));
+    next.total = Number((sale + tax - disc + rav).toFixed(2));
     setForm(next);
   };
 
