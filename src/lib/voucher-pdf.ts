@@ -219,7 +219,89 @@ type Ctx = {
   order: OrderDetail["order"];
   logo?: PDFImage;
   pages: PDFPage[];
+  emojiCache?: Map<string, PDFImage | null>;
 };
+
+// ---------- Emoji support (Twemoji PNGs) ----------
+// pdf-lib nao renderiza glifos de emoji das fontes padrao. Baixamos o PNG do
+// Twemoji do CDN e embutimos inline, mantendo o texto ao redor com Helvetica.
+const EMOJI_RE = /(?:\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;
+
+const emojiToTwemojiCode = (emoji: string): string => {
+  const cps: string[] = [];
+  for (const ch of emoji) {
+    const cp = ch.codePointAt(0);
+    if (cp === undefined) continue;
+    if (cp === 0xfe0f) continue; // variation selector-16
+    cps.push(cp.toString(16));
+  }
+  return cps.join("-");
+};
+
+const embedEmojiPng = async (ctx: Ctx, emoji: string): Promise<PDFImage | null> => {
+  if (!ctx.emojiCache) ctx.emojiCache = new Map();
+  if (ctx.emojiCache.has(emoji)) return ctx.emojiCache.get(emoji) ?? null;
+  try {
+    const code = emojiToTwemojiCode(emoji);
+    if (!code) { ctx.emojiCache.set(emoji, null); return null; }
+    const url = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${code}.png`;
+    const r = await fetch(url);
+    if (!r.ok) { ctx.emojiCache.set(emoji, null); return null; }
+    const bytes = new Uint8Array(await r.arrayBuffer());
+    const img = await ctx.pdf.embedPng(bytes);
+    ctx.emojiCache.set(emoji, img);
+    return img;
+  } catch {
+    ctx.emojiCache.set(emoji, null);
+    return null;
+  }
+};
+
+// Segmenta uma string em runs de texto e emoji.
+const splitEmojiRuns = (s: string): Array<{ kind: "text" | "emoji"; value: string }> => {
+  const runs: Array<{ kind: "text" | "emoji"; value: string }> = [];
+  let last = 0;
+  for (const m of s.matchAll(EMOJI_RE)) {
+    const idx = m.index ?? 0;
+    if (idx > last) runs.push({ kind: "text", value: s.slice(last, idx) });
+    runs.push({ kind: "emoji", value: m[0] });
+    last = idx + m[0].length;
+  }
+  if (last < s.length) runs.push({ kind: "text", value: s.slice(last) });
+  return runs;
+};
+
+// Desenha uma linha com texto + emojis inline. Retorna o x final.
+const drawLineWithEmojis = async (
+  ctx: Ctx,
+  x: number,
+  y: number,
+  size: number,
+  text: string,
+  font: PDFFont,
+  color: Color,
+): Promise<number> => {
+  let cursor = x;
+  const runs = splitEmojiRuns(text);
+  for (const run of runs) {
+    if (run.kind === "text") {
+      const clean = sanitize(run.value);
+      if (!clean) continue;
+      ctx.page.drawText(clean, { x: cursor, y, size, font, color });
+      cursor += font.widthOfTextAtSize(clean, size);
+    } else {
+      const img = await embedEmojiPng(ctx, run.value);
+      const h = size * 1.15;
+      const w = h;
+      if (img) {
+        ctx.page.drawImage(img, { x: cursor, y: y - size * 0.15, width: w, height: h });
+      }
+      cursor += w + 1;
+    }
+  }
+  return cursor;
+};
+
 
 const T = (ctx: Ctx) => L[ctx.lang];
 
