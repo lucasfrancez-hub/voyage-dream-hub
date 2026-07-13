@@ -931,7 +931,7 @@ const drawFlightLegBlock = (
   void ticket;
 
 
-  let cy = chipY - 10;
+  let cy = chipY - 22;
   
 
   // --- Card único cinza contendo TODOS os trechos + faixas de conexão ---
@@ -1518,7 +1518,7 @@ const drawHotelSection = async (
 
   // QR (direita)
   const qrTopY = headerBottom - 16;
-  const qrX = innerX + innerW - qrSize;
+  const qrX = innerX + innerW - qrSize - 10;
   const qrY = qrTopY - qrSize;
   if (mapData?.mapsUrl) {
     const qr = await embedQR(ctx, mapData.mapsUrl);
