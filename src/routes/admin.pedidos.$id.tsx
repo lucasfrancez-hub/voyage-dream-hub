@@ -2973,7 +2973,7 @@ function FinanceDialog({
               <Input
                 type="number" step="0.01" min={0}
                 value={form.rav_value}
-                onChange={(e) => setForm({ ...form, rav_value: Number(e.target.value) })}
+                onChange={(e) => recalc({ rav_value: Number(e.target.value) })}
                 placeholder="0,00"
               />
             </div>
