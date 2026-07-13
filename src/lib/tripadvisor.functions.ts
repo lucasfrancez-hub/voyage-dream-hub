@@ -19,6 +19,7 @@ export type TAHotelDetails = TAHotelSuggestion & {
   phone: string | null;
   website: string | null;
   photos: string[];
+  description: string | null;
 };
 
 async function taFetch(path: string): Promise<Response> {
