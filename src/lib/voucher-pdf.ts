@@ -59,6 +59,7 @@ const L = {
     tipo: "TIPO",
     documento: "DOCUMENTO",
     dataNasc: "NASCIMENTO",
+    bilhetePax: "BILHETE",
     aereo: "AEREO",
     ida: "IDA",
     volta: "VOLTA",
@@ -96,6 +97,7 @@ const L = {
     tipo: "TYPE",
     documento: "DOCUMENT",
     dataNasc: "DATE OF BIRTH",
+    bilhetePax: "TICKET",
     aereo: "FLIGHT",
     ida: "OUTBOUND",
     volta: "RETURN",
@@ -620,10 +622,11 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
 
   const innerX = MARGIN + 20;
   const innerW = CONTENT_W - 40;
-  // 4 colunas: nome (2.2), tipo (1), documento (1.6), nascimento (1.2)
-  const units = 2.2 + 1 + 1.6 + 1.2;
-  const colWs = [2.2, 1, 1.6, 1.2].map((u) => (innerW * u) / units);
-  const colXs = [0, colWs[0], colWs[0] + colWs[1], colWs[0] + colWs[1] + colWs[2]].map((x) => innerX + x);
+  // 5 colunas: nome (2.2), tipo (0.9), documento (1.6), nascimento (1.1), bilhete (1.3)
+  const units = 2.2 + 0.9 + 1.6 + 1.1 + 1.3;
+  const weights = [2.2, 0.9, 1.6, 1.1, 1.3];
+  const colWs = weights.map((u) => (innerW * u) / units);
+  const colXs = [0, colWs[0], colWs[0] + colWs[1], colWs[0] + colWs[1] + colWs[2], colWs[0] + colWs[1] + colWs[2] + colWs[3]].map((x) => innerX + x);
   let cy = headerBottom - 8;
 
   ctx.page.drawLine({
@@ -633,7 +636,7 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
   });
   cy -= 6;
 
-  const headers = [t.passageiro, t.tipo, t.documento, t.dataNasc];
+  const headers = [t.passageiro, t.tipo, t.documento, t.dataNasc, t.bilhetePax];
   headers.forEach((h, i) => {
     ctx.page.drawText(sanitize(h), {
       x: colXs[i], y: cy, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
@@ -648,10 +651,12 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
       : (p.cpf ? `CPF ${p.cpf}` : (p.document ?? "-"));
     const tipo = passengerTypeLabel(t, p.passenger_type ?? "ADT");
     const dob = p.birth_date ? fmtDateBR(p.birth_date) : "-";
-    const cells = [name || "-", tipo, doc, dob];
+    const ticket = (p.ticket_number ?? "").trim() || "-";
+    const cells = [name || "-", tipo, doc, dob, ticket];
     cells.forEach((v, i) => {
       ctx.page.drawText(sanitize(v), {
-        x: colXs[i], y: cy, size: 8.5, font: ctx.fontBold, color: COLOR_TEXT,
+        x: colXs[i], y: cy, size: 8.5, font: ctx.fontBold,
+        color: i === 4 && v !== "-" ? COLOR_ORANGE : COLOR_TEXT,
       });
     });
     cy -= rowH;
@@ -734,17 +739,7 @@ const drawFlightLegBlock = (
       x: infoTextX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_NAVY,
     });
   }
-  if (ticket) {
-    const startX = infoTextX + (locator ? measure(ctx.font, `${t.localizador}: `, 9) + measure(ctx.fontBold, locator, 9) + 18 : 0);
-    const lab = `${t.bilhete}: `;
-    const labW = measure(ctx.font, lab, 9);
-    ctx.page.drawText(sanitize(lab), {
-      x: startX, y: chipY + 5, size: 9, font: ctx.font, color: COLOR_MUTED,
-    });
-    ctx.page.drawText(sanitize(ticket), {
-      x: startX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_ORANGE,
-    });
-  }
+  void ticket;
 
   let cy = chipY - 10;
   const segmentsTopY = cy;
