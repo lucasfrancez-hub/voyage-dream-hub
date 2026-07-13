@@ -126,6 +126,7 @@ const L = {
     footerLeve: "Keep this voucher",
     footerLeveText: "with you throughout your trip.",
     footerObr: "Thank you for choosing Via Air. Safe travels!",
+    politicaHotel: "HOTEL POLICY",
     adulto: "Adult",
     crianca: "Child",
     infantil: "Infant",
