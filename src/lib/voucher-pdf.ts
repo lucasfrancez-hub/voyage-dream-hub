@@ -1249,7 +1249,6 @@ const drawAereoSection = async (
     .find((v) => !!v) ?? "";
   const qrUrl = obPrimary ? airlineCheckinURL(obPrimary) : (rtPrimary ? airlineCheckinURL(rtPrimary) : "");
   const qrImg = qrUrl ? await embedQR(ctx, qrUrl) : null;
-  const qrImg = qrUrl ? await embedQR(ctx, qrUrl) : null;
 
   // Pré-carrega logos da cia (por segmento)
   const loadLogos = async (segs: OrderItem[]): Promise<Map<number, PDFImage | null>> => {
