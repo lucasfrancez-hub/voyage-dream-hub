@@ -1387,22 +1387,26 @@ const drawHotelSection = async (
   // Política do hotel (notes)
   if (notes) {
     const boxTop = cy;
-    const boxH = 18 + notesLines.length * 12 + 8;
+    const padX = 14;
+    const padTop = 22;
+    const padBot = 14;
+    const boxH = padTop + notesLines.length * 13 + padBot;
     const boxY = boxTop - boxH;
     drawRoundedRect(ctx.page, innerX, boxY, innerW, boxH, COLOR_NAVY_SOFT, 6);
-    drawIcon(ctx.page, "info", innerX + 10, boxTop - 14, 10, COLOR_NAVY);
+    drawIcon(ctx.page, "info", innerX + padX, boxTop - 16, 10, COLOR_NAVY);
     ctx.page.drawText(sanitize(t.politicaHotel), {
-      x: innerX + 24, y: boxTop - 12, size: 8, font: ctx.fontBold, color: COLOR_NAVY,
+      x: innerX + padX + 14, y: boxTop - 14, size: 8, font: ctx.fontBold, color: COLOR_NAVY,
     });
-    let ny = boxTop - 26;
+    let ny = boxTop - padTop - 9;
     for (const ln of notesLines) {
       ctx.page.drawText(sanitize(ln), {
-        x: innerX + 10, y: ny, size: 9, font: ctx.font, color: COLOR_TEXT,
+        x: innerX + padX, y: ny, size: 9, font: ctx.font, color: COLOR_TEXT,
       });
-      ny -= 12;
+      ny -= 13;
     }
     cy = boxY - 6;
   }
+
 
   closeSectionCard(ctx, top, cy);
 };
