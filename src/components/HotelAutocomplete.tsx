@@ -22,7 +22,7 @@ type Props = {
 export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, photoLimit = 5, disabled, initialMode = null }: Props) {
   const search = useServerFn(searchTripAdvisorHotels);
   const details = useServerFn(getTripAdvisorHotelDetails);
-  const [mode, setMode] = useState<Mode | null>(initialMode);
+  const [mode, setMode] = useState<Mode | null>(initialMode ?? (value?.trim() ? "manual" : null));
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<TAHotelSuggestion[]>([]);
