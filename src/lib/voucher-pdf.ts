@@ -1802,15 +1802,20 @@ const drawFooterStrip = (ctx: Ctx) => {
 const drawServiceSection = async (ctx: Ctx, item: OrderItem) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
-  const title = String(item.title ?? "").trim() || "-";
-  const category = String(d.category ?? "").trim();
+  const rawTitle = String(item.title ?? "").trim() || "-";
+  const title = ctx.lang === "en" && rawTitle !== "-" ? await translateNotesToEnglish(rawTitle) : rawTitle;
+  const rawCategory = String(d.category ?? "").trim();
+  const category = rawCategory && ctx.lang === "en" ? await translateNotesToEnglish(rawCategory) : rawCategory;
   const supplier = String(d.supplier_name ?? "").trim();
+
   const locator = item.supplier_locator ?? "";
   const dateFrom = String(d.date_from ?? "").trim();
   const timeFrom = String(d.time_from ?? "").trim();
   const dateTo = String(d.date_to ?? "").trim();
   const timeTo = String(d.time_to ?? "").trim();
-  const notes = String(d.notes ?? "").trim();
+  const rawNotes = String(d.notes ?? "").trim();
+  const notes = rawNotes ? (ctx.lang === "en" ? await translateNotesToEnglish(rawNotes) : rawNotes) : "";
+
 
   const dep = [dateFrom ? fmtDateBR(dateFrom) : "", timeFrom].filter(Boolean).join(" ");
   const arr = [dateTo ? fmtDateBR(dateTo) : "", timeTo].filter(Boolean).join(" ");
