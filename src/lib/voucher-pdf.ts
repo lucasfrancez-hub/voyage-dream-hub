@@ -1000,7 +1000,22 @@ const drawFlightLegBlock = (
       // Círculo com fundo branco para "cortar" a linha
       ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR + 2, color: COLOR_ROW_ALT });
       ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR, color: COLOR_NAVY });
-      drawIcon(ctx.page, "clock", circleCX - circleR * 0.55, dividerY - circleR * 0.55, circleR * 1.1, COLOR_WHITE);
+      // Reloginho: aro branco + ponteiros brancos sobre o círculo azul
+      ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR * 0.62, color: COLOR_WHITE });
+      ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR * 0.5, color: COLOR_NAVY });
+      // ponteiro vertical (12h)
+      ctx.page.drawLine({
+        start: { x: circleCX, y: dividerY },
+        end: { x: circleCX, y: dividerY + circleR * 0.42 },
+        thickness: 0.9, color: COLOR_WHITE,
+      });
+      // ponteiro horizontal (3h)
+      ctx.page.drawLine({
+        start: { x: circleCX, y: dividerY },
+        end: { x: circleCX + circleR * 0.34, y: dividerY },
+        thickness: 0.9, color: COLOR_WHITE,
+      });
+
 
       // Fundo cinza atrás do texto pra "quebrar" a linha divisória
       const textPadX = 4;
