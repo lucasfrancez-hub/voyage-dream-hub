@@ -792,6 +792,8 @@ const drawFlightLegBlock = (
   ticket: string,
   qr?: { img: PDFImage | null; url: string },
   airlineLogos?: Map<number, PDFImage | null>,
+  isReturn = false,
+
 ): number => {
   const outerX = MARGIN + 14;
   const outerW = CONTENT_W - 28;
