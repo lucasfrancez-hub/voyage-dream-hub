@@ -344,12 +344,17 @@ export type Database = {
           payer_zip: string | null
           payment_method: string
           phone: string
+          seller_email: string | null
+          seller_name: string | null
+          seller_phone: string | null
           status: string
+          supplier_logo_url: string | null
           supplier_name: string | null
           supplier_order_number: string | null
           total_price: number
           travel_reason: string | null
           travel_reason_log: Json
+          trip_title: string | null
         }
         Insert: {
           adults?: number
@@ -380,12 +385,17 @@ export type Database = {
           payer_zip?: string | null
           payment_method: string
           phone: string
+          seller_email?: string | null
+          seller_name?: string | null
+          seller_phone?: string | null
           status?: string
+          supplier_logo_url?: string | null
           supplier_name?: string | null
           supplier_order_number?: string | null
           total_price: number
           travel_reason?: string | null
           travel_reason_log?: Json
+          trip_title?: string | null
         }
         Update: {
           adults?: number
@@ -416,12 +426,17 @@ export type Database = {
           payer_zip?: string | null
           payment_method?: string
           phone?: string
+          seller_email?: string | null
+          seller_name?: string | null
+          seller_phone?: string | null
           status?: string
+          supplier_logo_url?: string | null
           supplier_name?: string | null
           supplier_order_number?: string | null
           total_price?: number
           travel_reason?: string | null
           travel_reason_log?: Json
+          trip_title?: string | null
         }
         Relationships: [
           {
@@ -816,18 +831,21 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          phone: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           full_name?: string | null
           id: string
+          phone?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           full_name?: string | null
           id?: string
+          phone?: string | null
           updated_at?: string
         }
         Relationships: []
