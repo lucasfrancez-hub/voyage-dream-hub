@@ -28,6 +28,30 @@ import QRCode from "qrcode";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
 import type { OrderDetail, OrderItem, OrderPassenger } from "./orders.functions";
 import { getHotelMap, type HotelMapData } from "./voucher-map.functions";
+import { translateText } from "./translate.functions";
+
+// --- Traduções auxiliares para o voucher em inglês ---
+const translateGuestsPtToEn = (input: string): string => {
+  if (!input) return input;
+  let out = input;
+  out = out.replace(/\badultos?\b/gi, (m: string) => (m.toLowerCase() === "adulto" ? "adult" : "adults"));
+  out = out.replace(/\bcrian[çc]as?\b/gi, (m: string) => (m.toLowerCase().endsWith("s") ? "children" : "child"));
+  out = out.replace(/\bbeb[êe]s?\b/gi, (m: string) => (m.toLowerCase().endsWith("s") ? "infants" : "infant"));
+  out = out.replace(/\bh[óo]spedes?\b/gi, (m: string) => (m.toLowerCase().endsWith("s") ? "guests" : "guest"));
+  return out;
+};
+
+
+const translateNotesToEnglish = async (text: string): Promise<string> => {
+  try {
+    const r = await translateText({ data: { text, target: "en" } });
+    return (r?.text ?? "").trim() || text;
+  } catch (e) {
+    console.warn("translateNotesToEnglish failed", e);
+    return text;
+  }
+};
+
 
 // ---------- Layout ----------
 const A4 = { w: 595.28, h: 841.89 };
@@ -1324,11 +1348,14 @@ const drawHotelSection = async (
   const checkout = String(d.check_out ?? d.checkout ?? "").trim();
   const nights = String(d.nights ?? (checkin && checkout ? String(diffDays(checkin, checkout)) : "")).trim();
   const rawGuests = String(d.guests ?? "").trim();
-  const guests = rawGuests && rawGuests !== "null" && rawGuests !== "undefined"
+  const rawGuestsResolved = rawGuests && rawGuests !== "null" && rawGuests !== "undefined"
     ? rawGuests
     : (guestsFallback || "-");
+  const guests = ctx.lang === "en" ? translateGuestsPtToEn(rawGuestsResolved) : rawGuestsResolved;
   const locator = item.supplier_locator ?? "";
-  const notes = String(d.notes ?? "").trim();
+  const rawNotes = String(d.notes ?? "").trim();
+  const notes = rawNotes ? (ctx.lang === "en" ? await translateNotesToEnglish(rawNotes) : rawNotes) : "";
+
 
   // Uma única foto (a primeira do TripAdvisor, se houver)
   let photoUrl = "";
