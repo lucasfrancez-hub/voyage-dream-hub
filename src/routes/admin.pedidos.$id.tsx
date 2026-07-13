@@ -2113,7 +2113,18 @@ function ItemDialog({
                 <div><Label>Noites</Label><Input type="number" value={String(details.nights ?? "")} onChange={(e) => setField("nights", e.target.value)} /></div>
               </div>
               <div><Label>Hóspedes</Label><Input value={String(details.guests ?? "")} onChange={(e) => setField("guests", e.target.value)} placeholder="2 adultos, 1 criança..." /></div>
+              <div>
+                <Label>Políticas do hotel</Label>
+                <Textarea
+                  rows={3}
+                  value={String(details.policies ?? "")}
+                  onChange={(e) => setField("policies", e.target.value)}
+                  placeholder="Ex: Reserva não reembolsável. Cancelamento até 48h antes sem custo. Taxa de resort de US$ 15/noite paga no hotel."
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">Aparece no voucher — reembolso, taxas, fees etc.</p>
+              </div>
             </>
+
 
           ) : kind === "flight" ? (
             (() => {
