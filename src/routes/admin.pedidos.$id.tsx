@@ -1089,6 +1089,7 @@ function ItemsTab({
               segments={group.items}
               passengers={paxForItems(group.items.map((s) => s.id))}
               allPassengers={allPax}
+              packageSnapshot={packageSnapshot}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
               onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
