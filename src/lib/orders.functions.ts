@@ -253,8 +253,13 @@ export const getOrderDetail = createServerFn({ method: "GET" })
 
         supplierName: order.supplier_name ?? null,
         supplierOrderNumber: order.supplier_order_number ?? null,
+        supplierLogoUrl: (order as { supplier_logo_url?: string | null }).supplier_logo_url ?? null,
         airlineLocator: order.airline_locator ?? null,
         packageSnapshot: (order.package_snapshot ?? {}) as Json,
+        tripTitle: (order as { trip_title?: string | null }).trip_title ?? null,
+        sellerName: (order as { seller_name?: string | null }).seller_name ?? null,
+        sellerEmail: (order as { seller_email?: string | null }).seller_email ?? null,
+        sellerPhone: (order as { seller_phone?: string | null }).seller_phone ?? null,
         payerFullName: (order as { payer_full_name?: string | null }).payer_full_name ?? null,
         payerCpf: (order as { payer_cpf?: string | null }).payer_cpf ?? null,
         payerIeRg: (order as { payer_ie_rg?: string | null }).payer_ie_rg ?? null,
