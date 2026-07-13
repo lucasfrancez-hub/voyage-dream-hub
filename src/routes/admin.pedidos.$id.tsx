@@ -2773,7 +2773,7 @@ function FinanceDialog({
       commission_pct: basePct,
       exchange_rate: initial?.exchange_rate ?? 1,
       due_date: initial?.due_date ?? "",
-      total: initial?.total ?? Number((sale + tax - disc).toFixed(2)),
+      total: initial?.total ?? Number((sale + Number((sale * (basePct / 100)).toFixed(2)) + tax - disc).toFixed(2)),
       notes: initial?.notes ?? "",
     });
   }, [initial, selectedKind, isPackage, defaultSale, defaultTax, defaultSupplier]);
