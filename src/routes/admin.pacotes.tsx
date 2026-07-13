@@ -67,6 +67,10 @@ type PackageRow = {
   outbound_flight: FlightInfo | null;
   return_flight: FlightInfo | null;
   supplier_name: string | null;
+  tripadvisor_location_id: string | null;
+  tripadvisor_url: string | null;
+  tripadvisor_address: string | null;
+  tripadvisor_photos: string[] | null;
 };
 
 const emptyForm: Partial<PackageRow> = {
@@ -146,6 +150,10 @@ function AdminPackages() {
         outbound_flight: cleanFlight(editing.outbound_flight),
         return_flight: cleanFlight(editing.return_flight),
         supplier_name: editing.supplier_name || null,
+        tripadvisor_location_id: editing.tripadvisor_location_id || null,
+        tripadvisor_url: editing.tripadvisor_url || null,
+        tripadvisor_address: editing.tripadvisor_address || null,
+        tripadvisor_photos: editing.tripadvisor_photos && editing.tripadvisor_photos.length > 0 ? editing.tripadvisor_photos : null,
       };
       const { error } = editing.id
         ? await supabase.from("packages").update(payload).eq("id", editing.id)
@@ -366,6 +374,10 @@ function AdminPackages() {
                       hotel_name: h.name,
                       hotel_stars: h.rating != null ? Math.round(h.rating) : (prev?.hotel_stars ?? 3),
                       image_url: (prev?.image_url && prev.image_url.length > 0) ? prev.image_url : (h.photos[0] ?? prev?.image_url ?? ""),
+                      tripadvisor_location_id: String(h.location_id),
+                      tripadvisor_url: h.tripadvisor_url ?? null,
+                      tripadvisor_address: h.address ?? null,
+                      tripadvisor_photos: (h.photos && h.photos.length > 0) ? h.photos : null,
                     }));
                   }}
                 />

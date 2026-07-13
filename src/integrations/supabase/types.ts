@@ -459,6 +459,10 @@ export type Database = {
           supplier_name: string | null
           taxes: number | null
           title: string
+          tripadvisor_address: string | null
+          tripadvisor_location_id: string | null
+          tripadvisor_photos: Json | null
+          tripadvisor_url: string | null
           updated_at: string
         }
         Insert: {
@@ -486,6 +490,10 @@ export type Database = {
           supplier_name?: string | null
           taxes?: number | null
           title: string
+          tripadvisor_address?: string | null
+          tripadvisor_location_id?: string | null
+          tripadvisor_photos?: Json | null
+          tripadvisor_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -513,6 +521,10 @@ export type Database = {
           supplier_name?: string | null
           taxes?: number | null
           title?: string
+          tripadvisor_address?: string | null
+          tripadvisor_location_id?: string | null
+          tripadvisor_photos?: Json | null
+          tripadvisor_url?: string | null
           updated_at?: string
         }
         Relationships: []
