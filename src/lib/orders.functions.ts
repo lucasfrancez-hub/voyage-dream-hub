@@ -411,18 +411,48 @@ export const setOrderStatus = createServerFn({ method: "POST" })
 // Atualiza campos livres do pedido (observação, motivo, cupom)
 export const updateOrderMeta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string; notes?: string | null; travel_reason?: string | null; coupon?: string | null }) => input)
+  .inputValidator((input: {
+    id: string;
+    notes?: string | null;
+    travel_reason?: string | null;
+    coupon?: string | null;
+    trip_title?: string | null;
+    seller_name?: string | null;
+    seller_email?: string | null;
+    seller_phone?: string | null;
+    supplier_logo_url?: string | null;
+  }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
     const patch: Record<string, string | null> = {};
-    if (data.notes !== undefined) patch.notes = data.notes;
-    if (data.travel_reason !== undefined) patch.travel_reason = data.travel_reason;
-    if (data.coupon !== undefined) patch.coupon = data.coupon;
+    const keys = ["notes", "travel_reason", "coupon", "trip_title", "seller_name", "seller_email", "seller_phone", "supplier_logo_url"] as const;
+    for (const k of keys) {
+      const v = (data as Record<string, string | null | undefined>)[k];
+      if (v !== undefined) patch[k] = v;
+    }
     if (Object.keys(patch).length === 0) return { ok: true };
     const { error } = await context.supabase.from("orders").update(patch as never).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+// Retorna dados do usuário logado (para pré-preencher o vendedor no pedido).
+export const getMySellerInfo = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId, claims } = context;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, phone")
+      .eq("id", userId)
+      .maybeSingle();
+    const email = (claims as { email?: string } | null)?.email ?? null;
+    return {
+      name: (profile as { full_name?: string | null } | null)?.full_name ?? null,
+      email,
+      phone: (profile as { phone?: string | null } | null)?.phone ?? null,
+    };
   });
 
 // Atualiza dados do pagador (usados em contrato e recibo).
