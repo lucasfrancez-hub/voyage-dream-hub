@@ -542,19 +542,20 @@ const drawHeader = (ctx: Ctx) => {
 // ---------- Voucher ID card ----------
 const drawVoucherIdCard = (ctx: Ctx) => {
   const t = T(ctx);
-  const h = 36;
+  const h = 24;
   ensureSpace(ctx, h + 10);
   const y = ctx.y - h;
-  const w = 320;
-  drawRoundedRect(ctx.page, MARGIN, y, w, h, COLOR_NAVY, 6);
-  drawIcon(ctx.page, "ticket", MARGIN + 14, y + (h - 14) / 2, 14, COLOR_ORANGE);
+  const w = 218;
+  drawRoundedRect(ctx.page, MARGIN, y, w, h, COLOR_NAVY, 5);
+  drawIcon(ctx.page, "ticket", MARGIN + 10, y + (h - 10) / 2, 10, COLOR_ORANGE);
   const label = `${t.voucherId}: `;
+  const labelSize = 9.5;
   ctx.page.drawText(sanitize(label), {
-    x: MARGIN + 40, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_ORANGE,
+    x: MARGIN + 28, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_ORANGE,
   });
-  const lw = measure(ctx.fontBold, label, 12);
+  const lw = measure(ctx.fontBold, label, labelSize);
   ctx.page.drawText(sanitize(String(ctx.order.orderNumber)), {
-    x: MARGIN + 40 + lw, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_WHITE,
+    x: MARGIN + 28 + lw, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_WHITE,
   });
   ctx.y = y - 10;
 };
