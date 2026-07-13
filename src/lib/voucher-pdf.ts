@@ -1191,8 +1191,23 @@ export async function generateVoucher(
     }
   }
 
-  if (outbound.length > 0) renderFlightGroup(ctx, "outbound", outbound);
-  if (returning.length > 0) renderFlightGroup(ctx, "return", returning);
+  // Pré-carrega logos das cias aéreas em paralelo
+  const airlineLogos = new Map<string, PDFImage | null>();
+  const flightItems = [...outbound, ...returning];
+  await Promise.all(flightItems.map(async (it) => {
+    const dd = (it.details ?? {}) as Record<string, unknown>;
+    const url = String(dd.airline_logo_url ?? "").trim();
+    if (!url) { airlineLogos.set(it.id, null); return; }
+    try {
+      const img = await embedRemotePhoto(pdf, url);
+      airlineLogos.set(it.id, img);
+    } catch {
+      airlineLogos.set(it.id, null);
+    }
+  }));
+
+  if (outbound.length > 0) renderFlightGroup(ctx, "outbound", outbound, airlineLogos);
+  if (returning.length > 0) renderFlightGroup(ctx, "return", returning, airlineLogos);
   for (const item of hotels) {
     await renderHotelItem(ctx, item, mapByItem.get(item.id) ?? null);
   }
