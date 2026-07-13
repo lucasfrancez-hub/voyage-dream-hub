@@ -42,6 +42,8 @@ export type OrderItemFinancial = {
 
   commission_value: number;
   commission_pct: number;
+  is_commissionable: boolean;
+  rav_value: number;
   exchange_rate: number;
   due_date: string | null;
   total: number;
