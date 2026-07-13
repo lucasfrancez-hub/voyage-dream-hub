@@ -264,44 +264,32 @@ const drawMainHeader = (ctx: Ctx) => {
     });
   }
 
-  // ID grande no canto direito (label + número)
-  const idLabel = t.idLabel.toUpperCase();
-  const idNumber = String(ctx.order.orderNumber);
-  const idLabelSize = 8;
-  const idNumSize = 20;
-  const idLabelW = measure(ctx.fontBold, idLabel, idLabelSize);
-  const idNumW = measure(ctx.fontDisplay, idNumber, idNumSize);
-  ctx.page.drawText(sanitize(idLabel), {
-    x: A4.w - MARGIN - idLabelW,
-    y: topY - MARGIN - 8,
-    size: idLabelSize, font: ctx.fontBold, color: COLOR_BRAND_BLUE_SOFT,
-  });
-  ctx.page.drawText(sanitize(idNumber), {
-    x: A4.w - MARGIN - idNumW,
-    y: topY - MARGIN - 30,
-    size: idNumSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
-  });
-
   // Linha divisória azul grossa abaixo do logo
   const lineY = topY - MARGIN - 46;
   ctx.page.drawRectangle({
     x: MARGIN, y: lineY, width: CONTENT_W, height: 2, color: COLOR_BRAND_BLUE,
   });
 
-  // Título grande "VOUCHER" com fonte serif de exibição
-  const titleSize = 42;
-  ctx.page.drawText(sanitize(t.title), {
-    x: MARGIN, y: lineY - titleSize - 8, size: titleSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
-  });
-  // Subtítulo elegante ao lado do título
-  const subLabel = ctx.lang === "pt" ? "Documento oficial de reserva" : "Official reservation document";
-  ctx.page.drawText(sanitize(subLabel), {
-    x: MARGIN + measure(ctx.fontDisplay, t.title, titleSize) + 14,
-    y: lineY - titleSize + 4,
-    size: 9, font: ctx.font, color: COLOR_MUTED,
+  // Pílula laranja pequena com o ID logo abaixo da linha
+  const idText = `${t.idLabel.toUpperCase()}: ${ctx.order.orderNumber}`;
+  const idSize = 10;
+  const idTextW = measure(ctx.fontBold, idText, idSize);
+  const idPillW = idTextW + 24;
+  const idPillH = 20;
+  const idPillY = lineY - 8 - idPillH;
+  drawRoundedRect(ctx.page, MARGIN, idPillY, idPillW, idPillH, COLOR_BRAND_ORANGE, 10);
+  ctx.page.drawText(sanitize(idText), {
+    x: MARGIN + 12, y: idPillY + 6, size: idSize, font: ctx.fontBold, color: COLOR_WHITE,
   });
 
-  ctx.y = lineY - titleSize - 32;
+  // Título grande "VOUCHER" em Helvetica bold, azul
+  const titleSize = 38;
+  const titleY = idPillY - titleSize - 4;
+  ctx.page.drawText(sanitize(t.title), {
+    x: MARGIN, y: titleY, size: titleSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
+  });
+
+  ctx.y = titleY - 24;
 };
 
 
@@ -451,7 +439,7 @@ const drawSectionPill = (
   opts?: { color?: Color; rightPill?: string; icon?: IconKind },
 ) => {
   ensureSpace(ctx, 40);
-  const bg = opts?.color ?? COLOR_BRAND_BLUE;
+  const bg = opts?.color ?? COLOR_BRAND_ORANGE;
   const h = 28;
   const pad = 16;
   const size = 13;
@@ -806,7 +794,7 @@ const renderHotelItem = async (
   if (policies) {
     ensureSpace(ctx, 50);
     drawSectionPill(ctx, ctx.lang === "pt" ? "Políticas do hotel" : "Hotel policies", {
-      icon: "policy", color: COLOR_BRAND_BLUE_SOFT,
+      icon: "policy",
     });
     const lines = wrap(ctx.font, 9.5, policies, CONTENT_W - 10);
     for (const ln of lines) {
@@ -989,7 +977,7 @@ export async function generateVoucher(
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const fontDisplay = await pdf.embedFont(StandardFonts.TimesRomanBold);
+  const fontDisplay = await pdf.embedFont(StandardFonts.HelveticaBold);
   const logo = await fetchLogo(pdf);
 
   const firstPage = pdf.addPage([A4.w, A4.h]);
