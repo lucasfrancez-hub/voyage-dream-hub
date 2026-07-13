@@ -1554,6 +1554,7 @@ function FlightReservationCard({
             const dep = (d.depart_at ?? d.departure) as string | undefined;
             const arr = (d.arrive_at ?? d.arrival) as string | undefined;
             const cancelled = seg.status === "cancelled";
+            const sb = bagsFor(seg);
             return (
               <div key={seg.id} className={`rounded-lg border border-border/60 bg-muted/20 p-2.5 text-sm ${cancelled ? "opacity-60" : ""}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1567,11 +1568,25 @@ function FlightReservationCard({
                   {cancelled && <span className="text-[10px] font-semibold uppercase text-destructive">Cancelado</span>}
                 </div>
                 </div>
-                <div className="mt-1.5 grid gap-1 sm:grid-cols-2">
+                <div className="mt-1.5 grid gap-1 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
                   <div>
                     <div className="text-xs text-muted-foreground">Partida</div>
                     <div className="font-medium">{from}{fromCity ? ` · ${fromCity}` : ""}</div>
                     <div className="text-xs">{formatDT(dep)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Chegada</div>
+                    <div className="font-medium">{to}{toCity ? ` · ${toCity}` : ""}</div>
+                    <div className="text-xs">{formatDT(arr)}</div>
+                  </div>
+                  {sb.any && (
+                    <div className="flex items-center justify-end gap-1.5 sm:pl-2" title="Bagagens deste voo">
+                      {sb.personal && <Backpack className="h-4 w-4 text-brand-orange" aria-label="Bolsa/mochila" />}
+                      {sb.carry && <Briefcase className="h-4 w-4 text-brand-orange" aria-label="Bagagem de mão" />}
+                      {sb.checked && <Luggage className="h-4 w-4 text-brand-orange" aria-label="Bagagem despachada" />}
+                    </div>
+                  )}
+                </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Chegada</div>
