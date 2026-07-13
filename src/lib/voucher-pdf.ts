@@ -936,7 +936,7 @@ const drawFlightLegBlock = (
     const leftX = segX + 12;
     const rightX = segX + segW - 12 - measure(ctx.fontBold, toIata, iataSize);
     // Empurra as IATAs pra baixo do pill quando o pill fica dentro do bloco
-    const iataY = segBotY + segContentH - (i === 0 ? 24 : 30);
+    const iataY = segBotY + segContentH - (i === 0 ? 34 : 38);
     ctx.page.drawText(sanitize(fromIata), {
       x: leftX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
