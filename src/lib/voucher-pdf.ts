@@ -823,7 +823,7 @@ const drawFlightLegBlock = (
   void ticket;
 
   let cy = chipY - 10;
-  const segmentsTopY = cy;
+  
 
   // --- Card único cinza contendo TODOS os trechos + faixas de conexão ---
   const pillH = 16;
