@@ -1363,12 +1363,15 @@ const drawInfoAndEmergency = (ctx: Ctx) => {
   const rightX = MARGIN + colW + gap;
   drawRoundedBorder(ctx.page, rightX, top - boxH, colW, boxH, COLOR_BORDER, 10, 0.7);
 
-  // Cabeçalho vermelho
-  const cy = top - 18;
-  ctx.page.drawCircle({ x: rightX + 22, y: cy + 8, size: 12, color: COLOR_RED });
-  drawIcon(ctx.page, "phone", rightX + 22 - 5, cy + 2, 10, COLOR_WHITE);
+  // Cabeçalho vermelho (círculo totalmente dentro do card)
+  const cy = top - 22;
+  const eCircleR = 11;
+  const eCircleCX = rightX + 14 + eCircleR;
+  const eCircleCY = cy + 8;
+  ctx.page.drawCircle({ x: eCircleCX, y: eCircleCY, size: eCircleR, color: COLOR_RED });
+  drawIcon(ctx.page, "phone", eCircleCX - eCircleR * 0.55, eCircleCY - eCircleR * 0.55, eCircleR * 1.1, COLOR_WHITE);
   ctx.page.drawText(sanitize(t.emerg), {
-    x: rightX + 44, y: cy + 4, size: 11.5, font: ctx.fontBold, color: COLOR_RED,
+    x: eCircleCX + eCircleR + 10, y: cy + 4, size: 11.5, font: ctx.fontBold, color: COLOR_RED,
   });
 
   const eLines = wrap(ctx.font, 9, t.emergText, colW - 30);
