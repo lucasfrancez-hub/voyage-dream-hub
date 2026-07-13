@@ -859,7 +859,8 @@ const drawFlightLegBlock = (
 
   // --- Card único cinza contendo TODOS os trechos + faixas de conexão ---
   const pillH = 16;
-  const segContentH = 56;
+  const segContentH = 68;
+
   const conBandH = 28;
   const padTop = pillH / 2 + 6;
   const padBot = 10;
