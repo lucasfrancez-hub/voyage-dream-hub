@@ -59,6 +59,7 @@ const L = {
     tipo: "TIPO",
     documento: "DOCUMENTO",
     dataNasc: "NASCIMENTO",
+    bilhetePax: "BILHETE",
     aereo: "AEREO",
     ida: "IDA",
     volta: "VOLTA",
