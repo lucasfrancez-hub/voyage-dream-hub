@@ -2524,7 +2524,10 @@ function FinanceTab({
     const allExtraRows = [...savedExtraRows, ...extraItemRows];
     const extrasSale = allExtraRows.reduce((a, r) => a + Number(r.sale_value || 0), 0);
     const extrasTax = allExtraRows.reduce((a, r) => a + Number(r.tax_value || 0), 0);
-    const extrasCommission = allExtraRows.reduce((a, r) => a + Number(r.commission_value || 0), 0);
+    const extrasCommission = allExtraRows.reduce(
+      (a, r) => a + Number(r.commission_value || 0) + Number((r as { rav_value?: number }).rav_value || 0),
+      0,
+    );
     const extrasTotal = allExtraRows.reduce((a, r) => a + Number(r.total || 0), 0);
     const packageCommission = Number((packageFareNet * (Number(currentPct) / 100)).toFixed(2));
     const additionalCommission = Math.max(0, Number((packageCommission - packageDefaultCommission).toFixed(2)));
@@ -2541,7 +2544,11 @@ function FinanceTab({
     totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
     totalTax = displayRows.reduce((a, f) => a + Number(f.tax_value || 0), 0);
     commissionBase = Math.max(0, totalSale);
-    totalCommission = displayRows.reduce((a, f) => a + Number(f.commission_value || 0), 0);
+    // Comissão total inclui o RAV lançado por item (comissão adicional).
+    totalCommission = displayRows.reduce(
+      (a, f) => a + Number(f.commission_value || 0) + Number(f.rav_value || 0),
+      0,
+    );
     totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
   }
   const packageDiscount = isPackageOrder
@@ -2712,8 +2719,11 @@ function FinanceTab({
                       <td className="py-2 px-2 text-right text-xs">{formatBRL(f.tax_value)}</td>
                       <td className="py-2 px-2 text-right text-xs">{formatBRL(f.discount_value)}</td>
                       <td className="py-2 px-2 text-right text-xs">
-                        {formatBRL(f.commission_value)}
-                        <div className="text-[10px] text-muted-foreground">{f.commission_pct}%</div>
+                        {formatBRL(Number(f.commission_value) + Number(f.rav_value || 0))}
+                        <div className="text-[10px] text-muted-foreground">
+                          {f.is_commissionable === false ? "não comissionável" : `${f.commission_pct}%`}
+                          {Number(f.rav_value || 0) > 0 && <span className="text-brand-orange"> · +RAV {formatBRL(Number(f.rav_value))}</span>}
+                        </div>
                       </td>
                       <td className="py-2 px-2 text-xs">{f.due_date ? new Date(f.due_date + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
                       <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(f.total)}</td>
@@ -2909,7 +2919,7 @@ function FinanceDialog({
             <Label>Fornecedor</Label>
             <Input value={form.supplier_name ?? ""} onChange={(e) => setForm({ ...form, supplier_name: e.target.value })} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div>
               <Label>Tarifa</Label>
               <Input type="number" step="0.01" value={form.sale_value} onChange={(e) => recalc({ sale_value: Number(e.target.value) })} />
@@ -2922,6 +2932,18 @@ function FinanceDialog({
               <Label>Desconto</Label>
               <Input type="number" step="0.01" value={form.discount_value} onChange={(e) => recalc({ discount_value: Number(e.target.value) })} />
             </div>
+            <div>
+              <Label className="flex items-center gap-1">
+                RAV
+                <span className="rounded-md border border-brand-orange/40 bg-brand-orange/10 px-1 py-0 text-[9px] font-semibold uppercase tracking-wider text-brand-orange">extra</span>
+              </Label>
+              <Input
+                type="number" step="0.01" min={0}
+                value={form.rav_value}
+                onChange={(e) => setForm({ ...form, rav_value: Number(e.target.value) })}
+                placeholder="0,00"
+              />
+            </div>
           </div>
 
           {/* Comissionável + comissão padrão (não editável por item) */}
@@ -2929,7 +2951,7 @@ function FinanceDialog({
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm">Comissionável</Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Desligue para produtos que não pagam comissão.</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Desligue para produtos que não pagam comissão. RAV é somado à parte, sem desconto.</p>
               </div>
               <Switch
                 checked={form.is_commissionable}
@@ -2939,25 +2961,8 @@ function FinanceDialog({
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Base: {formatBRL(base)} · {form.is_commissionable ? `${form.commission_pct}% (padrão)` : "sem comissão"}</span>
               <span>
-                Comissão: <span className="font-semibold text-brand-orange">{formatBRL(form.commission_value)}</span>
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>RAV (comissão adicional R$)</Label>
-              <Input
-                type="number" step="0.01" min={0}
-                value={form.rav_value}
-                onChange={(e) => setForm({ ...form, rav_value: Number(e.target.value) })}
-              />
-              <p className="mt-1 text-[11px] text-muted-foreground">Somado à comissão para efeito de recebimento.</p>
-            </div>
-            <div className="flex items-end">
-              <div className="text-xs text-muted-foreground w-full text-right">
                 Comissão + RAV: <span className="font-semibold text-brand-orange">{formatBRL(Number(form.commission_value) + Number(form.rav_value || 0))}</span>
-              </div>
+              </span>
             </div>
           </div>
 
@@ -3455,20 +3460,22 @@ function CommissionAdjustDialog({
   useEffect(() => {
     if (!open) return;
     const r2 = (n: number) => Number(n.toFixed(2));
-    // Agrega TODOS os itens do financeiro (pacote pronto + extras).
-    // Para itens sem financeiro salvo, usa o valor cadastrado no próprio item
-    // (details.value / details.tax_value) como valor planejado.
+    // Considera SOMENTE itens marcados como comissionáveis. Itens
+    // não-comissionáveis ficam intocados pela régua (tanto na base
+    // exibida quanto na hora de salvar).
     let sumSale = 0;
     let sumTax = 0;
-    let firstPct: number | null = null;
+    let sumCommVal = 0;
+    let sumCommSale = 0;
     for (const it of items) {
       const f = financials.find((x) => x.order_item_id === it.id);
+      const commissionable = f ? (f.is_commissionable ?? true) : true;
+      if (!commissionable) continue;
       if (f) {
         sumSale += Number(f.sale_value || 0);
         sumTax += Number(f.tax_value || 0);
-        if (firstPct === null && f.commission_pct !== null && f.commission_pct !== undefined) {
-          firstPct = Number(f.commission_pct);
-        }
+        sumCommVal += Number(f.commission_value || 0);
+        sumCommSale += Number(f.sale_value || 0);
       } else {
         const d = (it.details ?? {}) as Record<string, unknown>;
         const gross = Math.max(0, Number(d.value ?? 0) || 0);
@@ -3481,7 +3488,12 @@ function CommissionAdjustDialog({
     }
     setSale(r2(sumSale));
     setTax(r2(sumTax));
-    setPct(firstPct !== null ? firstPct : (isPackage ? PKG_DEFAULT_PCT : 10));
+    // Percentual efetivo = comissão real / tarifa (só dos comissionáveis).
+    // Assim, se todos foram zerados, aparece 0% (não o 12% padrão).
+    const effectivePct = sumCommSale > 0
+      ? Number(((sumCommVal / sumCommSale) * 100).toFixed(2))
+      : (isPackage ? PKG_DEFAULT_PCT : 10);
+    setPct(effectivePct);
   }, [open, items, financials, isPackage]);
 
 
@@ -3505,26 +3517,38 @@ function CommissionAdjustDialog({
     if (items.length === 0) { toast.error("Adicione ao menos um item"); return; }
     setSaving(true);
     try {
-      // Distribui tarifa e taxas proporcionalmente ao peso atual de cada item.
-      // Se nenhum item tem valor gravado, divide igualmente.
-      const currents = items.map((it) => {
+      // A régua só age sobre itens comissionáveis (is_commissionable !== false).
+      // Itens não-comissionáveis ficam intocados: mantêm sale/tax/total salvos
+      // e comissão = 0. Isso evita "resetar tudo" quando o usuário zera manualmente.
+      const commList = items.map((it) => {
         const f = financials.find((x) => x.order_item_id === it.id);
+        const commissionable = f ? (f.is_commissionable ?? true) : true;
         const d = (it.details ?? {}) as Record<string, unknown>;
         const gross = Math.max(0, Number(d.value ?? 0) || 0);
         const itemTax = Math.max(0, Math.min(gross, Number(d.tax_value ?? 0) || 0));
         return {
           item: it,
           existing: f,
+          commissionable,
           curSale: f ? Number(f.sale_value ?? 0) : Math.max(0, gross - itemTax),
           curTax: f ? Number(f.tax_value ?? 0) : itemTax,
         };
       });
-      const totalCurSale = currents.reduce((a, c) => a + c.curSale, 0);
-      const totalCurTax = currents.reduce((a, c) => a + c.curTax, 0);
-      const equalShare = 1 / items.length;
+      const commOnly = commList.filter((c) => c.commissionable);
+      if (commOnly.length === 0) {
+        toast.error("Nenhum item comissionável — marque ao menos um como comissionável.");
+        setSaving(false);
+        return;
+      }
+      const totalCurSale = commOnly.reduce((a, c) => a + c.curSale, 0);
+      const totalCurTax = commOnly.reduce((a, c) => a + c.curTax, 0);
+      const equalShare = 1 / commOnly.length;
 
+      // Soma final do pedido: parte dos comissionáveis (recalculada) + parte
+      // dos não-comissionáveis (preservada).
+      let rebuiltTotal = 0;
 
-      for (const c of currents) {
+      for (const c of commOnly) {
         const wSale = totalCurSale > 0 ? c.curSale / totalCurSale : equalShare;
         const wTax = totalCurTax > 0 ? c.curTax / totalCurTax : equalShare;
         const itemSale = Number((sale * wSale).toFixed(2));
@@ -3532,15 +3556,13 @@ function CommissionAdjustDialog({
         const itemBase = Math.max(0, itemSale);
         const itemCommission = Number((itemBase * (pct / 100)).toFixed(2));
         const itemDefaultComm = isPackage ? Number((itemSale * (PKG_DEFAULT_PCT / 100)).toFixed(2)) : 0;
-        // Se pacote e comissão < 12% (base), a diferença vira desconto.
         const itemDiscount = isPackage && itemCommission < itemDefaultComm
           ? Number((itemDefaultComm - itemCommission).toFixed(2))
           : 0;
-        // Total: pacote = tarifa + taxas + delta positivo (só sobe acima de 12%) − desconto.
-        // Manual: tarifa + taxas + comissão.
         const itemTotal = isPackage
           ? Number((itemSale + itemTax + Math.max(0, itemCommission - itemDefaultComm) - itemDiscount).toFixed(2))
           : Number((itemSale + itemTax + itemCommission).toFixed(2));
+        rebuiltTotal += itemTotal;
 
         await upsert({
           data: {
@@ -3551,6 +3573,8 @@ function CommissionAdjustDialog({
             discount_value: itemDiscount,
             commission_pct: pct,
             commission_value: itemCommission,
+            is_commissionable: true,
+            rav_value: c.existing?.rav_value ?? 0,
             total: itemTotal,
             supplier_name: c.existing?.supplier_name ?? null,
             exchange_rate: c.existing?.exchange_rate ?? 1,
@@ -3560,8 +3584,12 @@ function CommissionAdjustDialog({
         });
       }
 
-      // Reflete o novo total no cabeçalho do pedido.
-      await updateTotal({ data: { id: order.id, total_price: Math.max(0, total) } });
+      // Soma os totais preservados dos itens não-comissionáveis (se já existem no financeiro).
+      for (const c of commList.filter((x) => !x.commissionable)) {
+        if (c.existing) rebuiltTotal += Number(c.existing.total || 0);
+      }
+
+      await updateTotal({ data: { id: order.id, total_price: Number(Math.max(0, rebuiltTotal).toFixed(2)) } });
       toast.success("Comissão atualizada e refletida no total do pedido");
       onSaved();
       onOpenChange(false);
@@ -3593,12 +3621,12 @@ function CommissionAdjustDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Tarifa total</Label>
-                <Input type="number" step="0.01" value={sale} onChange={(e) => setSale(Number(e.target.value))} />
+                <Label className="text-xs">Tarifa total (só comissionáveis)</Label>
+                <div className="mt-1 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium">{formatBRL(sale)}</div>
               </div>
               <div>
                 <Label className="text-xs">Taxas totais (não comissionam)</Label>
-                <Input type="number" step="0.01" value={tax} onChange={(e) => setTax(Number(e.target.value))} />
+                <div className="mt-1 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium">{formatBRL(tax)}</div>
               </div>
             </div>
 
