@@ -519,8 +519,8 @@ const drawSimpleTable = (
   if (rows.length === 0) return;
   const cols = headers.length;
   const colW = CONTENT_W / cols;
-  const headerH = 22;
-  const rowH = 22;
+  const headerH = 18;
+  const rowH = 17;
   ensureSpace(ctx, headerH + rowH * rows.length + 10);
 
   // Header
@@ -529,8 +529,8 @@ const drawSimpleTable = (
     x: MARGIN, y: hY, width: CONTENT_W, height: headerH, color: COLOR_PILL_BG,
   });
   headers.forEach((h, i) => {
-    const tx = MARGIN + i * colW + 10;
-    drawText(ctx, h, tx, { y: hY + 7, size: 9, bold: true, color: COLOR_BRAND_BLUE });
+    const tx = MARGIN + i * colW + 8;
+    drawText(ctx, h, tx, { y: hY + 5, size: 7.5, bold: true, color: COLOR_BRAND_BLUE });
   });
   ctx.y = hY;
 
@@ -544,14 +544,14 @@ const drawSimpleTable = (
       });
     }
     r.forEach((cell, i) => {
-      const tx = MARGIN + i * colW + 10;
-      const lines = wrap(ctx.font, 9, cell || "-", colW - 20);
-      drawText(ctx, lines[0] ?? "-", tx, { y: rY + 7, size: 9, color: COLOR_TEXT });
+      const tx = MARGIN + i * colW + 8;
+      const lines = wrap(ctx.font, 8, cell || "-", colW - 16);
+      drawText(ctx, lines[0] ?? "-", tx, { y: rY + 5, size: 8, color: COLOR_TEXT });
     });
     ctx.y = rY;
   });
 
-  ctx.y -= 16;
+  ctx.y -= 12;
 };
 
 // Desenha estrelas com fallback em círculos preenchidos/vazios (WinAnsi safe)
@@ -814,43 +814,112 @@ const renderHotelItem = async (
 };
 
 
-const renderFlightItem = (ctx: Ctx, item: OrderItem) => {
+// Duração humana entre duas datas ISO
+const connectionDuration = (arrivalISO: string, departureISO: string, lang: VoucherLang): string | null => {
+  if (!arrivalISO || !departureISO) return null;
+  const a = new Date(arrivalISO).getTime();
+  const d = new Date(departureISO).getTime();
+  if (!isFinite(a) || !isFinite(d) || d <= a) return null;
+  const totalMin = Math.round((d - a) / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  const hLbl = lang === "pt" ? "h" : "h";
+  const mLbl = lang === "pt" ? "min" : "min";
+  if (h > 0 && m > 0) return `${h}${hLbl} ${m}${mLbl}`;
+  if (h > 0) return `${h}${hLbl}`;
+  return `${m}${mLbl}`;
+};
+
+const renderFlightSegment = (ctx: Ctx, item: OrderItem, index: number, total: number) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
   const airline = String(d.airline ?? "").trim();
   const flightNo = String(d.flight_number ?? "").trim();
+  const cabin = String(d.cabin_class ?? d.cabin ?? "").trim();
   const dep = String(d.depart_at ?? d.departure ?? "").trim();
   const arr = String(d.arrive_at ?? d.arrival ?? "").trim();
-  const from = String(d.origin ?? d.from ?? "").trim();
-  const to = String(d.destination ?? d.to ?? "").trim();
-  const locator = item.supplier_locator ?? "";
+  const fromIata = String(d.from_iata ?? d.origin ?? d.from ?? "").trim();
+  const toIata = String(d.to_iata ?? d.destination ?? d.to ?? "").trim();
+  const fromCity = String(d.from_city ?? "").trim();
+  const toCity = String(d.to_city ?? "").trim();
+  const ticket = String(d.ticket_number ?? "").trim();
 
-  ensureSpace(ctx, 140);
-  drawSectionPill(ctx, t.flight, {
+  ensureSpace(ctx, 60);
+
+  // Pequeno rótulo do trecho + cia/voo/cabine + bilhete
+  const segLabel = total > 1
+    ? (ctx.lang === "pt" ? `Trecho ${index + 1}` : `Segment ${index + 1}`)
+    : "";
+  const header = [segLabel, [airline, flightNo].filter(Boolean).join(" · "), cabin]
+    .filter(Boolean).join("  ·  ");
+  if (header) {
+    drawText(ctx, header, MARGIN, { size: 9, bold: true, color: COLOR_BRAND_BLUE });
+    if (ticket) {
+      const tLbl = (ctx.lang === "pt" ? "Bilhete: " : "Ticket: ") + ticket;
+      const tw = measure(ctx.fontBold, tLbl, 8.5);
+      drawText(ctx, tLbl, MARGIN + CONTENT_W - tw, { size: 8.5, bold: true, color: COLOR_BRAND_ORANGE });
+    }
+    ctx.y -= 12;
+  }
+
+  // Linha IATA → IATA em destaque
+  const iataLine = `${fromIata || "—"}  →  ${toIata || "—"}`;
+  drawText(ctx, iataLine, MARGIN, { size: 14, bold: true, color: COLOR_BRAND_BLUE });
+  ctx.y -= 16;
+
+  // Duas colunas: Partida | Chegada
+  const colW = CONTENT_W / 2;
+  const rowY = ctx.y;
+  const blocks: Array<{ label: string; city: string; when: string }> = [
+    { label: t.departure, city: fromCity, when: fmtDateTime(dep, ctx.lang) || "-" },
+    { label: t.arrival, city: toCity, when: fmtDateTime(arr, ctx.lang) || "-" },
+  ];
+  blocks.forEach((b, i) => {
+    const x = MARGIN + i * colW;
+    drawText(ctx, b.label.toUpperCase(), x, { y: rowY, size: 7, bold: true, color: COLOR_BRAND_BLUE_SOFT });
+    if (b.city) drawText(ctx, b.city, x, { y: rowY - 11, size: 9, color: COLOR_TEXT });
+    drawText(ctx, b.when, x, { y: rowY - (b.city ? 22 : 11), size: 9, bold: true, color: COLOR_TEXT });
+  });
+  ctx.y = rowY - 28 - (blocks.some(b => b.city) ? 6 : 0);
+};
+
+const renderFlightGroup = (ctx: Ctx, dir: "outbound" | "return", items: OrderItem[]) => {
+  const t = T(ctx);
+  if (items.length === 0) return;
+  const label = dir === "return"
+    ? `${t.flight} — ${ctx.lang === "pt" ? "Volta" : "Return"}`
+    : `${t.flight} — ${ctx.lang === "pt" ? "Ida" : "Outbound"}`;
+  // Localizador (primeiro que tiver)
+  const locator = items.map(i => i.supplier_locator).find(Boolean) ?? "";
+  drawSectionPill(ctx, label, {
     icon: "plane",
     rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
   });
 
-  const title = [airline, flightNo].filter(Boolean).join(" · ") || item.title || "-";
-  drawFieldTitle(ctx, title, 14);
-
-  // 4 colunas: Origem / Destino / Partida / Chegada
-  const colW = CONTENT_W / 4;
-  const rowY = ctx.y - 14;
-  const cells: Array<{ label: string; value: string }> = [
-    { label: t.from, value: from || "-" },
-    { label: t.to, value: to || "-" },
-    { label: t.departure, value: fmtDateTime(dep, ctx.lang) || "-" },
-    { label: t.arrival, value: fmtDateTime(arr, ctx.lang) || "-" },
-  ];
-  cells.forEach((c, i) => {
-    const x = MARGIN + i * colW;
-    drawText(ctx, c.label.toUpperCase(), x, { y: rowY, size: 7.5, bold: true, color: COLOR_BRAND_BLUE_SOFT });
-    const lines = wrap(ctx.font, 9.5, c.value, colW - 8);
-    drawText(ctx, lines[0] ?? "-", x, { y: rowY - 12, size: 9.5, bold: true, color: COLOR_TEXT });
-    if (lines[1]) drawText(ctx, lines[1], x, { y: rowY - 22, size: 8.5, color: COLOR_MUTED });
+  items.forEach((item, i) => {
+    renderFlightSegment(ctx, item, i, items.length);
+    // Conexão entre segmentos
+    if (i < items.length - 1) {
+      const prevArr = String(((item.details ?? {}) as Record<string, unknown>).arrive_at ?? "").trim();
+      const nextDep = String(((items[i + 1].details ?? {}) as Record<string, unknown>).depart_at ?? "").trim();
+      const dur = connectionDuration(prevArr, nextDep, ctx.lang);
+      const text = dur
+        ? (ctx.lang === "pt" ? `Conexão · ${dur}` : `Layover · ${dur}`)
+        : (ctx.lang === "pt" ? "Conexão" : "Layover");
+      ensureSpace(ctx, 22);
+      const size = 8;
+      const w = measure(ctx.fontBold, text, size) + 20;
+      const h = 16;
+      const x = MARGIN + (CONTENT_W - w) / 2;
+      const y = ctx.y - h;
+      drawRoundedRect(ctx.page, x, y, w, h, COLOR_PILL_BG, 8);
+      ctx.page.drawText(sanitize(text), {
+        x: x + 10, y: y + 4, size, font: ctx.fontBold, color: COLOR_BRAND_BLUE,
+      });
+      ctx.y = y - 8;
+    }
   });
-  ctx.y = rowY - 30;
+  ctx.y -= 6;
 };
 
 const renderOtherItem = (ctx: Ctx, item: OrderItem) => {
@@ -1033,19 +1102,33 @@ export async function generateVoucher(
     }
   }));
 
-  // Ordena itens (por sort_order já vem ordenado do backend)
+  // Passageiros primeiro, como referência do pedido
+  drawPassengersBlock(ctx, detail.passengers);
+
+  // Agrupa voos por direção mantendo sort_order
+  const outbound: OrderItem[] = [];
+  const returning: OrderItem[] = [];
+  const others: OrderItem[] = [];
+  const hotels: OrderItem[] = [];
   for (const item of detail.items) {
-    if (item.kind === "hotel") {
-      await renderHotelItem(ctx, item, mapByItem.get(item.id) ?? null);
-    } else if (item.kind === "flight") {
-      renderFlightItem(ctx, item);
+    if (item.kind === "flight") {
+      const dir = String(((item.details ?? {}) as Record<string, unknown>).direction ?? "outbound");
+      if (dir === "return") returning.push(item); else outbound.push(item);
+    } else if (item.kind === "hotel") {
+      hotels.push(item);
     } else {
-      renderOtherItem(ctx, item);
+      others.push(item);
     }
   }
 
-  // Passageiros (depois dos itens, como referência consolidada)
-  drawPassengersBlock(ctx, detail.passengers);
+  if (outbound.length > 0) renderFlightGroup(ctx, "outbound", outbound);
+  if (returning.length > 0) renderFlightGroup(ctx, "return", returning);
+  for (const item of hotels) {
+    await renderHotelItem(ctx, item, mapByItem.get(item.id) ?? null);
+  }
+  for (const item of others) {
+    renderOtherItem(ctx, item);
+  }
 
   // Informações gerais + Emergências
   drawInfoBlock(ctx);
