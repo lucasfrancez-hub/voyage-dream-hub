@@ -1518,7 +1518,7 @@ const drawHotelSection = async (
 
   // QR (direita)
   const qrTopY = headerBottom - 16;
-  const qrX = innerX + innerW - qrSize;
+  const qrX = innerX + innerW - qrSize - 10;
   const qrY = qrTopY - qrSize;
   if (mapData?.mapsUrl) {
     const qr = await embedQR(ctx, mapData.mapsUrl);
