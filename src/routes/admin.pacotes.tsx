@@ -150,6 +150,10 @@ function AdminPackages() {
         outbound_flight: cleanFlight(editing.outbound_flight),
         return_flight: cleanFlight(editing.return_flight),
         supplier_name: editing.supplier_name || null,
+        tripadvisor_location_id: editing.tripadvisor_location_id || null,
+        tripadvisor_url: editing.tripadvisor_url || null,
+        tripadvisor_address: editing.tripadvisor_address || null,
+        tripadvisor_photos: editing.tripadvisor_photos && editing.tripadvisor_photos.length > 0 ? editing.tripadvisor_photos : null,
       };
       const { error } = editing.id
         ? await supabase.from("packages").update(payload).eq("id", editing.id)
