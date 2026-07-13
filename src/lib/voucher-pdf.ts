@@ -1393,22 +1393,19 @@ const drawInfoAndEmergency = (ctx: Ctx) => {
 // ---------- Footer strip ----------
 const drawFooterStrip = (ctx: Ctx) => {
   const t = T(ctx);
-  ensureSpace(ctx, 48);
-  const h = 38;
+  ensureSpace(ctx, 36);
+  const h = 26;
   const y = ctx.y - h;
   drawRoundedRect(ctx.page, MARGIN, y, CONTENT_W, h, COLOR_NAVY_SOFT, 6);
-  drawIcon(ctx.page, "ticket", MARGIN + 14, y + h - 16, 12, COLOR_NAVY);
-  // Linha 1: "Leve este voucher com você durante toda a viagem."
+  drawIcon(ctx.page, "ticket", MARGIN + 12, y + (h - 12) / 2, 12, COLOR_NAVY);
+  const textY = y + (h - 10) / 2 + 1;
+  const boldW = measure(ctx.fontBold, t.footerLeve, 9.5);
   ctx.page.drawText(sanitize(t.footerLeve), {
-    x: MARGIN + 34, y: y + h - 14, size: 10, font: ctx.fontBold, color: COLOR_NAVY,
+    x: MARGIN + 32, y: textY, size: 9.5, font: ctx.fontBold, color: COLOR_NAVY,
   });
-  const boldW = measure(ctx.fontBold, t.footerLeve, 10);
-  ctx.page.drawText(sanitize(" " + t.footerLeveText), {
-    x: MARGIN + 34 + boldW, y: y + h - 14, size: 10, font: ctx.font, color: COLOR_TEXT,
-  });
-  // Linha 2: "Agradecemos por escolher a Via Air. Boa viagem!"
-  ctx.page.drawText(sanitize(t.footerObr), {
-    x: MARGIN + 34, y: y + 8, size: 9.5, font: ctx.font, color: COLOR_TEXT,
+  const rest = ` ${t.footerLeveText} ${t.footerObr}`;
+  ctx.page.drawText(sanitize(rest), {
+    x: MARGIN + 32 + boldW, y: textY, size: 9.5, font: ctx.font, color: COLOR_TEXT,
   });
   ctx.y = y - 8;
 };
