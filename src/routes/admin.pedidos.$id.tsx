@@ -2057,16 +2057,6 @@ function ItemDialog({
           <Input value={String(d.airline_logo_url ?? "")} onChange={(e) => onChangeField("airline_logo_url", e.target.value)} placeholder="https://…/logo.png" />
         </div>
       </div>
-      <div>
-        <Label>Link da companhia (check-in / consulta)</Label>
-        <Input
-          value={String(d.airline_checkin_url ?? "")}
-          onChange={(e) => onChangeField("airline_checkin_url", e.target.value)}
-          placeholder="https://www.latam.com/…/checkin"
-          type="url"
-        />
-        <p className="mt-1 text-[11px] text-muted-foreground">Use quando o trecho for operado por outra cia (ex.: emitido TAP, operado GOL). Vira QR clicável no voucher desse trecho.</p>
-      </div>
       <div className="rounded-md border border-border p-2">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Bagagem inclusa</div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
