@@ -1621,9 +1621,9 @@ function HotelReservationCard({
 
         {/* Coluna 2: detalhes */}
         <div className="min-w-0 border-l border-border pl-4">
-          <div className="font-semibold">
-            {item.title}
-            {stars ? <span className="ml-2 text-xs text-brand-orange">{"★".repeat(stars)}</span> : null}
+          <div className="font-semibold flex items-center gap-2 flex-wrap">
+            <span>{item.title}</span>
+            {stars ? <StarsDisplay value={stars} /> : null}
           </div>
           <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
             {destination && <div>{destination}</div>}
