@@ -888,13 +888,11 @@ const drawAereoSection = async (
   const rt = sortByDep(returning);
 
   // Estimativa de espaço
-  const est = 40 + (ob.length ? 130 + (ob.length - 1) * 90 : 0) + (rt.length ? 130 + (rt.length - 1) * 90 : 0) + 40;
+  const est = 40 + (ob.length ? 110 + (ob.length - 1) * 80 : 0) + (rt.length ? 110 + (rt.length - 1) * 80 : 0) + 40;
   const { top } = openSectionCard(ctx, est + 40);
   const headerBottom = drawSectionHeader(ctx, top, "plane", t.aereo);
 
-  let cy = headerBottom - 8;
-
-  // Preparar QR de cada perna
+  // QR único no topo (usa ida; se não houver, usa volta)
   const obPrimary = ob[0];
   const rtPrimary = rt[0];
   const obLocator = ob.map((i) => i.supplier_locator).find(Boolean) ?? "";
@@ -905,17 +903,34 @@ const drawAereoSection = async (
   const rtTicket = rt
     .map((i) => String(((i.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
     .find((v) => !!v) ?? "";
-  const obUrl = obPrimary ? airlineCheckinURL(obPrimary) : "";
-  const rtUrl = rtPrimary ? airlineCheckinURL(rtPrimary) : "";
-  const obQr = obUrl ? await embedQR(ctx, obUrl) : null;
-  const rtQr = rtUrl ? await embedQR(ctx, rtUrl) : null;
+  const qrUrl = obPrimary ? airlineCheckinURL(obPrimary) : (rtPrimary ? airlineCheckinURL(rtPrimary) : "");
+  const qrImg = qrUrl ? await embedQR(ctx, qrUrl) : null;
+
+  const qrSize = 62;
+  if (qrImg) {
+    const qrX = MARGIN + CONTENT_W - 14 - qrSize;
+    const qrY = top - 14 - qrSize;
+    ctx.page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+    addLinkAnnotation(ctx, qrX, qrY, qrSize, qrSize, qrUrl);
+    const lines = T(ctx).verifiqueCia.split("\n");
+    let ly = qrY - 9;
+    for (const ln of lines) {
+      const lw = measure(ctx.font, ln, 7);
+      ctx.page.drawText(sanitize(ln), {
+        x: qrX + (qrSize - lw) / 2, y: ly, size: 7, font: ctx.font, color: COLOR_MUTED,
+      });
+      ly -= 9;
+    }
+  }
+
+  let cy = headerBottom - 8;
 
   if (ob.length > 0) {
-    cy = drawFlightLegBlock(ctx, cy, t.ida, COLOR_NAVY, ob, obLocator, obTicket, obUrl, obQr);
+    cy = drawFlightLegBlock(ctx, cy, t.ida, COLOR_NAVY, ob, obLocator, obTicket);
     cy -= 4;
   }
   if (rt.length > 0) {
-    cy = drawFlightLegBlock(ctx, cy, t.volta, COLOR_NAVY, rt, rtLocator, rtTicket, rtUrl, rtQr);
+    cy = drawFlightLegBlock(ctx, cy, t.volta, COLOR_NAVY, rt, rtLocator, rtTicket);
     cy -= 4;
   }
 
