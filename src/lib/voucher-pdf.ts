@@ -1102,19 +1102,33 @@ export async function generateVoucher(
     }
   }));
 
-  // Ordena itens (por sort_order já vem ordenado do backend)
+  // Passageiros primeiro, como referência do pedido
+  drawPassengersBlock(ctx, detail.passengers);
+
+  // Agrupa voos por direção mantendo sort_order
+  const outbound: OrderItem[] = [];
+  const returning: OrderItem[] = [];
+  const others: OrderItem[] = [];
+  const hotels: OrderItem[] = [];
   for (const item of detail.items) {
-    if (item.kind === "hotel") {
-      await renderHotelItem(ctx, item, mapByItem.get(item.id) ?? null);
-    } else if (item.kind === "flight") {
-      renderFlightItem(ctx, item);
+    if (item.kind === "flight") {
+      const dir = String(((item.details ?? {}) as Record<string, unknown>).direction ?? "outbound");
+      if (dir === "return") returning.push(item); else outbound.push(item);
+    } else if (item.kind === "hotel") {
+      hotels.push(item);
     } else {
-      renderOtherItem(ctx, item);
+      others.push(item);
     }
   }
 
-  // Passageiros (depois dos itens, como referência consolidada)
-  drawPassengersBlock(ctx, detail.passengers);
+  if (outbound.length > 0) renderFlightGroup(ctx, "outbound", outbound);
+  if (returning.length > 0) renderFlightGroup(ctx, "return", returning);
+  for (const item of hotels) {
+    await renderHotelItem(ctx, item, mapByItem.get(item.id) ?? null);
+  }
+  for (const item of others) {
+    renderOtherItem(ctx, item);
+  }
 
   // Informações gerais + Emergências
   drawInfoBlock(ctx);
