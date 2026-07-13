@@ -1970,7 +1970,9 @@ function ItemDialog({
     setTitle(initial?.title ?? "");
     setLocator(initial?.supplier_locator ?? "");
     setStatusVal((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
-    setDetails(cleanDetails(initial?.details));
+    const d0 = cleanDetails(initial?.details);
+    if (kind === "hotel" && !d0.guests && guestsFromPax) d0.guests = guestsFromPax;
+    setDetails(d0);
     setExtraSegments(
       kind === "flight"
         ? (siblings ?? []).map((s) => ({ id: s.id, details: cleanDetails(s.details) }))
