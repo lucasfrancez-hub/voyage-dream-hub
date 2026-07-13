@@ -2719,8 +2719,11 @@ function FinanceTab({
                       <td className="py-2 px-2 text-right text-xs">{formatBRL(f.tax_value)}</td>
                       <td className="py-2 px-2 text-right text-xs">{formatBRL(f.discount_value)}</td>
                       <td className="py-2 px-2 text-right text-xs">
-                        {formatBRL(f.commission_value)}
-                        <div className="text-[10px] text-muted-foreground">{f.commission_pct}%</div>
+                        {formatBRL(Number(f.commission_value) + Number(f.rav_value || 0))}
+                        <div className="text-[10px] text-muted-foreground">
+                          {f.is_commissionable === false ? "não comissionável" : `${f.commission_pct}%`}
+                          {Number(f.rav_value || 0) > 0 && <span className="text-brand-orange"> · +RAV {formatBRL(Number(f.rav_value))}</span>}
+                        </div>
                       </td>
                       <td className="py-2 px-2 text-xs">{f.due_date ? new Date(f.due_date + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
                       <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(f.total)}</td>
