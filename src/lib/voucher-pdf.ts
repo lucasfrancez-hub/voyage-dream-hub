@@ -495,7 +495,7 @@ const drawHeader = (ctx: Ctx) => {
   // Título à esquerda com barrinha laranja
   const titleY = top - 14;
   ctx.page.drawRectangle({ x: MARGIN, y: titleY - 2, width: 4, height: 18, color: COLOR_ORANGE });
-  const titleSize = 18;
+  const titleSize = 16;
   const titleMaxW = logoX - MARGIN - 20;
   const titleLines = wrap(ctx.fontBold, titleSize, tripTitle, titleMaxW);
   let ty = titleY;
