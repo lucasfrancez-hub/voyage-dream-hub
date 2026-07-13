@@ -1525,7 +1525,7 @@ const drawHotelSection = async (
     : (guestsFallback || "-");
   const guests = ctx.lang === "en" ? translateGuestsPtToEn(rawGuestsResolved) : rawGuestsResolved;
   const locator = item.supplier_locator ?? "";
-  const rawNotes = String(d.notes ?? "").trim();
+  const rawNotes = [String(d.policies ?? "").trim(), String(d.notes ?? "").trim()].filter(Boolean).join("\n\n");
   const notes = rawNotes ? (ctx.lang === "en" ? await translateNotesToEnglish(rawNotes) : rawNotes) : "";
 
 
