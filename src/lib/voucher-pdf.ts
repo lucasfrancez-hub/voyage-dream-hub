@@ -1478,7 +1478,7 @@ const drawFooterStrip = (ctx: Ctx) => {
   const h = 26;
   const y = ctx.y - h;
   drawRoundedRect(ctx.page, MARGIN, y, CONTENT_W, h, COLOR_NAVY_SOFT, 6);
-  drawIcon(ctx.page, "ticket", MARGIN + 12, y + (h - 12) / 2, 12, COLOR_NAVY);
+  drawIcon(ctx.page, "ticket", MARGIN + 12, y + (h - 12) / 2, 12, COLOR_ORANGE);
   const textY = y + (h - 10) / 2 + 1;
   const boldW = measure(ctx.fontBold, t.footerLeve, 9.5);
   ctx.page.drawText(sanitize(t.footerLeve), {
