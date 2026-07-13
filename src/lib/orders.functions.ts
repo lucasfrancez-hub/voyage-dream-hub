@@ -145,6 +145,31 @@ export const getOrderDetail = createServerFn({ method: "GET" })
     // Materializa hospedagem/aéreo/passageiros a partir do snapshot do pacote (idempotente)
     await supabase.rpc("materialize_order_from_snapshot", { _order_id: data.id });
 
+    // Enriquece packageSnapshot com outbound_flight/return_flight do pacote (via slug),
+    // pois o snapshot armazenado guarda apenas campos básicos e a UI precisa das
+    // flags de bagagem e do logo da cia por trecho vindos do pacote pronto.
+    try {
+      const snap = (order.package_snapshot ?? {}) as Record<string, unknown>;
+      const slug = typeof snap.slug === "string" ? snap.slug : null;
+      const hasFlights = !!(snap.outbound_flight || snap.return_flight);
+      if (slug && !hasFlights) {
+        const { data: pkg } = await supabase
+          .from("packages")
+          .select("outbound_flight, return_flight")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (pkg) {
+          (order as { package_snapshot: Record<string, unknown> }).package_snapshot = {
+            ...snap,
+            outbound_flight: (pkg as { outbound_flight?: unknown }).outbound_flight ?? null,
+            return_flight: (pkg as { return_flight?: unknown }).return_flight ?? null,
+          };
+        }
+      }
+    } catch {
+      // ignora — snapshot original permanece
+    }
+
 
 
     const { data: passengers, error: e2 } = await supabase
