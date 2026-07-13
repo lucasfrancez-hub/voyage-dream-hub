@@ -1198,12 +1198,18 @@ export async function generateVoucher(
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const fontDisplay = await pdf.embedFont(StandardFonts.HelveticaBold);
   const logo = await fetchLogo(pdf);
+  const supplierLogoUrl = String(
+    (detail.order as unknown as { supplierLogoUrl?: string | null }).supplierLogoUrl ?? "",
+  ).trim();
+  const supplierLogo = supplierLogoUrl
+    ? (await embedRemotePhoto(pdf, supplierLogoUrl)) ?? undefined
+    : undefined;
 
   const firstPage = pdf.addPage([A4.w, A4.h]);
   const ctx: Ctx = {
     pdf, page: firstPage, y: A4.h - MARGIN,
     font, fontBold, fontDisplay, lang,
-    order: detail.order, logo, pages: [firstPage],
+    order: detail.order, logo, supplierLogo, pages: [firstPage],
   };
 
   drawMainHeader(ctx);
