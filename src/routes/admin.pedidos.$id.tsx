@@ -2820,6 +2820,8 @@ function FinanceDialog({
     discount_value: initial?.discount_value ?? 0,
     commission_value: initial?.commission_value ?? 0,
     commission_pct: initial?.commission_pct ?? defaultCommissionPct(selectedKind, isPackage),
+    is_commissionable: initial?.is_commissionable ?? true,
+    rav_value: initial?.rav_value ?? 0,
     exchange_rate: initial?.exchange_rate ?? 1,
     due_date: initial?.due_date ?? "",
     total: initial?.total ?? 0,
@@ -2831,22 +2833,26 @@ function FinanceDialog({
     const sale = initial?.sale_value ?? defaultSale;
     const tax = initial?.tax_value ?? defaultTax;
     const disc = initial?.discount_value ?? 0;
+    const commissionable = initial?.is_commissionable ?? true;
+    const effectivePct = commissionable ? basePct : 0;
     setForm({
       supplier_name: initial?.supplier_name ?? defaultSupplier,
       sale_value: sale,
       tax_value: tax,
       discount_value: disc,
-      commission_value: initial?.commission_value ?? Number((sale * (basePct / 100)).toFixed(2)),
+      commission_value: initial?.commission_value ?? Number((sale * (effectivePct / 100)).toFixed(2)),
       commission_pct: basePct,
+      is_commissionable: commissionable,
+      rav_value: initial?.rav_value ?? 0,
       exchange_rate: initial?.exchange_rate ?? 1,
       due_date: initial?.due_date ?? "",
-      total: initial?.total ?? Number((sale + Number((sale * (basePct / 100)).toFixed(2)) + tax - disc).toFixed(2)),
+      total: initial?.total ?? Number((sale + tax - disc).toFixed(2)),
       notes: initial?.notes ?? "",
     });
   }, [initial, selectedKind, isPackage, defaultSale, defaultTax, defaultSupplier]);
 
 
-  // Tarifa é líquida de taxas; total (venda) = tarifa + comissão + taxas − desconto.
+  // Total (venda) = tarifa + taxas − desconto. Comissão e RAV são internos (agência).
   const recalc = (patch: Partial<typeof form>) => {
     const next = { ...form, ...patch };
     const sale = Number(next.sale_value) || 0;
@@ -2854,8 +2860,9 @@ function FinanceDialog({
     const disc = Number(next.discount_value) || 0;
     const pct = Number(next.commission_pct) || 0;
     const base = Math.max(0, sale);
-    next.commission_value = Number((base * (pct / 100)).toFixed(2));
-    next.total = Number((sale + next.commission_value + tax - disc).toFixed(2));
+    const effectivePct = next.is_commissionable ? pct : 0;
+    next.commission_value = Number((base * (effectivePct / 100)).toFixed(2));
+    next.total = Number((sale + tax - disc).toFixed(2));
     setForm(next);
   };
 
