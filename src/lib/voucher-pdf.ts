@@ -672,163 +672,141 @@ const drawFlightLegBlock = (
   segments: OrderItem[],
   locator: string,
   ticket: string,
-  qrUrl: string,
-  qrImg: PDFImage | null,
 ): number => {
   const outerX = MARGIN + 14;
   const outerW = CONTENT_W - 28;
-  const qrSize = 92;
-  const infoW = outerW - qrSize - 16;
+  const infoW = outerW;
 
-  // Cabeçalho: chip + localizador + bilhete
-  const chipW = 76;
-  const chipH = 22;
+  const chipW = 66;
+  const chipH = 18;
   const chipY = y - chipH;
   drawRoundedRect(ctx.page, outerX, chipY, chipW, chipH, labelColor, 4);
-  const lblW = measure(ctx.fontBold, labelText, 11);
+  const lblW = measure(ctx.fontBold, labelText, 10);
   ctx.page.drawText(sanitize(labelText), {
-    x: outerX + (chipW - lblW) / 2, y: chipY + 7, size: 11, font: ctx.fontBold, color: COLOR_WHITE,
+    x: outerX + (chipW - lblW) / 2, y: chipY + 5, size: 10, font: ctx.fontBold, color: COLOR_WHITE,
   });
 
-  // Localizador + Bilhete inline
   const t = T(ctx);
-  const locStr = locator ? `${t.localizador}: ${locator}` : "";
-  const tkStr = ticket ? `${t.bilhete}: ${ticket}` : "";
-  const infoTextX = outerX + chipW + 14;
-  if (locStr) {
-    // rótulo em cinza, valor em bold escuro
+  const infoTextX = outerX + chipW + 12;
+  if (locator) {
     const lab = `${t.localizador}: `;
-    const labW = measure(ctx.font, lab, 10);
+    const labW = measure(ctx.font, lab, 9);
     ctx.page.drawText(sanitize(lab), {
-      x: infoTextX, y: chipY + 7, size: 10, font: ctx.font, color: COLOR_MUTED,
+      x: infoTextX, y: chipY + 5, size: 9, font: ctx.font, color: COLOR_MUTED,
     });
     ctx.page.drawText(sanitize(locator), {
-      x: infoTextX + labW, y: chipY + 7, size: 10, font: ctx.fontBold, color: COLOR_TEXT,
+      x: infoTextX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_TEXT,
     });
   }
-  if (tkStr) {
-    const startX = infoTextX + (locStr ? measure(ctx.font, `${t.localizador}: `, 10) + measure(ctx.fontBold, locator, 10) + 20 : 0);
+  if (ticket) {
+    const startX = infoTextX + (locator ? measure(ctx.font, `${t.localizador}: `, 9) + measure(ctx.fontBold, locator, 9) + 18 : 0);
     const lab = `${t.bilhete}: `;
-    const labW = measure(ctx.font, lab, 10);
+    const labW = measure(ctx.font, lab, 9);
     ctx.page.drawText(sanitize(lab), {
-      x: startX, y: chipY + 7, size: 10, font: ctx.font, color: COLOR_MUTED,
+      x: startX, y: chipY + 5, size: 9, font: ctx.font, color: COLOR_MUTED,
     });
     ctx.page.drawText(sanitize(ticket), {
-      x: startX + labW, y: chipY + 7, size: 10, font: ctx.fontBold, color: COLOR_TEXT,
+      x: startX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_TEXT,
     });
   }
 
-  let cy = chipY - 12;
+  let cy = chipY - 10;
 
-  // Segmentos (cada trecho)
   segments.forEach((seg, i) => {
     const d = (seg.details ?? {}) as Record<string, unknown>;
-    const fromIata = String(d.from_iata ?? d.origin ?? "").trim() || "—";
-    const toIata = String(d.to_iata ?? d.destination ?? "").trim() || "—";
+    const fromIata = String(d.from_iata ?? d.origin ?? "").trim() || "-";
+    const toIata = String(d.to_iata ?? d.destination ?? "").trim() || "-";
     const fromCity = String(d.from_city ?? "").trim();
     const toCity = String(d.to_city ?? "").trim();
     const dep = String(d.depart_at ?? "").trim();
     const arr = String(d.arrive_at ?? "").trim();
 
-    const segH = 78;
+    const segH = 64;
     const segX = outerX;
     const segW = infoW;
     const segY = cy - segH;
-    // Fundo sutil
     drawRoundedRect(ctx.page, segX, segY, segW, segH, COLOR_ROW_ALT, 8);
 
-    // IATA à esquerda, IATA à direita, avião no meio
-    const iataSize = 22;
-    const leftX = segX + 24;
-    const rightX = segX + segW - 24 - measure(ctx.fontBold, toIata, iataSize);
-    const iataY = segY + segH - 30;
+    const iataSize = 18;
+    const leftX = segX + 20;
+    const rightX = segX + segW - 20 - measure(ctx.fontBold, toIata, iataSize);
+    const iataY = segY + segH - 24;
     ctx.page.drawText(sanitize(fromIata), {
       x: leftX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
     ctx.page.drawText(sanitize(toIata), {
       x: rightX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
-    // Linha central + aviãozinho
-    const midY = iataY + iataSize / 2 - 4;
-    const leftEdge = leftX + measure(ctx.fontBold, fromIata, iataSize) + 12;
-    const rightEdge = rightX - 12;
-    // Linha pontilhada aproximada
-    const dashCount = 20;
-    const dashW = (rightEdge - leftEdge - 12) / dashCount;
+    const midY = iataY + iataSize / 2 - 3;
+    const leftEdge = leftX + measure(ctx.fontBold, fromIata, iataSize) + 10;
+    const rightEdge = rightX - 10;
+    const dashCount = 22;
+    const dashW = (rightEdge - leftEdge - 10) / dashCount;
     for (let dI = 0; dI < dashCount; dI++) {
       const dx = leftEdge + dI * dashW;
       ctx.page.drawLine({
         start: { x: dx, y: midY }, end: { x: dx + dashW * 0.5, y: midY },
-        thickness: 0.7, color: COLOR_MUTED,
+        thickness: 0.6, color: COLOR_MUTED,
       });
     }
-    const centerX = (leftEdge + rightEdge) / 2 - 6;
-    drawIcon(ctx.page, "planeSmall", centerX, midY - 5, 12, COLOR_NAVY);
+    const centerX = (leftEdge + rightEdge) / 2 - 5;
+    drawIcon(ctx.page, "planeSmall", centerX, midY - 5, 10, COLOR_NAVY);
 
-    // Cidades + datas embaixo
-    const bottomY = segY + 16;
+    const bottomY = segY + 10;
     if (fromCity) {
       ctx.page.drawText(sanitize(fromCity), {
-        x: leftX, y: bottomY + 12, size: 8.5, font: ctx.font, color: COLOR_MUTED,
+        x: leftX, y: bottomY + 12, size: 7.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
     if (toCity) {
-      const cityW = measure(ctx.font, toCity, 8.5);
+      const cityW = measure(ctx.font, toCity, 7.5);
       ctx.page.drawText(sanitize(toCity), {
-        x: segX + segW - 24 - cityW, y: bottomY + 12, size: 8.5, font: ctx.font, color: COLOR_MUTED,
+        x: segX + segW - 20 - cityW, y: bottomY + 12, size: 7.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
     const depTxt = dep ? `${fmtDateBR(dep)}  ${fmtTime(dep)}` : "";
     const arrTxt = arr ? `${fmtDateBR(arr)}  ${fmtTime(arr)}` : "";
     if (depTxt) {
       ctx.page.drawText(sanitize(depTxt), {
-        x: leftX, y: bottomY, size: 9, font: ctx.fontBold, color: COLOR_TEXT,
+        x: leftX, y: bottomY, size: 8, font: ctx.fontBold, color: COLOR_TEXT,
       });
     }
     if (arrTxt) {
-      const w = measure(ctx.fontBold, arrTxt, 9);
+      const w = measure(ctx.fontBold, arrTxt, 8);
       ctx.page.drawText(sanitize(arrTxt), {
-        x: segX + segW - 24 - w, y: bottomY, size: 9, font: ctx.fontBold, color: COLOR_TEXT,
+        x: segX + segW - 20 - w, y: bottomY, size: 8, font: ctx.fontBold, color: COLOR_TEXT,
       });
     }
 
-    cy = segY - 6;
+    cy = segY - 4;
 
-    // Chip de conexão entre segmentos
     if (i < segments.length - 1) {
       const nextD = (segments[i + 1].details ?? {}) as Record<string, unknown>;
       const nextFromCity = String(nextD.from_city ?? nextD.from_iata ?? "").trim();
-      const conText = `${t.conexao} ${nextFromCity || toCity || toIata}`;
-      const cSize = 8.5;
+      const nextDep = String(nextD.depart_at ?? "").trim();
+      let layoverText = "";
+      if (arr && nextDep) {
+        const diffMs = new Date(nextDep).getTime() - new Date(arr).getTime();
+        if (Number.isFinite(diffMs) && diffMs > 0) {
+          const totalMin = Math.round(diffMs / 60000);
+          const h = Math.floor(totalMin / 60);
+          const m = totalMin % 60;
+          layoverText = h > 0 ? `${h}h${m > 0 ? ` ${m}min` : ""}` : `${m}min`;
+        }
+      }
+      const conText = `${t.conexao} ${nextFromCity || toCity || toIata}${layoverText ? ` - ${layoverText}` : ""}`;
+      const cSize = 8;
       const cw = measure(ctx.fontBold, conText, cSize) + 20;
-      const ch = 16;
+      const ch = 14;
       const cx = segX + (segW - cw) / 2;
       const ccy = cy - ch;
-      drawRoundedRect(ctx.page, cx, ccy, cw, ch, COLOR_NAVY_SOFT, 8);
+      drawRoundedRect(ctx.page, cx, ccy, cw, ch, COLOR_NAVY_SOFT, 7);
       ctx.page.drawText(sanitize(conText), {
-        x: cx + 10, y: ccy + 4, size: cSize, font: ctx.fontBold, color: COLOR_NAVY,
+        x: cx + 10, y: ccy + 3, size: cSize, font: ctx.fontBold, color: COLOR_NAVY,
       });
-      cy = ccy - 6;
+      cy = ccy - 4;
     }
   });
-
-  // QR à direita, alinhado ao topo do primeiro segmento
-  if (qrImg) {
-    const qrX = outerX + infoW + 16;
-    const qrY = chipY - 12 - 78 + (78 - qrSize) / 2;
-    ctx.page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
-    addLinkAnnotation(ctx, qrX, qrY, qrSize, qrSize, qrUrl);
-    // Label abaixo
-    const lines = T(ctx).verifiqueCia.split("\n");
-    let ly = qrY - 10;
-    for (const ln of lines) {
-      const lw = measure(ctx.font, ln, 8);
-      ctx.page.drawText(sanitize(ln), {
-        x: qrX + (qrSize - lw) / 2, y: ly, size: 8, font: ctx.font, color: COLOR_MUTED,
-      });
-      ly -= 10;
-    }
-  }
 
   return cy;
 };
