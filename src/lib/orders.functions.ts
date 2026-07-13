@@ -609,6 +609,8 @@ export const upsertItemFinancial = createServerFn({ method: "POST" })
       discount_value: data.discount_value ?? 0,
       commission_value: data.commission_value ?? 0,
       commission_pct: data.commission_pct ?? 0,
+      is_commissionable: data.is_commissionable ?? true,
+      rav_value: data.rav_value ?? 0,
       exchange_rate: data.exchange_rate ?? 1,
       due_date: data.due_date && data.due_date !== "" ? data.due_date : null,
       total: data.total ?? 0,
