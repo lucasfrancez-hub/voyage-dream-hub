@@ -3600,12 +3600,12 @@ function CommissionAdjustDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Tarifa total</Label>
-                <Input type="number" step="0.01" value={sale} onChange={(e) => setSale(Number(e.target.value))} />
+                <Label className="text-xs">Tarifa total (só comissionáveis)</Label>
+                <div className="mt-1 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium">{formatBRL(sale)}</div>
               </div>
               <div>
                 <Label className="text-xs">Taxas totais (não comissionam)</Label>
-                <Input type="number" step="0.01" value={tax} onChange={(e) => setTax(Number(e.target.value))} />
+                <div className="mt-1 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium">{formatBRL(tax)}</div>
               </div>
             </div>
 
