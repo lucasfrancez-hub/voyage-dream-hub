@@ -23,6 +23,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 
 import { formatBRL } from "@/lib/format";
 import { paymentMethodLabel, statusLabel, itemStatusBadge } from "@/lib/order-labels";
