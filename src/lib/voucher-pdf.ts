@@ -899,7 +899,12 @@ const renderFlightSegment = (
   ctx.y = rowY - 28 - (blocks.some(b => b.city) ? 6 : 0);
 };
 
-const renderFlightGroup = (ctx: Ctx, dir: "outbound" | "return", items: OrderItem[]) => {
+const renderFlightGroup = (
+  ctx: Ctx,
+  dir: "outbound" | "return",
+  items: OrderItem[],
+  logos: Map<string, PDFImage | null>,
+) => {
   const t = T(ctx);
   if (items.length === 0) return;
   const label = dir === "return"
@@ -926,8 +931,20 @@ const renderFlightGroup = (ctx: Ctx, dir: "outbound" | "return", items: OrderIte
     rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
   });
 
+  // Linha "Bilhete: XXX" logo abaixo do localizador (apenas 1 vez por grupo)
+  const ticket = items
+    .map(i => String(((i.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
+    .find((v) => !!v);
+  if (ticket) {
+    ensureSpace(ctx, 14);
+    const tLbl = (ctx.lang === "pt" ? "Bilhete: " : "Ticket: ") + ticket;
+    const tw = measure(ctx.fontBold, tLbl, 9);
+    drawText(ctx, tLbl, MARGIN + CONTENT_W - tw, { size: 9, bold: true, color: COLOR_BRAND_ORANGE });
+    ctx.y -= 12;
+  }
+
   items.forEach((item, i) => {
-    renderFlightSegment(ctx, item, i, items.length);
+    renderFlightSegment(ctx, item, i, items.length, logos.get(item.id) ?? null);
     // Conexão entre segmentos
     if (i < items.length - 1) {
       const prevArr = String(((item.details ?? {}) as Record<string, unknown>).arrive_at ?? "").trim();
@@ -949,6 +966,29 @@ const renderFlightGroup = (ctx: Ctx, dir: "outbound" | "return", items: OrderIte
       ctx.y = y - 8;
     }
   });
+
+  // Bagagem inclusa (agregada — mostra se ao menos um trecho traz)
+  const agg = items.reduce(
+    (acc, it) => {
+      const dd = (it.details ?? {}) as Record<string, unknown>;
+      return {
+        personal: acc.personal || !!dd.personal_item,
+        carry: acc.carry || !!dd.carry_on,
+        checked: acc.checked || !!dd.checked_bag,
+      };
+    },
+    { personal: false, carry: false, checked: false },
+  );
+  if (agg.personal || agg.carry || agg.checked) {
+    ensureSpace(ctx, 22);
+    const items2: string[] = [];
+    if (agg.personal) items2.push(ctx.lang === "pt" ? "Bolsa/mochila" : "Personal item");
+    if (agg.carry) items2.push(ctx.lang === "pt" ? "Bagagem de mão" : "Carry-on");
+    if (agg.checked) items2.push(ctx.lang === "pt" ? "Bagagem despachada" : "Checked bag");
+    const label2 = (ctx.lang === "pt" ? "Bagagem inclusa: " : "Baggage included: ") + items2.join(" · ");
+    drawText(ctx, label2, MARGIN, { size: 9, bold: true, color: COLOR_BRAND_BLUE });
+    ctx.y -= 14;
+  }
   ctx.y -= 6;
 };
 
