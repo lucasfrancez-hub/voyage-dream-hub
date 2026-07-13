@@ -619,11 +619,15 @@ function PassengersSection({
                       passport_issue_date: patch.passport_issue_date !== undefined ? patch.passport_issue_date : p.passport_issue_date,
                       passport_expiry_date: patch.passport_expiry_date !== undefined ? patch.passport_expiry_date : p.passport_expiry_date,
                     });
-                    // Se alterou o bilhete, replica em todos os aéreos: grava details.ticket_number e marca como Confirmado.
+                    // Se alterou o bilhete: atualiza status dos aéreos (confirmado se algum passageiro tem bilhete).
                     if (patch.ticket_number !== undefined) {
-                      const newTicket = patch.ticket_number;
+                      const anyTicket =
+                        (patch.ticket_number && patch.ticket_number.trim()) ||
+                        passengers.some((pp) => pp.id !== p.id && (pp.ticket_number ?? "").trim());
                       for (const fi of flightItems) {
-                        const details = { ...((fi.details ?? {}) as Record<string, unknown>), ticket_number: newTicket ?? "" };
+                        const details = { ...((fi.details ?? {}) as Record<string, unknown>) };
+                        // Remove ticket_number legado do item (bilhete agora vive só no passageiro)
+                        delete (details as Record<string, unknown>).ticket_number;
                         upsertItem({
                           data: {
                             id: fi.id,
@@ -633,7 +637,7 @@ function PassengersSection({
                             supplier_locator: fi.supplier_locator,
                             details: details as Json,
                             sort_order: fi.sort_order,
-                            status: newTicket ? "confirmed" : (fi.supplier_locator ? "reserved" : "pending"),
+                            status: anyTicket ? "confirmed" : (fi.supplier_locator ? "reserved" : "pending"),
                           },
                         }).catch(() => { /* toast já é global */ });
                       }
