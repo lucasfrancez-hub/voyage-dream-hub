@@ -155,12 +155,20 @@ function OrderDetailPage() {
   });
 
   const metaMut = useMutation({
-    mutationFn: (patch: { notes?: string | null; travel_reason?: string | null; coupon?: string | null }) =>
+    mutationFn: (patch: {
+      notes?: string | null;
+      travel_reason?: string | null;
+      coupon?: string | null;
+      trip_title?: string | null;
+      seller_name?: string | null;
+      seller_email?: string | null;
+      seller_phone?: string | null;
+      supplier_logo_url?: string | null;
+    }) =>
       updateOrderMetaFn({ data: { id: (data as OrderDetail | undefined)?.order.id ?? "", ...patch } }),
-    onSuccess: () => { toast.success("Salvo"); invalidate(); },
+    onSuccess: () => { invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
-  void metaMut; // reservado para futuras edições rápidas
 
   if (isLoading) {
     return (
