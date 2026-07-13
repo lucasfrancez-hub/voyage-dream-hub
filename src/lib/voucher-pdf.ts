@@ -775,8 +775,8 @@ const drawFlightLegBlock = (
         x: segX + segW - 24 - cityW, y: bottomY + 12, size: 8.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
-    const depTxt = dep ? `${fmtDateBR(dep)} • ${fmtTime(dep)}` : "";
-    const arrTxt = arr ? `${fmtDateBR(arr)} • ${fmtTime(arr)}` : "";
+    const depTxt = dep ? `${fmtDateBR(dep)}  ${fmtTime(dep)}` : "";
+    const arrTxt = arr ? `${fmtDateBR(arr)}  ${fmtTime(arr)}` : "";
     if (depTxt) {
       ctx.page.drawText(sanitize(depTxt), {
         x: leftX, y: bottomY, size: 9, font: ctx.fontBold, color: COLOR_TEXT,
