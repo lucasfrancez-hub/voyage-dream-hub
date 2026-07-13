@@ -326,10 +326,35 @@ const drawIcon = (page: PDFPage, kind: IconKind, x: number, y: number, size: num
       break;
     }
     case "ticket": {
-      // Bilhete: retângulo com "recorte" nas laterais
-      page.drawRectangle({ x, y: y + s * 0.2, width: s, height: s * 0.6, color });
-      page.drawCircle({ x, y: y + s / 2, size: s * 0.1, color: COLOR_WHITE });
-      page.drawCircle({ x: x + s, y: y + s / 2, size: s * 0.1, color: COLOR_WHITE });
+      // Bilhete horizontal, cheio, com recortes semicirculares nas laterais
+      // e tracejado vertical no meio (estilo boarding pass)
+      const bodyY = y + s * 0.22;
+      const bodyH = s * 0.56;
+      const r = s * 0.06;
+      // corpo com cantos arredondados
+      page.drawRectangle({ x: x + r, y: bodyY, width: s - 2 * r, height: bodyH, color });
+      page.drawRectangle({ x, y: bodyY + r, width: s, height: bodyH - 2 * r, color });
+      page.drawCircle({ x: x + r, y: bodyY + r, size: r, color });
+      page.drawCircle({ x: x + s - r, y: bodyY + r, size: r, color });
+      page.drawCircle({ x: x + r, y: bodyY + bodyH - r, size: r, color });
+      page.drawCircle({ x: x + s - r, y: bodyY + bodyH - r, size: r, color });
+      // recortes brancos nas laterais (meio)
+      page.drawCircle({ x, y: bodyY + bodyH / 2, size: s * 0.11, color: COLOR_WHITE });
+      page.drawCircle({ x: x + s, y: bodyY + bodyH / 2, size: s * 0.11, color: COLOR_WHITE });
+      // perfuração central (3 tracinhos brancos verticais)
+      const perfX = x + s * 0.62;
+      const perfW = s * 0.04;
+      const perfH = s * 0.09;
+      const gap = s * 0.055;
+      for (let i = -1; i <= 1; i++) {
+        page.drawRectangle({
+          x: perfX,
+          y: bodyY + bodyH / 2 - perfH / 2 + i * (perfH + gap),
+          width: perfW,
+          height: perfH,
+          color: COLOR_WHITE,
+        });
+      }
       break;
     }
     case "user": {
