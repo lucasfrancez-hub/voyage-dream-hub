@@ -97,6 +97,7 @@ const L = {
     tipo: "TYPE",
     documento: "DOCUMENT",
     dataNasc: "DATE OF BIRTH",
+    bilhetePax: "TICKET",
     aereo: "FLIGHT",
     ida: "OUTBOUND",
     volta: "RETURN",
