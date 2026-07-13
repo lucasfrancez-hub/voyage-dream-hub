@@ -1874,7 +1874,7 @@ function ItemDialog({
   const cleanDetails = (raw: unknown): Record<string, string | number | boolean> => {
     const clean: Record<string, string | number | boolean> = {};
     for (const [k, v] of Object.entries((raw ?? {}) as Record<string, unknown>)) {
-      if (typeof v === "string" || typeof v === "number") clean[k] = v;
+      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") clean[k] = v;
     }
     return clean;
   };
