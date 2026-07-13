@@ -336,7 +336,24 @@ function OrderDetailPage() {
                       openBlobInNewTab(blob, `recibo-${order.orderNumber}.pdf`);
                     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar recibo"); }
                   }}><FileText className="h-3.5 w-3.5 mr-2" /> Recibo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info("Voucher (PDF) — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => {
+                    const tId = toast.loading("Gerando voucher em português…");
+                    try {
+                      const { generateVoucher } = await import("@/lib/voucher-pdf");
+                      const blob = await generateVoucher(detail, "pt");
+                      openBlobInNewTab(blob, `voucher-${order.orderNumber}.pdf`);
+                      toast.success("Voucher gerado", { id: tId });
+                    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar voucher", { id: tId }); }
+                  }}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher (PT)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => {
+                    const tId = toast.loading("Generating voucher in English…");
+                    try {
+                      const { generateVoucher } = await import("@/lib/voucher-pdf");
+                      const blob = await generateVoucher(detail, "en");
+                      openBlobInNewTab(blob, `voucher-${order.orderNumber}-en.pdf`);
+                      toast.success("Voucher ready", { id: tId });
+                    } catch (e) { toast.error(e instanceof Error ? e.message : "Error generating voucher", { id: tId }); }
+                  }}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher (EN)</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
