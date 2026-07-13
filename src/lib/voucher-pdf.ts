@@ -667,8 +667,8 @@ const drawPassengersBlock = (ctx: Ctx, passengers: OrderPassenger[]) => {
   drawSectionPill(ctx, label);
 
   // Tabela: Nome · Documento · Tipo
-  const headers = [t.passengers, t.documentLabel, t.hotel]; // dummy 3rd col replaced
-  headers[2] = ctx.lang === "pt" ? "Tipo" : "Type";
+  const typeLabel = ctx.lang === "pt" ? "Tipo" : "Type";
+  const headers: string[] = [t.passengers, t.documentLabel, typeLabel];
 
   const rows = passengers.map((p) => {
     const name = p.full_name || "-";
