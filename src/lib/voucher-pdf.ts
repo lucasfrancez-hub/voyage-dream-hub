@@ -976,7 +976,7 @@ const drawFlightLegBlock = (
     const bottomY = segBotY + 6;
     if (fromCity) {
       ctx.page.drawText(sanitize(fromCity), {
-        x: leftX, y: bottomY + 14, size: 7.5, font: ctx.font, color: COLOR_MUTED,
+        x: leftX, y: bottomY + 17, size: 7.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
     if (toCity) {
