@@ -830,7 +830,13 @@ const connectionDuration = (arrivalISO: string, departureISO: string, lang: Vouc
   return `${m}${mLbl}`;
 };
 
-const renderFlightSegment = (ctx: Ctx, item: OrderItem, index: number, total: number) => {
+const renderFlightSegment = (
+  ctx: Ctx,
+  item: OrderItem,
+  index: number,
+  total: number,
+  airlineLogo: PDFImage | null,
+) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
   const airline = String(d.airline ?? "").trim();
@@ -842,40 +848,50 @@ const renderFlightSegment = (ctx: Ctx, item: OrderItem, index: number, total: nu
   const toIata = String(d.to_iata ?? d.destination ?? d.to ?? "").trim();
   const fromCity = String(d.from_city ?? "").trim();
   const toCity = String(d.to_city ?? "").trim();
-  const ticket = String(d.ticket_number ?? "").trim();
 
-  ensureSpace(ctx, 60);
+  ensureSpace(ctx, 66);
 
-  // Pequeno rótulo do trecho + cia/voo/cabine + bilhete
+  const LOGO_SIZE = 26;
+  const LOGO_GAP = 10;
+  const textX = airlineLogo ? MARGIN + LOGO_SIZE + LOGO_GAP : MARGIN;
+  const textW = airlineLogo ? CONTENT_W - LOGO_SIZE - LOGO_GAP : CONTENT_W;
+  const topY = ctx.y;
+
+  if (airlineLogo) {
+    const ratio = airlineLogo.width / airlineLogo.height;
+    let lw = LOGO_SIZE * ratio;
+    let lh = LOGO_SIZE;
+    if (lw > LOGO_SIZE * 1.6) { lw = LOGO_SIZE * 1.6; lh = lw / ratio; }
+    ctx.page.drawImage(airlineLogo, {
+      x: MARGIN, y: topY - lh - 2, width: lw, height: lh,
+    });
+  }
+
+  // Pequeno rótulo do trecho + cia/voo/cabine
   const segLabel = total > 1
     ? (ctx.lang === "pt" ? `Trecho ${index + 1}` : `Segment ${index + 1}`)
     : "";
   const header = [segLabel, [airline, flightNo].filter(Boolean).join(" · "), cabin]
     .filter(Boolean).join("  ·  ");
   if (header) {
-    drawText(ctx, header, MARGIN, { size: 9, bold: true, color: COLOR_BRAND_BLUE });
-    if (ticket) {
-      const tLbl = (ctx.lang === "pt" ? "Bilhete: " : "Ticket: ") + ticket;
-      const tw = measure(ctx.fontBold, tLbl, 8.5);
-      drawText(ctx, tLbl, MARGIN + CONTENT_W - tw, { size: 8.5, bold: true, color: COLOR_BRAND_ORANGE });
-    }
+    drawText(ctx, header, textX, { size: 9, bold: true, color: COLOR_BRAND_BLUE });
     ctx.y -= 12;
   }
 
   // Linha IATA → IATA em destaque
   const iataLine = `${fromIata || "—"}  →  ${toIata || "—"}`;
-  drawText(ctx, iataLine, MARGIN, { size: 14, bold: true, color: COLOR_BRAND_BLUE });
+  drawText(ctx, iataLine, textX, { size: 14, bold: true, color: COLOR_BRAND_BLUE });
   ctx.y -= 16;
 
   // Duas colunas: Partida | Chegada
-  const colW = CONTENT_W / 2;
+  const colW = textW / 2;
   const rowY = ctx.y;
   const blocks: Array<{ label: string; city: string; when: string }> = [
     { label: t.departure, city: fromCity, when: fmtDateTime(dep, ctx.lang) || "-" },
     { label: t.arrival, city: toCity, when: fmtDateTime(arr, ctx.lang) || "-" },
   ];
   blocks.forEach((b, i) => {
-    const x = MARGIN + i * colW;
+    const x = textX + i * colW;
     drawText(ctx, b.label.toUpperCase(), x, { y: rowY, size: 7, bold: true, color: COLOR_BRAND_BLUE_SOFT });
     if (b.city) drawText(ctx, b.city, x, { y: rowY - 11, size: 9, color: COLOR_TEXT });
     drawText(ctx, b.when, x, { y: rowY - (b.city ? 22 : 11), size: 9, bold: true, color: COLOR_TEXT });
