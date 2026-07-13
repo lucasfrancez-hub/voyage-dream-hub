@@ -865,18 +865,22 @@ const drawFlightLegBlock = (
   });
 
   const t = T(ctx);
-  const infoTextX = outerX + chipW + 12;
   if (locator) {
-    const lab = `${t.localizador}: `;
-    const labW = measure(ctx.font, lab, 9);
-    ctx.page.drawText(sanitize(lab), {
-      x: infoTextX, y: chipY + 5, size: 9, font: ctx.font, color: COLOR_MUTED,
-    });
-    ctx.page.drawText(sanitize(locator), {
-      x: infoTextX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_NAVY,
+    // Chip do localizador da companhia (mesmo estilo do chip da hospedagem)
+    const locChipSize = 9;
+    const locChipText = `${t.localizador}: ${locator}`;
+    const locChipTw = measure(ctx.fontBold, locChipText, locChipSize);
+    const locChipW = locChipTw + 24;
+    const locChipH = 20;
+    const locChipX = outerX + chipW + 10;
+    const locChipY = chipY + (chipH - locChipH) / 2;
+    drawRoundedRect(ctx.page, locChipX, locChipY, locChipW, locChipH, COLOR_NAVY_SOFT, 6);
+    ctx.page.drawText(sanitize(locChipText), {
+      x: locChipX + 12, y: locChipY + 6, size: locChipSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
   }
   void ticket;
+
 
   let cy = chipY - 10;
   
@@ -1381,10 +1385,12 @@ const drawHotelSection = async (
   // Pre-compute notes wrapping to size the card
   const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 28) : [];
   const notesBlockH = notes ? 22 + notesLines.length * 13 + 14 + 10 : 0;
+  const notesGap = notes ? 16 : 0;
 
 
   const topBlockH = Math.max(photo ? photoH + 8 : 0, qrSize + 30, 110);
-  const cardH = topBlockH + notesBlockH + 24;
+  const cardH = topBlockH + notesBlockH + notesGap + 24;
+
 
   const { top } = openSectionCard(ctx, cardH + 20);
   const headerBottom = drawSectionHeader(ctx, top, "bed", t.hospedagem);
@@ -1482,7 +1488,7 @@ const drawHotelSection = async (
     }
   }
 
-  cy = Math.min(infoY - 18, qrY - 26);
+  cy = Math.min(infoY - 18, qrY - 26) - notesGap;
 
   // Política do hotel (notes)
   if (notes) {
