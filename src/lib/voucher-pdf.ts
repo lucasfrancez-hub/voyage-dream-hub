@@ -754,42 +754,43 @@ const drawFlightLegBlock = (
     const arr = String(d.arrive_at ?? "").trim();
     const airline = String(d.airline ?? "").trim();
     const flightNo = String(d.flight_number ?? "").trim();
-    const duration = computeDuration(dep, arr);
+    const cabin = String(d.cabin_class ?? d.cabin ?? "").trim();
     const logo = airlineLogos?.get(i) ?? null;
 
-    const segH = 80;
+    // Pill "TRECHO N - Cia - Voo - Cabine" acima do card
+    const trechoLbl = segments.length > 1 ? `TRECHO ${i + 1}` : "TRECHO";
+    const pillParts = [trechoLbl, airline, flightNo, cabin].filter(Boolean);
+    const pillText = pillParts.join(" - ");
+    const pillSize = 7.5;
+    const pillTw = measure(ctx.fontBold, pillText, pillSize);
+    const pillH = 14;
+    const pillW = pillTw + (logo ? 20 : 0) + 18;
+    const pillX = outerX + (segColW - pillW) / 2;
+    const pillY = cy - pillH;
+    drawRoundedRect(ctx.page, pillX, pillY, pillW, pillH, COLOR_NAVY, 7);
+    let ptx = pillX + 9;
+    if (logo) {
+      const lh = 10;
+      const lw = Math.min((logo.width / logo.height) * lh, 16);
+      ctx.page.drawImage(logo, { x: ptx, y: pillY + 2, width: lw, height: lh });
+      ptx += lw + 4;
+    }
+    ctx.page.drawText(sanitize(pillText), {
+      x: ptx, y: pillY + 3.5, size: pillSize, font: ctx.fontBold, color: COLOR_WHITE,
+    });
+    cy = pillY - 4;
+
+    const segH = 62;
     const segX = outerX;
     const segW = segColW;
     const segY = cy - segH;
     drawRoundedRect(ctx.page, segX, segY, segW, segH, COLOR_ROW_ALT, 8);
 
-    // Header: logo + cia + voo
-    const headerY = segY + segH - 14;
-    let hx = segX + 12;
-    if (logo) {
-      const lh = 14;
-      const lw = (logo.width / logo.height) * lh;
-      const lwCapped = Math.min(lw, 40);
-      ctx.page.drawImage(logo, { x: hx, y: headerY - 2, width: lwCapped, height: lh });
-      hx += lwCapped + 6;
-    }
-    if (airline) {
-      ctx.page.drawText(sanitize(airline), {
-        x: hx, y: headerY + 1, size: 8.5, font: ctx.fontBold, color: COLOR_NAVY,
-      });
-      hx += measure(ctx.fontBold, airline, 8.5) + 6;
-    }
-    if (flightNo) {
-      ctx.page.drawText(sanitize(flightNo), {
-        x: hx, y: headerY + 1, size: 8.5, font: ctx.font, color: COLOR_MUTED,
-      });
-    }
-
-    // IATA + tracejado + avião + duração
+    // IATA + tracejado + avião
     const iataSize = 16;
     const leftX = segX + 16;
     const rightX = segX + segW - 16 - measure(ctx.fontBold, toIata, iataSize);
-    const iataY = segY + segH / 2 - 12;
+    const iataY = segY + segH - 24;
     ctx.page.drawText(sanitize(fromIata), {
       x: leftX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
@@ -811,11 +812,13 @@ const drawFlightLegBlock = (
     }
     const centerX = (leftEdge + rightEdge) / 2 - 5;
     drawIcon(ctx.page, "planeSmall", centerX, midY - 5, 10, COLOR_NAVY);
-    if (duration) {
-      const dSize = 7.5;
-      const dw = measure(ctx.fontBold, duration, dSize);
-      ctx.page.drawText(sanitize(duration), {
-        x: (leftEdge + rightEdge) / 2 - dw / 2, y: midY + 6, size: dSize, font: ctx.fontBold, color: COLOR_MUTED,
+    // "Direto" abaixo do avião quando não há conexão
+    if (segments.length === 1) {
+      const dLbl = ctx.lang === "en" ? "Direct" : "Direto";
+      const dSize = 7;
+      const dw = measure(ctx.fontBold, dLbl, dSize);
+      ctx.page.drawText(sanitize(dLbl), {
+        x: (leftEdge + rightEdge) / 2 - dw / 2, y: midY - 12, size: dSize, font: ctx.fontBold, color: COLOR_NAVY,
       });
     }
 
