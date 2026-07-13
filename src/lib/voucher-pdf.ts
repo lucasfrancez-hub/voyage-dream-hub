@@ -740,12 +740,18 @@ const drawNicePlane = (
   cx: number, cy: number, w: number,
   color: Color,
 ) => {
-  // SVG bbox 35 x 20, centro em (17.5, 10)
-  const path = "M 0 10 L 12 10 L 22 2 L 26 2 L 20 10 L 30 10 L 33 6 L 35 6 L 32 10 L 35 14 L 33 14 L 30 10 L 20 10 L 26 18 L 22 18 L 12 10 Z";
-  const scale = w / 35;
+  // Silhueta cheia estilo Font-Awesome, apontando para a direita.
+  // Bounding box aproximado: 576 x 512 (viewBox FA). Nariz à direita.
+  const path =
+    "M 482 336 C 512 336 542 306 542 276 C 542 246 512 216 482 216 L 384 216 L 250 40 C 240 24 220 16 200 16 L 168 16 C 158 16 152 24 156 34 L 216 216 L 96 216 L 56 168 C 48 158 36 152 24 156 L 8 160 C 0 162 -2 170 2 178 L 48 276 L 2 374 C -2 382 0 390 8 392 L 24 396 C 36 400 48 394 56 384 L 96 336 L 216 336 L 156 518 C 152 528 158 536 168 536 L 200 536 C 220 536 240 528 250 512 L 384 336 Z";
+  const nativeW = 576;
+  const nativeH = 552; // amplitude Y aproximada (16 a 536)
+  const scale = w / nativeW;
+  // drawSvgPath usa Y invertido: origem no canto superior esquerdo do path.
+  // Traduz para centralizar em (cx, cy).
   page.drawSvgPath(path, {
-    x: cx - 17.5 * scale,
-    y: cy + 10 * scale,
+    x: cx - (nativeW / 2) * scale,
+    y: cy + (nativeH / 2) * scale,
     scale,
     color,
   });
@@ -795,11 +801,11 @@ const drawFlightLegBlock = (
   const segmentsTopY = cy;
 
   // --- Card único cinza contendo TODOS os trechos + faixas de conexão ---
-  const pillH = 14;
-  const segContentH = 50;
-  const conBandH = 26;
-  const padTop = pillH / 2 + 4;
-  const padBot = 8;
+  const pillH = 16;
+  const segContentH = 56;
+  const conBandH = 28;
+  const padTop = pillH / 2 + 6;
+  const padBot = 10;
   const cardH =
     padTop
     + segments.length * segContentH
@@ -830,35 +836,37 @@ const drawFlightLegBlock = (
     const segX = cardX;
     const segW = cardW;
 
-    // Pill "TRECHO N - Cia - Voo - Cabine"
-    const trechoLbl = segments.length > 1 ? `TRECHO ${i + 1}` : "TRECHO";
-    const pillParts = [trechoLbl, airline, flightNo, cabin].filter(Boolean);
-    const pillText = pillParts.join(" - ");
-    const pillSize = 7.5;
+    // Pill "Cia - Voo - Cabine" (sem "TRECHO N")
+    const pillParts = [airline, flightNo, cabin].filter(Boolean);
+    const pillText = pillParts.join(" · ");
+    const pillSize = 8;
     const pillTw = measure(ctx.fontBold, pillText, pillSize);
-    const pillW = pillTw + (logo ? 18 : 0) + 16;
+    const logoInPillW = logo ? 14 : 0;
+    const logoInPillGap = logo ? 6 : 0;
+    const pillW = pillTw + logoInPillW + logoInPillGap + 18;
     const pillX = segX + (segW - pillW) / 2;
-    // Trecho 0: pill straddles top edge of card
-    // Trechos seguintes: pill fica logo abaixo do divisor de conexão, dentro do card
-    const pillCenterY = i === 0 ? cardTopY : segTopY + 6;
+    // Trecho 0: pill straddles a borda superior do card
+    // Trechos seguintes: pill centralizada dentro do bloco do trecho, acima das cidades
+    const pillCenterY = i === 0 ? cardTopY : segTopY - 2;
     const pillY = pillCenterY - pillH / 2;
-    drawRoundedRect(ctx.page, pillX, pillY, pillW, pillH, COLOR_NAVY, 7);
-    let ptx = pillX + 8;
+    drawRoundedRect(ctx.page, pillX, pillY, pillW, pillH, COLOR_NAVY, 8);
+    let ptx = pillX + 9;
     if (logo) {
-      const lh = 9;
-      const lw = Math.min((logo.width / logo.height) * lh, 14);
-      ctx.page.drawImage(logo, { x: ptx, y: pillY + 2.5, width: lw, height: lh });
-      ptx += lw + 4;
+      const lh = 11;
+      const lw = Math.min((logo.width / logo.height) * lh, logoInPillW);
+      ctx.page.drawImage(logo, { x: ptx, y: pillY + (pillH - lh) / 2, width: lw, height: lh });
+      ptx += lw + logoInPillGap;
     }
     ctx.page.drawText(sanitize(pillText), {
-      x: ptx, y: pillY + 3.5, size: pillSize, font: ctx.fontBold, color: COLOR_WHITE,
+      x: ptx, y: pillY + 4, size: pillSize, font: ctx.fontBold, color: COLOR_WHITE,
     });
 
     // IATA + tracejado + avião
     const iataSize = 16;
     const leftX = segX + 20;
     const rightX = segX + segW - 20 - measure(ctx.fontBold, toIata, iataSize);
-    const iataY = segBotY + segContentH - 24;
+    // Empurra as IATAs pra baixo do pill quando o pill fica dentro do bloco
+    const iataY = segBotY + segContentH - (i === 0 ? 24 : 30);
     ctx.page.drawText(sanitize(fromIata), {
       x: leftX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
@@ -866,8 +874,8 @@ const drawFlightLegBlock = (
       x: rightX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
     const midY = iataY + iataSize / 2 - 3;
-    const leftEdge = leftX + measure(ctx.fontBold, fromIata, iataSize) + 10;
-    const rightEdge = rightX - 10;
+    const leftEdge = leftX + measure(ctx.fontBold, fromIata, iataSize) + 12;
+    const rightEdge = rightX - 12;
     const totalDashW = rightEdge - leftEdge;
     const dashCount = Math.max(6, Math.floor(totalDashW / 6));
     const dashSpacing = totalDashW / dashCount;
@@ -878,14 +886,19 @@ const drawFlightLegBlock = (
         thickness: 0.6, color: COLOR_MUTED,
       });
     }
-    // Aviãozinho estilizado no meio (silhueta bonita)
-    drawNicePlane(ctx.page, (leftEdge + rightEdge) / 2, midY, 16, COLOR_NAVY);
+    // Aviãozinho estilizado no meio (silhueta cheia, apontando pra direita)
+    const planeCX = (leftEdge + rightEdge) / 2;
+    // "Corta" o tracejado atrás do avião com um retângulo cinza
+    ctx.page.drawRectangle({
+      x: planeCX - 14, y: midY - 6, width: 28, height: 12, color: COLOR_ROW_ALT,
+    });
+    drawNicePlane(ctx.page, planeCX, midY, 22, COLOR_NAVY);
     if (segments.length === 1) {
       const dLbl = ctx.lang === "en" ? "Direct" : "Direto";
       const dSize = 7;
       const dw = measure(ctx.fontBold, dLbl, dSize);
       ctx.page.drawText(sanitize(dLbl), {
-        x: (leftEdge + rightEdge) / 2 - dw / 2, y: midY - 14, size: dSize, font: ctx.fontBold, color: COLOR_NAVY,
+        x: planeCX - dw / 2, y: midY - 14, size: dSize, font: ctx.fontBold, color: COLOR_NAVY,
       });
     }
 
@@ -1130,15 +1143,31 @@ const drawAereoSection = async (
 };
 
 // ---------- Hospedagem ----------
-const fetchImageBytes = async (url: string): Promise<{ bytes: Uint8Array; contentType: string } | null> => {
+const fetchImageBytes = async (
+  url: string,
+): Promise<{ bytes: Uint8Array; contentType: string } | null> => {
+  // 1) tenta direto (rápido, se o servidor liberar CORS)
   try {
-    const r = await fetch(url, { mode: "cors" });
-    if (!r.ok) {
-      console.warn("fetchImageBytes: HTTP", r.status, url);
+    const r = await fetch(url);
+    if (r.ok) {
+      const contentType = (r.headers.get("content-type") ?? "").toLowerCase();
+      return { bytes: new Uint8Array(await r.arrayBuffer()), contentType };
+    }
+  } catch {
+    /* CORS ou outra falha — tenta via proxy no servidor */
+  }
+  // 2) fallback: proxy no servidor (evita CORS)
+  try {
+    const { fetchProxiedImage } = await import("./image-proxy.functions");
+    const res = await fetchProxiedImage({ data: { url } });
+    if (!res.ok) {
+      console.warn("fetchImageBytes: proxy failed", url, res);
       return null;
     }
-    const contentType = (r.headers.get("content-type") ?? "").toLowerCase();
-    return { bytes: new Uint8Array(await r.arrayBuffer()), contentType };
+    const binary = atob(res.base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return { bytes, contentType: (res.contentType ?? "").toLowerCase() };
   } catch (e) {
     console.warn("fetchImageBytes: failed", url, e);
     return null;
