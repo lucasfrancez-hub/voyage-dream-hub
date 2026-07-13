@@ -934,7 +934,7 @@ const drawInfoBlock = (ctx: Ctx) => {
 
 const drawEmergencyBlock = (ctx: Ctx) => {
   const t = T(ctx);
-  drawSectionPill(ctx, t.emergency, { color: COLOR_EMERGENCY });
+  drawSectionPill(ctx, t.emergency, { color: COLOR_EMERGENCY, icon: "emergency" });
   const boxH = 46;
   ensureSpace(ctx, boxH + 6);
   const y = ctx.y - boxH;
