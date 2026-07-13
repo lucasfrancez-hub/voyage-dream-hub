@@ -1587,13 +1587,6 @@ function FlightReservationCard({
                     </div>
                   )}
                 </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Chegada</div>
-                    <div className="font-medium">{to}{toCity ? ` · ${toCity}` : ""}</div>
-                    <div className="text-xs">{formatDT(arr)}</div>
-                  </div>
-                </div>
               </div>
             );
           })}
