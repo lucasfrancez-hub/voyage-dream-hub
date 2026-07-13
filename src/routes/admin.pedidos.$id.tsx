@@ -2525,7 +2525,7 @@ function FinanceTab({
     const extrasSale = allExtraRows.reduce((a, r) => a + Number(r.sale_value || 0), 0);
     const extrasTax = allExtraRows.reduce((a, r) => a + Number(r.tax_value || 0), 0);
     const extrasCommission = allExtraRows.reduce(
-      (a, r) => a + Number(r.commission_value || 0) + Number(r.rav_value || 0),
+      (a, r) => a + Number(r.commission_value || 0) + Number((r as { rav_value?: number }).rav_value || 0),
       0,
     );
     const extrasTotal = allExtraRows.reduce((a, r) => a + Number(r.total || 0), 0);
