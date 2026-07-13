@@ -922,7 +922,7 @@ const drawPassengersBlock = (ctx: Ctx, passengers: OrderPassenger[]) => {
 // ---------- Informações & Emergências ----------
 const drawInfoBlock = (ctx: Ctx) => {
   const t = T(ctx);
-  drawSectionPill(ctx, t.generalInfo);
+  drawSectionPill(ctx, t.generalInfo, { icon: "info" });
   const lines = wrap(ctx.font, 9, t.generalInfoText, CONTENT_W - 10);
   for (const ln of lines) {
     ensureSpace(ctx, 12);
