@@ -139,10 +139,15 @@ function OrderDetailPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "orderDetail", id] });
 
   const orderStatusMut = useMutation({
-    mutationFn: (status: "confirmed" | "reserved" | "cancelled" | "pending") =>
+    mutationFn: (status: "confirmed" | "reserved" | "cancelled" | "pending" | "paid") =>
       setOrderStatusFn({ data: { id: (data as OrderDetail | undefined)?.order.id ?? "", status } }),
     onSuccess: (_r, status) => {
-      toast.success(status === "confirmed" ? "Pedido confirmado" : status === "cancelled" ? "Pedido cancelado" : "Pedido reaberto");
+      toast.success(
+        status === "confirmed" ? "Pedido confirmado"
+        : status === "paid" ? "Pedido finalizado"
+        : status === "cancelled" ? "Pedido cancelado"
+        : "Pedido reaberto",
+      );
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -375,6 +380,7 @@ function OrderDetailPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => { if (confirm("Confirmar o pedido e todos os itens?")) orderStatusMut.mutate("confirmed"); }}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Confirmar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { if (confirm("Marcar o pedido como finalizado?")) orderStatusMut.mutate("paid"); }}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-500" /> Finalizado</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { if (confirm("Cancelar o pedido e todos os itens?")) orderStatusMut.mutate("cancelled"); }}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { if (confirm("Reabrir o pedido como pendente?")) orderStatusMut.mutate("pending"); }}><RotateCcw className="h-3.5 w-3.5 mr-2" /> Reabrir</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
