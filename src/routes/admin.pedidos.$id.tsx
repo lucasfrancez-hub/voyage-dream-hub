@@ -2764,7 +2764,7 @@ function FinanceTab({
                         </div>
                       </td>
                       <td className="py-2 px-2 text-xs">{f.due_date ? new Date(f.due_date + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
-                      <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(f.total)}</td>
+                      <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(Number(f.sale_value || 0) + Number(f.tax_value || 0) - Number(f.discount_value || 0) + Number(f.rav_value || 0))}</td>
                       <td className="py-2 px-2 text-right">
                         <Button size="sm" variant="ghost" onClick={() => { setEditing(f); setSelectedItem(f.order_item_id); setOpen(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
