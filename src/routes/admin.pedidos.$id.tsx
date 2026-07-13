@@ -2731,9 +2731,23 @@ function FinanceDialog({
   const defaultSale = Math.max(0, itemGross - itemTax);
   const defaultTax = itemTax;
 
+  const defaultSupplier = (() => {
+    const s = typeof itemDetails.supplier_name === "string" ? itemDetails.supplier_name.trim() : "";
+    if (s) return s;
+    if (selectedKind === "flight") {
+      const a = typeof itemDetails.airline === "string" ? itemDetails.airline.trim() : "";
+      if (a) return a;
+    }
+    if (selectedKind === "hotel") {
+      const h = typeof itemDetails.hotel_name === "string" ? itemDetails.hotel_name.trim() : "";
+      if (h) return h;
+    }
+    return "";
+  })();
+
 
   const [form, setForm] = useState({
-    supplier_name: initial?.supplier_name ?? "",
+    supplier_name: initial?.supplier_name ?? defaultSupplier,
     sale_value: initial?.sale_value ?? defaultSale,
     tax_value: initial?.tax_value ?? defaultTax,
     discount_value: initial?.discount_value ?? 0,
@@ -2751,7 +2765,7 @@ function FinanceDialog({
     const tax = initial?.tax_value ?? defaultTax;
     const disc = initial?.discount_value ?? 0;
     setForm({
-      supplier_name: initial?.supplier_name ?? "",
+      supplier_name: initial?.supplier_name ?? defaultSupplier,
       sale_value: sale,
       tax_value: tax,
       discount_value: disc,
@@ -2762,7 +2776,7 @@ function FinanceDialog({
       total: initial?.total ?? Number((sale + tax - disc).toFixed(2)),
       notes: initial?.notes ?? "",
     });
-  }, [initial, selectedKind, isPackage, defaultSale, defaultTax]);
+  }, [initial, selectedKind, isPackage, defaultSale, defaultTax, defaultSupplier]);
 
 
   // Tarifa já é líquida de taxas; total = tarifa + taxas − desconto.
