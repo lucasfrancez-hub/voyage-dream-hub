@@ -1527,6 +1527,13 @@ function FlightReservationCard({
               Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
             </div>
           )}
+          {bags.any && (
+            <div className="mt-2 flex items-center gap-1.5" title="Bagagens incluídas neste voo">
+              <Backpack className={`h-4 w-4 ${bags.personal ? "text-brand-orange" : "text-muted-foreground/30"}`} aria-label="Bolsa/mochila" />
+              <Briefcase className={`h-4 w-4 ${bags.carry ? "text-brand-orange" : "text-muted-foreground/30"}`} aria-label="Bagagem de mão" />
+              <Luggage className={`h-4 w-4 ${bags.checked ? "text-brand-orange" : "text-muted-foreground/30"}`} aria-label="Bagagem despachada" />
+            </div>
+          )}
           {/* Ações unificadas da reserva (ida + volta) */}
           <div className="mt-2 flex items-center gap-0.5">
             <Button size="sm" variant="ghost" onClick={() => first && onEdit(first)} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
