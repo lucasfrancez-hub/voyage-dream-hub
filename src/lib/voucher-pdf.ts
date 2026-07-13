@@ -1488,7 +1488,7 @@ const drawHotelSection = async (
     }
   }
 
-  cy = Math.min(infoY - 18, qrY - 26);
+  cy = Math.min(infoY - 18, qrY - 26) - notesGap;
 
   // Política do hotel (notes)
   if (notes) {
