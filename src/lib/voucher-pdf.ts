@@ -1810,7 +1810,9 @@ const drawServiceSection = async (ctx: Ctx, item: OrderItem) => {
   const timeFrom = String(d.time_from ?? "").trim();
   const dateTo = String(d.date_to ?? "").trim();
   const timeTo = String(d.time_to ?? "").trim();
-  const notes = String(d.notes ?? "").trim();
+  const rawNotes = String(d.notes ?? "").trim();
+  const notes = rawNotes ? (ctx.lang === "en" ? await translateNotesToEnglish(rawNotes) : rawNotes) : "";
+
 
   const dep = [dateFrom ? fmtDateBR(dateFrom) : "", timeFrom].filter(Boolean).join(" ");
   const arr = [dateTo ? fmtDateBR(dateTo) : "", timeTo].filter(Boolean).join(" ");
