@@ -101,9 +101,9 @@ function AdminLayout() {
             </Link>
             <nav className="hidden md:flex items-center gap-1">
               <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
-              <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" active={pathname.startsWith("/admin/dashboard")} />
+              <DashboardNav pathname={pathname} />
               <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-              <NavItem to="/admin/pessoas" icon={Contact} label="Pessoas" active={pathname.startsWith("/admin/pessoas")} />
+
 
               <CartaoNav pathname={pathname} />
 
@@ -138,9 +138,9 @@ function AdminLayout() {
         <nav className="md:hidden border-t border-border overflow-x-auto">
           <div className="mx-auto max-w-7xl px-6 py-2 flex items-center gap-1 whitespace-nowrap">
             <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
-            <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" active={pathname.startsWith("/admin/dashboard")} />
+            <DashboardNav pathname={pathname} />
             <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-            <NavItem to="/admin/pessoas" icon={Contact} label="Pessoas" active={pathname.startsWith("/admin/pessoas")} />
+
 
             <CartaoNav pathname={pathname} />
 
@@ -207,6 +207,37 @@ function CartaoNav({ pathname }: { pathname: string }) {
           <Link to="/admin/link-cartao-simples" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Link convencional</span>
             <span className="text-xs text-muted-foreground">Só dados do cartão</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function DashboardNav({ pathname }: { pathname: string }) {
+  const active =
+    pathname.startsWith("/admin/dashboard") ||
+    pathname.startsWith("/admin/pessoas");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
+          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <LayoutDashboard className="h-4 w-4" /> Dashboard <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuItem asChild>
+          <Link to="/admin/dashboard" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Dashboard</span>
+            <span className="text-xs text-muted-foreground">Visão geral e métricas</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/pessoas" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Pessoas</span>
+            <span className="text-xs text-muted-foreground">Clientes e contatos</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
