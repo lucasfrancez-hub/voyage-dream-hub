@@ -1155,6 +1155,7 @@ function ItemsTab({
         onOpenChange={setOpen}
         initial={editing}
         kind={dialogKind}
+        passengers={allPax}
         siblings={
           editing && editing.kind === "flight"
             ? items.filter((i) => i.kind === "flight" && i.status !== "cancelled" && i.id !== editing.id)
