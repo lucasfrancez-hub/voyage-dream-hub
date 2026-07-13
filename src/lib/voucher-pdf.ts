@@ -541,27 +541,14 @@ const drawHeader = (ctx: Ctx) => {
   const tripTitle = String(order.tripTitle ?? "").trim().toUpperCase()
     || (ctx.lang === "pt" ? "PACOTE DE VIAGEM" : "TRAVEL PACKAGE");
 
-  // Logo à direita (Via Air) — fixa
+  // Logo box dimensions (posicionada depois, após computar o bloco de contatos)
   const logoBoxW = 180;
   const logoBoxH = 54;
   const logoX = A4.w - MARGIN - logoBoxW;
-  const logoY = top - logoBoxH;
-  if (ctx.logo) {
-    const ratio = ctx.logo.width / ctx.logo.height;
-    let h = logoBoxH;
-    let w = h * ratio;
-    if (w > logoBoxW) { w = logoBoxW; h = w / ratio; }
-    ctx.page.drawImage(ctx.logo, {
-      x: logoX + (logoBoxW - w),
-      y: logoY + (logoBoxH - h) / 2,
-      width: w, height: h,
-    });
-  }
 
   // Título à esquerda com barrinha laranja (alinhados)
   const titleSize = 13;
   const titleBaseline = top - titleSize;
-  // Barrinha laranja alinhada verticalmente ao texto
   ctx.page.drawRectangle({
     x: MARGIN,
     y: titleBaseline - 1,
@@ -607,49 +594,36 @@ const drawHeader = (ctx: Ctx) => {
   });
   cy -= 10;
 
+  // Bottom do header = topo do card do Voucher ID
+  const headerBottomY = cy - 16;
+
+  // Logo Via Air centralizada verticalmente entre o topo da página e o topo do Voucher ID
+  const centerY = (A4.h + headerBottomY) / 2;
+  const logoY = centerY - logoBoxH / 2;
+  if (ctx.logo) {
+    const ratio = ctx.logo.width / ctx.logo.height;
+    let h = logoBoxH;
+    let w = h * ratio;
+    if (w > logoBoxW) { w = logoBoxW; h = w / ratio; }
+    ctx.page.drawImage(ctx.logo, {
+      x: logoX + (logoBoxW - w),
+      y: logoY + (logoBoxH - h) / 2,
+      width: w, height: h,
+    });
+  }
+
   // Divider vertical entre os dados e a logo
   const dividerX = logoX - 18;
-  const dividerTop = top - 6;
-  const dividerBot = cy + 4;
   ctx.page.drawLine({
-    start: { x: dividerX, y: dividerTop },
-    end: { x: dividerX, y: dividerBot },
+    start: { x: dividerX, y: top - 6 },
+    end: { x: dividerX, y: cy + 4 },
     thickness: 0.8,
     color: COLOR_BORDER,
   });
 
-  // Chip WhatsApp azul abaixo da logo
-  const waLabel = `WhatsApp  ${COMPANY.phone}`;
-  const waSize = 8.5;
-  const waTextW = measure(ctx.fontBold, waLabel, waSize);
-  const waIconW = 9;
-  const waPadX = 10;
-  const waGap = 6;
-  const waChipW = waPadX * 2 + waIconW + waGap + waTextW;
-  const waChipH = 18;
-  const waChipX = A4.w - MARGIN - waChipW;
-  const waChipY = logoY - 8 - waChipH;
-  ctx.page.drawRectangle({
-    x: waChipX, y: waChipY, width: waChipW, height: waChipH,
-    color: COLOR_NAVY,
-  });
-  // Ícone WhatsApp simples: círculo branco com fone verde
-  const waIconCX = waChipX + waPadX + waIconW / 2;
-  const waIconCY = waChipY + waChipH / 2;
-  ctx.page.drawCircle({ x: waIconCX, y: waIconCY, size: waIconW / 2, color: COLOR_WHITE });
-  // "handset" mini dentro do círculo
-  ctx.page.drawCircle({ x: waIconCX, y: waIconCY, size: waIconW / 2 - 1.5, color: COLOR_NAVY });
-  ctx.page.drawRectangle({
-    x: waIconCX - 1.4, y: waIconCY - 1.6, width: 2.8, height: 3.2, color: COLOR_WHITE,
-  });
-  ctx.page.drawText(sanitize(waLabel), {
-    x: waChipX + waPadX + waIconW + waGap,
-    y: waChipY + (waChipH - waSize) / 2 + 1,
-    size: waSize, font: ctx.fontBold, color: COLOR_WHITE,
-  });
-
-  ctx.y = Math.min(cy - 16, waChipY - 16);
+  ctx.y = headerBottomY;
 };
+
 
 
 // ---------- Voucher ID card ----------
