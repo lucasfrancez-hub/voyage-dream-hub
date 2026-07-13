@@ -1846,6 +1846,22 @@ function ServiceReservationCard({
           <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
             {category && <div>Categoria: <span className="text-foreground">{category}</span></div>}
             {qty ? <div>Quantidade: <span className="text-foreground">{qty}</span></div> : null}
+            {(() => {
+              const df = typeof d.date_from === "string" ? (d.date_from as string) : "";
+              const tf = typeof d.time_from === "string" ? (d.time_from as string) : "";
+              const dt = typeof d.date_to === "string" ? (d.date_to as string) : "";
+              const tt = typeof d.time_to === "string" ? (d.time_to as string) : "";
+              const fmtD = (s: string) => s ? s.split("-").reverse().join("/") : "";
+              const dep = [fmtD(df), tf].filter(Boolean).join(" ");
+              const arr = [fmtD(dt), tt].filter(Boolean).join(" ");
+              if (!dep && !arr) return null;
+              return (
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                  {dep && <div>Saída: <span className="text-foreground">{dep}</span></div>}
+                  {arr && <div>Chegada: <span className="text-foreground">{arr}</span></div>}
+                </div>
+              );
+            })()}
             {typeof d.notes === "string" && (d.notes as string).trim() && (
               <div className="mt-1 whitespace-pre-line text-xs">{d.notes as string}</div>
             )}
