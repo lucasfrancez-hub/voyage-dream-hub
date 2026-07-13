@@ -33,18 +33,14 @@ import { translateText } from "./translate.functions";
 // --- Traduções auxiliares para o voucher em inglês ---
 const translateGuestsPtToEn = (input: string): string => {
   if (!input) return input;
-  const map: Array<[RegExp, string]> = [
-    [/\badultos?\b/gi, (m) => (m.toLowerCase() === "adulto" ? "adult" : "adults")] as unknown as [RegExp, string],
-    [/\bcrian[çc]as?\b/gi, (m) => (m.toLowerCase().endsWith("s") ? "children" : "child")] as unknown as [RegExp, string],
-    [/\bbeb[êe]s?\b/gi, (m) => (m.toLowerCase().endsWith("s") ? "infants" : "infant")] as unknown as [RegExp, string],
-    [/\bh[óo]spedes?\b/gi, (m) => (m.toLowerCase().endsWith("s") ? "guests" : "guest")] as unknown as [RegExp, string],
-  ];
   let out = input;
-  for (const [re, repl] of map) {
-    out = out.replace(re, repl as unknown as string);
-  }
+  out = out.replace(/\badultos?\b/gi, (m: string) => (m.toLowerCase() === "adulto" ? "adult" : "adults"));
+  out = out.replace(/\bcrian[çc]as?\b/gi, (m: string) => (m.toLowerCase().endsWith("s") ? "children" : "child"));
+  out = out.replace(/\bbeb[êe]s?\b/gi, (m: string) => (m.toLowerCase().endsWith("s") ? "infants" : "infant"));
+  out = out.replace(/\bh[óo]spedes?\b/gi, (m: string) => (m.toLowerCase().endsWith("s") ? "guests" : "guest"));
   return out;
 };
+
 
 const translateNotesToEnglish = async (text: string): Promise<string> => {
   try {
