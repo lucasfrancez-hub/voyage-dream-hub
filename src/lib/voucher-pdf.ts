@@ -138,7 +138,8 @@ const sanitize = (s: string | null | undefined): string => {
     .replace(/[\u2192\u27A1\u2794]/g, "->")
     .replace(/\u2190/g, "<-")
     .replace(/\u2194/g, "<->")
-    .replace(/[^\x00-\xFF]/g, "?");
+    .replace(/[\u2022\u2023\u25E6\u2043\u2219]/g, "-")
+    .replace(/[^\x00-\xFF]/g, "");
 };
 
 const fmtDateBR = (s: string | null | undefined): string => {
