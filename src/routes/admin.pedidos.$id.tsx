@@ -46,6 +46,7 @@ import { generateReceiptAndContract, generateReceiptOnly, generateReceiptContrac
 import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
 import type { Json } from "@/integrations/supabase/types";
+import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   component: OrderDetailPage,
@@ -1982,7 +1983,31 @@ function ItemDialog({
             {kind !== "flight" && (
               <div className="col-span-2">
                 <Label>{kind === "hotel" ? "Nome do hotel" : "Serviço"}</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "hotel" ? "Ex: Trupial Hotel & Casino" : "Ex: Traslado, Passeio, Seguro viagem…"} />
+                {kind === "hotel" ? (
+                  <HotelAutocomplete
+                    value={title}
+                    onChangeText={setTitle}
+                    onSelect={(h: HotelSelection) => {
+                      setDetails((p) => {
+                        const next = { ...p };
+                        next.hotel_name = h.name;
+                        if (h.address) next.address = h.address;
+                        if (h.rating != null && !p.hotel_stars) next.hotel_stars = String(Math.round(h.rating));
+                        if (h.latitude != null) next.latitude = String(h.latitude);
+                        if (h.longitude != null) next.longitude = String(h.longitude);
+                        next.tripadvisor_location_id = String(h.location_id);
+                        if (h.tripadvisor_url) next.tripadvisor_url = h.tripadvisor_url;
+                        if (h.phone) next.phone = h.phone;
+                        if (h.website) next.website = h.website;
+                        if (h.photos && h.photos.length > 0) next.tripadvisor_photos_json = JSON.stringify(h.photos);
+                        return next;
+                      });
+                    }}
+                    placeholder="Ex: Copacabana Palace (busca no TripAdvisor)"
+                  />
+                ) : (
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Traslado, Passeio, Seguro viagem…" />
+                )}
               </div>
             )}
             <div className={kind === "other" ? "" : "col-span-2"}>

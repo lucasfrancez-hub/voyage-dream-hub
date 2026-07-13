@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
+import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
@@ -356,10 +357,17 @@ function AdminPackages() {
                 />
               </FormField>
               <FormField label="Hotel">
-                <input
-                  className={inp}
+                <HotelAutocomplete
                   value={editing.hotel_name ?? ""}
-                  onChange={(e) => setEditing({ ...editing, hotel_name: e.target.value })}
+                  onChangeText={(v) => setEditing({ ...editing, hotel_name: v })}
+                  onSelect={(h) => {
+                    setEditing((prev) => ({
+                      ...(prev ?? {}),
+                      hotel_name: h.name,
+                      hotel_stars: h.rating != null ? Math.round(h.rating) : (prev?.hotel_stars ?? 3),
+                      image_url: (prev?.image_url && prev.image_url.length > 0) ? prev.image_url : (h.photos[0] ?? prev?.image_url ?? ""),
+                    }));
+                  }}
                 />
               </FormField>
               <FormField label="Estrelas (1-5)">

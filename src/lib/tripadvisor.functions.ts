@@ -1,0 +1,141 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+const BASE = "https://terra.tripadvisor.com/api";
+
+export type TAHotelSuggestion = {
+  location_id: number;
+  name: string;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  rating: number | null;
+  tripadvisor_url: string | null;
+};
+
+export type TAHotelDetails = TAHotelSuggestion & {
+  phone: string | null;
+  website: string | null;
+  photos: string[];
+};
+
+async function taFetch(path: string): Promise<Response> {
+  const key = process.env.TRIPADVISOR_API_KEY;
+  if (!key) throw new Error("TRIPADVISOR_API_KEY não configurada");
+  return fetch(`${BASE}${path}`, {
+    headers: { accept: "application/json", "X-API-KEY": key },
+  });
+}
+
+function pickName(names: Array<{ language?: string; value?: string; primary?: boolean }> | undefined, lang = "pt"): string {
+  if (!Array.isArray(names) || names.length === 0) return "";
+  const byLang = names.find((n) => n.language === lang);
+  if (byLang?.value) return byLang.value;
+  const primary = names.find((n) => n.primary);
+  if (primary?.value) return primary.value;
+  return names[0]?.value ?? "";
+}
+
+function pickAddress(addresses: Array<Record<string, unknown>> | undefined) {
+  if (!Array.isArray(addresses) || addresses.length === 0) return null;
+  const a = addresses[0] as Record<string, string>;
+  return {
+    formatted: (a.formatted as string) || null,
+    street: (a.street_address as string) || null,
+    city: (a.city as string) || null,
+    country: (a.country_name as string) || null,
+  };
+}
+
+// Busca hotéis por nome (autocomplete). Retorna até 8 sugestões.
+export const searchTripAdvisorHotels = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { query: string }) => input)
+  .handler(async ({ data }): Promise<TAHotelSuggestion[]> => {
+    const q = (data.query || "").trim();
+    if (q.length < 3) return [];
+    const url = `/catalog/locations/search?query=${encodeURIComponent(q)}&search_type=NAME&category=HOTEL`;
+    const r = await taFetch(url);
+    if (!r.ok) {
+      const body = await r.text().catch(() => "");
+      console.error("[tripadvisor] search failed", r.status, body);
+      // fall back: sem filtro de categoria
+      const r2 = await taFetch(`/catalog/locations/search?query=${encodeURIComponent(q)}`);
+      if (!r2.ok) return [];
+      const j2 = (await r2.json()) as { data?: Array<{ location?: Record<string, unknown> }> };
+      return mapSearch(j2.data || []);
+    }
+    const j = (await r.json()) as { data?: Array<{ location?: Record<string, unknown> }> };
+    return mapSearch(j.data || []);
+  });
+
+function mapSearch(list: Array<{ location?: Record<string, unknown> }>): TAHotelSuggestion[] {
+  return list.slice(0, 8).map((item) => {
+    const loc = (item.location ?? item) as Record<string, unknown>;
+    const addr = pickAddress(loc.addresses as Array<Record<string, unknown>> | undefined);
+    const coords = (loc.coordinates as { latitude?: number; longitude?: number } | undefined) || undefined;
+    const rating = (loc.overall_rating as { rating?: number } | undefined)?.rating ?? null;
+    const url = (loc.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null;
+    return {
+      location_id: Number(loc.id),
+      name: pickName(loc.names as Array<{ language?: string; value?: string; primary?: boolean }>),
+      address: addr?.formatted ?? null,
+      city: addr?.city ?? null,
+      country: addr?.country ?? null,
+      latitude: coords?.latitude ?? null,
+      longitude: coords?.longitude ?? null,
+      rating,
+      tripadvisor_url: url,
+    };
+  });
+}
+
+// Busca detalhes + fotos de um hotel específico.
+export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { locationId: number; photoLimit?: number }) => input)
+  .handler(async ({ data }): Promise<TAHotelDetails> => {
+    const id = data.locationId;
+    const limit = Math.min(Math.max(data.photoLimit ?? 5, 1), 10);
+    const [rDet, rPhotos] = await Promise.all([
+      taFetch(`/locations/${id}`),
+      taFetch(`/locations/${id}/photos?limit=${limit}`),
+    ]);
+    if (!rDet.ok) {
+      const body = await rDet.text().catch(() => "");
+      throw new Error(`TripAdvisor details ${rDet.status}: ${body.slice(0, 200)}`);
+    }
+    const det = (await rDet.json()) as Record<string, unknown>;
+    const addr = pickAddress(det.addresses as Array<Record<string, unknown>> | undefined);
+    const coords = (det.coordinates as { latitude?: number; longitude?: number } | undefined) || undefined;
+    const rating = (det.overall_rating as { rating?: number } | undefined)?.rating ?? null;
+    const url = (det.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null;
+    const phones = det.phone_numbers as Array<{ value?: string }> | undefined;
+    const websites = det.websites as Array<{ url?: string }> | undefined;
+
+    let photos: string[] = [];
+    if (rPhotos.ok) {
+      const jp = (await rPhotos.json()) as { data?: Array<{ photo?: { original_size_url?: string } }> };
+      photos = (jp.data || [])
+        .map((p) => p.photo?.original_size_url)
+        .filter((u): u is string => typeof u === "string" && u.length > 0)
+        .slice(0, limit);
+    }
+
+    return {
+      location_id: id,
+      name: pickName(det.names as Array<{ language?: string; value?: string; primary?: boolean }>),
+      address: addr?.formatted ?? null,
+      city: addr?.city ?? null,
+      country: addr?.country ?? null,
+      latitude: coords?.latitude ?? null,
+      longitude: coords?.longitude ?? null,
+      rating,
+      tripadvisor_url: url,
+      phone: phones?.[0]?.value ?? null,
+      website: websites?.[0]?.url ?? null,
+      photos,
+    };
+  });
