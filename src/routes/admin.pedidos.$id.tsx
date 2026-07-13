@@ -2904,7 +2904,7 @@ function FinanceDialog({
       rav_value: initial?.rav_value ?? 0,
       exchange_rate: initial?.exchange_rate ?? 1,
       due_date: initial?.due_date ?? "",
-      total: initial?.total ?? Number((sale + tax - disc).toFixed(2)),
+      total: initial?.total ?? Number((sale + tax - disc + (initial?.rav_value ?? 0)).toFixed(2)),
       notes: initial?.notes ?? "",
     });
   }, [initial, selectedKind, isPackage, defaultSale, defaultTax, defaultSupplier]);
