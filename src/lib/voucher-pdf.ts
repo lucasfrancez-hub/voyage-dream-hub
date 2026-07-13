@@ -239,20 +239,14 @@ const drawRoundedBorder = (
   page: PDFPage,
   x: number, y: number, w: number, h: number,
   color: Color,
-  radius = 8,
+  _radius = 8,
   thickness = 0.6,
 ) => {
-  const r = Math.min(radius, h / 2, w / 2);
-  // Lados
-  page.drawLine({ start: { x: x + r, y }, end: { x: x + w - r, y }, thickness, color });
-  page.drawLine({ start: { x: x + r, y: y + h }, end: { x: x + w - r, y: y + h }, thickness, color });
-  page.drawLine({ start: { x, y: y + r }, end: { x, y: y + h - r }, thickness, color });
-  page.drawLine({ start: { x: x + w, y: y + r }, end: { x: x + w, y: y + h - r }, thickness, color });
-  // Cantos (arcos aproximados por círculos borda)
-  page.drawCircle({ x: x + r, y: y + r, size: r, borderColor: color, borderWidth: thickness });
-  page.drawCircle({ x: x + w - r, y: y + r, size: r, borderColor: color, borderWidth: thickness });
-  page.drawCircle({ x: x + r, y: y + h - r, size: r, borderColor: color, borderWidth: thickness });
-  page.drawCircle({ x: x + w - r, y: y + h - r, size: r, borderColor: color, borderWidth: thickness });
+  // Borda simples retangular (sem "bolinhas" de canto).
+  page.drawRectangle({
+    x, y, width: w, height: h,
+    borderColor: color, borderWidth: thickness,
+  });
 };
 
 const addLinkAnnotation = (
