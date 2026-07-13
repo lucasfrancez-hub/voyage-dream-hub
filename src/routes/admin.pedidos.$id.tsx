@@ -1918,8 +1918,8 @@ function ItemDialog({
   }, [locator, kind, ticketNumber]);
 
 
-  const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
-  const setSegField = (idx: number, k: string, v: string) =>
+  const setField = (k: string, v: string | boolean) => setDetails((p) => ({ ...p, [k]: v }));
+  const setSegField = (idx: number, k: string, v: string | boolean) =>
     setExtraSegments((arr) => arr.map((s, i) => (i === idx ? { ...s, details: { ...s.details, [k]: v } } : s)));
   const addSegment = (direction: "outbound" | "return") =>
     setExtraSegments((arr) => [...arr, { details: { direction } }]);
