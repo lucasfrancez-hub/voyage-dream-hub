@@ -834,6 +834,7 @@ const renderFlightItem = (ctx: Ctx, item: OrderItem) => {
 
   ensureSpace(ctx, 140);
   drawSectionPill(ctx, t.flight, {
+    icon: "plane",
     rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
   });
 
