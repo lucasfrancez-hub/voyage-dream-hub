@@ -6,7 +6,7 @@ import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
   Package, Percent, Mail, Printer, CheckCircle2, MoreHorizontal, Signature,
-  Vault, ExternalLink, X, UserPlus, Star,
+  Vault, ExternalLink, X, UserPlus, Star, Backpack, Briefcase, Luggage,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -438,6 +438,7 @@ function OrderDetailPage() {
               onChange={invalidate}
               passengers={detail.passengers}
               itemPassengers={detail.itemPassengers}
+              packageSnapshot={order.packageSnapshot}
             />
           </TabsContent>
           <TabsContent value="flight" className="mt-4">
@@ -448,6 +449,7 @@ function OrderDetailPage() {
               onChange={invalidate}
               passengers={detail.passengers}
               itemPassengers={detail.itemPassengers}
+              packageSnapshot={order.packageSnapshot}
             />
           </TabsContent>
           <TabsContent value="service" className="mt-4">
@@ -458,6 +460,7 @@ function OrderDetailPage() {
               onChange={invalidate}
               passengers={detail.passengers}
               itemPassengers={detail.itemPassengers}
+              packageSnapshot={order.packageSnapshot}
             />
           </TabsContent>
 
@@ -470,6 +473,7 @@ function OrderDetailPage() {
               onChange={invalidate}
               passengers={detail.passengers}
               itemPassengers={detail.itemPassengers}
+              packageSnapshot={order.packageSnapshot}
             />
           </TabsContent>
           <TabsContent value="contract" className="mt-4">
@@ -924,7 +928,7 @@ function PassengerDialog({
 
 // =========== Items (hotel/flight/other/cancelled) ===========
 function ItemsTab({
-  orderId, items, kind, onChange, passengers, itemPassengers,
+  orderId, items, kind, onChange, passengers, itemPassengers, packageSnapshot,
 }: {
   orderId: string;
   items: OrderItem[];
@@ -932,6 +936,7 @@ function ItemsTab({
   onChange: () => void;
   passengers?: OrderPassenger[];
   itemPassengers?: Record<string, string[]>;
+  packageSnapshot?: unknown;
 }) {
 
   const upsert = useServerFn(upsertOrderItem);
@@ -1036,6 +1041,7 @@ function ItemsTab({
               segments={group.items}
               passengers={paxForItems(group.items.map((s) => s.id))}
               allPassengers={allPax}
+              packageSnapshot={packageSnapshot}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
               onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
@@ -1083,6 +1089,7 @@ function ItemsTab({
               segments={group.items}
               passengers={paxForItems(group.items.map((s) => s.id))}
               allPassengers={allPax}
+              packageSnapshot={packageSnapshot}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
               onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
               onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
@@ -1423,12 +1430,13 @@ function AddPassengerMenu({
 }
 
 function FlightReservationCard({
-  locator, segments, passengers, allPassengers, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
+  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
 }: {
   locator: string | null;
   segments: OrderItem[];
   passengers: OrderPassenger[];
   allPassengers?: OrderPassenger[];
+  packageSnapshot?: unknown;
   onEdit: (it: OrderItem) => void;
   onDelete: (it: OrderItem) => void;
   onCancel: (it: OrderItem) => void;
@@ -1440,6 +1448,30 @@ function FlightReservationCard({
   const first = segments[0];
   const d0 = (first?.details ?? {}) as Record<string, unknown>;
   const supplier = typeof d0.supplier_name === "string" ? (d0.supplier_name as string) : "";
+
+  // Bagagens: agrega de todos os segmentos; se nenhum flag setado, fallback ao packageSnapshot
+  const bags = (() => {
+    let personal = false, carry = false, checked = false;
+    for (const s of segments) {
+      const d = (s.details ?? {}) as Record<string, unknown>;
+      personal ||= !!d.personal_item;
+      carry ||= !!d.carry_on;
+      checked ||= !!d.checked_bag;
+    }
+    if (!personal && !carry && !checked && packageSnapshot && typeof packageSnapshot === "object") {
+      const snap = packageSnapshot as Record<string, unknown>;
+      const dirs = new Set(segments.map((s) => String(((s.details ?? {}) as Record<string, unknown>).direction ?? "outbound")));
+      const sources: Record<string, unknown>[] = [];
+      if (dirs.has("outbound") && snap.outbound_flight && typeof snap.outbound_flight === "object") sources.push(snap.outbound_flight as Record<string, unknown>);
+      if (dirs.has("return") && snap.return_flight && typeof snap.return_flight === "object") sources.push(snap.return_flight as Record<string, unknown>);
+      for (const src of sources) {
+        personal ||= !!src.personal_item;
+        carry ||= !!src.carry_on;
+        checked ||= !!src.checked_bag;
+      }
+    }
+    return { personal, carry, checked, any: personal || carry || checked };
+  })();
   
   return (
     <div className={`rounded-xl border p-4 ${allCancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
@@ -1493,6 +1525,13 @@ function FlightReservationCard({
           {supplier && (
             <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
               Fornecedor: <span className="normal-case text-foreground">{supplier}</span>
+            </div>
+          )}
+          {bags.any && (
+            <div className="mt-2 flex items-center gap-1.5" title="Bagagens incluídas neste voo">
+              <Backpack className={`h-4 w-4 ${bags.personal ? "text-brand-orange" : "text-muted-foreground/30"}`} aria-label="Bolsa/mochila" />
+              <Briefcase className={`h-4 w-4 ${bags.carry ? "text-brand-orange" : "text-muted-foreground/30"}`} aria-label="Bagagem de mão" />
+              <Luggage className={`h-4 w-4 ${bags.checked ? "text-brand-orange" : "text-muted-foreground/30"}`} aria-label="Bagagem despachada" />
             </div>
           )}
           {/* Ações unificadas da reserva (ida + volta) */}
