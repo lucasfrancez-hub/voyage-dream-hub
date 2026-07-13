@@ -213,3 +213,34 @@ function CartaoNav({ pathname }: { pathname: string }) {
     </DropdownMenu>
   );
 }
+
+function DashboardNav({ pathname }: { pathname: string }) {
+  const active =
+    pathname.startsWith("/admin/dashboard") ||
+    pathname.startsWith("/admin/pessoas");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
+          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <LayoutDashboard className="h-4 w-4" /> Dashboard <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuItem asChild>
+          <Link to="/admin/dashboard" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Dashboard</span>
+            <span className="text-xs text-muted-foreground">Visão geral e métricas</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/pessoas" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Pessoas</span>
+            <span className="text-xs text-muted-foreground">Clientes e contatos</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
