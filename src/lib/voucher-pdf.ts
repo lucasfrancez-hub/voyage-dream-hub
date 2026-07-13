@@ -1185,21 +1185,25 @@ const drawHotelSection = async (
     ? rawGuests
     : (guestsFallback || "-");
   const locator = item.supplier_locator ?? "";
-  let photoUrl = "";
-  try {
-    if (typeof d.tripadvisor_photos_json === "string" && d.tripadvisor_photos_json) {
-      const parsed = JSON.parse(d.tripadvisor_photos_json as string);
-      if (Array.isArray(parsed) && typeof parsed[0] === "string") photoUrl = parsed[0];
-    } else if (Array.isArray(d.tripadvisor_photos) && typeof (d.tripadvisor_photos as unknown[])[0] === "string") {
-      photoUrl = String((d.tripadvisor_photos as unknown[])[0]);
-    }
-  } catch { /* ignore */ }
+  const notes = String(d.notes ?? "").trim();
 
-  const cardH = 190;
+  const innerX = MARGIN + 16;
+  const innerW = CONTENT_W - 32;
+  const qrSize = 68;
+  const midX = innerX;
+  const midW = innerW - qrSize - 24;
+
+  // Pre-compute notes wrapping to size the card
+  const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 16) : [];
+  const notesBlockH = notes ? 20 + notesLines.length * 12 + 10 : 0;
+
+  const bodyH = 24 /* name */ + 16 /* address */ + 20 /* gap */ + 36 /* info row */ + 16 /* bottom pad */;
+  const cardH = Math.max(bodyH, qrSize + 30) + notesBlockH + 20;
+
   const { top } = openSectionCard(ctx, cardH + 20);
   const headerBottom = drawSectionHeader(ctx, top, "bed", t.hospedagem);
 
-  // Chip do localizador ao lado do título
+  // Chip localizador
   if (locator) {
     const chipText = `${t.localizador}: ${locator}`;
     const chipSize = 9;
@@ -1214,56 +1218,32 @@ const drawHotelSection = async (
     });
   }
 
-  let cy = headerBottom - 6;
+  let cy = headerBottom - 16;
 
-  const innerX = MARGIN + 14;
-  const innerW = CONTENT_W - 28;
-  const photoW = 120;
-  const photoH = 84;
-  const qrSize = 62;
-  const midX = innerX + photoW + 12;
-  const midW = innerW - photoW - 12 - qrSize - 20;
-
-  // Foto (esquerda)
-  const photo = photoUrl ? await embedRemotePhoto(ctx.pdf, photoUrl) : null;
-  const photoY = cy - photoH;
-  if (photo) {
-    const ratio = photo.width / photo.height;
-    let w = photoW, h = w / ratio;
-    if (h < photoH) { h = photoH; w = h * ratio; }
-    ctx.page.drawRectangle({ x: innerX, y: photoY, width: photoW, height: photoH, color: COLOR_ROW_ALT });
-    ctx.page.drawImage(photo, {
-      x: innerX + (photoW - Math.min(w, photoW)) / 2,
-      y: photoY, width: Math.min(w, photoW), height: photoH,
-    });
-    drawRoundedBorder(ctx.page, innerX, photoY, photoW, photoH, COLOR_BORDER, 4, 0.5);
-  } else {
-    drawRoundedRect(ctx.page, innerX, photoY, photoW, photoH, COLOR_ROW_ALT, 4);
-    drawIcon(ctx.page, "building", innerX + photoW / 2 - 12, photoY + photoH / 2 - 12, 24, COLOR_MUTED);
-  }
-
-  // Nome + endereço (meio)
-  const nameSize = 13;
+  // Nome
+  const nameSize = 14;
   ctx.page.drawText(sanitize(hotelName), {
     x: midX, y: cy - nameSize + 2, size: nameSize, font: ctx.fontBold, color: COLOR_NAVY,
   });
-  let my = cy - nameSize - 6;
+  cy -= nameSize + 6;
+
+  // Endereço
   if (address) {
-    const lines = wrap(ctx.font, 8.5, address, midW);
+    const lines = wrap(ctx.font, 9, address, midW);
     for (const ln of lines.slice(0, 2)) {
       ctx.page.drawText(sanitize(ln), {
-        x: midX, y: my, size: 8.5, font: ctx.font, color: COLOR_TEXT,
+        x: midX, y: cy - 9, size: 9, font: ctx.font, color: COLOR_TEXT,
       });
-      my -= 11;
+      cy -= 12;
     }
   }
 
-  // Linha de dados: check-in, check-out, noites, hospedes
-  const infoY = photoY + 10;
-  const infoStartX = midX;
-  const infoW = midW;
+  cy -= 14;
+
+  // Info row
+  const infoY = cy - 20;
   const cols = 4;
-  const colW = infoW / cols;
+  const colW = midW / cols;
   const cells: Array<{ label: string; value: string; icon: IconKind }> = [
     { label: t.checkin, value: checkin ? fmtDateBR(checkin) : "-", icon: "calendar" },
     { label: t.checkout, value: checkout ? fmtDateBR(checkout) : "-", icon: "calendar" },
@@ -1271,19 +1251,20 @@ const drawHotelSection = async (
     { label: t.hospedes, value: guests, icon: "users" },
   ];
   cells.forEach((c, i) => {
-    const x = infoStartX + i * colW;
-    drawIcon(ctx.page, c.icon, x, infoY + 12, 9, COLOR_NAVY);
+    const x = midX + i * colW;
+    drawIcon(ctx.page, c.icon, x, infoY + 14, 10, COLOR_NAVY);
     ctx.page.drawText(sanitize(c.label), {
-      x: x + 12, y: infoY + 14, size: 7, font: ctx.fontBold, color: COLOR_MUTED,
+      x: x + 14, y: infoY + 16, size: 7, font: ctx.fontBold, color: COLOR_MUTED,
     });
     ctx.page.drawText(sanitize(c.value), {
-      x, y: infoY, size: 9, font: ctx.fontBold, color: COLOR_TEXT,
+      x, y: infoY, size: 10, font: ctx.fontBold, color: COLOR_TEXT,
     });
   });
 
-  // QR (direita) — link para maps
+  // QR (direita)
+  const qrTopY = headerBottom - 16;
   const qrX = innerX + innerW - qrSize;
-  const qrY = photoY + (photoH - qrSize) / 2 + 4;
+  const qrY = qrTopY - qrSize;
   if (mapData?.mapsUrl) {
     const qr = await embedQR(ctx, mapData.mapsUrl);
     if (qr) {
@@ -1291,7 +1272,7 @@ const drawHotelSection = async (
       addLinkAnnotation(ctx, qrX, qrY, qrSize, qrSize, mapData.mapsUrl);
     }
     const lines = t.locHotel.split("\n");
-    let ly = qrY - 8;
+    let ly = qrY - 10;
     for (const ln of lines) {
       const lw = measure(ctx.font, ln, 7);
       ctx.page.drawText(sanitize(ln), {
@@ -1301,7 +1282,28 @@ const drawHotelSection = async (
     }
   }
 
-  cy = photoY - 6;
+  cy = Math.min(infoY - 18, qrY - 26);
+
+  // Política do hotel (notes)
+  if (notes) {
+    const boxTop = cy;
+    const boxH = 18 + notesLines.length * 12 + 8;
+    const boxY = boxTop - boxH;
+    drawRoundedRect(ctx.page, innerX, boxY, innerW, boxH, COLOR_NAVY_SOFT, 6);
+    drawIcon(ctx.page, "info", innerX + 10, boxTop - 14, 10, COLOR_NAVY);
+    ctx.page.drawText(sanitize(t.politicaHotel), {
+      x: innerX + 24, y: boxTop - 12, size: 8, font: ctx.fontBold, color: COLOR_NAVY,
+    });
+    let ny = boxTop - 26;
+    for (const ln of notesLines) {
+      ctx.page.drawText(sanitize(ln), {
+        x: innerX + 10, y: ny, size: 9, font: ctx.font, color: COLOR_TEXT,
+      });
+      ny -= 12;
+    }
+    cy = boxY - 6;
+  }
+
   closeSectionCard(ctx, top, cy);
 };
 
