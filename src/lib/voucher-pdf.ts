@@ -1280,8 +1280,9 @@ const drawHotelSection = async (
   const midW = innerW - (photo ? photoW + gapPhoto : 0) - qrSize - 24;
 
   // Pre-compute notes wrapping to size the card
-  const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 16) : [];
-  const notesBlockH = notes ? 20 + notesLines.length * 12 + 10 : 0;
+  const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 28) : [];
+  const notesBlockH = notes ? 22 + notesLines.length * 13 + 14 + 10 : 0;
+
 
   const topBlockH = Math.max(photo ? photoH + 8 : 0, qrSize + 30, 110);
   const cardH = topBlockH + notesBlockH + 24;
