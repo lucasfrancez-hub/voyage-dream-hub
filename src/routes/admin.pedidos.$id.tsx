@@ -2333,8 +2333,8 @@ function ItemDialog({
                   <Input type="time" value={String(details.time_from ?? "")} onChange={(e) => setField("time_from", e.target.value)} />
                 </div>
                 <div>
-                  <Label>Horário de partida <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-                  <Input type="time" value={String(details.time_departure ?? "")} onChange={(e) => setField("time_departure", e.target.value)} />
+                  <Label>Data de chegada <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                  <Input type="date" value={String(details.date_to ?? "")} onChange={(e) => setField("date_to", e.target.value)} />
                 </div>
                 <div>
                   <Label>Horário de chegada <span className="text-muted-foreground font-normal">(opcional)</span></Label>
