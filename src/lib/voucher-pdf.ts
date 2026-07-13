@@ -1736,10 +1736,17 @@ const drawServiceSection = (ctx: Ctx, item: OrderItem) => {
   const innerX = MARGIN + 16;
   const innerW = CONTENT_W - 32;
 
-  const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 8) : [];
+  // Preserve blank lines / tópicos das observações: quebra por \n, depois faz wrap por parágrafo
+  const notesLines: string[] = notes
+    ? notes.split(/\r?\n/).flatMap((para) => {
+        if (!para.trim()) return [""]; // linha em branco preservada
+        return wrap(ctx.font, 9, para, innerW - 8);
+      })
+    : [];
   const notesBlockH = notes ? 14 + notesLines.length * 12 + 6 : 0;
 
-  const cardH = 44 + 18 + (category ? 14 : 0) + (supplier ? 12 : 0) + 30 + notesBlockH + 16;
+  const datesH = (dep || arr) ? 42 : 0; // 12 gap + 30 bloco
+  const cardH = 44 + 18 + (category ? 14 : 0) + (supplier ? 12 : 0) + datesH + notesBlockH + 16;
 
   const { top } = openSectionCard(ctx, cardH + 20);
   const headerBottom = drawSectionHeader(ctx, top, "ticket", t.servicos);
@@ -1776,6 +1783,7 @@ const drawServiceSection = (ctx: Ctx, item: OrderItem) => {
 
   // Datas
   if (dep || arr) {
+    cy -= 12; // espaço entre categoria e datas
     const colW = innerW / 2;
     const cells: Array<{ label: string; value: string }> = [
       { label: t.saida, value: dep || "-" },
@@ -1783,23 +1791,25 @@ const drawServiceSection = (ctx: Ctx, item: OrderItem) => {
     ];
     cells.forEach((c, i) => {
       const x = innerX + i * colW;
-      drawIcon(ctx.page, "calendar", x, cy - 4, 10, COLOR_NAVY);
+      drawIcon(ctx.page, "calendar", x, cy + 2, 10, COLOR_NAVY);
       ctx.page.drawText(sanitize(c.label), {
-        x: x + 14, y: cy - 2, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
+        x: x + 14, y: cy + 4, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
       });
       ctx.page.drawText(sanitize(c.value), {
-        x, y: cy - 18, size: 10.5, font: ctx.fontBold, color: COLOR_TEXT,
+        x, y: cy - 14, size: 10.5, font: ctx.fontBold, color: COLOR_TEXT,
       });
     });
     cy -= 30;
   }
 
   if (notes) {
-    cy -= 4;
+    cy -= 6;
     for (const ln of notesLines) {
-      ctx.page.drawText(sanitize(ln), {
-        x: innerX, y: cy - 9, size: 9, font: ctx.font, color: COLOR_TEXT,
-      });
+      if (ln) {
+        ctx.page.drawText(sanitize(ln), {
+          x: innerX, y: cy - 9, size: 9, font: ctx.font, color: COLOR_TEXT,
+        });
+      }
       cy -= 12;
     }
     cy -= 4;
