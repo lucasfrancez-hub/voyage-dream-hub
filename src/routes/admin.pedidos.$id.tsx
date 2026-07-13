@@ -2035,8 +2035,12 @@ function ItemDialog({
         )}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Origem</Label><Input value={String(d.from_iata ?? d.origin ?? "")} onChange={(e) => onChangeField("from_iata", e.target.value)} placeholder="GRU" /></div>
-        <div><Label>Destino</Label><Input value={String(d.to_iata ?? d.destination ?? "")} onChange={(e) => onChangeField("to_iata", e.target.value)} placeholder="CUR" /></div>
+        <div><Label>Origem (IATA)</Label><Input value={String(d.from_iata ?? d.origin ?? "")} onChange={(e) => onChangeField("from_iata", e.target.value)} placeholder="GRU" /></div>
+        <div><Label>Destino (IATA)</Label><Input value={String(d.to_iata ?? d.destination ?? "")} onChange={(e) => onChangeField("to_iata", e.target.value)} placeholder="CUR" /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Cidade origem</Label><Input value={String(d.from_city ?? "")} onChange={(e) => onChangeField("from_city", e.target.value)} placeholder="São Paulo" /></div>
+        <div><Label>Cidade destino</Label><Input value={String(d.to_city ?? "")} onChange={(e) => onChangeField("to_city", e.target.value)} placeholder="Curitiba" /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Cia aérea</Label><Input value={String(d.airline ?? "")} onChange={(e) => onChangeField("airline", e.target.value)} placeholder="LATAM" /></div>

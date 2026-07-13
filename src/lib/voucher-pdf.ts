@@ -543,14 +543,16 @@ const drawVoucherIdCard = (ctx: Ctx) => {
   const h = 36;
   ensureSpace(ctx, h + 10);
   const y = ctx.y - h;
-  const w = 300;
-  // Card azul com cantos superiores arredondados
+  const w = 320;
   drawRoundedRect(ctx.page, MARGIN, y, w, h, COLOR_NAVY, 6);
-  // Ícone bilhete
-  drawIcon(ctx.page, "ticket", MARGIN + 14, y + (h - 14) / 2, 14, COLOR_WHITE);
-  const label = `${t.voucherId}: ${ctx.order.orderNumber}`;
+  drawIcon(ctx.page, "ticket", MARGIN + 14, y + (h - 14) / 2, 14, COLOR_ORANGE);
+  const label = `${t.voucherId}: `;
   ctx.page.drawText(sanitize(label), {
-    x: MARGIN + 40, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_WHITE,
+    x: MARGIN + 40, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_ORANGE,
+  });
+  const lw = measure(ctx.fontBold, label, 12);
+  ctx.page.drawText(sanitize(String(ctx.order.orderNumber)), {
+    x: MARGIN + 40 + lw, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_WHITE,
   });
   ctx.y = y - 10;
 };
@@ -669,6 +671,32 @@ const airlineCheckinURL = (item: OrderItem): string => {
   return `https://www.google.com/search?q=${q}`;
 };
 
+const computeDuration = (dep: string, arr: string): string => {
+  if (!dep || !arr) return "";
+  const ms = new Date(arr).getTime() - new Date(dep).getTime();
+  if (!Number.isFinite(ms) || ms <= 0) return "";
+  const total = Math.round(ms / 60000);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m}min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}min`;
+};
+
+const drawDashedVLine = (
+  page: PDFPage,
+  x: number, y1: number, y2: number,
+  color: Color,
+) => {
+  const step = 4;
+  for (let yy = Math.min(y1, y2); yy < Math.max(y1, y2); yy += step) {
+    page.drawLine({
+      start: { x, y: yy }, end: { x, y: yy + step * 0.5 },
+      thickness: 0.6, color,
+    });
+  }
+};
+
 const drawFlightLegBlock = (
   ctx: Ctx,
   y: number,
@@ -677,10 +705,13 @@ const drawFlightLegBlock = (
   segments: OrderItem[],
   locator: string,
   ticket: string,
+  qr?: { img: PDFImage | null; url: string },
+  airlineLogos?: Map<number, PDFImage | null>,
 ): number => {
   const outerX = MARGIN + 14;
   const outerW = CONTENT_W - 28;
-  const infoW = outerW;
+  const qrColW = qr ? 82 : 0;
+  const segColW = outerW - qrColW;
 
   const chipW = 66;
   const chipH = 18;
@@ -700,7 +731,7 @@ const drawFlightLegBlock = (
       x: infoTextX, y: chipY + 5, size: 9, font: ctx.font, color: COLOR_MUTED,
     });
     ctx.page.drawText(sanitize(locator), {
-      x: infoTextX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_TEXT,
+      x: infoTextX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_NAVY,
     });
   }
   if (ticket) {
@@ -711,11 +742,12 @@ const drawFlightLegBlock = (
       x: startX, y: chipY + 5, size: 9, font: ctx.font, color: COLOR_MUTED,
     });
     ctx.page.drawText(sanitize(ticket), {
-      x: startX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_TEXT,
+      x: startX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_ORANGE,
     });
   }
 
   let cy = chipY - 10;
+  const segmentsTopY = cy;
 
   segments.forEach((seg, i) => {
     const d = (seg.details ?? {}) as Record<string, unknown>;
@@ -725,17 +757,44 @@ const drawFlightLegBlock = (
     const toCity = String(d.to_city ?? "").trim();
     const dep = String(d.depart_at ?? "").trim();
     const arr = String(d.arrive_at ?? "").trim();
+    const airline = String(d.airline ?? "").trim();
+    const flightNo = String(d.flight_number ?? "").trim();
+    const duration = computeDuration(dep, arr);
+    const logo = airlineLogos?.get(i) ?? null;
 
-    const segH = 64;
+    const segH = 80;
     const segX = outerX;
-    const segW = infoW;
+    const segW = segColW;
     const segY = cy - segH;
     drawRoundedRect(ctx.page, segX, segY, segW, segH, COLOR_ROW_ALT, 8);
 
-    const iataSize = 18;
-    const leftX = segX + 20;
-    const rightX = segX + segW - 20 - measure(ctx.fontBold, toIata, iataSize);
-    const iataY = segY + segH - 24;
+    // Header: logo + cia + voo
+    const headerY = segY + segH - 14;
+    let hx = segX + 12;
+    if (logo) {
+      const lh = 14;
+      const lw = (logo.width / logo.height) * lh;
+      const lwCapped = Math.min(lw, 40);
+      ctx.page.drawImage(logo, { x: hx, y: headerY - 2, width: lwCapped, height: lh });
+      hx += lwCapped + 6;
+    }
+    if (airline) {
+      ctx.page.drawText(sanitize(airline), {
+        x: hx, y: headerY + 1, size: 8.5, font: ctx.fontBold, color: COLOR_NAVY,
+      });
+      hx += measure(ctx.fontBold, airline, 8.5) + 6;
+    }
+    if (flightNo) {
+      ctx.page.drawText(sanitize(flightNo), {
+        x: hx, y: headerY + 1, size: 8.5, font: ctx.font, color: COLOR_MUTED,
+      });
+    }
+
+    // IATA + tracejado + avião + duração
+    const iataSize = 16;
+    const leftX = segX + 16;
+    const rightX = segX + segW - 16 - measure(ctx.fontBold, toIata, iataSize);
+    const iataY = segY + segH / 2 - 12;
     ctx.page.drawText(sanitize(fromIata), {
       x: leftX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
@@ -743,21 +802,30 @@ const drawFlightLegBlock = (
       x: rightX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
     const midY = iataY + iataSize / 2 - 3;
-    const leftEdge = leftX + measure(ctx.fontBold, fromIata, iataSize) + 10;
-    const rightEdge = rightX - 10;
-    const dashCount = 22;
-    const dashW = (rightEdge - leftEdge - 10) / dashCount;
+    const leftEdge = leftX + measure(ctx.fontBold, fromIata, iataSize) + 8;
+    const rightEdge = rightX - 8;
+    const totalDashW = rightEdge - leftEdge;
+    const dashCount = Math.max(6, Math.floor(totalDashW / 6));
+    const dashSpacing = totalDashW / dashCount;
     for (let dI = 0; dI < dashCount; dI++) {
-      const dx = leftEdge + dI * dashW;
+      const dx = leftEdge + dI * dashSpacing;
       ctx.page.drawLine({
-        start: { x: dx, y: midY }, end: { x: dx + dashW * 0.5, y: midY },
+        start: { x: dx, y: midY }, end: { x: dx + dashSpacing * 0.5, y: midY },
         thickness: 0.6, color: COLOR_MUTED,
       });
     }
     const centerX = (leftEdge + rightEdge) / 2 - 5;
     drawIcon(ctx.page, "planeSmall", centerX, midY - 5, 10, COLOR_NAVY);
+    if (duration) {
+      const dSize = 7.5;
+      const dw = measure(ctx.fontBold, duration, dSize);
+      ctx.page.drawText(sanitize(duration), {
+        x: (leftEdge + rightEdge) / 2 - dw / 2, y: midY + 6, size: dSize, font: ctx.fontBold, color: COLOR_MUTED,
+      });
+    }
 
-    const bottomY = segY + 10;
+    // Cidades + horários
+    const bottomY = segY + 8;
     if (fromCity) {
       ctx.page.drawText(sanitize(fromCity), {
         x: leftX, y: bottomY + 12, size: 7.5, font: ctx.font, color: COLOR_MUTED,
@@ -766,7 +834,7 @@ const drawFlightLegBlock = (
     if (toCity) {
       const cityW = measure(ctx.font, toCity, 7.5);
       ctx.page.drawText(sanitize(toCity), {
-        x: segX + segW - 20 - cityW, y: bottomY + 12, size: 7.5, font: ctx.font, color: COLOR_MUTED,
+        x: segX + segW - 16 - cityW, y: bottomY + 12, size: 7.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
     const depTxt = dep ? `${fmtDateBR(dep)}  ${fmtTime(dep)}` : "";
@@ -779,7 +847,7 @@ const drawFlightLegBlock = (
     if (arrTxt) {
       const w = measure(ctx.fontBold, arrTxt, 8);
       ctx.page.drawText(sanitize(arrTxt), {
-        x: segX + segW - 20 - w, y: bottomY, size: 8, font: ctx.fontBold, color: COLOR_TEXT,
+        x: segX + segW - 16 - w, y: bottomY, size: 8, font: ctx.fontBold, color: COLOR_TEXT,
       });
     }
 
@@ -789,16 +857,7 @@ const drawFlightLegBlock = (
       const nextD = (segments[i + 1].details ?? {}) as Record<string, unknown>;
       const nextFromCity = String(nextD.from_city ?? nextD.from_iata ?? "").trim();
       const nextDep = String(nextD.depart_at ?? "").trim();
-      let layoverText = "";
-      if (arr && nextDep) {
-        const diffMs = new Date(nextDep).getTime() - new Date(arr).getTime();
-        if (Number.isFinite(diffMs) && diffMs > 0) {
-          const totalMin = Math.round(diffMs / 60000);
-          const h = Math.floor(totalMin / 60);
-          const m = totalMin % 60;
-          layoverText = h > 0 ? `${h}h${m > 0 ? ` ${m}min` : ""}` : `${m}min`;
-        }
-      }
+      const layoverText = computeDuration(arr, nextDep);
       const conText = `${t.conexao} ${nextFromCity || toCity || toIata}${layoverText ? ` - ${layoverText}` : ""}`;
       const cSize = 8;
       const cw = measure(ctx.fontBold, conText, cSize) + 20;
@@ -812,6 +871,28 @@ const drawFlightLegBlock = (
       cy = ccy - 4;
     }
   });
+
+  // Divisor tracejado + QR na coluna direita
+  if (qr) {
+    const dividerX = outerX + segColW + 6;
+    drawDashedVLine(ctx.page, dividerX, cy + 6, segmentsTopY - 2, COLOR_BORDER);
+    const qrSize = 62;
+    const qrX = outerX + segColW + 16;
+    const qrY = segmentsTopY - qrSize - 6;
+    if (qr.img) {
+      ctx.page.drawImage(qr.img, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+      addLinkAnnotation(ctx, qrX, qrY, qrSize, qrSize, qr.url);
+    }
+    const lines = T(ctx).verifiqueCia.split("\n");
+    let ly = qrY - 8;
+    for (const ln of lines) {
+      const lw = measure(ctx.font, ln, 6.5);
+      ctx.page.drawText(sanitize(ln), {
+        x: qrX + (qrSize - lw) / 2, y: ly, size: 6.5, font: ctx.font, color: COLOR_MUTED,
+      });
+      ly -= 8;
+    }
+  }
 
   return cy;
 };
@@ -893,11 +974,10 @@ const drawAereoSection = async (
   const rt = sortByDep(returning);
 
   // Estimativa de espaço
-  const est = 40 + (ob.length ? 110 + (ob.length - 1) * 80 : 0) + (rt.length ? 110 + (rt.length - 1) * 80 : 0) + 40;
+  const est = 40 + (ob.length ? 120 + (ob.length - 1) * 90 : 0) + (rt.length ? 120 + (rt.length - 1) * 90 : 0) + 40;
   const { top } = openSectionCard(ctx, est + 40);
   const headerBottom = drawSectionHeader(ctx, top, "plane", t.aereo);
 
-  // QR único no topo (usa ida; se não houver, usa volta)
   const obPrimary = ob[0];
   const rtPrimary = rt[0];
   const obLocator = ob.map((i) => i.supplier_locator).find(Boolean) ?? "";
@@ -911,31 +991,33 @@ const drawAereoSection = async (
   const qrUrl = obPrimary ? airlineCheckinURL(obPrimary) : (rtPrimary ? airlineCheckinURL(rtPrimary) : "");
   const qrImg = qrUrl ? await embedQR(ctx, qrUrl) : null;
 
-  const qrSize = 62;
-  if (qrImg) {
-    const qrX = MARGIN + CONTENT_W - 14 - qrSize;
-    const qrY = top - 14 - qrSize;
-    ctx.page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
-    addLinkAnnotation(ctx, qrX, qrY, qrSize, qrSize, qrUrl);
-    const lines = T(ctx).verifiqueCia.split("\n");
-    let ly = qrY - 9;
-    for (const ln of lines) {
-      const lw = measure(ctx.font, ln, 7);
-      ctx.page.drawText(sanitize(ln), {
-        x: qrX + (qrSize - lw) / 2, y: ly, size: 7, font: ctx.font, color: COLOR_MUTED,
-      });
-      ly -= 9;
+  // Pré-carrega logos da cia (por segmento)
+  const loadLogos = async (segs: OrderItem[]): Promise<Map<number, PDFImage | null>> => {
+    const map = new Map<number, PDFImage | null>();
+    for (let i = 0; i < segs.length; i++) {
+      const d = (segs[i].details ?? {}) as Record<string, unknown>;
+      const url = String(d.airline_logo_url ?? "").trim();
+      map.set(i, url ? await embedRemotePhoto(ctx.pdf, url) : null);
     }
-  }
+    return map;
+  };
+  const obLogos = await loadLogos(ob);
+  const rtLogos = await loadLogos(rt);
 
   let cy = headerBottom - 8;
 
   if (ob.length > 0) {
-    cy = drawFlightLegBlock(ctx, cy, t.ida, COLOR_NAVY, ob, obLocator, obTicket);
-    cy -= 4;
+    cy = drawFlightLegBlock(
+      ctx, cy, t.ida, COLOR_ORANGE, ob, obLocator, obTicket,
+      { img: qrImg, url: qrUrl }, obLogos,
+    );
+    cy -= 8;
   }
   if (rt.length > 0) {
-    cy = drawFlightLegBlock(ctx, cy, t.volta, COLOR_NAVY, rt, rtLocator, rtTicket);
+    cy = drawFlightLegBlock(
+      ctx, cy, t.volta, COLOR_ORANGE, rt, rtLocator, rtTicket,
+      undefined, rtLogos,
+    );
     cy -= 4;
   }
 
