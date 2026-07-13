@@ -2765,7 +2765,7 @@ function FinanceDialog({
     const tax = initial?.tax_value ?? defaultTax;
     const disc = initial?.discount_value ?? 0;
     setForm({
-      supplier_name: initial?.supplier_name ?? "",
+      supplier_name: initial?.supplier_name ?? defaultSupplier,
       sale_value: sale,
       tax_value: tax,
       discount_value: disc,
