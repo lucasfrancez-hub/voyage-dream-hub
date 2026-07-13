@@ -525,11 +525,19 @@ export const recalculateOrderTotal = createServerFn({ method: "POST" })
     if (itemsError) throw new Error(itemsError.message);
 
     const itemIds = (items ?? []).map((item) => item.id);
-    let financials: Array<{ order_item_id: string; commission_pct: number | string | null; total: number | string | null }> = [];
+    let financials: Array<{
+      order_item_id: string;
+      commission_pct: number | string | null;
+      total: number | string | null;
+      sale_value: number | string | null;
+      tax_value: number | string | null;
+      discount_value: number | string | null;
+      rav_value: number | string | null;
+    }> = [];
     if (itemIds.length > 0) {
       const { data: rows, error: financialError } = await context.supabase
         .from("order_item_financials")
-        .select("order_item_id, commission_pct, total")
+        .select("order_item_id, commission_pct, total, sale_value, tax_value, discount_value, rav_value")
         .in("order_item_id", itemIds);
       if (financialError) throw new Error(financialError.message);
       financials = rows ?? [];
@@ -550,6 +558,20 @@ export const recalculateOrderTotal = createServerFn({ method: "POST" })
       return { id: item.id, gross, tax };
     });
 
+    // Regra única: total do item = tarifa + taxas − desconto + RAV.
+    // Espelha exatamente o cálculo do card "Total venda" no Financeiro
+    // para o cabeçalho nunca divergir. Se o item ainda não tem lançamento
+    // financeiro, usa o valor bruto do próprio item (details.value).
+    const itemNet = (id: string, gross: number) => {
+      const saved = financials.find((row) => row.order_item_id === id);
+      if (!saved) return gross;
+      const sale = Number(saved.sale_value ?? 0) || 0;
+      const tax = Number(saved.tax_value ?? 0) || 0;
+      const disc = Number(saved.discount_value ?? 0) || 0;
+      const rav = Number(saved.rav_value ?? 0) || 0;
+      return Number((sale + tax - disc + rav).toFixed(2));
+    };
+
     let total = 0;
     if (isPackage) {
       const packageTotal = packagePrice * pax;
@@ -560,26 +582,19 @@ export const recalculateOrderTotal = createServerFn({ method: "POST" })
       const pct = packageRows[0] && packageRows.every((row) => Number(row.commission_pct ?? 12) === Number(packageRows[0].commission_pct ?? 12))
         ? Number(packageRows[0].commission_pct ?? 12)
         : 12;
-      // Mantém exatamente a mesma regra exibida no Financeiro: 12% já estão
-      // embutidos no pacote e a taxa de RAV retém 15% apenas do acréscimo de
-      // comissão. Todos os passos são arredondados em centavos para evitar
-      // que uma edição posterior recrie divergência no cabeçalho/PDF.
       const defaultCommission = Number((packageFare * 0.12).toFixed(2));
       const currentCommission = Number((packageFare * (pct / 100)).toFixed(2));
       const commissionDelta = Number((currentCommission - defaultCommission).toFixed(2));
       const ravTax = Number((Math.max(0, commissionDelta) * 0.15).toFixed(2));
       const extras = pricedItems.reduce((sum, item) => {
         if (item.gross <= 0) return sum;
-        const saved = financials.find((row) => row.order_item_id === item.id);
-        return sum + (saved ? Number(saved.total ?? 0) || 0 : item.gross);
+        return sum + itemNet(item.id, item.gross);
       }, 0);
       total = packageTotal + commissionDelta + extras - ravTax;
     } else {
-      total = pricedItems.reduce((sum, item) => {
-        const saved = financials.find((row) => row.order_item_id === item.id);
-        return sum + (saved ? Number(saved.total ?? 0) || 0 : item.gross);
-      }, 0);
+      total = pricedItems.reduce((sum, item) => sum + itemNet(item.id, item.gross), 0);
     }
+
 
     const rounded = Math.max(0, Number(total.toFixed(2)));
     const { error: updateError } = await context.supabase
