@@ -931,7 +931,7 @@ const drawFlightLegBlock = (
     ctx.page.drawRectangle({
       x: planeCX - 14, y: midY - 6, width: 28, height: 12, color: COLOR_ROW_ALT,
     });
-    drawNicePlane(ctx.page, planeCX, midY, 22, COLOR_NAVY);
+    drawNicePlane(ctx.page, planeCX, midY, 22, COLOR_NAVY, isReturn);
     if (segments.length === 1) {
       const dLbl = ctx.lang === "en" ? "Direct" : "Direto";
       const dSize = 7;
