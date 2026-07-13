@@ -67,6 +67,10 @@ type PackageRow = {
   outbound_flight: FlightInfo | null;
   return_flight: FlightInfo | null;
   supplier_name: string | null;
+  tripadvisor_location_id: string | null;
+  tripadvisor_url: string | null;
+  tripadvisor_address: string | null;
+  tripadvisor_photos: string[] | null;
 };
 
 const emptyForm: Partial<PackageRow> = {
