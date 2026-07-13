@@ -623,6 +623,176 @@ export type Database = {
           },
         ]
       }
+      people: {
+        Row: {
+          address: string | null
+          birth_date: string | null
+          business_phone: string | null
+          charge_boleto_fee: boolean
+          city: string | null
+          cnpj: string | null
+          code: number
+          complement: string | null
+          country: string | null
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          district: string | null
+          email: string | null
+          foundation_date: string | null
+          gender: string | null
+          id: string
+          is_foreign: boolean
+          kind: string
+          legal_name: string | null
+          mobile_phone: string | null
+          monde_id: string | null
+          municipal_registration: string | null
+          name: string
+          notes: string | null
+          number: string | null
+          passport_expiration: string | null
+          passport_number: string | null
+          phone: string | null
+          rg: string | null
+          seller_name: string | null
+          state: string | null
+          state_registration: string | null
+          updated_at: string
+          website: string | null
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          birth_date?: string | null
+          business_phone?: string | null
+          charge_boleto_fee?: boolean
+          city?: string | null
+          cnpj?: string | null
+          code?: number
+          complement?: string | null
+          country?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          district?: string | null
+          email?: string | null
+          foundation_date?: string | null
+          gender?: string | null
+          id?: string
+          is_foreign?: boolean
+          kind: string
+          legal_name?: string | null
+          mobile_phone?: string | null
+          monde_id?: string | null
+          municipal_registration?: string | null
+          name: string
+          notes?: string | null
+          number?: string | null
+          passport_expiration?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          rg?: string | null
+          seller_name?: string | null
+          state?: string | null
+          state_registration?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          birth_date?: string | null
+          business_phone?: string | null
+          charge_boleto_fee?: boolean
+          city?: string | null
+          cnpj?: string | null
+          code?: number
+          complement?: string | null
+          country?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          district?: string | null
+          email?: string | null
+          foundation_date?: string | null
+          gender?: string | null
+          id?: string
+          is_foreign?: boolean
+          kind?: string
+          legal_name?: string | null
+          mobile_phone?: string | null
+          monde_id?: string | null
+          municipal_registration?: string | null
+          name?: string
+          notes?: string | null
+          number?: string | null
+          passport_expiration?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          rg?: string | null
+          seller_name?: string | null
+          state?: string | null
+          state_registration?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
+      people_cards: {
+        Row: {
+          brand: string | null
+          created_at: string
+          expiry: string | null
+          holder_name: string | null
+          id: string
+          is_travel_card: boolean
+          last4: string | null
+          nickname: string | null
+          number_ciphertext: string
+          person_id: string
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          expiry?: string | null
+          holder_name?: string | null
+          id?: string
+          is_travel_card?: boolean
+          last4?: string | null
+          nickname?: string | null
+          number_ciphertext: string
+          person_id: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          expiry?: string | null
+          holder_name?: string | null
+          id?: string
+          is_travel_card?: boolean
+          last4?: string | null
+          nickname?: string | null
+          number_ciphertext?: string
+          person_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_cards_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
