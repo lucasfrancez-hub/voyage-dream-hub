@@ -972,7 +972,7 @@ const drawHotelSection = async (
   ctx: Ctx,
   item: OrderItem,
   mapData: HotelMapData | null,
-  guestsFallback: number,
+  guestsFallback: string,
 ) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
@@ -984,7 +984,7 @@ const drawHotelSection = async (
   const rawGuests = String(d.guests ?? "").trim();
   const guests = rawGuests && rawGuests !== "null" && rawGuests !== "undefined"
     ? rawGuests
-    : (guestsFallback > 0 ? String(guestsFallback) : "-");
+    : (guestsFallback || "-");
   const locator = item.supplier_locator ?? "";
   let photoUrl = "";
   try {
