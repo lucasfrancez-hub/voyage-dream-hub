@@ -650,7 +650,14 @@ const drawSectionHeader = (
 };
 
 // ---------- Passageiros ----------
+const formatTicketNumber = (raw: string): string => {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length <= 3) return digits;
+  return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+};
+
 const passengerTypeLabel = (t: ReturnType<typeof T>, kind: string): string => {
+
   const k = (kind ?? "").toUpperCase();
   if (k === "CHD") return t.crianca;
   if (k === "INF") return t.infantil;
