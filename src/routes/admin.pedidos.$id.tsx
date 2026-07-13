@@ -2580,7 +2580,14 @@ function FinanceTab({
       (a, f) => a + Number(f.commission_value || 0) + Number(f.rav_value || 0),
       0,
     );
-    totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
+    // Recalcula do row pra garantir que RAV entre no total, mesmo em lançamentos antigos.
+    totalNet = displayRows.reduce((a, f) => {
+      const sale = Number(f.sale_value || 0);
+      const tax = Number(f.tax_value || 0);
+      const disc = Number(f.discount_value || 0);
+      const rav = Number(f.rav_value || 0);
+      return a + Number((sale + tax - disc + rav).toFixed(2));
+    }, 0);
   }
   const packageDiscount = isPackageOrder
     ? Math.max(0, Number((packageDefaultCommission - Number((packageFareNet * (packagePct / 100)).toFixed(2))).toFixed(2)))
