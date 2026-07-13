@@ -1862,8 +1862,8 @@ function ItemDialog({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [locator, setLocator] = useState(initial?.supplier_locator ?? "");
   const [status, setStatusVal] = useState<"confirmed" | "reserved" | "cancelled" | "pending">((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
-  const [details, setDetails] = useState<Record<string, string | number>>(() => {
-    const clean: Record<string, string | number> = {};
+  const [details, setDetails] = useState<Record<string, string | number | boolean>>(() => {
+    const clean: Record<string, string | number | boolean> = {};
     for (const [k, v] of Object.entries(initialDetails)) {
       if (typeof v === "string" || typeof v === "number") clean[k] = v;
     }
@@ -1871,8 +1871,8 @@ function ItemDialog({
     return clean;
   });
 
-  const cleanDetails = (raw: unknown): Record<string, string | number> => {
-    const clean: Record<string, string | number> = {};
+  const cleanDetails = (raw: unknown): Record<string, string | number | boolean> => {
+    const clean: Record<string, string | number | boolean> = {};
     for (const [k, v] of Object.entries((raw ?? {}) as Record<string, unknown>)) {
       if (typeof v === "string" || typeof v === "number") clean[k] = v;
     }
@@ -1881,7 +1881,7 @@ function ItemDialog({
 
   // Segmentos adicionais do mesmo aéreo (ex.: volta / conexões).
   // Segmento 0 = "main" (initial); segmentos 1+ = irmãos (podem ter id existente ou serem novos).
-  type Segment = { id?: string; details: Record<string, string | number> };
+  type Segment = { id?: string; details: Record<string, string | number | boolean> };
   const [extraSegments, setExtraSegments] = useState<Segment[]>(
     kind === "flight" ? (siblings ?? []).map((s) => ({ id: s.id, details: cleanDetails(s.details) })) : []
   );
@@ -1930,7 +1930,7 @@ function ItemDialog({
   };
 
 
-  const segmentTitle = (d: Record<string, string | number>): string => {
+  const segmentTitle = (d: Record<string, string | number | boolean>): string => {
     const airline = String(d.airline ?? "").trim();
     const flightNo = String(d.flight_number ?? "").trim();
     const from = String(d.from_iata ?? d.origin ?? "").trim();
@@ -2274,7 +2274,7 @@ function ItemDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => {
             const numFields = new Set(["nights", "value", "quantity", "hotel_stars", "tax_value"]);
-            const buildClean = (raw: Record<string, string | number>): Record<string, unknown> => {
+            const buildClean = (raw: Record<string, string | number | boolean>): Record<string, unknown> => {
               const cd: Record<string, unknown> = {};
               for (const [k, v] of Object.entries(raw)) {
                 if (v === "" || v === undefined || v === null) continue;
