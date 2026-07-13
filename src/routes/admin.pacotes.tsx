@@ -366,6 +366,10 @@ function AdminPackages() {
                       hotel_name: h.name,
                       hotel_stars: h.rating != null ? Math.round(h.rating) : (prev?.hotel_stars ?? 3),
                       image_url: (prev?.image_url && prev.image_url.length > 0) ? prev.image_url : (h.photos[0] ?? prev?.image_url ?? ""),
+                      tripadvisor_location_id: String(h.location_id),
+                      tripadvisor_url: h.tripadvisor_url ?? null,
+                      tripadvisor_address: h.address ?? null,
+                      tripadvisor_photos: (h.photos && h.photos.length > 0) ? h.photos : null,
                     }));
                   }}
                 />
