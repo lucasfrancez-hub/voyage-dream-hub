@@ -2907,27 +2907,44 @@ function FinanceDialog({
             </div>
           </div>
 
-          {/* Comissão: só % sobre a tarifa (sem reguinha) */}
-          <div className="rounded-xl border border-border bg-muted/30 p-4">
+          {/* Comissionável + comissão padrão (não editável por item) */}
+          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Comissão sobre a tarifa</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number" step="0.5" min={0} max={100}
-                  value={form.commission_pct}
-                  onChange={(e) => recalc({ commission_pct: Number(e.target.value) })}
-                  className="w-20 h-8 text-right"
-                />
-                <span className="text-sm text-muted-foreground">%</span>
+              <div>
+                <Label className="text-sm">Comissionável</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Desligue para produtos que não pagam comissão.</p>
               </div>
+              <Switch
+                checked={form.is_commissionable}
+                onCheckedChange={(v) => recalc({ is_commissionable: v })}
+              />
             </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-               <span>Base: {formatBRL(base)} (tarifa sem taxas)</span>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Base: {formatBRL(base)} · {form.is_commissionable ? `${form.commission_pct}% (padrão)` : "sem comissão"}</span>
               <span>
                 Comissão: <span className="font-semibold text-brand-orange">{formatBRL(form.commission_value)}</span>
               </span>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>RAV (comissão adicional R$)</Label>
+              <Input
+                type="number" step="0.01" min={0}
+                value={form.rav_value}
+                onChange={(e) => setForm({ ...form, rav_value: Number(e.target.value) })}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Somado à comissão para efeito de recebimento.</p>
+            </div>
+            <div className="flex items-end">
+              <div className="text-xs text-muted-foreground w-full text-right">
+                Comissão + RAV: <span className="font-semibold text-brand-orange">{formatBRL(Number(form.commission_value) + Number(form.rav_value || 0))}</span>
+              </div>
+            </div>
+          </div>
+
+
 
 
           <div className="grid grid-cols-3 gap-3">
