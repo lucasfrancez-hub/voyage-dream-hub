@@ -1,9 +1,10 @@
-// Voucher elegante minimalista — Via Air
+// Voucher elegante estilo Cativa — Via Air
 // Gera um PDF único com todos os itens do pedido (aéreo, hotel, serviços).
 // Bilíngue (pt-BR / en). Roda no navegador via pdf-lib.
 //
-// Para hotéis, embute mapa estático do Google Maps + QR code que abre a rota
-// no celular. O mapa é buscado por server function; o QR é gerado localmente.
+// Design: pílulas azuis para seções, "VOUCHER" tipográfico grande,
+// logo Via Air no topo esquerdo (sem logo de operador), rodapé em faixa azul.
+// Para hotéis, embute mapa estático do Google Maps + QR pra abrir no celular.
 
 import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont, PDFImage } from "pdf-lib";
 import QRCode from "qrcode";
@@ -16,13 +17,17 @@ const A4 = { w: 595.28, h: 841.89 };
 const MARGIN = 40;
 const CONTENT_W = A4.w - MARGIN * 2;
 
-// Paleta baseada nos tokens da agência
+// Paleta estilo Cativa (azul marinho profundo) + laranja da Via Air como acento
+const COLOR_WHITE = rgb(1, 1, 1);
 const COLOR_TEXT = rgb(0.10, 0.11, 0.13);
 const COLOR_MUTED = rgb(0.42, 0.45, 0.50);
-const COLOR_BORDER = rgb(0.86, 0.88, 0.90);
-const COLOR_SUBTLE_BG = rgb(0.97, 0.97, 0.98);
+const COLOR_BORDER = rgb(0.88, 0.90, 0.93);
+const COLOR_ROW_ALT = rgb(0.965, 0.968, 0.975);
+const COLOR_PILL_BG = rgb(0.94, 0.95, 0.97);
 const COLOR_BRAND_ORANGE = rgb(241 / 255, 160 / 255, 74 / 255);
-const COLOR_BRAND_BLUE = rgb(25 / 255, 111 / 255, 153 / 255);
+const COLOR_BRAND_BLUE = rgb(11 / 255, 40 / 255, 106 / 255); // deep navy
+const COLOR_BRAND_BLUE_SOFT = rgb(37 / 255, 79 / 255, 158 / 255);
+const COLOR_EMERGENCY = rgb(210 / 255, 45 / 255, 55 / 255);
 const COLOR_STAR = rgb(0.98, 0.72, 0.10);
 
 const COMPANY = {
@@ -40,8 +45,8 @@ export type VoucherLang = "pt" | "en";
 
 const L = {
   pt: {
-    title: "VOUCHER DE VIAGEM",
-    subtitle: "Travel Voucher",
+    title: "VOUCHER",
+    idLabel: "ID",
     orderLabel: "Pedido",
     issuedAt: "Emitido em",
     passenger: "Passageiro",
@@ -69,17 +74,19 @@ const L = {
     supplier: "Fornecedor",
     openMap: "Abrir no Google Maps",
     scanForMap: "Escaneie para abrir no celular",
-    footerTagline: "Boa viagem! · Have a great trip!",
-    footerLegal:
-      "Documento emitido pela VIA AIR. Apresente na acomodação/embarque. Confira todos os dados; em caso de divergência, contate a agência.",
-    contact: "Central de atendimento",
+    generalInfo: "Informações gerais",
+    generalInfoText:
+      "HOTEL: O horário de check-in pode ser após às 15h e o check-out até às 10h. Confirme com o estabelecimento na chegada. Voos: apresente-se 3h antes em voos internacionais e 2h antes em voos domésticos.",
+    emergency: "Emergências",
+    emergencyText:
+      "Em caso de emergência durante a viagem, entre em contato imediatamente com a Central de Atendimento Via Air.",
+    contactSection: "Contato",
     page: "Página",
     of: "de",
-    stars: "estrelas",
   },
   en: {
-    title: "TRAVEL VOUCHER",
-    subtitle: "Voucher de Viagem",
+    title: "VOUCHER",
+    idLabel: "ID",
     orderLabel: "Order",
     issuedAt: "Issued on",
     passenger: "Guest",
@@ -96,7 +103,7 @@ const L = {
     room: "Room",
     board: "Meal plan",
     guests: "Guests",
-    reservation: "Reservation code",
+    reservation: "Reservation",
     airline: "Airline",
     flightNo: "Flight",
     departure: "Departure",
@@ -107,13 +114,15 @@ const L = {
     supplier: "Supplier",
     openMap: "Open in Google Maps",
     scanForMap: "Scan to open on your phone",
-    footerTagline: "Have a great trip! · Boa viagem!",
-    footerLegal:
-      "Document issued by VIA AIR. Present at check-in / boarding. Please review all details and contact the agency for any discrepancies.",
-    contact: "Support",
+    generalInfo: "General information",
+    generalInfoText:
+      "HOTEL: Check-in usually after 3pm, check-out by 10am — please confirm on arrival. Flights: arrive 3h early for international and 2h early for domestic flights.",
+    emergency: "Emergencies",
+    emergencyText:
+      "In case of emergency during your trip, contact Via Air support immediately.",
+    contactSection: "Contact",
     page: "Page",
     of: "of",
-    stars: "stars",
   },
 } as const;
 
@@ -159,6 +168,7 @@ const fmtDateTime = (s: string | null | undefined, lang: VoucherLang): string =>
 };
 
 // ---------- Drawing primitives ----------
+type Color = ReturnType<typeof rgb>;
 type Ctx = {
   pdf: PDFDocument;
   page: PDFPage;
@@ -177,7 +187,7 @@ const drawText = (
   ctx: Ctx,
   s: string,
   x: number,
-  opts?: { size?: number; bold?: boolean; color?: ReturnType<typeof rgb>; y?: number },
+  opts?: { size?: number; bold?: boolean; color?: Color; y?: number },
 ) => {
   const size = opts?.size ?? 9;
   const font = opts?.bold ? ctx.fontBold : ctx.font;
@@ -212,6 +222,21 @@ const wrap = (font: PDFFont, size: number, s: string, maxWidth: number): string[
   return lines;
 };
 
+// Rounded rectangle (pill). Draws left + right half-circles + center rect.
+const drawRoundedRect = (
+  page: PDFPage,
+  x: number, y: number, w: number, h: number,
+  color: Color,
+  radius?: number,
+) => {
+  const r = Math.min(radius ?? h / 2, h / 2, w / 2);
+  // side circles
+  page.drawCircle({ x: x + r, y: y + h / 2, size: r, color });
+  page.drawCircle({ x: x + w - r, y: y + h / 2, size: r, color });
+  // center rectangle
+  page.drawRectangle({ x: x + r, y, width: w - 2 * r, height: h, color });
+};
+
 const newPage = (ctx: Ctx) => {
   ctx.page = ctx.pdf.addPage([A4.w, A4.h]);
   ctx.pages.push(ctx.page);
@@ -220,225 +245,227 @@ const newPage = (ctx: Ctx) => {
 };
 
 const ensureSpace = (ctx: Ctx, needed: number) => {
-  if (ctx.y - needed < MARGIN + 60) newPage(ctx);
+  if (ctx.y - needed < MARGIN + 70) newPage(ctx);
 };
 
 // ---------- Header / Footer ----------
 const drawMainHeader = (ctx: Ctx) => {
   const t = T(ctx);
-  const bandH = 96;
   const topY = A4.h;
-  // Faixa de topo com gradiente simulado por 2 retângulos
-  ctx.page.drawRectangle({
-    x: 0, y: topY - bandH, width: A4.w, height: bandH,
-    color: rgb(0.99, 0.99, 1),
-  });
-  // Barra lateral colorida
-  ctx.page.drawRectangle({
-    x: 0, y: topY - bandH, width: 5, height: bandH,
-    color: COLOR_BRAND_ORANGE,
-  });
-  // Título grande
-  drawText(ctx, t.title, MARGIN, { y: topY - 42, size: 22, bold: true, color: COLOR_BRAND_BLUE });
-  drawText(ctx, t.subtitle, MARGIN, { y: topY - 58, size: 9, color: COLOR_MUTED });
 
-  // Bloco direito: número do pedido
-  const label = t.orderLabel.toUpperCase();
-  const orderNo = `#${ctx.order.orderNumber}`;
-  const rightX = A4.w - MARGIN;
-  const labelW = measure(ctx.fontBold, label, 8);
-  const orderW = measure(ctx.fontBold, orderNo, 18);
-  drawText(ctx, label, rightX - labelW, { y: topY - 30, size: 8, bold: true, color: COLOR_MUTED });
-  drawText(ctx, orderNo, rightX - orderW, { y: topY - 52, size: 18, bold: true, color: COLOR_BRAND_ORANGE });
-
-  const issuedLabel = `${t.issuedAt} ${fmtDateShort(new Date().toISOString(), ctx.lang)}`;
-  const issuedW = measure(ctx.font, issuedLabel, 8);
-  drawText(ctx, issuedLabel, rightX - issuedW, { y: topY - 66, size: 8, color: COLOR_MUTED });
-
-  // Logo (canto direito, acima do número)
+  // Logo Via Air (topo esquerdo)
   if (ctx.logo) {
-    const maxW = 80;
-    const ratio = ctx.logo.width / ctx.logo.height;
-    const w = maxW;
-    const h = w / ratio;
+    const h = 34;
+    const w = h * (ctx.logo.width / ctx.logo.height);
     ctx.page.drawImage(ctx.logo, {
-      x: A4.w - MARGIN - w,
-      y: topY - 14 - h,
-      width: w,
-      height: h,
-      opacity: 0.0, // não usar aqui — logo aparece só no rodapé, mantém topo limpo
+      x: MARGIN, y: topY - MARGIN - h + 6, width: w, height: h,
     });
   }
 
-  // Linha divisória inferior do cabeçalho
+  // Linha divisória azul grossa abaixo do logo
+  const lineY = topY - MARGIN - 46;
   ctx.page.drawRectangle({
-    x: MARGIN, y: topY - bandH - 1, width: CONTENT_W, height: 1,
-    color: COLOR_BORDER,
+    x: MARGIN, y: lineY, width: CONTENT_W, height: 2, color: COLOR_BRAND_BLUE,
   });
 
-  ctx.y = topY - bandH - 20;
+  // Pílula ID pequena
+  const idText = `${t.idLabel}: ${ctx.order.orderNumber}`;
+  const idFont = 9;
+  const idW = measure(ctx.fontBold, idText, idFont) + 20;
+  const idH = 16;
+  const idX = MARGIN;
+  const idY = lineY - 26;
+  drawRoundedRect(ctx.page, idX, idY, idW, idH, COLOR_PILL_BG, 8);
+  ctx.page.drawText(sanitize(idText), {
+    x: idX + 10, y: idY + 5, size: idFont, font: ctx.fontBold, color: COLOR_TEXT,
+  });
+
+  // Título grande "VOUCHER"
+  const titleSize = 30;
+  ctx.page.drawText(sanitize(t.title), {
+    x: MARGIN, y: idY - 40, size: titleSize, font: ctx.fontBold, color: COLOR_BRAND_BLUE,
+  });
+
+  ctx.y = idY - titleSize - 28;
 };
 
 const drawContinuationHeader = (ctx: Ctx) => {
   const t = T(ctx);
-  const topY = A4.h - 20;
-  drawText(ctx, `${t.title} · #${ctx.order.orderNumber}`, MARGIN, {
-    y: topY, size: 9, bold: true, color: COLOR_BRAND_BLUE,
-  });
-  ctx.page.drawRectangle({
-    x: MARGIN, y: topY - 8, width: CONTENT_W, height: 0.6,
-    color: COLOR_BORDER,
-  });
-  ctx.y = topY - 24;
-};
-
-const drawFooter = (ctx: Ctx, pageIndex: number, pageCount: number) => {
-  const t = T(ctx);
-  const y = MARGIN - 4;
-  // Faixa fina laranja
-  ctx.page.drawRectangle({
-    x: MARGIN, y: y + 32, width: CONTENT_W, height: 0.8,
-    color: COLOR_BRAND_ORANGE,
-  });
-  // Logo pequena à esquerda
+  const topY = A4.h - MARGIN;
+  // Logo pequena
   if (ctx.logo) {
     const h = 22;
     const w = h * (ctx.logo.width / ctx.logo.height);
-    ctx.page.drawImage(ctx.logo, { x: MARGIN, y: y + 4, width: w, height: h });
+    ctx.page.drawImage(ctx.logo, { x: MARGIN, y: topY - h, width: w, height: h });
   }
-  // Tagline central
-  const tagline = t.footerTagline;
-  const tagW = measure(ctx.fontBold, tagline, 8);
-  ctx.page.drawText(sanitize(tagline), {
-    x: (A4.w - tagW) / 2, y: y + 18, size: 8, font: ctx.fontBold, color: COLOR_BRAND_BLUE,
+  // ID à direita
+  const label = `${t.idLabel}: ${ctx.order.orderNumber}`;
+  const lw = measure(ctx.fontBold, label, 9);
+  ctx.page.drawText(sanitize(label), {
+    x: A4.w - MARGIN - lw, y: topY - 14, size: 9, font: ctx.fontBold, color: COLOR_BRAND_BLUE,
   });
-
-  // Company + paginação à direita
-  const rightX = A4.w - MARGIN;
-  const companyLine = `${COMPANY.short} · CNPJ ${COMPANY.cnpj}`;
-  const contactLine = `${COMPANY.phone} · ${COMPANY.email}`;
-  const cw1 = measure(ctx.font, companyLine, 7);
-  const cw2 = measure(ctx.font, contactLine, 7);
-  ctx.page.drawText(sanitize(companyLine), {
-    x: rightX - cw1, y: y + 20, size: 7, font: ctx.font, color: COLOR_MUTED,
+  // Linha azul
+  ctx.page.drawRectangle({
+    x: MARGIN, y: topY - 30, width: CONTENT_W, height: 1.5, color: COLOR_BRAND_BLUE,
   });
-  ctx.page.drawText(sanitize(contactLine), {
-    x: rightX - cw2, y: y + 10, size: 7, font: ctx.font, color: COLOR_MUTED,
-  });
-  const pageStr = `${t.page} ${pageIndex + 1} ${t.of} ${pageCount}`;
-  const pw = measure(ctx.font, pageStr, 7);
-  ctx.page.drawText(sanitize(pageStr), {
-    x: rightX - pw, y: y + 0, size: 7, font: ctx.font, color: COLOR_MUTED,
-  });
+  ctx.y = topY - 44;
 };
 
-// ---------- Passenger block ----------
-const drawPassengersBlock = (ctx: Ctx, passengers: OrderPassenger[]) => {
-  if (!passengers.length) return;
+const drawFooter = (ctx: Ctx, pageIndex: number, pageCount: number) => {
+  const barH = 48;
+  // Faixa azul cheia
+  ctx.page.drawRectangle({
+    x: 0, y: 0, width: A4.w, height: barH, color: COLOR_BRAND_BLUE,
+  });
+  // Faixa fina laranja acima
+  ctx.page.drawRectangle({
+    x: 0, y: barH, width: A4.w, height: 3, color: COLOR_BRAND_ORANGE,
+  });
+
+  const emailText = COMPANY.email;
+  const addrText = `${COMPANY.address} · ${COMPANY.cityLine}`;
+  const phoneText = COMPANY.phone;
+
+  const emailW = measure(ctx.fontBold, emailText, 11);
+  ctx.page.drawText(sanitize(emailText), {
+    x: (A4.w - emailW) / 2, y: barH - 18, size: 11, font: ctx.fontBold, color: COLOR_WHITE,
+  });
+  const addrW = measure(ctx.font, addrText, 8);
+  ctx.page.drawText(sanitize(addrText), {
+    x: (A4.w - addrW) / 2, y: barH - 30, size: 8, font: ctx.font, color: COLOR_WHITE,
+  });
+  const phoneW = measure(ctx.font, phoneText, 8);
+  ctx.page.drawText(sanitize(phoneText), {
+    x: (A4.w - phoneW) / 2, y: barH - 40, size: 8, font: ctx.font, color: COLOR_WHITE,
+  });
+
+  // Paginação canto direito, acima da barra
   const t = T(ctx);
-  const label = passengers.length > 1 ? t.passengers : t.passenger;
-  ensureSpace(ctx, 40);
-
-  drawText(ctx, label.toUpperCase(), MARGIN, { size: 8, bold: true, color: COLOR_BRAND_ORANGE });
-  ctx.y -= 12;
-
-  // Card fundo sutil
-  const cardTop = ctx.y + 4;
-  const lineH = 13;
-  const rows = passengers.length;
-  const cardH = rows * lineH + 12;
-  ctx.page.drawRectangle({
-    x: MARGIN, y: cardTop - cardH, width: CONTENT_W, height: cardH,
-    color: COLOR_SUBTLE_BG, borderColor: COLOR_BORDER, borderWidth: 0.5,
+  const pg = `${t.page} ${pageIndex + 1} ${t.of} ${pageCount}`;
+  const pw = measure(ctx.font, pg, 8);
+  ctx.page.drawText(sanitize(pg), {
+    x: A4.w - MARGIN - pw, y: barH + 8, size: 8, font: ctx.font, color: COLOR_MUTED,
   });
-
-  passengers.forEach((p, i) => {
-    const yy = cardTop - 8 - (i + 1) * lineH + 4;
-    const name = p.full_name || "-";
-    const doc = p.doc_type === "passport"
-      ? (p.passport_number ? `PPT ${p.passport_number}` : "")
-      : (p.cpf ? `CPF ${p.cpf}` : (p.document ?? ""));
-    drawText(ctx, name, MARGIN + 10, { y: yy, size: 10, bold: true });
-    if (doc) {
-      const dw = measure(ctx.font, doc, 9);
-      drawText(ctx, doc, MARGIN + CONTENT_W - 10 - dw, { y: yy, size: 9, color: COLOR_MUTED });
-    }
-  });
-
-  ctx.y = cardTop - cardH - 18;
 };
 
-// ---------- Item card helpers ----------
-const drawItemHeader = (ctx: Ctx, kindLabel: string, title: string, accent: ReturnType<typeof rgb>) => {
-  // Tag colorida do tipo
-  const tagW = measure(ctx.fontBold, kindLabel.toUpperCase(), 7) + 12;
-  ctx.page.drawRectangle({
-    x: MARGIN, y: ctx.y - 2, width: tagW, height: 14,
-    color: accent,
-  });
-  drawText(ctx, kindLabel.toUpperCase(), MARGIN + 6, {
-    y: ctx.y + 2, size: 7, bold: true, color: rgb(1, 1, 1),
-  });
-  // Título ao lado
-  const titleX = MARGIN + tagW + 8;
-  drawText(ctx, title, titleX, { y: ctx.y + 2, size: 12, bold: true, color: COLOR_TEXT });
-  ctx.y -= 22;
-};
-
-// Linha rótulo/valor em 2 colunas
-const drawKV = (
+// ---------- Section pill (Cativa style) ----------
+// Desenha uma pílula azul cheia com título e, opcionalmente, uma pílula
+// clara à direita com um valor (ex.: "Localizador: XYZ").
+const drawSectionPill = (
   ctx: Ctx,
-  pairs: Array<{ label: string; value: string }>,
-  cols = 2,
+  title: string,
+  opts?: { color?: Color; rightPill?: string },
 ) => {
-  const colW = CONTENT_W / cols;
-  const lineH = 24;
-  for (let i = 0; i < pairs.length; i += cols) {
-    ensureSpace(ctx, lineH);
-    for (let c = 0; c < cols; c++) {
-      const p = pairs[i + c];
-      if (!p) continue;
-      const x = MARGIN + c * colW;
-      drawText(ctx, p.label.toUpperCase(), x, {
-        y: ctx.y, size: 7, bold: true, color: COLOR_MUTED,
-      });
-      const lines = wrap(ctx.font, 9.5, p.value || "-", colW - 14);
-      let yy = ctx.y - 11;
-      for (const ln of lines.slice(0, 2)) {
-        ctx.page.drawText(sanitize(ln), { x, y: yy, size: 9.5, font: ctx.font, color: COLOR_TEXT });
-        yy -= 11;
-      }
-    }
-    ctx.y -= lineH;
+  ensureSpace(ctx, 40);
+  const bg = opts?.color ?? COLOR_BRAND_BLUE;
+  const h = 26;
+  const pad = 16;
+  const size = 13;
+  const textW = measure(ctx.fontBold, title, size);
+  const w = textW + pad * 2;
+  const y = ctx.y - h;
+  drawRoundedRect(ctx.page, MARGIN, y, w, h, bg, 13);
+  ctx.page.drawText(sanitize(title), {
+    x: MARGIN + pad, y: y + 8, size, font: ctx.fontBold, color: COLOR_WHITE,
+  });
+
+  if (opts?.rightPill) {
+    const rp = opts.rightPill;
+    const rSize = 9;
+    const rW = measure(ctx.fontBold, rp, rSize) + 22;
+    const rH = 20;
+    const rX = MARGIN + CONTENT_W - rW;
+    const rY = y + (h - rH) / 2;
+    drawRoundedRect(ctx.page, rX, rY, rW, rH, COLOR_PILL_BG, 10);
+    ctx.page.drawText(sanitize(rp), {
+      x: rX + 11, y: rY + 6, size: rSize, font: ctx.fontBold, color: COLOR_BRAND_BLUE,
+    });
   }
+
+  ctx.y = y - 14;
 };
 
-// Desenha estrelas (aceita meia estrela via valor fracionário)
-const drawStars = (ctx: Ctx, x: number, y: number, value: number, size = 10) => {
+// Título forte de "campo" dentro de uma seção
+const drawFieldTitle = (ctx: Ctx, s: string, size = 15) => {
+  ensureSpace(ctx, size + 6);
+  ctx.page.drawText(sanitize(s), {
+    x: MARGIN, y: ctx.y - size + 2, size, font: ctx.fontBold, color: COLOR_BRAND_BLUE,
+  });
+  ctx.y -= size + 4;
+};
+
+// Linha "Rótulo: valor" (rótulo em bold pequeno azul)
+const drawInlineKV = (ctx: Ctx, label: string, value: string, x = MARGIN, opts?: { size?: number }) => {
+  const size = opts?.size ?? 10;
+  const lab = `${label}: `;
+  drawText(ctx, lab, x, { size, bold: true, color: COLOR_BRAND_BLUE });
+  const w = measure(ctx.fontBold, lab, size);
+  drawText(ctx, value || "-", x + w, { size, color: COLOR_TEXT });
+};
+
+// Tabela horizontal simples estilo Cativa: header cinza claro, rows alternadas
+const drawSimpleTable = (
+  ctx: Ctx,
+  headers: string[],
+  rows: string[][],
+) => {
+  if (rows.length === 0) return;
+  const cols = headers.length;
+  const colW = CONTENT_W / cols;
+  const headerH = 22;
+  const rowH = 22;
+  ensureSpace(ctx, headerH + rowH * rows.length + 10);
+
+  // Header
+  const hY = ctx.y - headerH;
+  ctx.page.drawRectangle({
+    x: MARGIN, y: hY, width: CONTENT_W, height: headerH, color: COLOR_PILL_BG,
+  });
+  headers.forEach((h, i) => {
+    const tx = MARGIN + i * colW + 10;
+    drawText(ctx, h, tx, { y: hY + 7, size: 9, bold: true, color: COLOR_BRAND_BLUE });
+  });
+  ctx.y = hY;
+
+  // Rows
+  rows.forEach((r, ri) => {
+    ensureSpace(ctx, rowH);
+    const rY = ctx.y - rowH;
+    if (ri % 2 === 1) {
+      ctx.page.drawRectangle({
+        x: MARGIN, y: rY, width: CONTENT_W, height: rowH, color: COLOR_ROW_ALT,
+      });
+    }
+    r.forEach((cell, i) => {
+      const tx = MARGIN + i * colW + 10;
+      const lines = wrap(ctx.font, 9, cell || "-", colW - 20);
+      drawText(ctx, lines[0] ?? "-", tx, { y: rY + 7, size: 9, color: COLOR_TEXT });
+    });
+    ctx.y = rY;
+  });
+
+  ctx.y -= 16;
+};
+
+// Desenha estrelas com fallback em círculos preenchidos/vazios (WinAnsi safe)
+const drawStars = (page: PDFPage, x: number, y: number, value: number, size = 10) => {
   const full = Math.floor(value);
   const half = value - full >= 0.5;
   const total = 5;
-  const gap = 2;
-  const filled = "★";
-  const empty = "☆";
+  const gap = 3;
   for (let i = 0; i < total; i++) {
-    // "★" e "☆" não estão em WinAnsi. Usar losango preenchido/vazio como fallback estilizado.
     const isFull = i < full;
     const isHalf = !isFull && i === full && half;
-    const glyph = isFull || isHalf ? "\u2666" : "\u25C7"; // ♦ e ◇ (não WinAnsi)
-    void filled; void empty; void glyph;
-    // Como esses glyphs não estão no WinAnsi, desenhamos primitivas geométricas.
     const cx = x + i * (size + gap) + size / 2;
     const cy = y + size / 2;
-    // Estrela simulada: retângulo preenchido para "cheia", contornado para "vazia"
     const r = size / 2;
     if (isFull) {
-      ctx.page.drawCircle({ x: cx, y: cy, size: r, color: COLOR_STAR });
+      page.drawCircle({ x: cx, y: cy, size: r, color: COLOR_STAR });
     } else if (isHalf) {
-      ctx.page.drawCircle({ x: cx, y: cy, size: r, color: COLOR_STAR, opacity: 0.5 });
-      ctx.page.drawCircle({ x: cx, y: cy, size: r, borderColor: COLOR_STAR, borderWidth: 0.8 });
+      page.drawCircle({ x: cx, y: cy, size: r, color: COLOR_STAR, opacity: 0.5 });
+      page.drawCircle({ x: cx, y: cy, size: r, borderColor: COLOR_STAR, borderWidth: 0.8 });
     } else {
-      ctx.page.drawCircle({ x: cx, y: cy, size: r, borderColor: COLOR_STAR, borderWidth: 0.8 });
+      page.drawCircle({ x: cx, y: cy, size: r, borderColor: COLOR_STAR, borderWidth: 0.8 });
     }
   }
 };
@@ -465,52 +492,71 @@ const renderHotelItem = async (
   const guests = String(d.guests ?? "").trim();
   const locator = item.supplier_locator ?? "";
 
-  ensureSpace(ctx, 240);
+  ensureSpace(ctx, 260);
 
-  // Cabeçalho do item + estrelas ao lado do nome
-  drawItemHeader(ctx, t.hotel, hotelName, COLOR_BRAND_BLUE);
+  drawSectionPill(ctx, t.hotel, {
+    rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
+  });
+
+  // Nome do hotel grande + estrelas ao lado
+  drawFieldTitle(ctx, hotelName, 15);
   if (stars > 0) {
-    const titleW = measure(ctx.fontBold, hotelName, 12);
-    const tagW = measure(ctx.fontBold, t.hotel.toUpperCase(), 7) + 12;
-    const starsX = MARGIN + tagW + 8 + titleW + 10;
-    drawStars(ctx, starsX, ctx.y + 24, stars, 9);
+    // desenha estrelas ao lado do título (uma linha acima da posição atual)
+    const titleW = measure(ctx.fontBold, hotelName, 15);
+    drawStars(ctx.page, MARGIN + titleW + 10, ctx.y + 4, stars, 10);
   }
 
-  // KVs
-  drawKV(ctx, [
-    { label: t.checkin, value: fmtDateShort(checkin, ctx.lang) },
-    { label: t.checkout, value: fmtDateShort(checkout, ctx.lang) },
+  // Endereço
+  if (address) {
+    const addrLines = wrap(ctx.font, 9.5, address, CONTENT_W);
+    for (const ln of addrLines.slice(0, 2)) {
+      drawText(ctx, ln, MARGIN, { size: 9.5, color: COLOR_MUTED });
+      ctx.y -= 12;
+    }
+    ctx.y -= 2;
+  }
+
+  // Linha de dados essenciais em 4 blocos "Rótulo: valor"
+  const colW = CONTENT_W / 4;
+  const rowY = ctx.y - 14;
+  const cells: Array<{ label: string; value: string }> = [
+    { label: t.checkin, value: fmtDateShort(checkin, ctx.lang) || "-" },
+    { label: t.checkout, value: fmtDateShort(checkout, ctx.lang) || "-" },
     { label: t.nights, value: nights || (checkin && checkout ? String(diffDays(checkin, checkout)) : "-") },
-    { label: t.reservation, value: locator || "-" },
-    { label: t.room, value: room || "-" },
-    { label: t.board, value: board || "-" },
     { label: t.guests, value: guests || "-" },
-    { label: t.address, value: address || "-" },
-  ]);
+  ];
+  cells.forEach((c, i) => {
+    const x = MARGIN + i * colW;
+    drawText(ctx, c.label.toUpperCase(), x, { y: rowY, size: 7.5, bold: true, color: COLOR_BRAND_BLUE_SOFT });
+    drawText(ctx, c.value, x, { y: rowY - 12, size: 10, bold: true, color: COLOR_TEXT });
+  });
+  ctx.y = rowY - 26;
+
+  // Quarto / Regime como linhas inline
+  if (room || board) {
+    if (room) { drawInlineKV(ctx, t.room, room); ctx.y -= 14; }
+    if (board) { drawInlineKV(ctx, t.board, board); ctx.y -= 14; }
+    ctx.y -= 4;
+  }
 
   // Mapa + QR
   if (mapData && (mapData.mapPngBase64 || mapData.mapsUrl)) {
     ensureSpace(ctx, 200);
     const boxTop = ctx.y;
     const boxH = 180;
-    const mapW = 350;
+    const mapW = 340;
     const mapH = boxH;
     const qrSize = 110;
 
-    // Mapa
     if (mapData.mapPngBase64) {
       try {
         const bytes = base64ToBytes(mapData.mapPngBase64);
         const img = await ctx.pdf.embedPng(bytes);
-        // fit into mapW x mapH mantendo aspecto
         const ratio = img.width / img.height;
         let w = mapW;
         let h = w / ratio;
         if (h > mapH) { h = mapH; w = h * ratio; }
-        ctx.page.drawImage(img, {
-          x: MARGIN, y: boxTop - h, width: w, height: h,
-        });
-        // moldura sutil
+        ctx.page.drawImage(img, { x: MARGIN, y: boxTop - h, width: w, height: h });
         ctx.page.drawRectangle({
           x: MARGIN, y: boxTop - h, width: w, height: h,
           borderColor: COLOR_BORDER, borderWidth: 0.5,
@@ -518,47 +564,30 @@ const renderHotelItem = async (
       } catch (e) {
         console.error("embed map failed", e);
       }
-    } else {
-      // placeholder
-      ctx.page.drawRectangle({
-        x: MARGIN, y: boxTop - mapH, width: mapW, height: mapH,
-        color: COLOR_SUBTLE_BG, borderColor: COLOR_BORDER, borderWidth: 0.5,
-      });
     }
 
-    // QR à direita
-    const qrX = MARGIN + mapW + 20;
+    const qrX = MARGIN + mapW + 30;
     if (mapData.mapsUrl) {
       try {
         const qrDataUrl = await QRCode.toDataURL(mapData.mapsUrl, {
-          margin: 1, width: 300, color: { dark: "#196F99", light: "#FFFFFF" },
+          margin: 1, width: 300, color: { dark: "#0B286A", light: "#FFFFFF" },
         });
         const qrBase64 = qrDataUrl.split(",")[1];
         const qrBytes = base64ToBytes(qrBase64);
         const qrImg = await ctx.pdf.embedPng(qrBytes);
-        const qy = boxTop - 8 - qrSize;
+        const qy = boxTop - 10 - qrSize;
         ctx.page.drawImage(qrImg, { x: qrX, y: qy, width: qrSize, height: qrSize });
-        drawText(ctx, t.scanForMap, qrX, {
-          y: qy - 10, size: 7, color: COLOR_MUTED,
-        });
-        // Link textual curto
-        const link = t.openMap;
-        drawText(ctx, link, qrX, {
-          y: qy - 22, size: 7, bold: true, color: COLOR_BRAND_BLUE,
-        });
+        drawText(ctx, t.scanForMap, qrX, { y: qy - 10, size: 7.5, color: COLOR_MUTED });
+        drawText(ctx, t.openMap, qrX, { y: qy - 22, size: 7.5, bold: true, color: COLOR_BRAND_BLUE });
       } catch (e) {
         console.error("qr failed", e);
       }
     }
 
-    ctx.y = boxTop - boxH - 14;
+    ctx.y = boxTop - boxH - 18;
   }
 
-  // Separador
-  ctx.page.drawRectangle({
-    x: MARGIN, y: ctx.y, width: CONTENT_W, height: 0.6, color: COLOR_BORDER,
-  });
-  ctx.y -= 14;
+  ctx.y -= 6;
 };
 
 const renderFlightItem = (ctx: Ctx, item: OrderItem) => {
@@ -572,21 +601,31 @@ const renderFlightItem = (ctx: Ctx, item: OrderItem) => {
   const to = String(d.destination ?? d.to ?? "").trim();
   const locator = item.supplier_locator ?? "";
 
-  ensureSpace(ctx, 90);
+  ensureSpace(ctx, 140);
+  drawSectionPill(ctx, t.flight, {
+    rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
+  });
+
   const title = [airline, flightNo].filter(Boolean).join(" · ") || item.title || "-";
-  drawItemHeader(ctx, t.flight, title, COLOR_BRAND_ORANGE);
-  drawKV(ctx, [
+  drawFieldTitle(ctx, title, 14);
+
+  // 4 colunas: Origem / Destino / Partida / Chegada
+  const colW = CONTENT_W / 4;
+  const rowY = ctx.y - 14;
+  const cells: Array<{ label: string; value: string }> = [
     { label: t.from, value: from || "-" },
     { label: t.to, value: to || "-" },
-    { label: t.departure, value: fmtDateTime(dep, ctx.lang) },
-    { label: t.arrival, value: fmtDateTime(arr, ctx.lang) },
-    { label: t.airline, value: airline || "-" },
-    { label: t.reservation, value: locator || "-" },
-  ]);
-  ctx.page.drawRectangle({
-    x: MARGIN, y: ctx.y, width: CONTENT_W, height: 0.6, color: COLOR_BORDER,
+    { label: t.departure, value: fmtDateTime(dep, ctx.lang) || "-" },
+    { label: t.arrival, value: fmtDateTime(arr, ctx.lang) || "-" },
+  ];
+  cells.forEach((c, i) => {
+    const x = MARGIN + i * colW;
+    drawText(ctx, c.label.toUpperCase(), x, { y: rowY, size: 7.5, bold: true, color: COLOR_BRAND_BLUE_SOFT });
+    const lines = wrap(ctx.font, 9.5, c.value, colW - 8);
+    drawText(ctx, lines[0] ?? "-", x, { y: rowY - 12, size: 9.5, bold: true, color: COLOR_TEXT });
+    if (lines[1]) drawText(ctx, lines[1], x, { y: rowY - 22, size: 8.5, color: COLOR_MUTED });
   });
-  ctx.y -= 14;
+  ctx.y = rowY - 30;
 };
 
 const renderOtherItem = (ctx: Ctx, item: OrderItem) => {
@@ -597,13 +636,17 @@ const renderOtherItem = (ctx: Ctx, item: OrderItem) => {
   const dateTo = String(d.date_to ?? d.end_date ?? "").trim();
   const locator = item.supplier_locator ?? "";
 
-  ensureSpace(ctx, 70);
-  drawItemHeader(ctx, t.service, item.title || "-", rgb(0.45, 0.5, 0.55));
-  const pairs: Array<{ label: string; value: string }> = [];
-  if (dateFrom) pairs.push({ label: t.checkin, value: fmtDateShort(dateFrom, ctx.lang) });
-  if (dateTo) pairs.push({ label: t.checkout, value: fmtDateShort(dateTo, ctx.lang) });
-  if (locator) pairs.push({ label: t.reservation, value: locator });
-  if (pairs.length) drawKV(ctx, pairs);
+  ensureSpace(ctx, 90);
+  drawSectionPill(ctx, t.service, {
+    rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
+  });
+
+  drawFieldTitle(ctx, item.title || "-", 14);
+
+  if (dateFrom || dateTo) {
+    if (dateFrom) { drawInlineKV(ctx, t.checkin, fmtDateShort(dateFrom, ctx.lang)); ctx.y -= 14; }
+    if (dateTo) { drawInlineKV(ctx, t.checkout, fmtDateShort(dateTo, ctx.lang)); ctx.y -= 14; }
+  }
   if (description) {
     const lines = wrap(ctx.font, 9.5, description, CONTENT_W);
     for (const ln of lines) {
@@ -613,10 +656,70 @@ const renderOtherItem = (ctx: Ctx, item: OrderItem) => {
     }
     ctx.y -= 4;
   }
-  ctx.page.drawRectangle({
-    x: MARGIN, y: ctx.y, width: CONTENT_W, height: 0.6, color: COLOR_BORDER,
+  ctx.y -= 6;
+};
+
+// ---------- Passageiros ----------
+const drawPassengersBlock = (ctx: Ctx, passengers: OrderPassenger[]) => {
+  if (!passengers.length) return;
+  const t = T(ctx);
+  const label = passengers.length > 1 ? t.passengers : t.passenger;
+  drawSectionPill(ctx, label);
+
+  // Tabela: Nome · Documento · Tipo
+  const typeLabel = ctx.lang === "pt" ? "Tipo" : "Type";
+  const headers: string[] = [t.passengers, t.documentLabel, typeLabel];
+
+  const rows = passengers.map((p) => {
+    const name = p.full_name || "-";
+    const doc = p.doc_type === "passport"
+      ? (p.passport_number ? `PPT ${p.passport_number}` : "-")
+      : (p.cpf ? `CPF ${p.cpf}` : (p.document ?? "-"));
+    const type = (p.passenger_type ?? "").toUpperCase() === "CHD"
+      ? (ctx.lang === "pt" ? "Criança" : "Child")
+      : (p.passenger_type ?? "").toUpperCase() === "INF"
+      ? (ctx.lang === "pt" ? "Infantil" : "Infant")
+      : (ctx.lang === "pt" ? "Adulto" : "Adult");
+    return [name, doc, type];
   });
-  ctx.y -= 14;
+
+  drawSimpleTable(ctx, headers, rows);
+};
+
+// ---------- Informações & Emergências ----------
+const drawInfoBlock = (ctx: Ctx) => {
+  const t = T(ctx);
+  drawSectionPill(ctx, t.generalInfo);
+  const lines = wrap(ctx.font, 9, t.generalInfoText, CONTENT_W - 10);
+  for (const ln of lines) {
+    ensureSpace(ctx, 12);
+    drawText(ctx, `• ${ln}`, MARGIN, { size: 9, color: COLOR_TEXT });
+    ctx.y -= 12;
+  }
+  ctx.y -= 6;
+};
+
+const drawEmergencyBlock = (ctx: Ctx) => {
+  const t = T(ctx);
+  drawSectionPill(ctx, t.emergency, { color: COLOR_EMERGENCY });
+  const boxH = 46;
+  ensureSpace(ctx, boxH + 6);
+  const y = ctx.y - boxH;
+  ctx.page.drawRectangle({
+    x: MARGIN, y, width: CONTENT_W, height: boxH,
+    color: COLOR_ROW_ALT, borderColor: COLOR_BORDER, borderWidth: 0.5,
+  });
+  const lines = wrap(ctx.font, 9, t.emergencyText, CONTENT_W - 24);
+  let yy = y + boxH - 14;
+  for (const ln of lines) {
+    ctx.page.drawText(sanitize(ln), { x: MARGIN + 12, y: yy, size: 9, font: ctx.font, color: COLOR_TEXT });
+    yy -= 12;
+  }
+  const contactLine = `${COMPANY.phone} · ${COMPANY.email}`;
+  ctx.page.drawText(sanitize(contactLine), {
+    x: MARGIN + 12, y: y + 8, size: 9, font: ctx.fontBold, color: COLOR_EMERGENCY,
+  });
+  ctx.y = y - 12;
 };
 
 // ---------- Utils ----------
@@ -664,19 +767,6 @@ export async function generateVoucher(
 
   drawMainHeader(ctx);
 
-  // Contratante / pagador
-  const t = T(ctx);
-  const payerName = detail.order.payerFullName || detail.order.fullName;
-  if (payerName) {
-    drawText(ctx, t.passenger.toUpperCase() + " · " + payerName, MARGIN, {
-      size: 10, bold: true, color: COLOR_TEXT,
-    });
-    ctx.y -= 16;
-  }
-
-  // Passageiros
-  drawPassengersBlock(ctx, detail.passengers);
-
   // Buscar mapas para hotéis (paralelo)
   const hotelItems = detail.items.filter(i => i.kind === "hotel");
   const mapByItem = new Map<string, HotelMapData | null>();
@@ -705,14 +795,12 @@ export async function generateVoucher(
     }
   }
 
-  // Aviso legal + tagline final
-  ensureSpace(ctx, 40);
-  const legalLines = wrap(ctx.font, 7.5, T(ctx).footerLegal, CONTENT_W);
-  for (const ln of legalLines) {
-    ensureSpace(ctx, 10);
-    drawText(ctx, ln, MARGIN, { size: 7.5, color: COLOR_MUTED });
-    ctx.y -= 10;
-  }
+  // Passageiros (depois dos itens, como referência consolidada)
+  drawPassengersBlock(ctx, detail.passengers);
+
+  // Informações gerais + Emergências
+  drawInfoBlock(ctx);
+  drawEmergencyBlock(ctx);
 
   // Rodapé em todas as páginas
   const total = ctx.pages.length;
