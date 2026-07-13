@@ -521,15 +521,22 @@ const renderHotelItem = async (
     drawStars(ctx.page, MARGIN + titleW + 10, ctx.y + 4, stars, 10);
   }
 
-  // Endereço
+  // Endereço com pin de mapa
   if (address) {
-    const addrLines = wrap(ctx.font, 9.5, address, CONTENT_W);
-    for (const ln of addrLines.slice(0, 2)) {
-      drawText(ctx, ln, MARGIN, { size: 9.5, color: COLOR_MUTED });
+    const pinSize = 11;
+    const pinGap = 6;
+    const addrX = MARGIN + pinSize + pinGap;
+    const addrW = CONTENT_W - pinSize - pinGap;
+    const addrLines = wrap(ctx.font, 9.5, address, addrW);
+    // pin alinhado à primeira linha
+    drawMapPin(ctx.page, MARGIN, ctx.y - 2, pinSize);
+    for (let i = 0; i < Math.min(addrLines.length, 2); i++) {
+      drawText(ctx, addrLines[i], addrX, { size: 9.5, color: COLOR_MUTED });
       ctx.y -= 12;
     }
     ctx.y -= 2;
   }
+
 
   // Linha de dados essenciais em 4 blocos "Rótulo: valor"
   const colW = CONTENT_W / 4;
