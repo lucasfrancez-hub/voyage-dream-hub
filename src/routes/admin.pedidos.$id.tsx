@@ -2170,6 +2170,19 @@ function ItemDialog({
 
           </div>
 
+          {kind === "flight" && (
+            <div>
+              <Label>Link da companhia aérea (check-in / consulta)</Label>
+              <Input
+                value={String(details.airline_checkin_url ?? "")}
+                onChange={(e) => setField("airline_checkin_url", e.target.value)}
+                placeholder="https://www.latam.com/pt_br/apps/personas/checkin"
+                type="url"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Vira um QR clicável no voucher — o passageiro escaneia e abre direto na companhia aérea.</p>
+            </div>
+          )}
+
           {kind !== "other" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
