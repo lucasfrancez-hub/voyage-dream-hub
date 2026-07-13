@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, MapPin, Star } from "lucide-react";
+import { Loader2, MapPin, Star, Radio, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchTripAdvisorHotels, getTripAdvisorHotelDetails, type TAHotelSuggestion, type TAHotelDetails } from "@/lib/tripadvisor.functions";
 
 export type HotelSelection = TAHotelDetails;
+
+type Mode = "live" | "manual";
 
 type Props = {
   value: string;
@@ -13,11 +15,14 @@ type Props = {
   placeholder?: string;
   photoLimit?: number;
   disabled?: boolean;
+  /** Modo inicial. Padrão: null (usuário escolhe antes de digitar). */
+  initialMode?: Mode | null;
 };
 
-export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, photoLimit = 5, disabled }: Props) {
+export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, photoLimit = 5, disabled, initialMode = null }: Props) {
   const search = useServerFn(searchTripAdvisorHotels);
   const details = useServerFn(getTripAdvisorHotelDetails);
+  const [mode, setMode] = useState<Mode | null>(initialMode ?? (value?.trim() ? "manual" : null));
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<TAHotelSuggestion[]>([]);
@@ -28,6 +33,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
   const suppressRef = useRef(false);
 
   useEffect(() => {
+    if (mode !== "live") { setItems([]); setOpen(false); return; }
     if (suppressRef.current) { suppressRef.current = false; return; }
     const q = (value || "").trim();
     if (q.length < 3) { setItems([]); setOpen(false); return; }
@@ -47,7 +53,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
       }
     }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [value, search]);
+  }, [value, search, mode]);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -73,22 +79,67 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     }
   }
 
+  // Antes de escolher o modo, mostra os dois botões.
+  if (mode === null) {
+    return (
+      <div className="rounded-xl border border-dashed border-border bg-muted/20 p-3">
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Como deseja preencher o hotel?</div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setMode("live")}
+            className="flex flex-col items-start gap-1 rounded-lg border border-border bg-card p-3 text-left hover:border-brand-orange hover:bg-brand-orange/5 transition"
+          >
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Radio className="h-4 w-4 text-brand-orange" /> Ao vivo (TripAdvisor)
+            </div>
+            <div className="text-[11px] text-muted-foreground">Busca automática por nome. Puxa endereço, estrelas e fotos.</div>
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setMode("manual")}
+            className="flex flex-col items-start gap-1 rounded-lg border border-border bg-card p-3 text-left hover:border-brand-orange hover:bg-brand-orange/5 transition"
+          >
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Pencil className="h-4 w-4 text-brand-orange" /> Manual
+            </div>
+            <div className="text-[11px] text-muted-foreground">Preenche tudo à mão, sem consultar a API.</div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative" ref={wrapRef}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+          {mode === "live" ? <><Radio className="h-3 w-3 text-brand-orange" /> Ao vivo (TripAdvisor)</> : <><Pencil className="h-3 w-3 text-brand-orange" /> Manual</>}
+        </span>
+        <button
+          type="button"
+          onClick={() => { setMode(null); setItems([]); setOpen(false); }}
+          className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+        >
+          trocar
+        </button>
+      </div>
       <Input
         value={value}
         disabled={disabled}
         onChange={(e) => onChangeText(e.target.value)}
-        onFocus={() => { if (items.length > 0) setOpen(true); }}
-        placeholder={placeholder ?? "Digite o nome do hotel (busca no TripAdvisor)"}
+        onFocus={() => { if (mode === "live" && items.length > 0) setOpen(true); }}
+        placeholder={placeholder ?? (mode === "live" ? "Digite o nome do hotel (busca no TripAdvisor)" : "Digite o nome do hotel")}
         autoComplete="off"
       />
-      {loading && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+      {mode === "live" && loading && (
+        <div className="absolute right-2 top-9 -translate-y-1/2 text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         </div>
       )}
-      {open && items.length > 0 && (
+      {mode === "live" && open && items.length > 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-72 overflow-y-auto">
           {items.map((it) => (
             <button
@@ -114,7 +165,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
             </button>
           ))}
           <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-t">
-            Não encontrou? Continue digitando — o cadastro fica manual.
+            Não encontrou? Troque para "Manual" e preencha à mão.
           </div>
         </div>
       )}
