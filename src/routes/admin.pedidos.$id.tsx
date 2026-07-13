@@ -438,6 +438,7 @@ function OrderDetailPage() {
               onChange={invalidate}
               passengers={detail.passengers}
               itemPassengers={detail.itemPassengers}
+              packageSnapshot={order.packageSnapshot}
             />
           </TabsContent>
           <TabsContent value="flight" className="mt-4">
@@ -448,6 +449,7 @@ function OrderDetailPage() {
               onChange={invalidate}
               passengers={detail.passengers}
               itemPassengers={detail.itemPassengers}
+              packageSnapshot={order.packageSnapshot}
             />
           </TabsContent>
           <TabsContent value="service" className="mt-4">
@@ -458,6 +460,7 @@ function OrderDetailPage() {
               onChange={invalidate}
               passengers={detail.passengers}
               itemPassengers={detail.itemPassengers}
+              packageSnapshot={order.packageSnapshot}
             />
           </TabsContent>
 
@@ -470,6 +473,7 @@ function OrderDetailPage() {
               onChange={invalidate}
               passengers={detail.passengers}
               itemPassengers={detail.itemPassengers}
+              packageSnapshot={order.packageSnapshot}
             />
           </TabsContent>
           <TabsContent value="contract" className="mt-4">
