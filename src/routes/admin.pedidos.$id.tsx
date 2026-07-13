@@ -2524,7 +2524,10 @@ function FinanceTab({
     const allExtraRows = [...savedExtraRows, ...extraItemRows];
     const extrasSale = allExtraRows.reduce((a, r) => a + Number(r.sale_value || 0), 0);
     const extrasTax = allExtraRows.reduce((a, r) => a + Number(r.tax_value || 0), 0);
-    const extrasCommission = allExtraRows.reduce((a, r) => a + Number(r.commission_value || 0), 0);
+    const extrasCommission = allExtraRows.reduce(
+      (a, r) => a + Number(r.commission_value || 0) + Number(r.rav_value || 0),
+      0,
+    );
     const extrasTotal = allExtraRows.reduce((a, r) => a + Number(r.total || 0), 0);
     const packageCommission = Number((packageFareNet * (Number(currentPct) / 100)).toFixed(2));
     const additionalCommission = Math.max(0, Number((packageCommission - packageDefaultCommission).toFixed(2)));
