@@ -1247,15 +1247,8 @@ const drawAereoSection = async (
   const rtTicket = rt
     .map((i) => String(((i.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
     .find((v) => !!v) ?? "";
-  const pickCheckinURL = (segs: OrderItem[]): string => {
-    for (const s of segs) {
-      const d = (s.details ?? {}) as Record<string, unknown>;
-      const url = String(d.airline_checkin_url ?? "").trim();
-      if (url) return url;
-    }
-    return segs[0] ? airlineCheckinURL(segs[0]) : "";
-  };
-  const qrUrl = ob.length > 0 ? pickCheckinURL(ob) : (rt.length > 0 ? pickCheckinURL(rt) : "");
+  const qrUrl = obPrimary ? airlineCheckinURL(obPrimary) : (rtPrimary ? airlineCheckinURL(rtPrimary) : "");
+  const qrImg = qrUrl ? await embedQR(ctx, qrUrl) : null;
   const qrImg = qrUrl ? await embedQR(ctx, qrUrl) : null;
 
   // Pré-carrega logos da cia (por segmento)
