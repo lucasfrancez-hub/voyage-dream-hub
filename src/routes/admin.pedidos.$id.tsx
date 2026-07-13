@@ -2776,7 +2776,7 @@ function FinanceDialog({
       total: initial?.total ?? Number((sale + tax - disc).toFixed(2)),
       notes: initial?.notes ?? "",
     });
-  }, [initial, selectedKind, isPackage, defaultSale, defaultTax]);
+  }, [initial, selectedKind, isPackage, defaultSale, defaultTax, defaultSupplier]);
 
 
   // Tarifa já é líquida de taxas; total = tarifa + taxas − desconto.
