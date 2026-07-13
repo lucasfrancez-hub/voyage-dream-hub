@@ -604,46 +604,47 @@ const passengerTypeLabel = (t: ReturnType<typeof T>, kind: string): string => {
 const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
   if (!passengers.length) return;
   const t = T(ctx);
-  const rowH = 20;
-  const headerH = 30;
-  const colHeaderH = 20;
-  const cardH = headerH + colHeaderH + rowH * passengers.length + 20;
+  const rowH = 16;
+  const headerH = 26;
+  const colHeaderH = 18;
+  const cardH = headerH + colHeaderH + rowH * passengers.length + 16;
   const { top } = openSectionCard(ctx, cardH + 20);
   const headerBottom = drawSectionHeader(ctx, top, "user", t.passageiro);
 
-  // Colunas
   const innerX = MARGIN + 20;
   const innerW = CONTENT_W - 40;
-  const colW = innerW / 3;
-  let cy = headerBottom - 10;
+  // 4 colunas: nome (2.2), tipo (1), documento (1.6), nascimento (1.2)
+  const units = 2.2 + 1 + 1.6 + 1.2;
+  const colWs = [2.2, 1, 1.6, 1.2].map((u) => (innerW * u) / units);
+  const colXs = [0, colWs[0], colWs[0] + colWs[1], colWs[0] + colWs[1] + colWs[2]].map((x) => innerX + x);
+  let cy = headerBottom - 8;
 
-  // Divisor
   ctx.page.drawLine({
     start: { x: MARGIN + 12, y: cy + 4 },
     end: { x: MARGIN + CONTENT_W - 12, y: cy + 4 },
     thickness: 0.5, color: COLOR_BORDER,
   });
-  cy -= 8;
+  cy -= 6;
 
-  // Cabeçalhos das colunas
-  const headers = [t.passageiro, t.documento, t.dataNasc];
+  const headers = [t.passageiro, t.tipo, t.documento, t.dataNasc];
   headers.forEach((h, i) => {
     ctx.page.drawText(sanitize(h), {
-      x: innerX + i * colW, y: cy, size: 8.5, font: ctx.fontBold, color: COLOR_MUTED,
+      x: colXs[i], y: cy, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
     });
   });
-  cy -= 14;
+  cy -= 12;
 
   passengers.forEach((p) => {
     const name = (p.full_name ?? "").toUpperCase();
     const doc = p.doc_type === "passport"
       ? (p.passport_number ? `PPT ${p.passport_number}` : "-")
       : (p.cpf ? `CPF ${p.cpf}` : (p.document ?? "-"));
-    const dob = p.birth_date ? fmtDateBR(p.birth_date) : passengerTypeLabel(t, p.passenger_type ?? "ADT");
-    const cells = [name || "-", doc, dob];
+    const tipo = passengerTypeLabel(t, p.passenger_type ?? "ADT");
+    const dob = p.birth_date ? fmtDateBR(p.birth_date) : "-";
+    const cells = [name || "-", tipo, doc, dob];
     cells.forEach((v, i) => {
       ctx.page.drawText(sanitize(v), {
-        x: innerX + i * colW, y: cy, size: 10, font: ctx.fontBold, color: COLOR_TEXT,
+        x: colXs[i], y: cy, size: 8.5, font: ctx.fontBold, color: COLOR_TEXT,
       });
     });
     cy -= rowH;
