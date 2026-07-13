@@ -2341,7 +2341,7 @@ function ItemDialog({
                 </div>
               </div>
               <div><Label>Categoria</Label><Input value={String(details.category ?? "")} onChange={(e) => setField("category", e.target.value)} placeholder="Traslado, Passeio, Ingresso, Seguro…" /></div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <div>
                   <Label>Data de partida <span className="text-muted-foreground font-normal">(opcional)</span></Label>
                   <Input type="date" value={String(details.date_from ?? "")} onChange={(e) => setField("date_from", e.target.value)} />
@@ -2349,6 +2349,10 @@ function ItemDialog({
                 <div>
                   <Label>Horário de saída <span className="text-muted-foreground font-normal">(opcional)</span></Label>
                   <Input type="time" value={String(details.time_from ?? "")} onChange={(e) => setField("time_from", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Horário de partida <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                  <Input type="time" value={String(details.time_departure ?? "")} onChange={(e) => setField("time_departure", e.target.value)} />
                 </div>
                 <div>
                   <Label>Horário de chegada <span className="text-muted-foreground font-normal">(opcional)</span></Label>
