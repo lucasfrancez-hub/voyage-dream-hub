@@ -1706,6 +1706,98 @@ const drawFooterStrip = (ctx: Ctx) => {
   ctx.y = y - 8;
 };
 
+// ---------- Serviços (transfer, ingressos, trem, etc.) ----------
+const drawServiceSection = (ctx: Ctx, item: OrderItem) => {
+  const t = T(ctx);
+  const d = (item.details ?? {}) as Record<string, unknown>;
+  const title = String(item.title ?? "").trim() || "-";
+  const category = String(d.category ?? "").trim();
+  const supplier = String(d.supplier_name ?? "").trim();
+  const locator = item.supplier_locator ?? "";
+  const dateFrom = String(d.date_from ?? "").trim();
+  const timeFrom = String(d.time_from ?? "").trim();
+  const dateTo = String(d.date_to ?? "").trim();
+  const timeTo = String(d.time_to ?? "").trim();
+  const notes = String(d.notes ?? "").trim();
+
+  const dep = [dateFrom ? fmtDateBR(dateFrom) : "", timeFrom].filter(Boolean).join(" ");
+  const arr = [dateTo ? fmtDateBR(dateTo) : "", timeTo].filter(Boolean).join(" ");
+
+  const innerX = MARGIN + 16;
+  const innerW = CONTENT_W - 32;
+
+  const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 8) : [];
+  const notesBlockH = notes ? 14 + notesLines.length * 12 + 6 : 0;
+
+  const cardH = 44 + 18 + (category ? 14 : 0) + (supplier ? 12 : 0) + 30 + notesBlockH + 16;
+
+  const { top } = openSectionCard(ctx, cardH + 20);
+  const headerBottom = drawSectionHeader(ctx, top, "ticket", t.servicos);
+
+  // Chip localizador (direita)
+  if (locator) {
+    const chipText = `${t.localizador}: ${locator}`;
+    const chipSize = 9;
+    const chipTw = measure(ctx.fontBold, chipText, chipSize);
+    const chipW = chipTw + 24;
+    const chipH = 20;
+    const chipX = MARGIN + CONTENT_W - 24 - chipW;
+    const chipY = top - 22;
+    drawRoundedRect(ctx.page, chipX, chipY, chipW, chipH, COLOR_NAVY_SOFT, 6);
+    ctx.page.drawText(sanitize(chipText), {
+      x: chipX + 12, y: chipY + 6, size: chipSize, font: ctx.fontBold, color: COLOR_NAVY,
+    });
+  }
+
+  let cy = headerBottom - 16;
+
+  // Título
+  ctx.page.drawText(sanitize(title), {
+    x: innerX, y: cy - 12, size: 12, font: ctx.fontBold, color: COLOR_NAVY,
+  });
+  cy -= 20;
+
+  if (category) {
+    ctx.page.drawText(sanitize(`${t.categoria}: ${category}`), {
+      x: innerX, y: cy - 10, size: 9, font: ctx.font, color: COLOR_TEXT,
+    });
+    cy -= 14;
+  }
+
+  // Datas
+  if (dep || arr) {
+    const colW = innerW / 2;
+    const cells: Array<{ label: string; value: string }> = [
+      { label: t.saida, value: dep || "-" },
+      { label: t.chegada, value: arr || "-" },
+    ];
+    cells.forEach((c, i) => {
+      const x = innerX + i * colW;
+      drawIcon(ctx.page, "calendar", x, cy - 4, 10, COLOR_NAVY);
+      ctx.page.drawText(sanitize(c.label), {
+        x: x + 14, y: cy - 2, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
+      });
+      ctx.page.drawText(sanitize(c.value), {
+        x, y: cy - 18, size: 10.5, font: ctx.fontBold, color: COLOR_TEXT,
+      });
+    });
+    cy -= 30;
+  }
+
+  if (notes) {
+    cy -= 4;
+    for (const ln of notesLines) {
+      ctx.page.drawText(sanitize(ln), {
+        x: innerX, y: cy - 9, size: 9, font: ctx.font, color: COLOR_TEXT,
+      });
+      cy -= 12;
+    }
+    cy -= 4;
+  }
+
+  closeSectionCard(ctx, top, cy);
+};
+
 // ---------- Public API ----------
 const fetchLogo = async (pdf: PDFDocument): Promise<PDFImage | undefined> => {
   try {
