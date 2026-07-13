@@ -1580,7 +1580,7 @@ function HotelReservationCard({
   const d = (item.details ?? {}) as Record<string, unknown>;
   const cancelled = item.status === "cancelled";
   const supplier = typeof d.supplier_name === "string" ? (d.supplier_name as string) : "";
-  const stars = typeof d.hotel_stars === "number" ? (d.hotel_stars as number) : null;
+  const stars = (() => { const n = Number(d.hotel_stars); return Number.isFinite(n) && n > 0 ? n : null; })();
   const address = typeof d.address === "string" ? (d.address as string) : "";
   const destination = typeof d.destination === "string" ? (d.destination as string) : "";
   const room = typeof d.room === "string" ? (d.room as string) : "";
