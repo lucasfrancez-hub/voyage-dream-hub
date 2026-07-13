@@ -764,23 +764,23 @@ const drawNicePlane = (
   page: PDFPage,
   cx: number, cy: number, w: number,
   color: Color,
+  flip = false,
 ) => {
   // Silhueta cheia estilo Font-Awesome, apontando para a direita.
   // Bounding box aproximado: 576 x 512 (viewBox FA). Nariz à direita.
   const path =
-    "M 482 336 C 512 336 542 306 542 276 C 542 246 512 216 482 216 L 384 216 L 250 40 C 240 24 220 16 200 16 L 168 16 C 158 16 152 24 156 34 L 216 216 L 96 216 L 56 168 C 48 158 36 152 24 156 L 8 160 C 0 162 -2 170 2 178 L 48 276 L 2 374 C -2 382 0 390 8 392 L 24 396 C 36 400 48 394 56 384 L 96 336 L 216 336 L 156 518 C 152 528 158 536 168 536 L 200 536 C 220 536 240 528 250 512 L 384 336 Z";
+    "M 482 336 C 512 336 542 306 542 276 C 542 246 512 216 482 216 L 384 216 L 250 40 C 240 24 220 16 200 16 L 168 16 C 158 16 152 24 156 34 L 216 216 L 96 216 L 56 168 C 48 158 36 152 24 156 L 8 160 C 0 162 -2 170 2 178 L 48 276 L 2 374 C -2 382 0 390 8 392 L 24 396 C 36 400 48 394 56 384 L 96 336 L 216 336 L 156 518 C 152 528 158 536 168 536 L 200 536 C 220 528 240 528 250 512 L 384 336 Z";
   const nativeW = 576;
-  const nativeH = 552; // amplitude Y aproximada (16 a 536)
+  const nativeH = 552;
   const scale = w / nativeW;
-  // drawSvgPath usa Y invertido: origem no canto superior esquerdo do path.
-  // Traduz para centralizar em (cx, cy).
   page.drawSvgPath(path, {
-    x: cx - (nativeW / 2) * scale,
+    x: cx - (nativeW / 2) * scale * (flip ? -1 : 1),
     y: cy + (nativeH / 2) * scale,
-    scale,
+    scale: flip ? -scale : scale,
     color,
   });
 };
+
 
 const drawFlightLegBlock = (
   ctx: Ctx,
@@ -792,6 +792,8 @@ const drawFlightLegBlock = (
   ticket: string,
   qr?: { img: PDFImage | null; url: string },
   airlineLogos?: Map<number, PDFImage | null>,
+  isReturn = false,
+
 ): number => {
   const outerX = MARGIN + 14;
   const outerW = CONTENT_W - 28;
@@ -842,22 +844,11 @@ const drawFlightLegBlock = (
   const cardBotY = cardTopY - cardH;
   drawRoundedRect(ctx.page, cardX, cardBotY, cardW, cardH, COLOR_ROW_ALT, 10);
 
-  // Coluna reservada à esquerda para a logo da companhia (uma para todo o trecho)
+  // Coluna reservada à esquerda para a logo da companhia (uma por trecho)
   const logoColW = 56;
   const segInsetX = logoColW;
-  // Logo do primeiro trecho (representa a companhia do bloco)
-  const legLogo = airlineLogos?.get(0) ?? null;
-  if (legLogo) {
-    const maxLogoW = logoColW - 12;
-    const maxLogoH = Math.min(38, cardH - 20);
-    const ratio = legLogo.width / legLogo.height;
-    let lh = maxLogoH;
-    let lw = lh * ratio;
-    if (lw > maxLogoW) { lw = maxLogoW; lh = lw / ratio; }
-    const lx = cardX + (logoColW - lw) / 2;
-    const ly = cardBotY + (cardH - lh) / 2;
-    ctx.page.drawImage(legLogo, { x: lx, y: ly, width: lw, height: lh });
-  }
+
+
 
 
   segments.forEach((seg, i) => {
@@ -877,6 +868,21 @@ const drawFlightLegBlock = (
     const segBotY = segTopY - segContentH;
     const segX = cardX + segInsetX;
     const segW = cardW - segInsetX;
+
+    // Logo da companhia deste trecho (uma por voo), centralizada verticalmente na área do trecho
+    const segLogo = airlineLogos?.get(i) ?? null;
+    if (segLogo) {
+      const maxLogoW = logoColW - 12;
+      const maxLogoH = Math.min(34, segContentH - 8);
+      const ratio = segLogo.width / segLogo.height;
+      let lh = maxLogoH;
+      let lw = lh * ratio;
+      if (lw > maxLogoW) { lw = maxLogoW; lh = lw / ratio; }
+      const lx = cardX + (logoColW - lw) / 2;
+      const ly = segBotY + (segContentH - lh) / 2;
+      ctx.page.drawImage(segLogo, { x: lx, y: ly, width: lw, height: lh });
+    }
+
 
     // Pill "Cia · Voo · Cabine" (sem logo dentro)
     const pillParts = [airline, flightNo, cabin].filter(Boolean);
@@ -925,7 +931,7 @@ const drawFlightLegBlock = (
     ctx.page.drawRectangle({
       x: planeCX - 14, y: midY - 6, width: 28, height: 12, color: COLOR_ROW_ALT,
     });
-    drawNicePlane(ctx.page, planeCX, midY, 22, COLOR_NAVY);
+    drawNicePlane(ctx.page, planeCX, midY, 22, COLOR_NAVY, isReturn);
     if (segments.length === 1) {
       const dLbl = ctx.lang === "en" ? "Direct" : "Direto";
       const dSize = 7;
@@ -1172,10 +1178,11 @@ const drawAereoSection = async (
   if (rt.length > 0) {
     cy = drawFlightLegBlock(
       ctx, cy, t.volta, COLOR_ORANGE, rt, rtLocator, rtTicket,
-      undefined, rtLogos,
+      undefined, rtLogos, true,
     );
     cy -= 4;
   }
+
 
   // Bagagem (agregada dos dois lados)
   const bags = aggregateBaggage([...ob, ...rt]);
