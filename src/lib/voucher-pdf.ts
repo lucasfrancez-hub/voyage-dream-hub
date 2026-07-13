@@ -764,23 +764,23 @@ const drawNicePlane = (
   page: PDFPage,
   cx: number, cy: number, w: number,
   color: Color,
+  flip = false,
 ) => {
   // Silhueta cheia estilo Font-Awesome, apontando para a direita.
   // Bounding box aproximado: 576 x 512 (viewBox FA). Nariz à direita.
   const path =
-    "M 482 336 C 512 336 542 306 542 276 C 542 246 512 216 482 216 L 384 216 L 250 40 C 240 24 220 16 200 16 L 168 16 C 158 16 152 24 156 34 L 216 216 L 96 216 L 56 168 C 48 158 36 152 24 156 L 8 160 C 0 162 -2 170 2 178 L 48 276 L 2 374 C -2 382 0 390 8 392 L 24 396 C 36 400 48 394 56 384 L 96 336 L 216 336 L 156 518 C 152 528 158 536 168 536 L 200 536 C 220 536 240 528 250 512 L 384 336 Z";
+    "M 482 336 C 512 336 542 306 542 276 C 542 246 512 216 482 216 L 384 216 L 250 40 C 240 24 220 16 200 16 L 168 16 C 158 16 152 24 156 34 L 216 216 L 96 216 L 56 168 C 48 158 36 152 24 156 L 8 160 C 0 162 -2 170 2 178 L 48 276 L 2 374 C -2 382 0 390 8 392 L 24 396 C 36 400 48 394 56 384 L 96 336 L 216 336 L 156 518 C 152 528 158 536 168 536 L 200 536 C 220 528 240 528 250 512 L 384 336 Z";
   const nativeW = 576;
-  const nativeH = 552; // amplitude Y aproximada (16 a 536)
+  const nativeH = 552;
   const scale = w / nativeW;
-  // drawSvgPath usa Y invertido: origem no canto superior esquerdo do path.
-  // Traduz para centralizar em (cx, cy).
   page.drawSvgPath(path, {
-    x: cx - (nativeW / 2) * scale,
+    x: cx - (nativeW / 2) * scale * (flip ? -1 : 1),
     y: cy + (nativeH / 2) * scale,
-    scale,
+    scale: flip ? -scale : scale,
     color,
   });
 };
+
 
 const drawFlightLegBlock = (
   ctx: Ctx,
