@@ -780,16 +780,18 @@ export async function generateVoucher(
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const fontDisplay = await pdf.embedFont(StandardFonts.TimesRomanBold);
   const logo = await fetchLogo(pdf);
 
   const firstPage = pdf.addPage([A4.w, A4.h]);
   const ctx: Ctx = {
     pdf, page: firstPage, y: A4.h - MARGIN,
-    font, fontBold, lang,
+    font, fontBold, fontDisplay, lang,
     order: detail.order, logo, pages: [firstPage],
   };
 
   drawMainHeader(ctx);
+
 
   // Buscar mapas para hotéis (paralelo)
   const hotelItems = detail.items.filter(i => i.kind === "hotel");
