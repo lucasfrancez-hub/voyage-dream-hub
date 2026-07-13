@@ -716,7 +716,8 @@ const drawFlightLegBlock = (
 ): number => {
   const outerX = MARGIN + 14;
   const outerW = CONTENT_W - 28;
-  const qrColW = qr ? 82 : 0;
+  // Reserva sempre a coluna do QR — para IDA e VOLTA ficarem alinhadas
+  const qrColW = 84;
   const segColW = outerW - qrColW;
 
   const chipW = 66;
