@@ -60,6 +60,32 @@ function AdminLayout() {
     }
   }, [pathname, isAdmin, navigate]);
 
+  // Auto-logout por inatividade (30 min sem interação do usuário)
+  useEffect(() => {
+    if (!session || !isAdmin) return;
+    const TIMEOUT_MS = 30 * 60 * 1000;
+    let timer: ReturnType<typeof setTimeout>;
+    const doLogout = async () => {
+      await supabase.auth.signOut();
+      toast.info("Sessão encerrada por inatividade (30 min).");
+      navigate({ to: "/auth" });
+    };
+    const reset = () => {
+      clearTimeout(timer);
+      timer = setTimeout(doLogout, TIMEOUT_MS);
+    };
+    const events = [
+      "mousemove", "mousedown", "keydown", "scroll", "touchstart", "click",
+    ] as const;
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    reset();
+    return () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, reset));
+    };
+  }, [session, isAdmin, navigate]);
+
+
   if (session === undefined || (session && isAdmin === null)) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
