@@ -1385,10 +1385,12 @@ const drawHotelSection = async (
   // Pre-compute notes wrapping to size the card
   const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 28) : [];
   const notesBlockH = notes ? 22 + notesLines.length * 13 + 14 + 10 : 0;
+  const notesGap = notes ? 16 : 0;
 
 
   const topBlockH = Math.max(photo ? photoH + 8 : 0, qrSize + 30, 110);
-  const cardH = topBlockH + notesBlockH + 24;
+  const cardH = topBlockH + notesBlockH + notesGap + 24;
+
 
   const { top } = openSectionCard(ctx, cardH + 20);
   const headerBottom = drawSectionHeader(ctx, top, "bed", t.hospedagem);
