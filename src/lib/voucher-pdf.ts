@@ -1715,11 +1715,16 @@ export async function generateVoucher(
     const hotelName = String(d.hotel_name ?? h.title ?? "").trim();
     let mapData: HotelMapData | null = null;
     if (address || hotelName) {
-      try {
-        mapData = await getHotelMap({ data: { address: address || hotelName, hotelName } });
-      } catch (e) {
-        console.error("hotel map error", e);
-      }
+      const query = [hotelName, address].filter(Boolean).join(", ");
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+      mapData = {
+        address,
+        formattedAddress: null,
+        lat: null,
+        lng: null,
+        mapPngBase64: null,
+        mapsUrl,
+      };
     }
     await drawHotelSection(ctx, h, mapData, guestsFallbackStr);
   }
