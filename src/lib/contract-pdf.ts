@@ -1143,6 +1143,22 @@ export async function generateOrderAuthorization(
 
 export function openBlobInNewTab(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
+
+  if (isMobile) {
+    // Em mobile (especialmente iOS Safari), o atributo `download` e target=_blank
+    // costumam ser ignorados. Navegar na mesma aba abre o visualizador nativo de PDF,
+    // que oferece opções de Compartilhar/Salvar em Arquivos.
+    try {
+      window.location.href = url;
+    } catch {
+      window.open(url, "_self");
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return;
+  }
+
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;

@@ -1155,6 +1155,7 @@ function ItemsTab({
         onOpenChange={setOpen}
         initial={editing}
         kind={dialogKind}
+        passengers={allPax}
         siblings={
           editing && editing.kind === "flight"
             ? items.filter((i) => i.kind === "flight" && i.status !== "cancelled" && i.id !== editing.id)
@@ -1901,13 +1902,14 @@ function ServiceReservationCard({
 
 
 function ItemDialog({
-  open, onOpenChange, initial, kind, onSave, siblings,
+  open, onOpenChange, initial, kind, onSave, siblings, passengers,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: OrderItem | null;
   kind: "hotel" | "flight" | "other";
   siblings?: OrderItem[];
+  passengers?: OrderPassenger[];
   onSave: (p: {
     kind: "hotel" | "flight" | "other";
     title: string;
@@ -1918,6 +1920,19 @@ function ItemDialog({
     removedSiblingIds?: string[];
   }) => void;
 }) {
+  const guestsFromPax = (() => {
+    const list = passengers ?? [];
+    const adt = list.filter((p) => (p.passenger_type ?? "ADT") === "ADT").length;
+    const chd = list.filter((p) => p.passenger_type === "CHD").length;
+    const inf = list.filter((p) => p.passenger_type === "INF").length;
+    const plural = (n: number, s: string, p: string) => `${n} ${n === 1 ? s : p}`;
+    const parts: string[] = [];
+    if (adt > 0) parts.push(plural(adt, "adulto", "adultos"));
+    if (chd > 0) parts.push(plural(chd, "criança", "crianças"));
+    if (inf > 0) parts.push(plural(inf, "bebê", "bebês"));
+    return parts.join(", ");
+  })();
+
   const initialDetails = (initial?.details ?? {}) as Record<string, unknown>;
   const [title, setTitle] = useState(initial?.title ?? "");
   const [locator, setLocator] = useState(initial?.supplier_locator ?? "");
@@ -1928,6 +1943,7 @@ function ItemDialog({
       if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") clean[k] = v;
     }
     if (kind === "flight" && !initial && !clean.direction) clean.direction = "outbound";
+    if (kind === "hotel" && !clean.guests && guestsFromPax) clean.guests = guestsFromPax;
     return clean;
   });
 
@@ -1954,7 +1970,9 @@ function ItemDialog({
     setTitle(initial?.title ?? "");
     setLocator(initial?.supplier_locator ?? "");
     setStatusVal((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
-    setDetails(cleanDetails(initial?.details));
+    const d0 = cleanDetails(initial?.details);
+    if (kind === "hotel" && !d0.guests && guestsFromPax) d0.guests = guestsFromPax;
+    setDetails(d0);
     setExtraSegments(
       kind === "flight"
         ? (siblings ?? []).map((s) => ({ id: s.id, details: cleanDetails(s.details) }))

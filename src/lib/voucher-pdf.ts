@@ -972,7 +972,7 @@ const drawHotelSection = async (
   ctx: Ctx,
   item: OrderItem,
   mapData: HotelMapData | null,
-  guestsFallback: number,
+  guestsFallback: string,
 ) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
@@ -984,7 +984,7 @@ const drawHotelSection = async (
   const rawGuests = String(d.guests ?? "").trim();
   const guests = rawGuests && rawGuests !== "null" && rawGuests !== "undefined"
     ? rawGuests
-    : (guestsFallback > 0 ? String(guestsFallback) : "-");
+    : (guestsFallback || "-");
   const locator = item.supplier_locator ?? "";
   let photoUrl = "";
   try {
@@ -1262,6 +1262,18 @@ export async function generateVoucher(
 
   await drawAereoSection(ctx, outbound, returning);
 
+  // Monta string de hóspedes a partir dos passageiros (ex.: "2 adultos, 1 criança, 1 bebê")
+  const adt = detail.passengers.filter((p) => (p.passenger_type ?? "ADT") === "ADT").length;
+  const chd = detail.passengers.filter((p) => p.passenger_type === "CHD").length;
+  const inf = detail.passengers.filter((p) => p.passenger_type === "INF").length;
+  const parts: string[] = [];
+  const pluralize = (n: number, sing: string, plur: string) => `${n} ${n === 1 ? sing : plur}`;
+  const isEn = ctx.lang === "en";
+  if (adt > 0) parts.push(pluralize(adt, isEn ? "adult" : "adulto", isEn ? "adults" : "adultos"));
+  if (chd > 0) parts.push(pluralize(chd, isEn ? "child" : "criança", isEn ? "children" : "crianças"));
+  if (inf > 0) parts.push(pluralize(inf, isEn ? "infant" : "bebê", isEn ? "infants" : "bebês"));
+  const guestsFallbackStr = parts.join(", ");
+
   // Hotéis (com mapas)
   for (const h of hotels) {
     const d = (h.details ?? {}) as Record<string, unknown>;
@@ -1275,7 +1287,7 @@ export async function generateVoucher(
         console.error("hotel map error", e);
       }
     }
-    await drawHotelSection(ctx, h, mapData, detail.passengers.length);
+    await drawHotelSection(ctx, h, mapData, guestsFallbackStr);
   }
 
   drawInfoAndEmergency(ctx);
