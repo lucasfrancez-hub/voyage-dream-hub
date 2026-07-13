@@ -928,7 +928,7 @@ function PassengerDialog({
 
 // =========== Items (hotel/flight/other/cancelled) ===========
 function ItemsTab({
-  orderId, items, kind, onChange, passengers, itemPassengers,
+  orderId, items, kind, onChange, passengers, itemPassengers, packageSnapshot,
 }: {
   orderId: string;
   items: OrderItem[];
@@ -936,6 +936,7 @@ function ItemsTab({
   onChange: () => void;
   passengers?: OrderPassenger[];
   itemPassengers?: Record<string, string[]>;
+  packageSnapshot?: unknown;
 }) {
 
   const upsert = useServerFn(upsertOrderItem);
