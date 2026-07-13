@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home, Link2, FileText, ShieldCheck, Vault, Users, ChevronDown, LayoutDashboard } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, FileText, ShieldCheck, Vault, Users, ChevronDown, LayoutDashboard, Contact } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -103,6 +103,7 @@ function AdminLayout() {
               <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
               <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" active={pathname.startsWith("/admin/dashboard")} />
               <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
+              <NavItem to="/admin/pessoas" icon={Contact} label="Pessoas" active={pathname.startsWith("/admin/pessoas")} />
 
               <CartaoNav pathname={pathname} />
 
@@ -139,6 +140,7 @@ function AdminLayout() {
             <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
             <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" active={pathname.startsWith("/admin/dashboard")} />
             <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
+            <NavItem to="/admin/pessoas" icon={Contact} label="Pessoas" active={pathname.startsWith("/admin/pessoas")} />
 
             <CartaoNav pathname={pathname} />
 
