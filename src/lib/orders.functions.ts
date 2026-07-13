@@ -72,8 +72,13 @@ export type OrderHeader = {
   travelReasonLog: OrderLogEntry[];
   supplierName: string | null;
   supplierOrderNumber: string | null;
+  supplierLogoUrl: string | null;
   airlineLocator: string | null;
   packageSnapshot: Json;
+  tripTitle: string | null;
+  sellerName: string | null;
+  sellerEmail: string | null;
+  sellerPhone: string | null;
   payerFullName: string | null;
   payerCpf: string | null;
   payerIeRg: string | null;
