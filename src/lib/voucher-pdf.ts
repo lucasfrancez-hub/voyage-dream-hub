@@ -982,7 +982,7 @@ const drawFlightLegBlock = (
     if (toCity) {
       const cityW = measure(ctx.font, toCity, 7.5);
       ctx.page.drawText(sanitize(toCity), {
-        x: segX + segW - 12 - cityW, y: bottomY + 14, size: 7.5, font: ctx.font, color: COLOR_MUTED,
+        x: segX + segW - 12 - cityW, y: bottomY + 17, size: 7.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
     const depTxt = dep ? `${fmtDateBR(dep)}  ${fmtTime(dep)}` : "";
