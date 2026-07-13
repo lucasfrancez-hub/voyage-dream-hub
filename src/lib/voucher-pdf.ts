@@ -179,6 +179,7 @@ type Ctx = {
   lang: VoucherLang;
   order: OrderDetail["order"];
   logo?: PDFImage;
+  supplierLogo?: PDFImage;
   pages: PDFPage[];
 };
 
