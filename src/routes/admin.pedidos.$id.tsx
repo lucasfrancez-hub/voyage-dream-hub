@@ -2580,7 +2580,14 @@ function FinanceTab({
       (a, f) => a + Number(f.commission_value || 0) + Number(f.rav_value || 0),
       0,
     );
-    totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
+    // Recalcula do row pra garantir que RAV entre no total, mesmo em lançamentos antigos.
+    totalNet = displayRows.reduce((a, f) => {
+      const sale = Number(f.sale_value || 0);
+      const tax = Number(f.tax_value || 0);
+      const disc = Number(f.discount_value || 0);
+      const rav = Number(f.rav_value || 0);
+      return a + Number((sale + tax - disc + rav).toFixed(2));
+    }, 0);
   }
   const packageDiscount = isPackageOrder
     ? Math.max(0, Number((packageDefaultCommission - Number((packageFareNet * (packagePct / 100)).toFixed(2))).toFixed(2)))
@@ -2757,7 +2764,7 @@ function FinanceTab({
                         </div>
                       </td>
                       <td className="py-2 px-2 text-xs">{f.due_date ? new Date(f.due_date + "T00:00").toLocaleDateString("pt-BR") : "—"}</td>
-                      <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(f.total)}</td>
+                      <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(Number(f.sale_value || 0) + Number(f.tax_value || 0) - Number(f.discount_value || 0) + Number(f.rav_value || 0))}</td>
                       <td className="py-2 px-2 text-right">
                         <Button size="sm" variant="ghost" onClick={() => { setEditing(f); setSelectedItem(f.order_item_id); setOpen(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
@@ -2904,23 +2911,25 @@ function FinanceDialog({
       rav_value: initial?.rav_value ?? 0,
       exchange_rate: initial?.exchange_rate ?? 1,
       due_date: initial?.due_date ?? "",
-      total: initial?.total ?? Number((sale + tax - disc).toFixed(2)),
+      total: initial?.total ?? Number((sale + tax - disc + (initial?.rav_value ?? 0)).toFixed(2)),
       notes: initial?.notes ?? "",
     });
   }, [initial, selectedKind, isPackage, defaultSale, defaultTax, defaultSupplier]);
 
 
-  // Total (venda) = tarifa + taxas − desconto. Comissão e RAV são internos (agência).
+  // Total (venda) = tarifa + taxas − desconto + RAV. RAV é receita adicional
+  // cobrada do cliente, então soma no total do item e no total da venda.
   const recalc = (patch: Partial<typeof form>) => {
     const next = { ...form, ...patch };
     const sale = Number(next.sale_value) || 0;
     const tax = Number(next.tax_value) || 0;
     const disc = Number(next.discount_value) || 0;
+    const rav = Number(next.rav_value) || 0;
     const pct = Number(next.commission_pct) || 0;
     const base = Math.max(0, sale);
     const effectivePct = next.is_commissionable ? pct : 0;
     next.commission_value = Number((base * (effectivePct / 100)).toFixed(2));
-    next.total = Number((sale + tax - disc).toFixed(2));
+    next.total = Number((sale + tax - disc + rav).toFixed(2));
     setForm(next);
   };
 
@@ -2971,7 +2980,7 @@ function FinanceDialog({
               <Input
                 type="number" step="0.01" min={0}
                 value={form.rav_value}
-                onChange={(e) => setForm({ ...form, rav_value: Number(e.target.value) })}
+                onChange={(e) => recalc({ rav_value: Number(e.target.value) })}
                 placeholder="0,00"
               />
             </div>
@@ -2982,7 +2991,7 @@ function FinanceDialog({
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm">Comissionável</Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Desligue para produtos que não pagam comissão. RAV é somado à parte, sem desconto.</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Desligue para produtos que não pagam comissão. RAV é somado ao total da venda.</p>
               </div>
               <Switch
                 checked={form.is_commissionable}
