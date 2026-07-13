@@ -619,11 +619,15 @@ function PassengersSection({
                       passport_issue_date: patch.passport_issue_date !== undefined ? patch.passport_issue_date : p.passport_issue_date,
                       passport_expiry_date: patch.passport_expiry_date !== undefined ? patch.passport_expiry_date : p.passport_expiry_date,
                     });
-                    // Se alterou o bilhete, replica em todos os aéreos: grava details.ticket_number e marca como Confirmado.
+                    // Se alterou o bilhete: atualiza status dos aéreos (confirmado se algum passageiro tem bilhete).
                     if (patch.ticket_number !== undefined) {
-                      const newTicket = patch.ticket_number;
+                      const anyTicket =
+                        (patch.ticket_number && patch.ticket_number.trim()) ||
+                        passengers.some((pp) => pp.id !== p.id && (pp.ticket_number ?? "").trim());
                       for (const fi of flightItems) {
-                        const details = { ...((fi.details ?? {}) as Record<string, unknown>), ticket_number: newTicket ?? "" };
+                        const details = { ...((fi.details ?? {}) as Record<string, unknown>) };
+                        // Remove ticket_number legado do item (bilhete agora vive só no passageiro)
+                        delete (details as Record<string, unknown>).ticket_number;
                         upsertItem({
                           data: {
                             id: fi.id,
@@ -633,7 +637,7 @@ function PassengersSection({
                             supplier_locator: fi.supplier_locator,
                             details: details as Json,
                             sort_order: fi.sort_order,
-                            status: newTicket ? "confirmed" : (fi.supplier_locator ? "reserved" : "pending"),
+                            status: anyTicket ? "confirmed" : (fi.supplier_locator ? "reserved" : "pending"),
                           },
                         }).catch(() => { /* toast já é global */ });
                       }
@@ -1765,11 +1769,6 @@ function HotelReservationCard({
                           {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
                         </div>
                       )}
-                      {p.ticket_number && (
-                        <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                          <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
-                        </div>
-                      )}
                     </div>
                     {onUnlink && <UnlinkButton onClick={() => onUnlink(p.id, item.id)} />}
                   </div>
@@ -2172,23 +2171,6 @@ function ItemDialog({
               />
               <p className="mt-1 text-[11px] text-muted-foreground">Visível só pra você. Não aparece no voucher do cliente.</p>
             </div>
-            {kind === "flight" && (
-              <div>
-                <Label>Bilhete</Label>
-                <Input
-                  value={String(details.ticket_number ?? "")}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 13);
-                    const formatted = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3)}` : digits;
-                    setField("ticket_number", formatted);
-                  }}
-                  placeholder="Bilhete"
-                  maxLength={14}
-                  inputMode="numeric"
-                />
-                <p className="mt-1 text-[11px] text-muted-foreground">13 dígitos (formato 000-0000000000). Deixe em branco se ainda não emitiu.</p>
-              </div>
-            )}
 
           </div>
 
