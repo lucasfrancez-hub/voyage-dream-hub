@@ -2779,7 +2779,7 @@ function FinanceDialog({
   }, [initial, selectedKind, isPackage, defaultSale, defaultTax, defaultSupplier]);
 
 
-  // Tarifa já é líquida de taxas; total = tarifa + taxas − desconto.
+  // Tarifa é líquida de taxas; total (venda) = tarifa + comissão + taxas − desconto.
   const recalc = (patch: Partial<typeof form>) => {
     const next = { ...form, ...patch };
     const sale = Number(next.sale_value) || 0;
@@ -2788,7 +2788,7 @@ function FinanceDialog({
     const pct = Number(next.commission_pct) || 0;
     const base = Math.max(0, sale);
     next.commission_value = Number((base * (pct / 100)).toFixed(2));
-    next.total = Number((sale + tax - disc).toFixed(2));
+    next.total = Number((sale + next.commission_value + tax - disc).toFixed(2));
     setForm(next);
   };
 
