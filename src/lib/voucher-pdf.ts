@@ -1183,20 +1183,39 @@ const drawAereoSection = async (
 
   let cy = headerBottom - 8;
 
+  // Coordenadas do divisor vertical que atravessa toda a seção AEREO
+  const dividerOuterX = MARGIN + 14;
+  const dividerOuterW = CONTENT_W - 28;
+  const dividerQrColW = 84;
+  const dividerSegColW = dividerOuterW - dividerQrColW;
+  const dividerX = dividerOuterX + dividerSegColW + 6;
+  let flightsTopY: number | null = null;
+  let flightsBotY: number | null = null;
+
   if (ob.length > 0) {
+    flightsTopY = cy;
     cy = drawFlightLegBlock(
       ctx, cy, t.ida, COLOR_ORANGE, ob, obLocator, obTicket,
       { img: qrImg, url: qrUrl }, obLogos,
     );
+    flightsBotY = cy + 6;
     cy -= 8;
   }
   if (rt.length > 0) {
+    if (flightsTopY === null) flightsTopY = cy;
     cy = drawFlightLegBlock(
       ctx, cy, t.volta, COLOR_ORANGE, rt, rtLocator, rtTicket,
       undefined, rtLogos, true,
     );
+    flightsBotY = cy + 6;
     cy -= 4;
   }
+
+  // Dashed vertical divider ao lado do QR — cobre IDA + VOLTA
+  if (flightsTopY !== null && flightsBotY !== null && qrImg) {
+    drawDashedVLine(ctx.page, dividerX, flightsBotY + 4, flightsTopY - 4, COLOR_BORDER);
+  }
+
 
 
   // Bagagem (agregada dos dois lados)
