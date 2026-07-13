@@ -639,12 +639,31 @@ const renderHotelItem = async (
   // Nome do hotel grande + estrelas ao lado (fonte display)
   const titleSize = 18;
   ensureSpace(ctx, titleSize + 8);
-  ctx.page.drawText(sanitize(hotelName), {
+  const qrMiniSize = 44;
+  // Título e estrelas com espaço reservado à direita pro mini QR
+  const nameMaxW = CONTENT_W - qrMiniSize - 12;
+  const nameLines = wrap(ctx.fontDisplay, titleSize, hotelName, nameMaxW);
+  const shownName = nameLines[0] ?? hotelName;
+  ctx.page.drawText(sanitize(shownName), {
     x: MARGIN, y: ctx.y - titleSize + 2, size: titleSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
   });
   if (stars > 0) {
-    const titleW = measure(ctx.fontDisplay, hotelName, titleSize);
+    const titleW = measure(ctx.fontDisplay, shownName, titleSize);
     drawStars(ctx.page, MARGIN + titleW + 12, ctx.y - titleSize + 5, stars, 10);
+  }
+  // Mini QR ao lado direito, alinhado com o título
+  if (mapData?.mapsUrl) {
+    try {
+      const qrDataUrl = await QRCode.toDataURL(mapData.mapsUrl, {
+        margin: 1, width: 200, color: { dark: "#0B286A", light: "#FFFFFF" },
+      });
+      const qrBase64 = qrDataUrl.split(",")[1];
+      const qrBytes = base64ToBytes(qrBase64);
+      const qrImg = await ctx.pdf.embedPng(qrBytes);
+      const qx = MARGIN + CONTENT_W - qrMiniSize;
+      const qy = ctx.y - qrMiniSize + 4;
+      ctx.page.drawImage(qrImg, { x: qx, y: qy, width: qrMiniSize, height: qrMiniSize });
+    } catch (e) { console.error("mini qr failed", e); }
   }
   ctx.y -= titleSize + 10;
 
