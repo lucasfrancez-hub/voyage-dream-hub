@@ -219,7 +219,89 @@ type Ctx = {
   order: OrderDetail["order"];
   logo?: PDFImage;
   pages: PDFPage[];
+  emojiCache?: Map<string, PDFImage | null>;
 };
+
+// ---------- Emoji support (Twemoji PNGs) ----------
+// pdf-lib nao renderiza glifos de emoji das fontes padrao. Baixamos o PNG do
+// Twemoji do CDN e embutimos inline, mantendo o texto ao redor com Helvetica.
+const EMOJI_RE = /(?:\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;
+
+const emojiToTwemojiCode = (emoji: string): string => {
+  const cps: string[] = [];
+  for (const ch of emoji) {
+    const cp = ch.codePointAt(0);
+    if (cp === undefined) continue;
+    if (cp === 0xfe0f) continue; // variation selector-16
+    cps.push(cp.toString(16));
+  }
+  return cps.join("-");
+};
+
+const embedEmojiPng = async (ctx: Ctx, emoji: string): Promise<PDFImage | null> => {
+  if (!ctx.emojiCache) ctx.emojiCache = new Map();
+  if (ctx.emojiCache.has(emoji)) return ctx.emojiCache.get(emoji) ?? null;
+  try {
+    const code = emojiToTwemojiCode(emoji);
+    if (!code) { ctx.emojiCache.set(emoji, null); return null; }
+    const url = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${code}.png`;
+    const r = await fetch(url);
+    if (!r.ok) { ctx.emojiCache.set(emoji, null); return null; }
+    const bytes = new Uint8Array(await r.arrayBuffer());
+    const img = await ctx.pdf.embedPng(bytes);
+    ctx.emojiCache.set(emoji, img);
+    return img;
+  } catch {
+    ctx.emojiCache.set(emoji, null);
+    return null;
+  }
+};
+
+// Segmenta uma string em runs de texto e emoji.
+const splitEmojiRuns = (s: string): Array<{ kind: "text" | "emoji"; value: string }> => {
+  const runs: Array<{ kind: "text" | "emoji"; value: string }> = [];
+  let last = 0;
+  for (const m of s.matchAll(EMOJI_RE)) {
+    const idx = m.index ?? 0;
+    if (idx > last) runs.push({ kind: "text", value: s.slice(last, idx) });
+    runs.push({ kind: "emoji", value: m[0] });
+    last = idx + m[0].length;
+  }
+  if (last < s.length) runs.push({ kind: "text", value: s.slice(last) });
+  return runs;
+};
+
+// Desenha uma linha com texto + emojis inline. Retorna o x final.
+const drawLineWithEmojis = async (
+  ctx: Ctx,
+  x: number,
+  y: number,
+  size: number,
+  text: string,
+  font: PDFFont,
+  color: Color,
+): Promise<number> => {
+  let cursor = x;
+  const runs = splitEmojiRuns(text);
+  for (const run of runs) {
+    if (run.kind === "text") {
+      const clean = sanitize(run.value);
+      if (!clean) continue;
+      ctx.page.drawText(clean, { x: cursor, y, size, font, color });
+      cursor += font.widthOfTextAtSize(clean, size);
+    } else {
+      const img = await embedEmojiPng(ctx, run.value);
+      const h = size * 1.15;
+      const w = h;
+      if (img) {
+        ctx.page.drawImage(img, { x: cursor, y: y - size * 0.15, width: w, height: h });
+      }
+      cursor += w + 1;
+    }
+  }
+  return cursor;
+};
+
 
 const T = (ctx: Ctx) => L[ctx.lang];
 
@@ -1717,7 +1799,7 @@ const drawFooterStrip = (ctx: Ctx) => {
 };
 
 // ---------- Serviços (transfer, ingressos, trem, etc.) ----------
-const drawServiceSection = (ctx: Ctx, item: OrderItem) => {
+const drawServiceSection = async (ctx: Ctx, item: OrderItem) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
   const title = String(item.title ?? "").trim() || "-";
@@ -1736,11 +1818,36 @@ const drawServiceSection = (ctx: Ctx, item: OrderItem) => {
   const innerX = MARGIN + 16;
   const innerW = CONTENT_W - 32;
 
-  // Preserve blank lines / tópicos das observações: quebra por \n, depois faz wrap por parágrafo
+  // Wrap emoji-aware: cada emoji conta como ~ tamanho da fonte de largura
+  const measureEmojiAware = (str: string, size: number): number => {
+    let w = 0;
+    for (const run of splitEmojiRuns(str)) {
+      if (run.kind === "emoji") w += size * 1.15 + 1;
+      else w += ctx.font.widthOfTextAtSize(sanitize(run.value), size);
+    }
+    return w;
+  };
+  const wrapEmojiAware = (str: string, size: number, maxWidth: number): string[] => {
+    if (!str) return [];
+    // Segmenta por espacos preservando emojis como tokens
+    const tokens = str.split(/(\s+)/).filter((t) => t.length > 0);
+    const lines: string[] = [];
+    let cur = "";
+    for (const tok of tokens) {
+      const tentative = cur + tok;
+      if (measureEmojiAware(tentative, size) <= maxWidth) cur = tentative;
+      else {
+        if (cur.trim()) lines.push(cur.trimEnd());
+        cur = /^\s+$/.test(tok) ? "" : tok;
+      }
+    }
+    if (cur.trim()) lines.push(cur.trimEnd());
+    return lines.length ? lines : [""];
+  };
   const notesLines: string[] = notes
     ? notes.split(/\r?\n/).flatMap((para) => {
         if (!para.trim()) return [""]; // linha em branco preservada
-        return wrap(ctx.font, 9, para, innerW - 8);
+        return wrapEmojiAware(para, 9, innerW - 8);
       })
     : [];
   const notesBlockH = notes ? 14 + notesLines.length * 12 + 6 : 0;
@@ -1806,9 +1913,7 @@ const drawServiceSection = (ctx: Ctx, item: OrderItem) => {
     cy -= 6;
     for (const ln of notesLines) {
       if (ln) {
-        ctx.page.drawText(sanitize(ln), {
-          x: innerX, y: cy - 9, size: 9, font: ctx.font, color: COLOR_TEXT,
-        });
+        await drawLineWithEmojis(ctx, innerX, cy - 9, 9, ln, ctx.font, COLOR_TEXT);
       }
       cy -= 12;
     }
@@ -1906,7 +2011,7 @@ export async function generateVoucher(
 
   // Serviços (transfers, ingressos, transporte terrestre, etc.)
   for (const s of others) {
-    drawServiceSection(ctx, s);
+    await drawServiceSection(ctx, s);
   }
 
   drawInfoAndEmergency(ctx);
