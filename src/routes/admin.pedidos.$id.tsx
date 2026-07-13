@@ -139,10 +139,15 @@ function OrderDetailPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "orderDetail", id] });
 
   const orderStatusMut = useMutation({
-    mutationFn: (status: "confirmed" | "reserved" | "cancelled" | "pending") =>
+    mutationFn: (status: "confirmed" | "reserved" | "cancelled" | "pending" | "paid") =>
       setOrderStatusFn({ data: { id: (data as OrderDetail | undefined)?.order.id ?? "", status } }),
     onSuccess: (_r, status) => {
-      toast.success(status === "confirmed" ? "Pedido confirmado" : status === "cancelled" ? "Pedido cancelado" : "Pedido reaberto");
+      toast.success(
+        status === "confirmed" ? "Pedido confirmado"
+        : status === "paid" ? "Pedido finalizado"
+        : status === "cancelled" ? "Pedido cancelado"
+        : "Pedido reaberto",
+      );
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
