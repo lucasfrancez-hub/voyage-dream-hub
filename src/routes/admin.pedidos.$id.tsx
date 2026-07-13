@@ -3455,20 +3455,22 @@ function CommissionAdjustDialog({
   useEffect(() => {
     if (!open) return;
     const r2 = (n: number) => Number(n.toFixed(2));
-    // Agrega TODOS os itens do financeiro (pacote pronto + extras).
-    // Para itens sem financeiro salvo, usa o valor cadastrado no próprio item
-    // (details.value / details.tax_value) como valor planejado.
+    // Considera SOMENTE itens marcados como comissionáveis. Itens
+    // não-comissionáveis ficam intocados pela régua (tanto na base
+    // exibida quanto na hora de salvar).
     let sumSale = 0;
     let sumTax = 0;
-    let firstPct: number | null = null;
+    let sumCommVal = 0;
+    let sumCommSale = 0;
     for (const it of items) {
       const f = financials.find((x) => x.order_item_id === it.id);
+      const commissionable = f ? (f.is_commissionable ?? true) : true;
+      if (!commissionable) continue;
       if (f) {
         sumSale += Number(f.sale_value || 0);
         sumTax += Number(f.tax_value || 0);
-        if (firstPct === null && f.commission_pct !== null && f.commission_pct !== undefined) {
-          firstPct = Number(f.commission_pct);
-        }
+        sumCommVal += Number(f.commission_value || 0);
+        sumCommSale += Number(f.sale_value || 0);
       } else {
         const d = (it.details ?? {}) as Record<string, unknown>;
         const gross = Math.max(0, Number(d.value ?? 0) || 0);
@@ -3481,7 +3483,12 @@ function CommissionAdjustDialog({
     }
     setSale(r2(sumSale));
     setTax(r2(sumTax));
-    setPct(firstPct !== null ? firstPct : (isPackage ? PKG_DEFAULT_PCT : 10));
+    // Percentual efetivo = comissão real / tarifa (só dos comissionáveis).
+    // Assim, se todos foram zerados, aparece 0% (não o 12% padrão).
+    const effectivePct = sumCommSale > 0
+      ? Number(((sumCommVal / sumCommSale) * 100).toFixed(2))
+      : (isPackage ? PKG_DEFAULT_PCT : 10);
+    setPct(effectivePct);
   }, [open, items, financials, isPackage]);
 
 
