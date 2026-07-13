@@ -554,17 +554,24 @@ const drawVoucherIdCard = (ctx: Ctx) => {
   const h = 24;
   ensureSpace(ctx, h + 10);
   const y = ctx.y - h;
-  const w = 218;
-  drawRoundedRect(ctx.page, MARGIN, y, w, h, COLOR_NAVY, 5);
-  drawIcon(ctx.page, "ticket", MARGIN + 10, y + (h - 10) / 2, 10, COLOR_ORANGE);
-  const label = `${t.voucherId}: `;
   const labelSize = 9.5;
+  const label = `${t.voucherId}: `;
+  const number = String(ctx.order.orderNumber);
+  const iconPad = 10;
+  const iconW = 10;
+  const gapIconText = 8;
+  const rightPad = 14;
+  const labelW = measure(ctx.fontBold, label, labelSize);
+  const numberW = measure(ctx.fontBold, number, labelSize);
+  const w = iconPad + iconW + gapIconText + labelW + numberW + rightPad;
+  drawRoundedRect(ctx.page, MARGIN, y, w, h, COLOR_NAVY, 5);
+  drawIcon(ctx.page, "ticket", MARGIN + iconPad, y + (h - iconW) / 2, iconW, COLOR_ORANGE);
+  const textX = MARGIN + iconPad + iconW + gapIconText;
   ctx.page.drawText(sanitize(label), {
-    x: MARGIN + 28, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_ORANGE,
+    x: textX, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_ORANGE,
   });
-  const lw = measure(ctx.fontBold, label, labelSize);
-  ctx.page.drawText(sanitize(String(ctx.order.orderNumber)), {
-    x: MARGIN + 28 + lw, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_WHITE,
+  ctx.page.drawText(sanitize(number), {
+    x: textX + labelW, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_WHITE,
   });
   ctx.y = y - 10;
 };
