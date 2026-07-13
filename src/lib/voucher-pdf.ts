@@ -255,41 +255,60 @@ const drawMainHeader = (ctx: Ctx) => {
   const t = T(ctx);
   const topY = A4.h;
 
-  // Logo Via Air (topo esquerdo)
+  // Bloco esquerdo: informações da agência
+  const infoTop = topY - MARGIN - 4;
+  ctx.page.drawText(sanitize(COMPANY.short), {
+    x: MARGIN, y: infoTop - 10, size: 11, font: ctx.fontBold, color: COLOR_BRAND_BLUE,
+  });
+  const infoLines: string[] = [
+    `CNPJ ${COMPANY.cnpj}`,
+    COMPANY.address,
+    COMPANY.cityLine,
+    `${COMPANY.phone} · ${COMPANY.email}`,
+  ];
+  let iy = infoTop - 22;
+  for (const line of infoLines) {
+    ctx.page.drawText(sanitize(line), {
+      x: MARGIN, y: iy, size: 7.5, font: ctx.font, color: COLOR_MUTED,
+    });
+    iy -= 10;
+  }
+
+  // Logo Via Air (topo direito)
   if (ctx.logo) {
-    const h = 34;
+    const h = 36;
     const w = h * (ctx.logo.width / ctx.logo.height);
     ctx.page.drawImage(ctx.logo, {
-      x: MARGIN, y: topY - MARGIN - h + 6, width: w, height: h,
+      x: A4.w - MARGIN - w, y: topY - MARGIN - h + 4, width: w, height: h,
     });
   }
 
-  // Linha divisória azul grossa abaixo do logo
-  const lineY = topY - MARGIN - 46;
+  // Linha divisória azul abaixo do bloco
+  const lineY = topY - MARGIN - 62;
   ctx.page.drawRectangle({
     x: MARGIN, y: lineY, width: CONTENT_W, height: 2, color: COLOR_BRAND_BLUE,
   });
 
-  // Pílula laranja pequena com o ID logo abaixo da linha
+  // Título "VOUCHER" (menor) à esquerda + pílula laranja com ID à direita
+  const titleSize = 22;
+  const titleY = lineY - titleSize - 4;
+  ctx.page.drawText(sanitize(t.title), {
+    x: MARGIN, y: titleY, size: titleSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
+  });
+
   const idText = `${t.idLabel.toUpperCase()}: ${ctx.order.orderNumber}`;
   const idSize = 10;
   const idTextW = measure(ctx.fontBold, idText, idSize);
   const idPillW = idTextW + 24;
   const idPillH = 20;
-  const idPillY = lineY - 8 - idPillH;
-  drawRoundedRect(ctx.page, MARGIN, idPillY, idPillW, idPillH, COLOR_BRAND_ORANGE, 10);
+  const idPillY = titleY + (titleSize - idPillH) / 2 + 2;
+  const idPillX = A4.w - MARGIN - idPillW;
+  drawRoundedRect(ctx.page, idPillX, idPillY, idPillW, idPillH, COLOR_BRAND_ORANGE, 10);
   ctx.page.drawText(sanitize(idText), {
-    x: MARGIN + 12, y: idPillY + 6, size: idSize, font: ctx.fontBold, color: COLOR_WHITE,
+    x: idPillX + 12, y: idPillY + 6, size: idSize, font: ctx.fontBold, color: COLOR_WHITE,
   });
 
-  // Título grande "VOUCHER" em Helvetica bold, azul
-  const titleSize = 38;
-  const titleY = idPillY - titleSize - 4;
-  ctx.page.drawText(sanitize(t.title), {
-    x: MARGIN, y: titleY, size: titleSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
-  });
-
-  ctx.y = titleY - 24;
+  ctx.y = titleY - 18;
 };
 
 
@@ -838,8 +857,11 @@ const renderOtherItem = (ctx: Ctx, item: OrderItem) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
   const description = String(d.description ?? d.details ?? "").trim();
+  const notes = String(d.notes ?? "").trim();
   const dateFrom = String(d.date_from ?? d.start_date ?? "").trim();
   const dateTo = String(d.date_to ?? d.end_date ?? "").trim();
+  const timeFrom = String(d.time_from ?? "").trim();
+  const timeTo = String(d.time_to ?? "").trim();
   const locator = item.supplier_locator ?? "";
 
   ensureSpace(ctx, 90);
@@ -850,15 +872,33 @@ const renderOtherItem = (ctx: Ctx, item: OrderItem) => {
 
   drawFieldTitle(ctx, item.title || "-", 14);
 
-  if (dateFrom || dateTo) {
-    if (dateFrom) { drawInlineKV(ctx, t.checkin, fmtDateShort(dateFrom, ctx.lang)); ctx.y -= 14; }
-    if (dateTo) { drawInlineKV(ctx, t.checkout, fmtDateShort(dateTo, ctx.lang)); ctx.y -= 14; }
-  }
+  const depLabel = ctx.lang === "pt" ? "Partida" : "Departure";
+  const depTimeLabel = ctx.lang === "pt" ? "Horário de saída" : "Departure time";
+  const arrTimeLabel = ctx.lang === "pt" ? "Horário de chegada" : "Arrival time";
+  if (dateFrom) { drawInlineKV(ctx, depLabel, fmtDateShort(dateFrom, ctx.lang)); ctx.y -= 14; }
+  if (timeFrom) { drawInlineKV(ctx, depTimeLabel, timeFrom); ctx.y -= 14; }
+  if (timeTo) { drawInlineKV(ctx, arrTimeLabel, timeTo); ctx.y -= 14; }
+  if (dateTo) { drawInlineKV(ctx, t.checkout, fmtDateShort(dateTo, ctx.lang)); ctx.y -= 14; }
+
   if (description) {
     const lines = wrap(ctx.font, 9.5, description, CONTENT_W);
     for (const ln of lines) {
       ensureSpace(ctx, 12);
       drawText(ctx, ln, MARGIN, { size: 9.5 });
+      ctx.y -= 12;
+    }
+    ctx.y -= 4;
+  }
+  if (notes) {
+    ensureSpace(ctx, 20);
+    drawText(ctx, ctx.lang === "pt" ? "OBSERVAÇÕES" : "NOTES", MARGIN, {
+      size: 8, bold: true, color: COLOR_BRAND_BLUE_SOFT,
+    });
+    ctx.y -= 12;
+    const lines = wrap(ctx.font, 9.5, notes, CONTENT_W);
+    for (const ln of lines) {
+      ensureSpace(ctx, 12);
+      drawText(ctx, ln, MARGIN, { size: 9.5, color: COLOR_TEXT });
       ctx.y -= 12;
     }
     ctx.y -= 4;
