@@ -19,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
+import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
@@ -29,6 +30,7 @@ import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.ind
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
+import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 
 const PagarBoletoRoute = PagarBoletoRouteImport.update({
@@ -79,6 +81,11 @@ const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
 const AdminSegurancaRoute = AdminSegurancaRouteImport.update({
   id: '/seguranca',
   path: '/seguranca',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPessoasRoute = AdminPessoasRouteImport.update({
+  id: '/pessoas',
+  path: '/pessoas',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPacotesRoute = AdminPacotesRouteImport.update({
@@ -132,6 +139,11 @@ const ApiPublicClicksignWebhookRoute =
     path: '/api/public/clicksign-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminPessoasIdRoute = AdminPessoasIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminPessoasRoute,
+} as any)
 const AdminPedidosIdRoute = AdminPedidosIdRouteImport.update({
   id: '/pedidos/$id',
   path: '/pedidos/$id',
@@ -152,10 +164,12 @@ export interface FileRoutesByFullPath {
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
+  '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -174,10 +188,12 @@ export interface FileRoutesByTo {
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/pacotes': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
+  '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
@@ -198,10 +214,12 @@ export interface FileRoutesById {
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
+  '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -223,10 +241,12 @@ export interface FileRouteTypes {
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
     | '/admin/pacotes'
+    | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/pacotes/'
     | '/admin/pedidos/$id'
+    | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
@@ -245,10 +265,12 @@ export interface FileRouteTypes {
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
     | '/admin/pacotes'
+    | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/pacotes'
     | '/admin/pedidos/$id'
+    | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos'
@@ -268,10 +290,12 @@ export interface FileRouteTypes {
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
     | '/admin/pacotes'
+    | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/pacotes/'
     | '/admin/pedidos/$id'
+    | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
@@ -361,6 +385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSegurancaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pessoas': {
+      id: '/admin/pessoas'
+      path: '/pessoas'
+      fullPath: '/admin/pessoas'
+      preLoaderRoute: typeof AdminPessoasRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pacotes': {
       id: '/admin/pacotes'
       path: '/pacotes'
@@ -431,6 +462,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicClicksignWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/pessoas/$id': {
+      id: '/admin/pessoas/$id'
+      path: '/$id'
+      fullPath: '/admin/pessoas/$id'
+      preLoaderRoute: typeof AdminPessoasIdRouteImport
+      parentRoute: typeof AdminPessoasRoute
+    }
     '/admin/pedidos/$id': {
       id: '/admin/pedidos/$id'
       path: '/pedidos/$id'
@@ -441,6 +479,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminPessoasRouteChildren {
+  AdminPessoasIdRoute: typeof AdminPessoasIdRoute
+}
+
+const AdminPessoasRouteChildren: AdminPessoasRouteChildren = {
+  AdminPessoasIdRoute: AdminPessoasIdRoute,
+}
+
+const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
+  AdminPessoasRouteChildren,
+)
+
 interface AdminRouteChildren {
   AdminCofreRoute: typeof AdminCofreRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
@@ -448,6 +498,7 @@ interface AdminRouteChildren {
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
+  AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
   AdminSegurancaRoute: typeof AdminSegurancaRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
@@ -461,6 +512,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
   AdminPacotesRoute: AdminPacotesRoute,
+  AdminPessoasRoute: AdminPessoasRouteWithChildren,
   AdminSegurancaRoute: AdminSegurancaRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
