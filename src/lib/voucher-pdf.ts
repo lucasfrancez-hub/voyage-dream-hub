@@ -28,6 +28,34 @@ import QRCode from "qrcode";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
 import type { OrderDetail, OrderItem, OrderPassenger } from "./orders.functions";
 import { getHotelMap, type HotelMapData } from "./voucher-map.functions";
+import { translateText } from "./translate.functions";
+
+// --- Traduções auxiliares para o voucher em inglês ---
+const translateGuestsPtToEn = (input: string): string => {
+  if (!input) return input;
+  const map: Array<[RegExp, string]> = [
+    [/\badultos?\b/gi, (m) => (m.toLowerCase() === "adulto" ? "adult" : "adults")] as unknown as [RegExp, string],
+    [/\bcrian[çc]as?\b/gi, (m) => (m.toLowerCase().endsWith("s") ? "children" : "child")] as unknown as [RegExp, string],
+    [/\bbeb[êe]s?\b/gi, (m) => (m.toLowerCase().endsWith("s") ? "infants" : "infant")] as unknown as [RegExp, string],
+    [/\bh[óo]spedes?\b/gi, (m) => (m.toLowerCase().endsWith("s") ? "guests" : "guest")] as unknown as [RegExp, string],
+  ];
+  let out = input;
+  for (const [re, repl] of map) {
+    out = out.replace(re, repl as unknown as string);
+  }
+  return out;
+};
+
+const translateNotesToEnglish = async (text: string): Promise<string> => {
+  try {
+    const r = await translateText({ data: { text, target: "en" } });
+    return (r?.text ?? "").trim() || text;
+  } catch (e) {
+    console.warn("translateNotesToEnglish failed", e);
+    return text;
+  }
+};
+
 
 // ---------- Layout ----------
 const A4 = { w: 595.28, h: 841.89 };
