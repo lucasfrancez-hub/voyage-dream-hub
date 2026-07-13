@@ -19,7 +19,11 @@ import {
   PDFImage,
   PDFString,
   PDFName,
+  pushGraphicsState,
+  popGraphicsState,
+  concatTransformationMatrix,
 } from "pdf-lib";
+
 import QRCode from "qrcode";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
 import type { OrderDetail, OrderItem, OrderPassenger } from "./orders.functions";
@@ -783,13 +787,29 @@ const drawNicePlane = (
   const nativeW = 576;
   const nativeH = 552;
   const scale = w / nativeW;
-  page.drawSvgPath(path, {
-    x: cx - (nativeW / 2) * scale * (flip ? -1 : 1),
-    y: cy + (nativeH / 2) * scale,
-    scale: flip ? -scale : scale,
-    color,
-  });
+  if (flip) {
+    // Espelha apenas no eixo X, mantendo o eixo Y intacto (mirror sobre x=cx).
+    page.pushOperators(
+      pushGraphicsState(),
+      concatTransformationMatrix(-1, 0, 0, 1, 2 * cx, 0),
+    );
+    page.drawSvgPath(path, {
+      x: cx - (nativeW / 2) * scale,
+      y: cy + (nativeH / 2) * scale,
+      scale,
+      color,
+    });
+    page.pushOperators(popGraphicsState());
+  } else {
+    page.drawSvgPath(path, {
+      x: cx - (nativeW / 2) * scale,
+      y: cy + (nativeH / 2) * scale,
+      scale,
+      color,
+    });
+  }
 };
+
 
 
 const drawFlightLegBlock = (
@@ -839,7 +859,8 @@ const drawFlightLegBlock = (
 
   // --- Card único cinza contendo TODOS os trechos + faixas de conexão ---
   const pillH = 16;
-  const segContentH = 56;
+  const segContentH = 68;
+
   const conBandH = 28;
   const padTop = pillH / 2 + 6;
   const padBot = 10;
@@ -915,7 +936,7 @@ const drawFlightLegBlock = (
     const leftX = segX + 12;
     const rightX = segX + segW - 12 - measure(ctx.fontBold, toIata, iataSize);
     // Empurra as IATAs pra baixo do pill quando o pill fica dentro do bloco
-    const iataY = segBotY + segContentH - (i === 0 ? 24 : 30);
+    const iataY = segBotY + segContentH - (i === 0 ? 34 : 38);
     ctx.page.drawText(sanitize(fromIata), {
       x: leftX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
@@ -955,13 +976,13 @@ const drawFlightLegBlock = (
     const bottomY = segBotY + 6;
     if (fromCity) {
       ctx.page.drawText(sanitize(fromCity), {
-        x: leftX, y: bottomY + 14, size: 7.5, font: ctx.font, color: COLOR_MUTED,
+        x: leftX, y: bottomY + 17, size: 7.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
     if (toCity) {
       const cityW = measure(ctx.font, toCity, 7.5);
       ctx.page.drawText(sanitize(toCity), {
-        x: segX + segW - 12 - cityW, y: bottomY + 14, size: 7.5, font: ctx.font, color: COLOR_MUTED,
+        x: segX + segW - 12 - cityW, y: bottomY + 17, size: 7.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
     const depTxt = dep ? `${fmtDateBR(dep)}  ${fmtTime(dep)}` : "";
