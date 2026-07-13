@@ -606,7 +606,7 @@ export const upsertItemFinancial = createServerFn({ method: "POST" })
       commission_value: data.commission_value ?? 0,
       commission_pct: data.commission_pct ?? 0,
       exchange_rate: data.exchange_rate ?? 1,
-      due_date: data.due_date ?? null,
+      due_date: data.due_date && data.due_date !== "" ? data.due_date : null,
       total: data.total ?? 0,
       notes: data.notes ?? null,
       sort_order: data.sort_order ?? 0,
