@@ -542,19 +542,20 @@ const drawHeader = (ctx: Ctx) => {
 // ---------- Voucher ID card ----------
 const drawVoucherIdCard = (ctx: Ctx) => {
   const t = T(ctx);
-  const h = 36;
+  const h = 24;
   ensureSpace(ctx, h + 10);
   const y = ctx.y - h;
-  const w = 320;
-  drawRoundedRect(ctx.page, MARGIN, y, w, h, COLOR_NAVY, 6);
-  drawIcon(ctx.page, "ticket", MARGIN + 14, y + (h - 14) / 2, 14, COLOR_ORANGE);
+  const w = 218;
+  drawRoundedRect(ctx.page, MARGIN, y, w, h, COLOR_NAVY, 5);
+  drawIcon(ctx.page, "ticket", MARGIN + 10, y + (h - 10) / 2, 10, COLOR_ORANGE);
   const label = `${t.voucherId}: `;
+  const labelSize = 9.5;
   ctx.page.drawText(sanitize(label), {
-    x: MARGIN + 40, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_ORANGE,
+    x: MARGIN + 28, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_ORANGE,
   });
-  const lw = measure(ctx.fontBold, label, 12);
+  const lw = measure(ctx.fontBold, label, labelSize);
   ctx.page.drawText(sanitize(String(ctx.order.orderNumber)), {
-    x: MARGIN + 40 + lw, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_WHITE,
+    x: MARGIN + 28 + lw, y: y + 8, size: labelSize, font: ctx.fontBold, color: COLOR_WHITE,
   });
   ctx.y = y - 10;
 };
@@ -715,7 +716,8 @@ const drawFlightLegBlock = (
 ): number => {
   const outerX = MARGIN + 14;
   const outerW = CONTENT_W - 28;
-  const qrColW = qr ? 82 : 0;
+  // Reserva sempre a coluna do QR — para IDA e VOLTA ficarem alinhadas
+  const qrColW = 84;
   const segColW = outerW - qrColW;
 
   const chipW = 66;
@@ -870,23 +872,54 @@ const drawFlightLegBlock = (
     }
   });
 
-  // Divisor tracejado + QR na coluna direita
+  // Malinha (luggage-tag) com QR e texto embaixo na coluna direita
   if (qr) {
-    const dividerX = outerX + segColW + 6;
-    drawDashedVLine(ctx.page, dividerX, cy + 6, segmentsTopY - 2, COLOR_BORDER);
-    const qrSize = 62;
-    const qrX = outerX + segColW + 16;
-    const qrY = segmentsTopY - qrSize - 6;
+    const tagW = qrColW - 8;
+    const tagX = outerX + segColW + 6;
+    const qrSize = 52;
+    const textAreaH = 22;
+    const padTop = 8;
+    const tagH = padTop + qrSize + 6 + textAreaH;
+    const tagY = segmentsTopY - tagH - 2;
+
+    // "Alça" da malinha no topo
+    const handleR = 3;
+    const handleX = tagX + tagW / 2;
+    const handleTopY = tagY + tagH + 5;
+    ctx.page.drawLine({
+      start: { x: handleX, y: tagY + tagH },
+      end: { x: handleX, y: handleTopY },
+      thickness: 1, color: COLOR_NAVY,
+    });
+    ctx.page.drawCircle({ x: handleX, y: handleTopY, size: handleR, color: COLOR_NAVY });
+    ctx.page.drawCircle({ x: handleX, y: handleTopY, size: handleR - 1.2, color: COLOR_WHITE });
+
+    // Frame da mala
+    drawRoundedBorder(ctx.page, tagX, tagY, tagW, tagH, COLOR_NAVY, 8, 0.9);
+
+    // QR
+    const qrX = tagX + (tagW - qrSize) / 2;
+    const qrY = tagY + textAreaH + 6;
     if (qr.img) {
       ctx.page.drawImage(qr.img, { x: qrX, y: qrY, width: qrSize, height: qrSize });
       addLinkAnnotation(ctx, qrX, qrY, qrSize, qrSize, qr.url);
     }
+
+    // Divisor entre QR e texto
+    const sepY = tagY + textAreaH + 2;
+    ctx.page.drawLine({
+      start: { x: tagX + 4, y: sepY }, end: { x: tagX + tagW - 4, y: sepY },
+      thickness: 0.5, color: COLOR_BORDER,
+    });
+
+    // Texto dentro da parte de baixo
     const lines = T(ctx).verifiqueCia.split("\n");
-    let ly = qrY - 8;
+    const lineSize = 6;
+    let ly = tagY + textAreaH - 8;
     for (const ln of lines) {
-      const lw = measure(ctx.font, ln, 6.5);
+      const lw = measure(ctx.font, ln, lineSize);
       ctx.page.drawText(sanitize(ln), {
-        x: qrX + (qrSize - lw) / 2, y: ly, size: 6.5, font: ctx.font, color: COLOR_MUTED,
+        x: tagX + (tagW - lw) / 2, y: ly, size: lineSize, font: ctx.fontBold, color: COLOR_NAVY,
       });
       ly -= 8;
     }
