@@ -1865,7 +1865,7 @@ function ItemDialog({
   const [details, setDetails] = useState<Record<string, string | number | boolean>>(() => {
     const clean: Record<string, string | number | boolean> = {};
     for (const [k, v] of Object.entries(initialDetails)) {
-      if (typeof v === "string" || typeof v === "number") clean[k] = v;
+      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") clean[k] = v;
     }
     if (kind === "flight" && !initial && !clean.direction) clean.direction = "outbound";
     return clean;
