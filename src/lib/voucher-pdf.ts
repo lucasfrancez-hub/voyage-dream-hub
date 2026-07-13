@@ -175,11 +175,13 @@ type Ctx = {
   y: number;
   font: PDFFont;
   fontBold: PDFFont;
+  fontDisplay: PDFFont;
   lang: VoucherLang;
   order: OrderDetail["order"];
   logo?: PDFImage;
   pages: PDFPage[];
 };
+
 
 const T = (ctx: Ctx) => L[ctx.lang];
 
