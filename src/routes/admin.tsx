@@ -74,9 +74,9 @@ function AdminLayout() {
       clearTimeout(timer);
       timer = setTimeout(doLogout, TIMEOUT_MS);
     };
-    const events: Array<keyof WindowEventMap> = [
-      "mousemove", "mousedown", "keydown", "scroll", "touchstart", "click", "visibilitychange",
-    ];
+    const events = [
+      "mousemove", "mousedown", "keydown", "scroll", "touchstart", "click",
+    ] as const;
     events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
     reset();
     return () => {
