@@ -601,13 +601,16 @@ const drawSectionHeader = (
   title: string,
   rightText?: string,
 ) => {
-  const cy = y - 18;
-  // Círculo azul
-  ctx.page.drawCircle({ x: MARGIN + 22, y: cy + 8, size: 12, color: COLOR_NAVY });
-  drawIcon(ctx.page, icon, MARGIN + 22 - 6, cy + 2, 12, COLOR_WHITE);
+  // Empurra o círculo do ícone totalmente para dentro do card (não pode estourar borda)
+  const cy = y - 22;
+  const circleR = 11;
+  const circleCX = MARGIN + 14 + circleR; // margem interna de 14 até borda esquerda do círculo
+  const circleCY = cy + 8;
+  ctx.page.drawCircle({ x: circleCX, y: circleCY, size: circleR, color: COLOR_NAVY });
+  drawIcon(ctx.page, icon, circleCX - circleR * 0.55, circleCY - circleR * 0.55, circleR * 1.1, COLOR_WHITE);
   // Título
   ctx.page.drawText(sanitize(title), {
-    x: MARGIN + 44, y: cy + 4, size: 11.5, font: ctx.fontBold, color: COLOR_NAVY,
+    x: circleCX + circleR + 10, y: cy + 4, size: 11.5, font: ctx.fontBold, color: COLOR_NAVY,
   });
   if (rightText) {
     const size = 9;
