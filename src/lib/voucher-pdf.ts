@@ -264,32 +264,46 @@ const drawMainHeader = (ctx: Ctx) => {
     });
   }
 
+  // ID grande no canto direito (label + número)
+  const idLabel = t.idLabel.toUpperCase();
+  const idNumber = String(ctx.order.orderNumber);
+  const idLabelSize = 8;
+  const idNumSize = 20;
+  const idLabelW = measure(ctx.fontBold, idLabel, idLabelSize);
+  const idNumW = measure(ctx.fontDisplay, idNumber, idNumSize);
+  ctx.page.drawText(sanitize(idLabel), {
+    x: A4.w - MARGIN - idLabelW,
+    y: topY - MARGIN - 8,
+    size: idLabelSize, font: ctx.fontBold, color: COLOR_BRAND_BLUE_SOFT,
+  });
+  ctx.page.drawText(sanitize(idNumber), {
+    x: A4.w - MARGIN - idNumW,
+    y: topY - MARGIN - 30,
+    size: idNumSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
+  });
+
   // Linha divisória azul grossa abaixo do logo
   const lineY = topY - MARGIN - 46;
   ctx.page.drawRectangle({
     x: MARGIN, y: lineY, width: CONTENT_W, height: 2, color: COLOR_BRAND_BLUE,
   });
 
-  // Pílula ID pequena
-  const idText = `${t.idLabel}: ${ctx.order.orderNumber}`;
-  const idFont = 9;
-  const idW = measure(ctx.fontBold, idText, idFont) + 20;
-  const idH = 16;
-  const idX = MARGIN;
-  const idY = lineY - 26;
-  drawRoundedRect(ctx.page, idX, idY, idW, idH, COLOR_PILL_BG, 8);
-  ctx.page.drawText(sanitize(idText), {
-    x: idX + 10, y: idY + 5, size: idFont, font: ctx.fontBold, color: COLOR_TEXT,
-  });
-
-  // Título grande "VOUCHER"
-  const titleSize = 30;
+  // Título grande "VOUCHER" com fonte serif de exibição
+  const titleSize = 42;
   ctx.page.drawText(sanitize(t.title), {
-    x: MARGIN, y: idY - 40, size: titleSize, font: ctx.fontBold, color: COLOR_BRAND_BLUE,
+    x: MARGIN, y: lineY - titleSize - 8, size: titleSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
+  });
+  // Subtítulo elegante ao lado do título
+  const subLabel = ctx.lang === "pt" ? "Documento oficial de reserva" : "Official reservation document";
+  ctx.page.drawText(sanitize(subLabel), {
+    x: MARGIN + measure(ctx.fontDisplay, t.title, titleSize) + 14,
+    y: lineY - titleSize + 4,
+    size: 9, font: ctx.font, color: COLOR_MUTED,
   });
 
-  ctx.y = idY - titleSize - 28;
+  ctx.y = lineY - titleSize - 32;
 };
+
 
 const drawContinuationHeader = (ctx: Ctx) => {
   const t = T(ctx);
