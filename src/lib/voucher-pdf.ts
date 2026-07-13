@@ -175,11 +175,13 @@ type Ctx = {
   y: number;
   font: PDFFont;
   fontBold: PDFFont;
+  fontDisplay: PDFFont;
   lang: VoucherLang;
   order: OrderDetail["order"];
   logo?: PDFImage;
   pages: PDFPage[];
 };
+
 
 const T = (ctx: Ctx) => L[ctx.lang];
 
@@ -262,32 +264,46 @@ const drawMainHeader = (ctx: Ctx) => {
     });
   }
 
+  // ID grande no canto direito (label + número)
+  const idLabel = t.idLabel.toUpperCase();
+  const idNumber = String(ctx.order.orderNumber);
+  const idLabelSize = 8;
+  const idNumSize = 20;
+  const idLabelW = measure(ctx.fontBold, idLabel, idLabelSize);
+  const idNumW = measure(ctx.fontDisplay, idNumber, idNumSize);
+  ctx.page.drawText(sanitize(idLabel), {
+    x: A4.w - MARGIN - idLabelW,
+    y: topY - MARGIN - 8,
+    size: idLabelSize, font: ctx.fontBold, color: COLOR_BRAND_BLUE_SOFT,
+  });
+  ctx.page.drawText(sanitize(idNumber), {
+    x: A4.w - MARGIN - idNumW,
+    y: topY - MARGIN - 30,
+    size: idNumSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
+  });
+
   // Linha divisória azul grossa abaixo do logo
   const lineY = topY - MARGIN - 46;
   ctx.page.drawRectangle({
     x: MARGIN, y: lineY, width: CONTENT_W, height: 2, color: COLOR_BRAND_BLUE,
   });
 
-  // Pílula ID pequena
-  const idText = `${t.idLabel}: ${ctx.order.orderNumber}`;
-  const idFont = 9;
-  const idW = measure(ctx.fontBold, idText, idFont) + 20;
-  const idH = 16;
-  const idX = MARGIN;
-  const idY = lineY - 26;
-  drawRoundedRect(ctx.page, idX, idY, idW, idH, COLOR_PILL_BG, 8);
-  ctx.page.drawText(sanitize(idText), {
-    x: idX + 10, y: idY + 5, size: idFont, font: ctx.fontBold, color: COLOR_TEXT,
-  });
-
-  // Título grande "VOUCHER"
-  const titleSize = 30;
+  // Título grande "VOUCHER" com fonte serif de exibição
+  const titleSize = 42;
   ctx.page.drawText(sanitize(t.title), {
-    x: MARGIN, y: idY - 40, size: titleSize, font: ctx.fontBold, color: COLOR_BRAND_BLUE,
+    x: MARGIN, y: lineY - titleSize - 8, size: titleSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
+  });
+  // Subtítulo elegante ao lado do título
+  const subLabel = ctx.lang === "pt" ? "Documento oficial de reserva" : "Official reservation document";
+  ctx.page.drawText(sanitize(subLabel), {
+    x: MARGIN + measure(ctx.fontDisplay, t.title, titleSize) + 14,
+    y: lineY - titleSize + 4,
+    size: 9, font: ctx.font, color: COLOR_MUTED,
   });
 
-  ctx.y = idY - titleSize - 28;
+  ctx.y = lineY - titleSize - 32;
 };
+
 
 const drawContinuationHeader = (ctx: Ctx) => {
   const t = T(ctx);
@@ -348,25 +364,108 @@ const drawFooter = (ctx: Ctx, pageIndex: number, pageCount: number) => {
   });
 };
 
+// ---------- Icons (vector) ----------
+type IconKind = "bed" | "plane" | "service" | "info" | "emergency" | "user" | "policy" | "calendar" | "moon" | "users";
+
+const drawIcon = (page: PDFPage, kind: IconKind, x: number, y: number, size: number, color: Color) => {
+  // (x, y) = bottom-left of icon box, size = width=height
+  const s = size;
+  switch (kind) {
+    case "bed": {
+      // travesseiro + colchão
+      page.drawRectangle({ x, y: y + s * 0.1, width: s, height: s * 0.28, color });
+      page.drawRectangle({ x, y: y + s * 0.38, width: s * 0.42, height: s * 0.28, color });
+      page.drawLine({ start: { x, y: y + s * 0.1 }, end: { x, y: y + s * 0.8 }, thickness: s * 0.08, color });
+      break;
+    }
+    case "plane": {
+      // avião estilizado (triângulos)
+      const cx = x + s / 2, cy = y + s / 2;
+      page.drawLine({ start: { x: x + s * 0.05, y: cy }, end: { x: x + s * 0.95, y: cy }, thickness: s * 0.14, color });
+      page.drawLine({ start: { x: cx, y: y + s * 0.15 }, end: { x: cx + s * 0.15, y: cy }, thickness: s * 0.12, color });
+      page.drawLine({ start: { x: cx, y: y + s * 0.85 }, end: { x: cx + s * 0.15, y: cy }, thickness: s * 0.12, color });
+      break;
+    }
+    case "service": {
+      // estrela/serviço (círculo com asterisco)
+      page.drawCircle({ x: x + s / 2, y: y + s / 2, size: s * 0.42, borderColor: color, borderWidth: s * 0.1 });
+      page.drawLine({ start: { x: x + s * 0.3, y: y + s / 2 }, end: { x: x + s * 0.7, y: y + s / 2 }, thickness: s * 0.1, color });
+      page.drawLine({ start: { x: x + s / 2, y: y + s * 0.3 }, end: { x: x + s / 2, y: y + s * 0.7 }, thickness: s * 0.1, color });
+      break;
+    }
+    case "info": {
+      page.drawCircle({ x: x + s / 2, y: y + s / 2, size: s * 0.45, borderColor: color, borderWidth: s * 0.1 });
+      page.drawCircle({ x: x + s / 2, y: y + s * 0.72, size: s * 0.06, color });
+      page.drawLine({ start: { x: x + s / 2, y: y + s * 0.25 }, end: { x: x + s / 2, y: y + s * 0.6 }, thickness: s * 0.12, color });
+      break;
+    }
+    case "emergency": {
+      // triângulo de alerta
+      page.drawLine({ start: { x, y: y + s * 0.1 }, end: { x: x + s, y: y + s * 0.1 }, thickness: s * 0.1, color });
+      page.drawLine({ start: { x, y: y + s * 0.1 }, end: { x: x + s / 2, y: y + s * 0.95 }, thickness: s * 0.1, color });
+      page.drawLine({ start: { x: x + s, y: y + s * 0.1 }, end: { x: x + s / 2, y: y + s * 0.95 }, thickness: s * 0.1, color });
+      page.drawLine({ start: { x: x + s / 2, y: y + s * 0.35 }, end: { x: x + s / 2, y: y + s * 0.65 }, thickness: s * 0.12, color });
+      page.drawCircle({ x: x + s / 2, y: y + s * 0.25, size: s * 0.06, color });
+      break;
+    }
+    case "user": {
+      page.drawCircle({ x: x + s / 2, y: y + s * 0.72, size: s * 0.2, color });
+      page.drawRectangle({ x: x + s * 0.15, y, width: s * 0.7, height: s * 0.4, color });
+      break;
+    }
+    case "users": {
+      page.drawCircle({ x: x + s * 0.35, y: y + s * 0.72, size: s * 0.18, color });
+      page.drawCircle({ x: x + s * 0.7, y: y + s * 0.72, size: s * 0.18, color });
+      page.drawRectangle({ x: x + s * 0.05, y, width: s * 0.9, height: s * 0.38, color });
+      break;
+    }
+    case "policy": {
+      // documento
+      page.drawRectangle({ x: x + s * 0.1, y, width: s * 0.8, height: s * 0.95, borderColor: color, borderWidth: s * 0.08 });
+      page.drawLine({ start: { x: x + s * 0.25, y: y + s * 0.7 }, end: { x: x + s * 0.75, y: y + s * 0.7 }, thickness: s * 0.06, color });
+      page.drawLine({ start: { x: x + s * 0.25, y: y + s * 0.5 }, end: { x: x + s * 0.75, y: y + s * 0.5 }, thickness: s * 0.06, color });
+      page.drawLine({ start: { x: x + s * 0.25, y: y + s * 0.3 }, end: { x: x + s * 0.55, y: y + s * 0.3 }, thickness: s * 0.06, color });
+      break;
+    }
+    case "calendar": {
+      page.drawRectangle({ x, y, width: s, height: s * 0.85, borderColor: color, borderWidth: s * 0.08 });
+      page.drawRectangle({ x, y: y + s * 0.7, width: s, height: s * 0.15, color });
+      page.drawLine({ start: { x: x + s * 0.25, y: y + s * 0.95 }, end: { x: x + s * 0.25, y: y + s * 0.75 }, thickness: s * 0.08, color });
+      page.drawLine({ start: { x: x + s * 0.75, y: y + s * 0.95 }, end: { x: x + s * 0.75, y: y + s * 0.75 }, thickness: s * 0.08, color });
+      break;
+    }
+    case "moon": {
+      page.drawCircle({ x: x + s / 2, y: y + s / 2, size: s * 0.45, color });
+      page.drawCircle({ x: x + s * 0.65, y: y + s * 0.6, size: s * 0.4, color: COLOR_WHITE });
+      break;
+    }
+  }
+};
+
 // ---------- Section pill (Cativa style) ----------
 // Desenha uma pílula azul cheia com título e, opcionalmente, uma pílula
 // clara à direita com um valor (ex.: "Localizador: XYZ").
 const drawSectionPill = (
   ctx: Ctx,
   title: string,
-  opts?: { color?: Color; rightPill?: string },
+  opts?: { color?: Color; rightPill?: string; icon?: IconKind },
 ) => {
   ensureSpace(ctx, 40);
   const bg = opts?.color ?? COLOR_BRAND_BLUE;
-  const h = 26;
+  const h = 28;
   const pad = 16;
   const size = 13;
+  const iconSize = opts?.icon ? 13 : 0;
+  const iconGap = opts?.icon ? 8 : 0;
   const textW = measure(ctx.fontBold, title, size);
-  const w = textW + pad * 2;
+  const w = textW + pad * 2 + iconSize + iconGap;
   const y = ctx.y - h;
-  drawRoundedRect(ctx.page, MARGIN, y, w, h, bg, 13);
+  drawRoundedRect(ctx.page, MARGIN, y, w, h, bg, 14);
+  if (opts?.icon) {
+    drawIcon(ctx.page, opts.icon, MARGIN + pad, y + (h - iconSize) / 2, iconSize, COLOR_WHITE);
+  }
   ctx.page.drawText(sanitize(title), {
-    x: MARGIN + pad, y: y + 8, size, font: ctx.fontBold, color: COLOR_WHITE,
+    x: MARGIN + pad + iconSize + iconGap, y: y + 9, size, font: ctx.fontBold, color: COLOR_WHITE,
   });
 
   if (opts?.rightPill) {
@@ -382,8 +481,9 @@ const drawSectionPill = (
     });
   }
 
-  ctx.y = y - 14;
+  ctx.y = y - 16;
 };
+
 
 // Título forte de "campo" dentro de uma seção
 const drawFieldTitle = (ctx: Ctx, s: string, size = 15) => {
@@ -486,6 +586,28 @@ const drawMapPin = (page: PDFPage, x: number, y: number, size = 12) => {
 };
 
 // ---------- Item renderers ----------
+const fetchImageBytes = async (url: string): Promise<Uint8Array | null> => {
+  try {
+    const r = await fetch(url, { mode: "cors" });
+    if (!r.ok) return null;
+    const buf = await r.arrayBuffer();
+    return new Uint8Array(buf);
+  } catch {
+    return null;
+  }
+};
+
+const embedRemotePhoto = async (pdf: PDFDocument, url: string): Promise<PDFImage | null> => {
+  const bytes = await fetchImageBytes(url);
+  if (!bytes) return null;
+  try {
+    if (/\.png(\?|$)/i.test(url)) return await pdf.embedPng(bytes);
+    return await pdf.embedJpg(bytes);
+  } catch {
+    try { return await pdf.embedPng(bytes); } catch { return null; }
+  }
+};
+
 const renderHotelItem = async (
   ctx: Ctx,
   item: OrderItem,
@@ -505,21 +627,38 @@ const renderHotelItem = async (
   const room = String(d.room ?? "").trim();
   const board = String(d.board ?? "").trim();
   const guests = String(d.guests ?? "").trim();
+  const description = String(d.description ?? "").trim();
+  const policies = String(d.policies ?? "").trim();
   const locator = item.supplier_locator ?? "";
+  const taUrl = String(d.tripadvisor_url ?? "").trim();
+  let photos: string[] = [];
+  try {
+    if (typeof d.tripadvisor_photos_json === "string" && d.tripadvisor_photos_json) {
+      const parsed = JSON.parse(d.tripadvisor_photos_json as string);
+      if (Array.isArray(parsed)) photos = parsed.filter((u) => typeof u === "string").slice(0, 4);
+    } else if (Array.isArray(d.tripadvisor_photos)) {
+      photos = (d.tripadvisor_photos as unknown[]).filter((u): u is string => typeof u === "string").slice(0, 4);
+    }
+  } catch { photos = []; }
 
   ensureSpace(ctx, 260);
 
   drawSectionPill(ctx, t.hotel, {
+    icon: "bed",
     rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
   });
 
-  // Nome do hotel grande + estrelas ao lado
-  drawFieldTitle(ctx, hotelName, 15);
+  // Nome do hotel grande + estrelas ao lado (fonte display)
+  const titleSize = 18;
+  ensureSpace(ctx, titleSize + 8);
+  ctx.page.drawText(sanitize(hotelName), {
+    x: MARGIN, y: ctx.y - titleSize + 2, size: titleSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
+  });
   if (stars > 0) {
-    // desenha estrelas ao lado do título (uma linha acima da posição atual)
-    const titleW = measure(ctx.fontBold, hotelName, 15);
-    drawStars(ctx.page, MARGIN + titleW + 10, ctx.y + 4, stars, 10);
+    const titleW = measure(ctx.fontDisplay, hotelName, titleSize);
+    drawStars(ctx.page, MARGIN + titleW + 12, ctx.y - titleSize + 5, stars, 10);
   }
+  ctx.y -= titleSize + 10;
 
   // Endereço com pin de mapa
   if (address) {
@@ -528,31 +667,31 @@ const renderHotelItem = async (
     const addrX = MARGIN + pinSize + pinGap;
     const addrW = CONTENT_W - pinSize - pinGap;
     const addrLines = wrap(ctx.font, 9.5, address, addrW);
-    // pin alinhado à primeira linha
-    drawMapPin(ctx.page, MARGIN, ctx.y - 2, pinSize);
+    drawMapPin(ctx.page, MARGIN, ctx.y - 4, pinSize);
     for (let i = 0; i < Math.min(addrLines.length, 2); i++) {
       drawText(ctx, addrLines[i], addrX, { size: 9.5, color: COLOR_MUTED });
-      ctx.y -= 12;
+      ctx.y -= 13;
     }
-    ctx.y -= 2;
+    ctx.y -= 6;
   }
 
-
-  // Linha de dados essenciais em 4 blocos "Rótulo: valor"
+  // Linha de dados essenciais em 4 blocos "Rótulo: valor" com ícones
+  ensureSpace(ctx, 40);
   const colW = CONTENT_W / 4;
   const rowY = ctx.y - 14;
-  const cells: Array<{ label: string; value: string }> = [
-    { label: t.checkin, value: fmtDateShort(checkin, ctx.lang) || "-" },
-    { label: t.checkout, value: fmtDateShort(checkout, ctx.lang) || "-" },
-    { label: t.nights, value: nights || (checkin && checkout ? String(diffDays(checkin, checkout)) : "-") },
-    { label: t.guests, value: guests || "-" },
+  const cells: Array<{ label: string; value: string; icon: IconKind }> = [
+    { label: t.checkin, value: fmtDateShort(checkin, ctx.lang) || "-", icon: "calendar" },
+    { label: t.checkout, value: fmtDateShort(checkout, ctx.lang) || "-", icon: "calendar" },
+    { label: t.nights, value: nights || (checkin && checkout ? String(diffDays(checkin, checkout)) : "-"), icon: "moon" },
+    { label: t.guests, value: guests || "-", icon: "users" },
   ];
   cells.forEach((c, i) => {
     const x = MARGIN + i * colW;
-    drawText(ctx, c.label.toUpperCase(), x, { y: rowY, size: 7.5, bold: true, color: COLOR_BRAND_BLUE_SOFT });
-    drawText(ctx, c.value, x, { y: rowY - 12, size: 10, bold: true, color: COLOR_TEXT });
+    drawIcon(ctx.page, c.icon, x, rowY - 1, 9, COLOR_BRAND_BLUE_SOFT);
+    drawText(ctx, c.label.toUpperCase(), x + 14, { y: rowY, size: 7.5, bold: true, color: COLOR_BRAND_BLUE_SOFT });
+    drawText(ctx, c.value, x, { y: rowY - 14, size: 10.5, bold: true, color: COLOR_TEXT });
   });
-  ctx.y = rowY - 26;
+  ctx.y = rowY - 30;
 
   // Quarto / Regime como linhas inline
   if (room || board) {
@@ -609,8 +748,78 @@ const renderHotelItem = async (
     ctx.y = boxTop - boxH - 18;
   }
 
+  // Galeria de fotos do TripAdvisor
+  if (photos.length > 0) {
+    ensureSpace(ctx, 120);
+    const gap = 8;
+    const tW = (CONTENT_W - gap * (photos.length - 1)) / photos.length;
+    const tH = 84;
+    const rowTop = ctx.y;
+    let anyEmbedded = false;
+    for (let i = 0; i < photos.length; i++) {
+      const img = await embedRemotePhoto(ctx.pdf, photos[i]);
+      if (!img) continue;
+      anyEmbedded = true;
+      const x = MARGIN + i * (tW + gap);
+      const y = rowTop - tH;
+      // fit cover (cropping via scale — pdf-lib não corta, então usa fit)
+      const ratio = img.width / img.height;
+      let w = tW, h = w / ratio;
+      if (h < tH) { h = tH; w = h * ratio; }
+      const dx = x + (tW - Math.min(w, tW)) / 2;
+      ctx.page.drawRectangle({ x, y, width: tW, height: tH, color: COLOR_ROW_ALT });
+      ctx.page.drawImage(img, { x: dx, y, width: Math.min(w, tW), height: tH });
+      ctx.page.drawRectangle({ x, y, width: tW, height: tH, borderColor: COLOR_BORDER, borderWidth: 0.5 });
+    }
+    if (anyEmbedded) {
+      ctx.y = rowTop - tH - 6;
+      const cred = ctx.lang === "pt" ? "Fotos: TripAdvisor" : "Photos: TripAdvisor";
+      drawText(ctx, cred, MARGIN, { size: 7.5, color: COLOR_MUTED });
+      ctx.y -= 14;
+    }
+  }
+
+  // Descrição do hotel
+  if (description) {
+    ensureSpace(ctx, 40);
+    drawText(ctx, ctx.lang === "pt" ? "SOBRE O HOTEL" : "ABOUT THE HOTEL", MARGIN, {
+      size: 8, bold: true, color: COLOR_BRAND_BLUE_SOFT,
+    });
+    ctx.y -= 12;
+    const lines = wrap(ctx.font, 9.5, description, CONTENT_W);
+    const maxLines = 6;
+    for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
+      ensureSpace(ctx, 12);
+      drawText(ctx, lines[i], MARGIN, { size: 9.5, color: COLOR_TEXT });
+      ctx.y -= 12;
+    }
+    if (taUrl) {
+      drawText(ctx, ctx.lang === "pt" ? "Fonte: TripAdvisor" : "Source: TripAdvisor", MARGIN, {
+        size: 7.5, color: COLOR_MUTED,
+      });
+      ctx.y -= 12;
+    }
+    ctx.y -= 4;
+  }
+
+  // Políticas do hotel
+  if (policies) {
+    ensureSpace(ctx, 50);
+    drawSectionPill(ctx, ctx.lang === "pt" ? "Políticas do hotel" : "Hotel policies", {
+      icon: "policy", color: COLOR_BRAND_BLUE_SOFT,
+    });
+    const lines = wrap(ctx.font, 9.5, policies, CONTENT_W - 10);
+    for (const ln of lines) {
+      ensureSpace(ctx, 12);
+      drawText(ctx, `• ${ln}`, MARGIN, { size: 9.5, color: COLOR_TEXT });
+      ctx.y -= 13;
+    }
+    ctx.y -= 6;
+  }
+
   ctx.y -= 6;
 };
+
 
 const renderFlightItem = (ctx: Ctx, item: OrderItem) => {
   const t = T(ctx);
@@ -625,6 +834,7 @@ const renderFlightItem = (ctx: Ctx, item: OrderItem) => {
 
   ensureSpace(ctx, 140);
   drawSectionPill(ctx, t.flight, {
+    icon: "plane",
     rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
   });
 
@@ -660,6 +870,7 @@ const renderOtherItem = (ctx: Ctx, item: OrderItem) => {
 
   ensureSpace(ctx, 90);
   drawSectionPill(ctx, t.service, {
+    icon: "service",
     rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
   });
 
@@ -686,7 +897,7 @@ const drawPassengersBlock = (ctx: Ctx, passengers: OrderPassenger[]) => {
   if (!passengers.length) return;
   const t = T(ctx);
   const label = passengers.length > 1 ? t.passengers : t.passenger;
-  drawSectionPill(ctx, label);
+  drawSectionPill(ctx, label, { icon: passengers.length > 1 ? "users" : "user" });
 
   // Tabela: Nome · Documento · Tipo
   const typeLabel = ctx.lang === "pt" ? "Tipo" : "Type";
@@ -711,7 +922,7 @@ const drawPassengersBlock = (ctx: Ctx, passengers: OrderPassenger[]) => {
 // ---------- Informações & Emergências ----------
 const drawInfoBlock = (ctx: Ctx) => {
   const t = T(ctx);
-  drawSectionPill(ctx, t.generalInfo);
+  drawSectionPill(ctx, t.generalInfo, { icon: "info" });
   const lines = wrap(ctx.font, 9, t.generalInfoText, CONTENT_W - 10);
   for (const ln of lines) {
     ensureSpace(ctx, 12);
@@ -723,7 +934,7 @@ const drawInfoBlock = (ctx: Ctx) => {
 
 const drawEmergencyBlock = (ctx: Ctx) => {
   const t = T(ctx);
-  drawSectionPill(ctx, t.emergency, { color: COLOR_EMERGENCY });
+  drawSectionPill(ctx, t.emergency, { color: COLOR_EMERGENCY, icon: "emergency" });
   const boxH = 46;
   ensureSpace(ctx, boxH + 6);
   const y = ctx.y - boxH;
@@ -778,16 +989,18 @@ export async function generateVoucher(
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const fontDisplay = await pdf.embedFont(StandardFonts.TimesRomanBold);
   const logo = await fetchLogo(pdf);
 
   const firstPage = pdf.addPage([A4.w, A4.h]);
   const ctx: Ctx = {
     pdf, page: firstPage, y: A4.h - MARGIN,
-    font, fontBold, lang,
+    font, fontBold, fontDisplay, lang,
     order: detail.order, logo, pages: [firstPage],
   };
 
   drawMainHeader(ctx);
+
 
   // Buscar mapas para hotéis (paralelo)
   const hotelItems = detail.items.filter(i => i.kind === "hotel");

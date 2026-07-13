@@ -19,6 +19,7 @@ export type TAHotelDetails = TAHotelSuggestion & {
   phone: string | null;
   website: string | null;
   photos: string[];
+  description: string | null;
 };
 
 async function taFetch(path: string): Promise<Response> {
@@ -137,5 +138,6 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
       phone: phones?.[0]?.value ?? null,
       website: websites?.[0]?.url ?? null,
       photos,
+      description: (det.description as string | undefined) ?? null,
     };
   });
