@@ -3512,26 +3512,38 @@ function CommissionAdjustDialog({
     if (items.length === 0) { toast.error("Adicione ao menos um item"); return; }
     setSaving(true);
     try {
-      // Distribui tarifa e taxas proporcionalmente ao peso atual de cada item.
-      // Se nenhum item tem valor gravado, divide igualmente.
-      const currents = items.map((it) => {
+      // A régua só age sobre itens comissionáveis (is_commissionable !== false).
+      // Itens não-comissionáveis ficam intocados: mantêm sale/tax/total salvos
+      // e comissão = 0. Isso evita "resetar tudo" quando o usuário zera manualmente.
+      const commList = items.map((it) => {
         const f = financials.find((x) => x.order_item_id === it.id);
+        const commissionable = f ? (f.is_commissionable ?? true) : true;
         const d = (it.details ?? {}) as Record<string, unknown>;
         const gross = Math.max(0, Number(d.value ?? 0) || 0);
         const itemTax = Math.max(0, Math.min(gross, Number(d.tax_value ?? 0) || 0));
         return {
           item: it,
           existing: f,
+          commissionable,
           curSale: f ? Number(f.sale_value ?? 0) : Math.max(0, gross - itemTax),
           curTax: f ? Number(f.tax_value ?? 0) : itemTax,
         };
       });
-      const totalCurSale = currents.reduce((a, c) => a + c.curSale, 0);
-      const totalCurTax = currents.reduce((a, c) => a + c.curTax, 0);
-      const equalShare = 1 / items.length;
+      const commOnly = commList.filter((c) => c.commissionable);
+      if (commOnly.length === 0) {
+        toast.error("Nenhum item comissionável — marque ao menos um como comissionável.");
+        setSaving(false);
+        return;
+      }
+      const totalCurSale = commOnly.reduce((a, c) => a + c.curSale, 0);
+      const totalCurTax = commOnly.reduce((a, c) => a + c.curTax, 0);
+      const equalShare = 1 / commOnly.length;
 
+      // Soma final do pedido: parte dos comissionáveis (recalculada) + parte
+      // dos não-comissionáveis (preservada).
+      let rebuiltTotal = 0;
 
-      for (const c of currents) {
+      for (const c of commOnly) {
         const wSale = totalCurSale > 0 ? c.curSale / totalCurSale : equalShare;
         const wTax = totalCurTax > 0 ? c.curTax / totalCurTax : equalShare;
         const itemSale = Number((sale * wSale).toFixed(2));
@@ -3539,15 +3551,13 @@ function CommissionAdjustDialog({
         const itemBase = Math.max(0, itemSale);
         const itemCommission = Number((itemBase * (pct / 100)).toFixed(2));
         const itemDefaultComm = isPackage ? Number((itemSale * (PKG_DEFAULT_PCT / 100)).toFixed(2)) : 0;
-        // Se pacote e comissão < 12% (base), a diferença vira desconto.
         const itemDiscount = isPackage && itemCommission < itemDefaultComm
           ? Number((itemDefaultComm - itemCommission).toFixed(2))
           : 0;
-        // Total: pacote = tarifa + taxas + delta positivo (só sobe acima de 12%) − desconto.
-        // Manual: tarifa + taxas + comissão.
         const itemTotal = isPackage
           ? Number((itemSale + itemTax + Math.max(0, itemCommission - itemDefaultComm) - itemDiscount).toFixed(2))
           : Number((itemSale + itemTax + itemCommission).toFixed(2));
+        rebuiltTotal += itemTotal;
 
         await upsert({
           data: {
@@ -3558,6 +3568,8 @@ function CommissionAdjustDialog({
             discount_value: itemDiscount,
             commission_pct: pct,
             commission_value: itemCommission,
+            is_commissionable: true,
+            rav_value: c.existing?.rav_value ?? 0,
             total: itemTotal,
             supplier_name: c.existing?.supplier_name ?? null,
             exchange_rate: c.existing?.exchange_rate ?? 1,
@@ -3567,8 +3579,12 @@ function CommissionAdjustDialog({
         });
       }
 
-      // Reflete o novo total no cabeçalho do pedido.
-      await updateTotal({ data: { id: order.id, total_price: Math.max(0, total) } });
+      // Soma os totais preservados dos itens não-comissionáveis (se já existem no financeiro).
+      for (const c of commList.filter((x) => !x.commissionable)) {
+        if (c.existing) rebuiltTotal += Number(c.existing.total || 0);
+      }
+
+      await updateTotal({ data: { id: order.id, total_price: Number(Math.max(0, rebuiltTotal).toFixed(2)) } });
       toast.success("Comissão atualizada e refletida no total do pedido");
       onSaved();
       onOpenChange(false);
