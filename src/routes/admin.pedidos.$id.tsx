@@ -2000,6 +2000,7 @@ function ItemDialog({
                         if (h.phone) next.phone = h.phone;
                         if (h.website) next.website = h.website;
                         if (h.photos && h.photos.length > 0) next.tripadvisor_photos_json = JSON.stringify(h.photos);
+                        if (h.description) next.description = h.description;
                         return next;
                       });
                     }}
