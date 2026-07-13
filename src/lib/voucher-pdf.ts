@@ -1178,10 +1178,11 @@ const drawAereoSection = async (
   if (rt.length > 0) {
     cy = drawFlightLegBlock(
       ctx, cy, t.volta, COLOR_ORANGE, rt, rtLocator, rtTicket,
-      undefined, rtLogos,
+      undefined, rtLogos, true,
     );
     cy -= 4;
   }
+
 
   // Bagagem (agregada dos dois lados)
   const bags = aggregateBaggage([...ob, ...rt]);
