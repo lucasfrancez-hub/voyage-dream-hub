@@ -230,6 +230,18 @@ function OrderDetailPage() {
             <div className="mt-1 text-2xl font-display font-bold">{order.fullName}</div>
             <div className="text-sm text-muted-foreground">{order.email} · {order.phone}</div>
             {order.cpf && <div className="text-xs text-muted-foreground mt-0.5">CPF {order.cpf}</div>}
+            <div className="mt-2 max-w-md">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Título da viagem (aparece no voucher)</Label>
+              <Input
+                defaultValue={order.tripTitle ?? ""}
+                placeholder="Ex: Pacote para São Paulo"
+                className="mt-1 h-8 text-sm"
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if ((v || null) !== (order.tripTitle ?? null)) metaMut.mutate({ trip_title: v || null });
+                }}
+              />
+            </div>
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Total</div>
@@ -2157,6 +2169,19 @@ function ItemDialog({
             )}
 
           </div>
+
+          {kind === "flight" && (
+            <div>
+              <Label>Link da companhia aérea (check-in / consulta)</Label>
+              <Input
+                value={String(details.airline_checkin_url ?? "")}
+                onChange={(e) => setField("airline_checkin_url", e.target.value)}
+                placeholder="https://www.latam.com/pt_br/apps/personas/checkin"
+                type="url"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Vira um QR clicável no voucher — o passageiro escaneia e abre direto na companhia aérea.</p>
+            </div>
+          )}
 
           {kind !== "other" && (
             <div className="grid grid-cols-2 gap-3">
