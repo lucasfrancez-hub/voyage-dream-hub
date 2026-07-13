@@ -92,7 +92,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
             className="flex flex-col items-start gap-1 rounded-lg border border-border bg-card p-3 text-left hover:border-brand-orange hover:bg-brand-orange/5 transition"
           >
             <div className="flex items-center gap-2 text-sm font-medium">
-              <Radio className="h-4 w-4 text-brand-orange" /> Ao vivo (TripAdvisor)
+              <Radio className="h-4 w-4 text-brand-orange" /> TripAdvisor
             </div>
             <div className="text-[11px] text-muted-foreground">Busca automática por nome. Puxa endereço, estrelas e fotos.</div>
           </button>
@@ -116,7 +116,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     <div className="relative" ref={wrapRef}>
       <div className="flex items-center justify-between mb-1">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
-          {mode === "live" ? <><Radio className="h-3 w-3 text-brand-orange" /> Ao vivo (TripAdvisor)</> : <><Pencil className="h-3 w-3 text-brand-orange" /> Manual</>}
+          {mode === "live" ? <><Radio className="h-3 w-3 text-brand-orange" /> TripAdvisor</> : <><Pencil className="h-3 w-3 text-brand-orange" /> Manual</>}
         </span>
         <button
           type="button"
