@@ -830,7 +830,13 @@ const connectionDuration = (arrivalISO: string, departureISO: string, lang: Vouc
   return `${m}${mLbl}`;
 };
 
-const renderFlightSegment = (ctx: Ctx, item: OrderItem, index: number, total: number) => {
+const renderFlightSegment = (
+  ctx: Ctx,
+  item: OrderItem,
+  index: number,
+  total: number,
+  airlineLogo: PDFImage | null,
+) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
   const airline = String(d.airline ?? "").trim();
@@ -842,40 +848,50 @@ const renderFlightSegment = (ctx: Ctx, item: OrderItem, index: number, total: nu
   const toIata = String(d.to_iata ?? d.destination ?? d.to ?? "").trim();
   const fromCity = String(d.from_city ?? "").trim();
   const toCity = String(d.to_city ?? "").trim();
-  const ticket = String(d.ticket_number ?? "").trim();
 
-  ensureSpace(ctx, 60);
+  ensureSpace(ctx, 66);
 
-  // Pequeno rótulo do trecho + cia/voo/cabine + bilhete
+  const LOGO_SIZE = 26;
+  const LOGO_GAP = 10;
+  const textX = airlineLogo ? MARGIN + LOGO_SIZE + LOGO_GAP : MARGIN;
+  const textW = airlineLogo ? CONTENT_W - LOGO_SIZE - LOGO_GAP : CONTENT_W;
+  const topY = ctx.y;
+
+  if (airlineLogo) {
+    const ratio = airlineLogo.width / airlineLogo.height;
+    let lw = LOGO_SIZE * ratio;
+    let lh = LOGO_SIZE;
+    if (lw > LOGO_SIZE * 1.6) { lw = LOGO_SIZE * 1.6; lh = lw / ratio; }
+    ctx.page.drawImage(airlineLogo, {
+      x: MARGIN, y: topY - lh - 2, width: lw, height: lh,
+    });
+  }
+
+  // Pequeno rótulo do trecho + cia/voo/cabine
   const segLabel = total > 1
     ? (ctx.lang === "pt" ? `Trecho ${index + 1}` : `Segment ${index + 1}`)
     : "";
   const header = [segLabel, [airline, flightNo].filter(Boolean).join(" · "), cabin]
     .filter(Boolean).join("  ·  ");
   if (header) {
-    drawText(ctx, header, MARGIN, { size: 9, bold: true, color: COLOR_BRAND_BLUE });
-    if (ticket) {
-      const tLbl = (ctx.lang === "pt" ? "Bilhete: " : "Ticket: ") + ticket;
-      const tw = measure(ctx.fontBold, tLbl, 8.5);
-      drawText(ctx, tLbl, MARGIN + CONTENT_W - tw, { size: 8.5, bold: true, color: COLOR_BRAND_ORANGE });
-    }
+    drawText(ctx, header, textX, { size: 9, bold: true, color: COLOR_BRAND_BLUE });
     ctx.y -= 12;
   }
 
   // Linha IATA → IATA em destaque
   const iataLine = `${fromIata || "—"}  →  ${toIata || "—"}`;
-  drawText(ctx, iataLine, MARGIN, { size: 14, bold: true, color: COLOR_BRAND_BLUE });
+  drawText(ctx, iataLine, textX, { size: 14, bold: true, color: COLOR_BRAND_BLUE });
   ctx.y -= 16;
 
   // Duas colunas: Partida | Chegada
-  const colW = CONTENT_W / 2;
+  const colW = textW / 2;
   const rowY = ctx.y;
   const blocks: Array<{ label: string; city: string; when: string }> = [
     { label: t.departure, city: fromCity, when: fmtDateTime(dep, ctx.lang) || "-" },
     { label: t.arrival, city: toCity, when: fmtDateTime(arr, ctx.lang) || "-" },
   ];
   blocks.forEach((b, i) => {
-    const x = MARGIN + i * colW;
+    const x = textX + i * colW;
     drawText(ctx, b.label.toUpperCase(), x, { y: rowY, size: 7, bold: true, color: COLOR_BRAND_BLUE_SOFT });
     if (b.city) drawText(ctx, b.city, x, { y: rowY - 11, size: 9, color: COLOR_TEXT });
     drawText(ctx, b.when, x, { y: rowY - (b.city ? 22 : 11), size: 9, bold: true, color: COLOR_TEXT });
@@ -883,7 +899,12 @@ const renderFlightSegment = (ctx: Ctx, item: OrderItem, index: number, total: nu
   ctx.y = rowY - 28 - (blocks.some(b => b.city) ? 6 : 0);
 };
 
-const renderFlightGroup = (ctx: Ctx, dir: "outbound" | "return", items: OrderItem[]) => {
+const renderFlightGroup = (
+  ctx: Ctx,
+  dir: "outbound" | "return",
+  items: OrderItem[],
+  logos: Map<string, PDFImage | null>,
+) => {
   const t = T(ctx);
   if (items.length === 0) return;
   const label = dir === "return"
@@ -910,8 +931,20 @@ const renderFlightGroup = (ctx: Ctx, dir: "outbound" | "return", items: OrderIte
     rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
   });
 
+  // Linha "Bilhete: XXX" logo abaixo do localizador (apenas 1 vez por grupo)
+  const ticket = items
+    .map(i => String(((i.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
+    .find((v) => !!v);
+  if (ticket) {
+    ensureSpace(ctx, 14);
+    const tLbl = (ctx.lang === "pt" ? "Bilhete: " : "Ticket: ") + ticket;
+    const tw = measure(ctx.fontBold, tLbl, 9);
+    drawText(ctx, tLbl, MARGIN + CONTENT_W - tw, { size: 9, bold: true, color: COLOR_BRAND_ORANGE });
+    ctx.y -= 12;
+  }
+
   items.forEach((item, i) => {
-    renderFlightSegment(ctx, item, i, items.length);
+    renderFlightSegment(ctx, item, i, items.length, logos.get(item.id) ?? null);
     // Conexão entre segmentos
     if (i < items.length - 1) {
       const prevArr = String(((item.details ?? {}) as Record<string, unknown>).arrive_at ?? "").trim();
@@ -933,6 +966,29 @@ const renderFlightGroup = (ctx: Ctx, dir: "outbound" | "return", items: OrderIte
       ctx.y = y - 8;
     }
   });
+
+  // Bagagem inclusa (agregada — mostra se ao menos um trecho traz)
+  const agg = items.reduce(
+    (acc, it) => {
+      const dd = (it.details ?? {}) as Record<string, unknown>;
+      return {
+        personal: acc.personal || !!dd.personal_item,
+        carry: acc.carry || !!dd.carry_on,
+        checked: acc.checked || !!dd.checked_bag,
+      };
+    },
+    { personal: false, carry: false, checked: false },
+  );
+  if (agg.personal || agg.carry || agg.checked) {
+    ensureSpace(ctx, 22);
+    const items2: string[] = [];
+    if (agg.personal) items2.push(ctx.lang === "pt" ? "Bolsa/mochila" : "Personal item");
+    if (agg.carry) items2.push(ctx.lang === "pt" ? "Bagagem de mão" : "Carry-on");
+    if (agg.checked) items2.push(ctx.lang === "pt" ? "Bagagem despachada" : "Checked bag");
+    const label2 = (ctx.lang === "pt" ? "Bagagem inclusa: " : "Baggage included: ") + items2.join(" · ");
+    drawText(ctx, label2, MARGIN, { size: 9, bold: true, color: COLOR_BRAND_BLUE });
+    ctx.y -= 14;
+  }
   ctx.y -= 6;
 };
 
@@ -1135,8 +1191,23 @@ export async function generateVoucher(
     }
   }
 
-  if (outbound.length > 0) renderFlightGroup(ctx, "outbound", outbound);
-  if (returning.length > 0) renderFlightGroup(ctx, "return", returning);
+  // Pré-carrega logos das cias aéreas em paralelo
+  const airlineLogos = new Map<string, PDFImage | null>();
+  const flightItems = [...outbound, ...returning];
+  await Promise.all(flightItems.map(async (it) => {
+    const dd = (it.details ?? {}) as Record<string, unknown>;
+    const url = String(dd.airline_logo_url ?? "").trim();
+    if (!url) { airlineLogos.set(it.id, null); return; }
+    try {
+      const img = await embedRemotePhoto(pdf, url);
+      airlineLogos.set(it.id, img);
+    } catch {
+      airlineLogos.set(it.id, null);
+    }
+  }));
+
+  if (outbound.length > 0) renderFlightGroup(ctx, "outbound", outbound, airlineLogos);
+  if (returning.length > 0) renderFlightGroup(ctx, "return", returning, airlineLogos);
   for (const item of hotels) {
     await renderHotelItem(ctx, item, mapByItem.get(item.id) ?? null);
   }

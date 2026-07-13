@@ -1862,26 +1862,26 @@ function ItemDialog({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [locator, setLocator] = useState(initial?.supplier_locator ?? "");
   const [status, setStatusVal] = useState<"confirmed" | "reserved" | "cancelled" | "pending">((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
-  const [details, setDetails] = useState<Record<string, string | number>>(() => {
-    const clean: Record<string, string | number> = {};
+  const [details, setDetails] = useState<Record<string, string | number | boolean>>(() => {
+    const clean: Record<string, string | number | boolean> = {};
     for (const [k, v] of Object.entries(initialDetails)) {
-      if (typeof v === "string" || typeof v === "number") clean[k] = v;
+      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") clean[k] = v;
     }
     if (kind === "flight" && !initial && !clean.direction) clean.direction = "outbound";
     return clean;
   });
 
-  const cleanDetails = (raw: unknown): Record<string, string | number> => {
-    const clean: Record<string, string | number> = {};
+  const cleanDetails = (raw: unknown): Record<string, string | number | boolean> => {
+    const clean: Record<string, string | number | boolean> = {};
     for (const [k, v] of Object.entries((raw ?? {}) as Record<string, unknown>)) {
-      if (typeof v === "string" || typeof v === "number") clean[k] = v;
+      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") clean[k] = v;
     }
     return clean;
   };
 
   // Segmentos adicionais do mesmo aéreo (ex.: volta / conexões).
   // Segmento 0 = "main" (initial); segmentos 1+ = irmãos (podem ter id existente ou serem novos).
-  type Segment = { id?: string; details: Record<string, string | number> };
+  type Segment = { id?: string; details: Record<string, string | number | boolean> };
   const [extraSegments, setExtraSegments] = useState<Segment[]>(
     kind === "flight" ? (siblings ?? []).map((s) => ({ id: s.id, details: cleanDetails(s.details) })) : []
   );
@@ -1918,8 +1918,8 @@ function ItemDialog({
   }, [locator, kind, ticketNumber]);
 
 
-  const setField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: v }));
-  const setSegField = (idx: number, k: string, v: string) =>
+  const setField = (k: string, v: string | boolean) => setDetails((p) => ({ ...p, [k]: v }));
+  const setSegField = (idx: number, k: string, v: string | boolean) =>
     setExtraSegments((arr) => arr.map((s, i) => (i === idx ? { ...s, details: { ...s.details, [k]: v } } : s)));
   const addSegment = (direction: "outbound" | "return") =>
     setExtraSegments((arr) => [...arr, { details: { direction } }]);
@@ -1930,7 +1930,7 @@ function ItemDialog({
   };
 
 
-  const segmentTitle = (d: Record<string, string | number>): string => {
+  const segmentTitle = (d: Record<string, string | number | boolean>): string => {
     const airline = String(d.airline ?? "").trim();
     const flightNo = String(d.flight_number ?? "").trim();
     const from = String(d.from_iata ?? d.origin ?? "").trim();
@@ -1942,9 +1942,9 @@ function ItemDialog({
   };
 
   const renderFlightSegment = (
-    d: Record<string, string | number>,
+    d: Record<string, string | number | boolean>,
     label: string,
-    onChangeField: (k: string, v: string) => void,
+    onChangeField: (k: string, v: string | boolean) => void,
     onRemove?: () => void,
   ) => (
     <div className="rounded-lg border border-border/60 p-3 space-y-3">
@@ -1970,6 +1970,27 @@ function ItemDialog({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Classe / Cabine</Label><Input value={String(d.cabin_class ?? d.cabin ?? "")} onChange={(e) => onChangeField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
+        <div>
+          <Label>URL da logo da cia</Label>
+          <Input value={String(d.airline_logo_url ?? "")} onChange={(e) => onChangeField("airline_logo_url", e.target.value)} placeholder="https://…/logo.png" />
+        </div>
+      </div>
+      <div className="rounded-md border border-border p-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Bagagem inclusa</div>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <label className="inline-flex items-center gap-1.5">
+            <input type="checkbox" checked={!!d.personal_item} onChange={(e) => onChangeField("personal_item", e.target.checked)} />
+            Bolsa/mochila
+          </label>
+          <label className="inline-flex items-center gap-1.5">
+            <input type="checkbox" checked={!!d.carry_on} onChange={(e) => onChangeField("carry_on", e.target.checked)} />
+            Bagagem de mão
+          </label>
+          <label className="inline-flex items-center gap-1.5">
+            <input type="checkbox" checked={!!d.checked_bag} onChange={(e) => onChangeField("checked_bag", e.target.checked)} />
+            Bagagem despachada
+          </label>
+        </div>
       </div>
 
     </div>
@@ -2253,7 +2274,7 @@ function ItemDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => {
             const numFields = new Set(["nights", "value", "quantity", "hotel_stars", "tax_value"]);
-            const buildClean = (raw: Record<string, string | number>): Record<string, unknown> => {
+            const buildClean = (raw: Record<string, string | number | boolean>): Record<string, unknown> => {
               const cd: Record<string, unknown> = {};
               for (const [k, v] of Object.entries(raw)) {
                 if (v === "" || v === undefined || v === null) continue;
