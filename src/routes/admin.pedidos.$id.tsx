@@ -2984,7 +2984,7 @@ function FinanceDialog({
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm">Comissionável</Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Desligue para produtos que não pagam comissão. RAV é somado à parte, sem desconto.</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Desligue para produtos que não pagam comissão. RAV é somado ao total da venda.</p>
               </div>
               <Switch
                 checked={form.is_commissionable}
