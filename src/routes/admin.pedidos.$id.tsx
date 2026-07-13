@@ -46,6 +46,7 @@ import { generateReceiptAndContract, generateReceiptOnly, generateReceiptContrac
 import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
 import type { Json } from "@/integrations/supabase/types";
+import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   component: OrderDetailPage,
