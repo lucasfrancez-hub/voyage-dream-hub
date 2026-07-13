@@ -1216,18 +1216,33 @@ const drawHotelSection = async (
   const locator = item.supplier_locator ?? "";
   const notes = String(d.notes ?? "").trim();
 
+  // Uma única foto (a primeira do TripAdvisor, se houver)
+  let photoUrl = "";
+  try {
+    if (typeof d.tripadvisor_photos_json === "string" && d.tripadvisor_photos_json) {
+      const parsed = JSON.parse(d.tripadvisor_photos_json as string);
+      if (Array.isArray(parsed) && typeof parsed[0] === "string") photoUrl = parsed[0];
+    } else if (Array.isArray(d.tripadvisor_photos) && typeof (d.tripadvisor_photos as unknown[])[0] === "string") {
+      photoUrl = String((d.tripadvisor_photos as unknown[])[0]);
+    }
+  } catch { /* ignore */ }
+
   const innerX = MARGIN + 16;
   const innerW = CONTENT_W - 32;
   const qrSize = 68;
-  const midX = innerX;
-  const midW = innerW - qrSize - 24;
+  const photoW = 130;
+  const photoH = 92;
+  const gapPhoto = 14;
+  const photo = photoUrl ? await embedRemotePhoto(ctx.pdf, photoUrl) : null;
+  const midX = innerX + (photo ? photoW + gapPhoto : 0);
+  const midW = innerW - (photo ? photoW + gapPhoto : 0) - qrSize - 24;
 
   // Pre-compute notes wrapping to size the card
   const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 16) : [];
   const notesBlockH = notes ? 20 + notesLines.length * 12 + 10 : 0;
 
-  const bodyH = 24 /* name */ + 16 /* address */ + 20 /* gap */ + 36 /* info row */ + 16 /* bottom pad */;
-  const cardH = Math.max(bodyH, qrSize + 30) + notesBlockH + 20;
+  const topBlockH = Math.max(photo ? photoH + 8 : 0, qrSize + 30, 96);
+  const cardH = topBlockH + notesBlockH + 20;
 
   const { top } = openSectionCard(ctx, cardH + 20);
   const headerBottom = drawSectionHeader(ctx, top, "bed", t.hospedagem);
@@ -1249,28 +1264,40 @@ const drawHotelSection = async (
 
   let cy = headerBottom - 16;
 
+  // Foto (esquerda), alinhada ao topo do bloco
+  if (photo) {
+    const pY = cy - photoH;
+    const ratio = photo.width / photo.height;
+    let w = photoW, h = w / ratio;
+    if (h < photoH) { h = photoH; w = h * ratio; }
+    ctx.page.drawRectangle({ x: innerX, y: pY, width: photoW, height: photoH, color: COLOR_ROW_ALT });
+    ctx.page.drawImage(photo, {
+      x: innerX + (photoW - Math.min(w, photoW)) / 2,
+      y: pY, width: Math.min(w, photoW), height: photoH,
+    });
+    drawRoundedBorder(ctx.page, innerX, pY, photoW, photoH, COLOR_BORDER, 6, 0.5);
+  }
+
   // Nome
   const nameSize = 14;
   ctx.page.drawText(sanitize(hotelName), {
     x: midX, y: cy - nameSize + 2, size: nameSize, font: ctx.fontBold, color: COLOR_NAVY,
   });
-  cy -= nameSize + 6;
+  let my = cy - nameSize - 4;
 
   // Endereço
   if (address) {
     const lines = wrap(ctx.font, 9, address, midW);
     for (const ln of lines.slice(0, 2)) {
       ctx.page.drawText(sanitize(ln), {
-        x: midX, y: cy - 9, size: 9, font: ctx.font, color: COLOR_TEXT,
+        x: midX, y: my - 9, size: 9, font: ctx.font, color: COLOR_TEXT,
       });
-      cy -= 12;
+      my -= 12;
     }
   }
 
-  cy -= 14;
-
-  // Info row
-  const infoY = cy - 20;
+  // Info row (abaixo do nome/endereço no meio)
+  const infoY = my - 24;
   const cols = 4;
   const colW = midW / cols;
   const cells: Array<{ label: string; value: string; icon: IconKind }> = [
