@@ -1340,7 +1340,8 @@ const drawHotelSection = async (
   }
 
   // Info row (abaixo do nome/endereço no meio)
-  const infoY = my - 24;
+  const infoY = my - 34;
+
   const cols = 4;
   const colW = midW / cols;
   const cells: Array<{ label: string; value: string; icon: IconKind }> = [
