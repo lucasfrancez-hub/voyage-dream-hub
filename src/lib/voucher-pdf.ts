@@ -1022,25 +1022,33 @@ const drawFlightLegBlock = (
 
   // QR + divisor tracejado vertical + legenda embaixo (estilo original)
   if (qr) {
-    const dividerX = outerX + segColW + 6;
-    drawDashedVLine(ctx.page, dividerX, cardBotY + 6, segmentsTopY - 2, COLOR_BORDER);
-    const qrSize = 62;
-    const qrX = outerX + segColW + 16;
-    const qrY = segmentsTopY - qrSize - 6;
+    // Coluna do QR (à direita do card dos trechos)
+    const qrColX = outerX + segColW;
+    const qrColW2 = qrColW;
+    const qrSize = 60;
+    const qrX = qrColX + 12 + (qrColW2 - 12 - qrSize) / 2;
+    const qrY = cardTopY - qrSize - 4;
+    // Divisor tracejado vertical percorre TODA a altura do card (não só até a ida)
+    const dividerX = qrColX + 6;
+    drawDashedVLine(ctx.page, dividerX, cardBotY + 4, cardTopY - 4, COLOR_BORDER);
     if (qr.img) {
       ctx.page.drawImage(qr.img, { x: qrX, y: qrY, width: qrSize, height: qrSize });
       addLinkAnnotation(ctx, qrX, qrY, qrSize, qrSize, qr.url);
     }
+    // Legenda embaixo do QR, centralizada na coluna do QR (à direita do divisor)
+    const textColX = dividerX + 6;
+    const textColW = outerX + outerW - textColX;
     const lines = T(ctx).verifiqueCia.split("\n");
     let ly = qrY - 8;
     for (const ln of lines) {
-      const lw = measure(ctx.font, ln, 6.5);
+      const lw = measure(ctx.font, ln, 6);
       ctx.page.drawText(sanitize(ln), {
-        x: qrX + (qrSize - lw) / 2, y: ly, size: 6.5, font: ctx.font, color: COLOR_MUTED,
+        x: textColX + (textColW - lw) / 2, y: ly, size: 6, font: ctx.font, color: COLOR_MUTED,
       });
-      ly -= 8;
+      ly -= 7;
     }
   }
+
 
   return cy;
 };
