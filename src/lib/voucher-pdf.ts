@@ -867,6 +867,21 @@ const drawFlightLegBlock = (
     const segX = cardX + segInsetX;
     const segW = cardW - segInsetX;
 
+    // Logo da companhia deste trecho (uma por voo), centralizada verticalmente na área do trecho
+    const segLogo = airlineLogos?.get(i) ?? null;
+    if (segLogo) {
+      const maxLogoW = logoColW - 12;
+      const maxLogoH = Math.min(34, segContentH - 8);
+      const ratio = segLogo.width / segLogo.height;
+      let lh = maxLogoH;
+      let lw = lh * ratio;
+      if (lw > maxLogoW) { lw = maxLogoW; lh = lw / ratio; }
+      const lx = cardX + (logoColW - lw) / 2;
+      const ly = segBotY + (segContentH - lh) / 2;
+      ctx.page.drawImage(segLogo, { x: lx, y: ly, width: lw, height: lh });
+    }
+
+
     // Pill "Cia · Voo · Cabine" (sem logo dentro)
     const pillParts = [airline, flightNo, cabin].filter(Boolean);
     const pillText = pillParts.join(" · ");
