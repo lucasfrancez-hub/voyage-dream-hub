@@ -1,87 +1,77 @@
-# Integração ClickSign — Contrato + Recibo
+# Banco de Cadastro de Pessoas
 
-## Fluxo de ponta a ponta
+Objetivo: ter um cadastro único (PF + PJ) que serve como fonte de clientes e passageiros, com importação em massa e reaproveitamento em pedidos manuais.
 
-```text
-Pedido no painel
-   │
-   ├─► [Botão "Enviar p/ assinatura"]
-   │      │
-   │      ├─ Gera PDF (contrato + recibo) no servidor
-   │      ├─ POST /api/v1/documents          → cria documento na ClickSign
-   │      ├─ POST /api/v1/signers  (x2)      → cliente + agência
-   │      ├─ POST /api/v1/lists               → vincula signers ao doc
-   │      │     (auths=["email"], selfie_enabled + handwritten opcional,
-   │      │      cliente: has_documentation=true, cpf+birthday obrigatórios)
-   │      └─ POST /api/v1/notifications       → dispara email ClickSign
-   │
-   ▼
-Cliente recebe email → preenche CPF+nascimento → assina biometria dinâmica
-   │
-   ▼
-ClickSign chama webhook  ──►  /api/public/clicksign-webhook
-                                │
-                                ├─ Verifica HMAC-SHA256 (header Content-Hmac)
-                                ├─ Evento "sign"      → marca signatário como assinado
-                                ├─ Evento "auto_close"→ baixa PDF final assinado,
-                                │                       salva no storage, status="Assinado"
-                                └─ Evento "refusal"   → status="Recusado"
-   │
-   ▼
-Painel do pedido: badge de status + botão "Baixar assinado" + timeline
-```
+Como você disse "por enquanto, manter o banco de cadastro pronto", entrego em **3 fases**. Faço a Fase 1 agora; as outras entram nos próximos turnos, quando quiser.
 
-## O que vou construir
+---
 
-### 1. Banco (migration)
-- `pedido_assinaturas`: `id`, `pedido_id`, `clicksign_document_key`, `status` (`draft|running|closed|refused|canceled`), `deadline_at`, `signed_pdf_url`, `created_at`, `updated_at`
-- `pedido_assinatura_signers`: `id`, `assinatura_id`, `clicksign_signer_key`, `nome`, `email`, `cpf`, `nascimento`, `papel` (`cliente|agencia|testemunha`), `signed_at`, `refused_at`
-- RLS + GRANTs padrão (authenticated); webhook usa `supabaseAdmin`.
+## Fase 1 — Cadastro + tela de gestão (agora)
 
-### 2. Server functions (`src/lib/clicksign.functions.ts`)
-- `createSignatureRequest({ pedidoId })` — gera PDF, cria doc + signers + list + dispara email. Protegido por `requireSupabaseAuth`.
-- `getSignatureStatus({ pedidoId })` — retorna status + signers para o painel.
-- `cancelSignatureRequest({ assinaturaId })` — cancela na ClickSign.
-- `resendSignerEmail({ signerKey })` — reenvia link.
+**Nova tabela `public.people`** com todos os campos do Monde:
 
-### 3. Server route pública (`src/routes/api/public/clicksign-webhook.ts`)
-- Verifica HMAC com `CLICKSIGN_HMAC_SECRET` (timing-safe).
-- Trata eventos: `sign`, `auto_close`, `refusal`, `cancel`, `deadline`.
-- Em `auto_close`: baixa PDF assinado da ClickSign, sobe pro bucket `assinaturas`, salva URL.
+- Identificação: `kind` (PF/PJ), `code` (nº sequencial), `name`, `legal_name` (razão social PJ), `gender`, `birth_date`/`foundation_date`
+- Documentos: `cpf`, `cnpj`, `rg`, `passport_number`, `passport_expiration`, `state_registration`, `municipal_registration`
+- Contato: `email`, `phone`, `mobile_phone`, `business_phone`, `website`
+- Endereço: `zip`, `address`, `number`, `complement`, `district`, `city`, `state`, `country`, `is_foreign`
+- Extras: `notes`, `seller_name`, `charge_boleto_fee`, `monde_id` (para dedupe na importação), `created_by`, `created_by_name`
 
-### 4. UI (dentro do pedido, `admin.pedidos.$id.tsx`)
-- Card "Assinatura Digital" com:
-  - Estado vazio: botão **"Enviar contrato + recibo para assinatura"**
-  - Em andamento: badge amarelo, lista de signatários com status individual, botão "Reenviar link", "Cancelar"
-  - Assinado: badge verde, data/hora, botão **"Baixar PDF assinado"**
-- Auto-refresh a cada 15s enquanto status = `running` (via TanStack Query `refetchInterval`).
+**Nova tabela `public.people_cards`** para "Dados Financeiros":
+- `person_id`, `nickname`, `holder_name`, `brand`, `last4`, `expiry`, `is_travel_card`
+- `number_ciphertext` (número completo cifrado com AES-256-GCM usando um segredo do servidor — a UI só mostra `**** 1234` por padrão, e apenas o próprio painel logado consegue revelar via server fn)
 
-### 5. Storage
-- Bucket `assinaturas` (privado) para armazenar os PDFs assinados.
+**Nova rota `/admin/pessoas`:**
+- Lista com busca (nome, CPF/CNPJ, e-mail, telefone) e filtro PF/PJ
+- Botão "Novo cadastro" com abas espelhando o Monde: Detalhes, Endereço, Documentos, Dados Financeiros (cartões), Observações
+- Edição inline por pessoa; botão "Ver cartões" mostra mascarado + ação "Revelar" (com confirm) que chama server fn
+- Card no /admin dashboard: "Pessoas cadastradas" com contador e atalho
 
-## Configuração ClickSign (você faz 1x)
+**Server fns** (`src/lib/people.functions.ts`): `listPeople`, `getPerson`, `upsertPerson`, `deletePerson`, `addPersonCard`, `deletePersonCard`, `revealPersonCardNumber`.
 
-1. Painel ClickSign → **Configurações → API** → gerar **Access Token de produção**.
-2. Painel ClickSign → **Configurações → Webhooks** → cadastrar:
-   - URL: `https://pedidos.viaair.tur.br/api/public/clicksign-webhook`
-   - Eventos: `sign`, `auto_close`, `refusal`, `cancel`, `deadline`
-   - Copiar o **HMAC Secret** que ele gera.
-3. Me passar via formulário seguro:
-   - `CLICKSIGN_API_TOKEN`
-   - `CLICKSIGN_HMAC_SECRET`
+**Cripto de cartão**: helper `src/lib/card-crypto.server.ts` usando `PEOPLE_CARD_ENC_KEY` (gero via `generate_secret`, 64 chars base64).
 
-## Detalhes técnicos relevantes
+---
 
-- **API base**: `https://app.clicksign.com/api/v1` (produção).
-- **Autenticação**: `?access_token=<TOKEN>` na querystring (padrão ClickSign v1).
-- **Upload do PDF**: enviado como base64 no campo `content_base64` (formato `data:application/pdf;base64,...`).
-- **Biometria dinâmica**: no signer do cliente, `has_documentation: true`, `documentation: <CPF>`, `birthday: YYYY-MM-DD`, e no `list.sign_as: "sign"` com `auths: ["email"]` + `selfie_enabled: true` — ClickSign combina esses campos e aplica a autenticação biométrica dinâmica automaticamente.
-- **Agência (contra-assinatura)**: signer separado com email fixo (secret `AGENCIA_EMAIL_ASSINATURA`), `sign_as: "contest"`, sem biometria.
-- **Ordem**: `list.skip_email: false`, `list.refusable: true`. Auto-close automático quando todos assinam.
+## Fase 2 — Importação de planilha (próximo turno)
 
-## Fora do escopo (podemos fazer depois)
-- Reenvio por WhatsApp/SMS.
-- Templates personalizados de layout do PDF (por ora usa o gerador atual do pedido).
-- Múltiplos passageiros como signatários adicionais.
+- Tela `/admin/pessoas/importar`: upload de `.xlsx`/`.csv` exportado do Monde
+- Preview das primeiras 20 linhas com mapeamento automático de colunas (nome → name, CPF → cpf etc.) e opção de ajustar
+- Dedupe por CPF/CNPJ/monde_id (atualiza em vez de duplicar)
+- Relatório final: X criados, Y atualizados, Z ignorados
+- Você me manda 1 export de exemplo pra eu travar o parser no formato exato
 
-Depois que você aprovar, o próximo passo é você me passar o **CLICKSIGN_API_TOKEN**, **CLICKSIGN_HMAC_SECRET** e o **email da agência** que vai contra-assinar.
+## Fase 3 — Uso em pedidos e passageiros (turno seguinte)
+
+- No formulário de pedido manual e no cadastro de passageiros: campo com autocomplete "Buscar pessoa" (mesmo padrão do MondePersonSearchDialog, mas contra a base local)
+- Ao escolher, preenche todos os campos automaticamente e vincula `person_id` no `order_passengers`/`orders`
+- Aba futura "Importar vendas do dia" a partir de export — mapeamento definido depois de ver o formato
+
+---
+
+## Detalhes técnicos
+
+**Banco (Fase 1):**
+- Migration cria `people` e `people_cards`, com `GRANT` para `authenticated`/`service_role`, RLS habilitado, políticas exigindo `has_role(auth.uid(),'admin') OR has_role(auth.uid(),'user')` (qualquer usuário interno logado pode gerenciar — nada de acesso `anon`).
+- Índices: `people(cpf)`, `people(cnpj)`, `people(monde_id)`, `people(lower(name))`, `people(lower(email))`.
+- Trigger `set_updated_at` nas duas tabelas.
+- Sequência para `code` (auto-incremento visível ao usuário).
+
+**Cripto de cartão:**
+- AES-256-GCM, mesmo padrão do `connectionKeyCrypto` já usado no template.
+- `PEOPLE_CARD_ENC_KEY` gerado via `secrets--generate_secret` (nunca exposto ao cliente).
+- Coluna `number_ciphertext text NOT NULL`. Nunca retornar em listagens — só via `revealPersonCardNumber` que exige admin logado e loga o acesso em `audit` (opcional na Fase 1, obrigatório se você quiser).
+
+**Segurança do "revelar cartão":**
+Guardar número completo de cartão tem risco PCI mesmo cifrado. Vou implementar como você pediu, mas recomendo em produção usar tokenização do gateway (Pagar.me/Stripe) em vez de armazenar PAN. Podemos migrar depois.
+
+**Arquivos novos:**
+- `supabase/migrations/…_people.sql`
+- `src/lib/people.functions.ts`
+- `src/lib/card-crypto.server.ts`
+- `src/routes/admin.pessoas.tsx` (lista)
+- `src/routes/admin.pessoas.$id.tsx` (form completo)
+- Atualização em `src/routes/admin.tsx` e `src/routes/admin.dashboard.tsx` pro card/atalho
+
+**Fora do escopo desta fase:** importação de planilha, autocomplete em pedidos, importação de vendas.
+
+Confirma que posso tocar a Fase 1 assim?
