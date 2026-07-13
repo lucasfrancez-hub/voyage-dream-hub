@@ -650,7 +650,14 @@ const drawSectionHeader = (
 };
 
 // ---------- Passageiros ----------
+const formatTicketNumber = (raw: string): string => {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length <= 3) return digits;
+  return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+};
+
 const passengerTypeLabel = (t: ReturnType<typeof T>, kind: string): string => {
+
   const k = (kind ?? "").toUpperCase();
   if (k === "CHD") return t.crianca;
   if (k === "INF") return t.infantil;
@@ -707,9 +714,12 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
       : (p.cpf ? `CPF ${p.cpf}` : (p.document ?? "-"));
     const tipo = passengerTypeLabel(t, p.passenger_type ?? "ADT");
     const dob = p.birth_date ? fmtDateBR(p.birth_date) : "-";
+    const rawTicket = (p.ticket_number ?? "").trim();
+    const ticketFmt = formatTicketNumber(rawTicket);
     const cells = showTicket
-      ? [name || "-", tipo, doc, dob, (p.ticket_number ?? "").trim() || "-"]
+      ? [name || "-", tipo, doc, dob, ticketFmt || "-"]
       : [name || "-", tipo, doc, dob];
+
     cells.forEach((v, i) => {
       ctx.page.drawText(sanitize(v), {
         x: colXs[i], y: cy, size: 8.5, font: ctx.fontBold,
@@ -1000,7 +1010,22 @@ const drawFlightLegBlock = (
       // Círculo com fundo branco para "cortar" a linha
       ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR + 2, color: COLOR_ROW_ALT });
       ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR, color: COLOR_NAVY });
-      drawIcon(ctx.page, "clock", circleCX - circleR * 0.55, dividerY - circleR * 0.55, circleR * 1.1, COLOR_WHITE);
+      // Reloginho: aro branco + ponteiros brancos sobre o círculo azul
+      ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR * 0.62, color: COLOR_WHITE });
+      ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR * 0.5, color: COLOR_NAVY });
+      // ponteiro vertical (12h)
+      ctx.page.drawLine({
+        start: { x: circleCX, y: dividerY },
+        end: { x: circleCX, y: dividerY + circleR * 0.42 },
+        thickness: 0.9, color: COLOR_WHITE,
+      });
+      // ponteiro horizontal (3h)
+      ctx.page.drawLine({
+        start: { x: circleCX, y: dividerY },
+        end: { x: circleCX + circleR * 0.34, y: dividerY },
+        thickness: 0.9, color: COLOR_WHITE,
+      });
+
 
       // Fundo cinza atrás do texto pra "quebrar" a linha divisória
       const textPadX = 4;
@@ -1034,9 +1059,9 @@ const drawFlightLegBlock = (
     const qrSize = 60;
     const qrX = qrColX + 12 + (qrColW2 - 12 - qrSize) / 2;
     const qrY = cardTopY - qrSize - 4;
-    // Divisor tracejado vertical percorre TODA a altura do card (não só até a ida)
+    // Divisor tracejado vertical: desenhado na seção AEREO (envolvendo IDA + VOLTA)
     const dividerX = qrColX + 6;
-    drawDashedVLine(ctx.page, dividerX, cardBotY + 4, cardTopY - 4, COLOR_BORDER);
+
     if (qr.img) {
       ctx.page.drawImage(qr.img, { x: qrX, y: qrY, width: qrSize, height: qrSize });
       addLinkAnnotation(ctx, qrX, qrY, qrSize, qrSize, qr.url);
@@ -1168,20 +1193,39 @@ const drawAereoSection = async (
 
   let cy = headerBottom - 8;
 
+  // Coordenadas do divisor vertical que atravessa toda a seção AEREO
+  const dividerOuterX = MARGIN + 14;
+  const dividerOuterW = CONTENT_W - 28;
+  const dividerQrColW = 84;
+  const dividerSegColW = dividerOuterW - dividerQrColW;
+  const dividerX = dividerOuterX + dividerSegColW + 6;
+  let flightsTopY: number | null = null;
+  let flightsBotY: number | null = null;
+
   if (ob.length > 0) {
+    flightsTopY = cy;
     cy = drawFlightLegBlock(
       ctx, cy, t.ida, COLOR_ORANGE, ob, obLocator, obTicket,
       { img: qrImg, url: qrUrl }, obLogos,
     );
+    flightsBotY = cy + 6;
     cy -= 8;
   }
   if (rt.length > 0) {
+    if (flightsTopY === null) flightsTopY = cy;
     cy = drawFlightLegBlock(
       ctx, cy, t.volta, COLOR_ORANGE, rt, rtLocator, rtTicket,
       undefined, rtLogos, true,
     );
+    flightsBotY = cy + 6;
     cy -= 4;
   }
+
+  // Dashed vertical divider ao lado do QR — cobre IDA + VOLTA
+  if (flightsTopY !== null && flightsBotY !== null && qrImg) {
+    drawDashedVLine(ctx.page, dividerX, flightsBotY + 4, flightsTopY - 4, COLOR_BORDER);
+  }
+
 
 
   // Bagagem (agregada dos dois lados)
