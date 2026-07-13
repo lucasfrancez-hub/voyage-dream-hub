@@ -1130,15 +1130,31 @@ const drawAereoSection = async (
 };
 
 // ---------- Hospedagem ----------
-const fetchImageBytes = async (url: string): Promise<{ bytes: Uint8Array; contentType: string } | null> => {
+const fetchImageBytes = async (
+  url: string,
+): Promise<{ bytes: Uint8Array; contentType: string } | null> => {
+  // 1) tenta direto (rápido, se o servidor liberar CORS)
   try {
-    const r = await fetch(url, { mode: "cors" });
-    if (!r.ok) {
-      console.warn("fetchImageBytes: HTTP", r.status, url);
+    const r = await fetch(url);
+    if (r.ok) {
+      const contentType = (r.headers.get("content-type") ?? "").toLowerCase();
+      return { bytes: new Uint8Array(await r.arrayBuffer()), contentType };
+    }
+  } catch {
+    /* CORS ou outra falha — tenta via proxy no servidor */
+  }
+  // 2) fallback: proxy no servidor (evita CORS)
+  try {
+    const { fetchProxiedImage } = await import("./image-proxy.functions");
+    const res = await fetchProxiedImage({ data: { url } });
+    if (!res.ok) {
+      console.warn("fetchImageBytes: proxy failed", url, res);
       return null;
     }
-    const contentType = (r.headers.get("content-type") ?? "").toLowerCase();
-    return { bytes: new Uint8Array(await r.arrayBuffer()), contentType };
+    const binary = atob(res.base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return { bytes, contentType: (res.contentType ?? "").toLowerCase() };
   } catch (e) {
     console.warn("fetchImageBytes: failed", url, e);
     return null;
