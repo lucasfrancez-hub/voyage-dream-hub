@@ -92,7 +92,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
             className="flex flex-col items-start gap-1 rounded-lg border border-border bg-card p-3 text-left hover:border-brand-orange hover:bg-brand-orange/5 transition"
           >
             <div className="flex items-center gap-2 text-sm font-medium">
-              <Radio className="h-4 w-4 text-brand-orange" /> Ao vivo (TripAdvisor)
+              <Radio className="h-4 w-4 text-brand-orange" /> TripAdvisor
             </div>
             <div className="text-[11px] text-muted-foreground">Busca automática por nome. Puxa endereço, estrelas e fotos.</div>
           </button>
