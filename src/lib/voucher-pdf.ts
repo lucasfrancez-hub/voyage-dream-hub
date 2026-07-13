@@ -1818,11 +1818,36 @@ const drawServiceSection = async (ctx: Ctx, item: OrderItem) => {
   const innerX = MARGIN + 16;
   const innerW = CONTENT_W - 32;
 
-  // Preserve blank lines / tópicos das observações: quebra por \n, depois faz wrap por parágrafo
+  // Wrap emoji-aware: cada emoji conta como ~ tamanho da fonte de largura
+  const measureEmojiAware = (str: string, size: number): number => {
+    let w = 0;
+    for (const run of splitEmojiRuns(str)) {
+      if (run.kind === "emoji") w += size * 1.15 + 1;
+      else w += ctx.font.widthOfTextAtSize(sanitize(run.value), size);
+    }
+    return w;
+  };
+  const wrapEmojiAware = (str: string, size: number, maxWidth: number): string[] => {
+    if (!str) return [];
+    // Segmenta por espacos preservando emojis como tokens
+    const tokens = str.split(/(\s+)/).filter((t) => t.length > 0);
+    const lines: string[] = [];
+    let cur = "";
+    for (const tok of tokens) {
+      const tentative = cur + tok;
+      if (measureEmojiAware(tentative, size) <= maxWidth) cur = tentative;
+      else {
+        if (cur.trim()) lines.push(cur.trimEnd());
+        cur = /^\s+$/.test(tok) ? "" : tok;
+      }
+    }
+    if (cur.trim()) lines.push(cur.trimEnd());
+    return lines.length ? lines : [""];
+  };
   const notesLines: string[] = notes
     ? notes.split(/\r?\n/).flatMap((para) => {
         if (!para.trim()) return [""]; // linha em branco preservada
-        return wrap(ctx.font, 9, para, innerW - 8);
+        return wrapEmojiAware(para, 9, innerW - 8);
       })
     : [];
   const notesBlockH = notes ? 14 + notesLines.length * 12 + 6 : 0;
