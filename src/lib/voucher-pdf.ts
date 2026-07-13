@@ -707,9 +707,12 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
       : (p.cpf ? `CPF ${p.cpf}` : (p.document ?? "-"));
     const tipo = passengerTypeLabel(t, p.passenger_type ?? "ADT");
     const dob = p.birth_date ? fmtDateBR(p.birth_date) : "-";
+    const rawTicket = (p.ticket_number ?? "").trim();
+    const ticketFmt = formatTicketNumber(rawTicket);
     const cells = showTicket
-      ? [name || "-", tipo, doc, dob, (p.ticket_number ?? "").trim() || "-"]
+      ? [name || "-", tipo, doc, dob, ticketFmt || "-"]
       : [name || "-", tipo, doc, dob];
+
     cells.forEach((v, i) => {
       ctx.page.drawText(sanitize(v), {
         x: colXs[i], y: cy, size: 8.5, font: ctx.fontBold,
