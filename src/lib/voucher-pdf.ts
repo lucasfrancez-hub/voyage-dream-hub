@@ -396,6 +396,15 @@ const drawIcon = (page: PDFPage, kind: IconKind, x: number, y: number, size: num
       page.drawLine({ start: { x: x + s / 2, y: y + s * 0.28 }, end: { x: x + s / 2, y: y + s * 0.6 }, thickness: s * 0.12, color: COLOR_WHITE });
       break;
     }
+    case "clock": {
+      page.drawCircle({ x: x + s / 2, y: y + s / 2, size: s * 0.48, color });
+      page.drawCircle({ x: x + s / 2, y: y + s / 2, size: s * 0.48 - s * 0.1, color: COLOR_WHITE });
+      // ponteiro vertical (12h → centro)
+      page.drawLine({ start: { x: x + s / 2, y: y + s / 2 }, end: { x: x + s / 2, y: y + s * 0.78 }, thickness: s * 0.09, color });
+      // ponteiro horizontal (centro → 3h)
+      page.drawLine({ start: { x: x + s / 2, y: y + s / 2 }, end: { x: x + s * 0.72, y: y + s / 2 }, thickness: s * 0.09, color });
+      break;
+    }
     case "phoneRed": {
       page.drawCircle({ x: x + s / 2, y: y + s / 2, size: s * 0.45, color: COLOR_RED });
       page.drawRectangle({ x: x + s * 0.32, y: y + s * 0.25, width: s * 0.36, height: s * 0.5, color: COLOR_WHITE });
