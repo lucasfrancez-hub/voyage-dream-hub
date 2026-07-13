@@ -623,11 +623,18 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
 
   const innerX = MARGIN + 20;
   const innerW = CONTENT_W - 40;
-  // 5 colunas: nome (2.2), tipo (0.9), documento (1.6), nascimento (1.1), bilhete (1.3)
-  const units = 2.2 + 0.9 + 1.6 + 1.1 + 1.3;
-  const weights = [2.2, 0.9, 1.6, 1.1, 1.3];
+
+  // Só mostra a coluna Bilhete se pelo menos um passageiro tem número de bilhete
+  const showTicket = passengers.some((p) => ((p.ticket_number ?? "").trim().length > 0));
+
+  const weights = showTicket ? [2.2, 0.9, 1.6, 1.1, 1.3] : [2.4, 1.0, 1.8, 1.2];
+  const units = weights.reduce((a, b) => a + b, 0);
   const colWs = weights.map((u) => (innerW * u) / units);
-  const colXs = [0, colWs[0], colWs[0] + colWs[1], colWs[0] + colWs[1] + colWs[2], colWs[0] + colWs[1] + colWs[2] + colWs[3]].map((x) => innerX + x);
+  const colXs: number[] = [];
+  {
+    let acc = 0;
+    for (const w of colWs) { colXs.push(innerX + acc); acc += w; }
+  }
   let cy = headerBottom - 8;
 
   ctx.page.drawLine({
@@ -637,7 +644,9 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
   });
   cy -= 6;
 
-  const headers = [t.passageiro, t.tipo, t.documento, t.dataNasc, t.bilhetePax];
+  const headers = showTicket
+    ? [t.passageiro, t.tipo, t.documento, t.dataNasc, t.bilhetePax]
+    : [t.passageiro, t.tipo, t.documento, t.dataNasc];
   headers.forEach((h, i) => {
     ctx.page.drawText(sanitize(h), {
       x: colXs[i], y: cy, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
@@ -652,12 +661,13 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
       : (p.cpf ? `CPF ${p.cpf}` : (p.document ?? "-"));
     const tipo = passengerTypeLabel(t, p.passenger_type ?? "ADT");
     const dob = p.birth_date ? fmtDateBR(p.birth_date) : "-";
-    const ticket = (p.ticket_number ?? "").trim() || "-";
-    const cells = [name || "-", tipo, doc, dob, ticket];
+    const cells = showTicket
+      ? [name || "-", tipo, doc, dob, (p.ticket_number ?? "").trim() || "-"]
+      : [name || "-", tipo, doc, dob];
     cells.forEach((v, i) => {
       ctx.page.drawText(sanitize(v), {
         x: colXs[i], y: cy, size: 8.5, font: ctx.fontBold,
-        color: i === 4 && v !== "-" ? COLOR_ORANGE : COLOR_TEXT,
+        color: showTicket && i === 4 && v !== "-" ? COLOR_ORANGE : COLOR_TEXT,
       });
     });
     cy -= rowH;
