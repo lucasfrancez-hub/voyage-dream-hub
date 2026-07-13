@@ -755,10 +755,7 @@ const renderHotelItem = async (
       ctx.page.drawRectangle({ x, y, width: tW, height: tH, borderColor: COLOR_BORDER, borderWidth: 0.5 });
     }
     if (anyEmbedded) {
-      ctx.y = rowTop - tH - 6;
-      const cred = ctx.lang === "pt" ? "Fotos: TripAdvisor" : "Photos: TripAdvisor";
-      drawText(ctx, cred, MARGIN, { size: 7.5, color: COLOR_MUTED });
-      ctx.y -= 14;
+      ctx.y = rowTop - tH - 10;
     }
   }
 
