@@ -722,6 +722,23 @@ const drawDashedVLine = (
   }
 };
 
+// Aviãozinho estilizado (silhueta de jato) — sempre apontando para a direita.
+const drawNicePlane = (
+  page: PDFPage,
+  cx: number, cy: number, w: number,
+  color: Color,
+) => {
+  // SVG bbox 35 x 20, centro em (17.5, 10)
+  const path = "M 0 10 L 12 10 L 22 2 L 26 2 L 20 10 L 30 10 L 33 6 L 35 6 L 32 10 L 35 14 L 33 14 L 30 10 L 20 10 L 26 18 L 22 18 L 12 10 Z";
+  const scale = w / 35;
+  page.drawSvgPath(path, {
+    x: cx - 17.5 * scale,
+    y: cy + 10 * scale,
+    scale,
+    color,
+  });
+};
+
 const drawFlightLegBlock = (
   ctx: Ctx,
   y: number,
