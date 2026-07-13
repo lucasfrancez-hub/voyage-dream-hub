@@ -1049,9 +1049,9 @@ const drawFlightLegBlock = (
     const qrSize = 60;
     const qrX = qrColX + 12 + (qrColW2 - 12 - qrSize) / 2;
     const qrY = cardTopY - qrSize - 4;
-    // Divisor tracejado vertical percorre TODA a altura do card (não só até a ida)
+    // Divisor tracejado vertical: desenhado na seção AEREO (envolvendo IDA + VOLTA)
     const dividerX = qrColX + 6;
-    drawDashedVLine(ctx.page, dividerX, cardBotY + 4, cardTopY - 4, COLOR_BORDER);
+
     if (qr.img) {
       ctx.page.drawImage(qr.img, { x: qrX, y: qrY, width: qrSize, height: qrSize });
       addLinkAnnotation(ctx, qrX, qrY, qrSize, qrSize, qr.url);
