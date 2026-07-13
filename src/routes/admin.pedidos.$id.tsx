@@ -1457,6 +1457,17 @@ function FlightReservationCard({
           <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
             {locator ?? "—"}
           </div>
+          {(() => {
+            const ticket = segments
+              .map((s) => String(((s.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
+              .find((t) => !!t);
+            if (!ticket) return null;
+            return (
+              <div className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                E-ticket: <span className="normal-case font-mono text-foreground">{ticket}</span>
+              </div>
+            );
+          })()}
           <div className="mt-1.5">
             {(() => {
               // Deriva status real de cada segmento antes de agregar.
