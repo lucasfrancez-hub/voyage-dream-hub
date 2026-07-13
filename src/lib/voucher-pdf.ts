@@ -838,8 +838,11 @@ const renderOtherItem = (ctx: Ctx, item: OrderItem) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
   const description = String(d.description ?? d.details ?? "").trim();
+  const notes = String(d.notes ?? "").trim();
   const dateFrom = String(d.date_from ?? d.start_date ?? "").trim();
   const dateTo = String(d.date_to ?? d.end_date ?? "").trim();
+  const timeFrom = String(d.time_from ?? "").trim();
+  const timeTo = String(d.time_to ?? "").trim();
   const locator = item.supplier_locator ?? "";
 
   ensureSpace(ctx, 90);
@@ -850,15 +853,33 @@ const renderOtherItem = (ctx: Ctx, item: OrderItem) => {
 
   drawFieldTitle(ctx, item.title || "-", 14);
 
-  if (dateFrom || dateTo) {
-    if (dateFrom) { drawInlineKV(ctx, t.checkin, fmtDateShort(dateFrom, ctx.lang)); ctx.y -= 14; }
-    if (dateTo) { drawInlineKV(ctx, t.checkout, fmtDateShort(dateTo, ctx.lang)); ctx.y -= 14; }
-  }
+  const depLabel = ctx.lang === "pt" ? "Partida" : "Departure";
+  const depTimeLabel = ctx.lang === "pt" ? "Horário de saída" : "Departure time";
+  const arrTimeLabel = ctx.lang === "pt" ? "Horário de chegada" : "Arrival time";
+  if (dateFrom) { drawInlineKV(ctx, depLabel, fmtDateShort(dateFrom, ctx.lang)); ctx.y -= 14; }
+  if (timeFrom) { drawInlineKV(ctx, depTimeLabel, timeFrom); ctx.y -= 14; }
+  if (timeTo) { drawInlineKV(ctx, arrTimeLabel, timeTo); ctx.y -= 14; }
+  if (dateTo) { drawInlineKV(ctx, t.checkout, fmtDateShort(dateTo, ctx.lang)); ctx.y -= 14; }
+
   if (description) {
     const lines = wrap(ctx.font, 9.5, description, CONTENT_W);
     for (const ln of lines) {
       ensureSpace(ctx, 12);
       drawText(ctx, ln, MARGIN, { size: 9.5 });
+      ctx.y -= 12;
+    }
+    ctx.y -= 4;
+  }
+  if (notes) {
+    ensureSpace(ctx, 20);
+    drawText(ctx, ctx.lang === "pt" ? "OBSERVAÇÕES" : "NOTES", MARGIN, {
+      size: 8, bold: true, color: COLOR_BRAND_BLUE_SOFT,
+    });
+    ctx.y -= 12;
+    const lines = wrap(ctx.font, 9.5, notes, CONTENT_W);
+    for (const ln of lines) {
+      ensureSpace(ctx, 12);
+      drawText(ctx, ln, MARGIN, { size: 9.5, color: COLOR_TEXT });
       ctx.y -= 12;
     }
     ctx.y -= 4;
