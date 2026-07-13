@@ -842,6 +842,24 @@ const drawFlightLegBlock = (
   const cardBotY = cardTopY - cardH;
   drawRoundedRect(ctx.page, cardX, cardBotY, cardW, cardH, COLOR_ROW_ALT, 10);
 
+  // Coluna reservada à esquerda para a logo da companhia (uma para todo o trecho)
+  const logoColW = 56;
+  const segInsetX = logoColW;
+  // Logo do primeiro trecho (representa a companhia do bloco)
+  const legLogo = airlineLogos?.get(0) ?? null;
+  if (legLogo) {
+    const maxLogoW = logoColW - 12;
+    const maxLogoH = Math.min(38, cardH - 20);
+    const ratio = legLogo.width / legLogo.height;
+    let lh = maxLogoH;
+    let lw = lh * ratio;
+    if (lw > maxLogoW) { lw = maxLogoW; lh = lw / ratio; }
+    const lx = cardX + (logoColW - lw) / 2;
+    const ly = cardBotY + (cardH - lh) / 2;
+    ctx.page.drawImage(legLogo, { x: lx, y: ly, width: lw, height: lh });
+  }
+
+
   segments.forEach((seg, i) => {
     const d = (seg.details ?? {}) as Record<string, unknown>;
     const fromIata = String(d.from_iata ?? d.origin ?? "").trim() || "-";
