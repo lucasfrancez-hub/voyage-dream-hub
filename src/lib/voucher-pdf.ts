@@ -36,7 +36,7 @@ const COMPANY = {
   cnpj: "56.339.877/0001-66",
   address: "Rua Takeshi Mitsuyasu, 355 - Jardim Panorama",
   cityLine: "Paranavaí - PR - CEP 87707-120",
-  phone: "(44) 3045-8729 · (44) 3062-9998",
+  phone: "(44) 99951-4838",
   email: "comercial@voeair.com",
 };
 
