@@ -364,25 +364,108 @@ const drawFooter = (ctx: Ctx, pageIndex: number, pageCount: number) => {
   });
 };
 
+// ---------- Icons (vector) ----------
+type IconKind = "bed" | "plane" | "service" | "info" | "emergency" | "user" | "policy" | "calendar" | "moon" | "users";
+
+const drawIcon = (page: PDFPage, kind: IconKind, x: number, y: number, size: number, color: Color) => {
+  // (x, y) = bottom-left of icon box, size = width=height
+  const s = size;
+  switch (kind) {
+    case "bed": {
+      // travesseiro + colchão
+      page.drawRectangle({ x, y: y + s * 0.1, width: s, height: s * 0.28, color });
+      page.drawRectangle({ x, y: y + s * 0.38, width: s * 0.42, height: s * 0.28, color });
+      page.drawLine({ start: { x, y: y + s * 0.1 }, end: { x, y: y + s * 0.8 }, thickness: s * 0.08, color });
+      break;
+    }
+    case "plane": {
+      // avião estilizado (triângulos)
+      const cx = x + s / 2, cy = y + s / 2;
+      page.drawLine({ start: { x: x + s * 0.05, y: cy }, end: { x: x + s * 0.95, y: cy }, thickness: s * 0.14, color });
+      page.drawLine({ start: { x: cx, y: y + s * 0.15 }, end: { x: cx + s * 0.15, y: cy }, thickness: s * 0.12, color });
+      page.drawLine({ start: { x: cx, y: y + s * 0.85 }, end: { x: cx + s * 0.15, y: cy }, thickness: s * 0.12, color });
+      break;
+    }
+    case "service": {
+      // estrela/serviço (círculo com asterisco)
+      page.drawCircle({ x: x + s / 2, y: y + s / 2, size: s * 0.42, borderColor: color, borderWidth: s * 0.1 });
+      page.drawLine({ start: { x: x + s * 0.3, y: y + s / 2 }, end: { x: x + s * 0.7, y: y + s / 2 }, thickness: s * 0.1, color });
+      page.drawLine({ start: { x: x + s / 2, y: y + s * 0.3 }, end: { x: x + s / 2, y: y + s * 0.7 }, thickness: s * 0.1, color });
+      break;
+    }
+    case "info": {
+      page.drawCircle({ x: x + s / 2, y: y + s / 2, size: s * 0.45, borderColor: color, borderWidth: s * 0.1 });
+      page.drawCircle({ x: x + s / 2, y: y + s * 0.72, size: s * 0.06, color });
+      page.drawLine({ start: { x: x + s / 2, y: y + s * 0.25 }, end: { x: x + s / 2, y: y + s * 0.6 }, thickness: s * 0.12, color });
+      break;
+    }
+    case "emergency": {
+      // triângulo de alerta
+      page.drawLine({ start: { x, y: y + s * 0.1 }, end: { x: x + s, y: y + s * 0.1 }, thickness: s * 0.1, color });
+      page.drawLine({ start: { x, y: y + s * 0.1 }, end: { x: x + s / 2, y: y + s * 0.95 }, thickness: s * 0.1, color });
+      page.drawLine({ start: { x: x + s, y: y + s * 0.1 }, end: { x: x + s / 2, y: y + s * 0.95 }, thickness: s * 0.1, color });
+      page.drawLine({ start: { x: x + s / 2, y: y + s * 0.35 }, end: { x: x + s / 2, y: y + s * 0.65 }, thickness: s * 0.12, color });
+      page.drawCircle({ x: x + s / 2, y: y + s * 0.25, size: s * 0.06, color });
+      break;
+    }
+    case "user": {
+      page.drawCircle({ x: x + s / 2, y: y + s * 0.72, size: s * 0.2, color });
+      page.drawRectangle({ x: x + s * 0.15, y, width: s * 0.7, height: s * 0.4, color });
+      break;
+    }
+    case "users": {
+      page.drawCircle({ x: x + s * 0.35, y: y + s * 0.72, size: s * 0.18, color });
+      page.drawCircle({ x: x + s * 0.7, y: y + s * 0.72, size: s * 0.18, color });
+      page.drawRectangle({ x: x + s * 0.05, y, width: s * 0.9, height: s * 0.38, color });
+      break;
+    }
+    case "policy": {
+      // documento
+      page.drawRectangle({ x: x + s * 0.1, y, width: s * 0.8, height: s * 0.95, borderColor: color, borderWidth: s * 0.08 });
+      page.drawLine({ start: { x: x + s * 0.25, y: y + s * 0.7 }, end: { x: x + s * 0.75, y: y + s * 0.7 }, thickness: s * 0.06, color });
+      page.drawLine({ start: { x: x + s * 0.25, y: y + s * 0.5 }, end: { x: x + s * 0.75, y: y + s * 0.5 }, thickness: s * 0.06, color });
+      page.drawLine({ start: { x: x + s * 0.25, y: y + s * 0.3 }, end: { x: x + s * 0.55, y: y + s * 0.3 }, thickness: s * 0.06, color });
+      break;
+    }
+    case "calendar": {
+      page.drawRectangle({ x, y, width: s, height: s * 0.85, borderColor: color, borderWidth: s * 0.08 });
+      page.drawRectangle({ x, y: y + s * 0.7, width: s, height: s * 0.15, color });
+      page.drawLine({ start: { x: x + s * 0.25, y: y + s * 0.95 }, end: { x: x + s * 0.25, y: y + s * 0.75 }, thickness: s * 0.08, color });
+      page.drawLine({ start: { x: x + s * 0.75, y: y + s * 0.95 }, end: { x: x + s * 0.75, y: y + s * 0.75 }, thickness: s * 0.08, color });
+      break;
+    }
+    case "moon": {
+      page.drawCircle({ x: x + s / 2, y: y + s / 2, size: s * 0.45, color });
+      page.drawCircle({ x: x + s * 0.65, y: y + s * 0.6, size: s * 0.4, color: COLOR_WHITE });
+      break;
+    }
+  }
+};
+
 // ---------- Section pill (Cativa style) ----------
 // Desenha uma pílula azul cheia com título e, opcionalmente, uma pílula
 // clara à direita com um valor (ex.: "Localizador: XYZ").
 const drawSectionPill = (
   ctx: Ctx,
   title: string,
-  opts?: { color?: Color; rightPill?: string },
+  opts?: { color?: Color; rightPill?: string; icon?: IconKind },
 ) => {
   ensureSpace(ctx, 40);
   const bg = opts?.color ?? COLOR_BRAND_BLUE;
-  const h = 26;
+  const h = 28;
   const pad = 16;
   const size = 13;
+  const iconSize = opts?.icon ? 13 : 0;
+  const iconGap = opts?.icon ? 8 : 0;
   const textW = measure(ctx.fontBold, title, size);
-  const w = textW + pad * 2;
+  const w = textW + pad * 2 + iconSize + iconGap;
   const y = ctx.y - h;
-  drawRoundedRect(ctx.page, MARGIN, y, w, h, bg, 13);
+  drawRoundedRect(ctx.page, MARGIN, y, w, h, bg, 14);
+  if (opts?.icon) {
+    drawIcon(ctx.page, opts.icon, MARGIN + pad, y + (h - iconSize) / 2, iconSize, COLOR_WHITE);
+  }
   ctx.page.drawText(sanitize(title), {
-    x: MARGIN + pad, y: y + 8, size, font: ctx.fontBold, color: COLOR_WHITE,
+    x: MARGIN + pad + iconSize + iconGap, y: y + 9, size, font: ctx.fontBold, color: COLOR_WHITE,
   });
 
   if (opts?.rightPill) {
@@ -398,8 +481,9 @@ const drawSectionPill = (
     });
   }
 
-  ctx.y = y - 14;
+  ctx.y = y - 16;
 };
+
 
 // Título forte de "campo" dentro de uma seção
 const drawFieldTitle = (ctx: Ctx, s: string, size = 15) => {
