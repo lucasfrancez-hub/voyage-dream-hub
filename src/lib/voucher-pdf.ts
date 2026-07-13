@@ -1232,11 +1232,6 @@ const drawAereoSection = async (
   const ob = sortByDep(outbound);
   const rt = sortByDep(returning);
 
-  // Estimativa de espaço
-  const est = 40 + (ob.length ? 120 + (ob.length - 1) * 90 : 0) + (rt.length ? 120 + (rt.length - 1) * 90 : 0) + 40;
-  const { top } = openSectionCard(ctx, est + 40);
-  const headerBottom = drawSectionHeader(ctx, top, "plane", t.aereo);
-
   const obPrimary = ob[0];
   const rtPrimary = rt[0];
   const obLocator = ob.map((i) => i.supplier_locator).find(Boolean) ?? "";
@@ -1250,7 +1245,6 @@ const drawAereoSection = async (
   const qrUrl = obPrimary ? airlineCheckinURL(obPrimary) : (rtPrimary ? airlineCheckinURL(rtPrimary) : "");
   const qrImg = qrUrl ? await embedQR(ctx, qrUrl) : null;
 
-  // Pré-carrega logos da cia (por segmento)
   const loadLogos = async (segs: OrderItem[]): Promise<Map<number, PDFImage | null>> => {
     const map = new Map<number, PDFImage | null>();
     for (let i = 0; i < segs.length; i++) {
@@ -1263,9 +1257,36 @@ const drawAereoSection = async (
   const obLogos = await loadLogos(ob);
   const rtLogos = await loadLogos(rt);
 
+  const bags = aggregateBaggage([...ob, ...rt]);
+
+  const estLegHeight = (n: number) => n > 0 ? (120 + (n - 1) * 90) : 0;
+  const estIda = ob.length ? (40 + estLegHeight(ob.length) + 20) : 0;
+  const estVolta = rt.length ? (40 + estLegHeight(rt.length) + 40) : 0;
+  const estCombined = 40 + estLegHeight(ob.length) + estLegHeight(rt.length) + 40;
+  const available = ctx.y - (MARGIN + 40);
+
+  // Se IDA+VOLTA não cabe nesta página, mas IDA cabe sozinha, quebra em dois
+  // cards (IDA aqui, VOLTA na próxima página) pra não deixar uma página em branco.
+  const shouldSplit =
+    ob.length > 0 && rt.length > 0 && estCombined > available && estIda <= available;
+
+  if (shouldSplit) {
+    await drawAereoLegCard(
+      ctx, ob, t.ida, { img: qrImg, url: qrUrl }, obLogos, false, null,
+    );
+    newPage(ctx);
+    await drawAereoLegCard(
+      ctx, rt, t.volta, undefined, rtLogos, true, bags,
+    );
+    return;
+  }
+
+  // Fluxo combinado (IDA + VOLTA num único card)
+  const { top } = openSectionCard(ctx, estCombined + 40);
+  const headerBottom = drawSectionHeader(ctx, top, "plane", t.aereo);
+
   let cy = headerBottom - 8;
 
-  // Coordenadas do divisor vertical que atravessa toda a seção AEREO
   const dividerOuterX = MARGIN + 14;
   const dividerOuterW = CONTENT_W - 28;
   const dividerQrColW = 84;
@@ -1293,19 +1314,53 @@ const drawAereoSection = async (
     cy -= 4;
   }
 
-  // Dashed vertical divider ao lado do QR — cobre IDA + VOLTA
   if (flightsTopY !== null && flightsBotY !== null && qrImg) {
     drawDashedVLine(ctx.page, dividerX, flightsBotY + 4, flightsTopY - 4, COLOR_BORDER);
   }
 
-
-
-  // Bagagem (agregada dos dois lados)
-  const bags = aggregateBaggage([...ob, ...rt]);
   cy = drawBaggageRow(ctx, cy, bags);
 
   closeSectionCard(ctx, top, cy);
 };
+
+// Renderiza um único bloco (IDA ou VOLTA) dentro do seu próprio card AEREO.
+// Usado quando IDA+VOLTA não caberia numa única página.
+const drawAereoLegCard = async (
+  ctx: Ctx,
+  legs: OrderItem[],
+  labelText: string,
+  qr: { img: PDFImage | null; url: string } | undefined,
+  logos: Map<number, PDFImage | null>,
+  isReturn: boolean,
+  bags: { personal: boolean; carry: boolean; checked: boolean } | null,
+) => {
+  const t = T(ctx);
+  const est = 40 + (120 + (legs.length - 1) * 90) + (bags ? 40 : 20);
+  const { top } = openSectionCard(ctx, est);
+  const headerBottom = drawSectionHeader(ctx, top, "plane", t.aereo);
+  const locator = legs.map((i) => i.supplier_locator).find(Boolean) ?? "";
+  const ticket = legs
+    .map((i) => String(((i.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
+    .find((v) => !!v) ?? "";
+  let cy = headerBottom - 8;
+  const flightsTopY = cy;
+  cy = drawFlightLegBlock(
+    ctx, cy, labelText, COLOR_ORANGE, legs, locator, ticket, qr, logos, isReturn,
+  );
+  const flightsBotY = cy + 6;
+  cy -= 8;
+  if (qr?.img) {
+    const dividerOuterX = MARGIN + 14;
+    const dividerOuterW = CONTENT_W - 28;
+    const dividerQrColW = 84;
+    const dividerSegColW = dividerOuterW - dividerQrColW;
+    const dividerX = dividerOuterX + dividerSegColW + 6;
+    drawDashedVLine(ctx.page, dividerX, flightsBotY + 4, flightsTopY - 4, COLOR_BORDER);
+  }
+  if (bags) cy = drawBaggageRow(ctx, cy, bags);
+  closeSectionCard(ctx, top, cy);
+};
+
 
 // ---------- Hospedagem ----------
 const fetchImageBytes = async (
