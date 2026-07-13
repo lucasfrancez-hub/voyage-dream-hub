@@ -897,7 +897,7 @@ const drawPassengersBlock = (ctx: Ctx, passengers: OrderPassenger[]) => {
   if (!passengers.length) return;
   const t = T(ctx);
   const label = passengers.length > 1 ? t.passengers : t.passenger;
-  drawSectionPill(ctx, label);
+  drawSectionPill(ctx, label, { icon: passengers.length > 1 ? "users" : "user" });
 
   // Tabela: Nome · Documento · Tipo
   const typeLabel = ctx.lang === "pt" ? "Tipo" : "Type";
