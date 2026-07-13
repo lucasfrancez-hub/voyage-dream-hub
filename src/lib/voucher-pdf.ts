@@ -1799,7 +1799,7 @@ const drawFooterStrip = (ctx: Ctx) => {
 };
 
 // ---------- Serviços (transfer, ingressos, trem, etc.) ----------
-const drawServiceSection = (ctx: Ctx, item: OrderItem) => {
+const drawServiceSection = async (ctx: Ctx, item: OrderItem) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
   const title = String(item.title ?? "").trim() || "-";
