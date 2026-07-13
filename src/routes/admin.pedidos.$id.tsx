@@ -2541,7 +2541,11 @@ function FinanceTab({
     totalSale = displayRows.reduce((a, f) => a + Number(f.sale_value || 0), 0);
     totalTax = displayRows.reduce((a, f) => a + Number(f.tax_value || 0), 0);
     commissionBase = Math.max(0, totalSale);
-    totalCommission = displayRows.reduce((a, f) => a + Number(f.commission_value || 0), 0);
+    // Comissão total inclui o RAV lançado por item (comissão adicional).
+    totalCommission = displayRows.reduce(
+      (a, f) => a + Number(f.commission_value || 0) + Number(f.rav_value || 0),
+      0,
+    );
     totalNet = displayRows.reduce((a, f) => a + Number(f.total || f.sale_value || 0), 0);
   }
   const packageDiscount = isPackageOrder
