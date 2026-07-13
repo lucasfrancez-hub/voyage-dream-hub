@@ -543,14 +543,16 @@ const drawVoucherIdCard = (ctx: Ctx) => {
   const h = 36;
   ensureSpace(ctx, h + 10);
   const y = ctx.y - h;
-  const w = 300;
-  // Card azul com cantos superiores arredondados
+  const w = 320;
   drawRoundedRect(ctx.page, MARGIN, y, w, h, COLOR_NAVY, 6);
-  // Ícone bilhete
-  drawIcon(ctx.page, "ticket", MARGIN + 14, y + (h - 14) / 2, 14, COLOR_WHITE);
-  const label = `${t.voucherId}: ${ctx.order.orderNumber}`;
+  drawIcon(ctx.page, "ticket", MARGIN + 14, y + (h - 14) / 2, 14, COLOR_ORANGE);
+  const label = `${t.voucherId}: `;
   ctx.page.drawText(sanitize(label), {
-    x: MARGIN + 40, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_WHITE,
+    x: MARGIN + 40, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_ORANGE,
+  });
+  const lw = measure(ctx.fontBold, label, 12);
+  ctx.page.drawText(sanitize(String(ctx.order.orderNumber)), {
+    x: MARGIN + 40 + lw, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_WHITE,
   });
   ctx.y = y - 10;
 };
