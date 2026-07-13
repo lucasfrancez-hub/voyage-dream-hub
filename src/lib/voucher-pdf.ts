@@ -179,6 +179,7 @@ type Ctx = {
   lang: VoucherLang;
   order: OrderDetail["order"];
   logo?: PDFImage;
+  supplierLogo?: PDFImage;
   pages: PDFPage[];
 };
 
@@ -254,43 +255,96 @@ const ensureSpace = (ctx: Ctx, needed: number) => {
 const drawMainHeader = (ctx: Ctx) => {
   const t = T(ctx);
   const topY = A4.h;
+  const order = ctx.order;
 
-  // Bloco esquerdo: informações da agência
-  const infoTop = topY - MARGIN - 4;
-  ctx.page.drawText(sanitize(COMPANY.short), {
-    x: MARGIN, y: infoTop - 10, size: 11, font: ctx.fontBold, color: COLOR_BRAND_BLUE,
+  // 3 colunas: [logo operador | Reserva:/título | vendedor]
+  const blockTop = topY - MARGIN;
+  const blockH = 72;
+  const col1W = 150;
+  const col3W = 210;
+  const col2X = MARGIN + col1W + 12;
+  const col2W = CONTENT_W - col1W - col3W - 24;
+  const col3X = MARGIN + CONTENT_W - col3W;
+
+  // Coluna 1 — logo do operador (ou Via Air como fallback)
+  const opLogo = ctx.supplierLogo ?? ctx.logo;
+  if (opLogo) {
+    const maxH = 44;
+    const maxW = col1W - 8;
+    const ratio = opLogo.width / opLogo.height;
+    let h = maxH;
+    let w = h * ratio;
+    if (w > maxW) { w = maxW; h = w / ratio; }
+    ctx.page.drawImage(opLogo, {
+      x: MARGIN + (col1W - w) / 2,
+      y: blockTop - blockH / 2 - h / 2,
+      width: w, height: h,
+    });
+  }
+
+  // Coluna 2 — Reserva: + título da viagem
+  const reservaLabel = ctx.lang === "pt" ? "Reserva:" : "Booking:";
+  ctx.page.drawText(sanitize(reservaLabel), {
+    x: col2X, y: blockTop - 18, size: 12, font: ctx.fontBold, color: COLOR_TEXT,
   });
-  const infoLines: string[] = [
-    `CNPJ ${COMPANY.cnpj}`,
-    COMPANY.address,
-    COMPANY.cityLine,
-    `${COMPANY.phone} · ${COMPANY.email}`,
-  ];
-  let iy = infoTop - 22;
-  for (const line of infoLines) {
-    ctx.page.drawText(sanitize(line), {
-      x: MARGIN, y: iy, size: 7.5, font: ctx.font, color: COLOR_MUTED,
+  const tripTitle = String(
+    (order as unknown as { tripTitle?: string | null }).tripTitle ?? "",
+  ).trim() || (ctx.lang === "pt" ? "Pacote de viagem" : "Travel package");
+  const tripLines = wrap(ctx.font, 10, tripTitle, col2W);
+  let ty = blockTop - 34;
+  for (const ln of tripLines.slice(0, 2)) {
+    ctx.page.drawText(sanitize(ln), {
+      x: col2X, y: ty, size: 10, font: ctx.font, color: COLOR_TEXT,
     });
-    iy -= 10;
+    ty -= 12;
   }
 
-  // Logo Via Air (topo direito)
-  if (ctx.logo) {
-    const h = 36;
-    const w = h * (ctx.logo.width / ctx.logo.height);
-    ctx.page.drawImage(ctx.logo, {
-      x: A4.w - MARGIN - w, y: topY - MARGIN - h + 4, width: w, height: h,
+  // Coluna 3 — vendedor
+  const sellerName = String(
+    (order as unknown as { sellerName?: string | null }).sellerName ?? "",
+  ).trim() || COMPANY.short;
+  const sellerEmail = String(
+    (order as unknown as { sellerEmail?: string | null }).sellerEmail ?? "",
+  ).trim();
+  const sellerPhone = String(
+    (order as unknown as { sellerPhone?: string | null }).sellerPhone ?? "",
+  ).trim();
+
+  ctx.page.drawText(sanitize(sellerName), {
+    x: col3X, y: blockTop - 18, size: 12, font: ctx.fontBold, color: COLOR_TEXT,
+  });
+  let sy = blockTop - 34;
+  if (sellerEmail) {
+    ctx.page.drawText(sanitize(sellerEmail), {
+      x: col3X, y: sy, size: 9, font: ctx.font, color: COLOR_TEXT,
     });
+    sy -= 12;
+  }
+  if (sellerPhone) {
+    const lab = ctx.lang === "pt" ? "Telefone: " : "Phone: ";
+    const labW = measure(ctx.fontBold, lab, 9);
+    ctx.page.drawText(sanitize(lab), {
+      x: col3X, y: sy, size: 9, font: ctx.fontBold, color: COLOR_TEXT,
+    });
+    ctx.page.drawText(sanitize(sellerPhone), {
+      x: col3X + labW, y: sy, size: 9, font: ctx.font, color: COLOR_TEXT,
+    });
+    sy -= 12;
   }
 
-  // Linha divisória azul abaixo do bloco
-  const lineY = topY - MARGIN - 62;
+  // Divisor sutil entre col2 e col3
+  ctx.page.drawRectangle({
+    x: col3X - 12, y: blockTop - blockH + 6, width: 0.5, height: blockH - 12, color: COLOR_BORDER,
+  });
+
+  // Linha azul divisória
+  const lineY = blockTop - blockH - 6;
   ctx.page.drawRectangle({
     x: MARGIN, y: lineY, width: CONTENT_W, height: 2, color: COLOR_BRAND_BLUE,
   });
 
-  // Título "VOUCHER" (menor) à esquerda + pílula laranja com ID à direita
-  const titleSize = 22;
+  // Título "VOUCHER" + pílula com número do pedido
+  const titleSize = 20;
   const titleY = lineY - titleSize - 4;
   ctx.page.drawText(sanitize(t.title), {
     x: MARGIN, y: titleY, size: titleSize, font: ctx.fontDisplay, color: COLOR_BRAND_BLUE,
@@ -1144,12 +1198,18 @@ export async function generateVoucher(
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const fontDisplay = await pdf.embedFont(StandardFonts.HelveticaBold);
   const logo = await fetchLogo(pdf);
+  const supplierLogoUrl = String(
+    (detail.order as unknown as { supplierLogoUrl?: string | null }).supplierLogoUrl ?? "",
+  ).trim();
+  const supplierLogo = supplierLogoUrl
+    ? (await embedRemotePhoto(pdf, supplierLogoUrl)) ?? undefined
+    : undefined;
 
   const firstPage = pdf.addPage([A4.w, A4.h]);
   const ctx: Ctx = {
     pdf, page: firstPage, y: A4.h - MARGIN,
     font, fontBold, fontDisplay, lang,
-    order: detail.order, logo, pages: [firstPage],
+    order: detail.order, logo, supplierLogo, pages: [firstPage],
   };
 
   drawMainHeader(ctx);
