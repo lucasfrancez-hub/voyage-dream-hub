@@ -782,6 +782,23 @@ const drawFlightLegBlock = (
   let cy = chipY - 10;
   const segmentsTopY = cy;
 
+  // --- Card único cinza contendo TODOS os trechos + faixas de conexão ---
+  const pillH = 14;
+  const segContentH = 50;
+  const conBandH = 26;
+  const padTop = pillH / 2 + 4;
+  const padBot = 8;
+  const cardH =
+    padTop
+    + segments.length * segContentH
+    + Math.max(0, segments.length - 1) * conBandH
+    + padBot;
+  const cardX = outerX;
+  const cardW = segColW;
+  const cardTopY = cy;
+  const cardBotY = cardTopY - cardH;
+  drawRoundedRect(ctx.page, cardX, cardBotY, cardW, cardH, COLOR_ROW_ALT, 10);
+
   segments.forEach((seg, i) => {
     const d = (seg.details ?? {}) as Record<string, unknown>;
     const fromIata = String(d.from_iata ?? d.origin ?? "").trim() || "-";
@@ -795,40 +812,41 @@ const drawFlightLegBlock = (
     const cabin = String(d.cabin_class ?? d.cabin ?? "").trim();
     const logo = airlineLogos?.get(i) ?? null;
 
-    // Pill "TRECHO N - Cia - Voo - Cabine" acima do card
+    // Região do conteúdo deste trecho (dentro do card único)
+    const segTopY = cardTopY - padTop - i * (segContentH + conBandH);
+    const segBotY = segTopY - segContentH;
+    const segX = cardX;
+    const segW = cardW;
+
+    // Pill "TRECHO N - Cia - Voo - Cabine"
     const trechoLbl = segments.length > 1 ? `TRECHO ${i + 1}` : "TRECHO";
     const pillParts = [trechoLbl, airline, flightNo, cabin].filter(Boolean);
     const pillText = pillParts.join(" - ");
     const pillSize = 7.5;
     const pillTw = measure(ctx.fontBold, pillText, pillSize);
-    const pillH = 14;
-    const pillW = pillTw + (logo ? 20 : 0) + 18;
-    const pillX = outerX + (segColW - pillW) / 2;
-    const pillY = cy - pillH;
+    const pillW = pillTw + (logo ? 18 : 0) + 16;
+    const pillX = segX + (segW - pillW) / 2;
+    // Trecho 0: pill straddles top edge of card
+    // Trechos seguintes: pill fica logo abaixo do divisor de conexão, dentro do card
+    const pillCenterY = i === 0 ? cardTopY : segTopY + 6;
+    const pillY = pillCenterY - pillH / 2;
     drawRoundedRect(ctx.page, pillX, pillY, pillW, pillH, COLOR_NAVY, 7);
-    let ptx = pillX + 9;
+    let ptx = pillX + 8;
     if (logo) {
-      const lh = 10;
-      const lw = Math.min((logo.width / logo.height) * lh, 16);
-      ctx.page.drawImage(logo, { x: ptx, y: pillY + 2, width: lw, height: lh });
+      const lh = 9;
+      const lw = Math.min((logo.width / logo.height) * lh, 14);
+      ctx.page.drawImage(logo, { x: ptx, y: pillY + 2.5, width: lw, height: lh });
       ptx += lw + 4;
     }
     ctx.page.drawText(sanitize(pillText), {
       x: ptx, y: pillY + 3.5, size: pillSize, font: ctx.fontBold, color: COLOR_WHITE,
     });
-    cy = pillY - 4;
-
-    const segH = 62;
-    const segX = outerX;
-    const segW = segColW;
-    const segY = cy - segH;
-    drawRoundedRect(ctx.page, segX, segY, segW, segH, COLOR_ROW_ALT, 8);
 
     // IATA + tracejado + avião
     const iataSize = 16;
-    const leftX = segX + 16;
-    const rightX = segX + segW - 16 - measure(ctx.fontBold, toIata, iataSize);
-    const iataY = segY + segH - 24;
+    const leftX = segX + 20;
+    const rightX = segX + segW - 20 - measure(ctx.fontBold, toIata, iataSize);
+    const iataY = segBotY + segContentH - 24;
     ctx.page.drawText(sanitize(fromIata), {
       x: leftX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
@@ -836,8 +854,8 @@ const drawFlightLegBlock = (
       x: rightX, y: iataY, size: iataSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
     const midY = iataY + iataSize / 2 - 3;
-    const leftEdge = leftX + measure(ctx.fontBold, fromIata, iataSize) + 8;
-    const rightEdge = rightX - 8;
+    const leftEdge = leftX + measure(ctx.fontBold, fromIata, iataSize) + 10;
+    const rightEdge = rightX - 10;
     const totalDashW = rightEdge - leftEdge;
     const dashCount = Math.max(6, Math.floor(totalDashW / 6));
     const dashSpacing = totalDashW / dashCount;
@@ -848,29 +866,28 @@ const drawFlightLegBlock = (
         thickness: 0.6, color: COLOR_MUTED,
       });
     }
-    const centerX = (leftEdge + rightEdge) / 2 - 5;
-    drawIcon(ctx.page, "planeSmall", centerX, midY - 5, 10, COLOR_NAVY);
-    // "Direto" abaixo do avião quando não há conexão
+    // Aviãozinho estilizado no meio (silhueta bonita)
+    drawNicePlane(ctx.page, (leftEdge + rightEdge) / 2, midY, 16, COLOR_NAVY);
     if (segments.length === 1) {
       const dLbl = ctx.lang === "en" ? "Direct" : "Direto";
       const dSize = 7;
       const dw = measure(ctx.fontBold, dLbl, dSize);
       ctx.page.drawText(sanitize(dLbl), {
-        x: (leftEdge + rightEdge) / 2 - dw / 2, y: midY - 12, size: dSize, font: ctx.fontBold, color: COLOR_NAVY,
+        x: (leftEdge + rightEdge) / 2 - dw / 2, y: midY - 14, size: dSize, font: ctx.fontBold, color: COLOR_NAVY,
       });
     }
 
     // Cidades + horários
-    const bottomY = segY + 8;
+    const bottomY = segBotY + 6;
     if (fromCity) {
       ctx.page.drawText(sanitize(fromCity), {
-        x: leftX, y: bottomY + 12, size: 7.5, font: ctx.font, color: COLOR_MUTED,
+        x: leftX, y: bottomY + 14, size: 7.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
     if (toCity) {
       const cityW = measure(ctx.font, toCity, 7.5);
       ctx.page.drawText(sanitize(toCity), {
-        x: segX + segW - 16 - cityW, y: bottomY + 12, size: 7.5, font: ctx.font, color: COLOR_MUTED,
+        x: segX + segW - 20 - cityW, y: bottomY + 14, size: 7.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
     const depTxt = dep ? `${fmtDateBR(dep)}  ${fmtTime(dep)}` : "";
@@ -883,30 +900,66 @@ const drawFlightLegBlock = (
     if (arrTxt) {
       const w = measure(ctx.fontBold, arrTxt, 8);
       ctx.page.drawText(sanitize(arrTxt), {
-        x: segX + segW - 16 - w, y: bottomY, size: 8, font: ctx.fontBold, color: COLOR_TEXT,
+        x: segX + segW - 20 - w, y: bottomY, size: 8, font: ctx.fontBold, color: COLOR_TEXT,
       });
     }
 
-    cy = segY - 4;
-
+    // Faixa de conexão entre este trecho e o próximo (dentro do mesmo card)
     if (i < segments.length - 1) {
       const nextD = (segments[i + 1].details ?? {}) as Record<string, unknown>;
-      const nextFromCity = String(nextD.from_city ?? nextD.from_iata ?? "").trim();
       const nextDep = String(nextD.depart_at ?? "").trim();
       const layoverText = computeDuration(arr, nextDep);
-      const conText = `${t.conexao} ${nextFromCity || toCity || toIata}${layoverText ? ` - ${layoverText}` : ""}`;
-      const cSize = 8;
-      const cw = measure(ctx.fontBold, conText, cSize) + 20;
-      const ch = 14;
-      const cx = segX + (segW - cw) / 2;
-      const ccy = cy - ch;
-      drawRoundedRect(ctx.page, cx, ccy, cw, ch, COLOR_NAVY_SOFT, 7);
-      ctx.page.drawText(sanitize(conText), {
-        x: cx + 10, y: ccy + 3, size: cSize, font: ctx.fontBold, color: COLOR_NAVY,
+      const conText = ctx.lang === "en"
+        ? `Layover${layoverText ? " " + layoverText : ""}`
+        : `Conexão${layoverText ? " " + layoverText : ""}`;
+
+      // Faixa entre segBotY (bottom deste trecho) e (segBotY - conBandH)
+      const bandTopY = segBotY;
+      const bandBotY = segBotY - conBandH;
+      const dividerY = bandTopY - 4;
+
+      // Linha divisória horizontal
+      ctx.page.drawLine({
+        start: { x: segX + 14, y: dividerY },
+        end: { x: segX + segW - 14, y: dividerY },
+        thickness: 0.6, color: COLOR_BORDER,
       });
-      cy = ccy - 4;
+
+      // Círculo azul com relógio + texto à direita, centralizados no divisor
+      const cSize = 8;
+      const circleR = 9;
+      const gap = 8;
+      const textW = measure(ctx.fontBold, conText, cSize);
+      const groupW = circleR * 2 + gap + textW;
+      const groupX = segX + (segW - groupW) / 2;
+      const circleCX = groupX + circleR;
+      // Círculo com fundo branco para "cortar" a linha
+      ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR + 2, color: COLOR_ROW_ALT });
+      ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR, color: COLOR_NAVY });
+      drawIcon(ctx.page, "clock", circleCX - circleR * 0.55, dividerY - circleR * 0.55, circleR * 1.1, COLOR_WHITE);
+
+      // Fundo branco atrás do texto pra "quebrar" a linha divisória
+      const textPadX = 4;
+      const textBoxY = dividerY - 5;
+      ctx.page.drawRectangle({
+        x: circleCX + circleR + gap - textPadX,
+        y: textBoxY,
+        width: textW + textPadX * 2,
+        height: 10,
+        color: COLOR_ROW_ALT,
+      });
+      ctx.page.drawText(sanitize(conText), {
+        x: circleCX + circleR + gap, y: dividerY - 3, size: cSize, font: ctx.fontBold, color: COLOR_NAVY,
+      });
+
+      void bandBotY;
     }
   });
+
+  // Atualiza cy para depois do card
+  cy = cardBotY - 6;
+
+
 
   // Malinha (luggage-tag) com QR e texto embaixo na coluna direita
   if (qr) {
