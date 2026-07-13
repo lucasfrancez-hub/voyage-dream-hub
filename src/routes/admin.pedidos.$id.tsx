@@ -6,7 +6,7 @@ import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
   Package, Percent, Mail, Printer, CheckCircle2, MoreHorizontal, Signature,
-  Vault, ExternalLink, X, UserPlus,
+  Vault, ExternalLink, X, UserPlus, Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -61,6 +61,64 @@ function orderDetailQO(id: string) {
 
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
+}
+
+function StarsDisplay({ value, className = "" }: { value: number; className?: string }) {
+  const v = Math.max(0, Math.min(5, Number(value) || 0));
+  return (
+    <span className={`inline-flex items-center align-middle ${className}`}>
+      {[0, 1, 2, 3, 4].map((i) => {
+        const fill = Math.max(0, Math.min(1, v - i));
+        return (
+          <span key={i} className="relative inline-block h-3.5 w-3.5">
+            <Star className="absolute inset-0 h-3.5 w-3.5 text-brand-orange/30" />
+            <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
+              <Star className="h-3.5 w-3.5 text-brand-orange fill-brand-orange" />
+            </span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function StarsInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const v = Math.max(0, Math.min(5, Number(value) || 0));
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center">
+        {[0, 1, 2, 3, 4].map((i) => {
+          const fill = Math.max(0, Math.min(1, v - i));
+          return (
+            <div key={i} className="relative h-6 w-6">
+              <Star className="absolute inset-0 h-6 w-6 text-brand-orange/30" />
+              <span className="absolute inset-0 overflow-hidden pointer-events-none" style={{ width: `${fill * 100}%` }}>
+                <Star className="h-6 w-6 text-brand-orange fill-brand-orange" />
+              </span>
+              <button
+                type="button"
+                aria-label={`${i + 0.5} estrelas`}
+                className="absolute left-0 top-0 h-6 w-3 cursor-pointer"
+                onClick={() => onChange(i + 0.5)}
+              />
+              <button
+                type="button"
+                aria-label={`${i + 1} estrelas`}
+                className="absolute right-0 top-0 h-6 w-3 cursor-pointer"
+                onClick={() => onChange(i + 1)}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <span className="text-xs text-muted-foreground tabular-nums">{v ? v.toFixed(1) : "—"}</span>
+      {v > 0 && (
+        <button type="button" onClick={() => onChange(0)} className="text-[10px] text-muted-foreground hover:text-foreground underline">
+          limpar
+        </button>
+      )}
+    </div>
+  );
 }
 
 function OrderDetailPage() {
@@ -1563,9 +1621,9 @@ function HotelReservationCard({
 
         {/* Coluna 2: detalhes */}
         <div className="min-w-0 border-l border-border pl-4">
-          <div className="font-semibold">
-            {item.title}
-            {stars ? <span className="ml-2 text-xs text-brand-orange">{"★".repeat(stars)}</span> : null}
+          <div className="font-semibold flex items-center gap-2 flex-wrap">
+            <span>{item.title}</span>
+            {stars ? <StarsDisplay value={stars} /> : null}
           </div>
           <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
             {destination && <div>{destination}</div>}
@@ -1986,6 +2044,14 @@ function ItemDialog({
 
           {kind === "hotel" ? (
             <>
+              <div>
+                <Label>Categoria (estrelas)</Label>
+                <StarsInput
+                  value={Number(details.hotel_stars ?? 0) || 0}
+                  onChange={(v) => setField("hotel_stars", v === 0 ? "" : String(v))}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">Clique na metade esquerda para meia estrela.</p>
+              </div>
               <div><Label>Endereço</Label><Input value={String(details.address ?? "")} onChange={(e) => setField("address", e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Quarto</Label><Input value={String(details.room ?? "")} onChange={(e) => setField("room", e.target.value)} /></div>
