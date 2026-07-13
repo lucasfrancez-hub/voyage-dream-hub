@@ -1802,9 +1802,12 @@ const drawFooterStrip = (ctx: Ctx) => {
 const drawServiceSection = async (ctx: Ctx, item: OrderItem) => {
   const t = T(ctx);
   const d = (item.details ?? {}) as Record<string, unknown>;
-  const title = String(item.title ?? "").trim() || "-";
-  const category = String(d.category ?? "").trim();
+  const rawTitle = String(item.title ?? "").trim() || "-";
+  const title = ctx.lang === "en" && rawTitle !== "-" ? await translateNotesToEnglish(rawTitle) : rawTitle;
+  const rawCategory = String(d.category ?? "").trim();
+  const category = rawCategory && ctx.lang === "en" ? await translateNotesToEnglish(rawCategory) : rawCategory;
   const supplier = String(d.supplier_name ?? "").trim();
+
   const locator = item.supplier_locator ?? "";
   const dateFrom = String(d.date_from ?? "").trim();
   const timeFrom = String(d.time_from ?? "").trim();
