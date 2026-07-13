@@ -1430,12 +1430,13 @@ function AddPassengerMenu({
 }
 
 function FlightReservationCard({
-  locator, segments, passengers, allPassengers, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
+  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
 }: {
   locator: string | null;
   segments: OrderItem[];
   passengers: OrderPassenger[];
   allPassengers?: OrderPassenger[];
+  packageSnapshot?: unknown;
   onEdit: (it: OrderItem) => void;
   onDelete: (it: OrderItem) => void;
   onCancel: (it: OrderItem) => void;
@@ -1447,6 +1448,30 @@ function FlightReservationCard({
   const first = segments[0];
   const d0 = (first?.details ?? {}) as Record<string, unknown>;
   const supplier = typeof d0.supplier_name === "string" ? (d0.supplier_name as string) : "";
+
+  // Bagagens: agrega de todos os segmentos; se nenhum flag setado, fallback ao packageSnapshot
+  const bags = (() => {
+    let personal = false, carry = false, checked = false;
+    for (const s of segments) {
+      const d = (s.details ?? {}) as Record<string, unknown>;
+      personal ||= !!d.personal_item;
+      carry ||= !!d.carry_on;
+      checked ||= !!d.checked_bag;
+    }
+    if (!personal && !carry && !checked && packageSnapshot && typeof packageSnapshot === "object") {
+      const snap = packageSnapshot as Record<string, unknown>;
+      const dirs = new Set(segments.map((s) => String(((s.details ?? {}) as Record<string, unknown>).direction ?? "outbound")));
+      const sources: Record<string, unknown>[] = [];
+      if (dirs.has("outbound") && snap.outbound_flight && typeof snap.outbound_flight === "object") sources.push(snap.outbound_flight as Record<string, unknown>);
+      if (dirs.has("return") && snap.return_flight && typeof snap.return_flight === "object") sources.push(snap.return_flight as Record<string, unknown>);
+      for (const src of sources) {
+        personal ||= !!src.personal_item;
+        carry ||= !!src.carry_on;
+        checked ||= !!src.checked_bag;
+      }
+    }
+    return { personal, carry, checked, any: personal || carry || checked };
+  })();
   
   return (
     <div className={`rounded-xl border p-4 ${allCancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
