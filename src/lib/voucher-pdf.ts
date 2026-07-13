@@ -1913,9 +1913,7 @@ const drawServiceSection = async (ctx: Ctx, item: OrderItem) => {
     cy -= 6;
     for (const ln of notesLines) {
       if (ln) {
-        ctx.page.drawText(sanitize(ln), {
-          x: innerX, y: cy - 9, size: 9, font: ctx.font, color: COLOR_TEXT,
-        });
+        await drawLineWithEmojis(ctx, innerX, cy - 9, 9, ln, ctx.font, COLOR_TEXT);
       }
       cy -= 12;
     }
