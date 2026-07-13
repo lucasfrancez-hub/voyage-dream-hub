@@ -1974,6 +1974,24 @@ export async function generateVoucher(
     }
   }
 
+  const dateKey = (it: OrderItem, keys: string[]): number => {
+    const d = (it.details ?? {}) as Record<string, unknown>;
+    for (const k of keys) {
+      const v = String(d[k] ?? "").trim();
+      if (v) {
+        const t = Date.parse(v);
+        if (!Number.isNaN(t)) return t;
+      }
+    }
+    return Number.POSITIVE_INFINITY;
+  };
+  outbound.sort((a, b) => dateKey(a, ["depart_at"]) - dateKey(b, ["depart_at"]));
+  returning.sort((a, b) => dateKey(a, ["depart_at"]) - dateKey(b, ["depart_at"]));
+  hotels.sort((a, b) => dateKey(a, ["check_in", "checkin"]) - dateKey(b, ["check_in", "checkin"]));
+  others.sort((a, b) => dateKey(a, ["date_from", "start_date", "service_date", "date"]) - dateKey(b, ["date_from", "start_date", "service_date", "date"]));
+
+
+
   await drawAereoSection(ctx, outbound, returning);
 
   // Monta string de hóspedes a partir dos passageiros (ex.: "2 adultos, 1 criança, 1 bebê")
