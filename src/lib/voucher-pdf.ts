@@ -119,6 +119,10 @@ const L = {
     adulto: "Adulto",
     crianca: "Crianca",
     infantil: "Infantil",
+    servicos: "SERVICOS",
+    saida: "SAIDA",
+    chegada: "CHEGADA",
+    categoria: "Categoria",
   },
   en: {
     voucherId: "VOUCHER ID",
