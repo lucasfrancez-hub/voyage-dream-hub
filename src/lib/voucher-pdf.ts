@@ -871,43 +871,33 @@ const drawFlightLegBlock = (
     const airline = String(d.airline ?? "").trim();
     const flightNo = String(d.flight_number ?? "").trim();
     const cabin = String(d.cabin_class ?? d.cabin ?? "").trim();
-    const logo = airlineLogos?.get(i) ?? null;
 
-    // Região do conteúdo deste trecho (dentro do card único)
+    // Região do conteúdo deste trecho (dentro do card único, à direita da coluna do logo)
     const segTopY = cardTopY - padTop - i * (segContentH + conBandH);
     const segBotY = segTopY - segContentH;
-    const segX = cardX;
-    const segW = cardW;
+    const segX = cardX + segInsetX;
+    const segW = cardW - segInsetX;
 
-    // Pill "Cia - Voo - Cabine" (sem "TRECHO N")
+    // Pill "Cia · Voo · Cabine" (sem logo dentro)
     const pillParts = [airline, flightNo, cabin].filter(Boolean);
     const pillText = pillParts.join(" · ");
     const pillSize = 8;
     const pillTw = measure(ctx.fontBold, pillText, pillSize);
-    const logoInPillW = logo ? 14 : 0;
-    const logoInPillGap = logo ? 6 : 0;
-    const pillW = pillTw + logoInPillW + logoInPillGap + 18;
+    const pillW = pillTw + 18;
     const pillX = segX + (segW - pillW) / 2;
     // Trecho 0: pill straddles a borda superior do card
     // Trechos seguintes: pill centralizada dentro do bloco do trecho, acima das cidades
     const pillCenterY = i === 0 ? cardTopY : segTopY - 2;
     const pillY = pillCenterY - pillH / 2;
     drawRoundedRect(ctx.page, pillX, pillY, pillW, pillH, COLOR_NAVY, 8);
-    let ptx = pillX + 9;
-    if (logo) {
-      const lh = 11;
-      const lw = Math.min((logo.width / logo.height) * lh, logoInPillW);
-      ctx.page.drawImage(logo, { x: ptx, y: pillY + (pillH - lh) / 2, width: lw, height: lh });
-      ptx += lw + logoInPillGap;
-    }
     ctx.page.drawText(sanitize(pillText), {
-      x: ptx, y: pillY + 4, size: pillSize, font: ctx.fontBold, color: COLOR_WHITE,
+      x: pillX + 9, y: pillY + 4, size: pillSize, font: ctx.fontBold, color: COLOR_WHITE,
     });
 
     // IATA + tracejado + avião
     const iataSize = 16;
-    const leftX = segX + 20;
-    const rightX = segX + segW - 20 - measure(ctx.fontBold, toIata, iataSize);
+    const leftX = segX + 12;
+    const rightX = segX + segW - 12 - measure(ctx.fontBold, toIata, iataSize);
     // Empurra as IATAs pra baixo do pill quando o pill fica dentro do bloco
     const iataY = segBotY + segContentH - (i === 0 ? 24 : 30);
     ctx.page.drawText(sanitize(fromIata), {
@@ -955,7 +945,7 @@ const drawFlightLegBlock = (
     if (toCity) {
       const cityW = measure(ctx.font, toCity, 7.5);
       ctx.page.drawText(sanitize(toCity), {
-        x: segX + segW - 20 - cityW, y: bottomY + 14, size: 7.5, font: ctx.font, color: COLOR_MUTED,
+        x: segX + segW - 12 - cityW, y: bottomY + 14, size: 7.5, font: ctx.font, color: COLOR_MUTED,
       });
     }
     const depTxt = dep ? `${fmtDateBR(dep)}  ${fmtTime(dep)}` : "";
@@ -968,7 +958,7 @@ const drawFlightLegBlock = (
     if (arrTxt) {
       const w = measure(ctx.fontBold, arrTxt, 8);
       ctx.page.drawText(sanitize(arrTxt), {
-        x: segX + segW - 20 - w, y: bottomY, size: 8, font: ctx.fontBold, color: COLOR_TEXT,
+        x: segX + segW - 12 - w, y: bottomY, size: 8, font: ctx.fontBold, color: COLOR_TEXT,
       });
     }
 
@@ -988,8 +978,8 @@ const drawFlightLegBlock = (
 
       // Linha divisória horizontal
       ctx.page.drawLine({
-        start: { x: segX + 14, y: dividerY },
-        end: { x: segX + segW - 14, y: dividerY },
+        start: { x: segX + 6, y: dividerY },
+        end: { x: segX + segW - 6, y: dividerY },
         thickness: 0.6, color: COLOR_BORDER,
       });
 
@@ -1006,7 +996,7 @@ const drawFlightLegBlock = (
       ctx.page.drawCircle({ x: circleCX, y: dividerY, size: circleR, color: COLOR_NAVY });
       drawIcon(ctx.page, "clock", circleCX - circleR * 0.55, dividerY - circleR * 0.55, circleR * 1.1, COLOR_WHITE);
 
-      // Fundo branco atrás do texto pra "quebrar" a linha divisória
+      // Fundo cinza atrás do texto pra "quebrar" a linha divisória
       const textPadX = 4;
       const textBoxY = dividerY - 5;
       ctx.page.drawRectangle({
@@ -1023,6 +1013,7 @@ const drawFlightLegBlock = (
       void bandBotY;
     }
   });
+
 
   // Atualiza cy para depois do card
   cy = cardBotY - 6;
