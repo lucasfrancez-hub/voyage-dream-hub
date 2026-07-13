@@ -889,6 +889,20 @@ const renderFlightGroup = (ctx: Ctx, dir: "outbound" | "return", items: OrderIte
   const label = dir === "return"
     ? `${t.flight} — ${ctx.lang === "pt" ? "Volta" : "Return"}`
     : `${t.flight} — ${ctx.lang === "pt" ? "Ida" : "Outbound"}`;
+  // Ordena os trechos cronologicamente pela partida — garante que a conexão
+  // apareça logo após o trecho anterior mesmo se o sort_order estiver fora.
+  const depTs = (it: OrderItem): number => {
+    const dd = (it.details ?? {}) as Record<string, unknown>;
+    const raw = String(dd.depart_at ?? dd.departure ?? "").trim();
+    const ts = raw ? Date.parse(raw) : NaN;
+    return Number.isFinite(ts) ? ts : Number.POSITIVE_INFINITY;
+  };
+  items = [...items].sort((a, b) => {
+    const da = depTs(a);
+    const db = depTs(b);
+    if (da !== db) return da - db;
+    return a.sort_order - b.sort_order;
+  });
   // Localizador (primeiro que tiver)
   const locator = items.map(i => i.supplier_locator).find(Boolean) ?? "";
   drawSectionPill(ctx, label, {
