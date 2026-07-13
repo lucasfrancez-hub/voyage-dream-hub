@@ -2044,6 +2044,14 @@ function ItemDialog({
 
           {kind === "hotel" ? (
             <>
+              <div>
+                <Label>Categoria (estrelas)</Label>
+                <StarsInput
+                  value={Number(details.hotel_stars ?? 0) || 0}
+                  onChange={(v) => setField("hotel_stars", v === 0 ? "" : String(v))}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">Clique na metade esquerda para meia estrela.</p>
+              </div>
               <div><Label>Endereço</Label><Input value={String(details.address ?? "")} onChange={(e) => setField("address", e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Quarto</Label><Input value={String(details.room ?? "")} onChange={(e) => setField("room", e.target.value)} /></div>
