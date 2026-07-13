@@ -707,52 +707,28 @@ const renderHotelItem = async (
     ctx.y -= 4;
   }
 
-  // Mapa + QR
-  if (mapData && (mapData.mapPngBase64 || mapData.mapsUrl)) {
+  // Mapa (largura cheia, sem QR ao lado — QR já foi renderizado ao lado do nome)
+  if (mapData && mapData.mapPngBase64) {
     ensureSpace(ctx, 200);
     const boxTop = ctx.y;
     const boxH = 180;
-    const mapW = 340;
-    const mapH = boxH;
-    const qrSize = 110;
-
-    if (mapData.mapPngBase64) {
-      try {
-        const bytes = base64ToBytes(mapData.mapPngBase64);
-        const img = await ctx.pdf.embedPng(bytes);
-        const ratio = img.width / img.height;
-        let w = mapW;
-        let h = w / ratio;
-        if (h > mapH) { h = mapH; w = h * ratio; }
-        ctx.page.drawImage(img, { x: MARGIN, y: boxTop - h, width: w, height: h });
-        ctx.page.drawRectangle({
-          x: MARGIN, y: boxTop - h, width: w, height: h,
-          borderColor: COLOR_BORDER, borderWidth: 0.5,
-        });
-      } catch (e) {
-        console.error("embed map failed", e);
-      }
+    try {
+      const bytes = base64ToBytes(mapData.mapPngBase64);
+      const img = await ctx.pdf.embedPng(bytes);
+      const ratio = img.width / img.height;
+      let w = CONTENT_W;
+      let h = w / ratio;
+      if (h > boxH) { h = boxH; w = h * ratio; }
+      const x = MARGIN + (CONTENT_W - w) / 2;
+      ctx.page.drawImage(img, { x, y: boxTop - h, width: w, height: h });
+      ctx.page.drawRectangle({
+        x, y: boxTop - h, width: w, height: h,
+        borderColor: COLOR_BORDER, borderWidth: 0.5,
+      });
+      ctx.y = boxTop - h - 14;
+    } catch (e) {
+      console.error("embed map failed", e);
     }
-
-    const qrX = MARGIN + mapW + 30;
-    if (mapData.mapsUrl) {
-      try {
-        const qrDataUrl = await QRCode.toDataURL(mapData.mapsUrl, {
-          margin: 1, width: 300, color: { dark: "#0B286A", light: "#FFFFFF" },
-        });
-        const qrBase64 = qrDataUrl.split(",")[1];
-        const qrBytes = base64ToBytes(qrBase64);
-        const qrImg = await ctx.pdf.embedPng(qrBytes);
-        const qy = boxTop - 10 - qrSize;
-        ctx.page.drawImage(qrImg, { x: qrX, y: qy, width: qrSize, height: qrSize });
-        drawText(ctx, t.scanForMap, qrX, { y: qy - 10, size: 7.5, color: COLOR_MUTED });
-        drawText(ctx, t.openMap, qrX, { y: qy - 22, size: 7.5, bold: true, color: COLOR_BRAND_BLUE });
-      } catch (e) {
-        console.error("qr failed", e);
-      }
-    }
-
-    ctx.y = boxTop - boxH - 18;
   }
 
   // Galeria de fotos do TripAdvisor
