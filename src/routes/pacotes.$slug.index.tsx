@@ -183,17 +183,14 @@ function PackageDetails() {
                       </div>
                     )}
                     {taUrl && (
-                      <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
-                        <span className="text-[11px] text-muted-foreground">
-                          Fotos e informações via TripAdvisor
-                        </span>
+                      <div className="mt-3 flex justify-end">
                         <a
                           href={taUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-medium text-brand-orange hover:bg-brand-orange/20 transition"
                         >
-                          Ver mais no TripAdvisor <ArrowRight className="h-3.5 w-3.5" />
+                          Ver mais <ArrowRight className="h-3.5 w-3.5" />
                         </a>
                       </div>
                     )}
