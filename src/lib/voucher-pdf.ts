@@ -739,17 +739,7 @@ const drawFlightLegBlock = (
       x: infoTextX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_NAVY,
     });
   }
-  if (ticket) {
-    const startX = infoTextX + (locator ? measure(ctx.font, `${t.localizador}: `, 9) + measure(ctx.fontBold, locator, 9) + 18 : 0);
-    const lab = `${t.bilhete}: `;
-    const labW = measure(ctx.font, lab, 9);
-    ctx.page.drawText(sanitize(lab), {
-      x: startX, y: chipY + 5, size: 9, font: ctx.font, color: COLOR_MUTED,
-    });
-    ctx.page.drawText(sanitize(ticket), {
-      x: startX + labW, y: chipY + 5, size: 9, font: ctx.fontBold, color: COLOR_ORANGE,
-    });
-  }
+  void ticket;
 
   let cy = chipY - 10;
   const segmentsTopY = cy;
