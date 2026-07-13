@@ -1128,24 +1128,40 @@ const drawAereoSection = async (
 };
 
 // ---------- Hospedagem ----------
-const fetchImageBytes = async (url: string): Promise<Uint8Array | null> => {
+const fetchImageBytes = async (url: string): Promise<{ bytes: Uint8Array; contentType: string } | null> => {
   try {
     const r = await fetch(url, { mode: "cors" });
-    if (!r.ok) return null;
-    return new Uint8Array(await r.arrayBuffer());
-  } catch {
+    if (!r.ok) {
+      console.warn("fetchImageBytes: HTTP", r.status, url);
+      return null;
+    }
+    const contentType = (r.headers.get("content-type") ?? "").toLowerCase();
+    return { bytes: new Uint8Array(await r.arrayBuffer()), contentType };
+  } catch (e) {
+    console.warn("fetchImageBytes: failed", url, e);
     return null;
   }
 };
 
 const embedRemotePhoto = async (pdf: PDFDocument, url: string): Promise<PDFImage | null> => {
-  const bytes = await fetchImageBytes(url);
-  if (!bytes) return null;
+  const res = await fetchImageBytes(url);
+  if (!res) return null;
+  const { bytes, contentType } = res;
+  const isPngUrl = /\.png(\?|$)/i.test(url) || contentType.includes("png");
+  const isSvg = contentType.includes("svg") || /\.svg(\?|$)/i.test(url);
+  if (isSvg) {
+    console.warn("embedRemotePhoto: SVG images not supported by pdf-lib", url);
+    return null;
+  }
   try {
-    if (/\.png(\?|$)/i.test(url)) return await pdf.embedPng(bytes);
-    return await pdf.embedJpg(bytes);
+    return isPngUrl ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
   } catch {
-    try { return await pdf.embedPng(bytes); } catch { return null; }
+    try { return await pdf.embedPng(bytes); } catch {
+      try { return await pdf.embedJpg(bytes); } catch (e) {
+        console.warn("embedRemotePhoto: could not embed", url, e);
+        return null;
+      }
+    }
   }
 };
 
