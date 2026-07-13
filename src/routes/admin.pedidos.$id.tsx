@@ -230,6 +230,18 @@ function OrderDetailPage() {
             <div className="mt-1 text-2xl font-display font-bold">{order.fullName}</div>
             <div className="text-sm text-muted-foreground">{order.email} · {order.phone}</div>
             {order.cpf && <div className="text-xs text-muted-foreground mt-0.5">CPF {order.cpf}</div>}
+            <div className="mt-2 max-w-md">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Título da viagem (aparece no voucher)</Label>
+              <Input
+                defaultValue={order.tripTitle ?? ""}
+                placeholder="Ex: Pacote para São Paulo"
+                className="mt-1 h-8 text-sm"
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if ((v || null) !== (order.tripTitle ?? null)) metaMut.mutate({ trip_title: v || null });
+                }}
+              />
+            </div>
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Total</div>
