@@ -996,7 +996,7 @@ const drawFlightLegBlock = (
       const dSize = 7;
       const dw = measure(ctx.fontBold, dLbl, dSize);
       ctx.page.drawText(sanitize(dLbl), {
-        x: planeCX - dw / 2, y: midY - 14, size: dSize, font: ctx.fontBold, color: COLOR_NAVY,
+        x: planeCX - dw / 2, y: midY - 22, size: dSize, font: ctx.fontBold, color: COLOR_NAVY,
       });
     }
 
