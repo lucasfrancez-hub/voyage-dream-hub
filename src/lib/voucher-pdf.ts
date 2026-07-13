@@ -773,12 +773,6 @@ const renderHotelItem = async (
       drawText(ctx, lines[i], MARGIN, { size: 9.5, color: COLOR_TEXT });
       ctx.y -= 12;
     }
-    if (taUrl) {
-      drawText(ctx, ctx.lang === "pt" ? "Fonte: TripAdvisor" : "Source: TripAdvisor", MARGIN, {
-        size: 7.5, color: COLOR_MUTED,
-      });
-      ctx.y -= 12;
-    }
     ctx.y -= 4;
   }
 
