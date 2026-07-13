@@ -1156,7 +1156,7 @@ const drawInfoAndEmergency = (ctx: Ctx) => {
   ctx.page.drawCircle({ x: rightX + 22, y: cy + 8, size: 12, color: COLOR_RED });
   drawIcon(ctx.page, "phone", rightX + 22 - 5, cy + 2, 10, COLOR_WHITE);
   ctx.page.drawText(sanitize(t.emerg), {
-    x: rightX + 44, y: cy + 4, size: 13, font: ctx.fontBold, color: COLOR_RED,
+    x: rightX + 44, y: cy + 4, size: 11.5, font: ctx.fontBold, color: COLOR_RED,
   });
 
   const eLines = wrap(ctx.font, 9, t.emergText, colW - 30);
