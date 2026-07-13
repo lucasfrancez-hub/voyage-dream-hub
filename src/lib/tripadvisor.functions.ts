@@ -138,5 +138,6 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
       phone: phones?.[0]?.value ?? null,
       website: websites?.[0]?.url ?? null,
       photos,
+      description: (det.description as string | undefined) ?? null,
     };
   });
