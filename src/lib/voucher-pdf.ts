@@ -162,6 +162,10 @@ const L = {
     adulto: "Adult",
     crianca: "Child",
     infantil: "Infant",
+    servicos: "SERVICES",
+    saida: "DEPARTURE",
+    chegada: "ARRIVAL",
+    categoria: "Category",
   },
 } as const;
 
