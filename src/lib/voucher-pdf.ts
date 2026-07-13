@@ -1548,9 +1548,19 @@ const drawHotelSection = async (
     ctx.page.drawText(sanitize(c.label), {
       x: x + 14, y: infoY + 16, size: 7, font: ctx.fontBold, color: COLOR_MUTED,
     });
-    ctx.page.drawText(sanitize(c.value), {
-      x, y: infoY, size: 10, font: ctx.fontBold, color: COLOR_TEXT,
-    });
+    // Para hóspedes: quebra em linhas por vírgula (adultos primeiro, crianças/bebês embaixo)
+    if (c.icon === "users" && c.value.includes(",")) {
+      const parts = c.value.split(",").map((s) => s.trim()).filter(Boolean);
+      parts.forEach((p, idx) => {
+        ctx.page.drawText(sanitize(p), {
+          x, y: infoY - idx * 11, size: 9, font: ctx.fontBold, color: COLOR_TEXT,
+        });
+      });
+    } else {
+      ctx.page.drawText(sanitize(c.value), {
+        x, y: infoY, size: 10, font: ctx.fontBold, color: COLOR_TEXT,
+      });
+    }
   });
 
   // QR (direita)
