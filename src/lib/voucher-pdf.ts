@@ -470,6 +470,21 @@ const drawStars = (page: PDFPage, x: number, y: number, value: number, size = 10
   }
 };
 
+// Pin de mapa desenhado com vetores (gota + círculo interno)
+const drawMapPin = (page: PDFPage, x: number, y: number, size = 12) => {
+  const r = size / 2;
+  const cx = x + r;
+  const cyHead = y + size - r;
+  // "gota": círculo (cabeça) + triângulo (ponta) apontando pra baixo
+  page.drawCircle({ x: cx, y: cyHead, size: r, color: COLOR_BRAND_ORANGE });
+  const tipY = y - r * 0.6;
+  page.drawLine({ start: { x: cx - r * 0.75, y: cyHead - r * 0.55 }, end: { x: cx, y: tipY }, thickness: 1.2, color: COLOR_BRAND_ORANGE });
+  page.drawLine({ start: { x: cx + r * 0.75, y: cyHead - r * 0.55 }, end: { x: cx, y: tipY }, thickness: 1.2, color: COLOR_BRAND_ORANGE });
+  page.drawLine({ start: { x: cx - r * 0.75, y: cyHead - r * 0.55 }, end: { x: cx + r * 0.75, y: cyHead - r * 0.55 }, thickness: 1.2, color: COLOR_BRAND_ORANGE });
+  // furo branco no centro
+  page.drawCircle({ x: cx, y: cyHead + 0.5, size: r * 0.38, color: COLOR_WHITE });
+};
+
 // ---------- Item renderers ----------
 const renderHotelItem = async (
   ctx: Ctx,
