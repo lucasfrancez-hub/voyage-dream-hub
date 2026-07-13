@@ -1942,9 +1942,9 @@ function ItemDialog({
   };
 
   const renderFlightSegment = (
-    d: Record<string, string | number>,
+    d: Record<string, string | number | boolean>,
     label: string,
-    onChangeField: (k: string, v: string) => void,
+    onChangeField: (k: string, v: string | boolean) => void,
     onRemove?: () => void,
   ) => (
     <div className="rounded-lg border border-border/60 p-3 space-y-3">
