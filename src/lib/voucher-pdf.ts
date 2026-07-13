@@ -1324,11 +1324,14 @@ const drawHotelSection = async (
   const checkout = String(d.check_out ?? d.checkout ?? "").trim();
   const nights = String(d.nights ?? (checkin && checkout ? String(diffDays(checkin, checkout)) : "")).trim();
   const rawGuests = String(d.guests ?? "").trim();
-  const guests = rawGuests && rawGuests !== "null" && rawGuests !== "undefined"
+  const rawGuestsResolved = rawGuests && rawGuests !== "null" && rawGuests !== "undefined"
     ? rawGuests
     : (guestsFallback || "-");
+  const guests = ctx.lang === "en" ? translateGuestsPtToEn(rawGuestsResolved) : rawGuestsResolved;
   const locator = item.supplier_locator ?? "";
-  const notes = String(d.notes ?? "").trim();
+  const rawNotes = String(d.notes ?? "").trim();
+  const notes = rawNotes ? (ctx.lang === "en" ? await translateNotesToEnglish(rawNotes) : rawNotes) : "";
+
 
   // Uma única foto (a primeira do TripAdvisor, se houver)
   let photoUrl = "";
