@@ -1283,8 +1283,8 @@ const drawHotelSection = async (
   const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 16) : [];
   const notesBlockH = notes ? 20 + notesLines.length * 12 + 10 : 0;
 
-  const topBlockH = Math.max(photo ? photoH + 8 : 0, qrSize + 30, 96);
-  const cardH = topBlockH + notesBlockH + 20;
+  const topBlockH = Math.max(photo ? photoH + 8 : 0, qrSize + 30, 110);
+  const cardH = topBlockH + notesBlockH + 24;
 
   const { top } = openSectionCard(ctx, cardH + 20);
   const headerBottom = drawSectionHeader(ctx, top, "bed", t.hospedagem);
@@ -1294,15 +1294,16 @@ const drawHotelSection = async (
     const chipText = `${t.localizador}: ${locator}`;
     const chipSize = 9;
     const chipTw = measure(ctx.fontBold, chipText, chipSize);
-    const chipW = chipTw + 18;
-    const chipH = 18;
-    const chipX = MARGIN + CONTENT_W - 16 - chipW;
-    const chipY = top - 20;
+    const chipW = chipTw + 24;
+    const chipH = 20;
+    const chipX = MARGIN + CONTENT_W - 24 - chipW;
+    const chipY = top - 22;
     drawRoundedRect(ctx.page, chipX, chipY, chipW, chipH, COLOR_NAVY_SOFT, 6);
     ctx.page.drawText(sanitize(chipText), {
-      x: chipX + 9, y: chipY + 5, size: chipSize, font: ctx.fontBold, color: COLOR_NAVY,
+      x: chipX + 12, y: chipY + 6, size: chipSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
   }
+
 
   let cy = headerBottom - 16;
 
