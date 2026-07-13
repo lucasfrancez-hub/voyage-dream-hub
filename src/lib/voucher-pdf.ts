@@ -1280,11 +1280,12 @@ const drawHotelSection = async (
   const midW = innerW - (photo ? photoW + gapPhoto : 0) - qrSize - 24;
 
   // Pre-compute notes wrapping to size the card
-  const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 16) : [];
-  const notesBlockH = notes ? 20 + notesLines.length * 12 + 10 : 0;
+  const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 28) : [];
+  const notesBlockH = notes ? 22 + notesLines.length * 13 + 14 + 10 : 0;
 
-  const topBlockH = Math.max(photo ? photoH + 8 : 0, qrSize + 30, 96);
-  const cardH = topBlockH + notesBlockH + 20;
+
+  const topBlockH = Math.max(photo ? photoH + 8 : 0, qrSize + 30, 110);
+  const cardH = topBlockH + notesBlockH + 24;
 
   const { top } = openSectionCard(ctx, cardH + 20);
   const headerBottom = drawSectionHeader(ctx, top, "bed", t.hospedagem);
@@ -1294,15 +1295,16 @@ const drawHotelSection = async (
     const chipText = `${t.localizador}: ${locator}`;
     const chipSize = 9;
     const chipTw = measure(ctx.fontBold, chipText, chipSize);
-    const chipW = chipTw + 18;
-    const chipH = 18;
-    const chipX = MARGIN + CONTENT_W - 16 - chipW;
-    const chipY = top - 20;
+    const chipW = chipTw + 24;
+    const chipH = 20;
+    const chipX = MARGIN + CONTENT_W - 24 - chipW;
+    const chipY = top - 22;
     drawRoundedRect(ctx.page, chipX, chipY, chipW, chipH, COLOR_NAVY_SOFT, 6);
     ctx.page.drawText(sanitize(chipText), {
-      x: chipX + 9, y: chipY + 5, size: chipSize, font: ctx.fontBold, color: COLOR_NAVY,
+      x: chipX + 12, y: chipY + 6, size: chipSize, font: ctx.fontBold, color: COLOR_NAVY,
     });
   }
+
 
   let cy = headerBottom - 16;
 
@@ -1339,7 +1341,8 @@ const drawHotelSection = async (
   }
 
   // Info row (abaixo do nome/endereço no meio)
-  const infoY = my - 24;
+  const infoY = my - 34;
+
   const cols = 4;
   const colW = midW / cols;
   const cells: Array<{ label: string; value: string; icon: IconKind }> = [
@@ -1385,22 +1388,26 @@ const drawHotelSection = async (
   // Política do hotel (notes)
   if (notes) {
     const boxTop = cy;
-    const boxH = 18 + notesLines.length * 12 + 8;
+    const padX = 14;
+    const padTop = 22;
+    const padBot = 14;
+    const boxH = padTop + notesLines.length * 13 + padBot;
     const boxY = boxTop - boxH;
     drawRoundedRect(ctx.page, innerX, boxY, innerW, boxH, COLOR_NAVY_SOFT, 6);
-    drawIcon(ctx.page, "info", innerX + 10, boxTop - 14, 10, COLOR_NAVY);
+    drawIcon(ctx.page, "info", innerX + padX, boxTop - 16, 10, COLOR_NAVY);
     ctx.page.drawText(sanitize(t.politicaHotel), {
-      x: innerX + 24, y: boxTop - 12, size: 8, font: ctx.fontBold, color: COLOR_NAVY,
+      x: innerX + padX + 14, y: boxTop - 14, size: 8, font: ctx.fontBold, color: COLOR_NAVY,
     });
-    let ny = boxTop - 26;
+    let ny = boxTop - padTop - 9;
     for (const ln of notesLines) {
       ctx.page.drawText(sanitize(ln), {
-        x: innerX + 10, y: ny, size: 9, font: ctx.font, color: COLOR_TEXT,
+        x: innerX + padX, y: ny, size: 9, font: ctx.font, color: COLOR_TEXT,
       });
-      ny -= 12;
+      ny -= 13;
     }
     cy = boxY - 6;
   }
+
 
   closeSectionCard(ctx, top, cy);
 };
