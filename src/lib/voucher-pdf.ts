@@ -787,13 +787,29 @@ const drawNicePlane = (
   const nativeW = 576;
   const nativeH = 552;
   const scale = w / nativeW;
-  page.drawSvgPath(path, {
-    x: cx - (nativeW / 2) * scale * (flip ? -1 : 1),
-    y: cy + (nativeH / 2) * scale,
-    scale: flip ? -scale : scale,
-    color,
-  });
+  if (flip) {
+    // Espelha apenas no eixo X, mantendo o eixo Y intacto (mirror sobre x=cx).
+    page.pushOperators(
+      pushGraphicsState(),
+      concatTransformationMatrix(-1, 0, 0, 1, 2 * cx, 0),
+    );
+    page.drawSvgPath(path, {
+      x: cx - (nativeW / 2) * scale,
+      y: cy + (nativeH / 2) * scale,
+      scale,
+      color,
+    });
+    page.pushOperators(popGraphicsState());
+  } else {
+    page.drawSvgPath(path, {
+      x: cx - (nativeW / 2) * scale,
+      y: cy + (nativeH / 2) * scale,
+      scale,
+      color,
+    });
+  }
 };
+
 
 
 const drawFlightLegBlock = (
