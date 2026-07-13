@@ -1765,11 +1765,6 @@ function HotelReservationCard({
                           {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
                         </div>
                       )}
-                      {p.ticket_number && (
-                        <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                          <Hash className="inline h-2.5 w-2.5" /> {p.ticket_number}
-                        </div>
-                      )}
                     </div>
                     {onUnlink && <UnlinkButton onClick={() => onUnlink(p.id, item.id)} />}
                   </div>
