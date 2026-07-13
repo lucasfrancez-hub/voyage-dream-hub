@@ -550,7 +550,7 @@ const drawVoucherIdCard = (ctx: Ctx) => {
   drawIcon(ctx.page, "ticket", MARGIN + 14, y + (h - 14) / 2, 14, COLOR_WHITE);
   const label = `${t.voucherId}: ${ctx.order.orderNumber}`;
   ctx.page.drawText(sanitize(label), {
-    x: MARGIN + 40, y: y + 12, size: 13, font: ctx.fontBold, color: COLOR_WHITE,
+    x: MARGIN + 40, y: y + 12, size: 12, font: ctx.fontBold, color: COLOR_WHITE,
   });
   ctx.y = y - 10;
 };
