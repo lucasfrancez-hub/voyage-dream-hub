@@ -870,6 +870,7 @@ const renderOtherItem = (ctx: Ctx, item: OrderItem) => {
 
   ensureSpace(ctx, 90);
   drawSectionPill(ctx, t.service, {
+    icon: "service",
     rightPill: locator ? `${t.reservation}: ${locator}` : undefined,
   });
 
