@@ -1449,29 +1449,29 @@ function FlightReservationCard({
   const d0 = (first?.details ?? {}) as Record<string, unknown>;
   const supplier = typeof d0.supplier_name === "string" ? (d0.supplier_name as string) : "";
 
-  // Bagagens: agrega de todos os segmentos; se nenhum flag setado, fallback ao packageSnapshot
-  const bags = (() => {
-    let personal = false, carry = false, checked = false;
-    for (const s of segments) {
-      const d = (s.details ?? {}) as Record<string, unknown>;
-      personal ||= !!d.personal_item;
-      carry ||= !!d.carry_on;
-      checked ||= !!d.checked_bag;
-    }
-    if (!personal && !carry && !checked && packageSnapshot && typeof packageSnapshot === "object") {
-      const snap = packageSnapshot as Record<string, unknown>;
-      const dirs = new Set(segments.map((s) => String(((s.details ?? {}) as Record<string, unknown>).direction ?? "outbound")));
-      const sources: Record<string, unknown>[] = [];
-      if (dirs.has("outbound") && snap.outbound_flight && typeof snap.outbound_flight === "object") sources.push(snap.outbound_flight as Record<string, unknown>);
-      if (dirs.has("return") && snap.return_flight && typeof snap.return_flight === "object") sources.push(snap.return_flight as Record<string, unknown>);
-      for (const src of sources) {
-        personal ||= !!src.personal_item;
-        carry ||= !!src.carry_on;
-        checked ||= !!src.checked_bag;
+  // Bagagens por segmento: usa flags do próprio trecho; se ausentes, cai no packageSnapshot
+  // (outbound_flight/return_flight) conforme a direção do trecho.
+  const snap = (packageSnapshot && typeof packageSnapshot === "object")
+    ? (packageSnapshot as Record<string, unknown>) : null;
+  const bagsFor = (seg: OrderItem) => {
+    const d = (seg.details ?? {}) as Record<string, unknown>;
+    let personal = !!d.personal_item;
+    let carry = !!d.carry_on;
+    let checked = !!d.checked_bag;
+    if (!personal && !carry && !checked && snap) {
+      const dir = String(d.direction ?? "outbound");
+      const src = dir === "return" ? snap.return_flight : snap.outbound_flight;
+      if (src && typeof src === "object") {
+        const s = src as Record<string, unknown>;
+        personal ||= !!s.personal_item;
+        carry ||= !!s.carry_on;
+        checked ||= !!s.checked_bag;
       }
     }
     return { personal, carry, checked, any: personal || carry || checked };
-  })();
+  };
+
+
   
   return (
     <div className={`rounded-xl border p-4 ${allCancelled ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"}`}>
