@@ -1884,6 +1884,11 @@ export async function generateVoucher(
     await drawHotelSection(ctx, h, mapData, guestsFallbackStr);
   }
 
+  // Serviços (transfers, ingressos, transporte terrestre, etc.)
+  for (const s of others) {
+    drawServiceSection(ctx, s);
+  }
+
   drawInfoAndEmergency(ctx);
   drawFooterStrip(ctx);
 
