@@ -2167,23 +2167,6 @@ function ItemDialog({
               />
               <p className="mt-1 text-[11px] text-muted-foreground">Visível só pra você. Não aparece no voucher do cliente.</p>
             </div>
-            {kind === "flight" && (
-              <div>
-                <Label>Bilhete</Label>
-                <Input
-                  value={String(details.ticket_number ?? "")}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 13);
-                    const formatted = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3)}` : digits;
-                    setField("ticket_number", formatted);
-                  }}
-                  placeholder="Bilhete"
-                  maxLength={14}
-                  inputMode="numeric"
-                />
-                <p className="mt-1 text-[11px] text-muted-foreground">13 dígitos (formato 000-0000000000). Deixe em branco se ainda não emitiu.</p>
-              </div>
-            )}
 
           </div>
 
