@@ -1992,7 +1992,7 @@ function ItemDialog({
                         const next = { ...p };
                         next.hotel_name = h.name;
                         if (h.address) next.address = h.address;
-                        if (h.rating != null && !p.hotel_stars) next.hotel_stars = String(Math.round(h.rating));
+                        if (h.rating != null) next.hotel_stars = String(Math.round(h.rating));
                         if (h.latitude != null) next.latitude = String(h.latitude);
                         if (h.longitude != null) next.longitude = String(h.longitude);
                         next.tripadvisor_location_id = String(h.location_id);
