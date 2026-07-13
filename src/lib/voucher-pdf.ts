@@ -470,6 +470,21 @@ const drawStars = (page: PDFPage, x: number, y: number, value: number, size = 10
   }
 };
 
+// Pin de mapa desenhado com vetores (gota + círculo interno)
+const drawMapPin = (page: PDFPage, x: number, y: number, size = 12) => {
+  const r = size / 2;
+  const cx = x + r;
+  const cyHead = y + size - r;
+  // "gota": círculo (cabeça) + triângulo (ponta) apontando pra baixo
+  page.drawCircle({ x: cx, y: cyHead, size: r, color: COLOR_BRAND_ORANGE });
+  const tipY = y - r * 0.6;
+  page.drawLine({ start: { x: cx - r * 0.75, y: cyHead - r * 0.55 }, end: { x: cx, y: tipY }, thickness: 1.2, color: COLOR_BRAND_ORANGE });
+  page.drawLine({ start: { x: cx + r * 0.75, y: cyHead - r * 0.55 }, end: { x: cx, y: tipY }, thickness: 1.2, color: COLOR_BRAND_ORANGE });
+  page.drawLine({ start: { x: cx - r * 0.75, y: cyHead - r * 0.55 }, end: { x: cx + r * 0.75, y: cyHead - r * 0.55 }, thickness: 1.2, color: COLOR_BRAND_ORANGE });
+  // furo branco no centro
+  page.drawCircle({ x: cx, y: cyHead + 0.5, size: r * 0.38, color: COLOR_WHITE });
+};
+
 // ---------- Item renderers ----------
 const renderHotelItem = async (
   ctx: Ctx,
@@ -506,15 +521,22 @@ const renderHotelItem = async (
     drawStars(ctx.page, MARGIN + titleW + 10, ctx.y + 4, stars, 10);
   }
 
-  // Endereço
+  // Endereço com pin de mapa
   if (address) {
-    const addrLines = wrap(ctx.font, 9.5, address, CONTENT_W);
-    for (const ln of addrLines.slice(0, 2)) {
-      drawText(ctx, ln, MARGIN, { size: 9.5, color: COLOR_MUTED });
+    const pinSize = 11;
+    const pinGap = 6;
+    const addrX = MARGIN + pinSize + pinGap;
+    const addrW = CONTENT_W - pinSize - pinGap;
+    const addrLines = wrap(ctx.font, 9.5, address, addrW);
+    // pin alinhado à primeira linha
+    drawMapPin(ctx.page, MARGIN, ctx.y - 2, pinSize);
+    for (let i = 0; i < Math.min(addrLines.length, 2); i++) {
+      drawText(ctx, addrLines[i], addrX, { size: 9.5, color: COLOR_MUTED });
       ctx.y -= 12;
     }
     ctx.y -= 2;
   }
+
 
   // Linha de dados essenciais em 4 blocos "Rótulo: valor"
   const colW = CONTENT_W / 4;
