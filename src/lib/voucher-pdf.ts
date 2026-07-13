@@ -581,10 +581,10 @@ const drawSectionHeader = (
   drawIcon(ctx.page, icon, MARGIN + 22 - 6, cy + 2, 12, COLOR_WHITE);
   // Título
   ctx.page.drawText(sanitize(title), {
-    x: MARGIN + 44, y: cy + 4, size: 13, font: ctx.fontBold, color: COLOR_NAVY,
+    x: MARGIN + 44, y: cy + 4, size: 11.5, font: ctx.fontBold, color: COLOR_NAVY,
   });
   if (rightText) {
-    const size = 10;
+    const size = 9;
     const tw = measure(ctx.fontBold, rightText, size);
     ctx.page.drawText(sanitize(rightText), {
       x: MARGIN + CONTENT_W - 16 - tw, y: cy + 6, size, font: ctx.fontBold, color: COLOR_NAVY,
