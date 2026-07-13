@@ -451,7 +451,7 @@ const drawSectionPill = (
   opts?: { color?: Color; rightPill?: string; icon?: IconKind },
 ) => {
   ensureSpace(ctx, 40);
-  const bg = opts?.color ?? COLOR_BRAND_BLUE;
+  const bg = opts?.color ?? COLOR_BRAND_ORANGE;
   const h = 28;
   const pad = 16;
   const size = 13;
@@ -806,7 +806,7 @@ const renderHotelItem = async (
   if (policies) {
     ensureSpace(ctx, 50);
     drawSectionPill(ctx, ctx.lang === "pt" ? "Políticas do hotel" : "Hotel policies", {
-      icon: "policy", color: COLOR_BRAND_BLUE_SOFT,
+      icon: "policy",
     });
     const lines = wrap(ctx.font, 9.5, policies, CONTENT_W - 10);
     for (const ln of lines) {
@@ -989,7 +989,7 @@ export async function generateVoucher(
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const fontDisplay = await pdf.embedFont(StandardFonts.TimesRomanBold);
+  const fontDisplay = await pdf.embedFont(StandardFonts.HelveticaBold);
   const logo = await fetchLogo(pdf);
 
   const firstPage = pdf.addPage([A4.w, A4.h]);
