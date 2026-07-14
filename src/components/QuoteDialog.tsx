@@ -40,6 +40,8 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pixAsk, setPixAsk] = useState<null | "copy" | "web" | "pdf" | "wa">(null);
+
 
   useEffect(() => {
     if (!open) return;
