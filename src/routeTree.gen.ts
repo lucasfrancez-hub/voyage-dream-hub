@@ -14,6 +14,7 @@ import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as MinhasReservasRouteImport } from './routes/minhas-reservas'
+import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -37,6 +38,7 @@ import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
+import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
@@ -69,6 +71,11 @@ const PacotesRoute = PacotesRouteImport.update({
 const MinhasReservasRoute = MinhasReservasRouteImport.update({
   id: '/minhas-reservas',
   path: '/minhas-reservas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -187,6 +194,11 @@ const ApiPublicClicksignWebhookRoute =
     path: '/api/public/clicksign-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiChatCamilaRoute = ApiChatCamilaRouteImport.update({
+  id: '/api/chat/camila',
+  path: '/api/chat/camila',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminPessoasIdRoute = AdminPessoasIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -235,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/chat': typeof ChatRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
@@ -257,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
+  '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -273,6 +287,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/chat': typeof ChatRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
@@ -294,6 +309,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
+  '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -311,6 +327,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/chat': typeof ChatRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
@@ -333,6 +350,7 @@ export interface FileRoutesById {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
+  '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -351,6 +369,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/chat'
     | '/minhas-reservas'
     | '/pacotes'
     | '/pagar'
@@ -373,6 +392,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
+    | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/lovable/email/suppression'
@@ -389,6 +409,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/chat'
     | '/minhas-reservas'
     | '/pagar'
     | '/pagar-boleto'
@@ -410,6 +431,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
+    | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/lovable/email/suppression'
@@ -426,6 +448,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/chat'
     | '/minhas-reservas'
     | '/pacotes'
     | '/pagar'
@@ -448,6 +471,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
+    | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/lovable/email/suppression'
@@ -465,6 +489,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ChatRoute: typeof ChatRoute
   MinhasReservasRoute: typeof MinhasReservasRoute
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
@@ -472,6 +497,7 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
+  ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -517,6 +543,13 @@ declare module '@tanstack/react-router' {
       path: '/minhas-reservas'
       fullPath: '/minhas-reservas'
       preLoaderRoute: typeof MinhasReservasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -680,6 +713,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicClicksignWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat/camila': {
+      id: '/api/chat/camila'
+      path: '/api/chat/camila'
+      fullPath: '/api/chat/camila'
+      preLoaderRoute: typeof ApiChatCamilaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/pessoas/$id': {
       id: '/admin/pessoas/$id'
       path: '/$id'
@@ -806,6 +846,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
+  ChatRoute: ChatRoute,
   MinhasReservasRoute: MinhasReservasRoute,
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
@@ -813,6 +854,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
+  ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
@@ -825,13 +867,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

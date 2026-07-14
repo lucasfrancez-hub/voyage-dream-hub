@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home, Link2, ShieldCheck, Users, ChevronDown, LayoutDashboard, Contact, Puzzle } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, ShieldCheck, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -209,6 +209,13 @@ function AdminLayout() {
 
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              to="/chat"
+              className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange/15 px-3 py-1.5 text-xs font-medium text-brand-orange transition-colors hover:bg-brand-orange/25"
+              title="Central de atendimento WhatsApp + IA"
+            >
+              <MessageCircle className="h-3.5 w-3.5" /> Chat
+            </Link>
             <a
               href="https://viaair.tur.br"
               target="_blank"
@@ -227,6 +234,7 @@ function AdminLayout() {
               <LogOut className="h-3.5 w-3.5" /> Sair
             </button>
           </div>
+
         </div>
         <nav className="md:hidden border-t border-border overflow-x-auto">
           <div className="mx-auto max-w-7xl px-3 sm:px-6 py-2 flex items-center gap-1 whitespace-nowrap">
