@@ -72,7 +72,14 @@
         const cells = tr.querySelectorAll("th,td");
         if (!cells.length) continue;
         const line = Array.from(cells)
-          .map((c) => (c.innerText || c.textContent || "").replace(/\s+/g, " ").trim())
+          .map((c) => {
+            const text = (c.innerText || "").replace(/\s+/g, " ").trim();
+            const mediaLabels = Array.from(c.querySelectorAll("img,[title],[aria-label]"))
+              .flatMap((node) => [node.getAttribute("alt"), node.getAttribute("title"), node.getAttribute("aria-label")])
+              .filter(Boolean)
+              .map((value) => value.replace(/\s+/g, " ").trim());
+            return Array.from(new Set([text, ...mediaLabels].filter(Boolean))).join(" ");
+          })
           .filter(Boolean)
           .join(" | ");
         if (line) rows.push(line);
