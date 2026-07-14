@@ -43,8 +43,8 @@ function ConfigPage() {
             Configure os horários dos agentes na página <a href="/chat/agentes" className="text-[#F26B1F] hover:underline">Agentes IA</a>.
           </p>
           <div className="mt-2 space-y-1 text-sm">
-            <div>🌞 <strong>Camila</strong> — 08:00 às 18:00 (comercial)</div>
-            <div>🌙 <strong>Roberto</strong> — 18:00 às 08:00 (plantão)</div>
+            <div>🌞 <strong>Camila</strong> (consultora) — 08:00 às 18:00</div>
+            <div>🌙 <strong>Roberto</strong> (consultor) — 18:00 às 08:00</div>
           </div>
         </Card>
 
