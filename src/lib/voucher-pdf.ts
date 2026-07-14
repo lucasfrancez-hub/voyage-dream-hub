@@ -2094,6 +2094,7 @@ export async function generateVoucher(
 
 
   await drawAereoSection(ctx, outbound, returning);
+  drawPassengersSection(ctx, detail.passengers);
 
   // Monta string de hóspedes a partir dos passageiros (ex.: "2 adultos, 1 criança, 1 bebê")
   const adt = detail.passengers.filter((p) => (p.passenger_type ?? "ADT") === "ADT").length;
