@@ -213,7 +213,9 @@ function CartaoNav({ pathname }: { pathname: string }) {
   const active =
     pathname === "/admin/link-pagamento" ||
     pathname.startsWith("/admin/link-pagamento/") ||
-    pathname.startsWith("/admin/link-cartao-simples");
+    pathname.startsWith("/admin/link-cartao-simples") ||
+    pathname.startsWith("/admin/link-boleto") ||
+    pathname.startsWith("/admin/cofre");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -221,7 +223,7 @@ function CartaoNav({ pathname }: { pathname: string }) {
           active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        <Link2 className="h-4 w-4" /> Cartão <ChevronDown className="h-3.5 w-3.5" />
+        <Link2 className="h-4 w-4" /> Pagamentos <ChevronDown className="h-3.5 w-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
         <DropdownMenuItem asChild>
@@ -234,6 +236,18 @@ function CartaoNav({ pathname }: { pathname: string }) {
           <Link to="/admin/link-cartao-simples" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Link convencional</span>
             <span className="text-xs text-muted-foreground">Só dados do cartão</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/link-boleto" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Link boleto bancário</span>
+            <span className="text-xs text-muted-foreground">Gerar link de boleto</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/cofre" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Cofre</span>
+            <span className="text-xs text-muted-foreground">Cartões salvos com segurança</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
