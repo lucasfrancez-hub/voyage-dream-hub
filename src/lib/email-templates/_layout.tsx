@@ -173,3 +173,13 @@ export const OrderSummary = ({ title = 'O que está incluso no seu pedido:', aer
     </>
   )
 }
+
+export const styles = {
+  h1: { fontSize: 41, lineHeight: 1.08, fontWeight: 700 as const, color: '#0b2d67', margin: '0 0 4px' },
+  h1Accent: { fontSize: 41, lineHeight: 1.08, fontWeight: 700 as const, color: '#ff6900', margin: '0 0 24px' },
+  greeting: { fontSize: 19, fontWeight: 700 as const, color: '#0b2d67', margin: '0 0 12px' },
+  text: { fontSize: 17, lineHeight: 1.55, color: '#1d2633', margin: '0 0 12px' },
+  idBadge: { display: 'inline-block' as const, background: '#f2f5fa', color: '#0b2d67', fontSize: 17, fontWeight: 700 as const, padding: '18px 24px', borderRadius: 12, margin: '24px 0 0' },
+  idBadgeAccent: { color: '#ff6900', fontWeight: 700 as const },
+  strong: { color: '#ff6900', fontWeight: 700 as const },
+}
