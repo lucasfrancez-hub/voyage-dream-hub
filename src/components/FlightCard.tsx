@@ -10,6 +10,7 @@ import {
   X,
   Clock,
 } from "lucide-react";
+import { AirlineLogo } from "@/components/AirlineLogo";
 
 export type FlightSegment = {
   airline?: string;
