@@ -81,22 +81,17 @@ export const createAdminUser = createServerFn({ method: "POST" })
       throw new Error("Informe o nome da empresa para o usuário terceiro.");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Envia convite por e-mail (template padrão da Lovable) e cria o usuário.
-    const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      data.email,
-      {
-        data: data.fullName ? { full_name: data.fullName } : undefined,
-      },
-    );
-    if (inviteErr) throw new Error(inviteErr.message);
-    const userId = invited.user?.id;
-    if (!userId) throw new Error("Falha ao criar usuário");
-    // Define a senha temporária informada pelo gestor (assim o usuário
-    // pode entrar direto com ela, além de conseguir usar o link do convite).
-    const { error: pwdErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    // Cria o usuário já com e-mail confirmado e a senha temporária definida
+    // pelo gestor (não depende de entrega de e-mail).
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
       password: data.password,
+      email_confirm: true,
+      user_metadata: data.fullName ? { full_name: data.fullName } : undefined,
     });
-    if (pwdErr) throw new Error(pwdErr.message);
+    if (createErr) throw new Error(createErr.message);
+    const userId = created.user?.id;
+    if (!userId) throw new Error("Falha ao criar usuário");
     const { data: existing } = await supabaseAdmin
       .from("user_roles")
       .select("role")
