@@ -186,17 +186,16 @@ function AdminLayout() {
         </div>
         <nav className="md:hidden border-t border-border overflow-x-auto">
           <div className="mx-auto max-w-7xl px-3 sm:px-6 py-2 flex items-center gap-1 whitespace-nowrap">
-            <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
-            <DashboardNav pathname={pathname} />
-            <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-
-
-            <CartaoNav pathname={pathname} />
-
-
-            <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />
+            {isAdmin && <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />}
+            {isAdmin && <DashboardNav pathname={pathname} />}
+            {isAdmin
+              ? <PedidosNav pathname={pathname} />
+              : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
+            {isAdmin && <CartaoNav pathname={pathname} />}
+            {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
           </div>
         </nav>
+
       </header>
 
       <Outlet />
