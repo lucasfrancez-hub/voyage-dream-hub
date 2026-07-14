@@ -34,7 +34,7 @@ export function AirlineLogo({ airline, size = 32, className, hideIfUnknown }: Pr
     return (
       <span
         className={cn(
-          "inline-flex items-center justify-center rounded-md bg-neutral-200 text-neutral-600 font-semibold shrink-0",
+          "inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-neutral-100 text-neutral-500 font-semibold shrink-0",
           className,
         )}
         style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}
@@ -49,10 +49,10 @@ export function AirlineLogo({ airline, size = 32, className, hideIfUnknown }: Pr
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-md bg-neutral-200 shrink-0 overflow-hidden",
+        "inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-neutral-100 shrink-0 overflow-hidden",
         className,
       )}
-      style={{ width: size, height: size, padding: Math.max(2, Math.round(size * 0.1)) }}
+      style={{ width: size, height: size, padding: Math.max(3, Math.round(size * 0.14)) }}
       title={label}
     >
       <img
