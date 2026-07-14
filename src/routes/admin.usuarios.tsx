@@ -154,6 +154,21 @@ function UsersPage() {
               <option value="partner">Terceiro (agência parceira)</option>
             </select>
           </label>
+          {role === "partner" && (
+            <label className="block sm:col-span-2">
+              <span className="block text-xs text-muted-foreground mb-1.5">
+                Nome da empresa (aparecerá nos vouchers do terceiro)
+              </span>
+              <input
+                type="text"
+                required
+                value={agencyName}
+                onChange={(e) => setAgencyName(e.target.value)}
+                className={cls}
+                placeholder="Ex.: Zonet Viagens"
+              />
+            </label>
+          )}
           <div className="flex items-end">
             <button
               type="submit"
