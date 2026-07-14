@@ -400,6 +400,19 @@ function QuotePage() {
                 </tbody>
               </table>
             </div>
+            <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+              <div className="text-[11px] uppercase tracking-widest text-slate-500 font-bold mb-2">Cartões aceitos</div>
+              <div className="flex flex-wrap items-center gap-2">
+                {["Visa", "Mastercard", "Amex", "Elo", "Hipercard", "Diners"].map((b) => (
+                  <span
+                    key={b}
+                    className="inline-flex items-center h-8 px-3 rounded-md border border-slate-200 bg-gradient-to-b from-white to-slate-50 text-[11px] font-bold text-slate-700 shadow-sm"
+                  >
+                    {b}
+                  </span>
+                ))}
+              </div>
+            </div>
             {q.config.notes && (
               <div className="mt-3 text-xs text-slate-600 whitespace-pre-wrap rounded-lg bg-slate-50 border border-slate-200 p-3">
                 {q.config.notes}
@@ -407,6 +420,7 @@ function QuotePage() {
             )}
           </section>
         )}
+
 
         {/* Contato */}
         <section id="contato">
