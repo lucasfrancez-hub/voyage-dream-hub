@@ -71,14 +71,23 @@ function InboxPage() {
       {/* Coluna 1 — Lista */}
       <aside className="flex w-80 shrink-0 flex-col border-r border-slate-200 bg-white">
         <div className="border-b border-slate-200 p-3">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar conversa…"
-              className="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-sm placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
-            />
+          <div className="mb-2 flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar conversa…"
+                className="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-sm placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={() => setNewOpen(true)}
+              title="Nova conversa"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
           </div>
           <div className="mt-2 flex gap-1">
             {FOLDERS.map((f) => (
