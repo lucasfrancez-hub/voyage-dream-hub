@@ -139,6 +139,39 @@
     return index >= 0 && cells[index] ? normalizeText(cells[index].innerText || cells[index].textContent) : "";
   }
 
+  function cellRichText(cell) {
+    // Junta o texto visível com alt/title/aria-label das mídias (ícones de
+    // bagagem/cabine costumam ser <img> com legenda).
+    if (!cell) return "";
+    const text = normalizeText(cell.innerText || cell.textContent);
+    const labels = Array.from(cell.querySelectorAll("img,[title],[aria-label]"))
+      .flatMap((el) => [el.getAttribute("alt"), el.getAttribute("title"), el.getAttribute("aria-label")])
+      .map((v) => normalizeText(v || ""))
+      .filter(Boolean);
+    const merged = Array.from(new Set([text, ...labels].filter(Boolean))).join(" ");
+    return merged;
+  }
+
+  function baggageText(cell) {
+    // Ex.: "🔒 ? 🛄 2 🧳" (mão desconhecida + 2 despachadas). Se alt/title dos
+    // ícones diz "bagagem de mão" / "carry-on", preserva; se sobrar só um "?"
+    // isolado, remove pra não vazar pro UI.
+    const rich = cellRichText(cell).replace(/\s+/g, " ").trim();
+    if (!rich) return "";
+    const hasHand = /m[aã]o|cabine|carry[\s-]*on|hand[\s-]*bag/i.test(rich);
+    // Extrai número associado à bagagem despachada (padrão "N pçs" ou "🛄 N").
+    const checkedMatch = rich.match(/(\d+)\s*(?:p[çc]s?|pieces?|pcs)?/);
+    const checked = checkedMatch ? Number(checkedMatch[1]) : 0;
+    const cleaned = rich
+      .replace(/\?/g, "") // remove "?" isolados (placeholder)
+      .replace(/\s+/g, " ").trim();
+    const parts = [];
+    if (hasHand || checked >= 1) parts.push("1 mão");
+    if (checked > 0) parts.push(`${checked} despachada${checked > 1 ? "s" : ""}`);
+    return parts.length ? parts.join(" + ") : cleaned;
+  }
+
+
   function findStructuredTable(block, requiredHeaders) {
     if (!block) return null;
     for (const table of block.querySelectorAll("table")) {
