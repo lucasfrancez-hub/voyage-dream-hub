@@ -56,6 +56,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
 import { QuoteDialog } from "@/components/QuoteDialog";
 import { FlightLookupButton } from "@/components/FlightLookupButton";
+import { ImportarAereoDialog } from "@/components/ImportarAereoDialog";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   component: OrderDetailPage,
