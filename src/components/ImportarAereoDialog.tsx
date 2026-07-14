@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plane, Loader2, ExternalLink, CheckCircle2, AlertCircle, ChevronRight, Radio } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, ChevronRight, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,57 +12,63 @@ import {
 } from "@/lib/flight-import.functions";
 import { upsertOrderItem, upsertPassenger } from "@/lib/orders.functions";
 
-type Airline = "latam" | "gol" | "azul";
-
 type Props = {
   orderId: string;
   onImported: () => void;
   trigger: React.ReactNode;
 };
 
-const AIRLINE_LABEL: Record<Airline, string> = { latam: "LATAM", gol: "GOL", azul: "AZUL" };
-
-function buildAirlineUrl(airline: Airline, f: { locator: string; lastname: string; iata: string }): string {
-  const loc = f.locator.trim().toUpperCase();
-  const sob = f.lastname.trim();
-  const iata = f.iata.trim().toUpperCase();
-  if (airline === "latam") {
-    return `https://www.latamairlines.com/br/pt/minhas-viagens/second-detail/?orderId=${encodeURIComponent(loc)}&lastName=${encodeURIComponent(sob)}`;
-  }
-  if (airline === "gol") {
-    return `https://b2c.voegol.com.br/minhas-viagens/encontrar-viagem?codigoReserva=${encodeURIComponent(loc)}&origem=${encodeURIComponent(iata)}&sobrenome=${encodeURIComponent(sob)}`;
-  }
-  return `https://www.voeazul.com.br/br/pt/home/minhas-viagens/confirmacao?pnr=${encodeURIComponent(loc)}&origin=${encodeURIComponent(iata)}`;
+/** Detecta a extensão via ping repetido — bridge responde com "ready". */
+function detectExtension(timeoutMs = 1500): Promise<boolean> {
+  return new Promise((resolve) => {
+    let done = false;
+    function finish(v: boolean) {
+      if (done) return;
+      done = true;
+      window.removeEventListener("message", onMsg);
+      resolve(v);
+    }
+    function onMsg(ev: MessageEvent) {
+      const d = ev.data as { __viaair?: string } | null;
+      if (!d) return;
+      if (d.__viaair === "ready" || d.__viaair === "set-token-ack") finish(true);
+    }
+    window.addEventListener("message", onMsg);
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      if (done) { clearInterval(iv); return; }
+      if (Date.now() - t0 > timeoutMs) { clearInterval(iv); finish(false); return; }
+      try { window.postMessage({ __viaair: "ping" }, window.location.origin); } catch {}
+    }, 120);
+  });
 }
 
-function sendTokenToExtension(airline: Airline | "any", token: string): Promise<boolean> {
+function sendTokenToExtension(token: string): Promise<boolean> {
   return new Promise((resolve) => {
     const apiBase = window.location.origin;
     let done = false;
     function onMsg(ev: MessageEvent) {
-      const d = ev.data as { __viaair?: string; airline?: string } | null;
+      const d = ev.data as { __viaair?: string } | null;
       if (!d || d.__viaair !== "set-token-ack") return;
       done = true;
       window.removeEventListener("message", onMsg);
       resolve(true);
     }
     window.addEventListener("message", onMsg);
-    window.postMessage({ __viaair: "set-token", token, apiBase, airline }, window.location.origin);
+    window.postMessage({ __viaair: "set-token", token, apiBase, airline: "any" }, window.location.origin);
     setTimeout(() => {
       if (!done) { window.removeEventListener("message", onMsg); resolve(false); }
-    }, 800);
+    }, 1500);
   });
 }
 
 export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
   const [open, setOpen] = useState(false);
-  const [airline, setAirline] = useState<Airline>("latam");
-  const [locator, setLocator] = useState("");
-  const [lastname, setLastname] = useState("");
-  const [iata, setIata] = useState("");
   const [token, setToken] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"form" | "waiting" | "review">("form");
+  const [phase, setPhase] = useState<"idle" | "arming" | "waiting" | "review">("idle");
+  const [extPresent, setExtPresent] = useState<boolean | null>(null);
   const [reservation, setReservation] = useState<ImportedReservation | null>(null);
+  const readyListenerRef = useRef<((ev: MessageEvent) => void) | null>(null);
 
   const createToken = useServerFn(createImportToken);
   const poll = useServerFn(getImportStaging);
@@ -70,8 +76,22 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
   const saveItem = useServerFn(upsertOrderItem);
   const savePax = useServerFn(upsertPassenger);
 
-  const needsIata = airline === "gol" || airline === "azul";
-  const needsLastname = airline === "latam" || airline === "gol";
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setExtPresent(null);
+    detectExtension(1500).then((ok) => { if (!cancelled) setExtPresent(ok); });
+    const onReady = (ev: MessageEvent) => {
+      const d = ev.data as { __viaair?: string } | null;
+      if (d?.__viaair === "ready") setExtPresent(true);
+    };
+    window.addEventListener("message", onReady);
+    readyListenerRef.current = onReady;
+    return () => {
+      cancelled = true;
+      if (readyListenerRef.current) window.removeEventListener("message", readyListenerRef.current);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (phase !== "waiting" || !token) return;
@@ -87,7 +107,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
         } else if (row.status === "error") {
           clearInterval(iv);
           toast.error("Falha ao importar: " + (row.error ?? "erro desconhecido"));
-          setPhase("form");
+          setPhase("idle");
         }
       } catch (e) {
         console.error(e);
@@ -99,51 +119,41 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
   function reset() {
     setToken(null);
     setReservation(null);
-    setPhase("form");
-    setLocator(""); setLastname(""); setIata("");
-  }
-
-  async function abrirPagina() {
-    if (!locator || (needsLastname && !lastname) || (needsIata && !iata)) {
-      toast.error("Preencha todos os campos.");
-      return;
-    }
-    try {
-      const { token: t } = await createToken({ data: { orderId, airlineHint: airline } });
-      setToken(t);
-      const ok = await sendTokenToExtension(airline, t);
-      if (!ok) {
-        toast.error("Extensão não detectada. Instale e recarregue a página.");
-        return;
-      }
-      const url = buildAirlineUrl(airline, { locator, lastname, iata });
-      window.open(url, "_blank", "noopener,noreferrer");
-      setPhase("waiting");
-    } catch (e) {
-      toast.error("Erro: " + (e as Error).message);
-    }
+    setPhase("idle");
   }
 
   async function armAny() {
+    setPhase("arming");
     try {
-      const { token: t } = await createToken({ data: { orderId, airlineHint: "any" } });
-      setToken(t);
-      const ok = await sendTokenToExtension("any", t);
-      if (!ok) {
-        toast.error("Extensão não detectada. Instale/atualize e recarregue a página.");
+      let present = extPresent;
+      if (!present) {
+        present = await detectExtension(2000);
+        setExtPresent(present);
+      }
+      if (!present) {
+        toast.error("Extensão não detectada. Instale/atualize a extensão e recarregue esta página.");
+        setPhase("idle");
         return;
       }
-      toast.success("Pronto! Abra LATAM, GOL ou AZUL e clique em 📥 Importar pra Via Air.");
+      const { token: t } = await createToken({ data: { orderId, airlineHint: "any" } });
+      setToken(t);
+      const ok = await sendTokenToExtension(t);
+      if (!ok) {
+        toast.error("A extensão não confirmou o token. Recarregue esta página e tente de novo.");
+        setPhase("idle");
+        return;
+      }
+      toast.success("Pronto! Abra a página da reserva e clique em 📥 Importar pra Via Air.");
       setPhase("waiting");
     } catch (e) {
       toast.error("Erro: " + (e as Error).message);
+      setPhase("idle");
     }
   }
 
   async function confirmar() {
     if (!reservation || !token) return;
     try {
-      // 1) Salva passageiros (novos apenas)
       for (let i = 0; i < reservation.passengers.length; i++) {
         const p = reservation.passengers[i]!;
         const kindMap: Record<string, "ADT" | "CHD" | "INF"> = { adult: "ADT", child: "CHD", infant: "INF" };
@@ -155,7 +165,6 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
           sort_order: i,
         } });
       }
-      // 2) Salva blocos de voo — um order_item por segmento
       let sort = 0;
       let firstItem = true;
       for (const block of reservation.flights) {
@@ -222,64 +231,43 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Importar reserva aérea</DialogTitle>
+            <DialogTitle>Importar aéreo</DialogTitle>
           </DialogHeader>
 
-          {phase === "form" && (
+          {(phase === "idle" || phase === "arming") && (
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground">
-                Escolha a companhia, preencha os dados, e a extensão vai puxar tudo da página oficial.
-                Não tem a extensão?{" "}
-                <a href="/admin/instalar-extensao" target="_blank" rel="noreferrer" className="text-primary underline">
-                  Instalar agora
-                </a>.
+                Clique em <span className="font-medium">Aguardar importação</span>, abra a página da reserva (LATAM, GOL, AZUL, SkyTeam, Infotera, etc.) e clique no botão <span className="font-medium">📥 Importar pra Via Air</span> que aparece lá dentro. Os dados vêm pra este pedido automaticamente.
               </div>
-              <div>
-                <Label className="mb-2 block">Companhia</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["latam", "gol", "azul"] as Airline[]).map((a) => (
-                    <button
-                      key={a}
-                      type="button"
-                      onClick={() => setAirline(a)}
-                      className={`rounded-md border p-3 text-sm font-medium transition ${
-                        airline === a ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-accent"
-                      }`}
-                    >{AIRLINE_LABEL[a]}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+
+              <div className={`rounded-md border p-3 text-xs flex items-start gap-2 ${
+                extPresent === false ? "border-destructive/40 bg-destructive/5 text-destructive"
+                : extPresent === true ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-border text-muted-foreground"
+              }`}>
+                {extPresent === true ? <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                  : extPresent === false ? <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  : <Loader2 className="h-4 w-4 mt-0.5 shrink-0 animate-spin" />}
                 <div>
-                  <Label>Localizador (PNR / código da reserva)</Label>
-                  <Input value={locator} onChange={(e) => setLocator(e.target.value.toUpperCase())} placeholder="ABC123" maxLength={12} />
+                  {extPresent === true && "Extensão detectada — pronto pra importar."}
+                  {extPresent === false && (
+                    <>
+                      Extensão não detectada.{" "}
+                      <a href="/admin/instalar-extensao" target="_blank" rel="noreferrer" className="underline">
+                        Instalar / atualizar
+                      </a>{" "}
+                      e depois recarregue esta página (Ctrl/Cmd + R).
+                    </>
+                  )}
+                  {extPresent === null && "Detectando extensão…"}
                 </div>
-                {needsLastname && (
-                  <div>
-                    <Label>Sobrenome do titular</Label>
-                    <Input value={lastname} onChange={(e) => setLastname(e.target.value)} placeholder="Silva" />
-                  </div>
-                )}
-                {needsIata && (
-                  <div>
-                    <Label>IATA de origem</Label>
-                    <Input value={iata} onChange={(e) => setIata(e.target.value.toUpperCase())} placeholder="GRU" maxLength={3} />
-                  </div>
-                )}
               </div>
-              <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-                <div className="font-medium text-foreground mb-1 flex items-center gap-1">
-                  <Radio className="h-3.5 w-3.5" /> Modo escuta (qualquer companhia)
-                </div>
-                Não quer preencher? Clique em <span className="font-medium">Aguardar importação</span> e abra manualmente a página da LATAM/GOL/AZUL — quando você clicar no botão <span className="font-medium">📥 Importar pra Via Air</span> lá dentro, os dados vêm pra este pedido.
-              </div>
+
               <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button variant="outline" onClick={armAny} className="gap-2">
-                  <Radio className="h-4 w-4" /> Aguardar importação
-                </Button>
-                <Button onClick={abrirPagina} className="gap-2">
-                  <ExternalLink className="h-4 w-4" /> Abrir página da cia
+                <Button onClick={armAny} disabled={phase === "arming"} className="gap-2">
+                  {phase === "arming" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
+                  Aguardar importação
                 </Button>
               </DialogFooter>
             </div>
@@ -291,7 +279,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               <div className="space-y-1">
                 <div className="font-medium">Aguardando importação…</div>
                 <div className="text-sm text-muted-foreground max-w-sm">
-                  Abra a página da sua reserva na LATAM, GOL ou AZUL (resolva o captcha se aparecer) e clique no botão
+                  Abra a página da reserva no site da companhia/consolidadora e clique no botão
                   <span className="font-medium"> 📥 Importar pra Via Air </span>
                   no canto inferior direito. Os dados aparecem aqui automaticamente.
                 </div>
