@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home, Link2, FileText, ShieldCheck, Vault, Users, ChevronDown, LayoutDashboard, Contact, Puzzle } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, ShieldCheck, Users, ChevronDown, LayoutDashboard, Contact, Puzzle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -133,8 +133,7 @@ function AdminLayout() {
 
               <CartaoNav pathname={pathname} />
 
-              <NavItem to="/admin/link-boleto" icon={FileText} label="Link boleto" active={pathname.startsWith("/admin/link-boleto")} />
-              <NavItem to="/admin/cofre" icon={Vault} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
+
               {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
                 <NavItem to="/admin/usuarios" icon={Users} label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
               )}
@@ -171,8 +170,7 @@ function AdminLayout() {
 
             <CartaoNav pathname={pathname} />
 
-            <NavItem to="/admin/link-boleto" icon={FileText} label="Boleto" active={pathname.startsWith("/admin/link-boleto")} />
-            <NavItem to="/admin/cofre" icon={Vault} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
+
             {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
               <NavItem to="/admin/usuarios" icon={Users} label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
             )}
@@ -213,7 +211,9 @@ function CartaoNav({ pathname }: { pathname: string }) {
   const active =
     pathname === "/admin/link-pagamento" ||
     pathname.startsWith("/admin/link-pagamento/") ||
-    pathname.startsWith("/admin/link-cartao-simples");
+    pathname.startsWith("/admin/link-cartao-simples") ||
+    pathname.startsWith("/admin/link-boleto") ||
+    pathname.startsWith("/admin/cofre");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -221,7 +221,7 @@ function CartaoNav({ pathname }: { pathname: string }) {
           active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        <Link2 className="h-4 w-4" /> Cartão <ChevronDown className="h-3.5 w-3.5" />
+        <Link2 className="h-4 w-4" /> Pagamentos <ChevronDown className="h-3.5 w-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
         <DropdownMenuItem asChild>
@@ -234,6 +234,18 @@ function CartaoNav({ pathname }: { pathname: string }) {
           <Link to="/admin/link-cartao-simples" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Link convencional</span>
             <span className="text-xs text-muted-foreground">Só dados do cartão</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/link-boleto" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Link boleto bancário</span>
+            <span className="text-xs text-muted-foreground">Gerar link de boleto</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/cofre" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Cofre</span>
+            <span className="text-xs text-muted-foreground">Cartões salvos com segurança</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
