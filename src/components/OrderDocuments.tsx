@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Paperclip, Upload, Trash2, FileText, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { confirm } from "@/lib/confirm";
+
 
 type FileEntry = { name: string; path: string; size?: number; created_at?: string };
 
@@ -69,7 +71,7 @@ export function OrderDocuments({ orderId, canManage = false }: { orderId: string
   }
 
   async function onDelete(path: string) {
-    if (!window.confirm("Remover este arquivo?")) return;
+    if (!(await confirm("Remover este arquivo?"))) return;
     const { error } = await supabase.storage.from("order-documents").remove([path]);
     if (error) toast.error(error.message);
     else {
