@@ -13,6 +13,8 @@ import {
 import {
   createSignatureRequest, getSignatureStatus, cancelSignatureRequest, resendSignerEmail, syncSignatureFromClickSign,
 } from "@/lib/clicksign.functions";
+import { confirmThen } from "@/lib/confirm";
+
 import { generateReceiptAndContract, generateReceiptContractAndAuthorization } from "@/lib/contract-pdf";
 import type { OrderDetail } from "@/lib/orders.functions";
 
@@ -276,11 +278,8 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
                 variant="ghost"
                 className="text-xs text-red-600 hover:text-red-700"
                 disabled={cancelMut.isPending}
-                onClick={() => {
-                  if (confirm("Cancelar o envio deste documento na ClickSign?")) {
-                    cancelMut.mutate(assinatura.id);
-                  }
-                }}
+                onClick={() => confirmThen("Cancelar o envio deste documento na ClickSign?", () => cancelMut.mutate(assinatura.id))}
+
               >
                 Cancelar envio
               </Button>

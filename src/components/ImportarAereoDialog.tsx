@@ -143,7 +143,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
         setPhase("idle");
         return;
       }
-      toast.success("Pronto! Abra a página da reserva e clique em 📥 Importar pra Via Air.");
+      toast.success("Pronto! Abra a página da reserva e clique em 📤 Exportar para Via Air.");
       setPhase("waiting");
     } catch (e) {
       toast.error("Erro: " + (e as Error).message);

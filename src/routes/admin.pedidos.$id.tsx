@@ -57,6 +57,7 @@ import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutoco
 import { QuoteDialog } from "@/components/QuoteDialog";
 import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { ImportarAereoDialog } from "@/components/ImportarAereoDialog";
+import { confirmThen } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   component: OrderDetailPage,
@@ -417,10 +418,11 @@ function OrderDetailPage() {
                   <Button size="sm" variant="outline"><MoreHorizontal className="h-3.5 w-3.5 mr-1" /> Ações</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => { if (confirm("Confirmar o pedido e todos os itens?")) orderStatusMut.mutate("confirmed"); }}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Confirmar</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { if (confirm("Marcar o pedido como finalizado?")) orderStatusMut.mutate("paid"); }}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-500" /> Finalizado</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { if (confirm("Cancelar o pedido e todos os itens?")) orderStatusMut.mutate("cancelled"); }}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { if (confirm("Reabrir o pedido como pendente?")) orderStatusMut.mutate("pending"); }}><RotateCcw className="h-3.5 w-3.5 mr-2" /> Reabrir</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmThen("Confirmar o pedido e todos os itens?", () => orderStatusMut.mutate("confirmed"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Confirmar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmThen("Marcar o pedido como finalizado?", () => orderStatusMut.mutate("paid"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-500" /> Finalizado</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmThen("Cancelar o pedido e todos os itens?", () => orderStatusMut.mutate("cancelled"))}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmThen("Reabrir o pedido como pendente?", () => orderStatusMut.mutate("pending"))}><RotateCcw className="h-3.5 w-3.5 mr-2" /> Reabrir</DropdownMenuItem>
+
                   <DropdownMenuItem onClick={() => {
                     setActiveTab("contract");
                     setTimeout(() => {
@@ -669,7 +671,7 @@ function PassengersSection({
                       setTimeout(() => onChange(), 250);
                     }
                   }}
-                  onDelete={() => confirm("Remover passageiro?") && remove.mutate(p.id)}
+                  onDelete={() => confirmThen("Remover passageiro?", () => remove.mutate(p.id))}
                 />
                 ));
               })()}
@@ -1070,7 +1072,7 @@ function ItemsTab({
               onImported={onChange}
               trigger={
                 <Button size="sm" className="gap-1 bg-orange-500 hover:bg-orange-600 text-white">
-                  <Download className="h-3.5 w-3.5" /> Importar para Via Air
+                  <Download className="h-3.5 w-3.5" /> Importar reserva
                 </Button>
               }
 
@@ -1096,8 +1098,8 @@ function ItemsTab({
               allPassengers={allPax}
               packageSnapshot={packageSnapshot}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
-              onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
-              onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onDelete={(it) => confirmThen("Excluir item?", () => remove.mutate(it.id))}
+              onCancel={(it) => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={(it) => reactivate.mutate(it.id)}
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
@@ -1110,8 +1112,8 @@ function ItemsTab({
               passengers={paxForItem(it.id)}
               allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
-              onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
-              onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onDelete={() => confirmThen("Excluir item?", () => remove.mutate(it.id))}
+              onCancel={() => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={() => reactivate.mutate(it.id)}
               onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
               onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
@@ -1124,8 +1126,8 @@ function ItemsTab({
               passengers={paxForItem(it.id)}
               allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
-              onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
-              onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onDelete={() => confirmThen("Excluir item?", () => remove.mutate(it.id))}
+              onCancel={() => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={() => reactivate.mutate(it.id)}
               onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
               onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
@@ -1144,8 +1146,8 @@ function ItemsTab({
               allPassengers={allPax}
               packageSnapshot={packageSnapshot}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
-              onDelete={(it) => confirm("Excluir item?") && remove.mutate(it.id)}
-              onCancel={(it) => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onDelete={(it) => confirmThen("Excluir item?", () => remove.mutate(it.id))}
+              onCancel={(it) => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={(it) => reactivate.mutate(it.id)}
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
@@ -1161,8 +1163,8 @@ function ItemsTab({
               passengers={paxForItem(it.id)}
               allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
-              onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
-              onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onDelete={() => confirmThen("Excluir item?", () => remove.mutate(it.id))}
+              onCancel={() => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={() => reactivate.mutate(it.id)}
               onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
               onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
@@ -1178,8 +1180,8 @@ function ItemsTab({
               passengers={paxForItem(it.id)}
               allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
-              onDelete={() => confirm("Excluir item?") && remove.mutate(it.id)}
-              onCancel={() => confirm("Marcar como cancelado?") && cancel.mutate(it.id)}
+              onDelete={() => confirmThen("Excluir item?", () => remove.mutate(it.id))}
+              onCancel={() => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={() => reactivate.mutate(it.id)}
               onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
               onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
@@ -1585,11 +1587,12 @@ function FlightReservationCard({
           <div className="mt-2 flex items-center gap-0.5">
             <Button size="sm" variant="ghost" onClick={() => first && onEdit(first)} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
             {allCancelled ? (
-              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Reativar todos os trechos desta reserva?")) segments.forEach((s) => onReactivate(s)); }} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="ghost" onClick={() => confirmThen("Reativar todos os trechos desta reserva?", () => segments.forEach((s) => onReactivate(s)))} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
             ) : (
-              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Cancelar toda a reserva (ida e volta)?")) segments.filter((s) => s.status !== "cancelled").forEach((s) => onCancel(s)); }} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
+              <Button size="sm" variant="ghost" onClick={() => confirmThen("Cancelar toda a reserva (ida e volta)?", () => segments.filter((s) => s.status !== "cancelled").forEach((s) => onCancel(s)))} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
             )}
-            <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir toda a reserva (ida e volta)?")) segments.forEach((s) => onDelete(s)); }} title="Excluir"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => confirmThen("Excluir toda a reserva (ida e volta)?", () => segments.forEach((s) => onDelete(s)))} title="Excluir"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+
           </div>
         </div>
 
@@ -2969,7 +2972,7 @@ function FinanceTab({
                            <Button size="sm" variant="ghost" onClick={() => { setEditing(f); setSelectedItem(f.order_item_id); setOpen(true); }}>
                              <Pencil className="h-3.5 w-3.5" />
                            </Button>
-                           <Button size="sm" variant="ghost" onClick={() => confirm("Remover lançamento?") && remove.mutate(f.id)}>
+                           <Button size="sm" variant="ghost" onClick={() => confirmThen("Remover lançamento?", () => remove.mutate(f.id))}>
                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
                            </Button>
                          </td>
@@ -3024,7 +3027,7 @@ function FinanceTab({
                         <Button size="sm" variant="ghost" onClick={() => { setEditing(f); setSelectedItem(f.order_item_id); setOpen(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => confirm("Remover lançamento?") && remove.mutate(f.id)}>
+                        <Button size="sm" variant="ghost" onClick={() => confirmThen("Remover lançamento?", () => remove.mutate(f.id))}>
                           <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
                       </td>
@@ -3394,7 +3397,7 @@ function PaymentsSection({
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => {
-                      if (confirm("Remover este pagamento?")) delMut.mutate(p.id);
+                      confirmThen("Remover este pagamento?", () => { delMut.mutate(p.id); })
                     }}>
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
@@ -4074,7 +4077,7 @@ function OrderLogDialog({
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                        onClick={() => confirm("Remover esta entrada?") && del.mutate(idx)}
+                        onClick={() => confirmThen("Remover esta entrada?", () => del.mutate(idx))}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

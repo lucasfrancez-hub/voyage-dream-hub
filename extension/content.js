@@ -576,15 +576,16 @@
     const btn = document.createElement("button");
     btn.id = "viaair-btn";
     btn.type = "button";
-    btn.textContent = "📥 Importar pra Via Air";
+    btn.textContent = "📤 Exportar para Via Air";
     Object.assign(btn.style, {
       position: "fixed", right: "16px", bottom: "16px", zIndex: "2147483647",
-      background: "linear-gradient(135deg,#0f172a,#1e40af)", color: "#fff",
+      background: "linear-gradient(135deg,#f97316,#ea580c)", color: "#fff",
       border: "none", borderRadius: "999px", padding: "12px 18px",
       fontFamily: "system-ui, -apple-system, sans-serif",
       fontSize: "14px", fontWeight: "600", cursor: "pointer",
-      boxShadow: "0 10px 30px rgba(0,0,0,.35)",
+      boxShadow: "0 10px 30px rgba(249,115,22,.45)",
     });
+
     btn.onmouseenter = () => (btn.style.filter = "brightness(1.15)");
     btn.onmouseleave = () => (btn.style.filter = "none");
     btn.onclick = async () => {

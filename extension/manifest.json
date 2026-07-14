@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Via Air — Importar reserva aérea",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "description": "Lê reservas aéreas em companhias e consolidadoras e envia os dados para o admin da Via Air.",
   "icons": {
     "48": "icon.png",
