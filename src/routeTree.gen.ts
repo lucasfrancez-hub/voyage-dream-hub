@@ -25,11 +25,13 @@ import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
+import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
+import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
@@ -114,6 +116,11 @@ const AdminLinkBoletoRoute = AdminLinkBoletoRouteImport.update({
   path: '/link-boleto',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminInstalarExtensaoRoute = AdminInstalarExtensaoRouteImport.update({
+  id: '/instalar-extensao',
+  path: '/instalar-extensao',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -138,6 +145,11 @@ const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
   id: '/$slug/checkout',
   path: '/$slug/checkout',
   getParentRoute: () => PacotesRoute,
+} as any)
+const ApiPublicImportAereoRoute = ApiPublicImportAereoRouteImport.update({
+  id: '/api/public/import-aereo',
+  path: '/api/public/import-aereo',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicClicksignWebhookRoute =
   ApiPublicClicksignWebhookRouteImport.update({
@@ -166,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -178,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
@@ -191,6 +205,7 @@ export interface FileRoutesByTo {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -203,6 +218,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
@@ -218,6 +234,7 @@ export interface FileRoutesById {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -230,6 +247,7 @@ export interface FileRoutesById {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
@@ -246,6 +264,7 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/admin/cofre'
     | '/admin/dashboard'
+    | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -258,6 +277,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
+    | '/api/public/import-aereo'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
@@ -271,6 +291,7 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/admin/cofre'
     | '/admin/dashboard'
+    | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -283,6 +304,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
+    | '/api/public/import-aereo'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos'
     | '/pacotes/$slug'
@@ -297,6 +319,7 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/admin/cofre'
     | '/admin/dashboard'
+    | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -309,6 +332,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
+    | '/api/public/import-aereo'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
@@ -324,6 +348,7 @@ export interface RootRouteChildren {
   PagarBoletoRoute: typeof PagarBoletoRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
+  ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -440,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLinkBoletoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/instalar-extensao': {
+      id: '/admin/instalar-extensao'
+      path: '/instalar-extensao'
+      fullPath: '/admin/instalar-extensao'
+      preLoaderRoute: typeof AdminInstalarExtensaoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/dashboard': {
       id: '/admin/dashboard'
       path: '/dashboard'
@@ -474,6 +506,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/pacotes/$slug/checkout'
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
       parentRoute: typeof PacotesRoute
+    }
+    '/api/public/import-aereo': {
+      id: '/api/public/import-aereo'
+      path: '/api/public/import-aereo'
+      fullPath: '/api/public/import-aereo'
+      preLoaderRoute: typeof ApiPublicImportAereoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/clicksign-webhook': {
       id: '/api/public/clicksign-webhook'
@@ -514,6 +553,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminCofreRoute: typeof AdminCofreRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
@@ -528,6 +568,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCofreRoute: AdminCofreRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
@@ -566,6 +607,7 @@ const rootRouteChildren: RootRouteChildren = {
   PagarBoletoRoute: PagarBoletoRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
+  ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

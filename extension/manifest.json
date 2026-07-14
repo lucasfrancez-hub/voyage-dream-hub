@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Via Air — Importar reserva aérea",
+  "version": "1.0.0",
+  "description": "Lê a página de Minhas Viagens da LATAM, GOL ou AZUL e envia os dados da reserva para o admin da Via Air.",
+  "icons": {
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png",
+    "default_title": "Via Air — Importar reserva"
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://*.latamairlines.com/*",
+    "https://*.voegol.com.br/*",
+    "https://*.voeazul.com.br/*",
+    "https://*.lovable.app/*",
+    "https://*.lovable.dev/*",
+    "https://pedidos.viaair.tur.br/*",
+    "http://localhost/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.latamairlines.com/*",
+        "https://*.voegol.com.br/*",
+        "https://*.voeazul.com.br/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
