@@ -87,7 +87,7 @@ function SecurityPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
+    <div className="mx-auto max-w-3xl px-3 sm:px-6 py-6 sm:py-10">
       <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
         <ShieldCheck className="h-4 w-4" /> Segurança da conta
       </div>

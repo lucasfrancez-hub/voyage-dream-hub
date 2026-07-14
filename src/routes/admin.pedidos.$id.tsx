@@ -205,7 +205,7 @@ function OrderDetailPage() {
 
 
   return (
-    <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6">
       <div className="flex items-center gap-2 mb-4">
         <Button asChild variant="ghost" size="sm">
           <Link to="/admin/pedidos">
@@ -216,10 +216,10 @@ function OrderDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Hash className="h-3 w-3" />
               <span className="font-mono text-sm text-foreground font-semibold">{order.orderNumber}</span>
               <span className="text-[10px] text-muted-foreground/70">ref {shortId(order.id)}</span>
@@ -227,10 +227,10 @@ function OrderDetailPage() {
                 {st.label}
               </span>
             </div>
-            <div className="mt-1 text-2xl font-display font-bold">{order.fullName}</div>
-            <div className="text-sm text-muted-foreground">{order.email} · {order.phone}</div>
+            <div className="mt-1 text-xl sm:text-2xl font-display font-bold break-words">{order.fullName}</div>
+            <div className="text-sm text-muted-foreground break-words">{order.email} · {order.phone}</div>
             {order.cpf && <div className="text-xs text-muted-foreground mt-0.5">CPF {order.cpf}</div>}
-            <div className="mt-2 max-w-md">
+            <div className="mt-2 max-w-full sm:max-w-md">
               <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Título da viagem (aparece no voucher)</Label>
               <Input
                 defaultValue={order.tripTitle ?? ""}
@@ -243,9 +243,9 @@ function OrderDetailPage() {
               />
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             <div className="text-xs text-muted-foreground">Total</div>
-            <div className="text-2xl font-display font-bold text-brand-orange">{formatBRL(order.totalPrice)}</div>
+            <div className="text-xl sm:text-2xl font-display font-bold text-brand-orange">{formatBRL(order.totalPrice)}</div>
             <div className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>
               {pm.label}
             </div>
@@ -433,7 +433,7 @@ function OrderDetailPage() {
       {/* Tabs */}
       <div className="mt-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="flex-wrap h-auto">
+          <TabsList className="flex w-full flex-nowrap overflow-x-auto h-auto justify-start sm:flex-wrap">
             <TabsTrigger value="hotel"><Hotel className="h-3.5 w-3.5 mr-1.5" /> Hospedagem ({hotelItems.length})</TabsTrigger>
             <TabsTrigger value="flight"><Plane className="h-3.5 w-3.5 mr-1.5" /> Aéreo ({flightItems.length})</TabsTrigger>
             <TabsTrigger value="service"><Package className="h-3.5 w-3.5 mr-1.5" /> Serviços ({serviceItems.length})</TabsTrigger>
