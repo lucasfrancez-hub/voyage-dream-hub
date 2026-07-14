@@ -43,6 +43,18 @@ export function normalizeQuoteConfig(raw: unknown): QuoteConfig {
   };
 }
 
+export type HotelInfo = {
+  name: string | null;
+  rating: number | null;
+  num_reviews: number | null;
+  ranking: string | null;
+  address: string | null;
+  description: string | null;
+  photos: string[]; // urls
+  amenities: string[];
+  web_url: string | null;
+};
+
 export type PublicQuoteItem = {
   kind: "flight" | "hotel" | "other";
   title: string;
@@ -61,6 +73,7 @@ export type PublicQuoteItem = {
   meal_plan?: string | null;
   check_in?: string | null;
   check_out?: string | null;
+  hotel_info?: HotelInfo | null;
   category?: string | null;
   date_from?: string | null;
   date_to?: string | null;
@@ -79,6 +92,7 @@ export type PublicQuote = {
   config: QuoteConfig;
   agency: { name: string; email: string; phone: string; whatsapp: string };
 };
+
 
 // -------- Server functions --------
 
