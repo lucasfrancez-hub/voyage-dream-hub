@@ -782,7 +782,7 @@ function FlightFieldset({
                       const city = iataCity(code);
                       patchSeg(i, {
                         from_iata: code,
-                        ...(city && !(s.from_city ?? "").trim() ? { from_city: city } : {}),
+                        ...(city ? { from_city: city } : {}),
                       });
                     }}
                     placeholder="Origem (IATA) — ex.: SDU"
@@ -802,7 +802,7 @@ function FlightFieldset({
                       const city = iataCity(code);
                       patchSeg(i, {
                         to_iata: code,
-                        ...(city && !(s.to_city ?? "").trim() ? { to_city: city } : {}),
+                        ...(city ? { to_city: city } : {}),
                       });
                     }}
                     placeholder="Destino (IATA) — ex.: GRU"
