@@ -78,7 +78,7 @@ export const AIRLINES: Airline[] = [
   { iata: "LY", name: "El Al Israel Airlines",  logo: elAl.url,                 aliases: ["el al"] },
   { iata: "EK", name: "Emirates",               logo: emirates.url },
   { iata: "ET", name: "Ethiopian Airlines",     logo: ethiopian.url,            aliases: ["ethiopian"] },
-  { iata: "G3", name: "GOL Linhas Aéreas",      logo: gol.url,                  aliases: ["gol", "gol linhas aereas"] },
+  { iata: "G3", name: "Gol",                    logo: gol.url,                  aliases: ["gol", "gol linhas aereas"] },
   { iata: "HR", name: "Hahn Air",               logo: hahnair.url,              aliases: ["hahnair"] },
   { iata: "IB", name: "Iberia",                 logo: iberia.url },
   { iata: "AZ", name: "ITA Airways",            logo: itaAirways.url,           aliases: ["ita"] },
