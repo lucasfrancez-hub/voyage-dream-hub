@@ -2329,10 +2329,12 @@ function ItemDialog({
             </div>
 
             {kind === "flight" && (() => {
-              const iata = String(details.airline_iata ?? "").toUpperCase();
+              const iataRaw = String(details.airline_iata ?? "").toUpperCase();
+              const airlineName = String(details.airline ?? "");
+              const iataFromName = findAirline(airlineName)?.iata?.toUpperCase() ?? "";
               const fn = String(details.flight_number ?? "").toUpperCase();
-              const prefix = fn.match(/^([A-Z]{1,2}[0-9]?|[0-9][A-Z])/)?.[1] ?? "";
-              const isLatam = iata === "LA" || prefix === "LA";
+              const prefix = fn.match(/^([A-Z]{2})\s*\d/)?.[1] ?? "";
+              const isLatam = iataRaw === "LA" || iataFromName === "LA" || prefix === "LA";
               if (!isLatam) return null;
               return (
                 <div className="col-span-2">
