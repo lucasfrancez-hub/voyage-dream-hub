@@ -292,6 +292,8 @@ export const Route = createFileRoute("/api/public/import-aereo")({
             const m = args.match(/\{[\s\S]*\}/);
             parsed = m ? (JSON.parse(m[0]) as Record<string, unknown>) : {};
           }
+          parsed = normalizeAirlineFields(parsed);
+
 
           await supabaseAdmin.from("flight_import_staging").update({
             status: "ready", parsed: parsed as never, error: null,
