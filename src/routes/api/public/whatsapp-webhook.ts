@@ -74,21 +74,19 @@ type WhatsAppPayload = {
 
 async function processPayload(payload: WhatsAppPayload) {
   const { getOrCreateConversation, saveMessage } = await import("@/lib/whatsapp/conversation.server");
-  const { runCamila } = await import("@/lib/whatsapp/camila-runner.server");
+  const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
 
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
       const value = change.value;
       if (!value) continue;
 
-      // Status de entrega — só loga
       if (value.statuses) {
         for (const st of value.statuses) {
           console.log(`[wa-webhook] status ${st.status} para ${st.id}`);
         }
       }
 
-      // Mensagens recebidas
       for (const msg of value.messages ?? []) {
         if (msg.type !== "text" || !msg.text?.body) {
           console.log(`[wa-webhook] tipo não suportado: ${msg.type}`);
@@ -110,8 +108,7 @@ async function processPayload(payload: WhatsAppPayload) {
           continue;
         }
 
-        // Aciona Camila (async — devolvemos 200 pra Meta antes)
-        await runCamila({ wa_phone: msg.from, profile_name: profileName });
+        await runAgent({ wa_phone: msg.from, profile_name: profileName });
       }
     }
   }
