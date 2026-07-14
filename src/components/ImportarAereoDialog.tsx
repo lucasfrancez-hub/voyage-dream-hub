@@ -253,8 +253,17 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
                   </div>
                 )}
               </div>
-              <DialogFooter>
+              <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+                <div className="font-medium text-foreground mb-1 flex items-center gap-1">
+                  <Radio className="h-3.5 w-3.5" /> Modo escuta (qualquer companhia)
+                </div>
+                Não quer preencher? Clique em <span className="font-medium">Aguardar importação</span> e abra manualmente a página da LATAM/GOL/AZUL — quando você clicar no botão <span className="font-medium">📥 Importar pra Via Air</span> lá dentro, os dados vêm pra este pedido.
+              </div>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button variant="outline" onClick={armAny} className="gap-2">
+                  <Radio className="h-4 w-4" /> Aguardar importação
+                </Button>
                 <Button onClick={abrirPagina} className="gap-2">
                   <ExternalLink className="h-4 w-4" /> Abrir página da cia
                 </Button>
@@ -266,11 +275,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
             <div className="py-10 flex flex-col items-center gap-4 text-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <div className="space-y-1">
-                <div className="font-medium">Aguardando a extensão…</div>
+                <div className="font-medium">Aguardando importação…</div>
                 <div className="text-sm text-muted-foreground max-w-sm">
-                  Na nova aba, resolva o captcha (se aparecer) e clique no botão
+                  Abra a página da sua reserva na LATAM, GOL ou AZUL (resolva o captcha se aparecer) e clique no botão
                   <span className="font-medium"> 📥 Importar pra Via Air </span>
-                  no canto inferior direito.
+                  no canto inferior direito. Os dados aparecem aqui automaticamente.
                 </div>
               </div>
               <Button variant="ghost" size="sm" onClick={reset}>Cancelar</Button>
