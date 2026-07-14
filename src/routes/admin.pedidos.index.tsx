@@ -300,9 +300,15 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
                     </td>
                     <td className="py-3 px-3 align-top">
                       <div className="font-medium">{o.full_name}</div>
+                      {scope === "third_party" && (
+                        <div className="text-[10px] font-semibold text-brand-orange">
+                          {agencyByUser?.[o.owner_user_id ?? ""] ?? "Agência parceira"}
+                        </div>
+                      )}
                       <div className="text-xs text-muted-foreground">{o.email}</div>
                       <div className="text-xs text-muted-foreground">{o.phone}</div>
                     </td>
+
                     <td className="py-3 px-3 align-top max-w-md">
                       <div className="text-sm">{snap.title ?? snap.reference ?? "—"}</div>
                       {snap.destination && (
