@@ -67,7 +67,13 @@ function pickAgent(agents: Agent[]): Agent | null {
   const match = agents.find((a) =>
     isInWindow(now, hmToDecimal(a.horario_inicio), hmToDecimal(a.horario_fim)),
   );
-  return match ?? agents[0];
+  // Fora de qualquer janela ativa → retorna null para disparar mensagem de ausência.
+  return match ?? null;
+}
+
+function firstAvailableAusencia(agents: Agent[]): string | null {
+  for (const a of agents) if (a.mensagem_ausencia) return a.mensagem_ausencia;
+  return null;
 }
 
 function buildSystemPrompt(agent: Agent, conv: WaConversation): string {
@@ -101,7 +107,9 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const agent = pickAgent(agents);
 
   if (!agent) {
-    const msg = "Olá! No momento nossa equipe está fora do horário de atendimento. Retornaremos assim que possível.";
+    const msg =
+      firstAvailableAusencia(agents) ??
+      "olá! nosso setor comercial está encerrado no momento. o horário de atendimento é das 09h às 22h. para emergências fora desse horário, ligue no nosso plantão.";
     await saveMessage({
       conversation_id: conv.id,
       direction: "outbound",
