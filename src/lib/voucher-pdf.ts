@@ -123,7 +123,10 @@ const L = {
     saida: "SAIDA",
     chegada: "CHEGADA",
     categoria: "Categoria",
+    valorTotal: "VALOR TOTAL",
+    valorTotalNota: "Valor total ja com todos os servicos inclusos.",
   },
+
   en: {
     voucherId: "VOUCHER ID",
     passageiro: "GUEST",
