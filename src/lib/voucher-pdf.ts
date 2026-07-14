@@ -1385,13 +1385,18 @@ const drawAereoSection = async (
   const estVolta = rt.length ? (40 + estLegHeight(rt.length) + 40) : 0;
   const estCombined = 40 + estLegHeight(ob.length) + estLegHeight(rt.length) + 40;
   const available = ctx.y - (MARGIN + 40);
+  const freshPageAvailable = (A4.h - MARGIN) - (MARGIN + 40);
 
-  // Se IDA+VOLTA não cabe nesta página, mas IDA cabe sozinha, quebra em dois
-  // cards (IDA aqui, VOLTA na próxima página) pra não deixar uma página em branco.
+  // Regra: só separar IDA e VOLTA em cards distintos quando o conjunto
+  // não couber nem sozinho numa página inteira. Se couber num card único
+  // (mesmo que exija começar numa nova página), mantemos IDA+VOLTA juntos.
+  const combinedFitsFresh = estCombined <= freshPageAvailable;
   const shouldSplit =
-    ob.length > 0 && rt.length > 0 && estCombined > available && estIda <= available;
+    ob.length > 0 && rt.length > 0 && !combinedFitsFresh;
 
   if (shouldSplit) {
+    // IDA no espaço atual se couber, senão em nova página; VOLTA sempre em nova página.
+    if (estIda > available) newPage(ctx);
     await drawAereoLegCard(
       ctx, ob, t.ida, { img: qrImg, url: qrUrl }, obLogos, false, null,
     );
@@ -1401,6 +1406,9 @@ const drawAereoSection = async (
     );
     return;
   }
+
+  // Combinado cabe numa página: se não cabe aqui, começa numa página nova.
+  if (estCombined > available) newPage(ctx);
 
   // Fluxo combinado (IDA + VOLTA num único card)
   const { top } = openSectionCard(ctx, estCombined + 40);
