@@ -37,6 +37,8 @@ import {
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
+import { AirlineCombobox } from "@/components/AirlineCombobox";
+import { findAirline } from "@/lib/airlines";
 import { Cloud } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
@@ -2058,7 +2060,19 @@ function ItemDialog({
         <div><Label>Cidade destino</Label><Input value={String(d.to_city ?? "")} onChange={(e) => onChangeField("to_city", e.target.value)} placeholder="Curitiba" /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Cia aérea</Label><Input value={String(d.airline ?? "")} onChange={(e) => onChangeField("airline", e.target.value)} placeholder="LATAM" /></div>
+        <div>
+          <Label>Cia aérea</Label>
+          <AirlineCombobox
+            value={String(d.airline ?? "")}
+            onChange={(name) => {
+              const a = findAirline(name);
+              onChangeField("airline", name);
+              // Auto-preenche o URL da logo quando escolhida da lista
+              if (a) onChangeField("airline_logo_url", a.logo);
+              else if (!name) onChangeField("airline_logo_url", "");
+            }}
+          />
+        </div>
         <div><Label>Nº do voo</Label><Input value={String(d.flight_number ?? "")} onChange={(e) => onChangeField("flight_number", e.target.value)} placeholder="LA 3331" /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -2069,7 +2083,7 @@ function ItemDialog({
         <div><Label>Classe / Cabine</Label><Input value={String(d.cabin_class ?? d.cabin ?? "")} onChange={(e) => onChangeField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
         <div>
           <Label>URL da logo da cia</Label>
-          <Input value={String(d.airline_logo_url ?? "")} onChange={(e) => onChangeField("airline_logo_url", e.target.value)} placeholder="https://…/logo.png" />
+          <Input value={String(d.airline_logo_url ?? "")} onChange={(e) => onChangeField("airline_logo_url", e.target.value)} placeholder="preenchida ao escolher a cia" />
         </div>
       </div>
       <div className="rounded-md border border-border p-2">

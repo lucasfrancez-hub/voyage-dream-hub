@@ -1337,9 +1337,12 @@ const drawAereoSection = async (
 
   const loadLogos = async (segs: OrderItem[]): Promise<Map<number, PDFImage | null>> => {
     const map = new Map<number, PDFImage | null>();
+    const { airlineLogo } = await import("./airlines");
     for (let i = 0; i < segs.length; i++) {
       const d = (segs[i].details ?? {}) as Record<string, unknown>;
-      const url = String(d.airline_logo_url ?? "").trim();
+      const explicit = String(d.airline_logo_url ?? "").trim();
+      const fromRegistry = airlineLogo(String(d.airline ?? "")) ?? "";
+      const url = explicit || fromRegistry;
       map.set(i, url ? await embedRemotePhoto(ctx.pdf, url) : null);
     }
     return map;
