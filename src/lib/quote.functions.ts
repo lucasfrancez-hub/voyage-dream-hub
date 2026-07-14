@@ -151,10 +151,20 @@ export const getQuoteConfig = createServerFn({ method: "GET" })
 export const getPublicQuote = createServerFn({ method: "GET" })
   .inputValidator((input: { token: string }) => input)
   .handler(async ({ data }): Promise<PublicQuote> => {
-    const { decodeQuoteToken } = await import("./quote-token.server");
-    const orderId = decodeQuoteToken(data.token);
-    if (!orderId) throw new Error("Orçamento inválido");
+    const { decodeQuoteTokenToOrderNumber, decodeQuoteTokenLegacy } = await import("./quote-token.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Resolve orderId a partir do token curto (order_number) OU legado (uuid).
+    let orderId: string | null = null;
+    const orderNumber = decodeQuoteTokenToOrderNumber(data.token);
+    if (orderNumber) {
+      const { data: byNum } = await supabaseAdmin
+        .from("orders").select("id").eq("order_number", orderNumber).maybeSingle();
+      orderId = (byNum as { id?: string } | null)?.id ?? null;
+    } else {
+      orderId = decodeQuoteTokenLegacy(data.token);
+    }
+    if (!orderId) throw new Error("Orçamento inválido");
 
     const { data: order, error: e1 } = await supabaseAdmin
       .from("orders")
@@ -163,6 +173,7 @@ export const getPublicQuote = createServerFn({ method: "GET" })
       .maybeSingle();
     if (e1) throw new Error(e1.message);
     if (!order) throw new Error("Pedido não encontrado");
+
 
     // Materializa itens a partir do snapshot (caso o pedido tenha vindo de pacote pronto)
     try {
