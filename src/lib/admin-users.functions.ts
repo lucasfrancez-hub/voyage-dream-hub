@@ -19,6 +19,7 @@ export type AdminUser = {
   fullName: string | null;
   createdAt: string;
   lastSignInAt: string | null;
+  emailConfirmedAt: string | null;
   role: AdminRole;
 };
 
