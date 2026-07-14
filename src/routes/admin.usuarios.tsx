@@ -31,13 +31,14 @@ function UsersPage() {
   });
 
   const createMut = useMutation({
-    mutationFn: (input: { email: string; password: string; role: AdminRole; fullName?: string }) =>
+    mutationFn: (input: { email: string; password: string; role: AdminRole; fullName?: string; agencyName?: string }) =>
       create({ data: input }),
     onSuccess: () => {
       toast.success("Usuário criado");
       setEmail("");
       setPassword("");
       setFullName("");
+      setAgencyName("");
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao criar"),
@@ -75,6 +76,7 @@ function UsersPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [agencyName, setAgencyName] = useState("");
   const [role, setNewRole] = useState<AdminRole>("user");
 
   function submit(e: React.FormEvent) {
@@ -83,7 +85,17 @@ function UsersPage() {
       toast.error("Informe e-mail e senha com ao menos 8 caracteres");
       return;
     }
-    createMut.mutate({ email, password, role, fullName: fullName.trim() || undefined });
+    if (role === "partner" && !agencyName.trim()) {
+      toast.error("Informe o nome da empresa do terceiro");
+      return;
+    }
+    createMut.mutate({
+      email,
+      password,
+      role,
+      fullName: fullName.trim() || undefined,
+      agencyName: role === "partner" ? agencyName.trim() : undefined,
+    });
   }
 
   return (
@@ -142,6 +154,21 @@ function UsersPage() {
               <option value="partner">Terceiro (agência parceira)</option>
             </select>
           </label>
+          {role === "partner" && (
+            <label className="block sm:col-span-2">
+              <span className="block text-xs text-muted-foreground mb-1.5">
+                Nome da empresa (aparecerá nos vouchers do terceiro)
+              </span>
+              <input
+                type="text"
+                required
+                value={agencyName}
+                onChange={(e) => setAgencyName(e.target.value)}
+                className={cls}
+                placeholder="Ex.: Zonet Viagens"
+              />
+            </label>
+          )}
           <div className="flex items-end">
             <button
               type="submit"

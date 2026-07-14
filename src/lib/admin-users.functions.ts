@@ -71,11 +71,15 @@ export const createAdminUser = createServerFn({ method: "POST" })
         password: z.string().min(8).max(72),
         role: z.enum(["admin", "user", "partner"]),
         fullName: z.string().trim().max(120).optional(),
+        agencyName: z.string().trim().max(120).optional(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     await ensureGestor(context);
+    if (data.role === "partner" && !data.agencyName) {
+      throw new Error("Informe o nome da empresa para o usuário terceiro.");
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
@@ -98,6 +102,11 @@ export const createAdminUser = createServerFn({ method: "POST" })
       await supabaseAdmin
         .from("profiles")
         .upsert({ id: userId, full_name: data.fullName });
+    }
+    if (data.role === "partner" && data.agencyName) {
+      await supabaseAdmin
+        .from("partner_agencies")
+        .upsert({ user_id: userId, agency_name: data.agencyName }, { onConflict: "user_id" });
     }
     return { id: userId, email: created.user!.email ?? data.email };
   });
