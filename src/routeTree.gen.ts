@@ -34,6 +34,7 @@ import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
+import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 
 const PagarBoletoRoute = PagarBoletoRouteImport.update({
@@ -162,6 +163,11 @@ const AdminPessoasIdRoute = AdminPessoasIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminPessoasRoute,
 } as any)
+const AdminPedidosTerceirosRoute = AdminPedidosTerceirosRouteImport.update({
+  id: '/pedidos/terceiros',
+  path: '/pedidos/terceiros',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPedidosIdRoute = AdminPedidosIdRouteImport.update({
   id: '/pedidos/$id',
   path: '/pedidos/$id',
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
+  '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByTo {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
+  '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
@@ -245,6 +253,7 @@ export interface FileRoutesById {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
+  '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
@@ -275,6 +284,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/pacotes/'
     | '/admin/pedidos/$id'
+    | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
@@ -302,6 +312,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/pacotes'
     | '/admin/pedidos/$id'
+    | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
@@ -330,6 +341,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/pacotes/'
     | '/admin/pedidos/$id'
+    | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
@@ -528,6 +540,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPessoasIdRouteImport
       parentRoute: typeof AdminPessoasRoute
     }
+    '/admin/pedidos/terceiros': {
+      id: '/admin/pedidos/terceiros'
+      path: '/pedidos/terceiros'
+      fullPath: '/admin/pedidos/terceiros'
+      preLoaderRoute: typeof AdminPedidosTerceirosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pedidos/$id': {
       id: '/admin/pedidos/$id'
       path: '/pedidos/$id'
@@ -562,6 +581,7 @@ interface AdminRouteChildren {
   AdminSegurancaRoute: typeof AdminSegurancaRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
+  AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
 }
 
@@ -577,6 +597,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSegurancaRoute: AdminSegurancaRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
+  AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
 }
 
