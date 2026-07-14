@@ -96,7 +96,7 @@ export const AIRLINES: Airline[] = [
   { iata: "SA", name: "South African Airways",  logo: southAfricanAirways.url,  aliases: ["saa"] },
   { iata: "LX", name: "SWISS International Air Lines", logo: swiss.url,         aliases: ["swiss"] },
   { iata: "DT", name: "TAAG Angola Airlines",   logo: taag.url,                 aliases: ["taag"] },
-  { iata: "TP", name: "TAP Air Portugal",       logo: tap.url,                  aliases: ["tap", "tap portugal"] },
+  { iata: "TP", name: "TAP",                    logo: tap.url,                  aliases: ["tap", "tap portugal", "tap air portugal"] },
   { iata: "TK", name: "Turkish Airlines",       logo: turkishAirlines.url,      aliases: ["turkish"] },
   { iata: "UA", name: "United Airlines",        logo: united.url,               aliases: ["united"] },
   { iata: "MF", name: "Xiamen Air",             logo: xiamenAir.url,            aliases: ["xiamenair"] },
