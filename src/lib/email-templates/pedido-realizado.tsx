@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Img, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { EmailLayout, OrderSummary, styles } from './_layout'
+import { EmailLayout, OrderSummary, ICONS, styles } from './_layout'
 import clipboardAsset from '@/assets/clipboard-check.png.asset.json'
 
 const APP_BASE_URL = 'https://pedidos.viaair.tur.br'
@@ -42,11 +42,13 @@ export const PedidoRealizado = ({
               para dar continuidade.
             </Text>
             <Text style={styles.idBadge}>
-              📋&nbsp;&nbsp;ID DO PEDIDO: <span style={styles.idBadgeAccent}>#{orderId}</span>
+              <Img src={ICONS.doc} alt="" width="16" height="16" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '10px' }} />
+              <span style={{ verticalAlign: 'middle' }}>ID DO PEDIDO: </span>
+              <span style={{ ...styles.idBadgeAccent, verticalAlign: 'middle' }}>#{orderId}</span>
             </Text>
           </td>
-          <td style={{ width: '200px', verticalAlign: 'top' as const, textAlign: 'right' as const }}>
-            <Img src={CLIPBOARD_URL} alt="" width="180" height="180" style={{ display: 'inline-block' }} />
+          <td style={{ width: '210px', verticalAlign: 'top' as const, textAlign: 'right' as const }}>
+            <Img src={CLIPBOARD_URL} alt="" width="190" height="190" style={{ display: 'inline-block' }} />
           </td>
         </tr>
       </table>
