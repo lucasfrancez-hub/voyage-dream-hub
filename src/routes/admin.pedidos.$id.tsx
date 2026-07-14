@@ -1643,7 +1643,7 @@ function FlightReservationCard({
             const rawAirline = (d.airline as string) || "";
             const segIata = typeof d.airline_iata === "string" ? (d.airline_iata as string).toUpperCase() : "";
             const flightPrefix = (flightNum.match(/^([A-Z0-9]{2})\s/)?.[1] ?? "").toUpperCase();
-            const airlineHit = findAirline(segIata) ?? findAirline(flightPrefix) ?? findAirline(rawAirline);
+            const airlineHit = findAirline(flightPrefix) ?? findAirline(segIata) ?? findAirline(rawAirline);
             const airline = airlineHit?.name ?? rawAirline;
             const airlineKey = airlineHit?.iata ?? rawAirline;
             const cabin = ((d.cabin_class ?? d.cabin) as string) || "";
