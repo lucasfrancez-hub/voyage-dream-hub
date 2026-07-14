@@ -221,9 +221,21 @@ function UsersPage() {
               user={u}
               savingName={nameMut.isPending && nameMut.variables?.userId === u.id}
               resending={resendMut.isPending && resendMut.variables === u.email}
+              confirming={confirmMut.isPending && confirmMut.variables === u.id}
+              settingPwd={pwdMut.isPending && pwdMut.variables?.userId === u.id}
               onSaveName={(name) => nameMut.mutate({ userId: u.id, fullName: name })}
               onChangeRole={(r) => roleMut.mutate({ userId: u.id, role: r })}
               onResend={() => resendMut.mutate(u.email)}
+              onConfirmEmail={() => confirmMut.mutate(u.id)}
+              onSetPassword={() => {
+                const p = prompt(`Nova senha para ${u.email} (mín. 8 caracteres):`);
+                if (!p) return;
+                if (p.length < 8) {
+                  toast.error("Senha muito curta");
+                  return;
+                }
+                pwdMut.mutate({ userId: u.id, password: p });
+              }}
               onDelete={() => {
                 if (confirm(`Remover ${u.email}?`)) delMut.mutate(u.id);
               }}
