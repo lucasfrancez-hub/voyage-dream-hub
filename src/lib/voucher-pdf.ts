@@ -1439,7 +1439,7 @@ const drawAereoLegCard = async (
   const est = 40 + (120 + (legs.length - 1) * 90) + (bags ? 40 : 20);
   const { top } = openSectionCard(ctx, est);
   const headerBottom = drawSectionHeader(ctx, top, "plane", t.aereo);
-  const locator = legs.map((i) => i.supplier_locator).find(Boolean) ?? "";
+  const locator = pickAereoLocator(legs);
   const ticket = legs
     .map((i) => String(((i.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
     .find((v) => !!v) ?? "";
