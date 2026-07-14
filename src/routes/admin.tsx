@@ -119,11 +119,11 @@ function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-40">
-        <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-3">
-              <img src={viaAirLogo.url} alt="Via Air" className="h-8 w-auto" />
+      <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-40" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+            <Link to="/" className="flex items-center gap-3 shrink-0">
+              <img src={viaAirLogo.url} alt="Via Air" className="h-7 sm:h-8 w-auto" />
             </Link>
             <nav className="hidden md:flex items-center gap-1">
               <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
@@ -162,7 +162,7 @@ function AdminLayout() {
           </div>
         </div>
         <nav className="md:hidden border-t border-border overflow-x-auto">
-          <div className="mx-auto max-w-7xl px-6 py-2 flex items-center gap-1 whitespace-nowrap">
+          <div className="mx-auto max-w-7xl px-3 sm:px-6 py-2 flex items-center gap-1 whitespace-nowrap">
             <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
             <DashboardNav pathname={pathname} />
             <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />

@@ -88,20 +88,20 @@ function AdminOrders() {
   const [mondeOpen, setMondeOpen] = useState(false);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Pedidos</h1>
-          <p className="text-sm text-muted-foreground">
-            {orders?.length ?? 0} pedido(s) · resultado da busca: {filtered.length}
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-display font-bold">Pedidos</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {orders?.length ?? 0} pedido(s) · resultado: {filtered.length}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setMondeOpen(true)} className="gap-2">
-            <Cloud className="h-4 w-4" /> Importar do Monde
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setMondeOpen(true)} className="gap-2 flex-1 sm:flex-none">
+            <Cloud className="h-4 w-4" /> <span>Importar do Monde</span>
           </Button>
-          <Button onClick={() => setNewOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> Cadastrar pedido
+          <Button size="sm" onClick={() => setNewOpen(true)} className="gap-2 flex-1 sm:flex-none">
+            <Plus className="h-4 w-4" /> Cadastrar<span className="hidden sm:inline"> pedido</span>
           </Button>
         </div>
       </div>
@@ -116,7 +116,7 @@ function AdminOrders() {
 
 
       {/* Search bar (FRT style) */}
-      <div className="mt-4 rounded-2xl border border-border bg-card p-4">
+      <div className="mt-4 rounded-2xl border border-border bg-card p-3 sm:p-4">
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -124,12 +124,12 @@ function AdminOrders() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por Id, passageiro, e-mail, CPF, telefone, localizador ou nº do pedido…"
+              placeholder="Buscar por Id, passageiro, e-mail, CPF, telefone…"
               className="w-full rounded-lg border border-border bg-background pl-9 pr-3 py-2 text-sm outline-none focus:border-brand-orange"
             />
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-nowrap gap-2 overflow-x-auto -mx-1 px-1">
           {STATUS_FILTERS.map((f) => {
             const active = statusFilter === f.value;
             const count = f.value === "all" ? orders?.length ?? 0 : statusCounts[f.value] ?? 0;
@@ -138,7 +138,7 @@ function AdminOrders() {
                 key={f.value}
                 type="button"
                 onClick={() => setStatusFilter(f.value)}
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition ${
+                className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition ${
                   active
                     ? "bg-brand-orange text-primary-foreground"
                     : "border border-border text-muted-foreground hover:text-foreground"
@@ -152,12 +152,70 @@ function AdminOrders() {
         </div>
       </div>
 
-      {/* Result table */}
+      {/* Result — table on desktop, cards on mobile */}
       <div className="mt-4 rounded-2xl border border-border bg-card overflow-hidden">
         <div className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
-          Resultado da busca: {filtered.length} registro(s)
+          Resultado: {filtered.length} registro(s)
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Mobile: card list */}
+        <div className="md:hidden divide-y divide-border/50">
+          {isLoading && (
+            <div className="text-center py-10 text-muted-foreground text-sm">
+              <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Carregando…
+            </div>
+          )}
+          {!isLoading && filtered.length === 0 && (
+            <div className="text-center py-10 text-muted-foreground text-sm">Nenhum pedido encontrado.</div>
+          )}
+          {filtered.map((o) => {
+            const snap = (o.package_snapshot ?? {}) as {
+              order_number?: string; title?: string; destination?: string; reference?: string;
+            };
+            const pm = paymentMethodLabel(o.payment_method);
+            const st = statusLabel(o.status);
+            const displayOrderNumber =
+              ((o as { order_number?: string | null }).order_number ?? snap.order_number ?? shortId(o.id));
+            return (
+              <Link
+                key={o.id}
+                to="/admin/pedidos/$id"
+                params={{ id: o.id }}
+                className="block px-4 py-3 active:bg-muted/40 transition"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-sm font-semibold">{displayOrderNumber}</span>
+                      {o.airline_locator && (
+                        <span className="font-mono text-[10px] text-muted-foreground">LOC {o.airline_locator}</span>
+                      )}
+                    </div>
+                    <div className="mt-1 font-medium text-sm truncate">{o.full_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{o.email}</div>
+                    <div className="text-xs text-muted-foreground">{o.phone}</div>
+                    {(snap.title || snap.reference) && (
+                      <div className="mt-1 text-xs truncate">{snap.title ?? snap.reference}</div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-semibold text-sm">{formatBRL(Number(o.total_price))}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {new Date(o.created_at).toLocaleDateString("pt-BR")}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>{pm.label}</span>
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>{st.label}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground uppercase tracking-wider">
               <tr>
