@@ -116,20 +116,29 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
     <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-display font-bold">Pedidos</h1>
+          <h1 className="text-xl sm:text-2xl font-display font-bold">
+            {scope === "third_party" ? "Pedidos de terceiro" : "Pedidos"}
+          </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
+            {scope === "third_party"
+              ? "Pedidos criados por agências parceiras"
+              : null}
+            {scope === "third_party" ? " · " : ""}
             {orders?.length ?? 0} pedido(s) · resultado: {filtered.length}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setMondeOpen(true)} className="gap-2 flex-1 sm:flex-none">
-            <Cloud className="h-4 w-4" /> <span>Importar do Monde</span>
-          </Button>
-          <Button size="sm" onClick={() => setNewOpen(true)} className="gap-2 flex-1 sm:flex-none">
-            <Plus className="h-4 w-4" /> Cadastrar<span className="hidden sm:inline"> pedido</span>
-          </Button>
-        </div>
+        {scope === "mine" && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setMondeOpen(true)} className="gap-2 flex-1 sm:flex-none">
+              <Cloud className="h-4 w-4" /> <span>Importar do Monde</span>
+            </Button>
+            <Button size="sm" onClick={() => setNewOpen(true)} className="gap-2 flex-1 sm:flex-none">
+              <Plus className="h-4 w-4" /> Cadastrar<span className="hidden sm:inline"> pedido</span>
+            </Button>
+          </div>
+        )}
       </div>
+
       <NewOrderDialog open={newOpen} onOpenChange={setNewOpen} />
       <MondePersonSearchDialog
         open={mondeOpen}
