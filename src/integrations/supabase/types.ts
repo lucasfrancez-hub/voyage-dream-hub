@@ -1146,6 +1146,7 @@ export type Database = {
           assigned_to: string | null
           created_at: string
           display_name: string | null
+          funnel_stage: string | null
           id: string
           identity_verified_at: string | null
           identity_verified_cpf: string | null
@@ -1165,6 +1166,7 @@ export type Database = {
           assigned_to?: string | null
           created_at?: string
           display_name?: string | null
+          funnel_stage?: string | null
           id?: string
           identity_verified_at?: string | null
           identity_verified_cpf?: string | null
@@ -1184,6 +1186,7 @@ export type Database = {
           assigned_to?: string | null
           created_at?: string
           display_name?: string | null
+          funnel_stage?: string | null
           id?: string
           identity_verified_at?: string | null
           identity_verified_cpf?: string | null
