@@ -198,11 +198,11 @@ function UserRow({
     fullName: string | null;
     createdAt: string;
     lastSignInAt: string | null;
-    role: "admin" | "user";
+    role: AdminRole;
   };
   savingName: boolean;
   onSaveName: (name: string) => void;
-  onChangeRole: (r: "admin" | "user") => void;
+  onChangeRole: (r: AdminRole) => void;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(user.fullName ?? "");
@@ -242,15 +242,20 @@ function UserRow({
       </div>
       <select
         value={user.role}
-        onChange={(e) => onChangeRole(e.target.value as "admin" | "user")}
+        onChange={(e) => onChangeRole(e.target.value as AdminRole)}
         className="rounded-full border border-border bg-background px-3 py-1.5 text-xs"
       >
         <option value="user">Operador</option>
         <option value="admin">Admin</option>
+        <option value="partner">Terceiro</option>
       </select>
       {user.role === "admin" ? (
         <span className="inline-flex items-center gap-1 text-xs text-brand-orange">
           <ShieldCheck className="h-3.5 w-3.5" /> Admin
+        </span>
+      ) : user.role === "partner" ? (
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          Terceiro
         </span>
       ) : (
         <span />
