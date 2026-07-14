@@ -138,7 +138,7 @@
     // innerText traz apenas o conteúdo realmente exibido. textContent incluía
     // telas/templates ocultos do portal e cortava a tabela da reserva no limite.
     const bodyText = doc.body.innerText || "";
-    return [tablesText, formValues.length ? "CAMPOS:\n" + formValues.join("\n") : "", "TEXTO VISÍVEL:\n" + bodyText]
+    return [header, tablesText, formValues.length ? "CAMPOS:\n" + formValues.join("\n") : "", "TEXTO VISÍVEL:\n" + bodyText]
       .filter(Boolean)
       .join("\n\n");
   }
