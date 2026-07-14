@@ -175,12 +175,23 @@ export const Route = createFileRoute("/api/public/import-aereo")({
         if (!apiKey) return json({ error: "ai_key_missing" }, 500);
 
         try {
+          const userContent: Array<
+            | { type: "text"; text: string }
+            | { type: "image_url"; image_url: { url: string } }
+          > = [
+            { type: "text", text:
+              `Origem: ${airline.toUpperCase()}\nURL: ${body.source_url ?? ""}\n\n` +
+              (screenshots.length > 0
+                ? `Você recebe ${screenshots.length} captura(s) de tela da página (do topo pra baixo) E o texto extraído do DOM. Priorize o que aparece nas IMAGENS quando texto e imagem divergirem — os portais de consolidador renderizam tabelas complexas que se perdem no texto.\n\n`
+                : "") +
+              `TEXTO DA PÁGINA:\n${rawText}` },
+            ...screenshots.map((url) => ({ type: "image_url" as const, image_url: { url } })),
+          ];
           const aiBody = {
             model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content:
-                `Origem: ${airline.toUpperCase()}\nURL: ${body.source_url ?? ""}\n\nTEXTO DA PÁGINA:\n${rawText}` },
+              { role: "user", content: userContent },
             ],
             tools: [{
               type: "function",
