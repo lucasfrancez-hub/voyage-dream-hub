@@ -254,9 +254,13 @@ function UserRow({
   user,
   savingName,
   resending,
+  confirming,
+  settingPwd,
   onSaveName,
   onChangeRole,
   onResend,
+  onConfirmEmail,
+  onSetPassword,
   onDelete,
 }: {
   user: {
@@ -265,13 +269,18 @@ function UserRow({
     fullName: string | null;
     createdAt: string;
     lastSignInAt: string | null;
+    emailConfirmedAt: string | null;
     role: AdminRole;
   };
   savingName: boolean;
   resending: boolean;
+  confirming: boolean;
+  settingPwd: boolean;
   onSaveName: (name: string) => void;
   onChangeRole: (r: AdminRole) => void;
   onResend: () => void;
+  onConfirmEmail: () => void;
+  onSetPassword: () => void;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(user.fullName ?? "");
@@ -279,6 +288,7 @@ function UserRow({
     setName(user.fullName ?? "");
   }, [user.fullName]);
   const dirty = name.trim() !== (user.fullName ?? "").trim();
+  const notConfirmed = !user.emailConfirmedAt;
 
   return (
     <div className="p-4 grid gap-3 md:grid-cols-[1.4fr_1fr_auto_auto] md:items-center">
@@ -307,6 +317,9 @@ function UserRow({
           {user.lastSignInAt
             ? ` · Último acesso ${new Date(user.lastSignInAt).toLocaleString("pt-BR")}`
             : " · Nunca acessou"}
+          {notConfirmed && (
+            <span className="ml-1 text-amber-500">· E-mail não confirmado</span>
+          )}
         </div>
       </div>
       <select
@@ -330,6 +343,28 @@ function UserRow({
         <span />
       )}
       <div className="flex flex-wrap items-center gap-2">
+        {notConfirmed && (
+          <button
+            type="button"
+            onClick={onConfirmEmail}
+            disabled={confirming}
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/60 px-3 py-1.5 text-xs text-amber-500 hover:bg-amber-500/10 transition disabled:opacity-60"
+            title="Marcar e-mail como confirmado (destrava o login)"
+          >
+            {confirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MailCheck className="h-3.5 w-3.5" />}
+            Confirmar e-mail
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onSetPassword}
+          disabled={settingPwd}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-brand-orange hover:text-brand-orange transition disabled:opacity-60"
+          title="Definir uma nova senha manualmente"
+        >
+          {settingPwd ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+          Nova senha
+        </button>
         <button
           type="button"
           onClick={onResend}
