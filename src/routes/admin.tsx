@@ -271,3 +271,37 @@ function DashboardNav({ pathname }: { pathname: string }) {
     </DropdownMenu>
   );
 }
+
+function SegurancaNav({ pathname }: { pathname: string }) {
+  const active =
+    pathname.startsWith("/admin/seguranca") ||
+    pathname.startsWith("/admin/instalar-extensao");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
+          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <ShieldCheck className="h-4 w-4" /> Segurança <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuItem asChild>
+          <Link to="/admin/seguranca" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Segurança</span>
+            <span className="text-xs text-muted-foreground">Alertas e políticas</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/instalar-extensao" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium flex items-center gap-1.5">
+              <Puzzle className="h-3.5 w-3.5" /> Instalar extensão
+            </span>
+            <span className="text-xs text-muted-foreground">Importador de reservas</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
