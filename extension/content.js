@@ -58,14 +58,9 @@
     return stored[storageKey] || stored[legacyStorageKey] || null;
   }
 
-  function collectPageText() {
-    // Pega TODO o texto do DOM (inclusive abas/painéis colapsados por CSS
-    // e conteúdo abaixo da rolagem — o DOM está inteiro carregado).
-    // textContent > innerText porque innerText ignora elementos hidden.
-    const clone = document.body.cloneNode(true);
-
-    // Portais ASP.NET (SkyTeam/Infotera) mostram dados dentro de <input value="...">;
-    // convertemos em texto antes de remover os campos.
+  function extractFromDoc(doc) {
+    if (!doc || !doc.body) return "";
+    const clone = doc.body.cloneNode(true);
     clone.querySelectorAll("input,select,textarea").forEach((el) => {
       const v = el.value || el.getAttribute("value") || "";
       if (v && v.trim()) {
@@ -75,12 +70,23 @@
         el.remove();
       }
     });
-    clone.querySelectorAll("script,style,noscript,svg,iframe,button").forEach((n) => n.remove());
-
-    // Preserva quebras de linha em tabelas/listas — importantes em portais ASP.NET.
+    clone.querySelectorAll("script,style,noscript,svg,button").forEach((n) => n.remove());
     clone.querySelectorAll("tr,li,p,div,br,td,th").forEach((n) => n.appendChild(document.createTextNode("\n")));
+    return clone.textContent || "";
+  }
 
-    const text = clone.textContent || "";
+  function collectPageText() {
+    // Portais ASP.NET (SkyTeam) renderizam a reserva DENTRO de <iframe>.
+    // O "código-fonte da página" é vazio, mas o "código-fonte do frame" tem tudo.
+    // Coletamos texto da página principal + todos os iframes acessíveis (same-origin).
+    let text = extractFromDoc(document);
+    const iframes = document.querySelectorAll("iframe,frame");
+    for (const f of iframes) {
+      try {
+        const doc = f.contentDocument || (f.contentWindow && f.contentWindow.document);
+        if (doc) text += "\n\n===== FRAME: " + (f.src || f.name || "inline") + " =====\n" + extractFromDoc(doc);
+      } catch (e) { /* cross-origin, ignore */ }
+    }
     return text
       .replace(/[ \t\u00a0]+/g, " ")
       .replace(/\n[ \t]+/g, "\n")

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Via Air — Importar reserva aérea",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Lê a página de Minhas Viagens da LATAM, GOL ou AZUL e envia os dados da reserva para o admin da Via Air.",
   "icons": {
     "48": "icon.png",
