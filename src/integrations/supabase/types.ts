@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      flight_import_staging: {
+        Row: {
+          airline_hint: string | null
+          consumed_at: string | null
+          created_at: string
+          created_by: string | null
+          error: string | null
+          expires_at: string
+          order_id: string
+          parsed: Json | null
+          raw_text: string | null
+          source_url: string | null
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          airline_hint?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          expires_at?: string
+          order_id: string
+          parsed?: Json | null
+          raw_text?: string | null
+          source_url?: string | null
+          status?: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          airline_hint?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          expires_at?: string
+          order_id?: string
+          parsed?: Json | null
+          raw_text?: string | null
+          source_url?: string | null
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_import_staging_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_item_financials: {
         Row: {
           commission_pct: number
