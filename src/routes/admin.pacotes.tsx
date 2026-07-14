@@ -188,7 +188,7 @@ function AdminPackages() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-6 py-4 sm:py-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold">Pacotes</h1>
