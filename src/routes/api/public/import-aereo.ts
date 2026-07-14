@@ -181,11 +181,11 @@ export const Route = createFileRoute("/api/public/import-aereo")({
           };
           const args = jr.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments
             ?? jr.choices?.[0]?.message?.content ?? "{}";
-          let parsed: unknown;
-          try { parsed = JSON.parse(args); }
+          let parsed: Record<string, unknown> = {};
+          try { parsed = JSON.parse(args) as Record<string, unknown>; }
           catch {
             const m = args.match(/\{[\s\S]*\}/);
-            parsed = m ? JSON.parse(m[0]) : {};
+            parsed = m ? (JSON.parse(m[0]) as Record<string, unknown>) : {};
           }
 
           await supabaseAdmin.from("flight_import_staging").update({
