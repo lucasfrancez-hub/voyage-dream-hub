@@ -183,10 +183,11 @@ const summaryLabel = { fontSize: '11px', color: '#F26B1F', fontWeight: 'bold' as
 const summaryValue = { fontSize: '12px', color: '#475569', margin: '0 0 4px', lineHeight: '1.4' }
 
 // Light footer
-const lightFooter = { borderTop: '1px solid #eaeaea', padding: '16px 32px 20px' }
-const lightFooterMsg = { fontSize: '13px', color: '#0f172a', fontWeight: 'bold' as const, margin: '0 0 6px' }
-const lightFooterContact = { fontSize: '11px', color: '#94a3b8', margin: 0 }
-const lightFooterLink = { color: '#94a3b8', textDecoration: 'underline' }
+const lightFooter = { backgroundColor: '#f1f5f9', padding: '20px 32px', margin: '0 32px 20px', borderRadius: '10px' }
+const helpBadge = { width: '32px', height: '32px', borderRadius: '50%', border: '2px solid #0f172a', color: '#0f172a', fontSize: '18px', fontWeight: 'bold' as const, textAlign: 'center' as const, lineHeight: '28px', display: 'inline-block' }
+const lightFooterMsg = { fontSize: '14px', color: '#0f172a', fontWeight: 'bold' as const, margin: '0 0 6px' }
+const lightFooterContact = { fontSize: '12px', color: '#475569', margin: 0 }
+const lightFooterLink = { color: '#475569', textDecoration: 'none' }
 
 // Dark footer (for confirmations)
 const darkFooterStyle = { backgroundColor: '#0f172a', padding: '20px 32px', textAlign: 'center' as const }
@@ -196,10 +197,12 @@ const darkFooterLink = { color: '#cbd5e1', textDecoration: 'underline' }
 
 // Reusable content styles for templates
 export const styles = {
-  h1: { fontSize: '28px', fontWeight: 'bold' as const, color: '#0f172a', margin: '0 0 4px', lineHeight: '1.2' },
-  h1Accent: { fontSize: '28px', fontWeight: 'normal' as const, color: '#F26B1F', margin: '0 0 16px', lineHeight: '1.2' },
-  idBadge: { display: 'inline-block', backgroundColor: '#fff4ec', color: '#F26B1F', fontSize: '11px', fontWeight: 'bold' as const, padding: '6px 12px', borderRadius: '4px', margin: '0 0 20px', letterSpacing: '0.5px' },
-  greeting: { fontSize: '15px', color: '#0f172a', fontWeight: 'bold' as const, margin: '0 0 8px' },
+  h1: { fontSize: '32px', fontWeight: 'bold' as const, color: '#0f172a', margin: '0 0 4px', lineHeight: '1.15' },
+  h1Accent: { fontSize: '32px', fontWeight: 'bold' as const, color: '#F26B1F', margin: '0 0 20px', lineHeight: '1.15' },
+  idBadge: { display: 'inline-block', backgroundColor: '#f1f5f9', color: '#0f172a', fontSize: '13px', fontWeight: 'bold' as const, padding: '10px 16px', borderRadius: '8px', margin: '20px 0 0', letterSpacing: '0.5px' },
+  idBadgeAccent: { color: '#F26B1F', fontWeight: 'bold' as const },
+  greeting: { fontSize: '15px', color: '#0f172a', fontWeight: 'bold' as const, margin: '0 0 10px' },
   text: { fontSize: '14px', color: '#475569', lineHeight: '1.6', margin: '0 0 12px' },
   strong: { color: '#F26B1F', fontWeight: 'bold' as const },
 }
+
