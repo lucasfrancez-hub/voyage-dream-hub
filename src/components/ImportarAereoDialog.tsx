@@ -111,7 +111,12 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
     try {
       const { token: t } = await createToken({ data: { orderId, airlineHint: airline } });
       setToken(t);
-      const url = withViaAirHash(buildAirlineUrl(airline, { locator, lastname, iata }), t);
+      const ok = await sendTokenToExtension(airline, t);
+      if (!ok) {
+        toast.error("Extensão não detectada. Instale e recarregue a página.");
+        return;
+      }
+      const url = buildAirlineUrl(airline, { locator, lastname, iata });
       window.open(url, "_blank", "noopener,noreferrer");
       setPhase("waiting");
     } catch (e) {
