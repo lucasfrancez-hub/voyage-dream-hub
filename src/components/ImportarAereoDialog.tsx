@@ -157,9 +157,20 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       }
       // 2) Salva blocos de voo — um order_item por segmento
       let sort = 0;
+      let firstItem = true;
       for (const block of reservation.flights) {
         for (const seg of block.segments) {
           const title = `${seg.airline ?? block.airline ?? ""} ${seg.flight_number ?? ""} — ${seg.from_iata ?? ""}→${seg.to_iata ?? ""}`.trim();
+          const pricing = firstItem ? {
+            currency: reservation.currency,
+            total_fare: reservation.total_fare,
+            base_fare: reservation.base_fare,
+            taxes: reservation.taxes,
+            fees: reservation.fees,
+            issued_at: reservation.issued_at,
+            order_number: reservation.order_number,
+          } : undefined;
+          firstItem = false;
           await saveItem({ data: {
             order_id: orderId,
             kind: "flight",
@@ -186,8 +197,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               layover: seg.layover,
               cabin_class: seg.cabin_class,
               fare_class: seg.fare_class,
+              fare_basis: seg.fare_basis,
+              baggage_allowance: seg.baggage_allowance,
               aircraft: seg.aircraft,
               status: seg.status,
+              ...(pricing ? { pricing_summary: pricing } : {}),
             },
           } });
         }
@@ -345,7 +359,41 @@ function ReviewReservation({
           <Label>Companhia</Label>
           <Input value={reservation.supplier_name ?? ""} onChange={(e) => onChange({ ...reservation, supplier_name: e.target.value })} />
         </div>
+        <div>
+          <Label>Nº pedido consolidador</Label>
+          <Input value={reservation.order_number ?? ""} onChange={(e) => onChange({ ...reservation, order_number: e.target.value })} />
+        </div>
+        <div>
+          <Label>Emissão</Label>
+          <Input type="date" value={reservation.issued_at ?? ""} onChange={(e) => onChange({ ...reservation, issued_at: e.target.value })} />
+        </div>
       </div>
+
+      {(reservation.total_fare != null || reservation.base_fare != null || reservation.taxes != null) && (
+        <div className="rounded-lg border border-border p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            Valores {reservation.currency ? `(${reservation.currency})` : ""}
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-sm">
+            <div>
+              <Label className="text-xs">Tarifa</Label>
+              <Input type="number" step="0.01" value={reservation.base_fare ?? ""} onChange={(e) => onChange({ ...reservation, base_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label className="text-xs">Taxas</Label>
+              <Input type="number" step="0.01" value={reservation.taxes ?? ""} onChange={(e) => onChange({ ...reservation, taxes: e.target.value === "" ? undefined : Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label className="text-xs">Fees</Label>
+              <Input type="number" step="0.01" value={reservation.fees ?? ""} onChange={(e) => onChange({ ...reservation, fees: e.target.value === "" ? undefined : Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label className="text-xs">Total</Label>
+              <Input type="number" step="0.01" value={reservation.total_fare ?? ""} onChange={(e) => onChange({ ...reservation, total_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="text-sm font-semibold mb-2">Passageiros ({reservation.passengers.length})</div>

@@ -20,6 +20,8 @@ export type ImportedFlightSegment = {
   layover?: string;
   cabin_class?: string;
   fare_class?: string;
+  fare_basis?: string;
+  baggage_allowance?: string;
   aircraft?: string;
   status?: string;
 };
@@ -36,6 +38,9 @@ export type ImportedPassenger = {
   ticket_number?: string;
   seat?: string;
   baggage?: string;
+  fare?: number;
+  taxes?: number;
+  total?: number;
 };
 
 export type ImportedReservation = {
@@ -43,6 +48,12 @@ export type ImportedReservation = {
   locator?: string;
   order_number?: string;
   status?: string;
+  currency?: string;
+  total_fare?: number;
+  base_fare?: number;
+  taxes?: number;
+  fees?: number;
+  issued_at?: string;
   passengers: ImportedPassenger[];
   flights: ImportedFlightBlock[];
   notes?: string;

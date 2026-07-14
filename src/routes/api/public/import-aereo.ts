@@ -34,6 +34,12 @@ Regras:
 - locator = código PNR (6 caracteres) da companhia; se o portal mostrar só o
   número de pedido do consolidador, use-o em order_number e deixe locator vazio.
 - supplier_name = nome do fornecedor exibido no portal (companhia aérea real).
+- Portais de consolidador (SkyTeam, FRT, Infotera/Visual Turismo) costumam
+  mostrar dados extras: EXTRAIA quando visíveis — ticket_number por passageiro
+  (13 dígitos), fare/taxes/total por passageiro, total_fare/base_fare/taxes/
+  fees do pedido, currency (BRL/USD), issued_at (data de emissão), fare_class
+  (booking class de 1 letra), fare_basis e baggage_allowance por segmento.
+- Valores monetários: sempre número (sem "R$", vírgula → ponto).
 - Nunca copie CPF/documento — a página normalmente nem mostra.`;
 
 function textParamsSchema() {
@@ -46,6 +52,12 @@ function textParamsSchema() {
       order_number: { type: "string" },
       status: { type: "string" },
       notes: { type: "string" },
+      currency: { type: "string", description: "Ex.: BRL, USD" },
+      total_fare: { type: "number", description: "Total pago (tarifa + taxas + fees)" },
+      base_fare: { type: "number" },
+      taxes: { type: "number" },
+      fees: { type: "number" },
+      issued_at: { type: "string", description: "Data de emissão do bilhete (YYYY-MM-DD)" },
       passengers: {
         type: "array",
         items: {
@@ -54,9 +66,12 @@ function textParamsSchema() {
           properties: {
             full_name: { type: "string" },
             kind: { type: "string", enum: ["adult", "child", "infant"] },
-            ticket_number: { type: "string" },
+            ticket_number: { type: "string", description: "13 dígitos, formato 000-0000000000" },
             seat: { type: "string" },
             baggage: { type: "string" },
+            fare: { type: "number", description: "Tarifa individual do passageiro" },
+            taxes: { type: "number" },
+            total: { type: "number" },
           },
           required: ["full_name"],
         },
@@ -91,7 +106,9 @@ function textParamsSchema() {
                   duration: { type: "string" },
                   layover: { type: "string" },
                   cabin_class: { type: "string" },
-                  fare_class: { type: "string" },
+                  fare_class: { type: "string", description: "Booking class, ex.: Y, K, L" },
+                  fare_basis: { type: "string" },
+                  baggage_allowance: { type: "string" },
                   aircraft: { type: "string" },
                   status: { type: "string" },
                 },
