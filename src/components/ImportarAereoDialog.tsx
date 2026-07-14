@@ -185,7 +185,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
             kind: "flight",
             status: "confirmed",
             title,
-            supplier_locator: seg.carrier_locator ?? reservation.locator ?? null,
+            supplier_locator: reservation.locator ?? seg.carrier_locator ?? null,
             sort_order: sort++,
             details: {
               direction: block.direction,
