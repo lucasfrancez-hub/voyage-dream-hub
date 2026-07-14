@@ -204,6 +204,8 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               arrive_at: seg.arrive_at,
               duration: seg.duration,
               layover: seg.layover,
+              layover_airport: seg.layover_airport,
+              operating_airline_iata: seg.operating_airline_iata,
               cabin_class: seg.cabin_class,
               fare_class: seg.fare_class,
               fare_basis: seg.fare_basis,

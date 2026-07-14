@@ -194,6 +194,8 @@ function textParamsSchema() {
                   arrive_at: { type: "string" },
                   duration: { type: "string" },
                   layover: { type: "string" },
+                  layover_airport: { type: "string" },
+                  operating_airline_iata: { type: "string" },
                   cabin_class: { type: "string" },
                   fare_class: { type: "string", description: "Booking class, ex.: Y, K, L" },
                   fare_basis: { type: "string" },
@@ -224,6 +226,7 @@ export const Route = createFileRoute("/api/public/import-aereo")({
           source_url?: string;
           raw_text?: string;
           screenshots?: string[];
+          structured_data?: unknown;
         };
         try {
           body = await request.json();
@@ -239,7 +242,8 @@ export const Route = createFileRoute("/api/public/import-aereo")({
         if (!token || token.length < 10) return json({ error: "invalid_token" }, 400);
         const ALLOWED = ["latam", "gol", "azul", "skyteam", "frt", "visualturismo", "infotera"];
         if (!ALLOWED.includes(airline)) return json({ error: "invalid_airline" }, 400);
-        if (rawText.length < 200 && screenshots.length === 0) return json({ error: "raw_text_too_short" }, 400);
+        const hasStructuredData = body.structured_data !== null && typeof body.structured_data === "object";
+        if (rawText.length < 200 && screenshots.length === 0 && !hasStructuredData) return json({ error: "raw_text_too_short" }, 400);
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -261,10 +265,19 @@ export const Route = createFileRoute("/api/public/import-aereo")({
           error: null,
         }).eq("token", token);
 
-        const apiKey = process.env.LOVABLE_API_KEY;
-        if (!apiKey) return json({ error: "ai_key_missing" }, 500);
-
         try {
+          if (["skyteam", "frt", "visualturismo", "infotera"].includes(airline) && hasStructuredData) {
+            const direct = normalizeDirectStructuredData(body.structured_data);
+            const parsed = normalizeAirlineFields(direct);
+            await supabaseAdmin.from("flight_import_staging").update({
+              status: "ready", parsed: parsed as never, error: null,
+            }).eq("token", token);
+            return json({ ok: true }, 200);
+          }
+
+          const apiKey = process.env.LOVABLE_API_KEY;
+          if (!apiKey) return json({ error: "ai_key_missing" }, 500);
+
           const userContent: Array<
             | { type: "text"; text: string }
             | { type: "image_url"; image_url: { url: string } }
@@ -344,4 +357,54 @@ function json(payload: unknown, status = 200) {
     status,
     headers: { "content-type": "application/json", ...CORS_HEADERS },
   });
+}
+
+function normalizeDirectStructuredData(input: unknown): Record<string, unknown> {
+  const source = input && typeof input === "object" ? input as Record<string, unknown> : {};
+  const passengersSource = Array.isArray(source.passengers) ? source.passengers : [];
+  const seenPassengers = new Set<string>();
+  const passengers = passengersSource.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const row = item as Record<string, unknown>;
+    const fullName = String(row.full_name ?? "").replace(/\s+/g, " ").trim().slice(0, 180);
+    const key = fullName.toLocaleUpperCase("pt-BR");
+    if (!fullName || seenPassengers.has(key)) return [];
+    seenPassengers.add(key);
+    const kind = ["adult", "child", "infant"].includes(String(row.kind)) ? String(row.kind) : "adult";
+    return [{ full_name: fullName, kind }];
+  });
+
+  const allowedSegmentFields = [
+    "airline", "airline_iata", "flight_number", "from_iata", "from_city", "from_airport",
+    "from_terminal", "to_iata", "to_city", "to_airport", "to_terminal", "depart_at",
+    "arrive_at", "duration", "layover", "layover_airport", "operating_airline_iata",
+    "cabin_class", "fare_class", "fare_basis", "baggage_allowance", "carrier_locator",
+    "aircraft", "status",
+  ];
+  const seenSegments = new Set<string>();
+  const flightsSource = Array.isArray(source.flights) ? source.flights : [];
+  const flights = flightsSource.flatMap((item, blockIndex) => {
+    if (!item || typeof item !== "object") return [];
+    const block = item as Record<string, unknown>;
+    const segmentSource = Array.isArray(block.segments) ? block.segments : [];
+    const segments = segmentSource.flatMap((segment) => {
+      if (!segment || typeof segment !== "object") return [];
+      const row = segment as Record<string, unknown>;
+      const clean: Record<string, string> = {};
+      for (const field of allowedSegmentFields) {
+        if (typeof row[field] === "string" && row[field].trim()) clean[field] = row[field].trim().slice(0, 240);
+      }
+      const key = [clean.flight_number, clean.from_iata, clean.to_iata, clean.depart_at].join("|").toUpperCase();
+      if (!clean.flight_number || !clean.from_iata || !clean.to_iata || !clean.depart_at || seenSegments.has(key)) return [];
+      seenSegments.add(key);
+      return [clean];
+    });
+    if (!segments.length) return [];
+    return [{
+      direction: blockIndex === 0 ? "outbound" : "return",
+      airline: typeof block.airline === "string" ? block.airline.slice(0, 120) : undefined,
+      segments,
+    }];
+  });
+  return { passengers, flights };
 }
