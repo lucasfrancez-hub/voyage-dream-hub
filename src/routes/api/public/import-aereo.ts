@@ -34,6 +34,12 @@ Regras:
 - locator = código PNR (6 caracteres) da companhia; se o portal mostrar só o
   número de pedido do consolidador, use-o em order_number e deixe locator vazio.
 - supplier_name = nome do fornecedor exibido no portal (companhia aérea real).
+- Portais de consolidador (SkyTeam, FRT, Infotera/Visual Turismo) costumam
+  mostrar dados extras: EXTRAIA quando visíveis — ticket_number por passageiro
+  (13 dígitos), fare/taxes/total por passageiro, total_fare/base_fare/taxes/
+  fees do pedido, currency (BRL/USD), issued_at (data de emissão), fare_class
+  (booking class de 1 letra), fare_basis e baggage_allowance por segmento.
+- Valores monetários: sempre número (sem "R$", vírgula → ponto).
 - Nunca copie CPF/documento — a página normalmente nem mostra.`;
 
 function textParamsSchema() {
