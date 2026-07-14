@@ -38,6 +38,7 @@ import {
 } from "@/lib/orders.functions";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
+import { FlightNumberInput } from "@/components/FlightNumberInput";
 import { ClassSelect } from "@/components/ClassSelect";
 import { findAirline } from "@/lib/airlines";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
@@ -2071,10 +2072,17 @@ function ItemDialog({
               onChangeField("airline", name);
               // Se está no registro, limpa URL manual (o voucher resolve sozinho).
               if (a || !name) onChangeField("airline_logo_url", "");
+              // Re-normaliza o nº do voo com o novo prefixo IATA.
+              const curr = String(d.flight_number ?? "").trim();
+              if (curr) {
+                const m = curr.toUpperCase().match(/^[A-Z0-9]{2,3}\s*(.+)$/);
+                const suffix = m && /\d/.test(m[1]) ? m[1].trim() : curr.toUpperCase();
+                onChangeField("flight_number", a ? `${a.iata} ${suffix}` : suffix);
+              }
             }}
           />
         </div>
-        <div><Label>Nº do voo</Label><Input value={String(d.flight_number ?? "")} onChange={(e) => onChangeField("flight_number", e.target.value)} placeholder="LA 3331" /></div>
+        <div><Label>Nº do voo</Label><FlightNumberInput airline={String(d.airline ?? "")} value={String(d.flight_number ?? "")} onChange={(v) => onChangeField("flight_number", v)} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Partida</Label><Input type="datetime-local" value={String(d.depart_at ?? d.departure ?? "")} onChange={(e) => onChangeField("depart_at", e.target.value)} /></div>

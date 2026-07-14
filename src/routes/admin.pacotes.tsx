@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
+import { FlightNumberInput } from "@/components/FlightNumberInput";
 import { ClassSelect } from "@/components/ClassSelect";
 import { findAirline } from "@/lib/airlines";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
@@ -753,15 +754,25 @@ function FlightFieldset({
                 <div className="grid sm:grid-cols-2 gap-2">
                   <AirlineCombobox
                     value={s.airline ?? ""}
-                    onChange={(name) => patchSeg(i, { airline: name })}
+                    onChange={(name) => {
+                      const a = findAirline(name);
+                      const curr = String(s.flight_number ?? "").trim();
+                      let nextNo = curr;
+                      if (curr) {
+                        const m = curr.toUpperCase().match(/^[A-Z0-9]{2,3}\s*(.+)$/);
+                        const suffix = m && /\d/.test(m[1]) ? m[1].trim() : curr.toUpperCase();
+                        nextNo = a ? `${a.iata} ${suffix}` : suffix;
+                      }
+                      patchSeg(i, { airline: name, flight_number: nextNo });
+                    }}
                     placeholder="Companhia (opcional, se diferente)"
                   />
-                  <input
-                    className={inp}
-                    value={s.flight_number ?? ""}
-                    onChange={(e) => patchSeg(i, { flight_number: e.target.value })}
-                    placeholder="Nº do voo (ex.: LA 3456)"
+                  <FlightNumberInput
+                    airline={s.airline}
+                    value={s.flight_number}
+                    onChange={(v) => patchSeg(i, { flight_number: v })}
                   />
+
                   <input
                     className={inp}
                     value={s.from_iata ?? ""}
