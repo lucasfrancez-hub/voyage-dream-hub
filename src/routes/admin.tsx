@@ -176,7 +176,7 @@ function AdminLayout() {
             {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
               <NavItem to="/admin/usuarios" icon={Users} label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
             )}
-            <NavItem to="/admin/seguranca" icon={ShieldCheck} label="Segurança" active={pathname.startsWith("/admin/seguranca")} />
+            <SegurancaNav pathname={pathname} />
           </div>
         </nav>
       </header>
