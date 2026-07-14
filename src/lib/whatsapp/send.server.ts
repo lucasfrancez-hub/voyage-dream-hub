@@ -54,8 +54,9 @@ export async function sendWhatsAppText(to: string, body: string): Promise<{ id: 
  * com um pequeno delay entre balões (mais humano). Retorna os wa_message_ids.
  */
 export async function sendWhatsAppBubbles(to: string, fullText: string): Promise<Array<{ text: string; id: string | null; error?: string }>> {
+  // Cada quebra de linha vira um balão separado (mais natural no WhatsApp).
   const bubbles = fullText
-    .split(/\n\s*\n/)
+    .split(/\n+/)
     .map((s) => s.trim())
     .filter(Boolean);
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
