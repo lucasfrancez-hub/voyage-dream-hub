@@ -18,9 +18,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  getQuoteConfig, saveQuoteConfig, getQuoteToken,
+  getQuoteConfig, saveQuoteConfig, getQuoteToken, getPublicQuote,
   DEFAULT_QUOTE_CONFIG, type QuoteConfig,
 } from "@/lib/quote.functions";
+import { buildQuotePdf, downloadPdf } from "@/lib/quote-pdf";
 
 
 type Props = {
@@ -35,6 +36,7 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
   const getCfg = useServerFn(getQuoteConfig);
   const saveCfg = useServerFn(saveQuoteConfig);
   const getTok = useServerFn(getQuoteToken);
+  const getPub = useServerFn(getPublicQuote);
 
   const [cfg, setCfg] = useState<QuoteConfig>(DEFAULT_QUOTE_CONFIG);
   const [token, setToken] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
   // Sempre usa o domínio público oficial para links de orçamento (não o preview/lovable).
   const PUBLIC_HOST = "https://pedidos.viaair.tur.br";
   const publicUrl = token ? `${PUBLIC_HOST}/orcamento/${token}` : "";
-  const printUrl = publicUrl ? `${publicUrl}?print=1` : "";
+  
 
 
   const waPhone = (customerPhone ?? "").replace(/\D+/g, "");
@@ -110,7 +112,16 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
     } else if (action === "web") {
       if (publicUrl) window.open(publicUrl, "_blank", "noopener");
     } else if (action === "pdf") {
-      if (printUrl) window.open(printUrl, "_blank", "noopener");
+      if (!token) { toast.error("Token indisponivel"); return; }
+      const tId = toast.loading("Gerando PDF...");
+      try {
+        const q = await getPub({ data: { token } });
+        const bytes = await buildQuotePdf(q);
+        downloadPdf(bytes, `orcamento-${orderNumber}.pdf`);
+        toast.success("PDF gerado", { id: tId });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF", { id: tId });
+      }
     } else if (action === "wa") {
       if (waHref) window.open(waHref, "_blank", "noopener");
     }
