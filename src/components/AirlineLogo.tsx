@@ -52,7 +52,7 @@ export function AirlineLogo({ airline, size = 32, className, hideIfUnknown }: Pr
         "inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-neutral-100 shrink-0 overflow-hidden",
         className,
       )}
-      style={{ width: size, height: size, padding: Math.max(3, Math.round(size * 0.14)) }}
+      style={{ width: size, height: size, padding: Math.max(2, Math.round(size * 0.1)) }}
       title={label}
     >
       <img
