@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, UserPlus, Trash2, ShieldCheck, Loader2, Check, KeyRound } from "lucide-react";
+import { Users, UserPlus, Trash2, ShieldCheck, Loader2, Check, KeyRound, MailCheck, Lock } from "lucide-react";
 import { toast } from "sonner";
 import {
   listAdminUsers,
@@ -11,6 +11,8 @@ import {
   setAdminUserRole,
   setAdminUserFullName,
   resendUserPassword,
+  confirmAdminUserEmail,
+  setAdminUserPassword,
   type AdminRole,
 } from "@/lib/admin-users.functions";
 
