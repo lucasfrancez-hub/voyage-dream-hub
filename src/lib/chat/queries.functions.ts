@@ -63,6 +63,54 @@ export const sendHumanReply = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 10) throw new Error("Número inválido");
+  // Se veio sem DDI, assume Brasil (55)
+  if (digits.length <= 11) return `55${digits}`;
+  return digits;
+}
+
+export const startOutboundConversation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      phone: z.string().min(8).max(20),
+      display_name: z.string().max(120).optional().nullable(),
+      content: z.string().min(1).max(4000),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const phone = normalizePhone(data.phone);
+    const { getOrCreateConversation, saveMessage } = await import("@/lib/whatsapp/conversation.server");
+    const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const conv = await getOrCreateConversation(phone, data.display_name ?? null);
+
+    // Conversa iniciada manualmente → modo humano por padrão (IA desligada).
+    await supabaseAdmin
+      .from("wa_conversations")
+      .update({
+        mode: "human",
+        assigned_to: context.userId,
+        display_name: data.display_name?.trim() || undefined,
+      })
+      .eq("id", conv.id);
+
+    await saveMessage({
+      conversation_id: conv.id,
+      direction: "outbound",
+      sender: "human",
+      content: data.content,
+      sender_user_id: context.userId,
+    });
+
+    await sendWhatsAppBubbles(phone, data.content);
+    return { ok: true, conversation_id: conv.id };
+  });
+
+
 export const toggleConversationMode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
