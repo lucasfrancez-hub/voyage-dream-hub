@@ -69,7 +69,7 @@ function AdminLayout() {
 
   // Auto-logout por inatividade (30 min sem interação do usuário)
   useEffect(() => {
-    if (!session || !isAdmin) return;
+    if (!session || !(isAdmin || isPartner)) return;
     const TIMEOUT_MS = 30 * 60 * 1000;
     let timer: ReturnType<typeof setTimeout>;
     const doLogout = async () => {
@@ -90,10 +90,10 @@ function AdminLayout() {
       clearTimeout(timer);
       events.forEach((e) => window.removeEventListener(e, reset));
     };
-  }, [session, isAdmin, navigate]);
+  }, [session, isAdmin, isPartner, navigate]);
 
 
-  if (session === undefined || (session && isAdmin === null)) {
+  if (session === undefined || (session && role === undefined)) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
@@ -102,7 +102,7 @@ function AdminLayout() {
   }
 
 
-  if (!isAdmin) {
+  if (!isAdmin && !isPartner) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
         <div>
@@ -123,6 +123,27 @@ function AdminLayout() {
       </div>
     );
   }
+
+  // Rotas restritas a admin — partner só pode ver /admin/pedidos*
+  if (isPartner && !pathname.startsWith("/admin/pedidos")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-center">
+        <div>
+          <h1 className="text-2xl font-semibold">Área restrita</h1>
+          <p className="mt-2 text-muted-foreground text-sm">
+            Sua conta de parceiro só tem acesso à área de pedidos.
+          </p>
+          <button
+            className="mt-4 text-brand-orange hover:underline"
+            onClick={() => navigate({ to: "/admin/pedidos" })}
+          >
+            Ir para Meus pedidos
+          </button>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
