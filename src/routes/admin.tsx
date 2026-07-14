@@ -19,11 +19,15 @@ export const Route = createFileRoute("/admin")({
   }),
 });
 
+type Role = "admin" | "partner" | null;
+
 function AdminLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [role, setRole] = useState<Role | undefined>(undefined);
+  const isAdmin = role === "admin";
+  const isPartner = role === "partner";
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
@@ -42,23 +46,26 @@ function AdminLayout() {
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+        .in("role", ["admin", "partner"]);
       if (error) {
         toast.error("Erro ao validar acesso");
-        setIsAdmin(false);
+        setRole(null);
         return;
       }
-      setIsAdmin(!!data);
+      const roles = (data ?? []).map((r) => r.role);
+      if (roles.includes("admin")) setRole("admin");
+      else if (roles.includes("partner")) setRole("partner");
+      else setRole(null);
     })();
   }, [session, navigate]);
 
-  // Redirect /admin exactly to /admin/pacotes
+  // Redirect /admin -> destino padrão por role
   useEffect(() => {
-    if (pathname === "/admin" && isAdmin) {
-      navigate({ to: "/admin/pacotes" });
-    }
-  }, [pathname, isAdmin, navigate]);
+    if (pathname !== "/admin") return;
+    if (isAdmin) navigate({ to: "/admin/pacotes" });
+    else if (isPartner) navigate({ to: "/admin/pedidos" });
+  }, [pathname, isAdmin, isPartner, navigate]);
+
 
   // Auto-logout por inatividade (30 min sem interação do usuário)
   useEffect(() => {
