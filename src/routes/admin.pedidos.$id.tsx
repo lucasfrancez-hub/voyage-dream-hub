@@ -1100,9 +1100,11 @@ function ItemsTab({
               allPassengers={allPax}
               packageSnapshot={packageSnapshot}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
-              onDelete={(it) => confirmThen("Excluir item?", () => remove.mutate(it.id))}
-              onCancel={(it) => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
+              onDelete={(it) => confirmThen("Excluir este voo?", () => remove.mutate(it.id))}
+              onCancel={(it) => confirmThen("Marcar este voo como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={(it) => reactivate.mutate(it.id)}
+              onDeleteMany={(its) => confirmThen(`Excluir toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => remove.mutate(it.id)))}
+              onCancelMany={(its) => confirmThen(`Cancelar toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => cancel.mutate(it.id)))}
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
             />
@@ -1148,9 +1150,11 @@ function ItemsTab({
               allPassengers={allPax}
               packageSnapshot={packageSnapshot}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
-              onDelete={(it) => confirmThen("Excluir item?", () => remove.mutate(it.id))}
-              onCancel={(it) => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
+              onDelete={(it) => confirmThen("Excluir este voo?", () => remove.mutate(it.id))}
+              onCancel={(it) => confirmThen("Marcar este voo como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={(it) => reactivate.mutate(it.id)}
+              onDeleteMany={(its) => confirmThen(`Excluir toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => remove.mutate(it.id)))}
+              onCancelMany={(its) => confirmThen(`Cancelar toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => cancel.mutate(it.id)))}
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
             />
@@ -1488,7 +1492,7 @@ function AddPassengerMenu({
 }
 
 function FlightReservationCard({
-  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
+  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onDeleteMany, onCancelMany, onLink, onUnlink,
 }: {
   locator: string | null;
   segments: OrderItem[];
@@ -1499,6 +1503,8 @@ function FlightReservationCard({
   onDelete: (it: OrderItem) => void;
   onCancel: (it: OrderItem) => void;
   onReactivate: (it: OrderItem) => void;
+  onDeleteMany?: (its: OrderItem[]) => void;
+  onCancelMany?: (its: OrderItem[]) => void;
   onLink?: (passengerId: string, segmentIds: string[]) => void;
   onUnlink?: (passengerId: string, segmentIds: string[]) => void;
 }) {
@@ -1609,9 +1615,17 @@ function FlightReservationCard({
             {allCancelled ? (
               <Button size="sm" variant="ghost" onClick={() => confirmThen("Reativar todos os trechos desta reserva?", () => segments.forEach((s) => onReactivate(s)))} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
             ) : (
-              <Button size="sm" variant="ghost" onClick={() => confirmThen("Cancelar toda a reserva (ida e volta)?", () => segments.filter((s) => s.status !== "cancelled").forEach((s) => onCancel(s)))} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
+              <Button size="sm" variant="ghost" onClick={() => {
+                const active = segments.filter((s) => s.status !== "cancelled");
+                if (!active.length) return;
+                if (onCancelMany) onCancelMany(active);
+                else active.forEach((s) => onCancel(s));
+              }} title="Cancelar reserva"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
             )}
-            <Button size="sm" variant="ghost" onClick={() => confirmThen("Excluir toda a reserva (ida e volta)?", () => segments.forEach((s) => onDelete(s)))} title="Excluir"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => {
+              if (onDeleteMany) onDeleteMany(segments);
+              else segments.forEach((s) => onDelete(s));
+            }} title="Excluir reserva"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
 
           </div>
         </div>
@@ -1650,6 +1664,14 @@ function FlightReservationCard({
                     {cabin && <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{cabin}</span>}
                   {cancelled && <span className="text-[10px] font-semibold uppercase text-destructive">Cancelado</span>}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => onDelete(seg)}
+                  title="Excluir apenas este voo"
+                  className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
                 </div>
                 <div className="mt-1.5 grid gap-1 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
                   <div>
