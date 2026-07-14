@@ -53,6 +53,7 @@ import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
 import type { Json } from "@/integrations/supabase/types";
 import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
+import { QuoteDialog } from "@/components/QuoteDialog";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   component: OrderDetailPage,
@@ -139,6 +140,7 @@ function OrderDetailPage() {
   const [activeTab, setActiveTab] = useState<string>("hotel");
   const [openCommission, setOpenCommission] = useState(false);
   const [openLog, setOpenLog] = useState<null | "notes_log" | "travel_reason_log">(null);
+  const [openQuote, setOpenQuote] = useState(false);
 
   const setOrderStatusFn = useServerFn(setOrderStatus);
   const updateOrderMetaFn = useServerFn(updateOrderMeta);
@@ -351,6 +353,12 @@ function OrderDetailPage() {
 
               </DropdownMenu>
 
+              <Button size="sm" variant="outline" onClick={() => setOpenQuote(true)}>
+                <FileText className="h-3.5 w-3.5 mr-1" /> Orçamento
+              </Button>
+
+
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline"><Printer className="h-3.5 w-3.5 mr-1" /> Imprimir</Button>
@@ -536,6 +544,14 @@ function OrderDetailPage() {
         logKey={openLog ?? "notes_log"}
         entries={openLog === "travel_reason_log" ? (order.travelReasonLog ?? []) : (order.notesLog ?? [])}
         onChange={invalidate}
+      />
+
+      <QuoteDialog
+        open={openQuote}
+        onOpenChange={setOpenQuote}
+        orderId={order.id}
+        orderNumber={order.orderNumber}
+        customerPhone={order.phone}
       />
     </div>
 

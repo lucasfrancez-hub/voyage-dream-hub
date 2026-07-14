@@ -1,0 +1,42 @@
+import { createHmac, timingSafeEqual } from "crypto";
+
+const getSecret = () => {
+  const s = process.env.QUOTE_LINK_SECRET;
+  if (!s) throw new Error("QUOTE_LINK_SECRET não configurado");
+  return s;
+};
+
+const b64url = (buf: Buffer) =>
+  buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+const fromB64url = (s: string) => {
+  const pad = s.length % 4 === 0 ? 0 : 4 - (s.length % 4);
+  const b64 = s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat(pad);
+  return Buffer.from(b64, "base64");
+};
+
+export function encodeQuoteToken(orderId: string): string {
+  const id = b64url(Buffer.from(orderId, "utf8"));
+  const sig = createHmac("sha256", getSecret()).update(orderId).digest("hex").slice(0, 24);
+  return `${id}.${sig}`;
+}
+
+export function decodeQuoteToken(token: string): string | null {
+  const parts = token.split(".");
+  if (parts.length !== 2) return null;
+  const [id, sig] = parts;
+  if (!id || !sig) return null;
+  let orderId: string;
+  try {
+    orderId = fromB64url(id).toString("utf8");
+  } catch {
+    return null;
+  }
+  if (!/^[0-9a-f-]{10,}$/i.test(orderId)) return null;
+  const expected = createHmac("sha256", getSecret()).update(orderId).digest("hex").slice(0, 24);
+  const a = Buffer.from(sig, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return null;
+  if (!timingSafeEqual(a, b)) return null;
+  return orderId;
+}
