@@ -11,7 +11,7 @@ export const Route = createFileRoute("/orcamento/$token")({
   validateSearch: (s: Record<string, unknown>): Search => ({
     print: typeof s.print === "string" ? s.print : undefined,
   }),
-  loader: async ({ params }) => {
+  loader: async ({ params }): Promise<PublicQuote> => {
     try {
       return await getPublicQuote({ data: { token: params.token } });
     } catch {
