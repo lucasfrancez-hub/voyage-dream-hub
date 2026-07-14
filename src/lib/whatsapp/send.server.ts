@@ -26,6 +26,13 @@ export async function sendWhatsAppText(to: string, body: string): Promise<{ id: 
     text: { preview_url: true, body: body.slice(0, 4090) },
   };
 
+  console.log("[whatsapp/send] REQUEST", JSON.stringify({
+    url,
+    phone_number_id: phoneId,
+    token_preview: `${token.slice(0, 10)}...${token.slice(-6)} (len=${token.length})`,
+    payload,
+  }));
+
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -35,10 +42,17 @@ export async function sendWhatsAppText(to: string, body: string): Promise<{ id: 
       },
       body: JSON.stringify(payload),
     });
-    const data = (await res.json()) as { messages?: Array<{ id: string }>; error?: { message: string } };
+    const rawText = await res.text();
+    console.log("[whatsapp/send] RESPONSE", JSON.stringify({
+      status: res.status,
+      ok: res.ok,
+      body: rawText,
+    }));
+    let data: { messages?: Array<{ id: string }>; error?: { message: string; code?: number; error_subcode?: number; error_data?: unknown; fbtrace_id?: string } } = {};
+    try { data = JSON.parse(rawText); } catch { /* keep empty */ }
     if (!res.ok) {
-      const msg = data.error?.message ?? `HTTP ${res.status}`;
-      console.error("[whatsapp/send] falha:", msg);
+      const msg = data.error?.message ?? `HTTP ${res.status}: ${rawText.slice(0, 200)}`;
+      console.error("[whatsapp/send] falha:", msg, "full_error:", JSON.stringify(data.error));
       return { id: null, error: msg };
     }
     return { id: data.messages?.[0]?.id ?? null };
