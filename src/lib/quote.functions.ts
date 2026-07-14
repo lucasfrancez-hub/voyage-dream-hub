@@ -277,7 +277,9 @@ export const getPublicQuote = createServerFn({ method: "GET" })
       return 0;
     });
 
-    // Enriquecimento TripAdvisor para hotéis (best-effort, com timeout curto).
+    const snap = ((order as { package_snapshot?: unknown }).package_snapshot ?? {}) as Record<string, unknown>;
+
+    // Enriquecimento TripAdvisor para hotéis (best-effort).
     const taKey = process.env.TRIPADVISOR_API_KEY;
     if (taKey) {
       const destination = snap.destination ? String(snap.destination) : null;
@@ -291,6 +293,8 @@ export const getPublicQuote = createServerFn({ method: "GET" })
           })
       );
     }
+
+
 
 
     const rawCfg = (order as { quote_config?: unknown }).quote_config;
