@@ -134,10 +134,9 @@ function AdminLayout() {
               <CartaoNav pathname={pathname} />
 
 
-              {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
-                <NavItem to="/admin/usuarios" icon={Users} label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
-              )}
-              <SegurancaNav pathname={pathname} />
+              <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />
+
+
 
             </nav>
           </div>
@@ -171,10 +170,7 @@ function AdminLayout() {
             <CartaoNav pathname={pathname} />
 
 
-            {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
-              <NavItem to="/admin/usuarios" icon={Users} label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
-            )}
-            <SegurancaNav pathname={pathname} />
+            <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />
           </div>
         </nav>
       </header>
@@ -284,10 +280,11 @@ function DashboardNav({ pathname }: { pathname: string }) {
   );
 }
 
-function SegurancaNav({ pathname }: { pathname: string }) {
+function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuarios: boolean }) {
   const active =
     pathname.startsWith("/admin/seguranca") ||
-    pathname.startsWith("/admin/instalar-extensao");
+    pathname.startsWith("/admin/instalar-extensao") ||
+    (showUsuarios && pathname.startsWith("/admin/usuarios"));
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -312,8 +309,19 @@ function SegurancaNav({ pathname }: { pathname: string }) {
             <span className="text-xs text-muted-foreground">Importador de reservas</span>
           </Link>
         </DropdownMenuItem>
+        {showUsuarios && (
+          <DropdownMenuItem asChild>
+            <Link to="/admin/usuarios" className="flex flex-col items-start gap-0.5">
+              <span className="text-sm font-medium flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Usuários
+              </span>
+              <span className="text-xs text-muted-foreground">Contas e permissões</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+
 
