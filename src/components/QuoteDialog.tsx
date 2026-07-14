@@ -5,6 +5,10 @@ import { Copy, ExternalLink, MessageCircle, Printer, Loader2, FileText } from "l
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +21,7 @@ import {
   getQuoteConfig, saveQuoteConfig, getQuoteToken,
   DEFAULT_QUOTE_CONFIG, type QuoteConfig,
 } from "@/lib/quote.functions";
+
 
 type Props = {
   open: boolean;
@@ -35,6 +40,8 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pixAsk, setPixAsk] = useState<null | "copy" | "web" | "pdf" | "wa">(null);
+
 
   useEffect(() => {
     if (!open) return;
@@ -59,6 +66,14 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
     : "";
   const printUrl = publicUrl ? `${publicUrl}?print=1` : "";
 
+  const waPhone = (customerPhone ?? "").replace(/\D+/g, "");
+  const waNumber = waPhone.length >= 10
+    ? (waPhone.startsWith("55") ? waPhone : `55${waPhone}`)
+    : "";
+  const waHref = waNumber && publicUrl
+    ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Olá! Segue o orçamento nº ${orderNumber}: ${publicUrl}`)}`
+    : "";
+
   const doSave = async (silent = false) => {
     setSaving(true);
     try {
@@ -71,30 +86,38 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
     }
   };
 
-  const copy = async () => {
-    if (!publicUrl) return;
+  const runAction = async (action: "copy" | "web" | "pdf" | "wa", pixEnabled: boolean) => {
+    const nextCfg = { ...cfg, pix: { ...cfg.pix, enabled: pixEnabled } };
+    setCfg(nextCfg);
+    setSaving(true);
     try {
-      await navigator.clipboard.writeText(publicUrl);
-      toast.success("Link copiado");
-    } catch {
-      toast.error("Não foi possível copiar");
+      await saveCfg({ data: { orderId, config: nextCfg } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
+    if (action === "copy") {
+      if (!publicUrl) return;
+      try {
+        await navigator.clipboard.writeText(publicUrl);
+        toast.success("Link copiado");
+      } catch {
+        toast.error("Não foi possível copiar");
+      }
+    } else if (action === "web") {
+      if (publicUrl) window.open(publicUrl, "_blank", "noopener");
+    } else if (action === "pdf") {
+      if (printUrl) window.open(printUrl, "_blank", "noopener");
+    } else if (action === "wa") {
+      if (waHref) window.open(waHref, "_blank", "noopener");
     }
   };
 
-  const openPdf = async () => {
-    // Salva antes de abrir pra garantir que as condições vigentes apareçam no PDF
-    await doSave(true);
-    if (printUrl) window.open(printUrl, "_blank", "noopener");
-  };
-  const openWeb = () => publicUrl && window.open(publicUrl, "_blank", "noopener");
+  const askPix = (action: "copy" | "web" | "pdf" | "wa") => setPixAsk(action);
 
-  const waPhone = (customerPhone ?? "").replace(/\D+/g, "");
-  const waNumber = waPhone.length >= 10
-    ? (waPhone.startsWith("55") ? waPhone : `55${waPhone}`)
-    : "";
-  const waHref = waNumber && publicUrl
-    ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Olá! Segue o orçamento nº ${orderNumber}: ${publicUrl}`)}`
-    : "";
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,30 +140,29 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Link público</Label>
                 <div className="mt-1 flex gap-2">
                   <Input value={publicUrl} readOnly className="text-xs font-mono" />
-                  <Button type="button" size="sm" variant="outline" onClick={copy}>
+                  <Button type="button" size="sm" variant="outline" onClick={() => askPix("copy")}>
                     <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
                   </Button>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" size="sm" variant="outline" onClick={openWeb}>
+                <Button type="button" size="sm" variant="outline" onClick={() => askPix("web")}>
                   <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir web
                 </Button>
-                <Button type="button" size="sm" onClick={openPdf}>
+                <Button type="button" size="sm" onClick={() => askPix("pdf")}>
                   <Printer className="h-3.5 w-3.5 mr-1" /> Gerar PDF
                 </Button>
                 {waHref && (
-                  <Button type="button" size="sm" variant="outline" asChild>
-                    <a href={waHref} target="_blank" rel="noopener noreferrer">
-                      <MessageCircle className="h-3.5 w-3.5 mr-1 text-emerald-600" /> Enviar no WhatsApp
-                    </a>
+                  <Button type="button" size="sm" variant="outline" onClick={() => askPix("wa")}>
+                    <MessageCircle className="h-3.5 w-3.5 mr-1 text-emerald-600" /> Enviar no WhatsApp
                   </Button>
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground">
-                O link não mostra comissão. Salve as condições abaixo antes de enviar.
+                O link não mostra comissão. Ao gerar, você escolhe se aplica o desconto Pix.
               </p>
             </section>
+
 
             {/* Condições de pagamento */}
             <section className="space-y-4">
@@ -273,6 +295,33 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={pixAsk !== null} onOpenChange={(v) => { if (!v) setPixAsk(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar desconto no Pix?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja oferecer {cfg.pix.discount_pct}% de desconto no Pix neste orçamento?
+              Você pode ajustar a porcentagem nas condições abaixo antes de gerar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPixAsk(null)}>Cancelar</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={() => { const a = pixAsk; setPixAsk(null); if (a) runAction(a, false); }}
+            >
+              Sem desconto
+            </Button>
+            <AlertDialogAction
+              onClick={() => { const a = pixAsk; setPixAsk(null); if (a) runAction(a, true); }}
+            >
+              Aplicar {cfg.pix.discount_pct}%
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
+
