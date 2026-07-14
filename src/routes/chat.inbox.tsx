@@ -125,9 +125,102 @@ function InboxPage() {
       <aside className="hidden w-72 shrink-0 border-l border-slate-200 bg-white lg:block">
         {active ? <ContactDetails conv={active} onChange={refetch} /> : null}
       </aside>
+
+      <NewConversationDialog
+        open={newOpen}
+        onOpenChange={setNewOpen}
+        onCreated={(id) => { setNewOpen(false); refetch(); setActiveId(id); }}
+      />
     </div>
   );
 }
+
+function NewConversationDialog({
+  open, onOpenChange, onCreated,
+}: { open: boolean; onOpenChange: (v: boolean) => void; onCreated: (id: string) => void }) {
+  const startFn = useServerFn(startOutboundConversation);
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const mut = useMutation({
+    mutationFn: async () => startFn({ data: { phone, display_name: name || null, content: msg } }),
+    onSuccess: (r) => {
+      toast.success("Conversa iniciada — IA desativada");
+      setPhone(""); setName(""); setMsg("");
+      onCreated(r.conversation_id);
+    },
+    onError: (e) => toast.error(`Falha: ${(e as Error).message}`),
+  });
+
+  const canSend = phone.replace(/\D/g, "").length >= 10 && msg.trim().length > 0 && !mut.isPending;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Nova conversa</DialogTitle>
+          <DialogDescription>
+            Envia a primeira mensagem para um número. A IA fica <b>desativada</b> — você atende manualmente.
+            Se o cliente nunca te mandou nada antes ou faz mais de 24h, o WhatsApp só entrega mensagem de <b>template aprovado</b>.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <label className="block text-xs">
+            <span className="mb-1 block font-medium text-slate-700">Número (com DDD)</span>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="11 98765-4321"
+              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+            />
+            <span className="mt-1 block text-[10px] text-slate-400">Sem DDI vira +55 automático.</span>
+          </label>
+
+          <label className="block text-xs">
+            <span className="mb-1 block font-medium text-slate-700">Nome (opcional)</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex.: Marina Silva"
+              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+            />
+          </label>
+
+          <label className="block text-xs">
+            <span className="mb-1 block font-medium text-slate-700">Primeira mensagem</span>
+            <textarea
+              value={msg}
+              onChange={(e) => setMsg(e.target.value)}
+              rows={4}
+              placeholder="Escreva a mensagem…"
+              className="w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+            />
+          </label>
+        </div>
+
+        <DialogFooter>
+          <button
+            onClick={() => onOpenChange(false)}
+            className="rounded-md border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => mut.mutate()}
+            disabled={!canSend}
+            className="flex items-center gap-2 rounded-md bg-[#F26B1F] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+          >
+            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Enviar
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function ConvItem({ conv, active, onClick }: { conv: Conv; active: boolean; onClick: () => void }) {
   const time = conv.last_message_at
