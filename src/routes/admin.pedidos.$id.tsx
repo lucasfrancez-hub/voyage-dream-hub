@@ -37,6 +37,8 @@ import {
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
+import { AirlineCombobox } from "@/components/AirlineCombobox";
+import { findAirline } from "@/lib/airlines";
 import { Cloud } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
