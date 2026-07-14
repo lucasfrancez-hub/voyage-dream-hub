@@ -124,14 +124,20 @@ function AdminLayout() {
     );
   }
 
-  // Rotas restritas a admin — partner só pode ver /admin/pedidos*
-  if (isPartner && !pathname.startsWith("/admin/pedidos")) {
+  // Rotas permitidas para partner: pedidos + pagamentos (link/cofre)
+  const partnerAllowed = (p: string) =>
+    p.startsWith("/admin/pedidos") ||
+    p.startsWith("/admin/link-pagamento") ||
+    p.startsWith("/admin/link-cartao-simples") ||
+    p.startsWith("/admin/link-boleto") ||
+    p.startsWith("/admin/cofre");
+  if (isPartner && !partnerAllowed(pathname)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
         <div>
           <h1 className="text-2xl font-semibold">Área restrita</h1>
           <p className="mt-2 text-muted-foreground text-sm">
-            Sua conta de parceiro só tem acesso à área de pedidos.
+            Sua conta de parceiro só tem acesso a pedidos e links de pagamento.
           </p>
           <button
             className="mt-4 text-brand-orange hover:underline"
@@ -159,7 +165,7 @@ function AdminLayout() {
               {isAdmin
                 ? <PedidosNav pathname={pathname} />
                 : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
-              {isAdmin && <CartaoNav pathname={pathname} />}
+              <CartaoNav pathname={pathname} />
               {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
             </nav>
 
@@ -191,7 +197,7 @@ function AdminLayout() {
             {isAdmin
               ? <PedidosNav pathname={pathname} />
               : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
-            {isAdmin && <CartaoNav pathname={pathname} />}
+            <CartaoNav pathname={pathname} />
             {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
           </div>
         </nav>
