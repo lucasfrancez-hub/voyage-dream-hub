@@ -300,13 +300,25 @@ function UserRow({
       ) : (
         <span />
       )}
-      <button
-        type="button"
-        onClick={onDelete}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
-      >
-        <Trash2 className="h-3.5 w-3.5" /> Remover
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={resending}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-brand-orange hover:text-brand-orange transition disabled:opacity-60"
+          title="Enviar e-mail para o usuário redefinir a senha"
+        >
+          {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+          Reenviar senha
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
+        >
+          <Trash2 className="h-3.5 w-3.5" /> Remover
+        </button>
+      </div>
     </div>
   );
 }
