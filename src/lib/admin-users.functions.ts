@@ -115,7 +115,7 @@ export const createAdminUser = createServerFn({ method: "POST" })
         .from("partner_agencies")
         .upsert({ user_id: userId, agency_name: data.agencyName }, { onConflict: "user_id" });
     }
-    return { id: userId, email: created.user!.email ?? data.email };
+    return { id: userId, email: invited.user!.email ?? data.email };
   });
 
 export const setAdminUserFullName = createServerFn({ method: "POST" })
