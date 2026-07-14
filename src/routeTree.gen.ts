@@ -25,6 +25,7 @@ import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
+import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
@@ -115,6 +116,11 @@ const AdminLinkBoletoRoute = AdminLinkBoletoRouteImport.update({
   path: '/link-boleto',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminInstalarExtensaoRoute = AdminInstalarExtensaoRouteImport.update({
+  id: '/instalar-extensao',
+  path: '/instalar-extensao',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/admin/cofre'
     | '/admin/dashboard'
+    | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/admin/cofre'
     | '/admin/dashboard'
+    | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/admin/cofre'
     | '/admin/dashboard'
+    | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -453,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLinkBoletoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/instalar-extensao': {
+      id: '/admin/instalar-extensao'
+      path: '/instalar-extensao'
+      fullPath: '/admin/instalar-extensao'
+      preLoaderRoute: typeof AdminInstalarExtensaoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/dashboard': {
       id: '/admin/dashboard'
       path: '/dashboard'
@@ -534,6 +553,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminCofreRoute: typeof AdminCofreRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
@@ -548,6 +568,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCofreRoute: AdminCofreRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
