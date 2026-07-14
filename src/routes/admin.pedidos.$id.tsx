@@ -545,6 +545,14 @@ function OrderDetailPage() {
         entries={openLog === "travel_reason_log" ? (order.travelReasonLog ?? []) : (order.notesLog ?? [])}
         onChange={invalidate}
       />
+
+      <QuoteDialog
+        open={openQuote}
+        onOpenChange={setOpenQuote}
+        orderId={order.id}
+        orderNumber={order.orderNumber}
+        customerPhone={order.phone}
+      />
     </div>
 
   );
