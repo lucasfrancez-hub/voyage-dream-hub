@@ -31,11 +31,18 @@ function AdminLayout() {
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+
+    // Timeout de segurança: se em 4s não resolveu getSession (rede/refresh
+    // travado), força session=null pra não ficar carregando pra sempre.
+    const failsafe = setTimeout(() => {
+      setSession((cur) => (cur === undefined ? null : cur));
+    }, 4000);
+
     supabase.auth
       .getSession()
       .then(async ({ data, error }) => {
+        clearTimeout(failsafe);
         if (error || !data.session) {
-          // Refresh token inválido/expirado — limpa storage pra não travar em loop.
           try { await supabase.auth.signOut(); } catch { /* noop */ }
           setSession(null);
           return;
@@ -43,10 +50,15 @@ function AdminLayout() {
         setSession(data.session);
       })
       .catch(async () => {
+        clearTimeout(failsafe);
         try { await supabase.auth.signOut(); } catch { /* noop */ }
         setSession(null);
       });
-    return () => sub.subscription.unsubscribe();
+
+    return () => {
+      clearTimeout(failsafe);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -55,12 +67,20 @@ function AdminLayout() {
       navigate({ to: "/auth" });
       return;
     }
+    let cancelled = false;
+    // Timeout de segurança pra query de role — evita spinner infinito
+    // se a Data API ficar lenta/travada.
+    const roleFailsafe = setTimeout(() => {
+      if (!cancelled) setRole(null);
+    }, 6000);
     (async () => {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
         .in("role", ["admin", "partner"]);
+      if (cancelled) return;
+      clearTimeout(roleFailsafe);
       if (error) {
         toast.error("Erro ao validar acesso");
         setRole(null);
@@ -71,6 +91,10 @@ function AdminLayout() {
       else if (roles.includes("partner")) setRole("partner");
       else setRole(null);
     })();
+    return () => {
+      cancelled = true;
+      clearTimeout(roleFailsafe);
+    };
   }, [session, navigate]);
 
   // Redirect /admin -> destino padrão por role
