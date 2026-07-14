@@ -128,7 +128,13 @@ export const Route = createFileRoute("/api/public/import-aereo")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: CORS_HEADERS }),
       POST: async ({ request }) => {
-        let body: { token?: string; airline_hint?: string; source_url?: string; raw_text?: string };
+        let body: {
+          token?: string;
+          airline_hint?: string;
+          source_url?: string;
+          raw_text?: string;
+          screenshots?: string[];
+        };
         try {
           body = await request.json();
         } catch {
@@ -137,10 +143,13 @@ export const Route = createFileRoute("/api/public/import-aereo")({
         const token = String(body.token ?? "").trim();
         const airline = String(body.airline_hint ?? "").toLowerCase();
         const rawText = String(body.raw_text ?? "").slice(0, 60_000);
+        const screenshots = Array.isArray(body.screenshots)
+          ? body.screenshots.filter((s) => typeof s === "string" && s.startsWith("data:image/")).slice(0, 6)
+          : [];
         if (!token || token.length < 10) return json({ error: "invalid_token" }, 400);
         const ALLOWED = ["latam", "gol", "azul", "skyteam", "frt", "visualturismo", "infotera"];
         if (!ALLOWED.includes(airline)) return json({ error: "invalid_airline" }, 400);
-        if (rawText.length < 200) return json({ error: "raw_text_too_short" }, 400);
+        if (rawText.length < 200 && screenshots.length === 0) return json({ error: "raw_text_too_short" }, 400);
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
