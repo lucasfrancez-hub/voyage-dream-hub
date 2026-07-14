@@ -205,7 +205,7 @@ function OrderDetailPage() {
 
 
   return (
-    <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6">
       <div className="flex items-center gap-2 mb-4">
         <Button asChild variant="ghost" size="sm">
           <Link to="/admin/pedidos">
