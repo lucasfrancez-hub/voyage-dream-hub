@@ -28,6 +28,8 @@ function UsersPage() {
   const setRole = useServerFn(setAdminUserRole);
   const setName = useServerFn(setAdminUserFullName);
   const resendPwd = useServerFn(resendUserPassword);
+  const confirmEmail = useServerFn(confirmAdminUserEmail);
+  const setPwd = useServerFn(setAdminUserPassword);
 
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
