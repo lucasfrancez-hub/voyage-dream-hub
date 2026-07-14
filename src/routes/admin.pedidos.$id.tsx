@@ -38,7 +38,9 @@ import {
 } from "@/lib/orders.functions";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
+import { ClassSelect } from "@/components/ClassSelect";
 import { findAirline } from "@/lib/airlines";
+import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { Cloud } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
@@ -2079,14 +2081,29 @@ function ItemDialog({
         <div><Label>Chegada</Label><Input type="datetime-local" value={String(d.arrive_at ?? d.arrival ?? "")} onChange={(e) => onChangeField("arrive_at", e.target.value)} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Classe / Cabine</Label><Input value={String(d.cabin_class ?? d.cabin ?? "")} onChange={(e) => onChangeField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
-        {d.airline && !findAirline(String(d.airline)) ? (
-          <div>
-            <Label>URL da logo da cia</Label>
-            <Input value={String(d.airline_logo_url ?? "")} onChange={(e) => onChangeField("airline_logo_url", e.target.value)} placeholder="https://…/logo.png" />
-          </div>
-        ) : null}
+        <div>
+          <Label>Classe (cabine)</Label>
+          <ClassSelect
+            value={String(d.cabin_class ?? d.cabin ?? "")}
+            onChange={(v) => onChangeField("cabin_class", v)}
+            options={CABIN_CLASSES}
+          />
+        </div>
+        <div>
+          <Label>Classe tarifária</Label>
+          <ClassSelect
+            value={String(d.fare_class ?? "")}
+            onChange={(v) => onChangeField("fare_class", v)}
+            options={fareClassesFor(findAirline(String(d.airline ?? ""))?.iata)}
+          />
+        </div>
       </div>
+      {d.airline && !findAirline(String(d.airline)) ? (
+        <div>
+          <Label>URL da logo da cia</Label>
+          <Input value={String(d.airline_logo_url ?? "")} onChange={(e) => onChangeField("airline_logo_url", e.target.value)} placeholder="https://…/logo.png" />
+        </div>
+      ) : null}
       <div className="rounded-md border border-border p-2">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Bagagem inclusa</div>
         <div className="flex flex-wrap items-center gap-3 text-sm">

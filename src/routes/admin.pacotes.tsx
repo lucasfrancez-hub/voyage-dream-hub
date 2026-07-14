@@ -7,7 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
+import { ClassSelect } from "@/components/ClassSelect";
 import { findAirline } from "@/lib/airlines";
+import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
@@ -39,6 +41,7 @@ type FlightInfo = {
   duration?: string;
   stops?: number | string;
   cabin_class?: string;
+  fare_class?: string;
   carry_on?: boolean;
   checked_bag?: boolean;
   personal_item?: boolean;
@@ -652,18 +655,19 @@ function FlightFieldset({
             />
           </FormField>
         ) : null}
-        <FormField label="Classe">
-          <select
-            className={inp}
+        <FormField label="Classe (cabine)">
+          <ClassSelect
             value={f.cabin_class ?? ""}
-            onChange={(e) => patch({ cabin_class: e.target.value })}
-          >
-            <option value="">—</option>
-            <option value="Econômica">Econômica</option>
-            <option value="Premium Economy">Premium Economy</option>
-            <option value="Executiva">Executiva</option>
-            <option value="Primeira classe">Primeira classe</option>
-          </select>
+            onChange={(v) => patch({ cabin_class: v })}
+            options={CABIN_CLASSES}
+          />
+        </FormField>
+        <FormField label="Classe tarifária">
+          <ClassSelect
+            value={f.fare_class ?? ""}
+            onChange={(v) => patch({ fare_class: v })}
+            options={fareClassesFor(findAirline(f.airline)?.iata)}
+          />
         </FormField>
         <FormField label="Bagagens inclusas">
           <div className="flex flex-wrap gap-4 text-sm pt-1.5">

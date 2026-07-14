@@ -1034,6 +1034,8 @@ const drawFlightLegBlock = (
     const airline = String(d.airline ?? "").trim();
     const flightNo = String(d.flight_number ?? "").trim();
     const cabin = String(d.cabin_class ?? d.cabin ?? "").trim();
+    const fare = String(d.fare_class ?? "").trim();
+    const cabinLabel = [cabin, fare].filter(Boolean).join(" · ");
 
     // Região do conteúdo deste trecho (dentro do card único, à direita da coluna do logo)
     const segTopY = cardTopY - padTop - i * (segContentH + conBandH);
@@ -1057,7 +1059,7 @@ const drawFlightLegBlock = (
 
 
     // Pill "Cia · Voo · Cabine" (sem logo dentro)
-    const pillParts = [airline, flightNo, cabin].filter(Boolean);
+    const pillParts = [airline, flightNo, cabinLabel].filter(Boolean);
     const pillText = pillParts.join(" · ");
     const pillSize = 8;
     const pillTw = measure(ctx.fontBold, pillText, pillSize);
