@@ -1568,7 +1568,6 @@ function FlightReservationCard({
               <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
                 {airlines.map((a, i) => (
                   <span key={a.iata ?? a.name ?? i} className="inline-flex items-center gap-1">
-                    {a.logo && <img src={a.logo} alt={a.name} className="h-4 w-auto object-contain" />}
                     {a.name}
                   </span>
                 ))}
