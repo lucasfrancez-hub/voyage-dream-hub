@@ -1150,9 +1150,11 @@ function ItemsTab({
               allPassengers={allPax}
               packageSnapshot={packageSnapshot}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
-              onDelete={(it) => confirmThen("Excluir item?", () => remove.mutate(it.id))}
-              onCancel={(it) => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
+              onDelete={(it) => confirmThen("Excluir este voo?", () => remove.mutate(it.id))}
+              onCancel={(it) => confirmThen("Marcar este voo como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={(it) => reactivate.mutate(it.id)}
+              onDeleteMany={(its) => confirmThen(`Excluir toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => remove.mutate(it.id)))}
+              onCancelMany={(its) => confirmThen(`Cancelar toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => cancel.mutate(it.id)))}
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
             />
