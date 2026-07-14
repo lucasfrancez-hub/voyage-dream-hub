@@ -31,7 +31,21 @@ function AdminLayout() {
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
+    supabase.auth
+      .getSession()
+      .then(async ({ data, error }) => {
+        if (error || !data.session) {
+          // Refresh token inválido/expirado — limpa storage pra não travar em loop.
+          try { await supabase.auth.signOut(); } catch { /* noop */ }
+          setSession(null);
+          return;
+        }
+        setSession(data.session);
+      })
+      .catch(async () => {
+        try { await supabase.auth.signOut(); } catch { /* noop */ }
+        setSession(null);
+      });
     return () => sub.subscription.unsubscribe();
   }, []);
 
