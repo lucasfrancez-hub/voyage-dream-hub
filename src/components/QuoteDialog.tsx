@@ -112,7 +112,16 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
     } else if (action === "web") {
       if (publicUrl) window.open(publicUrl, "_blank", "noopener");
     } else if (action === "pdf") {
-      if (printUrl) window.open(printUrl, "_blank", "noopener");
+      if (!token) { toast.error("Token indisponivel"); return; }
+      const tId = toast.loading("Gerando PDF...");
+      try {
+        const q = await getPub({ data: { token } });
+        const bytes = await buildQuotePdf(q);
+        downloadPdf(bytes, `orcamento-${orderNumber}.pdf`);
+        toast.success("PDF gerado", { id: tId });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF", { id: tId });
+      }
     } else if (action === "wa") {
       if (waHref) window.open(waHref, "_blank", "noopener");
     }
