@@ -189,7 +189,7 @@ export const Route = createFileRoute("/api/public/import-aereo")({
           }
 
           await supabaseAdmin.from("flight_import_staging").update({
-            status: "ready", parsed, error: null,
+            status: "ready", parsed: parsed as never, error: null,
           }).eq("token", token);
 
           return json({ ok: true }, 200);
