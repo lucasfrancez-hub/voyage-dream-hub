@@ -18,6 +18,8 @@ export type ImportedFlightSegment = {
   arrive_at?: string;
   duration?: string;
   layover?: string;
+  layover_airport?: string;
+  operating_airline_iata?: string;
   cabin_class?: string;
   fare_class?: string;
   fare_basis?: string;
