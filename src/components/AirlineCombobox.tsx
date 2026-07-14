@@ -94,7 +94,7 @@ export function AirlineCombobox({
               triggerClassName,
             )}
           >
-            {value ? <AirlineLogo airline={value} size={24} /> : null}
+            {value ? <AirlineLogo airline={value} size={22} /> : null}
             <span
               className={cn(
                 "flex-1 truncate",
@@ -198,7 +198,7 @@ export function AirlineCombobox({
                         onSelect={() => handleSelect(a.name)}
                         className="flex items-center gap-2"
                       >
-                        <AirlineLogo airline={a.iata} size={28} />
+                        <AirlineLogo airline={a.iata} size={24} />
                         <span className="flex-1 truncate">{a.name}</span>
                         <span className="text-xs text-muted-foreground tabular-nums">
                           {a.iata}
