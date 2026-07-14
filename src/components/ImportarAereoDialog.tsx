@@ -173,7 +173,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       const anyTicket = reservation.passengers.some((p) => (p.ticket_number ?? "").trim().length > 0);
       const firstTicket = reservation.passengers.find((p) => (p.ticket_number ?? "").trim())?.ticket_number ?? null;
       const itemStatus: "confirmed" | "reserved" = anyTicket ? "confirmed" : "reserved";
+      // Sobrenome do titular = última palavra do 1º passageiro (usado no QR de check-in).
+      const holderLastName = reservation.passengers[0]?.full_name?.trim().split(/\s+/).pop() ?? "";
       for (const block of reservation.flights) {
+        // Origem do 1º trecho do bloco (usada no link de check-in de GOL/Azul).
+        const blockOrigin = block.segments[0]?.from_iata ?? "";
         for (const seg of block.segments) {
           const title = `${seg.airline ?? block.airline ?? ""} ${seg.flight_number ?? ""} — ${seg.from_iata ?? ""}→${seg.to_iata ?? ""}`.trim();
           const pricing = firstItem ? {
