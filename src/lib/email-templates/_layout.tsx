@@ -188,11 +188,15 @@ const brandStrip = { backgroundColor: '#0f172a', padding: '18px 32px' }
 const brandStripText = { color: '#ffffff', fontSize: '14px', margin: 0, lineHeight: '1.4' }
 
 // Order summary box
-const summaryBox = { backgroundColor: '#fafafa', border: '1px solid #eaeaea', borderRadius: '8px', padding: '20px', margin: '20px 0' }
-const summaryTitle = { fontSize: '13px', color: '#0f172a', fontWeight: 'bold' as const, margin: '0 0 12px' }
-const summaryCell = { verticalAlign: 'top' as const, padding: '0 8px', width: '33.33%' }
-const summaryLabel = { fontSize: '11px', color: '#F26B1F', fontWeight: 'bold' as const, margin: '0 0 6px', letterSpacing: '0.5px' }
-const summaryValue = { fontSize: '12px', color: '#475569', margin: '0 0 4px', lineHeight: '1.4' }
+const summaryBox = { padding: '20px 0 8px', margin: '20px 0 0', borderTop: '1px solid #eaeaea' }
+const summaryTitle = { fontSize: '14px', color: '#0f172a', fontWeight: 'bold' as const, margin: '0 0 16px' }
+const summaryCell = { verticalAlign: 'top' as const, padding: '0 14px', width: '32%' }
+const summaryDivider = { width: '1px', backgroundColor: '#e2e8f0', padding: 0 }
+const summaryLabel = { fontSize: '12px', color: '#0f172a', fontWeight: 'bold' as const, margin: '0 0 10px', letterSpacing: '0.8px' }
+const summaryIcon = { color: '#0f172a', fontSize: '16px', marginRight: '6px' }
+const summaryValueStrong = { fontSize: '13px', color: '#0f172a', margin: '0 0 2px', lineHeight: '1.5', fontWeight: 'bold' as const }
+const summaryValue = { fontSize: '13px', color: '#475569', margin: '0 0 4px', lineHeight: '1.5' }
+
 
 // Light footer
 const lightFooter = { backgroundColor: '#f1f5f9', padding: '20px 32px', margin: '0 32px 20px', borderRadius: '10px' }
