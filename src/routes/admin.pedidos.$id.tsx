@@ -58,6 +58,8 @@ import { QuoteDialog } from "@/components/QuoteDialog";
 import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { ImportarAereoDialog } from "@/components/ImportarAereoDialog";
 import { confirmThen } from "@/lib/confirm";
+import { findAirline, airlineLogo } from "@/lib/airlines";
+
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   component: OrderDetailPage,
@@ -1538,18 +1540,36 @@ function FlightReservationCard({
             <Plane className="h-3.5 w-3.5" /> Reserva aérea
           </div>
           {(() => {
-            const airlines = Array.from(new Set(
-              segments
-                .map((s) => ((s.details ?? {}) as Record<string, unknown>).airline as string | undefined)
-                .filter((x): x is string => !!x && x.trim().length > 0)
-            ));
+            // Resolve airline pelo IATA (do próprio segmento ou prefixo do voo)
+            // pra usar o nome curto/registro + logo do nosso catálogo.
+            const seen = new Set<string>();
+            const airlines: Array<{ name: string; logo?: string; iata?: string }> = [];
+            for (const s of segments) {
+              const d = (s.details ?? {}) as Record<string, unknown>;
+              const iata = typeof d.airline_iata === "string" ? (d.airline_iata as string).toUpperCase() : "";
+              const rawName = typeof d.airline === "string" ? (d.airline as string) : "";
+              const flightNumber = typeof d.flight_number === "string" ? (d.flight_number as string) : "";
+              const prefix = flightNumber.match(/^([A-Z0-9]{2})\s/)?.[1] ?? "";
+              const hit = findAirline(iata) ?? findAirline(prefix) ?? findAirline(rawName);
+              const name = hit?.name ?? rawName;
+              const key = (hit?.iata ?? name).toUpperCase();
+              if (!name || seen.has(key)) continue;
+              seen.add(key);
+              airlines.push({ name, logo: hit?.logo ?? airlineLogo(rawName), iata: hit?.iata });
+            }
             if (airlines.length === 0) return null;
             return (
-              <div className="mt-0.5 text-sm font-medium text-foreground">
-                {airlines.join(" · ")}
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
+                {airlines.map((a, i) => (
+                  <span key={a.iata ?? a.name ?? i} className="inline-flex items-center gap-1">
+                    {a.logo && <img src={a.logo} alt={a.name} className="h-4 w-auto object-contain" />}
+                    {a.name}
+                  </span>
+                ))}
               </div>
             );
           })()}
+
           <div className="mt-1 font-mono text-lg font-bold text-brand-orange">
             {locator ?? "—"}
           </div>
