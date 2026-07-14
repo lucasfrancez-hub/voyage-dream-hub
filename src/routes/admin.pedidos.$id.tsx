@@ -38,7 +38,9 @@ import {
 } from "@/lib/orders.functions";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
+import { ClassSelect } from "@/components/ClassSelect";
 import { findAirline } from "@/lib/airlines";
+import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { Cloud } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
