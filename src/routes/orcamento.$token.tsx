@@ -199,7 +199,7 @@ function ServiceCard({ item }: { item: PublicQuoteItem }) {
 }
 
 function QuotePage() {
-  const q = Route.useLoaderData();
+  const q = Route.useLoaderData() as PublicQuote;
   const { print } = Route.useSearch();
 
   useEffect(() => {
