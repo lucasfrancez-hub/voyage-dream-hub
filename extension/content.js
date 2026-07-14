@@ -118,27 +118,55 @@
     });
   }
 
-  async function captureFullPage() {
-    // captureVisibleTab tem quota ~2/s → 550ms entre shots.
-    // Rola em blocos de 90% do viewport, tira foto, até o fim ou 6 shots.
-    const shots = [];
-    const originalScroll = window.scrollY;
-    const step = Math.floor(window.innerHeight * 0.9);
-    const maxShots = 6;
+  function findScrollContainer() {
+    // Portais como a consolidadora abrem a reserva num modal com scroll interno
+    // (a página em si não rola). Procuramos o maior elemento scrollável visível.
+    let best = null;
+    let bestArea = 0;
+    const els = document.querySelectorAll("*");
+    for (const el of els) {
+      const sh = el.scrollHeight;
+      const ch = el.clientHeight;
+      if (sh - ch < 40 || ch < 200) continue;
+      const style = getComputedStyle(el);
+      const oy = style.overflowY;
+      if (oy !== "auto" && oy !== "scroll" && oy !== "overlay") continue;
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 300 || rect.height < 200) continue;
+      const area = rect.width * rect.height;
+      if (area > bestArea) { bestArea = area; best = el; }
+    }
+    return best;
+  }
 
-    window.scrollTo({ top: 0, behavior: "instant" });
-    await sleep(400);
+  async function captureFullPage() {
+    // captureVisibleTab tem quota ~2/s → 600ms entre shots.
+    const shots = [];
+    const maxShots = 10;
+    const container = findScrollContainer();
+
+    const getScroll = () => container ? container.scrollTop : window.scrollY;
+    const setScroll = (y) => container
+      ? (container.scrollTop = y)
+      : window.scrollTo({ top: y, behavior: "instant" });
+    const viewH = container ? container.clientHeight : window.innerHeight;
+    const totalH = container ? container.scrollHeight : document.documentElement.scrollHeight;
+    const step = Math.floor(viewH * 0.85);
+    const originalScroll = getScroll();
+
+    setScroll(0);
+    await sleep(500);
 
     for (let i = 0; i < maxShots; i++) {
       const shot = await captureViewport();
       if (shot) shots.push(shot);
-      const nextY = window.scrollY + step;
-      const maxY = document.documentElement.scrollHeight - window.innerHeight;
-      if (nextY >= maxY + 5) break;
-      window.scrollTo({ top: nextY, behavior: "instant" });
-      await sleep(600);
+      const nextY = getScroll() + step;
+      const maxY = totalH - viewH;
+      if (getScroll() >= maxY - 5) break;
+      setScroll(nextY);
+      await sleep(650);
     }
-    window.scrollTo({ top: originalScroll, behavior: "instant" });
+    setScroll(originalScroll);
     return shots;
   }
 
