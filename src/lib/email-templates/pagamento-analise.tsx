@@ -22,7 +22,7 @@ export const PagamentoAnalise = ({
     preview="Seu pagamento está em análise pela nossa equipe."
     stepNumber="02"
     stepLabel="PAGAMENTO EM ANÁLISE"
-    footerMessage="Previsão de retorno: em até 24h úteis"
+    footerMessage="Previsão de retorno: em até 3h úteis"
   >
     <Text style={styles.h1}>Pagamento</Text>
     <Text style={styles.h1Accent}>em análise</Text>
