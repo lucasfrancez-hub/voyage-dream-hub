@@ -303,6 +303,35 @@ function DashboardNav({ pathname }: { pathname: string }) {
   );
 }
 
+function PedidosNav({ pathname }: { pathname: string }) {
+  const active = pathname.startsWith("/admin/pedidos");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
+          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <ClipboardList className="h-4 w-4" /> Pedidos <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuItem asChild>
+          <Link to="/admin/pedidos" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Meus pedidos</span>
+            <span className="text-xs text-muted-foreground">Pedidos criados por você</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/pedidos/terceiros" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Pedidos de terceiro</span>
+            <span className="text-xs text-muted-foreground">Pedidos de agências parceiras</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuarios: boolean }) {
   const active =
     pathname.startsWith("/admin/seguranca") ||
