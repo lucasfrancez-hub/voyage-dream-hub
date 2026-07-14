@@ -68,6 +68,7 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
       system: buildSystemPrompt(conv),
       messages,
       tools: cleanTools as never,
+      toolsContext: undefined as never,
       stopWhen: stepCountIs(10),
       temperature: 0.6,
     });

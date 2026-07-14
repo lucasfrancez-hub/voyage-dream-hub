@@ -168,8 +168,8 @@ export function buildCamilaTools(conversation: WaConversation) {
       execute: async ({ destino, limit }) => {
         let q = supabaseAdmin
           .from("packages")
-          .select("slug, title, destination, going_date, return_date, nights, price_from, hotel_name, hotel_stars")
-          .eq("published", true)
+          .select("slug, title, destination, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy")
+          .eq("is_active", true)
           .order("going_date", { ascending: true })
           .limit(limit ?? 5);
         if (destino) q = q.ilike("destination", `%${destino}%`);
@@ -189,7 +189,8 @@ export function buildCamilaTools(conversation: WaConversation) {
             noites: p.nights,
             hotel: p.hotel_name,
             estrelas: p.hotel_stars,
-            a_partir_de: fmtMoney(Number(p.price_from)),
+            preco_por_pessoa: fmtMoney(Number(p.price_per_person)),
+            ocupacao_base: p.base_occupancy,
             link: `https://pedidos.viaair.tur.br/pacotes/${p.slug}`,
           })),
         };
