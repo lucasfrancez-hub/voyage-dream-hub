@@ -31,11 +31,18 @@ function AdminLayout() {
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+
+    // Timeout de segurança: se em 4s não resolveu getSession (rede/refresh
+    // travado), força session=null pra não ficar carregando pra sempre.
+    const failsafe = setTimeout(() => {
+      setSession((cur) => (cur === undefined ? null : cur));
+    }, 4000);
+
     supabase.auth
       .getSession()
       .then(async ({ data, error }) => {
+        clearTimeout(failsafe);
         if (error || !data.session) {
-          // Refresh token inválido/expirado — limpa storage pra não travar em loop.
           try { await supabase.auth.signOut(); } catch { /* noop */ }
           setSession(null);
           return;
@@ -43,10 +50,15 @@ function AdminLayout() {
         setSession(data.session);
       })
       .catch(async () => {
+        clearTimeout(failsafe);
         try { await supabase.auth.signOut(); } catch { /* noop */ }
         setSession(null);
       });
-    return () => sub.subscription.unsubscribe();
+
+    return () => {
+      clearTimeout(failsafe);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
