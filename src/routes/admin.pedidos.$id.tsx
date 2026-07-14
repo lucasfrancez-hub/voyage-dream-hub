@@ -2072,6 +2072,13 @@ function ItemDialog({
               onChangeField("airline", name);
               // Se está no registro, limpa URL manual (o voucher resolve sozinho).
               if (a || !name) onChangeField("airline_logo_url", "");
+              // Re-normaliza o nº do voo com o novo prefixo IATA.
+              const curr = String(d.flight_number ?? "").trim();
+              if (curr) {
+                const m = curr.toUpperCase().match(/^[A-Z0-9]{2,3}\s*(.+)$/);
+                const suffix = m && /\d/.test(m[1]) ? m[1].trim() : curr.toUpperCase();
+                onChangeField("flight_number", a ? `${a.iata} ${suffix}` : suffix);
+              }
             }}
           />
         </div>
