@@ -2,12 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, toggleConversationMode } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation } from "@/lib/chat/queries.functions";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/chat/inbox")({
   component: InboxPage,
@@ -34,6 +35,7 @@ function InboxPage() {
   const [folder, setFolder] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
@@ -69,14 +71,23 @@ function InboxPage() {
       {/* Coluna 1 — Lista */}
       <aside className="flex w-80 shrink-0 flex-col border-r border-slate-200 bg-white">
         <div className="border-b border-slate-200 p-3">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar conversa…"
-              className="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-sm placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
-            />
+          <div className="mb-2 flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar conversa…"
+                className="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-sm placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={() => setNewOpen(true)}
+              title="Nova conversa"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
           </div>
           <div className="mt-2 flex gap-1">
             {FOLDERS.map((f) => (
@@ -114,9 +125,102 @@ function InboxPage() {
       <aside className="hidden w-72 shrink-0 border-l border-slate-200 bg-white lg:block">
         {active ? <ContactDetails conv={active} onChange={refetch} /> : null}
       </aside>
+
+      <NewConversationDialog
+        open={newOpen}
+        onOpenChange={setNewOpen}
+        onCreated={(id) => { setNewOpen(false); refetch(); setActiveId(id); }}
+      />
     </div>
   );
 }
+
+function NewConversationDialog({
+  open, onOpenChange, onCreated,
+}: { open: boolean; onOpenChange: (v: boolean) => void; onCreated: (id: string) => void }) {
+  const startFn = useServerFn(startOutboundConversation);
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const mut = useMutation({
+    mutationFn: async () => startFn({ data: { phone, display_name: name || null, content: msg } }),
+    onSuccess: (r) => {
+      toast.success("Conversa iniciada — IA desativada");
+      setPhone(""); setName(""); setMsg("");
+      onCreated(r.conversation_id);
+    },
+    onError: (e) => toast.error(`Falha: ${(e as Error).message}`),
+  });
+
+  const canSend = phone.replace(/\D/g, "").length >= 10 && msg.trim().length > 0 && !mut.isPending;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Nova conversa</DialogTitle>
+          <DialogDescription>
+            Envia a primeira mensagem para um número. A IA fica <b>desativada</b> — você atende manualmente.
+            Se o cliente nunca te mandou nada antes ou faz mais de 24h, o WhatsApp só entrega mensagem de <b>template aprovado</b>.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <label className="block text-xs">
+            <span className="mb-1 block font-medium text-slate-700">Número (com DDD)</span>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="11 98765-4321"
+              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+            />
+            <span className="mt-1 block text-[10px] text-slate-400">Sem DDI vira +55 automático.</span>
+          </label>
+
+          <label className="block text-xs">
+            <span className="mb-1 block font-medium text-slate-700">Nome (opcional)</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex.: Marina Silva"
+              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+            />
+          </label>
+
+          <label className="block text-xs">
+            <span className="mb-1 block font-medium text-slate-700">Primeira mensagem</span>
+            <textarea
+              value={msg}
+              onChange={(e) => setMsg(e.target.value)}
+              rows={4}
+              placeholder="Escreva a mensagem…"
+              className="w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+            />
+          </label>
+        </div>
+
+        <DialogFooter>
+          <button
+            onClick={() => onOpenChange(false)}
+            className="rounded-md border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => mut.mutate()}
+            disabled={!canSend}
+            className="flex items-center gap-2 rounded-md bg-[#F26B1F] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+          >
+            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Enviar
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function ConvItem({ conv, active, onClick }: { conv: Conv; active: boolean; onClick: () => void }) {
   const time = conv.last_message_at
