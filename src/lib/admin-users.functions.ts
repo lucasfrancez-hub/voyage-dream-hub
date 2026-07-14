@@ -11,13 +11,15 @@ async function ensureGestor(ctx: { supabase: any; userId: string; claims: any })
   }
 }
 
+export type AdminRole = "admin" | "user" | "partner";
+
 export type AdminUser = {
   id: string;
   email: string;
   fullName: string | null;
   createdAt: string;
   lastSignInAt: string | null;
-  role: "admin" | "user";
+  role: AdminRole;
 };
 
 export const listAdminUsers = createServerFn({ method: "GET" })
