@@ -744,10 +744,9 @@ function FlightFieldset({
                   )}
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2">
-                  <input
-                    className={inp}
+                  <AirlineCombobox
                     value={s.airline ?? ""}
-                    onChange={(e) => patchSeg(i, { airline: e.target.value })}
+                    onChange={(name) => patchSeg(i, { airline: name })}
                     placeholder="Companhia (opcional, se diferente)"
                   />
                   <input
