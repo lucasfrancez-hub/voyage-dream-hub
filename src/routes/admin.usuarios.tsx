@@ -74,6 +74,11 @@ function UsersPage() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar nome"),
   });
+  const resendMut = useMutation({
+    mutationFn: (email: string) => resendPwd({ data: { email } }),
+    onSuccess: () => toast.success("E-mail de redefinição de senha enviado"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao reenviar"),
+  });
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
