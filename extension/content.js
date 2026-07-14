@@ -23,9 +23,11 @@
   const airline = detectAirline();
   if (!airline) return;
 
-  const storageKey = "viaair::" + HOST;
+  const storageKey = "viaair::" + airline;
+  const legacyStorageKey = "viaair::" + HOST;
 
   function parseViaAirPayload() {
+    // Compat: fluxo antigo com #viaair=BASE64 (mantido pra transição).
     const sources = [location.hash.replace(/^#/, ""), location.search.replace(/^\?/, "")];
     for (const src of sources) {
       const params = new URLSearchParams(src);
@@ -46,8 +48,8 @@
       await chrome.storage.local.set({ [storageKey]: { ...payload, airline, savedAt: Date.now() } });
       return { ...payload, airline };
     }
-    const stored = await chrome.storage.local.get(storageKey);
-    return stored[storageKey] || null;
+    const stored = await chrome.storage.local.get([storageKey, legacyStorageKey]);
+    return stored[storageKey] || stored[legacyStorageKey] || null;
   }
 
   function collectPageText() {
