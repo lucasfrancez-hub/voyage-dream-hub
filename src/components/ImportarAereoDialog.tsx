@@ -121,7 +121,23 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       setPhase("waiting");
     } catch (e) {
       toast.error("Erro: " + (e as Error).message);
+  }
+
+  async function armAny() {
+    try {
+      const { token: t } = await createToken({ data: { orderId, airlineHint: "any" } });
+      setToken(t);
+      const ok = await sendTokenToExtension("any", t);
+      if (!ok) {
+        toast.error("Extensão não detectada. Instale/atualize e recarregue a página.");
+        return;
+      }
+      toast.success("Pronto! Abra LATAM, GOL ou AZUL e clique em 📥 Importar pra Via Air.");
+      setPhase("waiting");
+    } catch (e) {
+      toast.error("Erro: " + (e as Error).message);
     }
+  }
   }
 
   async function confirmar() {
