@@ -36,6 +36,7 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
   const getCfg = useServerFn(getQuoteConfig);
   const saveCfg = useServerFn(saveQuoteConfig);
   const getTok = useServerFn(getQuoteToken);
+  const getPub = useServerFn(getPublicQuote);
 
   const [cfg, setCfg] = useState<QuoteConfig>(DEFAULT_QUOTE_CONFIG);
   const [token, setToken] = useState<string | null>(null);
