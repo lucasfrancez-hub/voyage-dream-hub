@@ -165,7 +165,7 @@ function AdminLayout() {
               {isAdmin
                 ? <PedidosNav pathname={pathname} />
                 : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
-              {isAdmin && <CartaoNav pathname={pathname} />}
+              <CartaoNav pathname={pathname} />
               {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
             </nav>
 
