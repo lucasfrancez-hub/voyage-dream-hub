@@ -754,7 +754,17 @@ function FlightFieldset({
                 <div className="grid sm:grid-cols-2 gap-2">
                   <AirlineCombobox
                     value={s.airline ?? ""}
-                    onChange={(name) => patchSeg(i, { airline: name })}
+                    onChange={(name) => {
+                      const a = findAirline(name);
+                      const curr = String(s.flight_number ?? "").trim();
+                      let nextNo = curr;
+                      if (curr) {
+                        const m = curr.toUpperCase().match(/^[A-Z0-9]{2,3}\s*(.+)$/);
+                        const suffix = m && /\d/.test(m[1]) ? m[1].trim() : curr.toUpperCase();
+                        nextNo = a ? `${a.iata} ${suffix}` : suffix;
+                      }
+                      patchSeg(i, { airline: name, flight_number: nextNo });
+                    }}
                     placeholder="Companhia (opcional, se diferente)"
                   />
                   <FlightNumberInput
