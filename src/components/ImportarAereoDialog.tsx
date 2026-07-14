@@ -121,6 +121,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       setPhase("waiting");
     } catch (e) {
       toast.error("Erro: " + (e as Error).message);
+    }
   }
 
   async function armAny() {
@@ -137,7 +138,6 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
     } catch (e) {
       toast.error("Erro: " + (e as Error).message);
     }
-  }
   }
 
   async function confirmar() {
