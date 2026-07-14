@@ -47,7 +47,7 @@ export function buildAirlineCheckinUrl(input: BuildCheckinUrlInput): string | nu
     // GOL: localizador + origem + sobrenome
     if (!loc || !last || !origin) return null;
     const q = new URLSearchParams({ codigoReserva: loc, origem: origin, sobrenome: last });
-    return `https://www.voegol.com.br/minhas-viagens?${q.toString()}`;
+    return `https://b2c.voegol.com.br/minhas-viagens/encontrar-viagem?${q.toString()}`;
   }
 
   if (airline === "AD") {
