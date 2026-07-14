@@ -54,7 +54,7 @@ export function buildAirlineCheckinUrl(input: BuildCheckinUrlInput): string | nu
     // Azul: localizador + origem
     if (!loc || !origin) return null;
     const q = new URLSearchParams({ pnr: loc, origin });
-    return `https://www.voeazul.com.br/minhas-reservas?${q.toString()}`;
+    return `https://www.voeazul.com.br/br/pt/home/minhas-viagens/confirmacao?${q.toString()}`;
   }
 
   return null;
