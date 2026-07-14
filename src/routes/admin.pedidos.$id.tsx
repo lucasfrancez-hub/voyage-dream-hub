@@ -1062,7 +1062,18 @@ function ItemsTab({
   return (
     <div>
       {!isCancelledTab && (
-        <div className="flex justify-end mb-3">
+        <div className="flex justify-end mb-3 gap-2">
+          {kind === "flight" && (
+            <ImportarAereoDialog
+              orderId={orderId}
+              onImported={onChange}
+              trigger={
+                <Button size="sm" variant="outline" className="gap-1">
+                  <Download className="h-3.5 w-3.5" /> Importar aéreo
+                </Button>
+              }
+            />
+          )}
           <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar {addLabel}
           </Button>
