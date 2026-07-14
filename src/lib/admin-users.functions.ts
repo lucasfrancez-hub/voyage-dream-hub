@@ -59,6 +59,7 @@ export const listAdminUsers = createServerFn({ method: "GET" })
       fullName: nameMap.get(u.id) ?? null,
       createdAt: u.created_at,
       lastSignInAt: u.last_sign_in_at ?? null,
+      emailConfirmedAt: (u as any).email_confirmed_at ?? null,
       role: roleMap.get(u.id) ?? "user",
     }));
   });
