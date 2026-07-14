@@ -18,9 +18,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  getQuoteConfig, saveQuoteConfig, getQuoteToken,
+  getQuoteConfig, saveQuoteConfig, getQuoteToken, getPublicQuote,
   DEFAULT_QUOTE_CONFIG, type QuoteConfig,
 } from "@/lib/quote.functions";
+import { buildQuotePdf, downloadPdf } from "@/lib/quote-pdf";
 
 
 type Props = {
