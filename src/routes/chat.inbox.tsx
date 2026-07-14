@@ -35,6 +35,7 @@ function InboxPage() {
   const [folder, setFolder] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
