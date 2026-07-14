@@ -17,6 +17,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
+import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
@@ -75,6 +76,11 @@ const IndexRoute = IndexRouteImport.update({
 const PacotesIndexRoute = PacotesIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => PacotesRoute,
+} as any)
+const PacotesAdminRoute = PacotesAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => PacotesRoute,
 } as any)
 const OrcamentoTokenRoute = OrcamentoTokenRouteImport.update({
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
+  '/pacotes/admin': typeof PacotesAdminRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
+  '/pacotes/admin': typeof PacotesAdminRoute
   '/pacotes': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -251,6 +259,7 @@ export interface FileRoutesById {
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
+  '/pacotes/admin': typeof PacotesAdminRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -282,6 +291,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/orcamento/$token'
+    | '/pacotes/admin'
     | '/pacotes/'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/orcamento/$token'
+    | '/pacotes/admin'
     | '/pacotes'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -339,6 +350,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/orcamento/$token'
+    | '/pacotes/admin'
     | '/pacotes/'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -419,6 +431,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/pacotes/'
       preLoaderRoute: typeof PacotesIndexRouteImport
+      parentRoute: typeof PacotesRoute
+    }
+    '/pacotes/admin': {
+      id: '/pacotes/admin'
+      path: '/admin'
+      fullPath: '/pacotes/admin'
+      preLoaderRoute: typeof PacotesAdminRouteImport
       parentRoute: typeof PacotesRoute
     }
     '/orcamento/$token': {
@@ -604,12 +623,14 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PacotesRouteChildren {
+  PacotesAdminRoute: typeof PacotesAdminRoute
   PacotesIndexRoute: typeof PacotesIndexRoute
   PacotesSlugCheckoutRoute: typeof PacotesSlugCheckoutRoute
   PacotesSlugIndexRoute: typeof PacotesSlugIndexRoute
 }
 
 const PacotesRouteChildren: PacotesRouteChildren = {
+  PacotesAdminRoute: PacotesAdminRoute,
   PacotesIndexRoute: PacotesIndexRoute,
   PacotesSlugCheckoutRoute: PacotesSlugCheckoutRoute,
   PacotesSlugIndexRoute: PacotesSlugIndexRoute,
