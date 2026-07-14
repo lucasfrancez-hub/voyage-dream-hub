@@ -22,6 +22,16 @@ import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as ChatPastasRouteImport } from './routes/chat.pastas'
+import { Route as ChatInboxRouteImport } from './routes/chat.inbox'
+import { Route as ChatFluxosRouteImport } from './routes/chat.fluxos'
+import { Route as ChatDashboardRouteImport } from './routes/chat.dashboard'
+import { Route as ChatCrmRouteImport } from './routes/chat.crm'
+import { Route as ChatContatosRouteImport } from './routes/chat.contatos'
+import { Route as ChatConfigRouteImport } from './routes/chat.config'
+import { Route as ChatBroadcastRouteImport } from './routes/chat.broadcast'
+import { Route as ChatAgentesRouteImport } from './routes/chat.agentes'
+import { Route as ChatAgendaRouteImport } from './routes/chat.agenda'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
@@ -113,6 +123,56 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ChatPastasRoute = ChatPastasRouteImport.update({
+  id: '/pastas',
+  path: '/pastas',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatInboxRoute = ChatInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatFluxosRoute = ChatFluxosRouteImport.update({
+  id: '/fluxos',
+  path: '/fluxos',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatDashboardRoute = ChatDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatCrmRoute = ChatCrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatContatosRoute = ChatContatosRouteImport.update({
+  id: '/contatos',
+  path: '/contatos',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatConfigRoute = ChatConfigRouteImport.update({
+  id: '/config',
+  path: '/config',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatBroadcastRoute = ChatBroadcastRouteImport.update({
+  id: '/broadcast',
+  path: '/broadcast',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatAgentesRoute = ChatAgentesRouteImport.update({
+  id: '/agentes',
+  path: '/agentes',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatAgendaRoute = ChatAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => ChatRoute,
 } as any)
 const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
   id: '/usuarios',
@@ -254,7 +314,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
-  '/chat': typeof ChatRoute
+  '/chat': typeof ChatRouteWithChildren
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
@@ -270,6 +330,16 @@ export interface FileRoutesByFullPath {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/chat/agenda': typeof ChatAgendaRoute
+  '/chat/agentes': typeof ChatAgentesRoute
+  '/chat/broadcast': typeof ChatBroadcastRoute
+  '/chat/config': typeof ChatConfigRoute
+  '/chat/contatos': typeof ChatContatosRoute
+  '/chat/crm': typeof ChatCrmRoute
+  '/chat/dashboard': typeof ChatDashboardRoute
+  '/chat/fluxos': typeof ChatFluxosRoute
+  '/chat/inbox': typeof ChatInboxRoute
+  '/chat/pastas': typeof ChatPastasRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -295,7 +365,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
-  '/chat': typeof ChatRoute
+  '/chat': typeof ChatRouteWithChildren
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
@@ -310,6 +380,16 @@ export interface FileRoutesByTo {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/chat/agenda': typeof ChatAgendaRoute
+  '/chat/agentes': typeof ChatAgentesRoute
+  '/chat/broadcast': typeof ChatBroadcastRoute
+  '/chat/config': typeof ChatConfigRoute
+  '/chat/contatos': typeof ChatContatosRoute
+  '/chat/crm': typeof ChatCrmRoute
+  '/chat/dashboard': typeof ChatDashboardRoute
+  '/chat/fluxos': typeof ChatFluxosRoute
+  '/chat/inbox': typeof ChatInboxRoute
+  '/chat/pastas': typeof ChatPastasRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -336,7 +416,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
-  '/chat': typeof ChatRoute
+  '/chat': typeof ChatRouteWithChildren
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
@@ -352,6 +432,16 @@ export interface FileRoutesById {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/chat/agenda': typeof ChatAgendaRoute
+  '/chat/agentes': typeof ChatAgentesRoute
+  '/chat/broadcast': typeof ChatBroadcastRoute
+  '/chat/config': typeof ChatConfigRoute
+  '/chat/contatos': typeof ChatContatosRoute
+  '/chat/crm': typeof ChatCrmRoute
+  '/chat/dashboard': typeof ChatDashboardRoute
+  '/chat/fluxos': typeof ChatFluxosRoute
+  '/chat/inbox': typeof ChatInboxRoute
+  '/chat/pastas': typeof ChatPastasRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -395,6 +485,16 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
+    | '/chat/agenda'
+    | '/chat/agentes'
+    | '/chat/broadcast'
+    | '/chat/config'
+    | '/chat/contatos'
+    | '/chat/crm'
+    | '/chat/dashboard'
+    | '/chat/fluxos'
+    | '/chat/inbox'
+    | '/chat/pastas'
     | '/email/unsubscribe'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -435,6 +535,16 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
+    | '/chat/agenda'
+    | '/chat/agentes'
+    | '/chat/broadcast'
+    | '/chat/config'
+    | '/chat/contatos'
+    | '/chat/crm'
+    | '/chat/dashboard'
+    | '/chat/fluxos'
+    | '/chat/inbox'
+    | '/chat/pastas'
     | '/email/unsubscribe'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -476,6 +586,16 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
+    | '/chat/agenda'
+    | '/chat/agentes'
+    | '/chat/broadcast'
+    | '/chat/config'
+    | '/chat/contatos'
+    | '/chat/crm'
+    | '/chat/dashboard'
+    | '/chat/fluxos'
+    | '/chat/inbox'
+    | '/chat/pastas'
     | '/email/unsubscribe'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -502,7 +622,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
-  ChatRoute: typeof ChatRoute
+  ChatRoute: typeof ChatRouteWithChildren
   MinhasReservasRoute: typeof MinhasReservasRoute
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
@@ -614,6 +734,76 @@ declare module '@tanstack/react-router' {
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/chat/pastas': {
+      id: '/chat/pastas'
+      path: '/pastas'
+      fullPath: '/chat/pastas'
+      preLoaderRoute: typeof ChatPastasRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/inbox': {
+      id: '/chat/inbox'
+      path: '/inbox'
+      fullPath: '/chat/inbox'
+      preLoaderRoute: typeof ChatInboxRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/fluxos': {
+      id: '/chat/fluxos'
+      path: '/fluxos'
+      fullPath: '/chat/fluxos'
+      preLoaderRoute: typeof ChatFluxosRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/dashboard': {
+      id: '/chat/dashboard'
+      path: '/dashboard'
+      fullPath: '/chat/dashboard'
+      preLoaderRoute: typeof ChatDashboardRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/crm': {
+      id: '/chat/crm'
+      path: '/crm'
+      fullPath: '/chat/crm'
+      preLoaderRoute: typeof ChatCrmRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/contatos': {
+      id: '/chat/contatos'
+      path: '/contatos'
+      fullPath: '/chat/contatos'
+      preLoaderRoute: typeof ChatContatosRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/config': {
+      id: '/chat/config'
+      path: '/config'
+      fullPath: '/chat/config'
+      preLoaderRoute: typeof ChatConfigRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/broadcast': {
+      id: '/chat/broadcast'
+      path: '/broadcast'
+      fullPath: '/chat/broadcast'
+      preLoaderRoute: typeof ChatBroadcastRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/agentes': {
+      id: '/chat/agentes'
+      path: '/agentes'
+      fullPath: '/chat/agentes'
+      preLoaderRoute: typeof ChatAgentesRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/agenda': {
+      id: '/chat/agenda'
+      path: '/agenda'
+      fullPath: '/chat/agenda'
+      preLoaderRoute: typeof ChatAgendaRouteImport
+      parentRoute: typeof ChatRoute
     }
     '/admin/usuarios': {
       id: '/admin/usuarios'
@@ -846,6 +1036,34 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ChatRouteChildren {
+  ChatAgendaRoute: typeof ChatAgendaRoute
+  ChatAgentesRoute: typeof ChatAgentesRoute
+  ChatBroadcastRoute: typeof ChatBroadcastRoute
+  ChatConfigRoute: typeof ChatConfigRoute
+  ChatContatosRoute: typeof ChatContatosRoute
+  ChatCrmRoute: typeof ChatCrmRoute
+  ChatDashboardRoute: typeof ChatDashboardRoute
+  ChatFluxosRoute: typeof ChatFluxosRoute
+  ChatInboxRoute: typeof ChatInboxRoute
+  ChatPastasRoute: typeof ChatPastasRoute
+}
+
+const ChatRouteChildren: ChatRouteChildren = {
+  ChatAgendaRoute: ChatAgendaRoute,
+  ChatAgentesRoute: ChatAgentesRoute,
+  ChatBroadcastRoute: ChatBroadcastRoute,
+  ChatConfigRoute: ChatConfigRoute,
+  ChatContatosRoute: ChatContatosRoute,
+  ChatCrmRoute: ChatCrmRoute,
+  ChatDashboardRoute: ChatDashboardRoute,
+  ChatFluxosRoute: ChatFluxosRoute,
+  ChatInboxRoute: ChatInboxRoute,
+  ChatPastasRoute: ChatPastasRoute,
+}
+
+const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
+
 interface PacotesRouteChildren {
   PacotesAdminRoute: typeof PacotesAdminRoute
   PacotesIndexRoute: typeof PacotesIndexRoute
@@ -867,7 +1085,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
-  ChatRoute: ChatRoute,
+  ChatRoute: ChatRouteWithChildren,
   MinhasReservasRoute: MinhasReservasRoute,
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,

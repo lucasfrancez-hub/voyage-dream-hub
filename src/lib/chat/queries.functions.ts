@@ -1,0 +1,166 @@
+/**
+ * Server functions para o dashboard/inbox/CRM.
+ * Todas autenticadas via requireSupabaseAuth (RLS aplica).
+ */
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
+
+export const listConversations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("wa_conversations")
+      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id")
+      .order("last_message_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const listMessages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ conversation_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("wa_messages")
+      .select("id, direction, sender, content, created_at, tool_calls")
+      .eq("conversation_id", data.conversation_id)
+      .order("created_at", { ascending: true })
+      .limit(500);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const sendHumanReply = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      content: z.string().min(1).max(4000),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: conv, error: cErr } = await context.supabase
+      .from("wa_conversations")
+      .select("id, wa_phone, mode")
+      .eq("id", data.conversation_id)
+      .single();
+    if (cErr || !conv) throw new Error("Conversa não encontrada");
+
+    const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
+    const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
+
+    await saveMessage({
+      conversation_id: conv.id,
+      direction: "outbound",
+      sender: "human",
+      content: data.content,
+      sender_user_id: context.userId,
+    });
+
+    await sendWhatsAppBubbles(conv.wa_phone, data.content);
+    return { ok: true };
+  });
+
+export const toggleConversationMode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      mode: z.enum(["ai", "human", "resolved"]),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("wa_conversations")
+      .update({
+        mode: data.mode,
+        assigned_to: data.mode === "human" ? context.userId : null,
+      })
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const getDashboardMetrics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const [conv, msg, contacts] = await Promise.all([
+      context.supabase.from("wa_conversations").select("mode, agent_slug", { count: "exact" }),
+      context.supabase
+        .from("wa_messages")
+        .select("created_at, sender, direction", { count: "exact" })
+        .gte("created_at", new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString()),
+      context.supabase.from("people").select("id", { count: "exact", head: true }),
+    ]);
+
+    const conversations = conv.data ?? [];
+    const messages = msg.data ?? [];
+
+    const byDay: Record<string, number> = {};
+    for (const m of messages) {
+      const d = new Date(m.created_at).toISOString().slice(0, 10);
+      byDay[d] = (byDay[d] ?? 0) + 1;
+    }
+    const daily = Object.entries(byDay)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, count]) => ({ date, count }));
+
+    return {
+      totalContacts: contacts.count ?? 0,
+      totalConversations: conv.count ?? 0,
+      openConversations: conversations.filter((c) => c.mode === "ai" || c.mode === "human").length,
+      resolvedConversations: conversations.filter((c) => c.mode === "resolved").length,
+      humanConversations: conversations.filter((c) => c.mode === "human").length,
+      aiConversations: conversations.filter((c) => c.mode === "ai").length,
+      messages14d: msg.count ?? 0,
+      byAgent: {
+        camila: conversations.filter((c) => c.agent_slug === "camila").length,
+        roberto: conversations.filter((c) => c.agent_slug === "roberto").length,
+      },
+      daily,
+    };
+  });
+
+export const listAgents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("ai_agents")
+      .select("*")
+      .order("slug");
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const upsertAgent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      nome: z.string().min(1),
+      system_prompt: z.string().min(10),
+      horario_inicio: z.string(),
+      horario_fim: z.string(),
+      ativo: z.boolean(),
+      tom_voz: z.string().nullable().optional(),
+      mensagem_ausencia: z.string().nullable().optional(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("ai_agents")
+      .update({
+        nome: data.nome,
+        system_prompt: data.system_prompt,
+        horario_inicio: data.horario_inicio,
+        horario_fim: data.horario_fim,
+        ativo: data.ativo,
+        tom_voz: data.tom_voz ?? null,
+        mensagem_ausencia: data.mensagem_ausencia ?? null,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

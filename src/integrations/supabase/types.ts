@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_agents: {
+        Row: {
+          ativo: boolean
+          avatar_url: string | null
+          created_at: string
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          mensagem_ausencia: string | null
+          nome: string
+          slug: string
+          system_prompt: string
+          temas_proibidos: string[]
+          timezone: string
+          tom_voz: string | null
+          tools_habilitadas: Json
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          mensagem_ausencia?: string | null
+          nome: string
+          slug: string
+          system_prompt: string
+          temas_proibidos?: string[]
+          timezone?: string
+          tom_voz?: string | null
+          tools_habilitadas?: Json
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          mensagem_ausencia?: string | null
+          nome?: string
+          slug?: string
+          system_prompt?: string
+          temas_proibidos?: string[]
+          timezone?: string
+          tom_voz?: string | null
+          tools_habilitadas?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -1088,6 +1142,7 @@ export type Database = {
       }
       wa_conversations: {
         Row: {
+          agent_slug: string | null
           assigned_to: string | null
           created_at: string
           display_name: string | null
@@ -1106,6 +1161,7 @@ export type Database = {
           wa_phone: string
         }
         Insert: {
+          agent_slug?: string | null
           assigned_to?: string | null
           created_at?: string
           display_name?: string | null
@@ -1124,6 +1180,7 @@ export type Database = {
           wa_phone: string
         }
         Update: {
+          agent_slug?: string | null
           assigned_to?: string | null
           created_at?: string
           display_name?: string | null

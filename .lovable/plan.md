@@ -1,114 +1,148 @@
 
-# Camila IA — atendimento WhatsApp com handoff humano
+# Plataforma /chat — CRM WhatsApp estilo ChatFunnel (tema claro VIA AIR)
 
-Objetivo: reduzir ao máximo o tempo de atendimento humano. Camila resolve tudo que dá com dados do admin; o que exige criatividade/negociação (cotação nova, voo alterado, reclamação) ela coleta briefing e joga na fila do `/chat` interno pros vendedores.
+Reestrutura completa do `/chat` atual pra virar uma plataforma modular estilo ChatFunnel, tema claro (cinza-claro/branco), com balões de conversa reais, sidebar fixa, header, e todos os módulos em rotas próprias. Mantém toda a integração Camila + WhatsApp já feita (Fases 1 e 2), só adiciona o **Roberto** (turno noturno) e a lógica de horário.
 
-## Arquitetura
+## Identidade visual
 
-```text
-WhatsApp Cloud API
-        │
-        ▼
-/api/public/whatsapp-webhook  ──►  persiste mensagem em `wa_messages`
-                                   ├─ cria/atualiza `wa_conversations`
-                                   └─ se conversa NÃO está com humano:
-                                          dispara runCamila(conversationId)
+- **Base**: tema claro, fundo `#F5F7FA` (cinza muito claro), cards brancos `#FFFFFF`, bordas sutis `#E5E7EB`.
+- **Acentos**: laranja VIA AIR `#F26B1F` só em botões primários, indicadores ativos e badges.
+- **Balões WhatsApp**: recebido = branco com sombra suave; enviado = verde-claro `#DCF8C6` (padrão WhatsApp) OU laranja-claro pra manter marca (escolho **verde-claro** pra parecer WhatsApp de verdade, como o ChatFunnel).
+- **Fundo da conversa**: bege claro `#EFEAE2` com padrão sutil (igual WhatsApp Web).
+- **Tipografia**: mantém a fonte atual do projeto; sem serif.
 
-runCamila (server fn, streamText + tools)
-   ├─ identifica cliente (people + orders pelo phone)
-   ├─ carrega histórico da conversa
-   ├─ system prompt + tools
-   ├─ executa loop AI SDK (stepCountIs(50))
-   └─ envia respostas via Cloud API → grava no DB
+## Arquitetura de rotas
 
-/chat (inbox interno)
-   ├─ lista de conversas com filtros: [Todas] [Camila] [Aguardando humano] [Minhas]
-   ├─ conversa selecionada com mensagens em tempo real (Supabase realtime)
-   ├─ botão "Assumir" → seta assigned_to = user, mode = 'human'
-   └─ botão "Devolver pra Camila" → mode = 'ai'
+```
+/chat                    → redireciona pra /chat/inbox
+/chat/dashboard          → métricas e gráficos
+/chat/inbox              → 3 colunas (pastas | conversas | contato)
+/chat/inbox/:conversaId  → mesma tela, conversa aberta
+/chat/contatos           → tabela de contatos
+/chat/crm                → kanban de pipeline
+/chat/agentes            → Camila + Roberto (configuração)
+/chat/fluxos             → placeholder "em breve"
+/chat/broadcast          → placeholder "em breve"
+/chat/agenda             → placeholder "em breve"
+/chat/config             → WhatsApp, horários, usuários, mensagens automáticas
 ```
 
-## Fases
+Layout: `src/routes/chat.tsx` vira layout com **Sidebar fixa esquerda** + **Header topo** + `<Outlet />`. Cada rota-filha é arquivo próprio.
 
-### Fase 1 — Fundação de dados e webhook (backend)
-- Migration: `wa_conversations`, `wa_messages`, `wa_handoff_events`.
-- Webhook: além de validar assinatura, salva mensagem, resolve conversa por `wa_phone`, e enfileira `runCamila` só se `mode = 'ai'`.
-- Server fn `sendWhatsAppMessage(to, text)` usando `WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID`.
-- Identificação: match do telefone contra `people.phone` e `orders` do CRM.
+## Módulos nesta entrega (Fase A)
 
-### Fase 2 — Camila com tools (IA)
-Server fn `runCamila` usando AI SDK + Lovable AI Gateway (`google/gemini-3.5-flash`, bom em tool-calling e barato). Tools:
+Foco no que gera valor imediato e usa dados que já temos (`wa_conversations`, `wa_messages`, `people`, `orders`). Fluxos/Broadcast/Agenda ficam com página-shell "em construção" pra estrutura já existir.
 
-- `consultar_pedido({ numero | cpf })` → status, itens, pagamentos, voos, hotel
-- `consultar_voo({ pedido_numero, direcao? })` → datas, horários, localizador, cia
-- `gerar_2via_voucher({ pedido_numero })` → gera PDF e devolve URL assinada
-- `reenviar_link_pagamento({ pedido_numero })` → cria link novo e envia
-- `buscar_pacotes({ destino?, mes?, pax?, orcamento? })` → lista pacotes do admin
-- `pedir_confirmacao_identidade({ motivo })` → força cliente a confirmar CPF antes de acessar dados sensíveis
-- `escalar_para_humano({ motivo, briefing })` → seta `mode='human'`, `priority`, adiciona tag; Camila para de responder
+### 1. Layout base (`chat.tsx`)
+- Sidebar 240px, colapsável pra 64px (ícones).
+- Menu: Dashboard, Caixa de Entrada, Contatos, Agente IA, Fluxos, Broadcast, CRM, Agenda, Pastas, Configurações.
+- Header: busca global, notificações, avatar do usuário logado, indicador "Camila online" / "Roberto online" conforme horário.
 
-**Regra de segurança da identificação (implementada no system prompt + guard nas tools):**
-- Consultas por número de WhatsApp reconhecido: liberadas pra info não-sensível (nome, datas de voo).
-- Dados financeiros, voucher, cartão, alteração: exige confirmação de CPF ou data de nascimento na sessão. Se ainda não confirmou, Camila chama `pedir_confirmacao_identidade`.
+### 2. Dashboard (`chat.dashboard.tsx`)
+Cards de métricas (queries em `wa_conversations` e `wa_messages`):
+- Total de contatos, conversas abertas/em andamento/encerradas
+- Atendimentos pela IA vs humanos (últimos 30 dias)
+- Tempo médio de resposta (mensagens outbound - inbound anterior)
+- Gráfico diário (últimos 14 dias) com Recharts
+- Últimas atividades (feed de `wa_handoff_events`)
 
-### Fase 3 — Inbox /chat interno
-Reformar `/chat` existente com AI Elements:
-- `InboxList` com abas e badges de não-lidas
-- `CamilaChat` renomeado pra `ConversationView` — mostra mensagens da Camila E do humano, com avatar diferente
-- `ContactPanel` (lateral direita): dados do cliente, últimos pedidos, botões rápidos (abrir pedido no admin, gerar voucher)
-- Botões no header da conversa: **Assumir** / **Devolver pra Camila** / **Marcar resolvido**
-- Realtime via Supabase channel em `wa_messages`
+### 3. Caixa de Entrada (`chat.inbox.tsx` + `chat.inbox.$id.tsx`)
+**3 colunas** de verdade:
 
-### Fase 4 — Lembretes automáticos (cron)
-`pg_cron` diário chama `/api/public/hooks/enviar-lembretes`:
-- Voos em 24h → template `lembrete_embarque`
-- Boletos vencendo em 2 dias → template `boleto_vencendo`
-- Pagamentos pendentes há 3+ dias → follow-up
+**Coluna 1 — Pastas + lista**
+- Filtros: Minha caixa / Atribuídas / Não atribuídas / Todas / IA (Camila/Roberto) / Arquivadas
+- Busca por nome/telefone
+- Cada item: avatar, nome, prévia da última mensagem, hora, badge de não-lidas, ícone da IA que está atendendo
+
+**Coluna 2 — Conversa**
+- Fundo bege claro WhatsApp
+- Balões separados por remetente (customer / camila / roberto / human / system)
+- Balões com hora, check duplo, agrupamento por dia
+- Suporte a texto, imagem, documento, áudio (renderização básica)
+- Aviso amarelo no topo se última mensagem inbound > 24h ("janela de atendimento encerrada — use template")
+- Composer com: textarea, emoji picker (nativo), anexo, botão enviar, botão "🤖 Assumir da IA" / "Devolver pra IA", botão arquivar
+- Notas internas (aba separada, salvo em `wa_messages` com `sender=system` + flag)
+
+**Coluna 3 — Detalhes do contato**
+- Nome, telefone, e-mail, tags
+- Pedidos vinculados (query em `orders` via `person_id`)
+- Timeline de eventos
+- Toggle "Permitir IA" (muda `mode` da conversa)
+- Botão editar → abre modal `admin.pessoas.$id`
+
+### 4. Contatos (`chat.contatos.tsx`)
+Tabela usando `people` já existente:
+- Colunas: nome, telefone, e-mail, tags, último atendimento (via `wa_conversations.last_message_at`), atendente
+- Busca, filtro por tag, exportar CSV
+- Reaproveita muito de `admin.pessoas.tsx`
+
+### 5. CRM Pipeline (`chat.crm.tsx`)
+Kanban drag-and-drop (`@dnd-kit/core` — já instalado se disponível, senão adiciono):
+- Colunas: Novo Lead, Qualificação, Orçamento, Orçamento Enviado, Pagamento, Contrato, Viagem Confirmada, Pós-venda, Perdido
+- Cards ligados a `orders` (mapeando `status` do pedido pra coluna) + conversas sem pedido ainda ficam em "Novo Lead"
+- Card mostra: nome, telefone, valor, destino, atendente, data
+- Arrastar entre colunas atualiza o status
+
+### 6. Agente IA (`chat.agentes.tsx`)
+Duas abas: **Camila** e **Roberto**.
+Cada uma edita:
+- Nome, avatar, tom de voz, horário de atendimento (Camila 08–18, Roberto 18–08)
+- Prompt do sistema (textarea grande, com o `CAMILA_SYSTEM_PROMPT` atual pré-carregado)
+- Palavras/temas proibidos
+- Ferramentas ativas (checkboxes das tools do `tools.server.ts`)
+- Botão Ativar/Desativar
+- Teste ao vivo (chat interno igual o `CamilaChat.tsx` atual)
+
+Persistência: nova tabela `ai_agents` (id, nome, prompt, horario_inicio, horario_fim, ativo, tools_habilitadas jsonb).
+
+### 7. Configurações (`chat.config.tsx`)
+Abas: WhatsApp Cloud API (mostra status dos secrets), Horários de atendimento, Usuários & permissões, Mensagens automáticas (fora de horário, boas-vindas, ausência).
+
+### 8. Fluxos / Broadcast / Agenda / Pastas
+Página com placeholder profissional "🚧 Em breve — próxima fase" pra rota existir e sidebar não ter link morto.
+
+## Roberto + lógica de horário
+
+- Nova tabela `ai_agents` com 2 registros: `camila` (08:00–18:00) e `roberto` (18:00–08:00), fuso America/Sao_Paulo.
+- `camila-runner.server.ts` vira `agent-runner.server.ts`:
+  1. Ao receber mensagem, calcula horário atual em SP.
+  2. Escolhe agente cujo horário cobre o momento.
+  3. Se **fora de qualquer horário** (não deve acontecer, pois cobrem 24h), envia mensagem padrão de ausência.
+  4. Se **ambos desativados manualmente**: envia "Nossa equipe está fora do horário. Retornaremos no próximo horário útil."
+- Prompt do Roberto: focado em suporte/emergência (voo alterado, cancelamento, 2ª via voucher urgente). Camila: pré-venda, cotação, dúvidas comerciais.
+
+## Backend — migrations necessárias
+
+1. **`ai_agents`**: id, slug (unique), nome, avatar_url, system_prompt, horario_inicio (time), horario_fim (time), timezone, ativo (bool), tools_habilitadas (jsonb), tom_voz, temas_proibidos (text[]), created_at, updated_at.
+2. **`wa_conversations`**: adicionar coluna `agent_slug` (text) pra saber qual IA atendeu por último.
+3. Seed dos dois agentes (Camila + Roberto).
+4. GRANTs + RLS: admin gerencia; atendente lê.
 
 ## Detalhes técnicos
 
-**Novas tabelas** (migration Fase 1):
-```sql
-wa_conversations (
-  id uuid pk,
-  wa_phone text unique,
-  person_id uuid null references people(id),
-  mode text check (mode in ('ai','human','resolved')) default 'ai',
-  assigned_to uuid null references auth.users(id),
-  priority text default 'normal',
-  identity_verified_at timestamptz,
-  last_message_at timestamptz,
-  created_at, updated_at
-)
+- **Estado da UI**: TanStack Query pra listas, Supabase realtime pra novas mensagens na inbox.
+- **Balões**: componente `<WhatsAppBubble side="in|out" sender={...} timestamp={...} status="sent|delivered|read" />`.
+- **Emoji**: `emoji-picker-element` (leve, lazy-loaded) ou fallback `<input>` normal (SO fornece).
+- **Drag-and-drop Kanban**: `@dnd-kit/core` + `@dnd-kit/sortable`.
+- **Gráficos Dashboard**: `recharts` (já usado no projeto).
+- Sidebar usa componentes shadcn `Sidebar` do projeto.
 
-wa_messages (
-  id uuid pk,
-  conversation_id uuid fk,
-  direction text check (direction in ('inbound','outbound')),
-  sender text check (sender in ('customer','camila','human','system')),
-  content text,
-  wa_message_id text,   -- id da Meta pra dedupe
-  tool_calls jsonb null,-- se foi resposta de tool
-  created_at
-)
+## Ordem de execução (nesta entrega)
 
-wa_handoff_events (
-  id uuid pk, conversation_id uuid, from_mode text, to_mode text,
-  reason text, briefing text, actor uuid null, created_at
-)
-```
-RLS: só usuários com role `admin` ou `atendente` leem/escrevem.
+1. Migration `ai_agents` + coluna `agent_slug` + seed.
+2. Refatorar `chat.tsx` como layout com sidebar+header (tema claro).
+3. Criar `chat.dashboard.tsx`, `chat.inbox.tsx`, `chat.contatos.tsx`, `chat.crm.tsx`, `chat.agentes.tsx`, `chat.config.tsx` + placeholders (fluxos/broadcast/agenda).
+4. Componentes: `Sidebar`, `Header`, `WhatsAppBubble`, `ConversationView` novo (light + balões), `ContactPanel` atualizado, `KanbanBoard`.
+5. `agent-runner.server.ts` com lógica de horário + Roberto.
+6. Server functions: `listConversations`, `listContacts`, `getDashboardMetrics`, `updateOrderStatus` (pro kanban), `upsertAgent`.
+7. Realtime na inbox.
 
-**Stack IA**: AI SDK (`streamText` no chat interno pra ver em tempo real, `generateText` no webhook porque não precisa streaming), Lovable AI Gateway com helper existente em `src/lib/ai-gateway.server.ts`. System prompt em `src/lib/chat/camila-prompt.ts` (já existe, será atualizado).
+## Fora do escopo desta entrega
 
-**Fora do escopo desta primeira entrega:**
-- Roberto (pós-venda) — fica pra depois
-- Envio proativo de templates HSM fora dos lembretes (marketing em massa)
-- Multi-idioma
-- Voz/áudio (só texto por ora)
+- Fluxos visuais (drag-drop de nós) — placeholder
+- Broadcast (envio em massa + templates aprovados Meta) — placeholder
+- Agenda com Google Calendar — placeholder
+- Áudio gravável no composer (mostra recebidos, não grava novos ainda)
+- Multi-tenant / departamentos
 
-## Ordem de entrega sugerida
-
-Entrego **Fase 1 + 2 juntas** (Camila já responde no WhatsApp usando dados do admin), você testa com seu próprio número, e depois vamos pra Fase 3 (inbox) e Fase 4 (cron de lembretes).
-
-Se aprovar, começo pela migration e webhook.
+Confirma que sigo por aí? Posso ajustar qualquer módulo (ex.: incluir Fluxos já nessa leva, ou trocar cor dos balões pra laranja em vez de verde).
