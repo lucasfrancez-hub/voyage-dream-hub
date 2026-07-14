@@ -418,10 +418,11 @@ function OrderDetailPage() {
                   <Button size="sm" variant="outline"><MoreHorizontal className="h-3.5 w-3.5 mr-1" /> Ações</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => { confirmThen("Confirmar o pedido e todos os itens?", () => { orderStatusMut.mutate("confirmed"); }}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Confirmar</DropdownMenuItem>; })
-                  <DropdownMenuItem onClick={() => { confirmThen("Marcar o pedido como finalizado?", () => { orderStatusMut.mutate("paid"); }}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-500" /> Finalizado</DropdownMenuItem>; })
-                  <DropdownMenuItem onClick={() => { confirmThen("Cancelar o pedido e todos os itens?", () => { orderStatusMut.mutate("cancelled"); }}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>; })
-                  <DropdownMenuItem onClick={() => { confirmThen("Reabrir o pedido como pendente?", () => { orderStatusMut.mutate("pending"); }}><RotateCcw className="h-3.5 w-3.5 mr-2" /> Reabrir</DropdownMenuItem>; })
+                  <DropdownMenuItem onClick={() => confirmThen("Confirmar o pedido e todos os itens?", () => orderStatusMut.mutate("confirmed"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Confirmar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmThen("Marcar o pedido como finalizado?", () => orderStatusMut.mutate("paid"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-500" /> Finalizado</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmThen("Cancelar o pedido e todos os itens?", () => orderStatusMut.mutate("cancelled"))}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => confirmThen("Reabrir o pedido como pendente?", () => orderStatusMut.mutate("pending"))}><RotateCcw className="h-3.5 w-3.5 mr-2" /> Reabrir</DropdownMenuItem>
+
                   <DropdownMenuItem onClick={() => {
                     setActiveTab("contract");
                     setTimeout(() => {
@@ -1586,11 +1587,12 @@ function FlightReservationCard({
           <div className="mt-2 flex items-center gap-0.5">
             <Button size="sm" variant="ghost" onClick={() => first && onEdit(first)} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
             {allCancelled ? (
-              <Button size="sm" variant="ghost" onClick={() => { confirmThen("Reativar todos os trechos desta reserva?", () => { segments.forEach((s) => onReactivate(s)); }} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>; })
+              <Button size="sm" variant="ghost" onClick={() => confirmThen("Reativar todos os trechos desta reserva?", () => segments.forEach((s) => onReactivate(s)))} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
             ) : (
-              <Button size="sm" variant="ghost" onClick={() => { confirmThen("Cancelar toda a reserva (ida e volta)?", () => { segments.filter((s) => s.status !== "cancelled").forEach((s) => onCancel(s)); }} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>; })
+              <Button size="sm" variant="ghost" onClick={() => confirmThen("Cancelar toda a reserva (ida e volta)?", () => segments.filter((s) => s.status !== "cancelled").forEach((s) => onCancel(s)))} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
             )}
-            <Button size="sm" variant="ghost" onClick={() => { confirmThen("Excluir toda a reserva (ida e volta)?", () => { segments.forEach((s) => onDelete(s)); }} title="Excluir"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>; })
+            <Button size="sm" variant="ghost" onClick={() => confirmThen("Excluir toda a reserva (ida e volta)?", () => segments.forEach((s) => onDelete(s)))} title="Excluir"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+
           </div>
         </div>
 
