@@ -203,8 +203,10 @@ function UsersPage() {
               key={u.id}
               user={u}
               savingName={nameMut.isPending && nameMut.variables?.userId === u.id}
+              resending={resendMut.isPending && resendMut.variables === u.email}
               onSaveName={(name) => nameMut.mutate({ userId: u.id, fullName: name })}
               onChangeRole={(r) => roleMut.mutate({ userId: u.id, role: r })}
+              onResend={() => resendMut.mutate(u.email)}
               onDelete={() => {
                 if (confirm(`Remover ${u.email}?`)) delMut.mutate(u.id);
               }}
