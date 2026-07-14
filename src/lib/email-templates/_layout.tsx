@@ -82,6 +82,22 @@ export const EmailLayout = ({
             </Text>
           </Section>
         )}
+
+        {/* Brand strip */}
+        <Section style={brandStrip}>
+          <table width="100%" cellPadding={0} cellSpacing={0} role="presentation">
+            <tr>
+              <td style={{ width: '160px', verticalAlign: 'middle' as const, paddingRight: '16px', borderRight: '1px solid #1e293b' }}>
+                <Img src={LOGO_URL} alt="VIA AIR" width="120" height="36" style={{ display: 'block' }} />
+              </td>
+              <td style={{ verticalAlign: 'middle' as const, paddingLeft: '20px' }}>
+                <Text style={brandStripText}>
+                  Conectando destinos, <span style={{ color: '#F26B1F', fontWeight: 'bold' }}>realizando sonhos.</span> <span style={{ color: '#F26B1F' }}>♡</span>
+                </Text>
+              </td>
+            </tr>
+          </table>
+        </Section>
       </Container>
     </Body>
   </Html>
