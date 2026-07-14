@@ -153,12 +153,14 @@ export const OrderSummary = ({ title = 'O que está incluso no seu pedido:', aer
 // Shared styles
 const main = { backgroundColor: '#f5f5f5', fontFamily: 'Arial, sans-serif', margin: 0, padding: '20px 0' }
 const container = { padding: '0', maxWidth: '640px', margin: '0 auto', backgroundColor: '#ffffff', borderRadius: '12px', overflow: 'hidden' as const, border: '1px solid #eaeaea' }
-const headerRow = { padding: '24px 32px 8px' }
-const brand = { fontSize: '20px', fontWeight: 'bold' as const, color: '#0f172a', margin: 0, letterSpacing: '1px' }
-const planeIcon = { color: '#F26B1F', marginRight: '6px' }
+const headerRow = { padding: '24px 32px 16px' }
+const brandLogo = { display: 'block', margin: 0 }
+const divider = { borderTop: '1px solid #F26B1F', margin: '0 32px' }
 const stepNum = { fontSize: '20px', fontWeight: 'bold' as const, color: '#0f172a', margin: 0, textAlign: 'right' as const }
-const stepLbl = { fontSize: '10px', color: '#F26B1F', margin: 0, letterSpacing: '1.5px', fontWeight: 'bold' as const, textAlign: 'right' as const }
-const card = { padding: '16px 32px 24px' }
+const stepLbl = { fontSize: '10px', color: '#0f172a', margin: 0, letterSpacing: '1.5px', fontWeight: 'bold' as const, textAlign: 'right' as const }
+const card = { padding: '20px 32px 24px' }
+const brandStrip = { backgroundColor: '#0f172a', padding: '18px 32px' }
+const brandStripText = { color: '#ffffff', fontSize: '14px', margin: 0, lineHeight: '1.4' }
 
 // Order summary box
 const summaryBox = { backgroundColor: '#fafafa', border: '1px solid #eaeaea', borderRadius: '8px', padding: '20px', margin: '20px 0' }
