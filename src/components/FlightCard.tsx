@@ -10,6 +10,7 @@ import {
   X,
   Clock,
 } from "lucide-react";
+import { AirlineLogo } from "@/components/AirlineLogo";
 
 export type FlightSegment = {
   airline?: string;
@@ -90,9 +91,7 @@ export function FlightCard({
             className="h-12 w-12 rounded-lg object-contain bg-white p-1 border border-border shrink-0"
           />
         ) : (
-          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center text-[10px] font-semibold text-muted-foreground shrink-0">
-            {flight.airline?.slice(0, 3).toUpperCase() ?? "AIR"}
-          </div>
+          <AirlineLogo airline={flight.airline ?? first?.airline} size={48} />
         )}
         <div className="flex-1 min-w-0">
           <div className="font-semibold">
