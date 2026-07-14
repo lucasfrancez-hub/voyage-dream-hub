@@ -145,18 +145,30 @@ function FlightCard({ item }: { item: PublicQuoteItem }) {
 }
 
 function HotelCard({ item }: { item: PublicQuoteItem }) {
+  const info = item.hotel_info;
   return (
     <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
       <div className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-white bg-emerald-600 flex items-center gap-2">
         <Hotel className="h-3.5 w-3.5" /> Hospedagem
       </div>
-      <div className="p-4">
+      <div className="p-4 space-y-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <div className="text-lg font-bold text-slate-900">
-              {item.hotel_name || item.title} {item.hotel_stars ? <StarsRow n={item.hotel_stars} /> : null}
+              {info?.name || item.hotel_name || item.title}{" "}
+              {item.hotel_stars ? <StarsRow n={item.hotel_stars} /> : null}
             </div>
-            {item.meal_plan && <div className="text-sm text-slate-600 mt-1">Regime: {item.meal_plan}</div>}
+            {info?.address && <div className="text-xs text-slate-500 mt-0.5">{info.address}</div>}
+            {info?.rating != null && (
+              <div className="mt-1 flex items-center gap-2 text-xs text-slate-600">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 font-semibold">
+                  ★ {info.rating.toFixed(1)}
+                </span>
+                {info.num_reviews ? <span>{info.num_reviews.toLocaleString("pt-BR")} avaliações no TripAdvisor</span> : null}
+              </div>
+            )}
+            {info?.ranking && <div className="text-[11px] text-slate-500 mt-1">{info.ranking}</div>}
+            {item.meal_plan && <div className="text-sm text-slate-700 mt-2">Regime: <span className="font-medium">{item.meal_plan}</span></div>}
           </div>
           <div className="text-right text-xs text-slate-600">
             {item.check_in && (
@@ -168,13 +180,60 @@ function HotelCard({ item }: { item: PublicQuoteItem }) {
             {item.nights ? <div className="font-semibold text-slate-800 mt-1">{item.nights} noite{item.nights > 1 ? "s" : ""}</div> : null}
           </div>
         </div>
+
+        {info?.photos && info.photos.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {info.photos.slice(0, 6).map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt={`${info?.name ?? "Hotel"} - foto ${i + 1}`}
+                loading="lazy"
+                className="w-full h-32 sm:h-28 object-cover rounded-lg border border-slate-200"
+              />
+            ))}
+          </div>
+        )}
+
+        {info?.description && (
+          <div className="text-sm text-slate-700 leading-relaxed border-t border-slate-100 pt-3">
+            <div className="text-[11px] uppercase tracking-widest text-emerald-700 font-bold mb-1">Sobre o hotel</div>
+            <p className="whitespace-pre-line">{info.description}</p>
+          </div>
+        )}
+
+        {info?.amenities && info.amenities.length > 0 && (
+          <div>
+            <div className="text-[11px] uppercase tracking-widest text-emerald-700 font-bold mb-1.5">Comodidades</div>
+            <div className="flex flex-wrap gap-1.5">
+              {info.amenities.map((a) => (
+                <span key={a} className="text-[11px] rounded-full bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5">
+                  {a}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {info?.web_url && (
+          <a
+            href={info.web_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-[11px] text-emerald-700 hover:underline"
+          >
+            Ver mais no TripAdvisor →
+          </a>
+        )}
+
         {item.notes && (
-          <div className="mt-3 text-xs text-slate-600 whitespace-pre-wrap border-t border-slate-100 pt-2">{item.notes}</div>
+          <div className="text-xs text-slate-600 whitespace-pre-wrap border-t border-slate-100 pt-2">{item.notes}</div>
         )}
       </div>
     </div>
   );
 }
+
 
 function ServiceCard({ item }: { item: PublicQuoteItem }) {
   return (
