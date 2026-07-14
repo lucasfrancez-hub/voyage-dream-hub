@@ -190,6 +190,14 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
             order_number: reservation.order_number,
           } : undefined;
           firstItem = false;
+          const checkinUrl = buildAirlineCheckinUrl({
+            airlineIata: seg.airline_iata,
+            flightNumber: seg.flight_number,
+            locator: reservation.locator ?? seg.carrier_locator ?? null,
+            orderNumber: reservation.order_number ?? null,
+            lastName: holderLastName,
+            originIata: blockOrigin,
+          });
           await saveItem({ data: {
             order_id: orderId,
             kind: "flight",
