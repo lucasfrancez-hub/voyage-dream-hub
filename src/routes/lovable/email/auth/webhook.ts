@@ -31,10 +31,10 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "voyage-dream-hub"
+const SITE_NAME = "VIA AIR"
 const SENDER_DOMAIN = "notify.viaair.tur.br"
 const ROOT_DOMAIN = "viaair.tur.br"
-const FROM_DOMAIN = "notify.viaair.tur.br"
+const FROM_DOMAIN = "viaair.tur.br"
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return '***'
