@@ -16,6 +16,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import viaAirMark from "@/assets/viaair-mark.png.asset.json";
+import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
 const ITEMS = [
   { to: "/chat/dashboard", label: "Dashboard", icon: LayoutDashboard },
