@@ -16,6 +16,7 @@ import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as MinhasReservasRouteImport } from './routes/minhas-reservas'
+import { Route as ExclusaoDeDadosRouteImport } from './routes/exclusao-de-dados'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -94,6 +95,11 @@ const PacotesRoute = PacotesRouteImport.update({
 const MinhasReservasRoute = MinhasReservasRouteImport.update({
   id: '/minhas-reservas',
   path: '/minhas-reservas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExclusaoDeDadosRoute = ExclusaoDeDadosRouteImport.update({
+  id: '/exclusao-de-dados',
+  path: '/exclusao-de-dados',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -327,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
+  '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
@@ -380,6 +387,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
+  '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
@@ -433,6 +441,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
+  '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
@@ -488,6 +497,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/chat'
+    | '/exclusao-de-dados'
     | '/minhas-reservas'
     | '/pacotes'
     | '/pagar'
@@ -541,6 +551,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/chat'
+    | '/exclusao-de-dados'
     | '/minhas-reservas'
     | '/pagar'
     | '/pagar-boleto'
@@ -593,6 +604,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/chat'
+    | '/exclusao-de-dados'
     | '/minhas-reservas'
     | '/pacotes'
     | '/pagar'
@@ -647,6 +659,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   ChatRoute: typeof ChatRouteWithChildren
+  ExclusaoDeDadosRoute: typeof ExclusaoDeDadosRoute
   MinhasReservasRoute: typeof MinhasReservasRoute
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
@@ -717,6 +730,13 @@ declare module '@tanstack/react-router' {
       path: '/minhas-reservas'
       fullPath: '/minhas-reservas'
       preLoaderRoute: typeof MinhasReservasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exclusao-de-dados': {
+      id: '/exclusao-de-dados'
+      path: '/exclusao-de-dados'
+      fullPath: '/exclusao-de-dados'
+      preLoaderRoute: typeof ExclusaoDeDadosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -1126,6 +1146,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   ChatRoute: ChatRouteWithChildren,
+  ExclusaoDeDadosRoute: ExclusaoDeDadosRoute,
   MinhasReservasRoute: MinhasReservasRoute,
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
