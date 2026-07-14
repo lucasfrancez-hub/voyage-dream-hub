@@ -140,30 +140,29 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Link público</Label>
                 <div className="mt-1 flex gap-2">
                   <Input value={publicUrl} readOnly className="text-xs font-mono" />
-                  <Button type="button" size="sm" variant="outline" onClick={copy}>
+                  <Button type="button" size="sm" variant="outline" onClick={() => askPix("copy")}>
                     <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
                   </Button>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" size="sm" variant="outline" onClick={openWeb}>
+                <Button type="button" size="sm" variant="outline" onClick={() => askPix("web")}>
                   <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir web
                 </Button>
-                <Button type="button" size="sm" onClick={openPdf}>
+                <Button type="button" size="sm" onClick={() => askPix("pdf")}>
                   <Printer className="h-3.5 w-3.5 mr-1" /> Gerar PDF
                 </Button>
                 {waHref && (
-                  <Button type="button" size="sm" variant="outline" asChild>
-                    <a href={waHref} target="_blank" rel="noopener noreferrer">
-                      <MessageCircle className="h-3.5 w-3.5 mr-1 text-emerald-600" /> Enviar no WhatsApp
-                    </a>
+                  <Button type="button" size="sm" variant="outline" onClick={() => askPix("wa")}>
+                    <MessageCircle className="h-3.5 w-3.5 mr-1 text-emerald-600" /> Enviar no WhatsApp
                   </Button>
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground">
-                O link não mostra comissão. Salve as condições abaixo antes de enviar.
+                O link não mostra comissão. Ao gerar, você escolhe se aplica o desconto Pix.
               </p>
             </section>
+
 
             {/* Condições de pagamento */}
             <section className="space-y-4">
