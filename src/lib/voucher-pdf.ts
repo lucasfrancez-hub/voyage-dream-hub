@@ -2106,7 +2106,9 @@ export async function generateVoucher(
     await drawServiceSection(ctx, s);
   }
 
+  drawTotalValueSection(ctx);
   drawInfoAndEmergency(ctx);
+
   drawFooterStrip(ctx);
 
   const bytes = await pdf.save();
