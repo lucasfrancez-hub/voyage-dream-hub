@@ -6,7 +6,7 @@
  * pra que o content.js leia quando a página da cia abrir.
  */
 (function () {
-  const VERSION = "1.5.0";
+  const VERSION = "1.6.0";
 
   function announce() {
     window.postMessage({ __viaair: "ready", version: VERSION }, "*");
