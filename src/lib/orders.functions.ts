@@ -132,7 +132,10 @@ export const getOrderDetail = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<OrderDetail> => {
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await supabase.rpc("has_role", { _user_id: userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
 
     const { data: order, error: e1 } = await supabase
       .from("orders")
@@ -323,7 +326,10 @@ export const upsertPassenger = createServerFn({ method: "POST" })
   .inputValidator((input: Partial<OrderPassenger> & { order_id: string; full_name: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const payload = {
       order_id: data.order_id,
       full_name: data.full_name,
@@ -357,7 +363,10 @@ export const deletePassenger = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const { error } = await context.supabase.from("order_passengers").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -369,7 +378,10 @@ export const upsertOrderItem = createServerFn({ method: "POST" })
   .inputValidator((input: Partial<OrderItem> & { order_id: string; kind: OrderItem["kind"]; title: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const payload = {
       order_id: data.order_id,
       kind: data.kind,
@@ -398,7 +410,10 @@ export const deleteOrderItem = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const { error } = await context.supabase.from("order_items").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -409,7 +424,10 @@ export const setOrderItemStatus = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string; status: OrderItem["status"] }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const { error } = await context.supabase.from("order_items").update({ status: data.status }).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -421,7 +439,10 @@ export const setOrderStatus = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string; status: "confirmed" | "reserved" | "cancelled" | "pending" | "paid" }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const { error: e1 } = await context.supabase.from("orders").update({ status: data.status }).eq("id", data.id);
     if (e1) throw new Error(e1.message);
     const itemStatus =
@@ -449,7 +470,10 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
   }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const patch: Record<string, string | null> = {};
     const keys = ["notes", "travel_reason", "coupon", "trip_title", "seller_name", "seller_email", "seller_phone", "supplier_logo_url"] as const;
     for (const k of keys) {
@@ -499,7 +523,10 @@ export const updateOrderPayer = createServerFn({ method: "POST" })
   }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const patch: Record<string, string | null> = {};
     const keys = [
       "payer_full_name", "payer_cpf", "payer_ie_rg", "payer_email", "payer_phone",
@@ -522,7 +549,10 @@ export const appendOrderLogEntry = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string; key: "notes_log" | "travel_reason_log"; text: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const text = data.text.trim();
     if (!text) throw new Error("Texto vazio");
     const { data: row, error: e1 } = await context.supabase.from("orders").select(data.key).eq("id", data.id).single();
@@ -540,7 +570,10 @@ export const deleteOrderLogEntry = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string; key: "notes_log" | "travel_reason_log"; index: number }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const { data: row, error: e1 } = await context.supabase.from("orders").select(data.key).eq("id", data.id).single();
     if (e1) throw new Error(e1.message);
     const current = Array.isArray((row as unknown as Record<string, unknown>)[data.key]) ? ((row as unknown as Record<string, OrderLogEntry[]>)[data.key]) : [];
@@ -557,7 +590,10 @@ export const updateOrderTotalPrice = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string; total_price: number }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const { error } = await context.supabase
       .from("orders")
       .update({ total_price: Number(data.total_price) } as never)
@@ -573,7 +609,10 @@ export const recalculateOrderTotal = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
 
     const { data: order, error: orderError } = await context.supabase
       .from("orders")
@@ -683,7 +722,10 @@ export const upsertItemFinancial = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const payload = {
       order_item_id: data.order_item_id,
       supplier_name: data.supplier_name ?? null,
@@ -720,7 +762,10 @@ export const deleteItemFinancial = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const { error } = await context.supabase.from("order_item_financials").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -732,7 +777,10 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
   .inputValidator((input: Partial<OrderPayment> & { order_id: string; method: string; amount: number }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const payload = {
       order_id: data.order_id,
       cashier_number: data.cashier_number ?? null,
@@ -780,7 +828,10 @@ export const deleteOrderPayment = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const { error } = await context.supabase.from("order_payments").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -807,7 +858,10 @@ export const createOrder = createServerFn({ method: "POST" })
   .inputValidator((input: CreateOrderInput) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const payload = {
       full_name: data.full_name,
       email: data.email,
@@ -838,7 +892,10 @@ export const linkPassengerToItem = createServerFn({ method: "POST" })
   .inputValidator((input: { order_id: string; order_item_id: string; passenger_id: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const { error } = await context.supabase
       .from("order_item_passengers")
       .upsert(
@@ -854,7 +911,10 @@ export const unlinkPassengerFromItem = createServerFn({ method: "POST" })
   .inputValidator((input: { order_item_id: string; passenger_id: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
     const { error } = await context.supabase
       .from("order_item_passengers")
       .delete()
