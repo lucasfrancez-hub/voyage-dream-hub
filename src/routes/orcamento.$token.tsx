@@ -335,11 +335,18 @@ function QuotePage() {
         <section id="servico" className="space-y-4">
           <SectionTitle>Serviço</SectionTitle>
           <div className="grid grid-cols-1 gap-3">
-            {q.items.map((it, idx) => {
-              if (it.kind === "flight") return <FlightCard key={idx} item={it} />;
-              if (it.kind === "hotel") return <HotelCard key={idx} item={it} />;
-              return <ServiceCard key={idx} item={it} />;
-            })}
+            {(() => {
+              const hotels = q.items.filter((i) => i.kind === "hotel");
+              const outbound = q.items.filter((i) => i.kind === "flight" && i.direction !== "return");
+              const returns = q.items.filter((i) => i.kind === "flight" && i.direction === "return");
+              const services = q.items.filter((i) => i.kind !== "hotel" && i.kind !== "flight");
+              const ordered = [...hotels, ...outbound, ...returns, ...services];
+              return ordered.map((it, idx) => {
+                if (it.kind === "flight") return <FlightCard key={idx} item={it} />;
+                if (it.kind === "hotel") return <HotelCard key={idx} item={it} />;
+                return <ServiceCard key={idx} item={it} />;
+              });
+            })()}
             {q.items.length === 0 && (
               <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
                 Nenhum item cadastrado.
