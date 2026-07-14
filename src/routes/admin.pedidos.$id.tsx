@@ -2075,7 +2075,7 @@ function ItemDialog({
             }}
           />
         </div>
-        <div><Label>Nº do voo</Label><Input value={String(d.flight_number ?? "")} onChange={(e) => onChangeField("flight_number", e.target.value)} placeholder="LA 3331" /></div>
+        <div><Label>Nº do voo</Label><FlightNumberInput airline={String(d.airline ?? "")} value={String(d.flight_number ?? "")} onChange={(v) => onChangeField("flight_number", v)} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Partida</Label><Input type="datetime-local" value={String(d.depart_at ?? d.departure ?? "")} onChange={(e) => onChangeField("depart_at", e.target.value)} /></div>
