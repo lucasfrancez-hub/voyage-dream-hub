@@ -9,6 +9,7 @@ import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
 import { ClassSelect } from "@/components/ClassSelect";
+import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { findAirline } from "@/lib/airlines";
 import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
@@ -751,6 +752,23 @@ function FlightFieldset({
                       Remover trecho
                     </button>
                   )}
+                </div>
+                <div className="flex justify-end">
+                  <FlightLookupButton
+                    airline={s.airline}
+                    flightNumber={s.flight_number}
+                    departAt={s.depart_at}
+                    onApply={(r) => patchSeg(i, {
+                      ...(r.airline ? { airline: r.airline } : {}),
+                      ...(r.flightNumber ? { flight_number: r.flightNumber } : {}),
+                      ...(r.fromIata ? { from_iata: r.fromIata } : {}),
+                      ...(r.fromCity ? { from_city: r.fromCity } : {}),
+                      ...(r.toIata ? { to_iata: r.toIata } : {}),
+                      ...(r.toCity ? { to_city: r.toCity } : {}),
+                      ...(r.departAtLocal ? { depart_at: r.departAtLocal } : {}),
+                      ...(r.arriveAtLocal ? { arrive_at: r.arriveAtLocal } : {}),
+                    })}
+                  />
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2">
                   <AirlineCombobox
