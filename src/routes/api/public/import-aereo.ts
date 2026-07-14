@@ -67,11 +67,16 @@ ATENÇÃO — nome da companhia:
 - "Travellink", "SkyTeam", "FRT", "Infotravel", "Infotera", "Visual Turismo"
   são SISTEMAS/consolidadores, NUNCA companhia aérea. Não coloque nada disso
   em supplier_name/airline.
-- A companhia aérea real é a que aparece na coluna "Cia" da tabela de voos
-  (ex.: GOL/G3, TAP/TP, LATAM/LA, AZUL/AD, AIR FRANCE/AF). Cada trecho pode
-  ter uma companhia diferente — preencha por segment.
-- Se um voo tiver aviso do tipo "voo XXXX pertence à companhia Y mas é
-  operado pela companhia Z", use Y em airline e coloque Z em notes/aircraft.
+- A companhia aérea real vem da coluna "Cia" da tabela de voos. Se ela não
+  estiver clara, DEDUZA pelo prefixo do número do voo: as 2 primeiras letras/
+  dígitos do flight_number SÃO o código IATA da cia (G3=GOL, AD=AZUL, LA=LATAM,
+  TP=TAP, AF=AIR FRANCE, KL=KLM, AR=AEROLINEAS, AA=AMERICAN, UA=UNITED,
+  DL=DELTA, IB=IBERIA, LH=LUFTHANSA, AV=AVIANCA, CM=COPA, etc.). Preencha
+  airline_iata com esse prefixo em TODO segment.
+- Cada trecho pode ter cia diferente — preencha por segment, nunca use o
+  nome do consolidador.
+- Se um voo tiver aviso "voo XXXX pertence à companhia Y mas é operado pela
+  companhia Z", use Y em airline e coloque Z em notes/aircraft.
 
 Passageiros:
 - Extraia TODOS os passageiros listados (adultos, crianças, bebês). Nunca pare
