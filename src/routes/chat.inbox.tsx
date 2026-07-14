@@ -336,7 +336,7 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
         >
           {conv.mode === "ai" ? "Assumir" : "Devolver p/ IA"}
         </button>
-        <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><MoreVertical className="h-4 w-4" /></button>
+        <ConversationMenu conv={conv} onChange={onRefetch} />
       </div>
 
       {window24 && (
