@@ -83,6 +83,19 @@ function UsersPage() {
     onSuccess: () => toast.success("E-mail de redefinição de senha enviado"),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao reenviar"),
   });
+  const confirmMut = useMutation({
+    mutationFn: (userId: string) => confirmEmail({ data: { userId } }),
+    onSuccess: () => {
+      toast.success("E-mail confirmado");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao confirmar"),
+  });
+  const pwdMut = useMutation({
+    mutationFn: (input: { userId: string; password: string }) => setPwd({ data: input }),
+    onSuccess: () => toast.success("Nova senha definida"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao definir senha"),
+  });
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
