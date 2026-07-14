@@ -2,13 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants } from "@/lib/chat/queries.functions";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/chat/inbox")({
   component: InboxPage,
@@ -335,7 +336,7 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
         >
           {conv.mode === "ai" ? "Assumir" : "Devolver p/ IA"}
         </button>
-        <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><MoreVertical className="h-4 w-4" /></button>
+        <ConversationMenu conv={conv} onChange={onRefetch} />
       </div>
 
       {window24 && (
@@ -409,12 +410,109 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
   );
 }
 
+const FUNNEL_STAGES = [
+  { key: "novo", label: "Novo lead", color: "bg-blue-100 text-blue-700 border-blue-200" },
+  { key: "cotando", label: "Cotando", color: "bg-amber-100 text-amber-700 border-amber-200" },
+  { key: "negociando", label: "Negociando", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { key: "ganhou", label: "Ganhou 🎉", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  { key: "perdido", label: "Perdido", color: "bg-slate-100 text-slate-600 border-slate-200" },
+] as const;
+
+function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void }) {
+  const toggleFn = useServerFn(toggleConversationMode);
+  const stageFn = useServerFn(setFunnelStage);
+  const assignFn = useServerFn(assignConversation);
+  const listUsers = useServerFn(listAttendants);
+
+  const { data: attendants = [] } = useQuery({
+    queryKey: ["chat", "attendants"],
+    queryFn: () => listUsers(),
+    staleTime: 60_000,
+  });
+
+  const doArchive = () => toggleFn({ data: { conversation_id: conv.id, mode: "resolved" } }).then(() => { onChange(); toast.success("Conversa arquivada"); });
+  const doReopen = () => toggleFn({ data: { conversation_id: conv.id, mode: "human" } }).then(() => { onChange(); toast.success("Conversa reaberta"); });
+  const doStage = (s: typeof FUNNEL_STAGES[number]["key"]) =>
+    stageFn({ data: { conversation_id: conv.id, funnel_stage: s } }).then(() => { onChange(); toast.success("Etapa atualizada"); });
+  const doAssign = (userId: string | null) =>
+    assignFn({ data: { conversation_id: conv.id, assigned_to: userId } }).then(() => { onChange(); toast.success(userId ? "Transferida" : "Devolvida à IA"); });
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><MoreVertical className="h-4 w-4" /></button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Funil de venda</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {FUNNEL_STAGES.map((s) => (
+              <DropdownMenuItem key={s.key} onClick={() => doStage(s.key)}>
+                {s.label} {conv.funnel_stage === s.key && "✓"}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Transferir para…</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="max-h-64 overflow-y-auto">
+            {attendants.length === 0 ? (
+              <DropdownMenuItem disabled>Sem atendentes cadastrados</DropdownMenuItem>
+            ) : (
+              attendants.map((a) => (
+                <DropdownMenuItem key={a.id} onClick={() => doAssign(a.id)}>
+                  {a.full_name ?? a.id.slice(0, 6)} {conv.assigned_to === a.id && "✓"}
+                </DropdownMenuItem>
+              ))
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => doAssign(null)}>Devolver para IA</DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        <DropdownMenuSeparator />
+        {conv.mode === "resolved" ? (
+          <DropdownMenuItem onClick={doReopen}>Reabrir conversa</DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={doArchive}>
+            <Archive className="mr-2 h-4 w-4" /> Arquivar
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }) {
   const toggleFn = useServerFn(toggleConversationMode);
-  const mut = useMutation({
+  const stageFn = useServerFn(setFunnelStage);
+  const assignFn = useServerFn(assignConversation);
+  const listUsers = useServerFn(listAttendants);
+
+  const { data: attendants = [] } = useQuery({
+    queryKey: ["chat", "attendants"],
+    queryFn: () => listUsers(),
+    staleTime: 60_000,
+  });
+
+  const modeMut = useMutation({
     mutationFn: async (mode: "ai" | "human" | "resolved") => toggleFn({ data: { conversation_id: conv.id, mode } }),
     onSuccess: () => { onChange(); toast.success("Atualizado"); },
   });
+  const stageMut = useMutation({
+    mutationFn: async (s: typeof FUNNEL_STAGES[number]["key"] | null) => stageFn({ data: { conversation_id: conv.id, funnel_stage: s } }),
+    onSuccess: () => { onChange(); toast.success("Etapa atualizada"); },
+  });
+  const assignMut = useMutation({
+    mutationFn: async (userId: string | null) => assignFn({ data: { conversation_id: conv.id, assigned_to: userId } }),
+    onSuccess: () => { onChange(); toast.success("Atualizado"); },
+  });
+
+  const currentStage = FUNNEL_STAGES.find((s) => s.key === conv.funnel_stage);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -432,7 +530,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
             {(["ai", "human", "resolved"] as const).map((m) => (
               <button
                 key={m}
-                onClick={() => mut.mutate(m)}
+                onClick={() => modeMut.mutate(m)}
                 className={cn(
                   "flex items-center justify-between rounded-md border px-3 py-1.5 text-xs font-medium",
                   conv.mode === m
@@ -447,8 +545,59 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
           </div>
         </Field>
 
+        <Field label="Funil de venda">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn(
+                "flex w-full items-center justify-between rounded-md border px-3 py-2 text-xs font-medium",
+                currentStage ? currentStage.color : "border-slate-200 text-slate-500 hover:bg-slate-50",
+              )}>
+                {currentStage?.label ?? "Definir etapa…"}
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              {FUNNEL_STAGES.map((s) => (
+                <DropdownMenuItem key={s.key} onClick={() => stageMut.mutate(s.key)}>
+                  {s.label} {conv.funnel_stage === s.key && "✓"}
+                </DropdownMenuItem>
+              ))}
+              {conv.funnel_stage && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => stageMut.mutate(null)}>Remover etapa</DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </Field>
+
+        <Field label="Atendente responsável">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex w-full items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                {attendants.find((a) => a.id === conv.assigned_to)?.full_name ?? "Não atribuído"}
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 max-h-64 overflow-y-auto">
+              {attendants.length === 0 ? (
+                <DropdownMenuItem disabled>Sem atendentes cadastrados</DropdownMenuItem>
+              ) : (
+                attendants.map((a) => (
+                  <DropdownMenuItem key={a.id} onClick={() => assignMut.mutate(a.id)}>
+                    {a.full_name ?? a.id.slice(0, 6)} {conv.assigned_to === a.id && "✓"}
+                  </DropdownMenuItem>
+                ))
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => assignMut.mutate(null)}>Devolver para IA</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </Field>
+
         {conv.agent_slug && (
-          <Field label="Último agente"><div className="text-sm text-slate-900 capitalize">{conv.agent_slug}</div></Field>
+          <Field label="Último agente IA"><div className="text-sm text-slate-900 capitalize">{conv.agent_slug}</div></Field>
         )}
 
         {conv.tags && conv.tags.length > 0 && (

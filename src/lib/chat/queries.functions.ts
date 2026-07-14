@@ -11,7 +11,7 @@ export const listConversations = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("wa_conversations")
-      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id")
+      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage")
       .order("last_message_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
@@ -129,6 +129,54 @@ export const toggleConversationMode = createServerFn({ method: "POST" })
       .eq("id", data.conversation_id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const setFunnelStage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      funnel_stage: z.enum(["novo", "cotando", "negociando", "ganhou", "perdido"]).nullable(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("wa_conversations")
+      .update({ funnel_stage: data.funnel_stage })
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const assignConversation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      assigned_to: z.string().uuid().nullable(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("wa_conversations")
+      .update({
+        assigned_to: data.assigned_to,
+        mode: data.assigned_to ? "human" : "ai",
+      })
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listAttendants = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("profiles")
+      .select("id, full_name")
+      .order("full_name");
+    if (error) throw new Error(error.message);
+    return data ?? [];
   });
 
 export const getDashboardMetrics = createServerFn({ method: "GET" })
