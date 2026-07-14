@@ -233,6 +233,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               status: seg.status,
               ...(firstTicket ? { ticket_number: firstTicket } : {}),
               ...(pricing ? { pricing_summary: pricing } : {}),
+              ...(checkinUrl ? { airline_checkin_url: checkinUrl } : {}),
             },
           } });
         }
