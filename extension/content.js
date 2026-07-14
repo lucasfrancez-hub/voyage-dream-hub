@@ -11,7 +11,11 @@
  */
 
 (function () {
-  const HOST = location.hostname;
+  let HOST = location.hostname;
+  if (!HOST && location.ancestorOrigins && location.ancestorOrigins.length) {
+    try { HOST = new URL(location.ancestorOrigins[0]).hostname; }
+    catch (e) { /* ignore */ }
+  }
 
   // Todas as origens suportadas. `key` é usado como airline_hint no backend
   // e como sufixo em chrome.storage.local ("viaair::" + key).
