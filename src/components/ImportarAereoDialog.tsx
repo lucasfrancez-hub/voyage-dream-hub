@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plane, Loader2, ExternalLink, CheckCircle2, AlertCircle, ChevronRight } from "lucide-react";
+import { Plane, Loader2, ExternalLink, CheckCircle2, AlertCircle, ChevronRight, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,7 @@ function buildAirlineUrl(airline: Airline, f: { locator: string; lastname: strin
   return `https://www.voeazul.com.br/br/pt/home/minhas-viagens/confirmacao?pnr=${encodeURIComponent(loc)}&origin=${encodeURIComponent(iata)}`;
 }
 
-function sendTokenToExtension(airline: Airline, token: string): Promise<boolean> {
+function sendTokenToExtension(airline: Airline | "any", token: string): Promise<boolean> {
   return new Promise((resolve) => {
     const apiBase = window.location.origin;
     let done = false;
