@@ -1579,6 +1579,25 @@ function FlightReservationCard({
             {locator ?? "—"}
           </div>
           {(() => {
+            // LATAM: mostra o PNR (6 letras) logo abaixo do número de compra.
+            const pnrs = new Set<string>();
+            for (const s of segments) {
+              const d = (s.details ?? {}) as Record<string, unknown>;
+              const iata = String(d.airline_iata ?? "").toUpperCase();
+              const fn = String(d.flight_number ?? "").toUpperCase();
+              const prefix = fn.match(/^([A-Z]{1,2}[0-9]?|[0-9][A-Z])/)?.[1] ?? "";
+              if (iata !== "LA" && prefix !== "LA") continue;
+              const pnr = String(d.carrier_locator ?? "").toUpperCase().trim();
+              if (pnr && pnr !== (locator ?? "").toUpperCase()) pnrs.add(pnr);
+            }
+            if (pnrs.size === 0) return null;
+            return (
+              <div className="mt-0.5 font-mono text-sm font-semibold text-brand-orange/80">
+                {Array.from(pnrs).join(" · ")}
+              </div>
+            );
+          })()}
+          {(() => {
             const ticket = segments
               .map((s) => String(((s.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
               .find((t) => !!t);
