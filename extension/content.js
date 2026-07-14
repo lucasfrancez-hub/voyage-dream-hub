@@ -63,7 +63,19 @@
     // e conteúdo abaixo da rolagem — o DOM está inteiro carregado).
     // textContent > innerText porque innerText ignora elementos hidden.
     const clone = document.body.cloneNode(true);
-    clone.querySelectorAll("script,style,noscript,svg,iframe,input,textarea,select,button").forEach((n) => n.remove());
+
+    // Portais ASP.NET (SkyTeam/Infotera) mostram dados dentro de <input value="...">;
+    // convertemos em texto antes de remover os campos.
+    clone.querySelectorAll("input,select,textarea").forEach((el) => {
+      const v = el.value || el.getAttribute("value") || "";
+      if (v && v.trim()) {
+        const label = el.getAttribute("name") || el.getAttribute("id") || "";
+        el.replaceWith(document.createTextNode(` ${label ? label + ": " : ""}${v} `));
+      } else {
+        el.remove();
+      }
+    });
+    clone.querySelectorAll("script,style,noscript,svg,iframe,button").forEach((n) => n.remove());
 
     // Preserva quebras de linha em tabelas/listas — importantes em portais ASP.NET.
     clone.querySelectorAll("tr,li,p,div,br,td,th").forEach((n) => n.appendChild(document.createTextNode("\n")));
