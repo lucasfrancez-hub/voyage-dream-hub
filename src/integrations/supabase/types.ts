@@ -344,6 +344,7 @@ export type Database = {
           payer_zip: string | null
           payment_method: string
           phone: string
+          quote_config: Json | null
           seller_email: string | null
           seller_name: string | null
           seller_phone: string | null
@@ -385,6 +386,7 @@ export type Database = {
           payer_zip?: string | null
           payment_method: string
           phone: string
+          quote_config?: Json | null
           seller_email?: string | null
           seller_name?: string | null
           seller_phone?: string | null
@@ -426,6 +428,7 @@ export type Database = {
           payer_zip?: string | null
           payment_method?: string
           phone?: string
+          quote_config?: Json | null
           seller_email?: string | null
           seller_name?: string | null
           seller_phone?: string | null

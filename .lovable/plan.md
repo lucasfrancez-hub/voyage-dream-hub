@@ -1,77 +1,96 @@
-# Banco de Cadastro de Pessoas
+## Objetivo
 
-Objetivo: ter um cadastro único (PF + PJ) que serve como fonte de clientes e passageiros, com importação em massa e reaproveitamento em pedidos manuais.
-
-Como você disse "por enquanto, manter o banco de cadastro pronto", entrego em **3 fases**. Faço a Fase 1 agora; as outras entram nos próximos turnos, quando quiser.
+Adicionar ao pedido dois botões — **Orçamento (PDF)** e **Copiar link do orçamento** — que geram uma peça bonita, moderna, mostrando aéreo + hotel + serviços, **totais sem comissão**, com uma seção de **condições de pagamento** configuráveis pelo agente (Pix com desconto, cartão em X vezes).
 
 ---
 
-## Fase 1 — Cadastro + tela de gestão (agora)
+## 1. Botões no pedido
 
-**Nova tabela `public.people`** com todos os campos do Monde:
+Em `src/routes/admin.pedidos.$id.tsx`, ao lado dos botões atuais de Voucher/Contrato:
 
-- Identificação: `kind` (PF/PJ), `code` (nº sequencial), `name`, `legal_name` (razão social PJ), `gender`, `birth_date`/`foundation_date`
-- Documentos: `cpf`, `cnpj`, `rg`, `passport_number`, `passport_expiration`, `state_registration`, `municipal_registration`
-- Contato: `email`, `phone`, `mobile_phone`, `business_phone`, `website`
-- Endereço: `zip`, `address`, `number`, `complement`, `district`, `city`, `state`, `country`, `is_foreign`
-- Extras: `notes`, `seller_name`, `charge_boleto_fee`, `monde_id` (para dedupe na importação), `created_by`, `created_by_name`
+- **Orçamento PDF** — gera e baixa PDF
+- **Link do orçamento** — abre modal com: link público, botão copiar, botão WhatsApp e o painel de **condições de pagamento** (abaixo)
 
-**Nova tabela `public.people_cards`** para "Dados Financeiros":
-- `person_id`, `nickname`, `holder_name`, `brand`, `last4`, `expiry`, `is_travel_card`
-- `number_ciphertext` (número completo cifrado com AES-256-GCM usando um segredo do servidor — a UI só mostra `**** 1234` por padrão, e apenas o próprio painel logado consegue revelar via server fn)
+Ambos usam a mesma configuração salva no pedido (novo campo JSONB `quote_config`), pra PDF e web mostrarem o mesmo conteúdo.
 
-**Nova rota `/admin/pessoas`:**
-- Lista com busca (nome, CPF/CNPJ, e-mail, telefone) e filtro PF/PJ
-- Botão "Novo cadastro" com abas espelhando o Monde: Detalhes, Endereço, Documentos, Dados Financeiros (cartões), Observações
-- Edição inline por pessoa; botão "Ver cartões" mostra mascarado + ação "Revelar" (com confirm) que chama server fn
-- Card no /admin dashboard: "Pessoas cadastradas" com contador e atalho
+## 2. Configuração de pagamento do orçamento
 
-**Server fns** (`src/lib/people.functions.ts`): `listPeople`, `getPerson`, `upsertPerson`, `deletePerson`, `addPersonCard`, `deletePersonCard`, `revealPersonCardNumber`.
+Modal com formulário:
 
-**Cripto de cartão**: helper `src/lib/card-crypto.server.ts` usando `PEOPLE_CARD_ENC_KEY` (gero via `generate_secret`, 64 chars base64).
+- ☑ Aceita **Pix** — desconto % (default 5%)
+- ☑ Aceita **Cartão de crédito** — parcelamento máximo (default 10x), campo "juros a partir de N vezes" (opcional, ex.: a partir de 4x com juros)
+- ☑ Aceita **Boleto** — parcelamento máximo (default 1x)
+- Campo livre "Observações do orçamento" (validade, políticas)
+- Campo "Validade do orçamento" (data)
+
+Salva em `orders.quote_config` (jsonb). Se nunca configurado, usa defaults.
+
+## 3. Rota pública `/orcamento/$token`
+
+Novo arquivo `src/routes/orcamento.$token.tsx` — público, sem auth.
+
+Token opaco: `base64url(orderId) + "." + hmacSha256(orderId, QUOTE_LINK_SECRET).slice(0,16)`. Não adivinhável, não expira, não precisa de nova tabela.
+
+Layout inspirado no exemplo da FRT/Infotravel:
+
+```text
+┌─────────────────────────────────────────────────┐
+│ [logo Via Air]        Início Serviço Resumo     │
+│                       Valores  Pagamento Contato│
+├─────────────────────────────────────────────────┤
+│ Orçamento — Nº 12345678                         │
+│ Válido até 20/07/2026                           │
+│ *Reservas ainda não efetivadas                  │
+│                                                 │
+│ ── Serviço ──                                   │
+│  ✈  Ida  GRU → GIG  15/08 08:00                │
+│      Latam LA3200 — 2 adultos                   │
+│  ✈  Volta GIG → GRU 22/08 18:30                │
+│  🏨 Hotel Fasano — 7 noites, café da manhã     │
+│  🎫 City tour Rio                               │
+│                                                 │
+│ ── Resumo ──                                    │
+│  2 adultos · 15/08 → 22/08 · 7 noites          │
+│                                                 │
+│ ── Valores ──                                   │
+│  Total: R$ 8.500,00                             │
+│                                                 │
+│ ── Formas de pagamento ──                       │
+│  Pix (5% desc)     R$ 8.075,00                  │
+│  Cartão à vista    R$ 8.500,00                  │
+│  2x sem juros      R$ 4.250,00                  │
+│  ...                                            │
+│  10x sem juros     R$   850,00                  │
+│                                                 │
+│ ── Contato ──                                   │
+│  WhatsApp / e-mail da agência                   │
+└─────────────────────────────────────────────────┘
+```
+
+Loader usa server function pública `getPublicQuote({ token })` que valida o HMAC e carrega com `supabaseAdmin`, retornando DTO **sanitizado**:
+- ✅ itens (título, rota, datas, hotel, noites)
+- ✅ total, quote_config
+- ✅ nº do pedido, nome do cliente
+- ❌ comissão, custo, markup, valores líquidos, cartão, CPF completo
+
+Head da rota: `noindex`.
+
+## 4. PDF do orçamento
+
+Novo `src/lib/quote-pdf.ts`, mesmo padrão de `voucher-pdf.ts`, com o **mesmo conteúdo e layout** da página web (aéreo, hotel, serviços, total, formas de pagamento).
+
+## 5. Segurança
+
+- RLS continua fechado. A única forma de leitura pública é via server function que exige token HMAC válido.
+- Secret `QUOTE_LINK_SECRET` gerado automaticamente (32 bytes).
+- DTO nunca projeta colunas de custo/comissão nem cartão/CPF.
+- Página tem `robots: noindex`.
 
 ---
 
-## Fase 2 — Importação de planilha (próximo turno)
+## Fora do escopo
 
-- Tela `/admin/pessoas/importar`: upload de `.xlsx`/`.csv` exportado do Monde
-- Preview das primeiras 20 linhas com mapeamento automático de colunas (nome → name, CPF → cpf etc.) e opção de ajustar
-- Dedupe por CPF/CNPJ/monde_id (atualiza em vez de duplicar)
-- Relatório final: X criados, Y atualizados, Z ignorados
-- Você me manda 1 export de exemplo pra eu travar o parser no formato exato
+- Botão **"Pagar agora"** dentro do orçamento (o FRT tem `shouldShowPay=true`). Se você quiser depois, dá pra gerar direto o link de pagamento a partir do orçamento.
+- Envio automático por e-mail. Fica pra quando você configurar os templates transacionais.
 
-## Fase 3 — Uso em pedidos e passageiros (turno seguinte)
-
-- No formulário de pedido manual e no cadastro de passageiros: campo com autocomplete "Buscar pessoa" (mesmo padrão do MondePersonSearchDialog, mas contra a base local)
-- Ao escolher, preenche todos os campos automaticamente e vincula `person_id` no `order_passengers`/`orders`
-- Aba futura "Importar vendas do dia" a partir de export — mapeamento definido depois de ver o formato
-
----
-
-## Detalhes técnicos
-
-**Banco (Fase 1):**
-- Migration cria `people` e `people_cards`, com `GRANT` para `authenticated`/`service_role`, RLS habilitado, políticas exigindo `has_role(auth.uid(),'admin') OR has_role(auth.uid(),'user')` (qualquer usuário interno logado pode gerenciar — nada de acesso `anon`).
-- Índices: `people(cpf)`, `people(cnpj)`, `people(monde_id)`, `people(lower(name))`, `people(lower(email))`.
-- Trigger `set_updated_at` nas duas tabelas.
-- Sequência para `code` (auto-incremento visível ao usuário).
-
-**Cripto de cartão:**
-- AES-256-GCM, mesmo padrão do `connectionKeyCrypto` já usado no template.
-- `PEOPLE_CARD_ENC_KEY` gerado via `secrets--generate_secret` (nunca exposto ao cliente).
-- Coluna `number_ciphertext text NOT NULL`. Nunca retornar em listagens — só via `revealPersonCardNumber` que exige admin logado e loga o acesso em `audit` (opcional na Fase 1, obrigatório se você quiser).
-
-**Segurança do "revelar cartão":**
-Guardar número completo de cartão tem risco PCI mesmo cifrado. Vou implementar como você pediu, mas recomendo em produção usar tokenização do gateway (Pagar.me/Stripe) em vez de armazenar PAN. Podemos migrar depois.
-
-**Arquivos novos:**
-- `supabase/migrations/…_people.sql`
-- `src/lib/people.functions.ts`
-- `src/lib/card-crypto.server.ts`
-- `src/routes/admin.pessoas.tsx` (lista)
-- `src/routes/admin.pessoas.$id.tsx` (form completo)
-- Atualização em `src/routes/admin.tsx` e `src/routes/admin.dashboard.tsx` pro card/atalho
-
-**Fora do escopo desta fase:** importação de planilha, autocomplete em pedidos, importação de vendas.
-
-Confirma que posso tocar a Fase 1 assim?
+Confirma que sigo?
