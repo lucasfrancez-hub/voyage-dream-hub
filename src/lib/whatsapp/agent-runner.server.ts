@@ -76,13 +76,30 @@ function firstAvailableAusencia(agents: Agent[]): string | null {
   return null;
 }
 
+function looksLikeRealName(v: string | null | undefined): boolean {
+  if (!v) return false;
+  const s = v.trim();
+  if (s.length < 2) return false;
+  // precisa ter pelo menos 2 letras seguidas (não só número/emoji/pontuação)
+  if (!/[a-zA-ZÀ-ÿ]{2,}/.test(s)) return false;
+  // rejeita placeholders comuns
+  if (/^(user|cliente|test|teste|admin|whatsapp)$/i.test(s)) return false;
+  return true;
+}
+
 function buildSystemPrompt(agent: Agent, conv: WaConversation): string {
   const parts = [agent.system_prompt];
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
   parts.push(`- Telefone do cliente: ${conv.wa_phone}`);
-  if (conv.display_name) parts.push(`- Cliente reconhecido: ${conv.display_name}`);
-  else parts.push(`- Cliente NÃO reconhecido. Peça CPF antes de dados sensíveis.`);
+  const rawName = conv.display_name;
+  if (looksLikeRealName(rawName)) {
+    parts.push(`- nome_do_cliente (perfil whatsapp): "${rawName}" — parece nome real, pode usar o primeiro nome`);
+  } else if (rawName) {
+    parts.push(`- nome_do_cliente (perfil whatsapp): "${rawName}" — NÃO parece nome real, NÃO chame por esse valor. Pergunte como pode chamar.`);
+  } else {
+    parts.push(`- nome_do_cliente: não informado. Pergunte como pode chamar antes de continuar.`);
+  }
   if (conv.identity_verified_at) {
     parts.push(`- Identidade JÁ VERIFICADA. Pode falar de dados financeiros/pedidos.`);
   } else {
