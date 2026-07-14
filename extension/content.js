@@ -59,11 +59,21 @@
   }
 
   function collectPageText() {
-    // Pega o texto renderizado do corpo, tirando scripts/styles/inputs.
+    // Pega TODO o texto do DOM (inclusive abas/painéis colapsados por CSS
+    // e conteúdo abaixo da rolagem — o DOM está inteiro carregado).
+    // textContent > innerText porque innerText ignora elementos hidden.
     const clone = document.body.cloneNode(true);
-    clone.querySelectorAll("script,style,noscript,svg,iframe,input,textarea,select").forEach((n) => n.remove());
-    const text = clone.innerText || clone.textContent || "";
-    return text.replace(/\n{3,}/g, "\n\n").trim();
+    clone.querySelectorAll("script,style,noscript,svg,iframe,input,textarea,select,button").forEach((n) => n.remove());
+
+    // Preserva quebras de linha em tabelas/listas — importantes em portais ASP.NET.
+    clone.querySelectorAll("tr,li,p,div,br,td,th").forEach((n) => n.appendChild(document.createTextNode("\n")));
+
+    const text = clone.textContent || "";
+    return text
+      .replace(/[ \t\u00a0]+/g, " ")
+      .replace(/\n[ \t]+/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
   }
 
   function showToast(msg, kind) {
