@@ -11,6 +11,7 @@ import {
   type ImportedReservation, type ImportedFlightSegment, type ImportedPassenger,
 } from "@/lib/flight-import.functions";
 import { upsertOrderItem, upsertPassenger } from "@/lib/orders.functions";
+import { buildAirlineCheckinUrl } from "@/lib/airline-checkin";
 
 type Props = {
   orderId: string;
@@ -172,7 +173,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       const anyTicket = reservation.passengers.some((p) => (p.ticket_number ?? "").trim().length > 0);
       const firstTicket = reservation.passengers.find((p) => (p.ticket_number ?? "").trim())?.ticket_number ?? null;
       const itemStatus: "confirmed" | "reserved" = anyTicket ? "confirmed" : "reserved";
+      // Sobrenome do titular = última palavra do 1º passageiro (usado no QR de check-in).
+      const holderLastName = reservation.passengers[0]?.full_name?.trim().split(/\s+/).pop() ?? "";
       for (const block of reservation.flights) {
+        // Origem do 1º trecho do bloco (usada no link de check-in de GOL/Azul).
+        const blockOrigin = block.segments[0]?.from_iata ?? "";
         for (const seg of block.segments) {
           const title = `${seg.airline ?? block.airline ?? ""} ${seg.flight_number ?? ""} — ${seg.from_iata ?? ""}→${seg.to_iata ?? ""}`.trim();
           const pricing = firstItem ? {
@@ -185,6 +190,14 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
             order_number: reservation.order_number,
           } : undefined;
           firstItem = false;
+          const checkinUrl = buildAirlineCheckinUrl({
+            airlineIata: seg.airline_iata,
+            flightNumber: seg.flight_number,
+            locator: reservation.locator ?? seg.carrier_locator ?? null,
+            orderNumber: reservation.order_number ?? null,
+            lastName: holderLastName,
+            originIata: blockOrigin,
+          });
           await saveItem({ data: {
             order_id: orderId,
             kind: "flight",
@@ -220,6 +233,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               status: seg.status,
               ...(firstTicket ? { ticket_number: firstTicket } : {}),
               ...(pricing ? { pricing_summary: pricing } : {}),
+              ...(checkinUrl ? { airline_checkin_url: checkinUrl } : {}),
             },
           } });
         }
