@@ -218,6 +218,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               carrier_locator: seg.carrier_locator,
               aircraft: seg.aircraft,
               status: seg.status,
+              ...(firstTicket ? { ticket_number: firstTicket } : {}),
               ...(pricing ? { pricing_summary: pricing } : {}),
             },
           } });
