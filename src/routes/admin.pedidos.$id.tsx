@@ -2065,11 +2065,28 @@ function ItemDialog({
     <div className="rounded-lg border border-border/60 p-3 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
-        {onRemove && (
-          <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={onRemove}>
-            Remover trecho
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <FlightLookupButton
+            airline={String(d.airline ?? "")}
+            flightNumber={String(d.flight_number ?? "")}
+            departAt={String(d.depart_at ?? d.departure ?? "")}
+            onApply={(r) => {
+              if (r.airline) onChangeField("airline", r.airline);
+              if (r.flightNumber) onChangeField("flight_number", r.flightNumber);
+              if (r.fromIata) onChangeField("from_iata", r.fromIata);
+              if (r.fromCity) onChangeField("from_city", r.fromCity);
+              if (r.toIata) onChangeField("to_iata", r.toIata);
+              if (r.toCity) onChangeField("to_city", r.toCity);
+              if (r.departAtLocal) onChangeField("depart_at", r.departAtLocal);
+              if (r.arriveAtLocal) onChangeField("arrive_at", r.arriveAtLocal);
+            }}
+          />
+          {onRemove && (
+            <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={onRemove}>
+              Remover trecho
+            </Button>
+          )}
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Origem (IATA)</Label><Input value={String(d.from_iata ?? d.origin ?? "")} onChange={(e) => {
