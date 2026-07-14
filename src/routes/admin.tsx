@@ -154,19 +154,15 @@ function AdminLayout() {
               <img src={viaAirLogo.url} alt="Via Air" className="h-7 sm:h-8 w-auto" />
             </Link>
             <nav className="hidden md:flex items-center gap-1">
-              <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
-              <DashboardNav pathname={pathname} />
-              <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-
-
-              <CartaoNav pathname={pathname} />
-
-
-              <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />
-
-
-
+              {isAdmin && <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />}
+              {isAdmin && <DashboardNav pathname={pathname} />}
+              {isAdmin
+                ? <PedidosNav pathname={pathname} />
+                : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
+              {isAdmin && <CartaoNav pathname={pathname} />}
+              {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
             </nav>
+
           </div>
           <div className="flex items-center gap-2">
             <a
