@@ -2291,7 +2291,7 @@ function ItemDialog({
               </div>
             )}
             <div className={kind === "other" ? "" : "col-span-2"}>
-              <Label>Localizador do fornecedor{kind === "flight" ? " *" : ""}</Label>
+              <Label>Localizador do fornecedor</Label>
               <Input
                 value={locator}
                 onChange={(e) => {
@@ -2306,7 +2306,7 @@ function ItemDialog({
                 maxLength={kind === "flight" ? 12 : 32}
               />
               {kind === "flight" && (
-                <p className="mt-1 text-[11px] text-muted-foreground">Obrigatório · mínimo 6 caracteres (letras e/ou números).</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Opcional · se preencher, use no mínimo 6 caracteres (letras e/ou números).</p>
               )}
             </div>
 
