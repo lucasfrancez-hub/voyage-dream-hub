@@ -257,9 +257,15 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
                     content={m.content}
                     timestamp={m.created_at}
                     senderLabel={
-                      m.sender === "camila" ? (conv.agent_slug === "roberto" ? "Roberto" : "Camila") :
-                      m.sender === "human" ? "Atendente" :
-                      m.sender === "system" ? "Sistema" : undefined
+                      m.direction === "inbound"
+                        ? (conv.display_name ?? conv.wa_phone)
+                        : m.sender === "camila"
+                          ? (conv.agent_slug === "roberto" ? "Roberto" : "Camila")
+                        : m.sender === "human"
+                          ? "Atendente"
+                        : m.sender === "system"
+                          ? "Sistema"
+                        : undefined
                     }
                     status={m.direction === "outbound" ? "delivered" : undefined}
                   />
