@@ -66,7 +66,7 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
   // Sempre usa o domínio público oficial para links de orçamento (não o preview/lovable).
   const PUBLIC_HOST = "https://pedidos.viaair.tur.br";
   const publicUrl = token ? `${PUBLIC_HOST}/orcamento/${token}` : "";
-  const printUrl = publicUrl ? `${publicUrl}?print=1` : "";
+  
 
 
   const waPhone = (customerPhone ?? "").replace(/\D+/g, "");
