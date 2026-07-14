@@ -10,10 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
+import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
+import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as MinhasReservasRouteImport } from './routes/minhas-reservas'
+import { Route as ExclusaoDeDadosRouteImport } from './routes/exclusao-de-dados'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -64,6 +67,16 @@ const UnsubscribeRoute = UnsubscribeRouteImport.update({
   path: '/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
+  id: '/termos-de-uso',
+  path: '/termos-de-uso',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
+  id: '/politica-de-privacidade',
+  path: '/politica-de-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PagarBoletoRoute = PagarBoletoRouteImport.update({
   id: '/pagar-boleto',
   path: '/pagar-boleto',
@@ -82,6 +95,11 @@ const PacotesRoute = PacotesRouteImport.update({
 const MinhasReservasRoute = MinhasReservasRouteImport.update({
   id: '/minhas-reservas',
   path: '/minhas-reservas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExclusaoDeDadosRoute = ExclusaoDeDadosRouteImport.update({
+  id: '/exclusao-de-dados',
+  path: '/exclusao-de-dados',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -315,10 +333,13 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
+  '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -366,9 +387,12 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
+  '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -417,10 +441,13 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
+  '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -470,10 +497,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/chat'
+    | '/exclusao-de-dados'
     | '/minhas-reservas'
     | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
+    | '/politica-de-privacidade'
+    | '/termos-de-uso'
     | '/unsubscribe'
     | '/admin/cofre'
     | '/admin/dashboard'
@@ -521,9 +551,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/chat'
+    | '/exclusao-de-dados'
     | '/minhas-reservas'
     | '/pagar'
     | '/pagar-boleto'
+    | '/politica-de-privacidade'
+    | '/termos-de-uso'
     | '/unsubscribe'
     | '/admin/cofre'
     | '/admin/dashboard'
@@ -571,10 +604,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/chat'
+    | '/exclusao-de-dados'
     | '/minhas-reservas'
     | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
+    | '/politica-de-privacidade'
+    | '/termos-de-uso'
     | '/unsubscribe'
     | '/admin/cofre'
     | '/admin/dashboard'
@@ -623,10 +659,13 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   ChatRoute: typeof ChatRouteWithChildren
+  ExclusaoDeDadosRoute: typeof ExclusaoDeDadosRoute
   MinhasReservasRoute: typeof MinhasReservasRoute
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
   PagarBoletoRoute: typeof PagarBoletoRoute
+  PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
+  TermosDeUsoRoute: typeof TermosDeUsoRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
@@ -649,6 +688,20 @@ declare module '@tanstack/react-router' {
       path: '/unsubscribe'
       fullPath: '/unsubscribe'
       preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos-de-uso': {
+      id: '/termos-de-uso'
+      path: '/termos-de-uso'
+      fullPath: '/termos-de-uso'
+      preLoaderRoute: typeof TermosDeUsoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-privacidade': {
+      id: '/politica-de-privacidade'
+      path: '/politica-de-privacidade'
+      fullPath: '/politica-de-privacidade'
+      preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pagar-boleto': {
@@ -677,6 +730,13 @@ declare module '@tanstack/react-router' {
       path: '/minhas-reservas'
       fullPath: '/minhas-reservas'
       preLoaderRoute: typeof MinhasReservasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exclusao-de-dados': {
+      id: '/exclusao-de-dados'
+      path: '/exclusao-de-dados'
+      fullPath: '/exclusao-de-dados'
+      preLoaderRoute: typeof ExclusaoDeDadosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -1086,10 +1146,13 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   ChatRoute: ChatRouteWithChildren,
+  ExclusaoDeDadosRoute: ExclusaoDeDadosRoute,
   MinhasReservasRoute: MinhasReservasRoute,
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
   PagarBoletoRoute: PagarBoletoRoute,
+  PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
+  TermosDeUsoRoute: TermosDeUsoRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
