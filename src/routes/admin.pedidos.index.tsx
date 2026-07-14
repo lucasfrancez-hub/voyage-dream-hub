@@ -152,12 +152,70 @@ function AdminOrders() {
         </div>
       </div>
 
-      {/* Result table */}
+      {/* Result — table on desktop, cards on mobile */}
       <div className="mt-4 rounded-2xl border border-border bg-card overflow-hidden">
         <div className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
-          Resultado da busca: {filtered.length} registro(s)
+          Resultado: {filtered.length} registro(s)
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Mobile: card list */}
+        <div className="md:hidden divide-y divide-border/50">
+          {isLoading && (
+            <div className="text-center py-10 text-muted-foreground text-sm">
+              <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Carregando…
+            </div>
+          )}
+          {!isLoading && filtered.length === 0 && (
+            <div className="text-center py-10 text-muted-foreground text-sm">Nenhum pedido encontrado.</div>
+          )}
+          {filtered.map((o) => {
+            const snap = (o.package_snapshot ?? {}) as {
+              order_number?: string; title?: string; destination?: string; reference?: string;
+            };
+            const pm = paymentMethodLabel(o.payment_method);
+            const st = statusLabel(o.status);
+            const displayOrderNumber =
+              ((o as { order_number?: string | null }).order_number ?? snap.order_number ?? shortId(o.id));
+            return (
+              <Link
+                key={o.id}
+                to="/admin/pedidos/$id"
+                params={{ id: o.id }}
+                className="block px-4 py-3 active:bg-muted/40 transition"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-sm font-semibold">{displayOrderNumber}</span>
+                      {o.airline_locator && (
+                        <span className="font-mono text-[10px] text-muted-foreground">LOC {o.airline_locator}</span>
+                      )}
+                    </div>
+                    <div className="mt-1 font-medium text-sm truncate">{o.full_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{o.email}</div>
+                    <div className="text-xs text-muted-foreground">{o.phone}</div>
+                    {(snap.title || snap.reference) && (
+                      <div className="mt-1 text-xs truncate">{snap.title ?? snap.reference}</div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-semibold text-sm">{formatBRL(Number(o.total_price))}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {new Date(o.created_at).toLocaleDateString("pt-BR")}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>{pm.label}</span>
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>{st.label}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground uppercase tracking-wider">
               <tr>
