@@ -189,30 +189,31 @@ function AdminPackages() {
 
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-6 py-4 sm:py-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Pacotes</h1>
-          <p className="text-sm text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-display font-bold">Pacotes</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {packages?.length ?? 0} pacote(s) cadastrado(s)
           </p>
         </div>
         <button
           onClick={() => setEditing({ ...emptyForm })}
-          className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90"
         >
           <Plus className="h-4 w-4" /> Novo pacote
         </button>
       </div>
 
       <div className="mt-6 rounded-2xl border border-border overflow-hidden">
-        <table className="w-full text-sm">
+       <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[520px]">
           <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="text-left px-4 py-3">Pacote</th>
+              <th className="text-left px-3 sm:px-4 py-3">Pacote</th>
               <th className="text-left px-4 py-3 hidden md:table-cell">Período</th>
-              <th className="text-right px-4 py-3">Preço</th>
-              <th className="text-center px-4 py-3">Status</th>
-              <th className="text-right px-4 py-3">Ações</th>
+              <th className="text-right px-3 sm:px-4 py-3">Preço</th>
+              <th className="text-center px-3 sm:px-4 py-3">Status</th>
+              <th className="text-right px-3 sm:px-4 py-3">Ações</th>
             </tr>
           </thead>
           <tbody>
