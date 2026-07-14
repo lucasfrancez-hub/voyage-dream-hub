@@ -19,6 +19,7 @@ export type AdminUser = {
   fullName: string | null;
   createdAt: string;
   lastSignInAt: string | null;
+  emailConfirmedAt: string | null;
   role: AdminRole;
 };
 
@@ -58,6 +59,7 @@ export const listAdminUsers = createServerFn({ method: "GET" })
       fullName: nameMap.get(u.id) ?? null,
       createdAt: u.created_at,
       lastSignInAt: u.last_sign_in_at ?? null,
+      emailConfirmedAt: (u as any).email_confirmed_at ?? null,
       role: roleMap.get(u.id) ?? "user",
     }));
   });
@@ -81,22 +83,17 @@ export const createAdminUser = createServerFn({ method: "POST" })
       throw new Error("Informe o nome da empresa para o usuário terceiro.");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Envia convite por e-mail (template padrão da Lovable) e cria o usuário.
-    const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      data.email,
-      {
-        data: data.fullName ? { full_name: data.fullName } : undefined,
-      },
-    );
-    if (inviteErr) throw new Error(inviteErr.message);
-    const userId = invited.user?.id;
-    if (!userId) throw new Error("Falha ao criar usuário");
-    // Define a senha temporária informada pelo gestor (assim o usuário
-    // pode entrar direto com ela, além de conseguir usar o link do convite).
-    const { error: pwdErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    // Cria o usuário já com e-mail confirmado e a senha temporária definida
+    // pelo gestor (não depende de entrega de e-mail).
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
       password: data.password,
+      email_confirm: true,
+      user_metadata: data.fullName ? { full_name: data.fullName } : undefined,
     });
-    if (pwdErr) throw new Error(pwdErr.message);
+    if (createErr) throw new Error(createErr.message);
+    const userId = created.user?.id;
+    if (!userId) throw new Error("Falha ao criar usuário");
     const { data: existing } = await supabaseAdmin
       .from("user_roles")
       .select("role")
@@ -115,7 +112,7 @@ export const createAdminUser = createServerFn({ method: "POST" })
         .from("partner_agencies")
         .upsert({ user_id: userId, agency_name: data.agencyName }, { onConflict: "user_id" });
     }
-    return { id: userId, email: invited.user!.email ?? data.email };
+    return { id: userId, email: created.user!.email ?? data.email };
   });
 
 export const setAdminUserFullName = createServerFn({ method: "POST" })
@@ -190,6 +187,42 @@ export const resendUserPassword = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Dispara e-mail de recuperação de senha (template padrão da Lovable).
     const { error } = await supabaseAdmin.auth.resetPasswordForEmail(data.email);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const confirmAdminUserEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ userId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureGestor(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      email_confirm: true,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const setAdminUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        password: z.string().min(8).max(72),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureGestor(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      password: data.password,
+      email_confirm: true,
+    });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

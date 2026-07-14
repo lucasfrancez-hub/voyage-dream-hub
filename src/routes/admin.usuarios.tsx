@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, UserPlus, Trash2, ShieldCheck, Loader2, Check, KeyRound } from "lucide-react";
+import { Users, UserPlus, Trash2, ShieldCheck, Loader2, Check, KeyRound, MailCheck, Lock } from "lucide-react";
 import { toast } from "sonner";
 import {
   listAdminUsers,
@@ -11,6 +11,8 @@ import {
   setAdminUserRole,
   setAdminUserFullName,
   resendUserPassword,
+  confirmAdminUserEmail,
+  setAdminUserPassword,
   type AdminRole,
 } from "@/lib/admin-users.functions";
 
@@ -26,6 +28,8 @@ function UsersPage() {
   const setRole = useServerFn(setAdminUserRole);
   const setName = useServerFn(setAdminUserFullName);
   const resendPwd = useServerFn(resendUserPassword);
+  const confirmEmail = useServerFn(confirmAdminUserEmail);
+  const setPwd = useServerFn(setAdminUserPassword);
 
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
@@ -78,6 +82,19 @@ function UsersPage() {
     mutationFn: (email: string) => resendPwd({ data: { email } }),
     onSuccess: () => toast.success("E-mail de redefinição de senha enviado"),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao reenviar"),
+  });
+  const confirmMut = useMutation({
+    mutationFn: (userId: string) => confirmEmail({ data: { userId } }),
+    onSuccess: () => {
+      toast.success("E-mail confirmado");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao confirmar"),
+  });
+  const pwdMut = useMutation({
+    mutationFn: (input: { userId: string; password: string }) => setPwd({ data: input }),
+    onSuccess: () => toast.success("Nova senha definida"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao definir senha"),
   });
 
   const [email, setEmail] = useState("");
@@ -204,9 +221,21 @@ function UsersPage() {
               user={u}
               savingName={nameMut.isPending && nameMut.variables?.userId === u.id}
               resending={resendMut.isPending && resendMut.variables === u.email}
+              confirming={confirmMut.isPending && confirmMut.variables === u.id}
+              settingPwd={pwdMut.isPending && pwdMut.variables?.userId === u.id}
               onSaveName={(name) => nameMut.mutate({ userId: u.id, fullName: name })}
               onChangeRole={(r) => roleMut.mutate({ userId: u.id, role: r })}
               onResend={() => resendMut.mutate(u.email)}
+              onConfirmEmail={() => confirmMut.mutate(u.id)}
+              onSetPassword={() => {
+                const p = prompt(`Nova senha para ${u.email} (mín. 8 caracteres):`);
+                if (!p) return;
+                if (p.length < 8) {
+                  toast.error("Senha muito curta");
+                  return;
+                }
+                pwdMut.mutate({ userId: u.id, password: p });
+              }}
               onDelete={() => {
                 if (confirm(`Remover ${u.email}?`)) delMut.mutate(u.id);
               }}
@@ -225,9 +254,13 @@ function UserRow({
   user,
   savingName,
   resending,
+  confirming,
+  settingPwd,
   onSaveName,
   onChangeRole,
   onResend,
+  onConfirmEmail,
+  onSetPassword,
   onDelete,
 }: {
   user: {
@@ -236,13 +269,18 @@ function UserRow({
     fullName: string | null;
     createdAt: string;
     lastSignInAt: string | null;
+    emailConfirmedAt: string | null;
     role: AdminRole;
   };
   savingName: boolean;
   resending: boolean;
+  confirming: boolean;
+  settingPwd: boolean;
   onSaveName: (name: string) => void;
   onChangeRole: (r: AdminRole) => void;
   onResend: () => void;
+  onConfirmEmail: () => void;
+  onSetPassword: () => void;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(user.fullName ?? "");
@@ -250,6 +288,7 @@ function UserRow({
     setName(user.fullName ?? "");
   }, [user.fullName]);
   const dirty = name.trim() !== (user.fullName ?? "").trim();
+  const notConfirmed = !user.emailConfirmedAt;
 
   return (
     <div className="p-4 grid gap-3 md:grid-cols-[1.4fr_1fr_auto_auto] md:items-center">
@@ -278,6 +317,9 @@ function UserRow({
           {user.lastSignInAt
             ? ` · Último acesso ${new Date(user.lastSignInAt).toLocaleString("pt-BR")}`
             : " · Nunca acessou"}
+          {notConfirmed && (
+            <span className="ml-1 text-amber-500">· E-mail não confirmado</span>
+          )}
         </div>
       </div>
       <select
@@ -301,6 +343,28 @@ function UserRow({
         <span />
       )}
       <div className="flex flex-wrap items-center gap-2">
+        {notConfirmed && (
+          <button
+            type="button"
+            onClick={onConfirmEmail}
+            disabled={confirming}
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/60 px-3 py-1.5 text-xs text-amber-500 hover:bg-amber-500/10 transition disabled:opacity-60"
+            title="Marcar e-mail como confirmado (destrava o login)"
+          >
+            {confirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MailCheck className="h-3.5 w-3.5" />}
+            Confirmar e-mail
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onSetPassword}
+          disabled={settingPwd}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-brand-orange hover:text-brand-orange transition disabled:opacity-60"
+          title="Definir uma nova senha manualmente"
+        >
+          {settingPwd ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+          Nova senha
+        </button>
         <button
           type="button"
           onClick={onResend}
