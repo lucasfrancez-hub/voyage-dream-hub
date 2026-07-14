@@ -1488,7 +1488,7 @@ function AddPassengerMenu({
 }
 
 function FlightReservationCard({
-  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onLink, onUnlink,
+  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onDeleteMany, onCancelMany, onLink, onUnlink,
 }: {
   locator: string | null;
   segments: OrderItem[];
@@ -1499,6 +1499,8 @@ function FlightReservationCard({
   onDelete: (it: OrderItem) => void;
   onCancel: (it: OrderItem) => void;
   onReactivate: (it: OrderItem) => void;
+  onDeleteMany?: (its: OrderItem[]) => void;
+  onCancelMany?: (its: OrderItem[]) => void;
   onLink?: (passengerId: string, segmentIds: string[]) => void;
   onUnlink?: (passengerId: string, segmentIds: string[]) => void;
 }) {
