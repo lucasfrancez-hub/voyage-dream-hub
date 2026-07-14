@@ -31,13 +31,14 @@ function UsersPage() {
   });
 
   const createMut = useMutation({
-    mutationFn: (input: { email: string; password: string; role: AdminRole; fullName?: string }) =>
+    mutationFn: (input: { email: string; password: string; role: AdminRole; fullName?: string; agencyName?: string }) =>
       create({ data: input }),
     onSuccess: () => {
       toast.success("Usuário criado");
       setEmail("");
       setPassword("");
       setFullName("");
+      setAgencyName("");
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao criar"),
