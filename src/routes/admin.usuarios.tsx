@@ -30,7 +30,7 @@ function UsersPage() {
   });
 
   const createMut = useMutation({
-    mutationFn: (input: { email: string; password: string; role: "admin" | "user"; fullName?: string }) =>
+    mutationFn: (input: { email: string; password: string; role: AdminRole; fullName?: string }) =>
       create({ data: input }),
     onSuccess: () => {
       toast.success("Usuário criado");
@@ -52,7 +52,7 @@ function UsersPage() {
   });
 
   const roleMut = useMutation({
-    mutationFn: (input: { userId: string; role: "admin" | "user" }) =>
+    mutationFn: (input: { userId: string; role: AdminRole }) =>
       setRole({ data: input }),
     onSuccess: () => {
       toast.success("Permissão atualizada");
@@ -74,7 +74,7 @@ function UsersPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setNewRole] = useState<"admin" | "user">("user");
+  const [role, setNewRole] = useState<AdminRole>("user");
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
