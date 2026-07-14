@@ -1,96 +1,65 @@
 ## Objetivo
 
-Adicionar ao pedido dois botões — **Orçamento (PDF)** e **Copiar link do orçamento** — que geram uma peça bonita, moderna, mostrando aéreo + hotel + serviços, **totais sem comissão**, com uma seção de **condições de pagamento** configuráveis pelo agente (Pix com desconto, cartão em X vezes).
+Separar pedidos criados por **agências parceiras** (ex.: Zonet Viagens) dos seus pedidos próprios. O parceiro entra com o e-mail dele, cria/gerencia só os pedidos dele. Você (admin) vê tudo, mas dividido em duas abas.
 
----
+## 1. Modelo de dados
 
-## 1. Botões no pedido
+Migration:
 
-Em `src/routes/admin.pedidos.$id.tsx`, ao lado dos botões atuais de Voucher/Contrato:
+- Nova role `partner` no enum `app_role`.
+- Nova tabela `public.partner_agencies` — 1 linha por parceiro:
+  - `user_id` (FK `auth.users`, único)
+  - `agency_name`, `agency_email`, `agency_phone`, `agency_cnpj`
+  - `logo_url`, `brand_primary`, `brand_secondary` (cores do voucher — preenche depois)
+- Coluna nova em `public.orders`:
+  - `owner_user_id uuid` (quem "dono" do pedido — parceiro ou você).
+  - Backfill: todos os pedidos existentes → seu user_id.
+  - Trigger `BEFORE INSERT`: se `owner_user_id` for null, usa `auth.uid()`.
 
-- **Orçamento PDF** — gera e baixa PDF
-- **Link do orçamento** — abre modal com: link público, botão copiar, botão WhatsApp e o painel de **condições de pagamento** (abaixo)
+## 2. Regras de acesso (RLS)
 
-Ambos usam a mesma configuração salva no pedido (novo campo JSONB `quote_config`), pra PDF e web mostrarem o mesmo conteúdo.
+- **Admin** (você): vê e mexe em todos.
+- **Partner**: vê/mexe **apenas** onde `orders.owner_user_id = auth.uid()` (e mesmos filtros propagados para `order_items`, `order_passengers`, docs etc. via join com o pedido dono).
+- Sem role → sem acesso (como já é hoje).
 
-## 2. Configuração de pagamento do orçamento
+As checagens em `orders.functions.ts` ganham um branch: se `partner`, força `owner_user_id = userId` em toda leitura/escrita; se `admin`, mantém o comportamento atual.
 
-Modal com formulário:
+## 3. Navegação (dropdown "Pedidos")
 
-- ☑ Aceita **Pix** — desconto % (default 5%)
-- ☑ Aceita **Cartão de crédito** — parcelamento máximo (default 10x), campo "juros a partir de N vezes" (opcional, ex.: a partir de 4x com juros)
-- ☑ Aceita **Boleto** — parcelamento máximo (default 1x)
-- Campo livre "Observações do orçamento" (validade, políticas)
-- Campo "Validade do orçamento" (data)
+Igual ao Dashboard: um `PedidosNav` com setinha e duas opções:
 
-Salva em `orders.quote_config` (jsonb). Se nunca configurado, usa defaults.
-
-## 3. Rota pública `/orcamento/$token`
-
-Novo arquivo `src/routes/orcamento.$token.tsx` — público, sem auth.
-
-Token opaco: `base64url(orderId) + "." + hmacSha256(orderId, QUOTE_LINK_SECRET).slice(0,16)`. Não adivinhável, não expira, não precisa de nova tabela.
-
-Layout inspirado no exemplo da FRT/Infotravel:
-
-```text
-┌─────────────────────────────────────────────────┐
-│ [logo Via Air]        Início Serviço Resumo     │
-│                       Valores  Pagamento Contato│
-├─────────────────────────────────────────────────┤
-│ Orçamento — Nº 12345678                         │
-│ Válido até 20/07/2026                           │
-│ *Reservas ainda não efetivadas                  │
-│                                                 │
-│ ── Serviço ──                                   │
-│  ✈  Ida  GRU → GIG  15/08 08:00                │
-│      Latam LA3200 — 2 adultos                   │
-│  ✈  Volta GIG → GRU 22/08 18:30                │
-│  🏨 Hotel Fasano — 7 noites, café da manhã     │
-│  🎫 City tour Rio                               │
-│                                                 │
-│ ── Resumo ──                                    │
-│  2 adultos · 15/08 → 22/08 · 7 noites          │
-│                                                 │
-│ ── Valores ──                                   │
-│  Total: R$ 8.500,00                             │
-│                                                 │
-│ ── Formas de pagamento ──                       │
-│  Pix (5% desc)     R$ 8.075,00                  │
-│  Cartão à vista    R$ 8.500,00                  │
-│  2x sem juros      R$ 4.250,00                  │
-│  ...                                            │
-│  10x sem juros     R$   850,00                  │
-│                                                 │
-│ ── Contato ──                                   │
-│  WhatsApp / e-mail da agência                   │
-└─────────────────────────────────────────────────┘
+```
+Pedidos ▾
+ ├─ Meus pedidos          → /admin/pedidos          (filtro: owner = você)
+ └─ Pedidos de terceiro   → /admin/pedidos/terceiros (filtro: owner ≠ você)
 ```
 
-Loader usa server function pública `getPublicQuote({ token })` que valida o HMAC e carrega com `supabaseAdmin`, retornando DTO **sanitizado**:
-- ✅ itens (título, rota, datas, hotel, noites)
-- ✅ total, quote_config
-- ✅ nº do pedido, nome do cliente
-- ❌ comissão, custo, markup, valores líquidos, cartão, CPF completo
+- Parceiro logado: dropdown some, vira link simples "Meus pedidos" apontando para `/admin/pedidos` (que já traz só os dele por RLS).
+- Você: `/admin/pedidos` mostra só os seus; `/admin/pedidos/terceiros` mostra os dos parceiros com uma coluna extra "Agência" (nome do parceiro dono).
 
-Head da rota: `noindex`.
+## 4. Voucher com marca da agência parceira
 
-## 4. PDF do orçamento
+Só o encanamento nesta etapa (sem trocar cores ainda):
 
-Novo `src/lib/quote-pdf.ts`, mesmo padrão de `voucher-pdf.ts`, com o **mesmo conteúdo e layout** da página web (aéreo, hotel, serviços, total, formas de pagamento).
+- `voucher-pdf` recebe os dados de agência do dono do pedido: se `owner_user_id` for um parceiro, carrega `partner_agencies` daquele user e usa `agency_name/email/phone/logo/cores` no lugar dos dados fixos da Via Air.
+- Se for você, mantém Via Air como hoje.
 
-## 5. Segurança
+Depois você me manda os dados/cores da Zonet e eu ajusto os tokens de cor + logo do PDF.
 
-- RLS continua fechado. A única forma de leitura pública é via server function que exige token HMAC válido.
-- Secret `QUOTE_LINK_SECRET` gerado automaticamente (32 bytes).
-- DTO nunca projeta colunas de custo/comissão nem cartão/CPF.
-- Página tem `robots: noindex`.
+## 5. Fluxo pra cadastrar o parceiro
 
----
+Depois que a migration rodar, você me passa o e-mail da conta dele e:
 
-## Fora do escopo
+1. Crio/atribuo a role `partner` para aquele `user_id`.
+2. Insiro a linha em `partner_agencies` com nome "Zonet Viagens" + contatos (branding fica em branco até você mandar).
+3. Ele loga → só enxerga os pedidos dele; do seu lado eles aparecem em "Pedidos de terceiro".
 
-- Botão **"Pagar agora"** dentro do orçamento (o FRT tem `shouldShowPay=true`). Se você quiser depois, dá pra gerar direto o link de pagamento a partir do orçamento.
-- Envio automático por e-mail. Fica pra quando você configurar os templates transacionais.
+## Fora do escopo (fica pra depois)
 
-Confirma que sigo?
+- Cores/logo/CNPJ definitivos da Zonet — você me manda e eu troco.
+- Convite automático por e-mail para o parceiro.
+- Relatório financeiro consolidado misturando os dois grupos.
+
+## Confirmação
+
+Confirma que sigo com essa estrutura? Assim que aprovar a migration, já implemento a navegação, a rota `/admin/pedidos/terceiros` e o carregamento da marca no voucher.

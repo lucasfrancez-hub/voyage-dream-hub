@@ -19,11 +19,15 @@ export const Route = createFileRoute("/admin")({
   }),
 });
 
+type Role = "admin" | "partner" | null;
+
 function AdminLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [role, setRole] = useState<Role | undefined>(undefined);
+  const isAdmin = role === "admin";
+  const isPartner = role === "partner";
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
@@ -42,27 +46,30 @@ function AdminLayout() {
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+        .in("role", ["admin", "partner"]);
       if (error) {
         toast.error("Erro ao validar acesso");
-        setIsAdmin(false);
+        setRole(null);
         return;
       }
-      setIsAdmin(!!data);
+      const roles = (data ?? []).map((r) => r.role);
+      if (roles.includes("admin")) setRole("admin");
+      else if (roles.includes("partner")) setRole("partner");
+      else setRole(null);
     })();
   }, [session, navigate]);
 
-  // Redirect /admin exactly to /admin/pacotes
+  // Redirect /admin -> destino padrão por role
   useEffect(() => {
-    if (pathname === "/admin" && isAdmin) {
-      navigate({ to: "/admin/pacotes" });
-    }
-  }, [pathname, isAdmin, navigate]);
+    if (pathname !== "/admin") return;
+    if (isAdmin) navigate({ to: "/admin/pacotes" });
+    else if (isPartner) navigate({ to: "/admin/pedidos" });
+  }, [pathname, isAdmin, isPartner, navigate]);
+
 
   // Auto-logout por inatividade (30 min sem interação do usuário)
   useEffect(() => {
-    if (!session || !isAdmin) return;
+    if (!session || !(isAdmin || isPartner)) return;
     const TIMEOUT_MS = 30 * 60 * 1000;
     let timer: ReturnType<typeof setTimeout>;
     const doLogout = async () => {
@@ -83,10 +90,10 @@ function AdminLayout() {
       clearTimeout(timer);
       events.forEach((e) => window.removeEventListener(e, reset));
     };
-  }, [session, isAdmin, navigate]);
+  }, [session, isAdmin, isPartner, navigate]);
 
 
-  if (session === undefined || (session && isAdmin === null)) {
+  if (session === undefined || (session && role === undefined)) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
@@ -95,7 +102,7 @@ function AdminLayout() {
   }
 
 
-  if (!isAdmin) {
+  if (!isAdmin && !isPartner) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
         <div>
@@ -117,6 +124,27 @@ function AdminLayout() {
     );
   }
 
+  // Rotas restritas a admin — partner só pode ver /admin/pedidos*
+  if (isPartner && !pathname.startsWith("/admin/pedidos")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-center">
+        <div>
+          <h1 className="text-2xl font-semibold">Área restrita</h1>
+          <p className="mt-2 text-muted-foreground text-sm">
+            Sua conta de parceiro só tem acesso à área de pedidos.
+          </p>
+          <button
+            className="mt-4 text-brand-orange hover:underline"
+            onClick={() => navigate({ to: "/admin/pedidos" })}
+          >
+            Ir para Meus pedidos
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-40" style={{ paddingTop: "env(safe-area-inset-top)" }}>
@@ -126,19 +154,15 @@ function AdminLayout() {
               <img src={viaAirLogo.url} alt="Via Air" className="h-7 sm:h-8 w-auto" />
             </Link>
             <nav className="hidden md:flex items-center gap-1">
-              <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
-              <DashboardNav pathname={pathname} />
-              <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-
-
-              <CartaoNav pathname={pathname} />
-
-
-              <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />
-
-
-
+              {isAdmin && <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />}
+              {isAdmin && <DashboardNav pathname={pathname} />}
+              {isAdmin
+                ? <PedidosNav pathname={pathname} />
+                : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
+              {isAdmin && <CartaoNav pathname={pathname} />}
+              {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
             </nav>
+
           </div>
           <div className="flex items-center gap-2">
             <a
@@ -162,17 +186,16 @@ function AdminLayout() {
         </div>
         <nav className="md:hidden border-t border-border overflow-x-auto">
           <div className="mx-auto max-w-7xl px-3 sm:px-6 py-2 flex items-center gap-1 whitespace-nowrap">
-            <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />
-            <DashboardNav pathname={pathname} />
-            <NavItem to="/admin/pedidos" icon={ClipboardList} label="Pedidos" active={pathname.startsWith("/admin/pedidos")} />
-
-
-            <CartaoNav pathname={pathname} />
-
-
-            <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />
+            {isAdmin && <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />}
+            {isAdmin && <DashboardNav pathname={pathname} />}
+            {isAdmin
+              ? <PedidosNav pathname={pathname} />
+              : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
+            {isAdmin && <CartaoNav pathname={pathname} />}
+            {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
           </div>
         </nav>
+
       </header>
 
       <Outlet />
@@ -273,6 +296,35 @@ function DashboardNav({ pathname }: { pathname: string }) {
           <Link to="/admin/pessoas" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Pessoas</span>
             <span className="text-xs text-muted-foreground">Clientes e contatos</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function PedidosNav({ pathname }: { pathname: string }) {
+  const active = pathname.startsWith("/admin/pedidos");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
+          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <ClipboardList className="h-4 w-4" /> Pedidos <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuItem asChild>
+          <Link to="/admin/pedidos" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Meus pedidos</span>
+            <span className="text-xs text-muted-foreground">Pedidos criados por você</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/pedidos/terceiros" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Pedidos de terceiro</span>
+            <span className="text-xs text-muted-foreground">Pedidos de agências parceiras</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -385,6 +385,7 @@ export type Database = {
           notes: string | null
           notes_log: Json
           order_number: string
+          owner_user_id: string | null
           package_id: string | null
           package_snapshot: Json
           payer_address: string | null
@@ -427,6 +428,7 @@ export type Database = {
           notes?: string | null
           notes_log?: Json
           order_number?: string
+          owner_user_id?: string | null
           package_id?: string | null
           package_snapshot: Json
           payer_address?: string | null
@@ -469,6 +471,7 @@ export type Database = {
           notes?: string | null
           notes_log?: Json
           order_number?: string
+          owner_user_id?: string | null
           package_id?: string | null
           package_snapshot?: Json
           payer_address?: string | null
@@ -600,6 +603,48 @@ export type Database = {
           tripadvisor_photos?: Json | null
           tripadvisor_url?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      partner_agencies: {
+        Row: {
+          agency_cnpj: string | null
+          agency_email: string | null
+          agency_name: string
+          agency_phone: string | null
+          brand_primary: string | null
+          brand_secondary: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_cnpj?: string | null
+          agency_email?: string | null
+          agency_name: string
+          agency_phone?: string | null
+          brand_primary?: string | null
+          brand_secondary?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_cnpj?: string | null
+          agency_email?: string | null
+          agency_name?: string
+          agency_phone?: string | null
+          brand_primary?: string | null
+          brand_secondary?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -944,13 +989,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_partner_order_owner: { Args: { _order_id: string }; Returns: boolean }
       materialize_order_from_snapshot: {
         Args: { _order_id: string }
         Returns: undefined
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "partner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1078,7 +1124,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "partner"],
     },
   },
 } as const

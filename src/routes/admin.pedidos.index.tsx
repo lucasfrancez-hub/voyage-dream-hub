@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, ExternalLink, Loader2, Plus, Cloud } from "lucide-react";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/admin/pedidos/")({
-  component: AdminOrders,
+  component: () => <AdminOrders scope="mine" />,
   head: () => ({ meta: [{ title: "Pedidos — Admin" }] }),
 });
 
@@ -36,22 +36,47 @@ function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
 }
 
-function AdminOrders() {
+export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [search, setSearch] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ["admin", "orders", "list"],
+    enabled: currentUserId !== null,
+    queryKey: ["admin", "orders", "list", scope, currentUserId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("orders")
-        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator")
+        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator, owner_user_id")
         .order("created_at", { ascending: false })
         .limit(500);
+      if (scope === "mine") q = q.eq("owner_user_id", currentUserId!);
+      else q = q.neq("owner_user_id", currentUserId!);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
   });
+
+  // Nomes das agências parceiras (para "Pedidos de terceiro")
+  const { data: agencyByUser } = useQuery({
+    enabled: scope === "third_party" && (orders?.length ?? 0) > 0,
+    queryKey: ["admin", "partner-agencies-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("partner_agencies")
+        .select("user_id, agency_name");
+      if (error) throw error;
+      const m: Record<string, string> = {};
+      for (const r of data ?? []) m[r.user_id] = r.agency_name;
+      return m;
+    },
+  });
+
 
   const q = search.trim().toLowerCase();
   const filtered = (orders ?? []).filter((o) => {
@@ -91,20 +116,29 @@ function AdminOrders() {
     <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-display font-bold">Pedidos</h1>
+          <h1 className="text-xl sm:text-2xl font-display font-bold">
+            {scope === "third_party" ? "Pedidos de terceiro" : "Pedidos"}
+          </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
+            {scope === "third_party"
+              ? "Pedidos criados por agências parceiras"
+              : null}
+            {scope === "third_party" ? " · " : ""}
             {orders?.length ?? 0} pedido(s) · resultado: {filtered.length}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setMondeOpen(true)} className="gap-2 flex-1 sm:flex-none">
-            <Cloud className="h-4 w-4" /> <span>Importar do Monde</span>
-          </Button>
-          <Button size="sm" onClick={() => setNewOpen(true)} className="gap-2 flex-1 sm:flex-none">
-            <Plus className="h-4 w-4" /> Cadastrar<span className="hidden sm:inline"> pedido</span>
-          </Button>
-        </div>
+        {scope === "mine" && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setMondeOpen(true)} className="gap-2 flex-1 sm:flex-none">
+              <Cloud className="h-4 w-4" /> <span>Importar do Monde</span>
+            </Button>
+            <Button size="sm" onClick={() => setNewOpen(true)} className="gap-2 flex-1 sm:flex-none">
+              <Plus className="h-4 w-4" /> Cadastrar<span className="hidden sm:inline"> pedido</span>
+            </Button>
+          </div>
+        )}
       </div>
+
       <NewOrderDialog open={newOpen} onOpenChange={setNewOpen} />
       <MondePersonSearchDialog
         open={mondeOpen}
@@ -192,8 +226,14 @@ function AdminOrders() {
                       )}
                     </div>
                     <div className="mt-1 font-medium text-sm truncate">{o.full_name}</div>
+                    {scope === "third_party" && (
+                      <div className="text-[10px] font-semibold text-brand-orange truncate">
+                        {agencyByUser?.[o.owner_user_id ?? ""] ?? "Agência parceira"}
+                      </div>
+                    )}
                     <div className="text-xs text-muted-foreground truncate">{o.email}</div>
                     <div className="text-xs text-muted-foreground">{o.phone}</div>
+
                     {(snap.title || snap.reference) && (
                       <div className="mt-1 text-xs truncate">{snap.title ?? snap.reference}</div>
                     )}
@@ -260,9 +300,15 @@ function AdminOrders() {
                     </td>
                     <td className="py-3 px-3 align-top">
                       <div className="font-medium">{o.full_name}</div>
+                      {scope === "third_party" && (
+                        <div className="text-[10px] font-semibold text-brand-orange">
+                          {agencyByUser?.[o.owner_user_id ?? ""] ?? "Agência parceira"}
+                        </div>
+                      )}
                       <div className="text-xs text-muted-foreground">{o.email}</div>
                       <div className="text-xs text-muted-foreground">{o.phone}</div>
                     </td>
+
                     <td className="py-3 px-3 align-top max-w-md">
                       <div className="text-sm">{snap.title ?? snap.reference ?? "—"}</div>
                       {snap.destination && (
