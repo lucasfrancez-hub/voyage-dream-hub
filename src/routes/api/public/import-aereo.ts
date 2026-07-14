@@ -121,7 +121,8 @@ export const Route = createFileRoute("/api/public/import-aereo")({
         const airline = String(body.airline_hint ?? "").toLowerCase();
         const rawText = String(body.raw_text ?? "").slice(0, 60_000);
         if (!token || token.length < 10) return json({ error: "invalid_token" }, 400);
-        if (!["latam", "gol", "azul"].includes(airline)) return json({ error: "invalid_airline" }, 400);
+        const ALLOWED = ["latam", "gol", "azul", "skyteam", "frt", "visualturismo", "infotera"];
+        if (!ALLOWED.includes(airline)) return json({ error: "invalid_airline" }, 400);
         if (rawText.length < 200) return json({ error: "raw_text_too_short" }, 400);
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
