@@ -101,24 +101,39 @@
     return (tablesText ? tablesText + "\n\n" : "") + bodyText;
   }
 
-  function collectPageText() {
-    // Portais ASP.NET (SkyTeam) renderizam a reserva DENTRO de <iframe>.
-    // O "código-fonte da página" é vazio, mas o "código-fonte do frame" tem tudo.
-    // Coletamos texto da página principal + todos os iframes acessíveis (same-origin).
-    let text = extractFromDoc(document);
-    const iframes = document.querySelectorAll("iframe,frame");
-    for (const f of iframes) {
+  function walkFrames(doc, depth, out) {
+    if (!doc || depth > 4) return;
+    const frames = doc.querySelectorAll("iframe,frame");
+    for (const f of frames) {
       try {
-        const doc = f.contentDocument || (f.contentWindow && f.contentWindow.document);
-        if (doc) text += "\n\n===== FRAME: " + (f.src || f.name || "inline") + " =====\n" + extractFromDoc(doc);
-      } catch (e) { /* cross-origin, ignore */ }
+        const inner = f.contentDocument || (f.contentWindow && f.contentWindow.document);
+        if (!inner) continue;
+        const txt = extractFromDoc(inner);
+        if (txt && txt.trim().length > 50) {
+          out.push("===== FRAME[" + depth + "]: " + (f.src || f.name || "inline") + " =====\n" + txt);
+        }
+        walkFrames(inner, depth + 1, out);
+      } catch (e) { /* cross-origin */ }
     }
-    return text
+  }
+
+  function collectPageText() {
+    // Portais ASP.NET (SkyTeam/FRT/Visual/Infotera) renderizam a reserva DENTRO
+    // de <iframe> (às vezes aninhados). Percorremos recursivamente todos os
+    // frames same-origin e concatenamos com o texto da página principal.
+    const parts = [extractFromDoc(document)];
+    walkFrames(document, 0, parts);
+    return parts.join("\n\n")
       .replace(/[ \t\u00a0]+/g, " ")
       .replace(/\n[ \t]+/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   }
+
+  // Consolidadoras têm todo o conteúdo estruturado em tabelas no iframe;
+  // screenshot só atrapalha (modal com scroll interno, quota do captureVisibleTab).
+  const CONSOLIDATORS = new Set(["skyteam", "frt", "visualturismo", "infotera"]);
+  const isConsolidator = CONSOLIDATORS.has(airline);
 
 
   function showToast(msg, kind) {
