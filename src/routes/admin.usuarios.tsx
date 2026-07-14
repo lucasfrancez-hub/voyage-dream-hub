@@ -10,6 +10,7 @@ import {
   deleteAdminUser,
   setAdminUserRole,
   setAdminUserFullName,
+  type AdminRole,
 } from "@/lib/admin-users.functions";
 
 export const Route = createFileRoute("/admin/usuarios")({
