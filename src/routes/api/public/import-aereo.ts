@@ -15,12 +15,15 @@ const CORS_HEADERS = {
 } as const;
 
 const SYSTEM_PROMPT = `Você é um extrator de reservas aéreas. Recebe o TEXTO
-VISÍVEL de uma página de "Minhas Viagens" de uma companhia aérea brasileira
-(LATAM, GOL ou AZUL) e devolve JSON estruturado com passageiros e voos.
+VISÍVEL de uma página de reserva aérea — pode ser uma companhia brasileira
+(LATAM, GOL, AZUL) OU um portal de consolidador/operador (SkyTeam, FRT/
+Infotravel, Visual Turismo/Infotera) — e devolve JSON estruturado com
+passageiros e voos.
 
 Regras:
 - Não invente. Se um campo não estiver visível no texto, omita.
 - Datas/horas no formato "YYYY-MM-DDTHH:mm" no horário local do aeroporto.
+  Portais BR normalmente usam DD/MM/AAAA — converta.
 - Códigos IATA sempre em MAIÚSCULAS (3 letras).
 - Separe VOOS DE IDA (outbound) e VOOS DE VOLTA (return). Se houver conexões,
   cada trecho vira um segment dentro do bloco.
@@ -28,7 +31,9 @@ Regras:
 - flight_number: formato "LA 3331" (com espaço).
 - Em cabin_class use os rótulos que aparecem (Econômica, Premium, Business).
 - baggage/seat: só se aparecerem explicitamente no texto.
-- locator = código PNR (6 caracteres).
+- locator = código PNR (6 caracteres) da companhia; se o portal mostrar só o
+  número de pedido do consolidador, use-o em order_number e deixe locator vazio.
+- supplier_name = nome do fornecedor exibido no portal (companhia aérea real).
 - Nunca copie CPF/documento — a página normalmente nem mostra.`;
 
 function textParamsSchema() {
@@ -116,7 +121,8 @@ export const Route = createFileRoute("/api/public/import-aereo")({
         const airline = String(body.airline_hint ?? "").toLowerCase();
         const rawText = String(body.raw_text ?? "").slice(0, 60_000);
         if (!token || token.length < 10) return json({ error: "invalid_token" }, 400);
-        if (!["latam", "gol", "azul"].includes(airline)) return json({ error: "invalid_airline" }, 400);
+        const ALLOWED = ["latam", "gol", "azul", "skyteam", "frt", "visualturismo", "infotera"];
+        if (!ALLOWED.includes(airline)) return json({ error: "invalid_airline" }, 400);
         if (rawText.length < 200) return json({ error: "raw_text_too_short" }, 400);
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -148,7 +154,7 @@ export const Route = createFileRoute("/api/public/import-aereo")({
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content:
-                `Companhia: ${airline.toUpperCase()}\nURL: ${body.source_url ?? ""}\n\nTEXTO DA PÁGINA:\n${rawText}` },
+                `Origem: ${airline.toUpperCase()}\nURL: ${body.source_url ?? ""}\n\nTEXTO DA PÁGINA:\n${rawText}` },
             ],
             tools: [{
               type: "function",

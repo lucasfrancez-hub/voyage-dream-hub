@@ -6,7 +6,7 @@
  * pra que o content.js leia quando a página da cia abrir.
  */
 (function () {
-  const VERSION = "1.2.0";
+  const VERSION = "1.3.0";
 
   function announce() {
     window.postMessage({ __viaair: "ready", version: VERSION }, "*");
@@ -23,9 +23,10 @@
     if (d.__viaair !== "set-token") return;
     const { token, apiBase, airline } = d;
     if (!token || !apiBase || !airline) return;
+    const ALL = ["latam", "gol", "azul", "skyteam", "frt", "visualturismo", "infotera"];
     const targets = airline === "any"
-      ? ["latam", "gol", "azul"]
-      : (["latam", "gol", "azul"].includes(airline) ? [airline] : []);
+      ? ALL
+      : (ALL.includes(airline) ? [airline] : []);
     if (targets.length === 0) return;
     try {
       const payload = {};

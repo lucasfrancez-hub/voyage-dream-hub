@@ -13,15 +13,21 @@
 (function () {
   const HOST = location.hostname;
 
-  function detectAirline() {
-    if (HOST.includes("latamairlines")) return "latam";
-    if (HOST.includes("voegol")) return "gol";
-    if (HOST.includes("voeazul")) return "azul";
-    return null;
-  }
+  // Todas as origens suportadas. `key` é usado como airline_hint no backend
+  // e como sufixo em chrome.storage.local ("viaair::" + key).
+  const SOURCES = [
+    { key: "latam",        match: (h) => h.includes("latamairlines") },
+    { key: "gol",          match: (h) => h.includes("voegol") },
+    { key: "azul",         match: (h) => h.includes("voeazul") },
+    { key: "skyteam",      match: (h) => h.includes("portal.skyteam.tur.br") },
+    { key: "frt",          match: (h) => h.startsWith("frt.infotravel") },
+    { key: "visualturismo",match: (h) => h.startsWith("visualturismo.infotravel") },
+    { key: "infotera",     match: (h) => h.includes("infotravel.com.br") }, // fallback genérico
+  ];
 
-  const airline = detectAirline();
-  if (!airline) return;
+  const source = SOURCES.find((s) => s.match(HOST));
+  if (!source) return;
+  const airline = source.key;
 
   const storageKey = "viaair::" + airline;
   const legacyStorageKey = "viaair::" + HOST;
