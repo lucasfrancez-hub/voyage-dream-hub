@@ -629,11 +629,16 @@ function FlightFieldset({
       {/* Informações comuns da jornada */}
       <div className="grid sm:grid-cols-2 gap-3">
         <FormField label="Companhia aérea (padrão)">
-          <input
-            className={inp}
+          <AirlineCombobox
             value={f.airline ?? ""}
-            onChange={(e) => patch({ airline: e.target.value })}
-            placeholder="LATAM, GOL, Azul…"
+            onChange={(name) => {
+              const a = findAirline(name);
+              patch({
+                airline: name,
+                // Auto-preenche a logo do registro quando escolhida da lista
+                airline_logo_url: a?.logo ?? (name ? f.airline_logo_url : ""),
+              });
+            }}
           />
         </FormField>
         <FormField label="Logo da companhia (URL)">
@@ -641,7 +646,7 @@ function FlightFieldset({
             className={inp}
             value={f.airline_logo_url ?? ""}
             onChange={(e) => patch({ airline_logo_url: e.target.value })}
-            placeholder="https://…logo.png"
+            placeholder="preenchida automaticamente pela seleção acima"
           />
         </FormField>
         <FormField label="Classe">
