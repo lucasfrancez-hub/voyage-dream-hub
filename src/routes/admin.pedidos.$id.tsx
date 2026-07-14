@@ -2309,6 +2309,26 @@ function ItemDialog({
               )}
             </div>
 
+            {kind === "flight" && (() => {
+              const iata = String(details.airline_iata ?? "").toUpperCase();
+              const fn = String(details.flight_number ?? "").toUpperCase();
+              const prefix = fn.match(/^([A-Z]{1,2}[0-9]?|[0-9][A-Z])/)?.[1] ?? "";
+              const isLatam = iata === "LA" || prefix === "LA";
+              if (!isLatam) return null;
+              return (
+                <div className="col-span-2">
+                  <Label>Localizador PNR (6 letras)</Label>
+                  <Input
+                    value={String(details.carrier_locator ?? "")}
+                    onChange={(e) => setField("carrier_locator", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+                    placeholder="Ex: JXJDZZ"
+                    maxLength={8}
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">LATAM · aparece junto do número de compra na reserva.</p>
+                </div>
+              );
+            })()}
+
             {kind === "other" && (
               <div>
                 <Label>Status</Label>
