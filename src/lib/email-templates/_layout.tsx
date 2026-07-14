@@ -41,18 +41,18 @@ export const EmailLayout = ({
         <Section style={headerRow}>
           <table width="100%" cellPadding={0} cellSpacing={0} role="presentation">
             <tr>
-              <td style={{ textAlign: 'left' as const }}>
-                <Text style={brand}>
-                  <span style={planeIcon}>✈</span> VIA AIR
-                </Text>
+              <td style={{ textAlign: 'left' as const, verticalAlign: 'middle' as const }}>
+                <Img src={LOGO_URL} alt="VIA AIR" width="140" height="42" style={brandLogo} />
               </td>
-              <td style={{ textAlign: 'right' as const }}>
+              <td style={{ textAlign: 'right' as const, verticalAlign: 'middle' as const }}>
                 <Text style={stepNum}>{stepNumber}</Text>
                 <Text style={stepLbl}>{stepLabel}</Text>
               </td>
             </tr>
           </table>
         </Section>
+
+        <Section style={divider} />
 
         {/* Main card */}
         <Section style={card}>{children}</Section>
