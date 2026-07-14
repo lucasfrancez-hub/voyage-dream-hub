@@ -2329,12 +2329,14 @@ function ItemDialog({
             </div>
 
             {kind === "flight" && (() => {
-              const iataRaw = String(details.airline_iata ?? "").toUpperCase();
+              // Detecta LATAM só pela cia atualmente selecionada / nº do voo.
+              // (Ignora airline_iata bruto porque pode ter ficado "LA" de uma
+              // importação anterior mesmo depois de trocar a cia no combo.)
               const airlineName = String(details.airline ?? "");
               const iataFromName = findAirline(airlineName)?.iata?.toUpperCase() ?? "";
               const fn = String(details.flight_number ?? "").toUpperCase();
               const prefix = fn.match(/^([A-Z]{2})\s*\d/)?.[1] ?? "";
-              const isLatam = iataRaw === "LA" || iataFromName === "LA" || prefix === "LA";
+              const isLatam = iataFromName === "LA" || prefix === "LA";
               if (!isLatam) return null;
               return (
                 <div className="col-span-2">
