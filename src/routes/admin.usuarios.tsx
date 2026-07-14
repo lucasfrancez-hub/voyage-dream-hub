@@ -25,6 +25,7 @@ function UsersPage() {
   const del = useServerFn(deleteAdminUser);
   const setRole = useServerFn(setAdminUserRole);
   const setName = useServerFn(setAdminUserFullName);
+  const resendPwd = useServerFn(resendUserPassword);
 
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
