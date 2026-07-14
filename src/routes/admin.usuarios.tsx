@@ -76,6 +76,7 @@ function UsersPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [agencyName, setAgencyName] = useState("");
   const [role, setNewRole] = useState<AdminRole>("user");
 
   function submit(e: React.FormEvent) {
@@ -84,7 +85,17 @@ function UsersPage() {
       toast.error("Informe e-mail e senha com ao menos 8 caracteres");
       return;
     }
-    createMut.mutate({ email, password, role, fullName: fullName.trim() || undefined });
+    if (role === "partner" && !agencyName.trim()) {
+      toast.error("Informe o nome da empresa do terceiro");
+      return;
+    }
+    createMut.mutate({
+      email,
+      password,
+      role,
+      fullName: fullName.trim() || undefined,
+      agencyName: role === "partner" ? agencyName.trim() : undefined,
+    });
   }
 
   return (
