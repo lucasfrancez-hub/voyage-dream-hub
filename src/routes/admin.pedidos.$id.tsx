@@ -2533,9 +2533,9 @@ function ItemDialog({
             const cleanMain = buildClean(details);
             let effectiveTitle = title.trim();
             if (kind === "flight") {
-              // Localizador obrigatório: mínimo 6 alfanuméricos
+              // Localizador opcional: se vier, precisa ter ao menos 6 alfanuméricos
               const loc = locator.trim().toUpperCase();
-              if (!/^[A-Z0-9]{6,}$/.test(loc)) {
+              if (loc && !/^[A-Z0-9]{6,}$/.test(loc)) {
                 toast.error("Localizador inválido: mínimo 6 caracteres (letras e/ou números)");
                 return;
               }
