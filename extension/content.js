@@ -216,8 +216,7 @@
 
   async function ensureButton() {
     if (document.getElementById("viaair-btn")) return;
-    const ctx = await loadCtx();
-    if (!ctx) return;
+    if (!document.body) return;
 
     const btn = document.createElement("button");
     btn.id = "viaair-btn";
@@ -233,7 +232,14 @@
     });
     btn.onmouseenter = () => (btn.style.filter = "brightness(1.15)");
     btn.onmouseleave = () => (btn.style.filter = "none");
-    btn.onclick = () => sendImport(ctx);
+    btn.onclick = async () => {
+      const ctx = await loadCtx();
+      if (!ctx) {
+        showToast("Token não encontrado. Abra o pedido no admin da Via Air e clique em 'Importar aéreo' — depois volte aqui.", "err");
+        return;
+      }
+      sendImport(ctx);
+    };
     document.body.appendChild(btn);
   }
 
