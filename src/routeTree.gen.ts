@@ -30,6 +30,7 @@ import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
+import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
@@ -139,6 +140,11 @@ const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
   path: '/$slug/checkout',
   getParentRoute: () => PacotesRoute,
 } as any)
+const ApiPublicImportAereoRoute = ApiPublicImportAereoRouteImport.update({
+  id: '/api/public/import-aereo',
+  path: '/api/public/import-aereo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicClicksignWebhookRoute =
   ApiPublicClicksignWebhookRouteImport.update({
     id: '/api/public/clicksign-webhook',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
@@ -258,6 +267,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
+    | '/api/public/import-aereo'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
+    | '/api/public/import-aereo'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos'
     | '/pacotes/$slug'
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pessoas/$id'
     | '/api/public/clicksign-webhook'
+    | '/api/public/import-aereo'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
@@ -324,6 +336,7 @@ export interface RootRouteChildren {
   PagarBoletoRoute: typeof PagarBoletoRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
+  ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -475,6 +488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
       parentRoute: typeof PacotesRoute
     }
+    '/api/public/import-aereo': {
+      id: '/api/public/import-aereo'
+      path: '/api/public/import-aereo'
+      fullPath: '/api/public/import-aereo'
+      preLoaderRoute: typeof ApiPublicImportAereoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/clicksign-webhook': {
       id: '/api/public/clicksign-webhook'
       path: '/api/public/clicksign-webhook'
@@ -566,6 +586,7 @@ const rootRouteChildren: RootRouteChildren = {
   PagarBoletoRoute: PagarBoletoRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
+  ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
