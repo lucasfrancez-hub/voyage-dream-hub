@@ -1,4 +1,46 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { findAirline } from "@/lib/airlines";
+
+/**
+ * Normaliza nome/IATA da companhia usando o catálogo cadastrado.
+ * "Latam Airlines Brasil" / "LA" → { airline: "LATAM", airline_iata: "LA" }.
+ * Também deriva IATA a partir do prefixo do flight_number (ex.: "LA 3059").
+ */
+function normalizeAirlineFields(parsed: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...parsed };
+
+  // supplier_name (nível pedido)
+  const supplierRaw = typeof out.supplier_name === "string" ? out.supplier_name : "";
+  const supplierHit = findAirline(supplierRaw);
+  if (supplierHit) out.supplier_name = supplierHit.name;
+
+  const flights = Array.isArray(out.flights) ? (out.flights as Array<Record<string, unknown>>) : [];
+  for (const block of flights) {
+    const blockAirlineRaw = typeof block.airline === "string" ? block.airline : "";
+    const blockHit = findAirline(blockAirlineRaw);
+    if (blockHit) block.airline = blockHit.name;
+
+    const segs = Array.isArray(block.segments) ? (block.segments as Array<Record<string, unknown>>) : [];
+    for (const seg of segs) {
+      const rawAirline = typeof seg.airline === "string" ? seg.airline : "";
+      const rawIata = typeof seg.airline_iata === "string" ? seg.airline_iata.toUpperCase() : "";
+      const flightNum = typeof seg.flight_number === "string" ? seg.flight_number : "";
+      const flightPrefix = flightNum.match(/^([A-Z0-9]{2})\s/)?.[1] ?? "";
+
+      // Tenta encontrar na ordem: IATA da segment → prefixo do flight_number → nome
+      const hit = findAirline(rawIata) ?? findAirline(flightPrefix) ?? findAirline(rawAirline);
+      if (hit) {
+        seg.airline = hit.name;
+        seg.airline_iata = hit.iata;
+      } else if (flightPrefix && !rawIata) {
+        seg.airline_iata = flightPrefix;
+      }
+    }
+  }
+  return out;
+}
+
+
 
 // Endpoint público chamado pela extensão do navegador rodando na página
 // da companhia aérea. A autenticação é feita pelo próprio TOKEN gerado
