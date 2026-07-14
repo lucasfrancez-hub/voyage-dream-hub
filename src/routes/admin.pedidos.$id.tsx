@@ -353,6 +353,12 @@ function OrderDetailPage() {
 
               </DropdownMenu>
 
+              <Button size="sm" variant="outline" onClick={() => setOpenQuote(true)}>
+                <FileText className="h-3.5 w-3.5 mr-1" /> Orçamento
+              </Button>
+
+
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline"><Printer className="h-3.5 w-3.5 mr-1" /> Imprimir</Button>
