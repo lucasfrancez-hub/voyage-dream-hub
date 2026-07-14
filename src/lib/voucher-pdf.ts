@@ -123,7 +123,10 @@ const L = {
     saida: "SAIDA",
     chegada: "CHEGADA",
     categoria: "Categoria",
+    valorTotal: "VALOR TOTAL",
+    valorTotalNota: "Valor total ja com todos os servicos inclusos.",
   },
+
   en: {
     voucherId: "VOUCHER ID",
     passageiro: "GUEST",
@@ -166,7 +169,10 @@ const L = {
     saida: "DEPARTURE",
     chegada: "ARRIVAL",
     categoria: "Category",
+    valorTotal: "TOTAL AMOUNT",
+    valorTotalNota: "Total amount includes all services listed above.",
   },
+
 } as const;
 
 // ---------- Helpers ----------
@@ -1700,8 +1706,66 @@ const drawHotelSection = async (
   closeSectionCard(ctx, top, cy);
 };
 
+// ---------- Valor total ----------
+const formatMoney = (v: number, lang: VoucherLang): string => {
+  try {
+    return new Intl.NumberFormat(lang === "en" ? "en-US" : "pt-BR", {
+      style: "currency",
+      currency: lang === "en" ? "USD" : "BRL",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(v);
+  } catch {
+    return `R$ ${v.toFixed(2)}`;
+  }
+};
+
+const drawTotalValueSection = (ctx: Ctx) => {
+  const raw = (ctx.order as { total_price?: number | string | null }).total_price;
+  const total = typeof raw === "number" ? raw : Number(raw ?? 0);
+  if (!total || !Number.isFinite(total) || total <= 0) return;
+  const t = T(ctx);
+  const boxH = 62;
+  ensureSpace(ctx, boxH + 14);
+  const top = ctx.y;
+  const x = MARGIN;
+  const w = CONTENT_W;
+  const yBottom = top - boxH;
+
+  drawRoundedRect(ctx.page, x, yBottom, w, boxH, COLOR_NAVY, 10);
+  // Faixa laranja lateral
+  drawRoundedRect(ctx.page, x, yBottom, 5, boxH, COLOR_ORANGE, 2);
+
+  ctx.page.drawText(sanitize(t.valorTotal), {
+    x: x + 20, y: top - 22, size: 10, font: ctx.fontBold, color: COLOR_ORANGE,
+  });
+  const noteLines = wrap(ctx.font, 8.5, t.valorTotalNota, w * 0.55);
+  ctx.page.drawText(sanitize(noteLines[0] ?? ""), {
+    x: x + 20, y: top - 38, size: 8.5, font: ctx.font, color: COLOR_WHITE,
+  });
+  if (noteLines[1]) {
+    ctx.page.drawText(sanitize(noteLines[1]), {
+      x: x + 20, y: top - 50, size: 8.5, font: ctx.font, color: COLOR_WHITE,
+    });
+  }
+
+  const priceStr = formatMoney(total, ctx.lang);
+  const priceSize = 22;
+  const priceW = measure(ctx.fontBold, priceStr, priceSize);
+  ctx.page.drawText(sanitize(priceStr), {
+    x: x + w - priceW - 20,
+    y: top - 38,
+    size: priceSize,
+    font: ctx.fontBold,
+    color: COLOR_WHITE,
+  });
+
+  ctx.y = yBottom - 12;
+};
+
 // ---------- Info & Emergency (2 col) ----------
 const drawInfoAndEmergency = (ctx: Ctx) => {
+
   const t = T(ctx);
   const boxH = 130;
   ensureSpace(ctx, boxH + 20);
@@ -2042,7 +2106,9 @@ export async function generateVoucher(
     await drawServiceSection(ctx, s);
   }
 
+  drawTotalValueSection(ctx);
   drawInfoAndEmergency(ctx);
+
   drawFooterStrip(ctx);
 
   const bytes = await pdf.save();
