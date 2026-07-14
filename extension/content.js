@@ -401,7 +401,7 @@
         layover: cellText(cells, map, ["dur_con", "duracao_conexao"]),
         cabin_class: cellText(cells, map, ["cabine"]),
         fare_basis: cellText(cells, map, ["base"]),
-        baggage_allowance: cellText(cells, map, ["bagagem"]),
+        baggage_allowance: baggageText(cells[headerIndex(map, ["bagagem"])]),
         carrier_locator: cellText(cells, map, ["loc_cia", "localizador_cia"]),
         aircraft: cellText(cells, map, ["equip", "equipamento"]),
         status: cellText(cells, map, ["status"]),
