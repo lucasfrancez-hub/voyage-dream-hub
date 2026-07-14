@@ -224,9 +224,10 @@
       showToast("Página ainda não carregou os dados da reserva. Aguarde e tente de novo.", "err");
       return;
     }
-    showToast("Capturando tela e enviando pra Via Air…");
+    showToast(isConsolidator ? "Lendo iframe e enviando pra Via Air…" : "Capturando tela e enviando pra Via Air…");
     try {
-      const screenshots = await captureFullPage();
+      // Consolidadora: SÓ iframe (sem screenshot). Companhia: iframe + screenshot.
+      const screenshots = isConsolidator ? [] : await captureFullPage();
       const res = await fetch(ctx.apiBase.replace(/\/+$/, "") + "/api/public/import-aereo", {
         method: "POST",
         headers: { "content-type": "application/json" },
