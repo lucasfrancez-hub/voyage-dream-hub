@@ -6,6 +6,30 @@ const getSecret = () => {
   return s;
 };
 
+// Token curto no formato `{orderNumber}-{sig10}`.
+// Ex.: 12345678-a1b2c3d4e5
+export function encodeQuoteTokenFromOrderNumber(orderNumber: string): string {
+  const num = String(orderNumber).trim();
+  if (!/^\d{4,20}$/.test(num)) throw new Error("orderNumber inválido");
+  const sig = createHmac("sha256", getSecret()).update(num).digest("hex").slice(0, 10);
+  return `${num}-${sig}`;
+}
+
+// Retorna o orderNumber se o token curto for válido.
+export function decodeQuoteTokenToOrderNumber(token: string): string | null {
+  const m = /^(\d{4,20})-([0-9a-f]{10})$/.exec(token);
+  if (!m) return null;
+  const num = m[1]!;
+  const sig = m[2]!;
+  const expected = createHmac("sha256", getSecret()).update(num).digest("hex").slice(0, 10);
+  const a = Buffer.from(sig, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return null;
+  if (!timingSafeEqual(a, b)) return null;
+  return num;
+}
+
+// ---- Legado (formato antigo `{b64(id)}.{sig24}`) — mantido para links já enviados ----
 const b64url = (buf: Buffer) =>
   buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
@@ -21,7 +45,7 @@ export function encodeQuoteToken(orderId: string): string {
   return `${id}.${sig}`;
 }
 
-export function decodeQuoteToken(token: string): string | null {
+export function decodeQuoteTokenLegacy(token: string): string | null {
   const parts = token.split(".");
   if (parts.length !== 2) return null;
   const [id, sig] = parts;
