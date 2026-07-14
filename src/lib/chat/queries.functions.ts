@@ -173,7 +173,7 @@ export const listAttendants = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("profiles")
-      .select("id, full_name, email")
+      .select("id, full_name")
       .order("full_name");
     if (error) throw new Error(error.message);
     return data ?? [];
