@@ -133,8 +133,7 @@ function AdminLayout() {
 
               <CartaoNav pathname={pathname} />
 
-              <NavItem to="/admin/link-boleto" icon={FileText} label="Link boleto" active={pathname.startsWith("/admin/link-boleto")} />
-              <NavItem to="/admin/cofre" icon={Vault} label="Cofre" active={pathname.startsWith("/admin/cofre")} />
+
               {session?.user?.email?.toLowerCase() === "lucas@voeair.com" && (
                 <NavItem to="/admin/usuarios" icon={Users} label="Usuários" active={pathname.startsWith("/admin/usuarios")} />
               )}
