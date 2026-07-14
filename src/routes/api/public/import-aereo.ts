@@ -371,8 +371,12 @@ function normalizeDirectStructuredData(input: unknown): Record<string, unknown> 
     if (!fullName || seenPassengers.has(key)) return [];
     seenPassengers.add(key);
     const kind = ["adult", "child", "infant"].includes(String(row.kind)) ? String(row.kind) : "adult";
-    return [{ full_name: fullName, kind }];
+    const out: Record<string, string> = { full_name: fullName, kind };
+    const ticket = String(row.ticket_number ?? "").replace(/\s+/g, " ").trim();
+    if (ticket) out.ticket_number = ticket.slice(0, 40);
+    return [out];
   });
+
 
   const allowedSegmentFields = [
     "airline", "airline_iata", "flight_number", "from_iata", "from_city", "from_airport",
