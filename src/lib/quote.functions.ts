@@ -254,7 +254,45 @@ export const getPublicQuote = createServerFn({ method: "GET" })
       };
     });
 
-    const snap = ((order as { package_snapshot?: unknown }).package_snapshot ?? {}) as Record<string, unknown>;
+    // Reordena: todas as IDAS primeiro, depois todas as VOLTAS, depois hotéis, depois outros.
+    const rank = (it: PublicQuoteItem): number => {
+      if (it.kind === "flight") return it.direction === "return" ? 1 : 0;
+      if (it.kind === "hotel") return 2;
+      return 3;
+    };
+    const timeKey = (s: string | null | undefined): number => {
+      if (!s) return Number.POSITIVE_INFINITY;
+      const t = Date.parse(s);
+      return Number.isFinite(t) ? t : Number.POSITIVE_INFINITY;
+    };
+    publicItems.sort((a, b) => {
+      const r = rank(a) - rank(b);
+      if (r !== 0) return r;
+      if (a.kind === "flight" && b.kind === "flight") {
+        return timeKey(a.departure_at) - timeKey(b.departure_at);
+      }
+      if (a.kind === "hotel" && b.kind === "hotel") {
+        return timeKey(a.check_in) - timeKey(b.check_in);
+      }
+      return 0;
+    });
+
+    // Enriquecimento TripAdvisor para hotéis (best-effort, com timeout curto).
+    const taKey = process.env.TRIPADVISOR_API_KEY;
+    if (taKey) {
+      const destination = snap.destination ? String(snap.destination) : null;
+      await Promise.all(
+        publicItems
+          .filter((it) => it.kind === "hotel" && it.hotel_name)
+          .map(async (it) => {
+            try {
+              it.hotel_info = await fetchHotelInfo(taKey, it.hotel_name!, destination);
+            } catch { /* ignora */ }
+          })
+      );
+    }
+
+
     const rawCfg = (order as { quote_config?: unknown }).quote_config;
     const config = normalizeQuoteConfig(rawCfg);
 
