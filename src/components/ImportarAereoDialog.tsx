@@ -167,6 +167,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       }
       let sort = 0;
       let firstItem = true;
+      // Se qualquer passageiro veio com bilhete emitido, a reserva inteira
+      // é considerada Emitida (confirmed). Sem bilhete, fica Reservada.
+      const anyTicket = reservation.passengers.some((p) => (p.ticket_number ?? "").trim().length > 0);
+      const firstTicket = reservation.passengers.find((p) => (p.ticket_number ?? "").trim())?.ticket_number ?? null;
+      const itemStatus: "confirmed" | "reserved" = anyTicket ? "confirmed" : "reserved";
       for (const block of reservation.flights) {
         for (const seg of block.segments) {
           const title = `${seg.airline ?? block.airline ?? ""} ${seg.flight_number ?? ""} — ${seg.from_iata ?? ""}→${seg.to_iata ?? ""}`.trim();
@@ -183,7 +188,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
           await saveItem({ data: {
             order_id: orderId,
             kind: "flight",
-            status: "confirmed",
+            status: itemStatus,
             title,
             supplier_locator: reservation.locator ?? seg.carrier_locator ?? null,
             sort_order: sort++,
@@ -213,6 +218,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               carrier_locator: seg.carrier_locator,
               aircraft: seg.aircraft,
               status: seg.status,
+              ...(firstTicket ? { ticket_number: firstTicket } : {}),
               ...(pricing ? { pricing_summary: pricing } : {}),
             },
           } });
