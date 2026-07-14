@@ -62,7 +62,7 @@ export const EmailLayout = ({
           <Section style={darkFooterStyle}>
             {footerMessage && <Text style={darkFooterMsg}>{footerMessage}</Text>}
             <Text style={darkFooterContact}>
-              (11) 98765-4321 &nbsp;|&nbsp; atendimento@viaair.tur.br &nbsp;|&nbsp;{' '}
+              (44) 99951-4838 &nbsp;|&nbsp; comercial@voeair.com &nbsp;|&nbsp;{' '}
               <Link href="https://www.viaair.tur.br" style={darkFooterLink}>
                 www.viaair.tur.br
               </Link>
@@ -70,16 +70,29 @@ export const EmailLayout = ({
           </Section>
         ) : (
           <Section style={lightFooter}>
-            <Text style={lightFooterMsg}>
-              <span style={{ color: '#F26B1F' }}>?</span>&nbsp;
-              {footerMessage || 'Dúvidas? Estamos à disposição!'}
-            </Text>
-            <Text style={lightFooterContact}>
-              (11) 98765-4321 &nbsp;|&nbsp; atendimento@viaair.tur.br &nbsp;|&nbsp;{' '}
-              <Link href="https://www.viaair.tur.br" style={lightFooterLink}>
-                www.viaair.tur.br
-              </Link>
-            </Text>
+            <table width="100%" cellPadding={0} cellSpacing={0} role="presentation">
+              <tr>
+                <td style={{ width: '40px', verticalAlign: 'middle' as const }}>
+                  <div style={helpBadge}>?</div>
+                </td>
+                <td style={{ verticalAlign: 'middle' as const, paddingLeft: '12px' }}>
+                  <Text style={lightFooterMsg}>
+                    {footerMessage || 'Dúvidas? Estamos à disposição!'}
+                  </Text>
+                  <Text style={lightFooterContact}>
+                    <span style={{ color: '#0f172a' }}>📞</span>&nbsp;(44) 99951-4838
+                    &nbsp;&nbsp;|&nbsp;&nbsp;
+                    <span style={{ color: '#0f172a' }}>✉</span>&nbsp;comercial@voeair.com
+                    &nbsp;&nbsp;|&nbsp;&nbsp;
+                    <span style={{ color: '#0f172a' }}>🌐</span>&nbsp;
+                    <Link href="https://www.viaair.tur.br" style={lightFooterLink}>
+                      www.viaair.tur.br
+                    </Link>
+                  </Text>
+                </td>
+              </tr>
+            </table>
+
           </Section>
         )}
 
