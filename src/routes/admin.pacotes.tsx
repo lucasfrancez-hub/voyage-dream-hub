@@ -756,12 +756,12 @@ function FlightFieldset({
                     onChange={(name) => patchSeg(i, { airline: name })}
                     placeholder="Companhia (opcional, se diferente)"
                   />
-                  <input
-                    className={inp}
-                    value={s.flight_number ?? ""}
-                    onChange={(e) => patchSeg(i, { flight_number: e.target.value })}
-                    placeholder="Nº do voo (ex.: LA 3456)"
+                  <FlightNumberInput
+                    airline={s.airline}
+                    value={s.flight_number}
+                    onChange={(v) => patchSeg(i, { flight_number: v })}
                   />
+
                   <input
                     className={inp}
                     value={s.from_iata ?? ""}
