@@ -35,11 +35,23 @@ function buildAirlineUrl(airline: Airline, f: { locator: string; lastname: strin
   return `https://www.voeazul.com.br/br/pt/home/minhas-viagens/confirmacao?pnr=${encodeURIComponent(loc)}&origin=${encodeURIComponent(iata)}`;
 }
 
-function withViaAirHash(url: string, token: string): string {
-  const apiBase = window.location.origin;
-  const payload = btoa(JSON.stringify({ token, apiBase }))
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  return url + "#viaair=" + payload;
+function sendTokenToExtension(airline: Airline, token: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const apiBase = window.location.origin;
+    let done = false;
+    function onMsg(ev: MessageEvent) {
+      const d = ev.data as { __viaair?: string; airline?: string } | null;
+      if (!d || d.__viaair !== "set-token-ack") return;
+      done = true;
+      window.removeEventListener("message", onMsg);
+      resolve(true);
+    }
+    window.addEventListener("message", onMsg);
+    window.postMessage({ __viaair: "set-token", token, apiBase, airline }, window.location.origin);
+    setTimeout(() => {
+      if (!done) { window.removeEventListener("message", onMsg); resolve(false); }
+    }, 800);
+  });
 }
 
 export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
