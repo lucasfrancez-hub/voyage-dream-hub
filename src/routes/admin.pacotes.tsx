@@ -267,6 +267,7 @@ function AdminPackages() {
             ))}
           </tbody>
         </table>
+       </div>
       </div>
 
       {editing && (
