@@ -66,6 +66,14 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
     : "";
   const printUrl = publicUrl ? `${publicUrl}?print=1` : "";
 
+  const waPhone = (customerPhone ?? "").replace(/\D+/g, "");
+  const waNumber = waPhone.length >= 10
+    ? (waPhone.startsWith("55") ? waPhone : `55${waPhone}`)
+    : "";
+  const waHref = waNumber && publicUrl
+    ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Olá! Segue o orçamento nº ${orderNumber}: ${publicUrl}`)}`
+    : "";
+
   const doSave = async (silent = false) => {
     setSaving(true);
     try {
