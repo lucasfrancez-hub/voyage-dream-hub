@@ -10,6 +10,7 @@ import {
   deleteAdminUser,
   setAdminUserRole,
   setAdminUserFullName,
+  type AdminRole,
 } from "@/lib/admin-users.functions";
 
 export const Route = createFileRoute("/admin/usuarios")({
@@ -30,7 +31,7 @@ function UsersPage() {
   });
 
   const createMut = useMutation({
-    mutationFn: (input: { email: string; password: string; role: "admin" | "user"; fullName?: string }) =>
+    mutationFn: (input: { email: string; password: string; role: AdminRole; fullName?: string }) =>
       create({ data: input }),
     onSuccess: () => {
       toast.success("Usuário criado");
@@ -52,7 +53,7 @@ function UsersPage() {
   });
 
   const roleMut = useMutation({
-    mutationFn: (input: { userId: string; role: "admin" | "user" }) =>
+    mutationFn: (input: { userId: string; role: AdminRole }) =>
       setRole({ data: input }),
     onSuccess: () => {
       toast.success("Permissão atualizada");
@@ -74,7 +75,7 @@ function UsersPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setNewRole] = useState<"admin" | "user">("user");
+  const [role, setNewRole] = useState<AdminRole>("user");
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -135,9 +136,10 @@ function UsersPage() {
           </label>
           <label className="block">
             <span className="block text-xs text-muted-foreground mb-1.5">Permissão</span>
-            <select value={role} onChange={(e) => setNewRole(e.target.value as any)} className={cls}>
+            <select value={role} onChange={(e) => setNewRole(e.target.value as AdminRole)} className={cls}>
               <option value="user">Operador</option>
               <option value="admin">Admin</option>
+              <option value="partner">Terceiro (agência parceira)</option>
             </select>
           </label>
           <div className="flex items-end">
@@ -196,11 +198,11 @@ function UserRow({
     fullName: string | null;
     createdAt: string;
     lastSignInAt: string | null;
-    role: "admin" | "user";
+    role: AdminRole;
   };
   savingName: boolean;
   onSaveName: (name: string) => void;
-  onChangeRole: (r: "admin" | "user") => void;
+  onChangeRole: (r: AdminRole) => void;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(user.fullName ?? "");
@@ -240,15 +242,20 @@ function UserRow({
       </div>
       <select
         value={user.role}
-        onChange={(e) => onChangeRole(e.target.value as "admin" | "user")}
+        onChange={(e) => onChangeRole(e.target.value as AdminRole)}
         className="rounded-full border border-border bg-background px-3 py-1.5 text-xs"
       >
         <option value="user">Operador</option>
         <option value="admin">Admin</option>
+        <option value="partner">Terceiro</option>
       </select>
       {user.role === "admin" ? (
         <span className="inline-flex items-center gap-1 text-xs text-brand-orange">
           <ShieldCheck className="h-3.5 w-3.5" /> Admin
+        </span>
+      ) : user.role === "partner" ? (
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          Terceiro
         </span>
       ) : (
         <span />
