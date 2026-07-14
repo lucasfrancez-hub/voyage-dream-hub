@@ -635,20 +635,23 @@ function FlightFieldset({
               const a = findAirline(name);
               patch({
                 airline: name,
-                // Auto-preenche a logo do registro quando escolhida da lista
-                airline_logo_url: a?.logo ?? (name ? f.airline_logo_url : ""),
+                // Logo do registro é resolvida automaticamente no voucher; só limpa
+                // o campo manual se a nova cia estiver no registro.
+                airline_logo_url: a ? "" : f.airline_logo_url,
               });
             }}
           />
         </FormField>
-        <FormField label="Logo da companhia (URL)">
-          <input
-            className={inp}
-            value={f.airline_logo_url ?? ""}
-            onChange={(e) => patch({ airline_logo_url: e.target.value })}
-            placeholder="preenchida automaticamente pela seleção acima"
-          />
-        </FormField>
+        {f.airline && !findAirline(f.airline) ? (
+          <FormField label="Logo da companhia (URL)">
+            <input
+              className={inp}
+              value={f.airline_logo_url ?? ""}
+              onChange={(e) => patch({ airline_logo_url: e.target.value })}
+              placeholder="https://…logo.png"
+            />
+          </FormField>
+        ) : null}
         <FormField label="Classe">
           <select
             className={inp}

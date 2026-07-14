@@ -2067,9 +2067,8 @@ function ItemDialog({
             onChange={(name) => {
               const a = findAirline(name);
               onChangeField("airline", name);
-              // Auto-preenche o URL da logo quando escolhida da lista
-              if (a) onChangeField("airline_logo_url", a.logo);
-              else if (!name) onChangeField("airline_logo_url", "");
+              // Se está no registro, limpa URL manual (o voucher resolve sozinho).
+              if (a || !name) onChangeField("airline_logo_url", "");
             }}
           />
         </div>
@@ -2081,10 +2080,12 @@ function ItemDialog({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Classe / Cabine</Label><Input value={String(d.cabin_class ?? d.cabin ?? "")} onChange={(e) => onChangeField("cabin_class", e.target.value)} placeholder="Econômica Light" /></div>
-        <div>
-          <Label>URL da logo da cia</Label>
-          <Input value={String(d.airline_logo_url ?? "")} onChange={(e) => onChangeField("airline_logo_url", e.target.value)} placeholder="preenchida ao escolher a cia" />
-        </div>
+        {d.airline && !findAirline(String(d.airline)) ? (
+          <div>
+            <Label>URL da logo da cia</Label>
+            <Input value={String(d.airline_logo_url ?? "")} onChange={(e) => onChangeField("airline_logo_url", e.target.value)} placeholder="https://…/logo.png" />
+          </div>
+        ) : null}
       </div>
       <div className="rounded-md border border-border p-2">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Bagagem inclusa</div>
