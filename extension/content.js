@@ -95,8 +95,36 @@
     return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
   }
 
+  function extractReservationHeader(doc) {
+    // Portal SkyTeam/Travellink: extrai cabeçalho explícito para a IA não
+    // confundir "Ambiente" (portal) com "Cia".
+    const parts = [];
+    const loc = doc.querySelector("#spanLocalizador");
+    if (loc) parts.push("LOCALIZADOR_RESERVA: " + (loc.innerText || loc.textContent || "").trim());
+    // A tabela-cabeçalho tem THs "Localizador | Status | Data de emissão | Criação | Sistema | Ambiente | Incluido Via"
+    const headerTables = doc.querySelectorAll("table.woo-table, table");
+    for (const t of headerTables) {
+      const ths = Array.from(t.querySelectorAll("thead th")).map((x) => (x.innerText || "").trim().toLowerCase());
+      if (!ths.length) continue;
+      const idxSistema = ths.findIndex((h) => h === "sistema" || h.startsWith("sistema"));
+      const idxAmbiente = ths.findIndex((h) => h === "ambiente" || h.startsWith("ambiente"));
+      if (idxSistema < 0 && idxAmbiente < 0) continue;
+      const firstRow = t.querySelector("tbody tr");
+      if (!firstRow) continue;
+      const tds = firstRow.querySelectorAll("td");
+      const get = (i) => i >= 0 && tds[i] ? (tds[i].innerText || "").replace(/\s+/g, " ").trim() : "";
+      const sistema = get(idxSistema);
+      const ambiente = get(idxAmbiente);
+      if (sistema) parts.push("SISTEMA_GDS: " + sistema + " (backend do portal, NÃO é a companhia aérea)");
+      if (ambiente) parts.push("AMBIENTE_PORTAL: " + ambiente + " (nome do portal/consolidador, NÃO é a companhia aérea)");
+      break;
+    }
+    return parts.length ? "===== CABEÇALHO DA RESERVA (metadata) =====\n" + parts.join("\n") : "";
+  }
+
   function extractFromDoc(doc) {
     if (!doc || !doc.body) return "";
+    const header = extractReservationHeader(doc);
     const tablesText = extractTables(doc);
     const formValues = [];
     doc.body.querySelectorAll("input,select,textarea").forEach((el) => {
@@ -110,7 +138,7 @@
     // innerText traz apenas o conteúdo realmente exibido. textContent incluía
     // telas/templates ocultos do portal e cortava a tabela da reserva no limite.
     const bodyText = doc.body.innerText || "";
-    return [tablesText, formValues.length ? "CAMPOS:\n" + formValues.join("\n") : "", "TEXTO VISÍVEL:\n" + bodyText]
+    return [header, tablesText, formValues.length ? "CAMPOS:\n" + formValues.join("\n") : "", "TEXTO VISÍVEL:\n" + bodyText]
       .filter(Boolean)
       .join("\n\n");
   }
