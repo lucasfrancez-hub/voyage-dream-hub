@@ -295,6 +295,33 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={pixAsk !== null} onOpenChange={(v) => { if (!v) setPixAsk(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar desconto no Pix?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja oferecer {cfg.pix.discount_pct}% de desconto no Pix neste orçamento?
+              Você pode ajustar a porcentagem nas condições abaixo antes de gerar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPixAsk(null)}>Cancelar</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={() => { const a = pixAsk; setPixAsk(null); if (a) runAction(a, false); }}
+            >
+              Sem desconto
+            </Button>
+            <AlertDialogAction
+              onClick={() => { const a = pixAsk; setPixAsk(null); if (a) runAction(a, true); }}
+            >
+              Aplicar {cfg.pix.discount_pct}%
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
+
