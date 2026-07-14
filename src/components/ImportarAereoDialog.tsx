@@ -239,10 +239,6 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
 
           {(phase === "idle" || phase === "arming") && (
             <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Clique em <span className="font-medium">Aguardar importação</span>, abra a página da reserva (LATAM, GOL, AZUL, SkyTeam, Infotera, etc.) e clique no botão <span className="font-medium">📥 Importar pra Via Air</span> que aparece lá dentro. Os dados vêm pra este pedido automaticamente.
-              </div>
-
               <div className={`rounded-md border p-3 text-xs flex items-start gap-2 ${
                 extPresent === false ? "border-destructive/40 bg-destructive/5 text-destructive"
                 : extPresent === true ? "border-emerald-200 bg-emerald-50 text-emerald-800"
@@ -279,17 +275,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
           {phase === "waiting" && (
             <div className="py-10 flex flex-col items-center gap-4 text-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <div className="space-y-1">
-                <div className="font-medium">Aguardando importação…</div>
-                <div className="text-sm text-muted-foreground max-w-sm">
-                  Abra a página da reserva no site da companhia/consolidadora e clique no botão
-                  <span className="font-medium"> 📥 Importar pra Via Air </span>
-                  no canto inferior direito. Os dados aparecem aqui automaticamente.
-                </div>
-              </div>
+              <div className="font-medium">Aguardando importação…</div>
               <Button variant="ghost" size="sm" onClick={reset}>Cancelar</Button>
             </div>
           )}
+
 
           {phase === "review" && reservation && (
             <ReviewReservation

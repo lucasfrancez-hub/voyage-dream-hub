@@ -1069,10 +1069,11 @@ function ItemsTab({
               orderId={orderId}
               onImported={onChange}
               trigger={
-                <Button size="sm" variant="outline" className="gap-1">
-                  <Download className="h-3.5 w-3.5" /> Importar aéreo
+                <Button size="sm" className="gap-1 bg-orange-500 hover:bg-orange-600 text-white">
+                  <Download className="h-3.5 w-3.5" /> Importar para Via Air
                 </Button>
               }
+
             />
           )}
           <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
