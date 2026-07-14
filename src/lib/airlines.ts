@@ -108,15 +108,27 @@ const norm = (s: string) => s.trim().toLowerCase();
 export function findAirline(input: string | null | undefined): Airline | undefined {
   if (!input) return undefined;
   const q = norm(input);
+  if (!q) return undefined;
   const iata = q.toUpperCase();
+
+  // 1) IATA exato (2 letras/dígitos) — sempre ganha.
+  const byIata = AIRLINES.find((a) => a.iata === iata);
+  if (byIata) return byIata;
+
+  // 2) Nome exato ou alias exato.
+  const byExact = AIRLINES.find(
+    (a) => norm(a.name) === q || a.aliases?.some((al) => norm(al) === q),
+  );
+  if (byExact) return byExact;
+
+  // 3) Substring — só para inputs "longos" (>=4 chars). Evita "LA" casar
+  //    com "zeaLAnd", "AA" com "quAAntas", etc.
+  if (q.length < 4) return undefined;
   return AIRLINES.find(
-    (a) =>
-      a.iata === iata ||
-      norm(a.name) === q ||
-      norm(a.name).includes(q) ||
-      a.aliases?.some((al) => norm(al) === q || norm(al).includes(q)),
+    (a) => norm(a.name).includes(q) || a.aliases?.some((al) => norm(al).includes(q)),
   );
 }
+
 
 /** Get logo URL for an airline reference (IATA or name). */
 export function airlineLogo(input: string | null | undefined): string | undefined {
