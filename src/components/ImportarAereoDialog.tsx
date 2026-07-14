@@ -11,6 +11,7 @@ import {
   type ImportedReservation, type ImportedFlightSegment, type ImportedPassenger,
 } from "@/lib/flight-import.functions";
 import { upsertOrderItem, upsertPassenger } from "@/lib/orders.functions";
+import { buildAirlineCheckinUrl } from "@/lib/airline-checkin";
 
 type Props = {
   orderId: string;
