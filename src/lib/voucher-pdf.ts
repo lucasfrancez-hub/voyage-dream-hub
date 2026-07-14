@@ -2056,7 +2056,6 @@ export async function generateVoucher(
 
   drawHeader(ctx);
   drawVoucherIdCard(ctx);
-  drawPassengersSection(ctx, detail.passengers);
 
   // Split flights
   const outbound: OrderItem[] = [];
