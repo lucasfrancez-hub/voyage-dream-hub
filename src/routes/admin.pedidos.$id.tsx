@@ -1611,9 +1611,17 @@ function FlightReservationCard({
             {allCancelled ? (
               <Button size="sm" variant="ghost" onClick={() => confirmThen("Reativar todos os trechos desta reserva?", () => segments.forEach((s) => onReactivate(s)))} title="Reativar"><RotateCcw className="h-3.5 w-3.5" /></Button>
             ) : (
-              <Button size="sm" variant="ghost" onClick={() => confirmThen("Cancelar toda a reserva (ida e volta)?", () => segments.filter((s) => s.status !== "cancelled").forEach((s) => onCancel(s)))} title="Cancelar"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
+              <Button size="sm" variant="ghost" onClick={() => {
+                const active = segments.filter((s) => s.status !== "cancelled");
+                if (!active.length) return;
+                if (onCancelMany) onCancelMany(active);
+                else active.forEach((s) => onCancel(s));
+              }} title="Cancelar reserva"><Ban className="h-3.5 w-3.5 text-amber-500" /></Button>
             )}
-            <Button size="sm" variant="ghost" onClick={() => confirmThen("Excluir toda a reserva (ida e volta)?", () => segments.forEach((s) => onDelete(s)))} title="Excluir"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => {
+              if (onDeleteMany) onDeleteMany(segments);
+              else segments.forEach((s) => onDelete(s));
+            }} title="Excluir reserva"><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
 
           </div>
         </div>
