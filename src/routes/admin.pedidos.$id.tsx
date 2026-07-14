@@ -2060,13 +2060,13 @@ function ItemDialog({
           const code = e.target.value.toUpperCase();
           onChangeField("from_iata", code);
           const city = iataCity(code);
-          if (city && !String(d.from_city ?? "").trim()) onChangeField("from_city", city);
+          if (city) onChangeField("from_city", city);
         }} placeholder="GRU" maxLength={4} /></div>
         <div><Label>Destino (IATA)</Label><Input value={String(d.to_iata ?? d.destination ?? "")} onChange={(e) => {
           const code = e.target.value.toUpperCase();
           onChangeField("to_iata", code);
           const city = iataCity(code);
-          if (city && !String(d.to_city ?? "").trim()) onChangeField("to_city", city);
+          if (city) onChangeField("to_city", city);
         }} placeholder="GIG" maxLength={4} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
