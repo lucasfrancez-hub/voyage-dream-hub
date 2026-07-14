@@ -41,6 +41,16 @@ export function confirm(
   });
 }
 
+/** Fire-and-forget confirm: runs onOk if the user confirms. */
+export function confirmThen(
+  messageOrOpts: string | ConfirmOpts,
+  onOk: () => void,
+  extra?: ConfirmOpts,
+) {
+  void confirm(messageOrOpts as any, extra).then((ok) => { if (ok) onOk(); });
+}
+
+
 export function ConfirmProvider() {
   const [pending, setPending] = useState<Pending | null>(null);
 
