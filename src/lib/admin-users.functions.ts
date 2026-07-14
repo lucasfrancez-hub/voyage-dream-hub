@@ -37,11 +37,13 @@ export const listAdminUsers = createServerFn({ method: "GET" })
       .from("user_roles")
       .select("user_id, role");
     if (rolesErr) throw new Error(rolesErr.message);
-    const roleMap = new Map<string, "admin" | "user">();
+    // Prioridade: admin > partner > user
+    const rank: Record<AdminRole, number> = { admin: 3, partner: 2, user: 1 };
+    const roleMap = new Map<string, AdminRole>();
     (roles ?? []).forEach((r: any) => {
-      if (r.role === "admin" || !roleMap.has(r.user_id)) {
-        roleMap.set(r.user_id, r.role);
-      }
+      const cur = roleMap.get(r.user_id);
+      const next = r.role as AdminRole;
+      if (!cur || rank[next] > rank[cur]) roleMap.set(r.user_id, next);
     });
 
     const { data: profiles } = await supabaseAdmin
