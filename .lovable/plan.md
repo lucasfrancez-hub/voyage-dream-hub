@@ -1,65 +1,114 @@
-## Objetivo
 
-Separar pedidos criados por **agências parceiras** (ex.: Zonet Viagens) dos seus pedidos próprios. O parceiro entra com o e-mail dele, cria/gerencia só os pedidos dele. Você (admin) vê tudo, mas dividido em duas abas.
+# Camila IA — atendimento WhatsApp com handoff humano
 
-## 1. Modelo de dados
+Objetivo: reduzir ao máximo o tempo de atendimento humano. Camila resolve tudo que dá com dados do admin; o que exige criatividade/negociação (cotação nova, voo alterado, reclamação) ela coleta briefing e joga na fila do `/chat` interno pros vendedores.
 
-Migration:
+## Arquitetura
 
-- Nova role `partner` no enum `app_role`.
-- Nova tabela `public.partner_agencies` — 1 linha por parceiro:
-  - `user_id` (FK `auth.users`, único)
-  - `agency_name`, `agency_email`, `agency_phone`, `agency_cnpj`
-  - `logo_url`, `brand_primary`, `brand_secondary` (cores do voucher — preenche depois)
-- Coluna nova em `public.orders`:
-  - `owner_user_id uuid` (quem "dono" do pedido — parceiro ou você).
-  - Backfill: todos os pedidos existentes → seu user_id.
-  - Trigger `BEFORE INSERT`: se `owner_user_id` for null, usa `auth.uid()`.
+```text
+WhatsApp Cloud API
+        │
+        ▼
+/api/public/whatsapp-webhook  ──►  persiste mensagem em `wa_messages`
+                                   ├─ cria/atualiza `wa_conversations`
+                                   └─ se conversa NÃO está com humano:
+                                          dispara runCamila(conversationId)
 
-## 2. Regras de acesso (RLS)
+runCamila (server fn, streamText + tools)
+   ├─ identifica cliente (people + orders pelo phone)
+   ├─ carrega histórico da conversa
+   ├─ system prompt + tools
+   ├─ executa loop AI SDK (stepCountIs(50))
+   └─ envia respostas via Cloud API → grava no DB
 
-- **Admin** (você): vê e mexe em todos.
-- **Partner**: vê/mexe **apenas** onde `orders.owner_user_id = auth.uid()` (e mesmos filtros propagados para `order_items`, `order_passengers`, docs etc. via join com o pedido dono).
-- Sem role → sem acesso (como já é hoje).
-
-As checagens em `orders.functions.ts` ganham um branch: se `partner`, força `owner_user_id = userId` em toda leitura/escrita; se `admin`, mantém o comportamento atual.
-
-## 3. Navegação (dropdown "Pedidos")
-
-Igual ao Dashboard: um `PedidosNav` com setinha e duas opções:
-
-```
-Pedidos ▾
- ├─ Meus pedidos          → /admin/pedidos          (filtro: owner = você)
- └─ Pedidos de terceiro   → /admin/pedidos/terceiros (filtro: owner ≠ você)
+/chat (inbox interno)
+   ├─ lista de conversas com filtros: [Todas] [Camila] [Aguardando humano] [Minhas]
+   ├─ conversa selecionada com mensagens em tempo real (Supabase realtime)
+   ├─ botão "Assumir" → seta assigned_to = user, mode = 'human'
+   └─ botão "Devolver pra Camila" → mode = 'ai'
 ```
 
-- Parceiro logado: dropdown some, vira link simples "Meus pedidos" apontando para `/admin/pedidos` (que já traz só os dele por RLS).
-- Você: `/admin/pedidos` mostra só os seus; `/admin/pedidos/terceiros` mostra os dos parceiros com uma coluna extra "Agência" (nome do parceiro dono).
+## Fases
 
-## 4. Voucher com marca da agência parceira
+### Fase 1 — Fundação de dados e webhook (backend)
+- Migration: `wa_conversations`, `wa_messages`, `wa_handoff_events`.
+- Webhook: além de validar assinatura, salva mensagem, resolve conversa por `wa_phone`, e enfileira `runCamila` só se `mode = 'ai'`.
+- Server fn `sendWhatsAppMessage(to, text)` usando `WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID`.
+- Identificação: match do telefone contra `people.phone` e `orders` do CRM.
 
-Só o encanamento nesta etapa (sem trocar cores ainda):
+### Fase 2 — Camila com tools (IA)
+Server fn `runCamila` usando AI SDK + Lovable AI Gateway (`google/gemini-3.5-flash`, bom em tool-calling e barato). Tools:
 
-- `voucher-pdf` recebe os dados de agência do dono do pedido: se `owner_user_id` for um parceiro, carrega `partner_agencies` daquele user e usa `agency_name/email/phone/logo/cores` no lugar dos dados fixos da Via Air.
-- Se for você, mantém Via Air como hoje.
+- `consultar_pedido({ numero | cpf })` → status, itens, pagamentos, voos, hotel
+- `consultar_voo({ pedido_numero, direcao? })` → datas, horários, localizador, cia
+- `gerar_2via_voucher({ pedido_numero })` → gera PDF e devolve URL assinada
+- `reenviar_link_pagamento({ pedido_numero })` → cria link novo e envia
+- `buscar_pacotes({ destino?, mes?, pax?, orcamento? })` → lista pacotes do admin
+- `pedir_confirmacao_identidade({ motivo })` → força cliente a confirmar CPF antes de acessar dados sensíveis
+- `escalar_para_humano({ motivo, briefing })` → seta `mode='human'`, `priority`, adiciona tag; Camila para de responder
 
-Depois você me manda os dados/cores da Zonet e eu ajusto os tokens de cor + logo do PDF.
+**Regra de segurança da identificação (implementada no system prompt + guard nas tools):**
+- Consultas por número de WhatsApp reconhecido: liberadas pra info não-sensível (nome, datas de voo).
+- Dados financeiros, voucher, cartão, alteração: exige confirmação de CPF ou data de nascimento na sessão. Se ainda não confirmou, Camila chama `pedir_confirmacao_identidade`.
 
-## 5. Fluxo pra cadastrar o parceiro
+### Fase 3 — Inbox /chat interno
+Reformar `/chat` existente com AI Elements:
+- `InboxList` com abas e badges de não-lidas
+- `CamilaChat` renomeado pra `ConversationView` — mostra mensagens da Camila E do humano, com avatar diferente
+- `ContactPanel` (lateral direita): dados do cliente, últimos pedidos, botões rápidos (abrir pedido no admin, gerar voucher)
+- Botões no header da conversa: **Assumir** / **Devolver pra Camila** / **Marcar resolvido**
+- Realtime via Supabase channel em `wa_messages`
 
-Depois que a migration rodar, você me passa o e-mail da conta dele e:
+### Fase 4 — Lembretes automáticos (cron)
+`pg_cron` diário chama `/api/public/hooks/enviar-lembretes`:
+- Voos em 24h → template `lembrete_embarque`
+- Boletos vencendo em 2 dias → template `boleto_vencendo`
+- Pagamentos pendentes há 3+ dias → follow-up
 
-1. Crio/atribuo a role `partner` para aquele `user_id`.
-2. Insiro a linha em `partner_agencies` com nome "Zonet Viagens" + contatos (branding fica em branco até você mandar).
-3. Ele loga → só enxerga os pedidos dele; do seu lado eles aparecem em "Pedidos de terceiro".
+## Detalhes técnicos
 
-## Fora do escopo (fica pra depois)
+**Novas tabelas** (migration Fase 1):
+```sql
+wa_conversations (
+  id uuid pk,
+  wa_phone text unique,
+  person_id uuid null references people(id),
+  mode text check (mode in ('ai','human','resolved')) default 'ai',
+  assigned_to uuid null references auth.users(id),
+  priority text default 'normal',
+  identity_verified_at timestamptz,
+  last_message_at timestamptz,
+  created_at, updated_at
+)
 
-- Cores/logo/CNPJ definitivos da Zonet — você me manda e eu troco.
-- Convite automático por e-mail para o parceiro.
-- Relatório financeiro consolidado misturando os dois grupos.
+wa_messages (
+  id uuid pk,
+  conversation_id uuid fk,
+  direction text check (direction in ('inbound','outbound')),
+  sender text check (sender in ('customer','camila','human','system')),
+  content text,
+  wa_message_id text,   -- id da Meta pra dedupe
+  tool_calls jsonb null,-- se foi resposta de tool
+  created_at
+)
 
-## Confirmação
+wa_handoff_events (
+  id uuid pk, conversation_id uuid, from_mode text, to_mode text,
+  reason text, briefing text, actor uuid null, created_at
+)
+```
+RLS: só usuários com role `admin` ou `atendente` leem/escrevem.
 
-Confirma que sigo com essa estrutura? Assim que aprovar a migration, já implemento a navegação, a rota `/admin/pedidos/terceiros` e o carregamento da marca no voucher.
+**Stack IA**: AI SDK (`streamText` no chat interno pra ver em tempo real, `generateText` no webhook porque não precisa streaming), Lovable AI Gateway com helper existente em `src/lib/ai-gateway.server.ts`. System prompt em `src/lib/chat/camila-prompt.ts` (já existe, será atualizado).
+
+**Fora do escopo desta primeira entrega:**
+- Roberto (pós-venda) — fica pra depois
+- Envio proativo de templates HSM fora dos lembretes (marketing em massa)
+- Multi-idioma
+- Voz/áudio (só texto por ora)
+
+## Ordem de entrega sugerida
+
+Entrego **Fase 1 + 2 juntas** (Camila já responde no WhatsApp usando dados do admin), você testa com seu próprio número, e depois vamos pra Fase 3 (inbox) e Fase 4 (cron de lembretes).
+
+Se aprovar, começo pela migration e webhook.
