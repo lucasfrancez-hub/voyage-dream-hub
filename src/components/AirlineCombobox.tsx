@@ -185,7 +185,7 @@ export function AirlineCombobox({
                 value={query}
                 onValueChange={setQuery}
               />
-              <CommandList>
+              <CommandList className="max-h-[320px] overflow-y-auto overscroll-contain">
                 <CommandEmpty>Nenhuma companhia encontrada.</CommandEmpty>
                 <CommandGroup>
                   {AIRLINES.map((a) => {
