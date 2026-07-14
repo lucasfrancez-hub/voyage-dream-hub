@@ -41,6 +41,7 @@ import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
 import { ClassSelect } from "@/components/ClassSelect";
 import { findAirline } from "@/lib/airlines";
+import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { Cloud } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
@@ -2055,12 +2056,22 @@ function ItemDialog({
         )}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Origem (IATA)</Label><Input value={String(d.from_iata ?? d.origin ?? "")} onChange={(e) => onChangeField("from_iata", e.target.value)} placeholder="GRU" /></div>
-        <div><Label>Destino (IATA)</Label><Input value={String(d.to_iata ?? d.destination ?? "")} onChange={(e) => onChangeField("to_iata", e.target.value)} placeholder="CUR" /></div>
+        <div><Label>Origem (IATA)</Label><Input value={String(d.from_iata ?? d.origin ?? "")} onChange={(e) => {
+          const code = e.target.value.toUpperCase();
+          onChangeField("from_iata", code);
+          const city = iataCity(code);
+          if (city && !String(d.from_city ?? "").trim()) onChangeField("from_city", city);
+        }} placeholder="GRU" maxLength={4} /></div>
+        <div><Label>Destino (IATA)</Label><Input value={String(d.to_iata ?? d.destination ?? "")} onChange={(e) => {
+          const code = e.target.value.toUpperCase();
+          onChangeField("to_iata", code);
+          const city = iataCity(code);
+          if (city && !String(d.to_city ?? "").trim()) onChangeField("to_city", city);
+        }} placeholder="GIG" maxLength={4} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label>Cidade origem</Label><Input value={String(d.from_city ?? "")} onChange={(e) => onChangeField("from_city", e.target.value)} placeholder="São Paulo" /></div>
-        <div><Label>Cidade destino</Label><Input value={String(d.to_city ?? "")} onChange={(e) => onChangeField("to_city", e.target.value)} placeholder="Curitiba" /></div>
+        <div><Label>Cidade destino</Label><Input value={String(d.to_city ?? "")} onChange={(e) => onChangeField("to_city", e.target.value)} placeholder="Rio de Janeiro" /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
