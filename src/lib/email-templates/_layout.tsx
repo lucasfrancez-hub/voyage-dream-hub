@@ -27,6 +27,8 @@ interface LayoutProps {
   stepLabel: string
   children: React.ReactNode
   footerMessage?: string
+  /** @deprecated kept for compatibility with older templates */
+  darkFooter?: boolean
 }
 
 export const EmailLayout = ({
