@@ -77,7 +77,7 @@ export const createImportToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({
     orderId: z.string().uuid(),
-    airlineHint: z.enum(["latam", "gol", "azul"]),
+    airlineHint: z.enum(["latam", "gol", "azul", "any"]),
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase
