@@ -41,6 +41,7 @@ type FlightInfo = {
   duration?: string;
   stops?: number | string;
   cabin_class?: string;
+  fare_class?: string;
   carry_on?: boolean;
   checked_bag?: boolean;
   personal_item?: boolean;
