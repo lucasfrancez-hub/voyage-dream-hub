@@ -5,7 +5,7 @@ interface Props {
   side: "in" | "out";
   content: string;
   timestamp: string; // ISO
-  senderLabel?: string; // "Camila", "Roberto", "Você"
+  senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
   status?: "sent" | "delivered" | "read";
 }
 
@@ -14,8 +14,14 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function firstNameUpper(full: string): string {
+  const first = full.trim().split(/\s+/)[0] ?? "";
+  return first.toLocaleUpperCase("pt-BR");
+}
+
 export function WhatsAppBubble({ side, content, timestamp, senderLabel, status }: Props) {
   const isOut = side === "out";
+  const label = senderLabel ? firstNameUpper(senderLabel) : null;
   return (
     <div className={cn("flex w-full", isOut ? "justify-end" : "justify-start")}>
       <div
@@ -24,8 +30,15 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status }
           isOut ? "bg-[#DCF8C6] text-slate-900" : "bg-white text-slate-900",
         )}
       >
-        {senderLabel && isOut && (
-          <div className="mb-0.5 text-[11px] font-medium text-[#F26B1F]">{senderLabel}</div>
+        {label && (
+          <div
+            className={cn(
+              "mb-0.5 text-[11px] font-bold tracking-wide",
+              isOut ? "text-[#F26B1F]" : "text-slate-700",
+            )}
+          >
+            {label}
+          </div>
         )}
         <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{content}</div>
         <div className={cn("mt-1 flex items-center gap-1 text-[10px] text-slate-500", isOut ? "justify-end" : "justify-start")}>
