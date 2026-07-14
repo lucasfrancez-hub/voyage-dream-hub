@@ -179,3 +179,17 @@ export const setAdminUserRole = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const resendUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ email: z.string().email() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureGestor(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Dispara e-mail de recuperação de senha (template padrão da Lovable).
+    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(data.email);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

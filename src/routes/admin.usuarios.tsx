@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, UserPlus, Trash2, ShieldCheck, Loader2, Check } from "lucide-react";
+import { Users, UserPlus, Trash2, ShieldCheck, Loader2, Check, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import {
   listAdminUsers,
@@ -10,6 +10,7 @@ import {
   deleteAdminUser,
   setAdminUserRole,
   setAdminUserFullName,
+  resendUserPassword,
   type AdminRole,
 } from "@/lib/admin-users.functions";
 
@@ -24,6 +25,7 @@ function UsersPage() {
   const del = useServerFn(deleteAdminUser);
   const setRole = useServerFn(setAdminUserRole);
   const setName = useServerFn(setAdminUserFullName);
+  const resendPwd = useServerFn(resendUserPassword);
 
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
@@ -71,6 +73,11 @@ function UsersPage() {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar nome"),
+  });
+  const resendMut = useMutation({
+    mutationFn: (email: string) => resendPwd({ data: { email } }),
+    onSuccess: () => toast.success("E-mail de redefinição de senha enviado"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao reenviar"),
   });
 
   const [email, setEmail] = useState("");
@@ -196,8 +203,10 @@ function UsersPage() {
               key={u.id}
               user={u}
               savingName={nameMut.isPending && nameMut.variables?.userId === u.id}
+              resending={resendMut.isPending && resendMut.variables === u.email}
               onSaveName={(name) => nameMut.mutate({ userId: u.id, fullName: name })}
               onChangeRole={(r) => roleMut.mutate({ userId: u.id, role: r })}
+              onResend={() => resendMut.mutate(u.email)}
               onDelete={() => {
                 if (confirm(`Remover ${u.email}?`)) delMut.mutate(u.id);
               }}
@@ -215,8 +224,10 @@ function UsersPage() {
 function UserRow({
   user,
   savingName,
+  resending,
   onSaveName,
   onChangeRole,
+  onResend,
   onDelete,
 }: {
   user: {
@@ -228,8 +239,10 @@ function UserRow({
     role: AdminRole;
   };
   savingName: boolean;
+  resending: boolean;
   onSaveName: (name: string) => void;
   onChangeRole: (r: AdminRole) => void;
+  onResend: () => void;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(user.fullName ?? "");
@@ -287,13 +300,25 @@ function UserRow({
       ) : (
         <span />
       )}
-      <button
-        type="button"
-        onClick={onDelete}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
-      >
-        <Trash2 className="h-3.5 w-3.5" /> Remover
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={resending}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-brand-orange hover:text-brand-orange transition disabled:opacity-60"
+          title="Enviar e-mail para o usuário redefinir a senha"
+        >
+          {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+          Reenviar senha
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
+        >
+          <Trash2 className="h-3.5 w-3.5" /> Remover
+        </button>
+      </div>
     </div>
   );
 }
