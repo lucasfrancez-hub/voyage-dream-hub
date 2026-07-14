@@ -69,22 +69,31 @@ página — pode ser uma companhia brasileira (LATAM, GOL, AZUL) OU um portal de
 consolidador/operador (SkyTeam/Travellink, FRT/Infotravel, Visual Turismo/
 Infotera) — e devolve JSON estruturado com passageiros e voos.
 
-ATENÇÃO — nome da companhia:
+ATENÇÃO — nome da companhia (LEIA COM CUIDADO):
 - "Travellink", "SkyTeam", "FRT", "Infotravel", "Infotera", "Visual Turismo"
   são SISTEMAS/consolidadores, NUNCA companhia aérea. Não coloque nada disso
-  em supplier_name/airline.
-- A companhia aérea real vem da coluna "Cia" da tabela de voos. Se ela não
-  estiver clara, DEDUZA pelo prefixo do número do voo: as 2 primeiras letras/
-  dígitos do flight_number SÃO o código IATA da cia (G3=GOL, AD=AZUL, LA=LATAM,
-  TP=TAP, AF=AIR FRANCE, KL=KLM, AR=AEROLINEAS, AA=AMERICAN, UA=UNITED,
-  DL=DELTA, IB=IBERIA, LH=LUFTHANSA, AV=AVIANCA, CM=COPA, etc.). Preencha
-  airline_iata com esse prefixo em TODO segment.
-- Cada trecho pode ter cia diferente — preencha por segment, nunca use o
-  nome do consolidador.
-- O campo "Ambiente: Travellink" identifica somente o ambiente do portal e
-  deve ser ignorado ao determinar a companhia.
+  em supplier_name/airline/segments[].airline.
+- O texto extraído pode vir com um bloco "===== CABEÇALHO DA RESERVA (metadata)
+  =====" contendo linhas do tipo "SISTEMA_GDS: Sabre" e "AMBIENTE_PORTAL:
+  Travellink". Esses valores são metadados do portal — IGNORE COMPLETAMENTE
+  para escolher a companhia. A cabeçalho ASP.NET dos portais BR tem colunas
+  "Localizador | Status | Data de emissão | Criação | Sistema | Ambiente |
+  Incluido Via" — as colunas Sistema e Ambiente NÃO são cia aérea.
+- A companhia aérea real vem da coluna "Cia" da tabela de VOOS (não da tabela
+  de cabeçalho). Se ela não estiver clara, DEDUZA pelo prefixo do número do
+  voo: as 2 primeiras letras/dígitos do flight_number SÃO o código IATA da
+  cia (G3=GOL, AD=AZUL, LA=LATAM, TP=TAP PORTUGAL, AF=AIR FRANCE, KL=KLM,
+  AR=AEROLINEAS, AA=AMERICAN, UA=UNITED, DL=DELTA, IB=IBERIA, LH=LUFTHANSA,
+  AV=AVIANCA, CM=COPA, JJ=LATAM, etc.). Preencha airline_iata com esse
+  prefixo em TODO segment.
+- Cada trecho pode ter cia diferente — preencha por segment.
+- supplier_name (nível reserva) = nome comercial da cia principal (a mesma
+  do primeiro segmento), NUNCA o nome do portal/consolidador/GDS.
 - Se um voo tiver aviso "voo XXXX pertence à companhia Y mas é operado pela
   companhia Z", use Y em airline e coloque Z em notes/aircraft.
+- EXEMPLO: reserva com AMBIENTE_PORTAL=Travellink, SISTEMA_GDS=Sabre e voos
+  "TP 0074", "TP 0930", "TP 0945" → supplier_name="TAP Portugal",
+  cada segment.airline_iata="TP". NUNCA "Travellink" nem "Sabre".
 
 Passageiros:
 - Extraia TODOS os passageiros listados (adultos, crianças, bebês). Nunca pare
