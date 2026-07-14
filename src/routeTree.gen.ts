@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PacotesRouteImport } from './routes/pacotes'
@@ -45,6 +46,11 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PagarBoletoRoute = PagarBoletoRouteImport.update({
   id: '/pagar-boleto',
   path: '/pagar-boleto',
@@ -233,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -269,6 +276,7 @@ export interface FileRoutesByTo {
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -307,6 +315,7 @@ export interface FileRoutesById {
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -346,6 +355,7 @@ export interface FileRouteTypes {
     | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
+    | '/unsubscribe'
     | '/admin/cofre'
     | '/admin/dashboard'
     | '/admin/instalar-extensao'
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/minhas-reservas'
     | '/pagar'
     | '/pagar-boleto'
+    | '/unsubscribe'
     | '/admin/cofre'
     | '/admin/dashboard'
     | '/admin/instalar-extensao'
@@ -419,6 +430,7 @@ export interface FileRouteTypes {
     | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
+    | '/unsubscribe'
     | '/admin/cofre'
     | '/admin/dashboard'
     | '/admin/instalar-extensao'
@@ -457,6 +469,7 @@ export interface RootRouteChildren {
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
   PagarBoletoRoute: typeof PagarBoletoRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
@@ -471,6 +484,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pagar-boleto': {
       id: '/pagar-boleto'
       path: '/pagar-boleto'
@@ -790,6 +810,7 @@ const rootRouteChildren: RootRouteChildren = {
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
   PagarBoletoRoute: PagarBoletoRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
