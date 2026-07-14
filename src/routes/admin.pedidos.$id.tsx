@@ -2291,7 +2291,7 @@ function ItemDialog({
               </div>
             )}
             <div className={kind === "other" ? "" : "col-span-2"}>
-              <Label>Localizador do fornecedor{kind === "flight" ? " *" : ""}</Label>
+              <Label>Localizador do fornecedor</Label>
               <Input
                 value={locator}
                 onChange={(e) => {
@@ -2306,7 +2306,7 @@ function ItemDialog({
                 maxLength={kind === "flight" ? 12 : 32}
               />
               {kind === "flight" && (
-                <p className="mt-1 text-[11px] text-muted-foreground">Obrigatório · mínimo 6 caracteres (letras e/ou números).</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Opcional · se preencher, use no mínimo 6 caracteres (letras e/ou números).</p>
               )}
             </div>
 
@@ -2533,9 +2533,9 @@ function ItemDialog({
             const cleanMain = buildClean(details);
             let effectiveTitle = title.trim();
             if (kind === "flight") {
-              // Localizador obrigatório: mínimo 6 alfanuméricos
+              // Localizador opcional: se vier, precisa ter ao menos 6 alfanuméricos
               const loc = locator.trim().toUpperCase();
-              if (!/^[A-Z0-9]{6,}$/.test(loc)) {
+              if (loc && !/^[A-Z0-9]{6,}$/.test(loc)) {
                 toast.error("Localizador inválido: mínimo 6 caracteres (letras e/ou números)");
                 return;
               }
