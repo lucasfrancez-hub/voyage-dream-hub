@@ -41,7 +41,7 @@ import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { AirlineLogo } from "@/components/AirlineLogo";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
 import { ClassSelect } from "@/components/ClassSelect";
-import { findAirline } from "@/lib/airlines";
+
 import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { Cloud } from "lucide-react";
