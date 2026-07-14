@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
+import { AirlineCombobox } from "@/components/AirlineCombobox";
+import { findAirline } from "@/lib/airlines";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
