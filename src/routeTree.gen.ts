@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
+import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PacotesRouteImport } from './routes/pacotes'
@@ -62,6 +63,11 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
   path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
+  id: '/politica-de-privacidade',
+  path: '/politica-de-privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PagarBoletoRoute = PagarBoletoRouteImport.update({
@@ -319,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -369,6 +376,7 @@ export interface FileRoutesByTo {
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -421,6 +429,7 @@ export interface FileRoutesById {
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -474,6 +483,7 @@ export interface FileRouteTypes {
     | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
+    | '/politica-de-privacidade'
     | '/unsubscribe'
     | '/admin/cofre'
     | '/admin/dashboard'
@@ -524,6 +534,7 @@ export interface FileRouteTypes {
     | '/minhas-reservas'
     | '/pagar'
     | '/pagar-boleto'
+    | '/politica-de-privacidade'
     | '/unsubscribe'
     | '/admin/cofre'
     | '/admin/dashboard'
@@ -575,6 +586,7 @@ export interface FileRouteTypes {
     | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
+    | '/politica-de-privacidade'
     | '/unsubscribe'
     | '/admin/cofre'
     | '/admin/dashboard'
@@ -627,6 +639,7 @@ export interface RootRouteChildren {
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
   PagarBoletoRoute: typeof PagarBoletoRoute
+  PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
@@ -649,6 +662,13 @@ declare module '@tanstack/react-router' {
       path: '/unsubscribe'
       fullPath: '/unsubscribe'
       preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-privacidade': {
+      id: '/politica-de-privacidade'
+      path: '/politica-de-privacidade'
+      fullPath: '/politica-de-privacidade'
+      preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pagar-boleto': {
@@ -1090,6 +1110,7 @@ const rootRouteChildren: RootRouteChildren = {
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
   PagarBoletoRoute: PagarBoletoRoute,
+  PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
