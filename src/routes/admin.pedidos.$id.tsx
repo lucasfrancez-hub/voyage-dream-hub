@@ -38,6 +38,7 @@ import {
 } from "@/lib/orders.functions";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
+import { AirlineLogo } from "@/components/AirlineLogo";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
 import { ClassSelect } from "@/components/ClassSelect";
 import { findAirline } from "@/lib/airlines";
@@ -1602,6 +1603,7 @@ function FlightReservationCard({
                     <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${dir === "return" ? "bg-brand-blue/15 text-brand-blue" : "bg-brand-orange/15 text-brand-orange"}`}>
                       {dir === "return" ? "Volta" : dir === "outbound" ? "Ida" : "Trecho"}
                     </span>
+                    {airline && <AirlineLogo airline={airline} size={22} />}
                     {airline && <span className="text-xs text-muted-foreground">{airline}</span>}
                     {flightNum && <span className="font-mono text-xs">{flightNum}</span>}
                     {cabin && <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{cabin}</span>}
