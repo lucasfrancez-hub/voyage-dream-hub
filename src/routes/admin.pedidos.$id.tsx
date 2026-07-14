@@ -1660,6 +1660,14 @@ function FlightReservationCard({
                     {cabin && <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{cabin}</span>}
                   {cancelled && <span className="text-[10px] font-semibold uppercase text-destructive">Cancelado</span>}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => onDelete(seg)}
+                  title="Excluir apenas este voo"
+                  className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
                 </div>
                 <div className="mt-1.5 grid gap-1 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
                   <div>
