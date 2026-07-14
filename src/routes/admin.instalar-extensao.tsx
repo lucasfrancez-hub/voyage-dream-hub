@@ -24,7 +24,11 @@ function InstalarExtensao() {
       if (d.version) setInstalledVersion(d.version);
     }
     window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
+    // Ping — se a extensão estiver ativa, responde com "ready" e a versão.
+    window.postMessage({ __viaair: "ping" }, window.location.origin);
+    const iv = setInterval(() => window.postMessage({ __viaair: "ping" }, window.location.origin), 1000);
+    const stop = setTimeout(() => clearInterval(iv), 5000);
+    return () => { window.removeEventListener("message", onMsg); clearInterval(iv); clearTimeout(stop); };
   }, []);
 
   function download() {
