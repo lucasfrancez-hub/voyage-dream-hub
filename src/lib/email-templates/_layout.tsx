@@ -4,11 +4,16 @@ import {
   Container,
   Head,
   Html,
+  Img,
   Link,
   Preview,
   Section,
   Text,
 } from '@react-email/components'
+import logoAsset from '@/assets/viaair-logo.png.asset.json'
+
+const APP_BASE_URL = 'https://pedidos.viaair.tur.br'
+const LOGO_URL = logoAsset.url.startsWith('http') ? logoAsset.url : `${APP_BASE_URL}${logoAsset.url}`
 
 interface LayoutProps {
   preview: string
