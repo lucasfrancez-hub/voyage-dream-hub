@@ -61,10 +61,11 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
     return () => { cancelled = true; };
   }, [open, orderId, getCfg, getTok]);
 
-  const publicUrl = token
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/orcamento/${token}`
-    : "";
+  // Sempre usa o domínio público oficial para links de orçamento (não o preview/lovable).
+  const PUBLIC_HOST = "https://pedidos.viaair.tur.br";
+  const publicUrl = token ? `${PUBLIC_HOST}/orcamento/${token}` : "";
   const printUrl = publicUrl ? `${publicUrl}?print=1` : "";
+
 
   const waPhone = (customerPhone ?? "").replace(/\D+/g, "");
   const waNumber = waPhone.length >= 10
