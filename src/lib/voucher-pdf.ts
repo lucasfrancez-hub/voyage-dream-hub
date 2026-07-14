@@ -1332,8 +1332,8 @@ const drawAereoSection = async (
 
   const obPrimary = ob[0];
   const rtPrimary = rt[0];
-  const obLocator = ob.map((i) => i.supplier_locator).find(Boolean) ?? "";
-  const rtLocator = rt.map((i) => i.supplier_locator).find(Boolean) ?? "";
+  const obLocator = pickAereoLocator(ob);
+  const rtLocator = pickAereoLocator(rt);
   const obTicket = ob
     .map((i) => String(((i.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
     .find((v) => !!v) ?? "";
