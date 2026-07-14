@@ -226,8 +226,14 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
                       )}
                     </div>
                     <div className="mt-1 font-medium text-sm truncate">{o.full_name}</div>
+                    {scope === "third_party" && (
+                      <div className="text-[10px] font-semibold text-brand-orange truncate">
+                        {agencyByUser?.[o.owner_user_id ?? ""] ?? "Agência parceira"}
+                      </div>
+                    )}
                     <div className="text-xs text-muted-foreground truncate">{o.email}</div>
                     <div className="text-xs text-muted-foreground">{o.phone}</div>
+
                     {(snap.title || snap.reference) && (
                       <div className="mt-1 text-xs truncate">{snap.title ?? snap.reference}</div>
                     )}
