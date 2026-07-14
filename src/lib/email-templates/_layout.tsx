@@ -27,6 +27,7 @@ interface LayoutProps {
   stepLabel: string
   children: React.ReactNode
   footerMessage?: string
+  hideContactBox?: boolean
   /** @deprecated kept for compatibility with older templates */
   darkFooter?: boolean
 }
@@ -37,6 +38,7 @@ export const EmailLayout = ({
   stepLabel,
   children,
   footerMessage,
+  hideContactBox,
 }: LayoutProps) => (
   <Html lang="pt-BR" dir="ltr">
     <Head />
