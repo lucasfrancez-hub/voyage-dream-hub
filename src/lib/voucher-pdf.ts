@@ -169,7 +169,10 @@ const L = {
     saida: "DEPARTURE",
     chegada: "ARRIVAL",
     categoria: "Category",
+    valorTotal: "TOTAL AMOUNT",
+    valorTotalNota: "Total amount includes all services listed above.",
   },
+
 } as const;
 
 // ---------- Helpers ----------
