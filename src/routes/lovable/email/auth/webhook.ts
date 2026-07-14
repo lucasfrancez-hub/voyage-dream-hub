@@ -32,6 +32,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 
 // Configuration
 const SITE_NAME = "VIA AIR"
+const SENDER_NAME = "VIA AIR"
 const SENDER_DOMAIN = "notify.viaair.tur.br"
 const ROOT_DOMAIN = "viaair.tur.br"
 const FROM_DOMAIN = "viaair.tur.br"
@@ -177,7 +178,7 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
             run_id,
             message_id: messageId,
             to: payload.data.email,
-            from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+            from: `"${SENDER_NAME}" <noreply@${FROM_DOMAIN}>`,
             sender_domain: SENDER_DOMAIN,
             subject: EMAIL_SUBJECTS[emailType] || 'Notification',
             html,
