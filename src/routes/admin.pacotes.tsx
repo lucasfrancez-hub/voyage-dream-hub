@@ -7,7 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
+import { ClassSelect } from "@/components/ClassSelect";
 import { findAirline } from "@/lib/airlines";
+import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
