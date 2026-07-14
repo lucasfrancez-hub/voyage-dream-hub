@@ -139,6 +139,39 @@
     return index >= 0 && cells[index] ? normalizeText(cells[index].innerText || cells[index].textContent) : "";
   }
 
+  function cellRichText(cell) {
+    // Junta o texto visível com alt/title/aria-label das mídias (ícones de
+    // bagagem/cabine costumam ser <img> com legenda).
+    if (!cell) return "";
+    const text = normalizeText(cell.innerText || cell.textContent);
+    const labels = Array.from(cell.querySelectorAll("img,[title],[aria-label]"))
+      .flatMap((el) => [el.getAttribute("alt"), el.getAttribute("title"), el.getAttribute("aria-label")])
+      .map((v) => normalizeText(v || ""))
+      .filter(Boolean);
+    const merged = Array.from(new Set([text, ...labels].filter(Boolean))).join(" ");
+    return merged;
+  }
+
+  function baggageText(cell) {
+    // Ex.: "🔒 ? 🛄 2 🧳" (mão desconhecida + 2 despachadas). Se alt/title dos
+    // ícones diz "bagagem de mão" / "carry-on", preserva; se sobrar só um "?"
+    // isolado, remove pra não vazar pro UI.
+    const rich = cellRichText(cell).replace(/\s+/g, " ").trim();
+    if (!rich) return "";
+    const hasHand = /m[aã]o|cabine|carry[\s-]*on|hand[\s-]*bag/i.test(rich);
+    // Extrai número associado à bagagem despachada (padrão "N pçs" ou "🛄 N").
+    const checkedMatch = rich.match(/(\d+)\s*(?:p[çc]s?|pieces?|pcs)?/);
+    const checked = checkedMatch ? Number(checkedMatch[1]) : 0;
+    const cleaned = rich
+      .replace(/\?/g, "") // remove "?" isolados (placeholder)
+      .replace(/\s+/g, " ").trim();
+    const parts = [];
+    if (hasHand || checked >= 1) parts.push("1 mão");
+    if (checked > 0) parts.push(`${checked} despachada${checked > 1 ? "s" : ""}`);
+    return parts.length ? parts.join(" + ") : cleaned;
+  }
+
+
   function findStructuredTable(block, requiredHeaders) {
     if (!block) return null;
     for (const table of block.querySelectorAll("table")) {
@@ -203,6 +236,67 @@
     return "adult";
   }
 
+  function normalizeNameTokens(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Za-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toUpperCase()
+      .split(" ")
+      .filter((word) => word && !["MR", "MRS", "MS", "MSTR", "SR", "SRA", "SRTA"].includes(word))
+      .sort();
+  }
+  function sameName(a, b) {
+    const ta = normalizeNameTokens(a);
+    const tb = normalizeNameTokens(b);
+    return ta.length > 0 && ta.length === tb.length && ta.every((t, i) => t === tb[i]);
+  }
+  function formatTicketNumber(digits) {
+    const only = String(digits || "").replace(/\D/g, "");
+    if (only.length !== 13) return digits || "";
+    return `${only.slice(0, 3)}-${only.slice(3)}`;
+  }
+
+  function extractTicketsFromBlock(doc) {
+    // Bloco .woo-box__etickets: cada tr é um bilhete. A célula 0 é lupa;
+    // o número está em cells[1] > a.link-blue.exibir-link (com hífen) ou no
+    // href (Eticket=... / selecionarContexto_eticket('...')).
+    const block = doc.querySelector(".woo-box__etickets");
+    if (!block) return [];
+    const table = block.querySelector(":scope > table") || block.querySelector("table");
+    if (!table) return [];
+    const out = [];
+    for (const row of table.querySelectorAll(":scope > tbody > tr")) {
+      if (row.classList.contains("space")) continue;
+      const cells = directCells(row, "td");
+      if (cells.length < 3) continue;
+      const link = cells[1] && cells[1].querySelector("a.link-blue.exibir-link, a.link-blue, a");
+      const linkText = normalizeText(link && link.textContent);
+      const href = (link && link.getAttribute("href")) || "";
+      let ticket = "";
+      const fmt = linkText.match(/\b\d{3}-\d{10}\b/);
+      if (fmt) ticket = fmt[0];
+      if (!ticket) {
+        const m = href.match(/Eticket=(\d{13})/i) || href.match(/eticket\(['"](\d{13})['"]/i);
+        if (m) ticket = formatTicketNumber(m[1]);
+      }
+      if (!ticket) {
+        const rowText = normalizeText(row.textContent);
+        const m = rowText.match(/\b(\d{3})-?(\d{10})\b/);
+        if (m) ticket = formatTicketNumber(m[1] + m[2]);
+      }
+      if (!ticket) continue;
+      out.push({
+        ticket_number: ticket,
+        passenger_name: normalizeText(cells[2] && cells[2].textContent),
+        issued_at: normalizeText(cells[3] && cells[3].textContent),
+      });
+    }
+    return out;
+  }
+
   function extractStructuredReservation(doc) {
     const passengersBlock = doc.querySelector(".woo-box__passengers");
     const flightsBlock = doc.querySelector(".woo-box__flights");
@@ -213,21 +307,44 @@
     ]);
     const passengers = [];
     const passengerKeys = new Set();
-    if (passengerResult) {
-      const { table, map } = passengerResult;
-      for (const row of table.querySelectorAll(":scope > tbody > tr")) {
+    const passengerTable =
+      (passengerResult && passengerResult.table) ||
+      passengersBlock.querySelector(":scope > table") ||
+      passengersBlock.querySelector("table");
+    const passengerMap = passengerResult ? passengerResult.map : {};
+    if (passengerTable) {
+      const rows = Array.from(passengerTable.querySelectorAll(":scope > tbody > tr"));
+      for (const row of rows) {
+        if (row.classList.contains("space")) continue;
+        if (row.querySelector(":scope > td[colspan]")) continue;
         const cells = directCells(row, "td");
-        if (row.classList.contains("space") || row.querySelector(":scope > td[colspan]") || cells.length < 3) continue;
-        const surname = cellText(cells, map, ["sobrenome"]);
-        const name = cellText(cells, map, ["nome"]);
+        if (cells.length < 3) continue;
+        // Prefere posições fixas (spec ChatGPT): [0]=tipo, [1]=sobrenome, [2]=nome, [3]=sexo, [5]=status.
+        let surname = normalizeText(cells[1] && cells[1].textContent);
+        let name = normalizeText(cells[2] && cells[2].textContent);
+        // Fallback via header map (caso a tabela tenha ordem diferente).
+        if (!surname) surname = cellText(cells, passengerMap, ["sobrenome"]);
+        if (!name) name = cellText(cells, passengerMap, ["nome"]);
         if (!surname || !name) continue;
         const fullName = `${surname}/${name}`.toUpperCase();
         const key = normalizeKey(fullName);
         if (passengerKeys.has(key)) continue;
         passengerKeys.add(key);
-        passengers.push({ full_name: fullName, kind: passengerKind(cellText(cells, map, ["tipo"])) });
+        const kindSource = normalizeText(cells[0] && cells[0].textContent) || cellText(cells, passengerMap, ["tipo"]);
+        passengers.push({ full_name: fullName, kind: passengerKind(kindSource) });
       }
     }
+
+    // Bilhetes (.woo-box__etickets) — anexa ticket_number ao passageiro correspondente.
+    const tickets = extractTicketsFromBlock(doc);
+    for (const p of passengers) {
+      const match = tickets.find((t) => sameName(t.passenger_name, p.full_name));
+      if (match) {
+        p.ticket_number = match.ticket_number;
+        if (match.issued_at) p.ticket_issued_at = match.issued_at;
+      }
+    }
+
 
     const flightResult = findStructuredTable(flightsBlock, [
       ["cia"], ["voo"], ["saida"], ["chegada"], ["origem"], ["destino"],
@@ -284,7 +401,7 @@
         layover: cellText(cells, map, ["dur_con", "duracao_conexao"]),
         cabin_class: cellText(cells, map, ["cabine"]),
         fare_basis: cellText(cells, map, ["base"]),
-        baggage_allowance: cellText(cells, map, ["bagagem"]),
+        baggage_allowance: baggageText(cells[headerIndex(map, ["bagagem"])]),
         carrier_locator: cellText(cells, map, ["loc_cia", "localizador_cia"]),
         aircraft: cellText(cells, map, ["equip", "equipamento"]),
         status: cellText(cells, map, ["status"]),
