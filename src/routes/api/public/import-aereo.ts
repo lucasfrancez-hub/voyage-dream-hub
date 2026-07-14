@@ -8,17 +8,21 @@ import { findAirline } from "@/lib/airlines";
  */
 function normalizeAirlineFields(parsed: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = { ...parsed };
+  const isSystemName = (value: string) => /travel\s*link|travellink|sky\s*team|infotravel|infotera|visual\s*turismo|\bfrt\b/i.test(value);
 
   // supplier_name (nível pedido)
   const supplierRaw = typeof out.supplier_name === "string" ? out.supplier_name : "";
   const supplierHit = findAirline(supplierRaw);
   if (supplierHit) out.supplier_name = supplierHit.name;
+  else if (isSystemName(supplierRaw)) delete out.supplier_name;
 
   const flights = Array.isArray(out.flights) ? (out.flights as Array<Record<string, unknown>>) : [];
+  let firstRealAirline: string | undefined;
   for (const block of flights) {
     const blockAirlineRaw = typeof block.airline === "string" ? block.airline : "";
     const blockHit = findAirline(blockAirlineRaw);
     if (blockHit) block.airline = blockHit.name;
+    else if (isSystemName(blockAirlineRaw)) delete block.airline;
 
     const segs = Array.isArray(block.segments) ? (block.segments as Array<Record<string, unknown>>) : [];
     for (const seg of segs) {
@@ -32,11 +36,13 @@ function normalizeAirlineFields(parsed: Record<string, unknown>): Record<string,
       if (hit) {
         seg.airline = hit.name;
         seg.airline_iata = hit.iata;
+        firstRealAirline ??= hit.name;
       } else if (flightPrefix && !rawIata) {
         seg.airline_iata = flightPrefix;
       }
     }
   }
+  if (!out.supplier_name && firstRealAirline) out.supplier_name = firstRealAirline;
   return out;
 }
 
@@ -75,6 +81,8 @@ ATENÇÃO — nome da companhia:
   airline_iata com esse prefixo em TODO segment.
 - Cada trecho pode ter cia diferente — preencha por segment, nunca use o
   nome do consolidador.
+- O campo "Ambiente: Travellink" identifica somente o ambiente do portal e
+  deve ser ignorado ao determinar a companhia.
 - Se um voo tiver aviso "voo XXXX pertence à companhia Y mas é operado pela
   companhia Z", use Y em airline e coloque Z em notes/aircraft.
 
@@ -93,6 +101,11 @@ Voos:
   a origem inicial. Se houver conexões, cada trecho vira um segment.
 - flight_number: formato "G3 1843" / "TP 0074" (código IATA + espaço + número
   sem zeros à esquerda apagados — mantenha como está na página).
+- Para cada linha, capture obrigatoriamente quando visível: Cia, Voo, Saída,
+  Chegada, Origem, Destino, Duração, Bagagem e "Loc Cia". "Loc Cia" deve ir
+  em segments[].carrier_locator; ele não é o ambiente/sistema.
+- A seção de bilhetes costuma ficar abaixo dos voos. Percorra o texto inteiro
+  e associe cada número de bilhete ao passageiro correto em ticket_number.
 
 Formato:
 - Não invente. Se um campo não estiver visível no texto/imagem, omita.
@@ -176,6 +189,7 @@ function textParamsSchema() {
                   fare_class: { type: "string", description: "Booking class, ex.: Y, K, L" },
                   fare_basis: { type: "string" },
                   baggage_allowance: { type: "string" },
+                  carrier_locator: { type: "string", description: "Localizador da companhia aérea (coluna Loc Cia)" },
                   aircraft: { type: "string" },
                   status: { type: "string" },
                 },
@@ -209,7 +223,7 @@ export const Route = createFileRoute("/api/public/import-aereo")({
         }
         const token = String(body.token ?? "").trim();
         const airline = String(body.airline_hint ?? "").toLowerCase();
-        const rawText = String(body.raw_text ?? "").slice(0, 60_000);
+        const rawText = String(body.raw_text ?? "").slice(0, 120_000);
         const screenshots = Array.isArray(body.screenshots)
           ? body.screenshots.filter((s) => typeof s === "string" && s.startsWith("data:image/")).slice(0, 6)
           : [];

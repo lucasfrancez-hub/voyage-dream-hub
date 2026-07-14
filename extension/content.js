@@ -64,13 +64,22 @@
     const chunks = [];
     const tables = doc.querySelectorAll("table");
     for (const t of tables) {
+      if (!isVisible(t)) continue;
       const rows = [];
       const trs = t.querySelectorAll("tr");
       for (const tr of trs) {
+        if (!isVisible(tr)) continue;
         const cells = tr.querySelectorAll("th,td");
         if (!cells.length) continue;
         const line = Array.from(cells)
-          .map((c) => (c.innerText || c.textContent || "").replace(/\s+/g, " ").trim())
+          .map((c) => {
+            const text = (c.innerText || "").replace(/\s+/g, " ").trim();
+            const mediaLabels = Array.from(c.querySelectorAll("img,[title],[aria-label]"))
+              .flatMap((node) => [node.getAttribute("alt"), node.getAttribute("title"), node.getAttribute("aria-label")])
+              .filter(Boolean)
+              .map((value) => value.replace(/\s+/g, " ").trim());
+            return Array.from(new Set([text, ...mediaLabels].filter(Boolean))).join(" ");
+          })
           .filter(Boolean)
           .join(" | ");
         if (line) rows.push(line);
@@ -80,25 +89,30 @@
     return chunks.join("\n\n");
   }
 
+  function isVisible(el) {
+    if (!el || el.hidden || el.getAttribute("aria-hidden") === "true") return false;
+    const style = el.ownerDocument.defaultView.getComputedStyle(el);
+    return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+  }
+
   function extractFromDoc(doc) {
     if (!doc || !doc.body) return "";
     const tablesText = extractTables(doc);
-    const clone = doc.body.cloneNode(true);
-    clone.querySelectorAll("input,select,textarea").forEach((el) => {
+    const formValues = [];
+    doc.body.querySelectorAll("input,select,textarea").forEach((el) => {
+      if (!isVisible(el)) return;
       const v = el.value || el.getAttribute("value") || "";
       if (v && v.trim()) {
         const label = el.getAttribute("name") || el.getAttribute("id") || "";
-        el.replaceWith(document.createTextNode(` ${label ? label + ": " : ""}${v} `));
-      } else {
-        el.remove();
+        formValues.push(`${label ? label + ": " : ""}${v}`);
       }
     });
-    clone.querySelectorAll("script,style,noscript,svg,button").forEach((n) => n.remove());
-    // Tabelas já foram capturadas com estrutura acima; remove do clone pra não duplicar
-    clone.querySelectorAll("table").forEach((n) => n.remove());
-    clone.querySelectorAll("tr,li,p,div,br,td,th").forEach((n) => n.appendChild(document.createTextNode("\n")));
-    const bodyText = clone.textContent || "";
-    return (tablesText ? tablesText + "\n\n" : "") + bodyText;
+    // innerText traz apenas o conteúdo realmente exibido. textContent incluía
+    // telas/templates ocultos do portal e cortava a tabela da reserva no limite.
+    const bodyText = doc.body.innerText || "";
+    return [tablesText, formValues.length ? "CAMPOS:\n" + formValues.join("\n") : "", "TEXTO VISÍVEL:\n" + bodyText]
+      .filter(Boolean)
+      .join("\n\n");
   }
 
   function walkFrames(doc, depth, out) {
@@ -121,8 +135,13 @@
     // Portais ASP.NET (SkyTeam/FRT/Visual/Infotera) renderizam a reserva DENTRO
     // de <iframe> (às vezes aninhados). Percorremos recursivamente todos os
     // frames same-origin e concatenamos com o texto da página principal.
-    const parts = [extractFromDoc(document)];
-    walkFrames(document, 0, parts);
+    const frameParts = [];
+    walkFrames(document, 0, frameParts);
+    // Na consolidadora, a página externa contém menus, filtros e exemplos de
+    // pesquisa. A reserva verdadeira está no iframe/modal; enviamos somente ele.
+    const parts = isConsolidator && frameParts.length
+      ? frameParts
+      : [extractFromDoc(document), ...frameParts];
     return parts.join("\n\n")
       .replace(/[ \t\u00a0]+/g, " ")
       .replace(/\n[ \t]+/g, "\n")

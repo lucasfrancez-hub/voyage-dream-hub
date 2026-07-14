@@ -185,7 +185,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
             kind: "flight",
             status: "confirmed",
             title,
-            supplier_locator: reservation.locator ?? null,
+            supplier_locator: seg.carrier_locator ?? reservation.locator ?? null,
             sort_order: sort++,
             details: {
               direction: block.direction,
@@ -208,6 +208,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               fare_class: seg.fare_class,
               fare_basis: seg.fare_basis,
               baggage_allowance: seg.baggage_allowance,
+              carrier_locator: seg.carrier_locator,
               aircraft: seg.aircraft,
               status: seg.status,
               ...(pricing ? { pricing_summary: pricing } : {}),
@@ -448,6 +449,14 @@ function ReviewReservation({
                   <div>
                     <Label className="text-xs">Duração</Label>
                     <Input value={seg.duration ?? ""} onChange={(e) => patchSeg(bi, si, { duration: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Bagagem</Label>
+                    <Input value={seg.baggage_allowance ?? ""} onChange={(e) => patchSeg(bi, si, { baggage_allowance: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Loc. da cia</Label>
+                    <Input value={seg.carrier_locator ?? ""} onChange={(e) => patchSeg(bi, si, { carrier_locator: e.target.value.toUpperCase() })} />
                   </div>
                   <div>
                     <Label className="text-xs">Classe</Label>

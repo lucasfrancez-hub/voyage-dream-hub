@@ -22,6 +22,7 @@ export type ImportedFlightSegment = {
   fare_class?: string;
   fare_basis?: string;
   baggage_allowance?: string;
+  carrier_locator?: string;
   aircraft?: string;
   status?: string;
 };
