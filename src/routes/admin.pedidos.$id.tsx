@@ -1072,7 +1072,7 @@ function ItemsTab({
               onImported={onChange}
               trigger={
                 <Button size="sm" className="gap-1 bg-orange-500 hover:bg-orange-600 text-white">
-                  <Download className="h-3.5 w-3.5" /> Importar para Via Air
+                  <Download className="h-3.5 w-3.5" /> Importar reserva
                 </Button>
               }
 
