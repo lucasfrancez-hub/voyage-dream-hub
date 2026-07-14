@@ -69,7 +69,7 @@ export const createAdminUser = createServerFn({ method: "POST" })
       .object({
         email: z.string().email(),
         password: z.string().min(8).max(72),
-        role: z.enum(["admin", "user"]),
+        role: z.enum(["admin", "user", "partner"]),
         fullName: z.string().trim().max(120).optional(),
       })
       .parse(input),
