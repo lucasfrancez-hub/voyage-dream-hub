@@ -338,10 +338,30 @@ export const Route = createFileRoute("/api/public/import-aereo")({
           }
           parsed = normalizeAirlineFields(parsed);
 
+          // Log de diagnóstico: quando a captura vem "vazia" (sem voos),
+          // gravamos um recorte do texto/AI pra podermos ver o que a página
+          // entregou. Aparece nos logs do servidor.
+          const flightsArr = Array.isArray((parsed as Record<string, unknown>).flights)
+            ? ((parsed as Record<string, unknown>).flights as unknown[]) : [];
+          const segCount = flightsArr.reduce((acc: number, b) => {
+            const segs = (b as Record<string, unknown>)?.segments;
+            return acc + (Array.isArray(segs) ? segs.length : 0);
+          }, 0);
+          if (segCount === 0) {
+            console.warn("[import-aereo] captura sem voos", {
+              airline, token, url: body.source_url,
+              rawTextLen: rawText.length,
+              rawTextHead: rawText.slice(0, 2000),
+              aiArgs: args.slice(0, 4000),
+            });
+          } else {
+            console.info("[import-aereo] ok", { airline, token, segCount });
+          }
 
           await supabaseAdmin.from("flight_import_staging").update({
             status: "ready", parsed: parsed as never, error: null,
           }).eq("token", token);
+
 
           return json({ ok: true }, 200);
         } catch (e) {
