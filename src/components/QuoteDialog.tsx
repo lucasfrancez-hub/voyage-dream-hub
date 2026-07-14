@@ -5,6 +5,10 @@ import { Copy, ExternalLink, MessageCircle, Printer, Loader2, FileText } from "l
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +21,7 @@ import {
   getQuoteConfig, saveQuoteConfig, getQuoteToken,
   DEFAULT_QUOTE_CONFIG, type QuoteConfig,
 } from "@/lib/quote.functions";
+
 
 type Props = {
   open: boolean;
