@@ -224,8 +224,10 @@ function UsersPage() {
 function UserRow({
   user,
   savingName,
+  resending,
   onSaveName,
   onChangeRole,
+  onResend,
   onDelete,
 }: {
   user: {
@@ -237,8 +239,10 @@ function UserRow({
     role: AdminRole;
   };
   savingName: boolean;
+  resending: boolean;
   onSaveName: (name: string) => void;
   onChangeRole: (r: AdminRole) => void;
+  onResend: () => void;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(user.fullName ?? "");
