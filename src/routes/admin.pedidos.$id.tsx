@@ -2970,7 +2970,7 @@ function FinanceTab({
                            <Button size="sm" variant="ghost" onClick={() => { setEditing(f); setSelectedItem(f.order_item_id); setOpen(true); }}>
                              <Pencil className="h-3.5 w-3.5" />
                            </Button>
-                           <Button size="sm" variant="ghost" onClick={() => confirm("Remover lançamento?") && remove.mutate(f.id)}>
+                           <Button size="sm" variant="ghost" onClick={() => confirmThen("Remover lançamento?", () => remove.mutate(f.id))}>
                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
                            </Button>
                          </td>
@@ -3025,7 +3025,7 @@ function FinanceTab({
                         <Button size="sm" variant="ghost" onClick={() => { setEditing(f); setSelectedItem(f.order_item_id); setOpen(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => confirm("Remover lançamento?") && remove.mutate(f.id)}>
+                        <Button size="sm" variant="ghost" onClick={() => confirmThen("Remover lançamento?", () => remove.mutate(f.id))}>
                           <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
                       </td>
