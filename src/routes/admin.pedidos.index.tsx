@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, ExternalLink, Loader2, Plus, Cloud } from "lucide-react";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/admin/pedidos/")({
-  component: AdminOrders,
+  component: () => <AdminOrders scope="mine" />,
   head: () => ({ meta: [{ title: "Pedidos — Admin" }] }),
 });
 
@@ -36,22 +36,47 @@ function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
 }
 
-function AdminOrders() {
+export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [search, setSearch] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ["admin", "orders", "list"],
+    enabled: currentUserId !== null,
+    queryKey: ["admin", "orders", "list", scope, currentUserId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("orders")
-        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator")
+        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator, owner_user_id")
         .order("created_at", { ascending: false })
         .limit(500);
+      if (scope === "mine") q = q.eq("owner_user_id", currentUserId!);
+      else q = q.neq("owner_user_id", currentUserId!);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
   });
+
+  // Nomes das agências parceiras (para "Pedidos de terceiro")
+  const { data: agencyByUser } = useQuery({
+    enabled: scope === "third_party" && (orders?.length ?? 0) > 0,
+    queryKey: ["admin", "partner-agencies-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("partner_agencies")
+        .select("user_id, agency_name");
+      if (error) throw error;
+      const m: Record<string, string> = {};
+      for (const r of data ?? []) m[r.user_id] = r.agency_name;
+      return m;
+    },
+  });
+
 
   const q = search.trim().toLowerCase();
   const filtered = (orders ?? []).filter((o) => {
