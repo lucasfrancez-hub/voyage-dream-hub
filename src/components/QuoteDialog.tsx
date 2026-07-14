@@ -78,30 +78,38 @@ export function QuoteDialog({ open, onOpenChange, orderId, orderNumber, customer
     }
   };
 
-  const copy = async () => {
-    if (!publicUrl) return;
+  const runAction = async (action: "copy" | "web" | "pdf" | "wa", pixEnabled: boolean) => {
+    const nextCfg = { ...cfg, pix: { ...cfg.pix, enabled: pixEnabled } };
+    setCfg(nextCfg);
+    setSaving(true);
     try {
-      await navigator.clipboard.writeText(publicUrl);
-      toast.success("Link copiado");
-    } catch {
-      toast.error("Não foi possível copiar");
+      await saveCfg({ data: { orderId, config: nextCfg } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
+    if (action === "copy") {
+      if (!publicUrl) return;
+      try {
+        await navigator.clipboard.writeText(publicUrl);
+        toast.success("Link copiado");
+      } catch {
+        toast.error("Não foi possível copiar");
+      }
+    } else if (action === "web") {
+      if (publicUrl) window.open(publicUrl, "_blank", "noopener");
+    } else if (action === "pdf") {
+      if (printUrl) window.open(printUrl, "_blank", "noopener");
+    } else if (action === "wa") {
+      if (waHref) window.open(waHref, "_blank", "noopener");
     }
   };
 
-  const openPdf = async () => {
-    // Salva antes de abrir pra garantir que as condições vigentes apareçam no PDF
-    await doSave(true);
-    if (printUrl) window.open(printUrl, "_blank", "noopener");
-  };
-  const openWeb = () => publicUrl && window.open(publicUrl, "_blank", "noopener");
+  const askPix = (action: "copy" | "web" | "pdf" | "wa") => setPixAsk(action);
 
-  const waPhone = (customerPhone ?? "").replace(/\D+/g, "");
-  const waNumber = waPhone.length >= 10
-    ? (waPhone.startsWith("55") ? waPhone : `55${waPhone}`)
-    : "";
-  const waHref = waNumber && publicUrl
-    ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Olá! Segue o orçamento nº ${orderNumber}: ${publicUrl}`)}`
-    : "";
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
