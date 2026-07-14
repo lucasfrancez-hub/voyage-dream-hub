@@ -128,7 +128,13 @@ export const Route = createFileRoute("/api/public/import-aereo")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: CORS_HEADERS }),
       POST: async ({ request }) => {
-        let body: { token?: string; airline_hint?: string; source_url?: string; raw_text?: string };
+        let body: {
+          token?: string;
+          airline_hint?: string;
+          source_url?: string;
+          raw_text?: string;
+          screenshots?: string[];
+        };
         try {
           body = await request.json();
         } catch {
@@ -137,10 +143,13 @@ export const Route = createFileRoute("/api/public/import-aereo")({
         const token = String(body.token ?? "").trim();
         const airline = String(body.airline_hint ?? "").toLowerCase();
         const rawText = String(body.raw_text ?? "").slice(0, 60_000);
+        const screenshots = Array.isArray(body.screenshots)
+          ? body.screenshots.filter((s) => typeof s === "string" && s.startsWith("data:image/")).slice(0, 6)
+          : [];
         if (!token || token.length < 10) return json({ error: "invalid_token" }, 400);
         const ALLOWED = ["latam", "gol", "azul", "skyteam", "frt", "visualturismo", "infotera"];
         if (!ALLOWED.includes(airline)) return json({ error: "invalid_airline" }, 400);
-        if (rawText.length < 200) return json({ error: "raw_text_too_short" }, 400);
+        if (rawText.length < 200 && screenshots.length === 0) return json({ error: "raw_text_too_short" }, 400);
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -166,12 +175,23 @@ export const Route = createFileRoute("/api/public/import-aereo")({
         if (!apiKey) return json({ error: "ai_key_missing" }, 500);
 
         try {
+          const userContent: Array<
+            | { type: "text"; text: string }
+            | { type: "image_url"; image_url: { url: string } }
+          > = [
+            { type: "text", text:
+              `Origem: ${airline.toUpperCase()}\nURL: ${body.source_url ?? ""}\n\n` +
+              (screenshots.length > 0
+                ? `Você recebe ${screenshots.length} captura(s) de tela da página (do topo pra baixo) E o texto extraído do DOM. Priorize o que aparece nas IMAGENS quando texto e imagem divergirem — os portais de consolidador renderizam tabelas complexas que se perdem no texto.\n\n`
+                : "") +
+              `TEXTO DA PÁGINA:\n${rawText}` },
+            ...screenshots.map((url) => ({ type: "image_url" as const, image_url: { url } })),
+          ];
           const aiBody = {
             model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content:
-                `Origem: ${airline.toUpperCase()}\nURL: ${body.source_url ?? ""}\n\nTEXTO DA PÁGINA:\n${rawText}` },
+              { role: "user", content: userContent },
             ],
             tools: [{
               type: "function",

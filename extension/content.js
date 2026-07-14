@@ -107,14 +107,50 @@
     el.__t = setTimeout(() => { el.remove(); }, 5000);
   }
 
+  function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+  function captureViewport() {
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: "viaair-capture" }, (resp) => {
+        if (!resp || resp.error) resolve(null);
+        else resolve(resp.dataUrl);
+      });
+    });
+  }
+
+  async function captureFullPage() {
+    // captureVisibleTab tem quota ~2/s → 550ms entre shots.
+    // Rola em blocos de 90% do viewport, tira foto, até o fim ou 6 shots.
+    const shots = [];
+    const originalScroll = window.scrollY;
+    const step = Math.floor(window.innerHeight * 0.9);
+    const maxShots = 6;
+
+    window.scrollTo({ top: 0, behavior: "instant" });
+    await sleep(400);
+
+    for (let i = 0; i < maxShots; i++) {
+      const shot = await captureViewport();
+      if (shot) shots.push(shot);
+      const nextY = window.scrollY + step;
+      const maxY = document.documentElement.scrollHeight - window.innerHeight;
+      if (nextY >= maxY + 5) break;
+      window.scrollTo({ top: nextY, behavior: "instant" });
+      await sleep(600);
+    }
+    window.scrollTo({ top: originalScroll, behavior: "instant" });
+    return shots;
+  }
+
   async function sendImport(ctx) {
     const rawText = collectPageText();
     if (rawText.length < 200) {
       showToast("Página ainda não carregou os dados da reserva. Aguarde e tente de novo.", "err");
       return;
     }
-    showToast("Enviando dados pra Via Air…");
+    showToast("Capturando tela e enviando pra Via Air…");
     try {
+      const screenshots = await captureFullPage();
       const res = await fetch(ctx.apiBase.replace(/\/+$/, "") + "/api/public/import-aereo", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -123,6 +159,7 @@
           airline_hint: airline,
           source_url: location.href,
           raw_text: rawText,
+          screenshots,
         }),
       });
       const body = await res.json().catch(() => ({}));
