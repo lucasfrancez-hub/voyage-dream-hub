@@ -10,6 +10,7 @@ import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
 import { ClassSelect } from "@/components/ClassSelect";
 import { findAirline } from "@/lib/airlines";
+import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 
 export const Route = createFileRoute("/admin/pacotes")({
@@ -776,7 +777,14 @@ function FlightFieldset({
                   <input
                     className={inp}
                     value={s.from_iata ?? ""}
-                    onChange={(e) => patchSeg(i, { from_iata: e.target.value.toUpperCase() })}
+                    onChange={(e) => {
+                      const code = e.target.value.toUpperCase();
+                      const city = iataCity(code);
+                      patchSeg(i, {
+                        from_iata: code,
+                        ...(city && !(s.from_city ?? "").trim() ? { from_city: city } : {}),
+                      });
+                    }}
                     placeholder="Origem (IATA) — ex.: SDU"
                     maxLength={4}
                   />
@@ -789,7 +797,14 @@ function FlightFieldset({
                   <input
                     className={inp}
                     value={s.to_iata ?? ""}
-                    onChange={(e) => patchSeg(i, { to_iata: e.target.value.toUpperCase() })}
+                    onChange={(e) => {
+                      const code = e.target.value.toUpperCase();
+                      const city = iataCity(code);
+                      patchSeg(i, {
+                        to_iata: code,
+                        ...(city && !(s.to_city ?? "").trim() ? { to_city: city } : {}),
+                      });
+                    }}
                     placeholder="Destino (IATA) — ex.: GRU"
                     maxLength={4}
                   />
