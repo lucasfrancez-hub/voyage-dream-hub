@@ -42,15 +42,11 @@ export function ChatSidebar() {
         collapsed ? "w-16" : "w-60",
       )}
     >
-      <div className="flex h-14 items-center gap-2 border-b border-slate-200 px-3">
-        <img src={viaAirMark.url} alt="VIA AIR" className="h-7 w-7 shrink-0" />
-        {!collapsed && (
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold text-slate-900">VIA AIR</div>
-            <div className="truncate text-[10px] uppercase tracking-wider text-slate-500">
-              Central de Atendimento
-            </div>
-          </div>
+      <div className="flex h-14 items-center justify-center gap-2 border-b border-slate-200 px-3">
+        {collapsed ? (
+          <img src={viaAirMark.url} alt="VIA AIR" className="h-7 w-7 shrink-0" />
+        ) : (
+          <img src={viaAirLogo.url} alt="VIA AIR" className="h-8 w-auto max-w-full object-contain" />
         )}
       </div>
 
