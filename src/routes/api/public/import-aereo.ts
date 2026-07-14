@@ -154,7 +154,7 @@ export const Route = createFileRoute("/api/public/import-aereo")({
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content:
-                `Companhia: ${airline.toUpperCase()}\nURL: ${body.source_url ?? ""}\n\nTEXTO DA PÁGINA:\n${rawText}` },
+                `Origem: ${airline.toUpperCase()}\nURL: ${body.source_url ?? ""}\n\nTEXTO DA PÁGINA:\n${rawText}` },
             ],
             tools: [{
               type: "function",
