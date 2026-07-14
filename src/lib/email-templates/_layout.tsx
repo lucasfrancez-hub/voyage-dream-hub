@@ -124,44 +124,56 @@ interface OrderSummaryProps {
   servico?: string[]
 }
 
-export const OrderSummary = ({ title = 'O que está incluso no seu pedido:', aereo, hotel, servico }: OrderSummaryProps) => (
-  <Section style={summaryBox}>
-    <Text style={summaryTitle}>{title}</Text>
-    <table width="100%" cellPadding={0} cellSpacing={0} role="presentation">
-      <tr>
-        {aereo && (
-          <td style={summaryCell}>
-            <Text style={summaryLabel}>✈ AÉREO</Text>
-            <Text style={summaryValue}>
-              {aereo.origem} → {aereo.destino}
-            </Text>
-            <Text style={summaryValue}>{aereo.datas}</Text>
-          </td>
-        )}
-        {hotel && (
-          <td style={summaryCell}>
-            <Text style={summaryLabel}>🏨 HOTEL</Text>
-            <Text style={summaryValue}>{hotel.nome}</Text>
-            <Text style={summaryValue}>
-              {hotel.noites} | {hotel.datas}
-            </Text>
-            {hotel.categoria && <Text style={summaryValue}>{hotel.categoria}</Text>}
-          </td>
-        )}
-        {servico && servico.length > 0 && (
-          <td style={summaryCell}>
-            <Text style={summaryLabel}>🧳 SERVIÇO</Text>
-            {servico.map((s, i) => (
-              <Text key={i} style={summaryValue}>
-                {s}
-              </Text>
-            ))}
-          </td>
-        )}
-      </tr>
-    </table>
-  </Section>
-)
+export const OrderSummary = ({ title = 'O que está incluso no seu pedido:', aereo, hotel, servico }: OrderSummaryProps) => {
+  const cells: React.ReactNode[] = []
+  if (aereo) {
+    cells.push(
+      <td key="a" style={summaryCell}>
+        <Text style={summaryLabel}><span style={summaryIcon}>✈</span> AÉREO</Text>
+        <Text style={summaryValueStrong}>{aereo.origem}</Text>
+        <Text style={summaryValueStrong}>→ {aereo.destino}</Text>
+        <Text style={summaryValue}>{aereo.datas}</Text>
+      </td>
+    )
+  }
+  if (hotel) {
+    cells.push(
+      <td key="h" style={summaryCell}>
+        <Text style={summaryLabel}><span style={summaryIcon}>🏨</span> HOTEL</Text>
+        <Text style={summaryValueStrong}>{hotel.nome}</Text>
+        <Text style={summaryValue}>{hotel.noites}</Text>
+        <Text style={summaryValue}>{hotel.datas}</Text>
+        {hotel.categoria && <Text style={summaryValue}>{hotel.categoria}</Text>}
+      </td>
+    )
+  }
+  if (servico && servico.length > 0) {
+    cells.push(
+      <td key="s" style={summaryCell}>
+        <Text style={summaryLabel}><span style={summaryIcon}>🧳</span> SERVIÇO</Text>
+        {servico.map((s, i) => (
+          <Text key={i} style={summaryValue}>{s}</Text>
+        ))}
+      </td>
+    )
+  }
+  if (cells.length === 0) return null
+  // Insert vertical divider cells between items
+  const withDividers: React.ReactNode[] = []
+  cells.forEach((c, i) => {
+    if (i > 0) withDividers.push(<td key={`d${i}`} style={summaryDivider} />)
+    withDividers.push(c)
+  })
+  return (
+    <Section style={summaryBox}>
+      <Text style={summaryTitle}>{title}</Text>
+      <table width="100%" cellPadding={0} cellSpacing={0} role="presentation">
+        <tr>{withDividers}</tr>
+      </table>
+    </Section>
+  )
+}
+
 
 // Shared styles
 const main = { backgroundColor: '#f5f5f5', fontFamily: 'Arial, sans-serif', margin: 0, padding: '20px 0' }
