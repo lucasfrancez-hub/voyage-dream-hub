@@ -27,7 +27,7 @@ function buildAirlineUrl(airline: Airline, f: { locator: string; lastname: strin
   const sob = f.lastname.trim();
   const iata = f.iata.trim().toUpperCase();
   if (airline === "latam") {
-    return `https://www.latamairlines.com/br/pt/minhas-viagens/second-detail/?orderId=${encodeURIComponent(loc)}&lastname=${encodeURIComponent(sob)}`;
+    return `https://www.latamairlines.com/br/pt/minhas-viagens/second-detail/?orderId=${encodeURIComponent(loc)}&lastName=${encodeURIComponent(sob)}`;
   }
   if (airline === "gol") {
     return `https://b2c.voegol.com.br/minhas-viagens/encontrar-viagem?codigoReserva=${encodeURIComponent(loc)}&origem=${encodeURIComponent(iata)}&sobrenome=${encodeURIComponent(sob)}`;
