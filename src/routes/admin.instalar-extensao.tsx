@@ -143,7 +143,7 @@ function InstalarExtensao() {
           <li>Escolha a companhia e preencha os campos (localizador, sobrenome, IATA de origem).</li>
           <li>Clique em <b>Abrir página da cia</b>. Vai abrir em nova aba já com seus dados.</li>
           <li>Resolva captcha se aparecer e espere a página carregar a reserva.</li>
-          <li>Clique no botão <b>📥 Importar pra Via Air</b> que aparece no canto inferior direito.</li>
+          <li>Clique no botão <b>📤 Exportar para Via Air</b> que aparece no canto inferior direito.</li>
           <li>Volte pro admin — a tela de conferência abre sozinha com os dados prontos pra revisar e salvar.</li>
         </ol>
         <div className="mt-4 flex items-center gap-2 text-sm text-emerald-700">
