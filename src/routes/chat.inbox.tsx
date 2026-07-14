@@ -2,13 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants } from "@/lib/chat/queries.functions";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/chat/inbox")({
   component: InboxPage,
