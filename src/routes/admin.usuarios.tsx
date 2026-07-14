@@ -136,9 +136,10 @@ function UsersPage() {
           </label>
           <label className="block">
             <span className="block text-xs text-muted-foreground mb-1.5">Permissão</span>
-            <select value={role} onChange={(e) => setNewRole(e.target.value as any)} className={cls}>
+            <select value={role} onChange={(e) => setNewRole(e.target.value as AdminRole)} className={cls}>
               <option value="user">Operador</option>
               <option value="admin">Admin</option>
+              <option value="partner">Terceiro (agência parceira)</option>
             </select>
           </label>
           <div className="flex items-end">
