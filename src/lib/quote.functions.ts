@@ -103,9 +103,18 @@ export const getQuoteToken = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
-    const { encodeQuoteToken } = await import("./quote-token.server");
-    return { token: encodeQuoteToken(data.orderId) };
+    const { data: row, error } = await supabase
+      .from("orders")
+      .select("order_number")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    const orderNumber = (row as { order_number?: string | null } | null)?.order_number;
+    if (!orderNumber) throw new Error("Pedido sem numeração");
+    const { encodeQuoteTokenFromOrderNumber } = await import("./quote-token.server");
+    return { token: encodeQuoteTokenFromOrderNumber(orderNumber) };
   });
+
 
 export const saveQuoteConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
