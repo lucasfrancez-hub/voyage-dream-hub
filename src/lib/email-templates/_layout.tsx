@@ -73,27 +73,29 @@ export const EmailLayout = ({
                 </tr>
 
                 {/* CONTACT BOX */}
-                <tr>
-                  <td style={{ padding: '0 46px 36px 46px' }}>
-                    <table role="presentation" width="100%" cellPadding={0} cellSpacing={0} border={0} style={{ background: '#f2f5fa', borderRadius: 16 }}>
-                      <tr>
-                        <td width={76} align="center" style={{ padding: '22px 0 22px 18px' }}>
-                          <div style={{ width: 42, height: 42, border: '3px solid #0b2d67', borderRadius: '50%', lineHeight: '36px', fontSize: 24, fontWeight: 700, color: '#0b2d67', textAlign: 'center' as const }}>?</div>
-                        </td>
-                        <td style={{ padding: '22px 22px 22px 10px' }}>
-                          <div style={{ fontSize: 17, fontWeight: 700, color: '#0b2d67', marginBottom: 10 }}>
-                            {footerMessage || 'Dúvidas? Estamos à disposição!'}
-                          </div>
-                          <div style={{ fontSize: 14, lineHeight: 1.7, color: '#1f2937' }}>
-                            ☎ {CONTACTS.phone} &nbsp;&nbsp; | &nbsp;&nbsp;
-                            ✉ {CONTACTS.email} &nbsp;&nbsp; | &nbsp;&nbsp;
-                            ◉ <Link href={CONTACTS.siteUrl} style={{ color: '#1f2937', textDecoration: 'none' }}>{CONTACTS.site}</Link>
-                          </div>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
+                {!hideContactBox && (
+                  <tr>
+                    <td style={{ padding: '0 46px 36px 46px' }}>
+                      <table role="presentation" width="100%" cellPadding={0} cellSpacing={0} border={0} style={{ background: '#f2f5fa', borderRadius: 16 }}>
+                        <tr>
+                          <td width={76} align="center" style={{ padding: '22px 0 22px 18px' }}>
+                            <div style={{ width: 42, height: 42, border: '3px solid #0b2d67', borderRadius: '50%', lineHeight: '36px', fontSize: 24, fontWeight: 700, color: '#0b2d67', textAlign: 'center' as const }}>?</div>
+                          </td>
+                          <td style={{ padding: '22px 22px 22px 10px' }}>
+                            <div style={{ fontSize: 17, fontWeight: 700, color: '#0b2d67', marginBottom: 10 }}>
+                              {footerMessage || 'Dúvidas? Estamos à disposição!'}
+                            </div>
+                            <div style={{ fontSize: 14, lineHeight: 1.7, color: '#1f2937' }}>
+                              ☎ {CONTACTS.phone} &nbsp;&nbsp; | &nbsp;&nbsp;
+                              ✉ {CONTACTS.email} &nbsp;&nbsp; | &nbsp;&nbsp;
+                              ◉ <Link href={CONTACTS.siteUrl} style={{ color: '#1f2937', textDecoration: 'none' }}>{CONTACTS.site}</Link>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                )}
 
                 {/* FOOTER STRIP */}
                 <tr>
