@@ -58,8 +58,31 @@
     return stored[storageKey] || stored[legacyStorageKey] || null;
   }
 
+  function extractTables(doc) {
+    // Preserva estrutura de tabelas (consolidadora renderiza voos e passageiros
+    // em <table>). Sem isso o textContent colapsa colunas e o LLM se perde.
+    const chunks = [];
+    const tables = doc.querySelectorAll("table");
+    for (const t of tables) {
+      const rows = [];
+      const trs = t.querySelectorAll("tr");
+      for (const tr of trs) {
+        const cells = tr.querySelectorAll("th,td");
+        if (!cells.length) continue;
+        const line = Array.from(cells)
+          .map((c) => (c.innerText || c.textContent || "").replace(/\s+/g, " ").trim())
+          .filter(Boolean)
+          .join(" | ");
+        if (line) rows.push(line);
+      }
+      if (rows.length) chunks.push("TABELA:\n" + rows.join("\n"));
+    }
+    return chunks.join("\n\n");
+  }
+
   function extractFromDoc(doc) {
     if (!doc || !doc.body) return "";
+    const tablesText = extractTables(doc);
     const clone = doc.body.cloneNode(true);
     clone.querySelectorAll("input,select,textarea").forEach((el) => {
       const v = el.value || el.getAttribute("value") || "";
@@ -71,8 +94,11 @@
       }
     });
     clone.querySelectorAll("script,style,noscript,svg,button").forEach((n) => n.remove());
+    // Tabelas já foram capturadas com estrutura acima; remove do clone pra não duplicar
+    clone.querySelectorAll("table").forEach((n) => n.remove());
     clone.querySelectorAll("tr,li,p,div,br,td,th").forEach((n) => n.appendChild(document.createTextNode("\n")));
-    return clone.textContent || "";
+    const bodyText = clone.textContent || "";
+    return (tablesText ? tablesText + "\n\n" : "") + bodyText;
   }
 
   function collectPageText() {
@@ -93,6 +119,7 @@
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   }
+
 
   function showToast(msg, kind) {
     let el = document.getElementById("viaair-toast");
