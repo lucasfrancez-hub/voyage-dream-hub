@@ -1311,6 +1311,26 @@ const aggregateBaggage = (items: OrderItem[]) =>
     { personal: false, carry: false, checked: false },
   );
 
+// Escolhe o localizador exibido no voucher aéreo.
+// Para LATAM (IATA "LA" ou número do voo iniciando por "LA"), preferimos o
+// PNR de 6 letras (details.carrier_locator), escondendo o número de compra.
+// Para as demais cias, mantemos o supplier_locator.
+const pickAereoLocator = (segs: OrderItem[]): string => {
+  const isLatam = segs.some((s) => {
+    const d = (s.details ?? {}) as Record<string, unknown>;
+    const iata = String(d.airline_iata ?? "").toUpperCase();
+    const fn = String(d.flight_number ?? "").toUpperCase().replace(/\s+/g, "");
+    return iata === "LA" || /^LA\d/.test(fn);
+  });
+  if (isLatam) {
+    const pnr = segs
+      .map((s) => String(((s.details ?? {}) as Record<string, unknown>).carrier_locator ?? "").trim())
+      .find((v) => !!v);
+    if (pnr) return pnr.toUpperCase();
+  }
+  return segs.map((i) => i.supplier_locator).find(Boolean) ?? "";
+};
+
 const drawAereoSection = async (
   ctx: Ctx,
   outbound: OrderItem[],
