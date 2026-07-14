@@ -54,6 +54,7 @@ import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
 import type { Json } from "@/integrations/supabase/types";
 import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
 import { QuoteDialog } from "@/components/QuoteDialog";
+import { FlightLookupButton } from "@/components/FlightLookupButton";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   component: OrderDetailPage,
