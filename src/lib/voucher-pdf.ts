@@ -1059,7 +1059,7 @@ const drawFlightLegBlock = (
 
 
     // Pill "Cia · Voo · Cabine" (sem logo dentro)
-    const pillParts = [airline, flightNo, cabin].filter(Boolean);
+    const pillParts = [airline, flightNo, cabinLabel].filter(Boolean);
     const pillText = pillParts.join(" · ");
     const pillSize = 8;
     const pillTw = measure(ctx.fontBold, pillText, pillSize);
