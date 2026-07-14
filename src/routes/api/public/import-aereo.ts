@@ -28,11 +28,14 @@ function normalizeAirlineFields(parsed: Record<string, unknown>): Record<string,
     for (const seg of segs) {
       const rawAirline = typeof seg.airline === "string" ? seg.airline : "";
       const rawIata = typeof seg.airline_iata === "string" ? seg.airline_iata.toUpperCase() : "";
-      const flightNum = typeof seg.flight_number === "string" ? seg.flight_number : "";
-      const flightPrefix = flightNum.match(/^([A-Z0-9]{2})\s/)?.[1] ?? "";
+      const flightNum = typeof seg.flight_number === "string" ? seg.flight_number.toUpperCase() : "";
+      // Prefixo IATA no número do voo (com ou sem espaço): "AD 4190", "AD4190", "G3-1843".
+      const flightPrefix = flightNum.match(/^([A-Z]{1,2}[0-9]?|[0-9][A-Z])[\s-]?\d/)?.[1] ?? "";
 
-      // Tenta encontrar na ordem: IATA da segment → prefixo do flight_number → nome
-      const hit = findAirline(rawIata) ?? findAirline(flightPrefix) ?? findAirline(rawAirline);
+      // O prefixo do voo é a fonte MAIS confiável da cia — companhias como
+      // Azul (AD 4190) às vezes vêm com airline="Air Canada" por engano na
+      // captura. Ordem: prefixo do voo → IATA da segment → nome cru.
+      const hit = findAirline(flightPrefix) ?? findAirline(rawIata) ?? findAirline(rawAirline);
       if (hit) {
         seg.airline = hit.name;
         seg.airline_iata = hit.iata;
