@@ -707,7 +707,6 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
   const updateProtoFn = useServerFn(updateProtocoloDetails);
   const qc = useQueryClient();
   const [confirmCloseProto, setConfirmCloseProto] = useState(false);
-  const [viewedProtoId, setViewedProtoId] = useState<string | null>(null);
   const [readOnlyProtoId, setReadOnlyProtoId] = useState<string | null>(null);
   const [protoForm, setProtoForm] = useState({ numero_pedido: "", numero_reserva: "", assunto_resumo: "" });
 
@@ -729,19 +728,17 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
     refetchInterval: 60_000,
   });
 
-  useEffect(() => setViewedProtoId(null), [conv.id, protocolo?.id]);
-
-  const viewedProtocolo = viewedProtoId
-    ? protoHistory.find((p) => p.id === viewedProtoId) ?? protocolo
-    : protocolo;
+  // Sidebar SEMPRE reflete o protocolo ativo. Protocolos anteriores só aparecem na janelinha (dialog).
+  const viewedProtocolo = protocolo;
 
   useEffect(() => {
     setProtoForm({
-      numero_pedido: viewedProtocolo?.numero_pedido ?? "",
-      numero_reserva: viewedProtocolo?.numero_reserva ?? "",
-      assunto_resumo: viewedProtocolo?.assunto_resumo ?? "",
+      numero_pedido: protocolo?.numero_pedido ?? "",
+      numero_reserva: protocolo?.numero_reserva ?? "",
+      assunto_resumo: protocolo?.assunto_resumo ?? "",
     });
-  }, [viewedProtocolo?.id, viewedProtocolo?.numero_pedido, viewedProtocolo?.numero_reserva, viewedProtocolo?.assunto_resumo]);
+  }, [protocolo?.id, protocolo?.numero_pedido, protocolo?.numero_reserva, protocolo?.assunto_resumo]);
+
 
   // Backfill silencioso: se um protocolo antigo/encerrado não tem resumo nem necessidade, gera via IA na primeira visualização.
   const ensureResumoFn = useServerFn(ensureProtocoloResumo);
@@ -936,7 +933,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                         aberto <ChevronDown className="h-2.5 w-2.5" />
                       </button>
                     </DropdownMenuTrigger>
-                    <ProtocoloHistoryMenu previous={previous} onSelect={(id) => { setViewedProtoId(id); setReadOnlyProtoId(id); }} />
+                    <ProtocoloHistoryMenu previous={previous} onSelect={(id) => { setReadOnlyProtoId(id); }} />
 
                   </DropdownMenu>
                   <Tooltip>
@@ -966,7 +963,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <ProtocoloHistoryMenu previous={previous} onSelect={(id) => { setViewedProtoId(id); setReadOnlyProtoId(id); }} />
+                <ProtocoloHistoryMenu previous={previous} onSelect={(id) => { setReadOnlyProtoId(id); }} />
               </DropdownMenu>
             )}
           </Field>
@@ -980,7 +977,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                 {viewedProtocolo.id !== protocolo?.id && (
                   <button
                     type="button"
-                    onClick={() => setViewedProtoId(null)}
+                    onClick={() => setReadOnlyProtoId(null)}
                     className="text-[10px] font-medium text-[#F26B1F] hover:underline"
                   >
                     Voltar ao atual
