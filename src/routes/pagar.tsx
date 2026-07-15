@@ -574,35 +574,48 @@ function PayPage() {
                         </span>
                       </label>
 
-                      <SignaturePad value={signatureDataUrl} onChange={setSignatureDataUrl} />
-
-                      <div className="text-[11px] text-muted-foreground">
-                        Ao assinar, será registrado: data e hora ({new Date().toLocaleString("pt-BR")}), dados do dispositivo e a imagem da assinatura junto ao pedido.
-                      </div>
+                      {signatureStatus === "signed" ? (
+                        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 flex items-start gap-3">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <div className="font-medium text-emerald-700">Autorização assinada</div>
+                            <div className="text-xs text-emerald-700/80 mt-0.5">
+                              Você pode finalizar seu pedido clicando em "Fazer pedido".
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={handleOpenClickSign}
+                            disabled={creatingSignature || !acceptedTerms}
+                            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
+                          >
+                            {creatingSignature ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" /> Preparando assinatura…
+                              </>
+                            ) : signatureStatus === "refused" ? (
+                              <>
+                                <FileSignature className="h-4 w-4" /> Reabrir assinatura ClickSign
+                              </>
+                            ) : (
+                              <>
+                                <FileSignature className="h-4 w-4" /> Assinar autorização com ClickSign
+                              </>
+                            )}
+                          </button>
+                          <p className="text-[11px] text-muted-foreground text-center">
+                            Uma janela segura será aberta aqui mesmo. Você fará selfie com prova de vida, foto do documento e permitirá a geolocalização (obrigatória) — a assinatura digital certificada da ClickSign é anexada automaticamente ao PDF.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </Card>
                 )}
 
-                {secureMode && (
-                  <Card title="Verificação de biometria facial">
-                    {!canShowAuthorization ? (
-                      <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                        <ShieldCheck className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
-                        Complete os dados acima para liberar a verificação de biometria.
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Análise biométrica facial (prova de vida) em 5 passos.
-                        </p>
-
-
-                        <FaceLiveness value={liveness} onChange={setLiveness} />
-                      </>
-                    )}
-                  </Card>
-                )}
               </div>
 
 
