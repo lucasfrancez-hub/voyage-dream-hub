@@ -20,7 +20,7 @@ declare global {
   }
 }
 
-const SCRIPT_URL = "https://cdn.clicksign.com/widget.js";
+const SCRIPT_URL = "https://cdn-public-library.clicksign.com/embedded/embedded.min-1.0.0.js";
 const CONTAINER_ID = "clicksign-embedded-container";
 
 function loadScriptOnce(): Promise<void> {
