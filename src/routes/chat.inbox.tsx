@@ -933,7 +933,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                         aberto <ChevronDown className="h-2.5 w-2.5" />
                       </button>
                     </DropdownMenuTrigger>
-                    <ProtocoloHistoryMenu previous={previous} onSelect={(id) => { setViewedProtoId(id); setReadOnlyProtoId(id); }} />
+                    <ProtocoloHistoryMenu previous={previous} onSelect={(id) => { setReadOnlyProtoId(id); }} />
 
                   </DropdownMenu>
                   <Tooltip>
@@ -963,7 +963,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <ProtocoloHistoryMenu previous={previous} onSelect={(id) => { setViewedProtoId(id); setReadOnlyProtoId(id); }} />
+                <ProtocoloHistoryMenu previous={previous} onSelect={(id) => { setReadOnlyProtoId(id); }} />
               </DropdownMenu>
             )}
           </Field>
@@ -977,7 +977,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                 {viewedProtocolo.id !== protocolo?.id && (
                   <button
                     type="button"
-                    onClick={() => setViewedProtoId(null)}
+                    onClick={() => setReadOnlyProtoId(null)}
                     className="text-[10px] font-medium text-[#F26B1F] hover:underline"
                   >
                     Voltar ao atual
