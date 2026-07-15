@@ -110,16 +110,8 @@ function ChatLayout() {
 
   const pageInfo = PAGE_TITLES[pathname] ?? { title: "Central de Atendimento" };
 
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    if (typeof window === "undefined") return "dark";
-    return (localStorage.getItem("chat-theme") as "dark" | "light") ?? "dark";
-  });
-  useEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem("chat-theme", theme);
-  }, [theme]);
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
-
   const themeClass = theme === "dark" ? "chat-dark dark" : "";
+
 
   return (
     <div className={`${themeClass} flex h-screen w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}>
