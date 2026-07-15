@@ -193,37 +193,35 @@ export const ensureProtocoloResumo = createServerFn({ method: "POST" })
       return { ok: true, updated: false, resumo_conversa: proto.resumo_conversa, assunto_resumo: proto.assunto_resumo };
     }
 
-    // 1) tenta pelas mensagens vinculadas ao protocolo
+    // Janela estrita do protocolo: [opened_at, closed_at ou agora].
+    // Nunca misturar mensagens de protocolos anteriores/posteriores.
+    const fromTs = proto.opened_at;
+    const toTs = proto.closed_at ?? new Date().toISOString();
+
+    // 1) mensagens vinculadas a este protocolo, DENTRO da janela
     let { data: msgs } = await supabaseAdmin
       .from("wa_messages")
       .select("direction, sender, content, created_at")
       .eq("protocolo_id", proto.id)
+      .gte("created_at", fromTs)
+      .lte("created_at", toTs)
       .order("created_at", { ascending: true })
       .limit(300);
 
     // 2) fallback: se não há mensagens vinculadas, usa a janela da conversa
-    //    (do fim do protocolo anterior até o closed_at deste, ou até agora se ainda aberto)
+    //    estritamente entre opened_at e closed_at deste protocolo
     if ((!msgs || msgs.length === 0) && proto.conversation_id) {
-      const { data: prev } = await supabaseAdmin
-        .from("wa_protocolos")
-        .select("closed_at")
-        .eq("conversation_id", proto.conversation_id)
-        .lt("opened_at", proto.opened_at)
-        .order("opened_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const fromTs = prev?.closed_at ?? "1970-01-01T00:00:00Z";
-      const toTs = proto.closed_at ?? new Date().toISOString();
       const { data: winMsgs } = await supabaseAdmin
         .from("wa_messages")
         .select("direction, sender, content, created_at")
         .eq("conversation_id", proto.conversation_id)
-        .gt("created_at", fromTs)
+        .gte("created_at", fromTs)
         .lte("created_at", toTs)
         .order("created_at", { ascending: true })
         .limit(300);
       msgs = winMsgs ?? [];
     }
+
 
     const transcript = (msgs ?? [])
       .filter((m) => m.content && m.content.trim().length > 0)
