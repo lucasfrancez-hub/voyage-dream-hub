@@ -317,10 +317,10 @@ function EmptyState() {
   );
 }
 
-const WALLPAPERS: { key: string; label: string; css: string }[] = [
-  { key: "dots", label: "Bolinhas (padrão)", css: "radial-gradient(circle, color-mix(in oklab, oklch(0.75 0.04 65) 55%, transparent) 42px, transparent 43px)" },
+const WALLPAPERS: { key: string; label: string; css: string; size?: string }[] = [
+  { key: "dots", label: "Bolinhas (padrão)", css: "radial-gradient(circle 42px at center, color-mix(in oklab, oklch(0.75 0.04 65) 55%, transparent) 0, color-mix(in oklab, oklch(0.75 0.04 65) 55%, transparent) 42px, transparent 43px)", size: "120px 120px" },
   { key: "none", label: "Nenhum", css: "none" },
-  { key: "grid", label: "Grade sutil", css: "linear-gradient(color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px)" },
+  { key: "grid", label: "Grade sutil", css: "linear-gradient(color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px)", size: "24px 24px" },
   { key: "orange", label: "Brilho VIA AIR", css: "radial-gradient(circle at 20% 10%, color-mix(in oklab, var(--brand-orange) 18%, transparent) 0%, transparent 45%), radial-gradient(circle at 85% 90%, color-mix(in oklab, var(--brand-blue) 20%, transparent) 0%, transparent 50%)" },
   { key: "diagonal", label: "Listras diagonais", css: "repeating-linear-gradient(45deg, color-mix(in oklab, var(--foreground) 6%, transparent) 0 2px, transparent 2px 14px)" },
 ];
@@ -329,20 +329,19 @@ function useWallpaper() {
   const [key, setKey] = useState<string>("dots");
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("chat-wallpaper-v2");
+    const saved = localStorage.getItem("chat-wallpaper-v3");
     if (saved) setKey(saved);
   }, []);
   const set = (k: string) => {
     setKey(k);
-    if (typeof window !== "undefined") localStorage.setItem("chat-wallpaper-v2", k);
+    if (typeof window !== "undefined") localStorage.setItem("chat-wallpaper-v3", k);
   };
   const cur = WALLPAPERS.find((w) => w.key === key) ?? WALLPAPERS[0];
   const style: React.CSSProperties = {
     backgroundImage: cur.css,
     backgroundColor: "var(--chat-conversation)",
   };
-  if (cur.key === "grid") style.backgroundSize = "24px 24px";
-  if (cur.key === "dots") style.backgroundSize = "130px 130px";
+  if (cur.size) style.backgroundSize = cur.size;
   return { key, set, style };
 }
 
