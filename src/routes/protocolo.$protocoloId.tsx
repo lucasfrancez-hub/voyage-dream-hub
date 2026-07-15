@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { listProtocoloMessages } from "@/lib/chat/queries.functions";
+import { listProtocoloMessages, ensureProtocoloResumo } from "@/lib/chat/queries.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/protocolo/$protocoloId")({
