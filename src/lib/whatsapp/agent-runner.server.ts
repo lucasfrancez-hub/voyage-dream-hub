@@ -148,20 +148,31 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     return;
   }
 
-  const history = await loadHistory(conv.id, 30);
+  // Protocolo ativo (abre/reabre conforme regra) + detecta se ainda é a primeira resposta nele
+  const protocolo = await ensureActiveProtocolo(conv.id);
+
+  // Escopo do histórico: SÓ mensagens do protocolo atual (desde opened_at).
+  // Sem isso a IA puxa assunto de protocolos anteriores encerrados.
+  const { data: pMeta } = await supabaseAdmin
+    .from("wa_protocolos")
+    .select("opened_at")
+    .eq("id", protocolo.id)
+    .maybeSingle();
+  const sinceIso: string | undefined = pMeta?.opened_at ?? undefined;
+
+  const history = await loadHistory(conv.id, 30, sinceIso);
   const messages: ModelMessage[] = history.map((m) => ({
     role: m.sender === "customer" ? "user" : "assistant",
     content: m.content,
   }));
 
-  // Protocolo ativo (abre/reabre conforme regra) + detecta se ainda é a primeira resposta nele
-  const protocolo = await ensureActiveProtocolo(conv.id);
   const { count: outboundNoProto } = await supabaseAdmin
     .from("wa_messages")
     .select("id", { count: "exact", head: true })
     .eq("protocolo_id", protocolo.id)
     .eq("direction", "outbound");
   const isNewProtocolo = (outboundNoProto ?? 0) === 0;
+
 
   const gateway = createLovableAiGatewayProvider(key);
   const model = gateway("google/gemini-3.5-flash");
