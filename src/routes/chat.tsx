@@ -127,7 +127,7 @@ function ChatLayout() {
 
   return (
     <div className={`${themeClass} flex h-screen w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}>
-      <ChatSidebar />
+      <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <ChatHeader
           title={pageInfo.title}
@@ -136,6 +136,7 @@ function ChatLayout() {
           userFullName={profile?.full_name ?? null}
           theme={theme}
           onToggleTheme={toggleTheme}
+          onOpenMobileNav={() => setMobileNavOpen(true)}
         />
         <main className="min-h-0 flex-1 overflow-hidden">
           <Outlet />
@@ -144,3 +145,4 @@ function ChatLayout() {
     </div>
   );
 }
+
