@@ -693,6 +693,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
   const listProtos = useServerFn(listConversationProtocolos);
   const closeProtoFn = useServerFn(closeProtocoloManually);
   const qc = useQueryClient();
+  const [confirmCloseProto, setConfirmCloseProto] = useState(false);
 
   const { data: attendants = [] } = useQuery({
     queryKey: ["chat", "attendants"],
