@@ -711,6 +711,13 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
     refetchInterval: 60_000,
   });
 
+  const getOrdersFn = useServerFn(getConversationOrders);
+  const { data: orders = [] } = useQuery({
+    queryKey: ["chat", "orders", conv.id],
+    queryFn: () => getOrdersFn({ data: { conversation_id: conv.id } }),
+    staleTime: 60_000,
+  });
+
   const closeProtoMut = useMutation({
     mutationFn: async () => closeProtoFn({ data: { conversation_id: conv.id } }),
     onSuccess: (res) => {
