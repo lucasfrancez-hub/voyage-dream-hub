@@ -68,8 +68,15 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
           console.error("[inactivity] warn query error:", warnErr.message);
         } else {
           for (const proto of toWarn ?? []) {
+            if (await isAwaitingHuman(proto.conversation_id)) {
+              skipped.push(proto.numero);
+              continue;
+            }
             const { data: conv } = await supabaseAdmin
               .from("wa_conversations")
+              .select("wa_phone")
+              .eq("id", proto.conversation_id)
+              .maybeSingle();
               .select("wa_phone")
               .eq("id", proto.conversation_id)
               .maybeSingle();
