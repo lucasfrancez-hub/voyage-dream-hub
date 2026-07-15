@@ -117,6 +117,30 @@ export const listConversationProtocolos = createServerFn({ method: "POST" })
   });
 
 
+export const getConversationOrders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ conversation_id: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const { data: conv } = await context.supabase
+      .from("wa_conversations")
+      .select("wa_phone, person_id")
+      .eq("id", data.conversation_id)
+      .maybeSingle();
+    if (!conv) return [];
+    // Normaliza últimos 10 dígitos pra bater com variações de DDI/DDD
+    const last10 = conv.wa_phone.replace(/\D/g, "").slice(-10);
+
+    const { data: rows, error } = await context.supabase
+      .from("orders")
+      .select("id, order_number, airline_locator, status, trip_title, phone, created_at")
+      .ilike("phone", `%${last10}`)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+
 
 export const listMessages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

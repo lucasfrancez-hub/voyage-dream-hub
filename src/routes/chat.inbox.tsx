@@ -6,7 +6,7 @@ import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Use
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders } from "@/lib/chat/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
@@ -317,10 +317,10 @@ function EmptyState() {
   );
 }
 
-const WALLPAPERS: { key: string; label: string; css: string }[] = [
-  { key: "dots", label: "Bolinhas (padrão)", css: "radial-gradient(circle, color-mix(in oklab, oklch(0.75 0.04 65) 55%, transparent) 42px, transparent 43px)" },
+const WALLPAPERS: { key: string; label: string; css: string; size?: string }[] = [
+  { key: "dots", label: "Bolinhas (padrão)", css: "radial-gradient(circle 42px at center, color-mix(in oklab, oklch(0.75 0.04 65) 55%, transparent) 0, color-mix(in oklab, oklch(0.75 0.04 65) 55%, transparent) 42px, transparent 43px)", size: "120px 120px" },
   { key: "none", label: "Nenhum", css: "none" },
-  { key: "grid", label: "Grade sutil", css: "linear-gradient(color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px)" },
+  { key: "grid", label: "Grade sutil", css: "linear-gradient(color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px)", size: "24px 24px" },
   { key: "orange", label: "Brilho VIA AIR", css: "radial-gradient(circle at 20% 10%, color-mix(in oklab, var(--brand-orange) 18%, transparent) 0%, transparent 45%), radial-gradient(circle at 85% 90%, color-mix(in oklab, var(--brand-blue) 20%, transparent) 0%, transparent 50%)" },
   { key: "diagonal", label: "Listras diagonais", css: "repeating-linear-gradient(45deg, color-mix(in oklab, var(--foreground) 6%, transparent) 0 2px, transparent 2px 14px)" },
 ];
@@ -329,20 +329,19 @@ function useWallpaper() {
   const [key, setKey] = useState<string>("dots");
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("chat-wallpaper-v2");
+    const saved = localStorage.getItem("chat-wallpaper-v3");
     if (saved) setKey(saved);
   }, []);
   const set = (k: string) => {
     setKey(k);
-    if (typeof window !== "undefined") localStorage.setItem("chat-wallpaper-v2", k);
+    if (typeof window !== "undefined") localStorage.setItem("chat-wallpaper-v3", k);
   };
   const cur = WALLPAPERS.find((w) => w.key === key) ?? WALLPAPERS[0];
   const style: React.CSSProperties = {
     backgroundImage: cur.css,
     backgroundColor: "var(--chat-conversation)",
   };
-  if (cur.key === "grid") style.backgroundSize = "24px 24px";
-  if (cur.key === "dots") style.backgroundSize = "130px 130px";
+  if (cur.size) style.backgroundSize = cur.size;
   return { key, set, style };
 }
 
@@ -712,6 +711,13 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
     refetchInterval: 60_000,
   });
 
+  const getOrdersFn = useServerFn(getConversationOrders);
+  const { data: orders = [] } = useQuery({
+    queryKey: ["chat", "orders", conv.id],
+    queryFn: () => getOrdersFn({ data: { conversation_id: conv.id } }),
+    staleTime: 60_000,
+  });
+
   const closeProtoMut = useMutation({
     mutationFn: async () => closeProtoFn({ data: { conversation_id: conv.id } }),
     onSuccess: (res) => {
@@ -899,31 +905,39 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                 </DropdownMenu>
               )}
             </Field>
-          ) : previous.length > 0 ? (
-            <Field label="Protocolos">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex w-full items-center justify-between rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
-                    <span className="flex items-center gap-1.5"><History className="h-3 w-3" /> Histórico ({previous.length})</span>
-                    <ChevronDown className="h-3 w-3" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72 max-h-72 overflow-y-auto">
-                  {previous.map((p) => (
-                    <DropdownMenuItem key={p.id} className="flex flex-col items-start gap-0.5">
-                      <div className="flex w-full items-center justify-between">
-                        <span className="font-mono text-xs font-semibold">#{p.numero}</span>
-                        <span className="text-[10px] text-slate-500">{fmtDate(p.opened_at)}</span>
-                      </div>
-                      {p.assunto_resumo && (
-                        <span className="line-clamp-2 text-[10px] text-slate-500">{p.assunto_resumo}</span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+          ) : (
+            <Field label="Protocolo atual">
+              {previous.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex w-full items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100">
+                      <span className="italic text-slate-500">Não há protocolo ativo</span>
+                      <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                        <History className="h-3 w-3" /> {previous.length} anteriores <ChevronDown className="h-3 w-3" />
+                      </span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-72 max-h-72 overflow-y-auto">
+                    {previous.map((p) => (
+                      <DropdownMenuItem key={p.id} className="flex flex-col items-start gap-0.5">
+                        <div className="flex w-full items-center justify-between">
+                          <span className="font-mono text-xs font-semibold">#{p.numero}</span>
+                          <span className="text-[10px] text-slate-500">{fmtDate(p.opened_at)}</span>
+                        </div>
+                        {p.assunto_resumo && (
+                          <span className="line-clamp-2 text-[10px] text-slate-500">{p.assunto_resumo}</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <div className="rounded-md border border-dashed border-slate-200 px-3 py-1.5 text-xs italic text-slate-400">
+                  Não há protocolo
+                </div>
+              )}
             </Field>
-          ) : null}
+          )}
 
           {protocolo && (
             <Field label="Necessidade do cliente">
@@ -958,6 +972,38 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
               {conv.tags.map((t) => (
                 <span key={t} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700">{t}</span>
               ))}
+            </div>
+          )}
+
+          {orders.length > 0 && (
+            <div className="border-t border-slate-100 pt-3">
+              <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                Pedidos deste contato
+              </div>
+              <div className="space-y-1.5">
+                {orders.map((o) => (
+                  <a
+                    key={o.id}
+                    href={`/admin/pedidos/${o.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] hover:border-[#F26B1F]/50 hover:bg-orange-50/30"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono font-semibold text-slate-800">#{o.order_number}</span>
+                      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-600">{o.status}</span>
+                    </div>
+                    {o.trip_title && (
+                      <div className="mt-0.5 truncate text-[10px] text-slate-500">{o.trip_title}</div>
+                    )}
+                    {o.airline_locator && (
+                      <div className="mt-0.5 text-[10px] text-slate-600">
+                        Localizador aéreo: <span className="font-mono font-semibold">{o.airline_locator}</span>
+                      </div>
+                    )}
+                  </a>
+                ))}
+              </div>
             </div>
           )}
         </div>
