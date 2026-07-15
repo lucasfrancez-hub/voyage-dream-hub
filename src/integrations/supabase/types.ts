@@ -985,6 +985,59 @@ export type Database = {
           },
         ]
       }
+      pending_authorization_signatures: {
+        Row: {
+          clicksign_document_key: string
+          clicksign_request_signature_key: string
+          clicksign_signer_key: string
+          consumed_order_id: string | null
+          created_at: string
+          id: string
+          raw_last_event: Json | null
+          signed_at: string | null
+          signed_pdf_path: string | null
+          snapshot: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          clicksign_document_key: string
+          clicksign_request_signature_key: string
+          clicksign_signer_key: string
+          consumed_order_id?: string | null
+          created_at?: string
+          id?: string
+          raw_last_event?: Json | null
+          signed_at?: string | null
+          signed_pdf_path?: string | null
+          snapshot?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          clicksign_document_key?: string
+          clicksign_request_signature_key?: string
+          clicksign_signer_key?: string
+          consumed_order_id?: string | null
+          created_at?: string
+          id?: string
+          raw_last_event?: Json | null
+          signed_at?: string | null
+          signed_pdf_path?: string | null
+          snapshot?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_authorization_signatures_consumed_order_id_fkey"
+            columns: ["consumed_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       people: {
         Row: {
           address: string | null
