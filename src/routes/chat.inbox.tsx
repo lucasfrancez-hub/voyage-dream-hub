@@ -377,7 +377,11 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
           </div>
           <div className="text-[11px] text-slate-500">
             {conv.wa_phone} · {conv.mode === "ai" ? `IA (${conv.agent_slug ?? "auto"})` : conv.mode === "human" ? "Humano" : "Arquivada"}
+            {assignedName && (
+              <> · <span className="font-medium text-slate-700">Atendente: {assignedName}</span></>
+            )}
           </div>
+
         </div>
         <button
           onClick={() => toggleMut.mutate(conv.mode === "ai" ? "human" : "ai")}
