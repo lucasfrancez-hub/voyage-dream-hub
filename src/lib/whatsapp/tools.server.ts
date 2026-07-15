@@ -279,7 +279,8 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     escalar_para_humano: tool({
       description:
-        "Escala a conversa para um vendedor humano. Use quando: (a) cliente quer nova cotação personalizada; (b) voo alterado/cancelado; (c) cliente irritado ou reclamando; (d) qualquer coisa fora do seu escopo. SEMPRE preencha os campos estruturados (destino, datas, pax, voo etc) com o que já foi coletado — deixe null só o que o cliente realmente não informou. Depois de chamar, você para de responder até o humano assumir.",
+        "Sinaliza que a conversa precisa de um consultor humano (nova cotação, alteração/cancelamento de voo pela cia, reclamação, algo fora do seu escopo). Marca a conversa como aguardando_humano com prioridade e briefing pro painel do atendente. IMPORTANTE: você CONTINUA respondendo ao cliente normalmente até um humano assumir manualmente pelo painel — não pare, não fique em silêncio, siga ajudando com o que puder (dúvidas, informações, contexto). O comercial pode estar ocupado ou fora do horário. Preencha os campos estruturados com o que já foi coletado.",
+
       inputSchema: z.object({
         motivo: z
           .enum(["nova_cotacao", "alteracao_voo", "reclamacao", "outro"])
@@ -327,12 +328,15 @@ export function buildCamilaTools(conversation: WaConversation) {
         if (observacoes) linhas.push(`📝 Obs: ${observacoes}`);
         const briefing = linhas.length ? linhas.join("\n") : "Cliente solicitou atendimento humano — dados ainda não coletados.";
 
+        const existingTags = conversation.tags ?? [];
+        const newTags = Array.from(new Set([...existingTags, motivo, "aguardando_humano"]));
         await supabaseAdmin
           .from("wa_conversations")
           .update({
-            mode: "human",
+            // IMPORTANTE: NÃO trocamos mode pra "human" automaticamente.
+            // A IA segue respondendo até um operador assumir manualmente pelo painel.
             priority: prioridade ?? "normal",
-            tags: [...(conversation.tags ?? []), motivo],
+            tags: newTags,
           })
           .eq("id", conversation.id);
 
@@ -347,7 +351,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         await recordHandoff({
           conversation_id: conversation.id,
           from_mode: "ai",
-          to_mode: "human",
+          to_mode: "ai", // marcado como pendente de humano, mas IA segue ativa
           reason: motivo,
           briefing,
         });
@@ -355,10 +359,11 @@ export function buildCamilaTools(conversation: WaConversation) {
         return {
           ok: true,
           instrucao:
-            "Agradeça, diga que um consultor humano vai continuar o atendimento em instantes e não faça mais perguntas.",
+            "Avise ao cliente que já sinalizou pro time comercial assumir e siga ajudando normalmente com o que puder — dúvidas, informações, contexto. Não fique em silêncio. Quando um humano assumir, o sistema te desativa automaticamente.",
         };
       },
     }),
+
 
 
     _meta: { isIdentityVerified }, // usado só pelo runner pra decidir prompt
