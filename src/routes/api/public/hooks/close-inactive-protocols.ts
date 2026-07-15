@@ -26,8 +26,9 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
         const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
 
         const now = Date.now();
-        const warnCutoff = new Date(now - 60 * 60 * 1000).toISOString(); // 1h
-        const closeCutoff = new Date(now - 3 * 60 * 60 * 1000).toISOString(); // 3h
+        const warnCutoff = new Date(now - 60 * 60 * 1000).toISOString(); // 1h sem atividade → aviso
+        const closeAfterWarn = new Date(now - 60 * 60 * 1000).toISOString(); // +1h após o aviso → encerra
+
 
         const warned: string[] = [];
         const closed: string[] = [];
