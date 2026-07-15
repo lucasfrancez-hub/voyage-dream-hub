@@ -17,7 +17,7 @@ import {
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
-import { buildSenderPrefix, capitalizeBubbles } from "./text-utils.server";
+import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, firstName as extractFirstName } from "./text-utils.server";
 
 type Agent = {
   id: string;
