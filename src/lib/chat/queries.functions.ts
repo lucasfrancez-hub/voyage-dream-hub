@@ -169,10 +169,23 @@ export const sendHumanReply = createServerFn({ method: "POST" })
 
     const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
     const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
-    const { buildSenderPrefix, capitalizeBubbles } = await import("@/lib/whatsapp/text-utils.server");
+    const { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames } = await import("@/lib/whatsapp/text-utils.server");
 
-    const content = capitalizeBubbles(data.content);
-    const prefix = buildSenderPrefix(profile?.full_name);
+    // Nome pra prefixar: full_name se tiver, senão local-part do email ("lucas@voeair.com" → "Lucas")
+    const emailLocal = typeof context.claims.email === "string"
+      ? context.claims.email.split("@")[0]?.replace(/[._-]+/g, " ")
+      : null;
+    const senderName = profile?.full_name?.trim() || emailLocal || null;
+
+    // Pega nome do cliente pra capitalizar quando aparecer no texto
+    const { data: convFull } = await context.supabase
+      .from("wa_conversations")
+      .select("display_name")
+      .eq("id", conv.id)
+      .maybeSingle();
+
+    const content = capitalizeKnownNames(capitalizeBubbles(data.content), [convFull?.display_name?.split(/\s+/)[0]]);
+    const prefix = buildSenderPrefix(senderName);
 
     await saveMessage({
       conversation_id: conv.id,
@@ -216,8 +229,12 @@ export const startOutboundConversation = createServerFn({ method: "POST" })
       .select("full_name")
       .eq("id", context.userId)
       .maybeSingle();
+    const emailLocal = typeof context.claims.email === "string"
+      ? context.claims.email.split("@")[0]?.replace(/[._-]+/g, " ")
+      : null;
+    const senderName = profile?.full_name?.trim() || emailLocal || null;
     const content = capitalizeBubbles(data.content);
-    const prefix = buildSenderPrefix(profile?.full_name);
+    const prefix = buildSenderPrefix(senderName);
 
     // Conversa iniciada manualmente → modo humano por padrão (IA desligada).
     await supabaseAdmin

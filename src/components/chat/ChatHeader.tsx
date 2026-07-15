@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Bell, ArrowLeft } from "lucide-react";
+import { Search, Bell, ArrowLeft, Sun, Moon } from "lucide-react";
 import { useMemo } from "react";
-import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 function currentAgent(): { nome: string; online: boolean } {
   const fmt = new Intl.DateTimeFormat("pt-BR", {
@@ -19,11 +18,15 @@ interface ChatHeaderProps {
   subtitle?: string;
   userEmail?: string | null;
   userFullName?: string | null;
+  theme?: "dark" | "light";
+  onToggleTheme?: () => void;
 }
 
-export function ChatHeader({ title, subtitle, userEmail, userFullName }: ChatHeaderProps) {
+export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "dark", onToggleTheme }: ChatHeaderProps) {
   const agent = useMemo(currentAgent, []);
-  const shortName = firstName(userFullName);
+  // Se não tiver full_name, deriva do email ("lucas@voeair.com" → "Lucas")
+  const displayName = (userFullName?.trim())
+    || (userEmail ? userEmail.split("@")[0]!.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : null);
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-5">
       <div className="min-w-0 flex-1">
@@ -50,9 +53,22 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName }: ChatHea
         <span className="text-xs font-medium text-slate-700">{agent.nome} atendendo</span>
       </div>
 
-      <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+      <button
+        className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+        title="Notificações"
+      >
         <Bell className="h-4 w-4" />
       </button>
+
+      {onToggleTheme && (
+        <button
+          onClick={onToggleTheme}
+          className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+          title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+        >
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+      )}
 
       <Link
         to="/admin"
@@ -61,9 +77,9 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName }: ChatHea
         <ArrowLeft className="h-3.5 w-3.5" /> Admin
       </Link>
 
-      {(shortName || userEmail) && (
+      {(displayName || userEmail) && (
         <div className="hidden lg:flex flex-col items-end border-l border-slate-200 pl-4 leading-tight">
-          {shortName && <span className="text-xs font-semibold text-slate-800">{shortName}</span>}
+          {displayName && <span className="text-xs font-semibold text-slate-800">{displayName}</span>}
           {userEmail && <span className="text-[11px] text-slate-500">{userEmail}</span>}
         </div>
       )}
