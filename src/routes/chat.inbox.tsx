@@ -89,7 +89,9 @@ function InboxPage() {
     <div className="flex h-full min-h-0">
       {/* Coluna 1 — Lista */}
       {listCollapsed ? (
-        <aside className="flex w-12 shrink-0 flex-col items-center gap-2 border-r border-border bg-card py-3">
+        <aside className={cn(
+          "hidden md:flex w-12 shrink-0 flex-col items-center gap-2 border-r border-border bg-card py-3",
+        )}>
           <button
             onClick={toggleList}
             title="Expandir caixa de entrada"
@@ -109,13 +111,18 @@ function InboxPage() {
           </div>
         </aside>
       ) : (
-        <aside className="flex w-80 shrink-0 flex-col border-r border-slate-200 bg-white">
+        <aside className={cn(
+          "flex-col border-r border-slate-200 bg-white shrink-0",
+          // Mobile: só mostra se não tem conversa aberta; ocupa tela toda
+          active ? "hidden md:flex" : "flex w-full",
+          "md:flex md:w-80",
+        )}>
           <div className="border-b border-slate-200 p-3">
             <div className="mb-2 flex items-center gap-2">
               <button
                 onClick={toggleList}
                 title="Recolher lista"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                className="hidden md:flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900"
               >
                 <PanelLeftClose className="h-4 w-4" />
               </button>
@@ -165,8 +172,12 @@ function InboxPage() {
       )}
 
       {/* Coluna 2 — Conversa */}
-      <main className="flex min-w-0 flex-1 flex-col bg-[var(--chat-conversation)]">
-        {active ? <ConversationView conv={active} onRefetch={refetch} /> : <EmptyState />}
+      <main className={cn(
+        "min-w-0 flex-1 flex-col bg-[var(--chat-conversation)]",
+        // Mobile: só mostra se tiver conversa ativa
+        active ? "flex" : "hidden md:flex",
+      )}>
+        {active ? <ConversationView conv={active} onRefetch={refetch} onBack={() => setActiveId(null)} /> : <EmptyState />}
       </main>
 
       {/* Coluna 3 — Detalhes */}
@@ -182,6 +193,7 @@ function InboxPage() {
     </div>
   );
 }
+
 
 function NewConversationDialog({
   open, onOpenChange, onCreated,
