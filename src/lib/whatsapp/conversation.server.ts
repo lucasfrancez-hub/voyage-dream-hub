@@ -118,13 +118,14 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
     if (data && data.status === "aberto") return data as WaProtocolo;
   }
 
-  // Tenta reabrir um recém-encerrado
+  // Tenta reabrir um protocolo recém-encerrado POR INATIVIDADE (continuação do mesmo assunto).
+  // Encerramento MANUAL é ponto final: qualquer mensagem posterior gera protocolo novo (novo lead).
   const cutoff = new Date(Date.now() - REOPEN_WINDOW_MS).toISOString();
   const { data: recent } = await supabaseAdmin
     .from("wa_protocolos")
     .select("*")
     .eq("conversation_id", conversationId)
-    .in("status", ["encerrado_inatividade", "encerrado_manual"])
+    .eq("status", "encerrado_inatividade")
     .gte("closed_at", cutoff)
     .order("closed_at", { ascending: false })
     .limit(1)
