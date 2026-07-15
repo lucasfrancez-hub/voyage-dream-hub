@@ -76,12 +76,22 @@ export const listProtocoloMessages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("wa_messages")
-      .select("id, direction, sender, content, created_at")
+      .select("id, direction, sender, content, created_at, sender_user_id")
       .eq("protocolo_id", data.protocolo_id)
       .order("created_at", { ascending: true })
       .limit(1000);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const list = rows ?? [];
+    const userIds = Array.from(new Set(list.map((m) => m.sender_user_id).filter((id): id is string => !!id)));
+    const names: Record<string, string | null> = {};
+    if (userIds.length > 0) {
+      const { data: profs } = await context.supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+      for (const p of profs ?? []) names[p.id] = p.full_name?.trim() || null;
+    }
+    return list.map((m) => ({ ...m, sender_full_name: m.sender_user_id ? names[m.sender_user_id] ?? null : null }));
   });
 
 export const getActiveProtocolo = createServerFn({ method: "POST" })
@@ -217,6 +227,8 @@ export const listMessages = createServerFn({ method: "POST" })
       sender_full_name: m.sender_user_id ? names[m.sender_user_id] ?? null : null,
     }));
   });
+
+
 
 
 export const getMyProfile = createServerFn({ method: "GET" })
