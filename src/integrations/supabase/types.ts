@@ -157,6 +157,8 @@ export type Database = {
       }
       flight_change_alerts: {
         Row: {
+          admin_email_sent_at: string | null
+          admin_seen_at: string | null
           created_at: string
           flight_number: string
           id: string
@@ -170,11 +172,15 @@ export type Database = {
           order_item_id: string
           responded_at: string | null
           response: string | null
+          severity: string | null
+          summary: string | null
           updated_at: string
           wa_button_message_id: string | null
           wa_phone: string | null
         }
         Insert: {
+          admin_email_sent_at?: string | null
+          admin_seen_at?: string | null
           created_at?: string
           flight_number: string
           id?: string
@@ -188,11 +194,15 @@ export type Database = {
           order_item_id: string
           responded_at?: string | null
           response?: string | null
+          severity?: string | null
+          summary?: string | null
           updated_at?: string
           wa_button_message_id?: string | null
           wa_phone?: string | null
         }
         Update: {
+          admin_email_sent_at?: string | null
+          admin_seen_at?: string | null
           created_at?: string
           flight_number?: string
           id?: string
@@ -206,6 +216,8 @@ export type Database = {
           order_item_id?: string
           responded_at?: string | null
           response?: string | null
+          severity?: string | null
+          summary?: string | null
           updated_at?: string
           wa_button_message_id?: string | null
           wa_phone?: string | null
