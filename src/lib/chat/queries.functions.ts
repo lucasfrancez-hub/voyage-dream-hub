@@ -48,18 +48,29 @@ export const sendHumanReply = createServerFn({ method: "POST" })
       .single();
     if (cErr || !conv) throw new Error("Conversa não encontrada");
 
+    // Nome do admin logado (pra prefixar o balão)
+    const { data: profile } = await context.supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", context.userId)
+      .maybeSingle();
+
     const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
     const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
+    const { buildSenderPrefix, capitalizeBubbles } = await import("@/lib/whatsapp/text-utils.server");
+
+    const content = capitalizeBubbles(data.content);
+    const prefix = buildSenderPrefix(profile?.full_name);
 
     await saveMessage({
       conversation_id: conv.id,
       direction: "outbound",
       sender: "human",
-      content: data.content,
+      content,
       sender_user_id: context.userId,
     });
 
-    await sendWhatsAppBubbles(conv.wa_phone, data.content);
+    await sendWhatsAppBubbles(conv.wa_phone, content, prefix);
     return { ok: true };
   });
 
