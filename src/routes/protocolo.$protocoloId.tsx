@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { listProtocoloMessages } from "@/lib/chat/queries.functions";
+import { listProtocoloMessages, ensureProtocoloResumo } from "@/lib/chat/queries.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/protocolo/$protocoloId")({
@@ -44,6 +44,13 @@ function ProtocoloPrintView() {
     queryFn: () => msgsFn({ data: { protocolo_id: protocoloId } }),
     enabled: !!session,
   });
+
+  // Backfill silencioso do resumo/necessidade em protocolos antigos.
+  const ensureFn = useServerFn(ensureProtocoloResumo);
+  useEffect(() => {
+    if (!session) return;
+    ensureFn({ data: { protocolo_id: protocoloId } }).catch(() => {});
+  }, [session, protocoloId, ensureFn]);
 
   if (session === undefined || (session && isLoading)) {
     return (

@@ -126,6 +126,91 @@ export const listConversationProtocolos = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+export const ensureProtocoloResumo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ protocolo_id: z.string().uuid(), force: z.boolean().optional() }).parse(raw))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: proto, error } = await supabaseAdmin
+      .from("wa_protocolos")
+      .select("id, assunto_resumo, resumo_conversa, status")
+      .eq("id", data.protocolo_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!proto) throw new Error("Protocolo não encontrado");
+
+    const hasResumo = !!(proto.resumo_conversa ?? "").trim();
+    const hasNecessidade = !!(proto.assunto_resumo ?? "").trim();
+    if (!data.force && hasResumo && hasNecessidade) {
+      return { ok: true, updated: false, resumo_conversa: proto.resumo_conversa, assunto_resumo: proto.assunto_resumo };
+    }
+
+    const { data: msgs } = await supabaseAdmin
+      .from("wa_messages")
+      .select("direction, sender, content")
+      .eq("protocolo_id", proto.id)
+      .order("created_at", { ascending: true })
+      .limit(300);
+    const transcript = (msgs ?? [])
+      .filter((m) => m.content && m.content.trim().length > 0)
+      .map((m) => {
+        const who = m.direction === "inbound"
+          ? "Cliente"
+          : m.sender === "system"
+            ? "Sistema"
+            : m.sender === "human"
+              ? "Atendente"
+              : "IA";
+        return `${who}: ${m.content}`;
+      })
+      .join("\n");
+
+    if (!transcript.trim()) {
+      return { ok: true, updated: false, resumo_conversa: proto.resumo_conversa, assunto_resumo: proto.assunto_resumo };
+    }
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
+
+    const { generateText } = await import("ai");
+    const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
+    const gateway = createLovableAiGatewayProvider(apiKey);
+    const { text } = await generateText({
+      model: gateway("openai/gpt-5.5"),
+      prompt:
+        "Analise a conversa abaixo entre um cliente da VIA AIR e o atendimento (IA/humano) e retorne APENAS um JSON válido (sem markdown, sem crase, sem texto extra) no formato:\n" +
+        '{"necessidade":"...","resumo":"..."}\n\n' +
+        "- necessidade: 1 a 2 frases curtas em português descrevendo o que o cliente precisa/quer.\n" +
+        "- resumo: em português, tom objetivo, no máximo 6 bullets curtos separados por \\n, começando com \"• \". Inclua: o que o cliente queria, informações trocadas (datas, valores, localizadores, pedidos), o que foi resolvido e pendências. Sem saudações, sem cabeçalho.\n\n" +
+        "CONVERSA:\n" + transcript,
+    });
+
+    let necessidadeIA: string | null = null;
+    let resumoIA: string | null = null;
+    try {
+      const raw = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+      const parsed = JSON.parse(raw) as { necessidade?: string; resumo?: string };
+      necessidadeIA = (parsed.necessidade ?? "").trim() || null;
+      resumoIA = (parsed.resumo ?? "").trim() || null;
+    } catch {
+      resumoIA = text.trim() || null;
+    }
+
+    const patch: { resumo_conversa?: string; assunto_resumo?: string } = {};
+    if (resumoIA && (data.force || !hasResumo)) patch.resumo_conversa = resumoIA;
+    if (necessidadeIA && (data.force || !hasNecessidade)) patch.assunto_resumo = necessidadeIA;
+
+    if (Object.keys(patch).length > 0) {
+      await supabaseAdmin.from("wa_protocolos").update(patch).eq("id", proto.id);
+    }
+    return {
+      ok: true,
+      updated: Object.keys(patch).length > 0,
+      resumo_conversa: patch.resumo_conversa ?? proto.resumo_conversa,
+      assunto_resumo: patch.assunto_resumo ?? proto.assunto_resumo,
+    };
+  });
+
 export const updateProtocoloDetails = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>

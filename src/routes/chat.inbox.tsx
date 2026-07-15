@@ -6,7 +6,7 @@ import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Use
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo } from "@/lib/chat/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
@@ -743,6 +743,29 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
     });
   }, [viewedProtocolo?.id, viewedProtocolo?.numero_pedido, viewedProtocolo?.numero_reserva, viewedProtocolo?.assunto_resumo]);
 
+  // Backfill silencioso: se um protocolo antigo/encerrado não tem resumo nem necessidade, gera via IA na primeira visualização.
+  const ensureResumoFn = useServerFn(ensureProtocoloResumo);
+  const [ensuringId, setEnsuringId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!viewedProtocolo) return;
+    const status = (viewedProtocolo as { status?: string }).status;
+    const isClosed = status && status !== "aberto";
+    const hasResumo = !!((viewedProtocolo as { resumo_conversa?: string | null }).resumo_conversa ?? "").trim();
+    const hasNecessidade = !!(viewedProtocolo.assunto_resumo ?? "").trim();
+    if (!isClosed || (hasResumo && hasNecessidade)) return;
+    if (ensuringId === viewedProtocolo.id) return;
+    setEnsuringId(viewedProtocolo.id);
+    ensureResumoFn({ data: { protocolo_id: viewedProtocolo.id } })
+      .then((r) => {
+        if (r?.updated) {
+          qc.invalidateQueries({ queryKey: ["chat", "active-protocolo", conv.id] });
+          qc.invalidateQueries({ queryKey: ["chat", "protocolo-history", conv.id] });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setEnsuringId((cur) => (cur === viewedProtocolo.id ? null : cur)));
+  }, [viewedProtocolo, ensureResumoFn, qc, conv.id, ensuringId]);
+
   const getOrdersFn = useServerFn(getConversationOrders);
   const { data: orders = [] } = useQuery({
     queryKey: ["chat", "orders", conv.id],
@@ -1021,6 +1044,10 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                   {"resumo_conversa" in viewedProtocolo && (viewedProtocolo as { resumo_conversa: string | null }).resumo_conversa ? (
                     <div className="whitespace-pre-wrap text-[11px] leading-relaxed text-slate-700">
                       {(viewedProtocolo as { resumo_conversa: string }).resumo_conversa}
+                    </div>
+                  ) : ensuringId === viewedProtocolo.id ? (
+                    <div className="flex items-center gap-2 text-[11px] italic leading-relaxed text-slate-500">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Gerando resumo pela IA…
                     </div>
                   ) : (
                     <div className="text-[11px] italic leading-relaxed text-slate-500">
