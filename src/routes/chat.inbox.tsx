@@ -328,6 +328,16 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
+  const listUsersFn = useServerFn(listAttendants);
+  const { data: attendantsList = [] } = useQuery({
+    queryKey: ["chat", "attendants"],
+    queryFn: () => listUsersFn(),
+    staleTime: 60_000,
+  });
+  const assignedName = conv.assigned_to
+    ? attendantsList.find((a) => a.id === conv.assigned_to)?.full_name ?? null
+    : null;
+
   const sendMut = useMutation({
     mutationFn: async (content: string) => sendFn({ data: { conversation_id: conv.id, content } }),
     onSuccess: () => {
@@ -342,6 +352,7 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
     mutationFn: async (mode: "ai" | "human") => toggleFn({ data: { conversation_id: conv.id, mode } }),
     onSuccess: () => { onRefetch(); toast.success("Modo alterado"); },
   });
+
 
   const grouped = groupByDay(messages);
   const lastInbound = [...messages].reverse().find((m) => m.direction === "inbound");
