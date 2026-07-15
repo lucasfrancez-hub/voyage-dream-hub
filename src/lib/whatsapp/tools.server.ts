@@ -261,19 +261,54 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     escalar_para_humano: tool({
       description:
-        "Escala a conversa para um vendedor humano. Use quando: (a) cliente quer nova cotação personalizada; (b) voo alterado/cancelado; (c) cliente irritado ou reclamando; (d) qualquer coisa fora do seu escopo. Depois de chamar, você para de responder até o humano assumir.",
+        "Escala a conversa para um vendedor humano. Use quando: (a) cliente quer nova cotação personalizada; (b) voo alterado/cancelado; (c) cliente irritado ou reclamando; (d) qualquer coisa fora do seu escopo. SEMPRE preencha os campos estruturados (destino, datas, pax, voo etc) com o que já foi coletado — deixe null só o que o cliente realmente não informou. Depois de chamar, você para de responder até o humano assumir.",
       inputSchema: z.object({
         motivo: z
           .enum(["nova_cotacao", "alteracao_voo", "reclamacao", "outro"])
           .describe("Categoria do motivo"),
-        briefing: z
-          .string()
-          .describe(
-            "Resumo completo pro vendedor: quem é o cliente, o que quer, dados coletados (destino, datas, pax, orçamento, hotel etc)",
-          ),
+        destino: z.string().nullable().describe("Cidade/país de destino, ex: 'Cancún' ou 'Orlando + Miami'"),
+        data_ida: z.string().nullable().describe("Data de ida no formato DD/MM/AAAA ou período aproximado, ex: '15/03/2026' ou 'segunda quinzena de março'"),
+        data_volta: z.string().nullable().describe("Data de volta no formato DD/MM/AAAA ou duração, ex: '22/03/2026' ou '7 noites'"),
+        quantidade_adultos: z.number().int().nullable().describe("Número de adultos"),
+        quantidade_criancas: z.number().int().nullable().describe("Número de crianças (com idades no campo observacoes se houver)"),
+        voo_info: z.string().nullable().describe("Info de voo relevante: cia preferida, localizador, número do voo, ou 'a definir'"),
+        orcamento: z.string().nullable().describe("Orçamento informado pelo cliente, ex: 'até R$ 8.000 por pessoa'"),
+        hotel_preferencia: z.string().nullable().describe("Preferência de hotel/categoria, ex: '4 estrelas all inclusive'"),
+        observacoes: z.string().nullable().describe("Qualquer info extra relevante: idades de crianças, restrições, urgência, contexto emocional"),
         prioridade: z.enum(["normal", "high", "urgent"]).nullable(),
       }),
-      execute: async ({ motivo, briefing, prioridade }) => {
+      execute: async ({
+        motivo,
+        destino,
+        data_ida,
+        data_volta,
+        quantidade_adultos,
+        quantidade_criancas,
+        voo_info,
+        orcamento,
+        hotel_preferencia,
+        observacoes,
+        prioridade,
+      }) => {
+        // Monta a "necessidade do cliente" formatada pro atendente
+        const linhas: string[] = [];
+        if (destino) linhas.push(`✈️ Destino: ${destino}`);
+        if (data_ida || data_volta) {
+          const datas = [data_ida && `ida ${data_ida}`, data_volta && `volta ${data_volta}`]
+            .filter(Boolean)
+            .join(" · ");
+          linhas.push(`📅 Datas: ${datas}`);
+        }
+        const pax: string[] = [];
+        if (quantidade_adultos != null) pax.push(`${quantidade_adultos} adulto${quantidade_adultos === 1 ? "" : "s"}`);
+        if (quantidade_criancas != null && quantidade_criancas > 0) pax.push(`${quantidade_criancas} criança${quantidade_criancas === 1 ? "" : "s"}`);
+        if (pax.length) linhas.push(`👥 Passageiros: ${pax.join(" + ")}`);
+        if (voo_info) linhas.push(`🛫 Voo: ${voo_info}`);
+        if (hotel_preferencia) linhas.push(`🏨 Hotel: ${hotel_preferencia}`);
+        if (orcamento) linhas.push(`💰 Orçamento: ${orcamento}`);
+        if (observacoes) linhas.push(`📝 Obs: ${observacoes}`);
+        const briefing = linhas.length ? linhas.join("\n") : "Cliente solicitou atendimento humano — dados ainda não coletados.";
+
         await supabaseAdmin
           .from("wa_conversations")
           .update({
@@ -306,6 +341,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         };
       },
     }),
+
 
     _meta: { isIdentityVerified }, // usado só pelo runner pra decidir prompt
   };
