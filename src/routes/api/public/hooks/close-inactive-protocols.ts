@@ -116,6 +116,10 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
           console.error("[inactivity] close query error:", closeErr.message);
         } else {
           for (const proto of toClose ?? []) {
+            if (await isAwaitingHuman(proto.conversation_id)) {
+              skipped.push(proto.numero);
+              continue;
+            }
             const { data: conv } = await supabaseAdmin
               .from("wa_conversations")
               .select("wa_phone, funnel_stage")
