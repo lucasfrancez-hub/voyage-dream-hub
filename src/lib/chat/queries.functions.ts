@@ -196,7 +196,7 @@ export const ensureProtocoloResumo = createServerFn({ method: "POST" })
       resumoIA = text.trim() || null;
     }
 
-    const patch: Record<string, string | null> = {};
+    const patch: { resumo_conversa?: string; assunto_resumo?: string } = {};
     if (resumoIA && (data.force || !hasResumo)) patch.resumo_conversa = resumoIA;
     if (necessidadeIA && (data.force || !hasNecessidade)) patch.assunto_resumo = necessidadeIA;
 
