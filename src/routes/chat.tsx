@@ -151,7 +151,11 @@ function ChatLayout() {
 
 
   return (
-    <div className={`${themeClass} flex h-[100dvh] w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}>
+    <div
+      className={`${themeClass} flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
+      style={{ height: "var(--chat-vh, 100dvh)" }}
+    >
+
       <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <ChatHeader
