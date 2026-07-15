@@ -689,6 +689,28 @@ function PayPage() {
       </div>
 
       <ContactFooter />
+
+      <ClickSignEmbedded
+        open={signingOpen}
+        onOpenChange={(v) => {
+          setSigningOpen(v);
+          if (!v && signatureStatus === "pending") {
+            // Usuário fechou sem completar — mantém o pendingId (pode reabrir)
+          }
+        }}
+        requestSignatureKey={requestSignatureKey}
+        endpoint={csEndpoint}
+        onSigned={() => {
+          setSignatureStatus("signed");
+          setSigningOpen(false);
+          toast.success("Autorização assinada com sucesso!");
+        }}
+        onRefused={() => {
+          setSignatureStatus("refused");
+          setSigningOpen(false);
+          toast.error("A assinatura foi recusada.");
+        }}
+      />
     </div>
   );
 }
