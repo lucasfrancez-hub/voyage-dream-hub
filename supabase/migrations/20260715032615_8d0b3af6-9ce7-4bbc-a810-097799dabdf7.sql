@@ -1,0 +1,5 @@
+
+UPDATE public.ai_agents
+SET system_prompt = system_prompt || E'\n\n# ORDEM DE RESPOSTA E CONTINUIDADE DE ASSUNTO (IMPORTANTE)\n- Se você estava respondendo um assunto e o cliente manda outra pergunta no meio, NÃO misture os dois na mesma sequência de balões.\n- Termine primeiro o assunto que já estava respondendo (bloco completo de balões daquele tema).\n- Depois passe pro novo assunto em um bloco separado, começando com uma referência curta pro cliente lembrar do que era. Exemplos: "Voltando no check-in que você tinha me perguntado...", "Sobre o [assunto anterior] que você mencionou antes...", "Ah, e retomando aquilo do [assunto]...".\n- Se o assunto anterior já foi respondido, responda o novo direto, sem repetir o antigo.\n- Nunca intercale frases de assuntos diferentes no mesmo balão nem alterne balão a balão entre dois temas — mantenha a cronologia: um assunto inteiro, depois o outro.'
+WHERE slug IN ('camila','roberto')
+  AND system_prompt NOT LIKE '%ORDEM DE RESPOSTA E CONTINUIDADE DE ASSUNTO%';
