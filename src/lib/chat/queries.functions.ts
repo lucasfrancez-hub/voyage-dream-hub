@@ -84,6 +84,24 @@ export const listProtocoloMessages = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+export const getActiveProtocolo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ conversation_id: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const { data: conv } = await context.supabase
+      .from("wa_conversations")
+      .select("protocolo_ativo_id")
+      .eq("id", data.conversation_id)
+      .maybeSingle();
+    if (!conv?.protocolo_ativo_id) return null;
+    const { data: proto } = await context.supabase
+      .from("wa_protocolos")
+      .select("id, numero, status, assunto_resumo, opened_at, last_activity_at")
+      .eq("id", conv.protocolo_ativo_id)
+      .maybeSingle();
+    return proto ?? null;
+  });
+
 export const listMessages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ conversation_id: z.string().uuid() }).parse(data))

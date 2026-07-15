@@ -6,7 +6,7 @@ import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Use
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo } from "@/lib/chat/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
@@ -494,11 +494,18 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
   const stageFn = useServerFn(setFunnelStage);
   const assignFn = useServerFn(assignConversation);
   const listUsers = useServerFn(listAttendants);
+  const getProto = useServerFn(getActiveProtocolo);
 
   const { data: attendants = [] } = useQuery({
     queryKey: ["chat", "attendants"],
     queryFn: () => listUsers(),
     staleTime: 60_000,
+  });
+
+  const { data: protocolo } = useQuery({
+    queryKey: ["chat", "active-protocolo", conv.id],
+    queryFn: () => getProto({ data: { conversation_id: conv.id } }),
+    refetchInterval: 20_000,
   });
 
   const modeMut = useMutation({
@@ -597,6 +604,34 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
             </DropdownMenuContent>
           </DropdownMenu>
         </Field>
+
+        {protocolo && (
+          <>
+            <Field label="Protocolo atual">
+              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                <span className="font-mono text-xs font-semibold text-slate-800">#{protocolo.numero}</span>
+                <span className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  protocolo.status === "aberto" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600",
+                )}>
+                  {protocolo.status === "aberto" ? "aberto" : "encerrado"}
+                </span>
+              </div>
+            </Field>
+
+            <Field label="Necessidade do cliente">
+              {protocolo.assunto_resumo ? (
+                <div className="whitespace-pre-wrap rounded-md border border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed text-slate-700">
+                  {protocolo.assunto_resumo}
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed border-slate-200 px-3 py-2 text-xs italic text-slate-400">
+                  Ainda não resumido — a IA preenche ao transferir o atendimento.
+                </div>
+              )}
+            </Field>
+          </>
+        )}
 
         {conv.agent_slug && (
           <Field label="Último agente IA"><div className="text-sm text-slate-900 capitalize">{conv.agent_slug}</div></Field>

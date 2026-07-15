@@ -283,6 +283,14 @@ export function buildCamilaTools(conversation: WaConversation) {
           })
           .eq("id", conversation.id);
 
+        // Salva a "necessidade do cliente" no protocolo ativo pra aparecer no painel do atendente
+        if (conversation.protocolo_ativo_id) {
+          await supabaseAdmin
+            .from("wa_protocolos")
+            .update({ assunto_resumo: briefing })
+            .eq("id", conversation.protocolo_ativo_id);
+        }
+
         await recordHandoff({
           conversation_id: conversation.id,
           from_mode: "ai",
