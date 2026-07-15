@@ -44,6 +44,31 @@ function ChatLayout() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  // Follow the visual viewport (iOS keyboard) so the chat container shrinks
+  // when the keyboard opens, keeping the header pinned WhatsApp-style
+  // instead of scrolling the top of the page off-screen.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    const apply = () => {
+      const h = vv?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty("--chat-vh", `${h}px`);
+      // Also compensate for any offset the browser applies when scrolling
+      // the focused input into view.
+      if (vv) window.scrollTo(0, 0);
+    };
+    apply();
+    vv?.addEventListener("resize", apply);
+    vv?.addEventListener("scroll", apply);
+    window.addEventListener("resize", apply);
+    return () => {
+      vv?.removeEventListener("resize", apply);
+      vv?.removeEventListener("scroll", apply);
+      window.removeEventListener("resize", apply);
+    };
+  }, []);
+
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -126,7 +151,11 @@ function ChatLayout() {
 
 
   return (
-    <div className={`${themeClass} flex h-[100dvh] w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}>
+    <div
+      className={`${themeClass} flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
+      style={{ height: "var(--chat-vh, 100dvh)" }}
+    >
+
       <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <ChatHeader
