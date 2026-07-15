@@ -913,7 +913,8 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                         aberto <ChevronDown className="h-2.5 w-2.5" />
                       </button>
                     </DropdownMenuTrigger>
-                    <ProtocoloHistoryMenu previous={previous} onSelect={setViewedProtoId} />
+                    <ProtocoloHistoryMenu previous={previous} onSelect={(id) => { setViewedProtoId(id); setReadOnlyProtoId(id); }} />
+
                   </DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
