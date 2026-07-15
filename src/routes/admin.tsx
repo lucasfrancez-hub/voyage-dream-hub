@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import { AdminNotificationBell } from "@/components/admin/NotificationBell";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
