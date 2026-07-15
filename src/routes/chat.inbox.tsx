@@ -80,8 +80,10 @@ function InboxPage() {
   }, [refetch]);
 
   useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) return;
     if (!activeId && filtered.length > 0) setActiveId(filtered[0].id);
   }, [filtered, activeId]);
+
 
   const active = filtered.find((c) => c.id === activeId) ?? conversations.find((c) => c.id === activeId) ?? null;
 
