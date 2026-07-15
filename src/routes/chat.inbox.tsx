@@ -1186,15 +1186,26 @@ function ProtocoloHistoryMenu({ previous, onSelect }: { previous: Array<{ id: st
 
 function ProtocoloMessagesDialog({ protocoloId, protocolo, onClose }: {
   protocoloId: string | null;
-  protocolo: { numero: string; opened_at: string; closed_at: string | null; assunto_resumo: string | null; numero_pedido: string | null; numero_reserva: string | null } | null;
+  protocolo: { numero: string; opened_at: string; closed_at: string | null; assunto_resumo: string | null; numero_pedido: string | null; numero_reserva: string | null; resumo_conversa?: string | null } | null;
   onClose: () => void;
 }) {
-  const msgsFn = useServerFn(listProtocoloMessages);
-  const { data: messages = [], isLoading } = useQuery({
-    queryKey: ["chat", "proto-msgs", protocoloId],
-    queryFn: () => msgsFn({ data: { protocolo_id: protocoloId! } }),
-    enabled: !!protocoloId,
+  const qc = useQueryClient();
+  const ensureFn = useServerFn(ensureProtocoloResumo);
+  const { data: ensured, isFetching } = useQuery({
+    queryKey: ["chat", "proto-ensure-resumo", protocoloId],
+    queryFn: () => ensureFn({ data: { protocolo_id: protocoloId! } }),
+    enabled: !!protocoloId && !((protocolo?.resumo_conversa ?? "").trim()),
+    staleTime: 5 * 60_000,
   });
+
+  const resumo = ((protocolo?.resumo_conversa ?? "").trim()) || ((ensured?.resumo_conversa ?? "").trim()) || "";
+  const necessidade = ((protocolo?.assunto_resumo ?? "").trim()) || ((ensured?.assunto_resumo ?? "").trim()) || "";
+
+  useEffect(() => {
+    if (ensured?.updated) {
+      qc.invalidateQueries({ queryKey: ["chat", "protocolo-history"] });
+    }
+  }, [ensured?.updated, qc]);
 
   return (
     <Dialog open={!!protocoloId} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -1214,42 +1225,42 @@ function ProtocoloMessagesDialog({ protocoloId, protocolo, onClose }: {
             )}
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[60vh] overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-3">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8 text-xs text-slate-500">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando conversa…
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="py-6 text-center text-xs italic text-slate-500">Nenhuma mensagem neste protocolo.</div>
-          ) : (
-            <div className="space-y-2">
-              {messages.map((m) => {
-                const who = m.direction === "inbound"
-                  ? "Cliente"
-                  : m.sender === "system"
-                    ? "Sistema"
-                    : m.sender === "human"
-                      ? (m.sender_full_name ?? "Atendente")
-                      : "IA";
-                const isInbound = m.direction === "inbound";
-                return (
-                  <div key={m.id} className={cn("flex", isInbound ? "justify-start" : "justify-end")}>
-                    <div className={cn(
-                      "max-w-[80%] rounded-lg px-3 py-1.5 text-xs",
-                      isInbound ? "bg-white text-slate-800 border border-slate-200" : "bg-[#F26B1F]/10 text-slate-800 border border-[#F26B1F]/20",
-                    )}>
-                      <div className="mb-0.5 flex items-center justify-between gap-3 text-[9px] uppercase tracking-wider text-slate-500">
-                        <span>{who}</span>
-                        <span>{fmtDateTime(m.created_at)}</span>
-                      </div>
-                      <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>
-                    </div>
-                  </div>
-                );
-              })}
+
+        <div className="space-y-3">
+          {necessidade && (
+            <div className="rounded-md border border-slate-200 bg-white p-3">
+              <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">Necessidade do cliente</div>
+              <div className="whitespace-pre-wrap text-[12px] leading-relaxed text-slate-800">{necessidade}</div>
             </div>
           )}
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <div className="text-[10px] font-medium uppercase tracking-wider text-slate-500">O que foi tratado no protocolo</div>
+              {protocoloId && (
+                <button
+                  type="button"
+                  onClick={() => window.open(`/protocolo/${protocoloId}`, "_blank", "noopener,noreferrer")}
+                  className="inline-flex items-center gap-1 rounded-md border border-[#F26B1F]/30 bg-white px-2 py-0.5 text-[10px] font-medium text-[#F26B1F] hover:bg-[#F26B1F]/5"
+                  title="Abrir conversa completa em nova aba"
+                >
+                  <ExternalLink className="h-3 w-3" /> Expandir
+                </button>
+              )}
+            </div>
+            {resumo ? (
+              <div className="whitespace-pre-wrap text-[12px] leading-relaxed text-slate-800">{resumo}</div>
+            ) : isFetching ? (
+              <div className="flex items-center gap-2 text-[11px] italic text-slate-500">
+                <Loader2 className="h-3 w-3 animate-spin" /> Gerando resumo pela IA…
+              </div>
+            ) : (
+              <div className="text-[11px] italic text-slate-500">
+                Sem resumo salvo. Clique em Expandir pra ver a conversa completa.
+              </div>
+            )}
+          </div>
         </div>
+
         <DialogFooter>
           <button
             type="button"
@@ -1258,6 +1269,7 @@ function ProtocoloMessagesDialog({ protocoloId, protocolo, onClose }: {
           >
             Fechar
           </button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
