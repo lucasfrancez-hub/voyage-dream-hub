@@ -80,8 +80,9 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
       {onToggleTheme && (
         <button
           onClick={onToggleTheme}
-          className="hidden sm:inline-flex rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+          className="inline-flex shrink-0 rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
           title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+          aria-label="Alternar tema"
         >
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
