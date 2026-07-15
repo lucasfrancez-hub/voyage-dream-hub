@@ -559,6 +559,8 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
   const assignFn = useServerFn(assignConversation);
   const listUsers = useServerFn(listAttendants);
   const getProto = useServerFn(getActiveProtocolo);
+  const closeProtoFn = useServerFn(closeProtocoloManually);
+  const qc = useQueryClient();
 
   const { data: attendants = [] } = useQuery({
     queryKey: ["chat", "attendants"],
@@ -571,6 +573,18 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
     queryFn: () => getProto({ data: { conversation_id: conv.id } }),
     refetchInterval: 20_000,
   });
+
+  const closeProtoMut = useMutation({
+    mutationFn: async () => closeProtoFn({ data: { conversation_id: conv.id } }),
+    onSuccess: (res) => {
+      toast.success(`Protocolo ${res.numero} encerrado`);
+      qc.invalidateQueries({ queryKey: ["chat", "active-protocolo", conv.id] });
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
+      onChange();
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao encerrar"),
+  });
+
 
   const modeMut = useMutation({
     mutationFn: async (mode: "ai" | "human" | "resolved") => toggleFn({ data: { conversation_id: conv.id, mode } }),
