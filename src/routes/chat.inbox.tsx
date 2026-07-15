@@ -380,6 +380,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const toggleFn = useServerFn(toggleConversationMode);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const wallpaper = useWallpaper();
   const sendMediaFn = useServerFn(sendHumanMedia);
   const fileRef = useRef<HTMLInputElement>(null);
