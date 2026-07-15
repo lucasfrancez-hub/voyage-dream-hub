@@ -1422,6 +1422,7 @@ export type Database = {
           numero_pedido: string | null
           numero_reserva: string | null
           opened_at: string
+          resumo_conversa: string | null
           status: string
           updated_at: string
         }
@@ -1437,6 +1438,7 @@ export type Database = {
           numero_pedido?: string | null
           numero_reserva?: string | null
           opened_at?: string
+          resumo_conversa?: string | null
           status?: string
           updated_at?: string
         }
@@ -1452,6 +1454,7 @@ export type Database = {
           numero_pedido?: string | null
           numero_reserva?: string | null
           opened_at?: string
+          resumo_conversa?: string | null
           status?: string
           updated_at?: string
         }
