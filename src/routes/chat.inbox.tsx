@@ -373,6 +373,25 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
         >
           {conv.mode === "ai" ? "Assumir" : "Devolver p/ IA"}
         </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              title="Alterar plano de fundo"
+              className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Plano de fundo</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {WALLPAPERS.map((w) => (
+              <DropdownMenuItem key={w.key} onClick={() => wallpaper.set(w.key)}>
+                {w.label} {wallpaper.key === w.key && "✓"}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <ConversationMenu conv={conv} onChange={onRefetch} />
       </div>
 
@@ -383,7 +402,8 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
       )}
 
       {/* Mensagens */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4" style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><g opacity=%220.035%22><circle cx=%2260%22 cy=%2260%22 r=%2240%22 fill=%22%23fff%22/></g></svg>')" }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4" style={wallpaper.style}>
+
         {isLoading ? (
           <div className="flex justify-center py-8"><Loader2 className="h-4 w-4 animate-spin text-slate-400" /></div>
         ) : messages.length === 0 ? (
