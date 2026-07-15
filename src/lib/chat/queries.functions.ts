@@ -650,10 +650,13 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
     let resumoConversa: string | null = null;
     let necessidadeIA: string | null = null;
     try {
+      const nowIso = new Date().toISOString();
       const { data: msgs } = await supabaseAdmin
         .from("wa_messages")
         .select("direction, sender, content, created_at")
         .eq("protocolo_id", proto.id)
+        .gte("created_at", proto.opened_at)
+        .lte("created_at", nowIso)
         .order("created_at", { ascending: true })
         .limit(300);
       const transcript = (msgs ?? [])
