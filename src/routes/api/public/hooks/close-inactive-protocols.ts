@@ -203,7 +203,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
           }
         }
 
-        return new Response(JSON.stringify({ ok: true, warned, closed }), {
+        return new Response(JSON.stringify({ ok: true, warned, closed, skipped }), {
           headers: { "Content-Type": "application/json" },
         });
       },
