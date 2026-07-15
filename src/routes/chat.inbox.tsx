@@ -164,14 +164,15 @@ function NewConversationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white text-slate-900 border border-slate-200">
         <DialogHeader>
-          <DialogTitle>Nova conversa</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-slate-900">Nova conversa</DialogTitle>
+          <DialogDescription className="text-slate-600">
             Envia a primeira mensagem para um número. A IA fica <b>desativada</b> — você atende manualmente.
             Se o cliente nunca te mandou nada antes ou faz mais de 24h, o WhatsApp só entrega mensagem de <b>template aprovado</b>.
           </DialogDescription>
         </DialogHeader>
+
 
         <div className="space-y-3">
           <label className="block text-xs">
