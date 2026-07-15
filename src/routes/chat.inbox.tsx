@@ -553,26 +553,60 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
 
       {/* Composer */}
       <div className="shrink-0 border-t border-slate-200 bg-white p-3">
+        {pendingFile && (
+          <div className="mb-2 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-2">
+            {pendingFile.kind === "image" && pendingFile.previewUrl ? (
+              <img src={pendingFile.previewUrl} alt="prévia" className="h-14 w-14 shrink-0 rounded object-cover" />
+            ) : (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-slate-200 text-slate-500">
+                <FileText className="h-6 w-6" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1 text-xs">
+              <div className="truncate font-medium text-slate-800">{pendingFile.file.name}</div>
+              <div className="text-slate-500">
+                {pendingFile.kind === "image" ? "Imagem" : "Documento"} · {(pendingFile.file.size / 1024).toFixed(0)} KB
+              </div>
+            </div>
+            <button onClick={clearPending} title="Remover" className="rounded-md p-1 text-slate-500 hover:bg-slate-200">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         <div className="flex items-end gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx"
+            hidden
+            onChange={onPickFile}
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            title="Anexar imagem ou PDF"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                if (input.trim() && !sendMut.isPending) sendMut.mutate(input.trim());
+                submit();
               }
             }}
-            placeholder={conv.mode === "ai" ? "Envio manual (a IA continua ativa)…" : "Digite uma mensagem…"}
+            placeholder={pendingFile ? "Legenda (opcional)…" : conv.mode === "ai" ? "Envio manual (a IA continua ativa)…" : "Digite uma mensagem…"}
             rows={2}
             className="flex-1 resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
           />
           <button
-            onClick={() => input.trim() && sendMut.mutate(input.trim())}
-            disabled={!input.trim() || sendMut.isPending}
+            onClick={submit}
+            disabled={(!input.trim() && !pendingFile) || sendMut.isPending || mediaMut.isPending}
             className="flex h-10 w-10 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
-            {sendMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {(sendMut.isPending || mediaMut.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         </div>
       </div>
