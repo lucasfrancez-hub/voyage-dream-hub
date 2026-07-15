@@ -155,6 +155,78 @@ export type Database = {
         }
         Relationships: []
       }
+      flight_change_alerts: {
+        Row: {
+          created_at: string
+          flight_number: string
+          id: string
+          new_arrive_at: string | null
+          new_depart_at: string | null
+          new_status: string | null
+          old_arrive_at: string | null
+          old_depart_at: string | null
+          old_status: string | null
+          order_id: string
+          order_item_id: string
+          responded_at: string | null
+          response: string | null
+          updated_at: string
+          wa_button_message_id: string | null
+          wa_phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          flight_number: string
+          id?: string
+          new_arrive_at?: string | null
+          new_depart_at?: string | null
+          new_status?: string | null
+          old_arrive_at?: string | null
+          old_depart_at?: string | null
+          old_status?: string | null
+          order_id: string
+          order_item_id: string
+          responded_at?: string | null
+          response?: string | null
+          updated_at?: string
+          wa_button_message_id?: string | null
+          wa_phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          flight_number?: string
+          id?: string
+          new_arrive_at?: string | null
+          new_depart_at?: string | null
+          new_status?: string | null
+          old_arrive_at?: string | null
+          old_depart_at?: string | null
+          old_status?: string | null
+          order_id?: string
+          order_item_id?: string
+          responded_at?: string | null
+          response?: string | null
+          updated_at?: string
+          wa_button_message_id?: string | null
+          wa_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_change_alerts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flight_change_alerts_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flight_import_staging: {
         Row: {
           airline_hint: string | null
