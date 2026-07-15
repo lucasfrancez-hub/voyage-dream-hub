@@ -85,3 +85,63 @@ export async function sendWhatsAppBubbles(
   return out;
 }
 
+/**
+ * Envia uma imagem por link público (URL assinada). Meta baixa a imagem no ato.
+ */
+export async function sendWhatsAppImage(
+  to: string,
+  link: string,
+  caption?: string | null,
+): Promise<{ id: string | null; error?: string }> {
+  return sendMedia(to, { type: "image", image: { link, ...(caption ? { caption: caption.slice(0, 1024) } : {}) } });
+}
+
+/**
+ * Envia um documento (PDF etc.) por link público.
+ */
+export async function sendWhatsAppDocument(
+  to: string,
+  link: string,
+  filename: string,
+  caption?: string | null,
+): Promise<{ id: string | null; error?: string }> {
+  return sendMedia(to, {
+    type: "document",
+    document: { link, filename: filename.slice(0, 240), ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+  });
+}
+
+async function sendMedia(to: string, extra: Record<string, unknown>): Promise<{ id: string | null; error?: string }> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  if (!token || !phoneId) return { id: null, error: "WhatsApp credentials missing" };
+  const url = `https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/messages`;
+  const payload = {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: normalizePhone(to),
+    ...extra,
+  };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const rawText = await res.text();
+    let data: { messages?: Array<{ id: string }>; error?: { message: string } } = {};
+    try { data = JSON.parse(rawText); } catch { /* keep empty */ }
+    if (!res.ok) {
+      const msg = data.error?.message ?? `HTTP ${res.status}: ${rawText.slice(0, 200)}`;
+      console.error("[whatsapp/sendMedia] falha:", msg);
+      return { id: null, error: msg };
+    }
+    return { id: data.messages?.[0]?.id ?? null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[whatsapp/sendMedia] exception:", msg);
+    return { id: null, error: msg };
+  }
+}
+
+

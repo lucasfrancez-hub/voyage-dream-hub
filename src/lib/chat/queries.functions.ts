@@ -235,6 +235,78 @@ export const sendHumanReply = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const sendHumanMedia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      kind: z.enum(["image", "document"]),
+      filename: z.string().min(1).max(240),
+      mime_type: z.string().min(1).max(120),
+      /** conteúdo em base64 (sem prefixo data:) */
+      data_base64: z.string().min(1),
+      caption: z.string().max(1000).optional().nullable(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: conv, error: cErr } = await context.supabase
+      .from("wa_conversations")
+      .select("id, wa_phone")
+      .eq("id", data.conversation_id)
+      .single();
+    if (cErr || !conv) throw new Error("Conversa não encontrada");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { sendWhatsAppImage, sendWhatsAppDocument } = await import("@/lib/whatsapp/send.server");
+    const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
+
+    // Upload no bucket privado
+    const safeName = data.filename.replace(/[^a-zA-Z0-9._-]+/g, "_");
+    const path = `${conv.id}/${Date.now()}-${safeName}`;
+    const bytes = Uint8Array.from(atob(data.data_base64), (c) => c.charCodeAt(0));
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("chat-media")
+      .upload(path, bytes, { contentType: data.mime_type, upsert: false });
+    if (upErr) throw new Error(`Upload falhou: ${upErr.message}`);
+
+    // URL assinada válida por 24h (Meta baixa uma vez no ato)
+    const { data: signed, error: sErr } = await supabaseAdmin.storage
+      .from("chat-media")
+      .createSignedUrl(path, 60 * 60 * 24);
+    if (sErr || !signed?.signedUrl) throw new Error(`URL assinada falhou: ${sErr?.message ?? "?"}`);
+
+    // Nome pra prefixar
+    const { data: profile } = await context.supabase
+      .from("profiles").select("full_name").eq("id", context.userId).maybeSingle();
+    const emailLocal = typeof context.claims.email === "string"
+      ? context.claims.email.split("@")[0]?.replace(/[._-]+/g, " ") : null;
+    const senderName = profile?.full_name?.trim() || emailLocal || null;
+    const captionWithPrefix = senderName
+      ? `*${senderName.split(/\s+/)[0]}:*${data.caption ? `\n${data.caption}` : ""}`
+      : (data.caption ?? undefined);
+
+    const sendRes = data.kind === "image"
+      ? await sendWhatsAppImage(conv.wa_phone, signed.signedUrl, captionWithPrefix ?? null)
+      : await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
+
+    if (sendRes.error) throw new Error(sendRes.error);
+
+    // Marcador embutido pra UI renderizar o preview
+    const marker = `[[media:${data.kind}|${signed.signedUrl}|${data.filename}]]`;
+    const content = data.caption ? `${marker}\n${data.caption}` : marker;
+
+    await saveMessage({
+      conversation_id: conv.id,
+      direction: "outbound",
+      sender: "human",
+      content,
+      sender_user_id: context.userId,
+      wa_message_id: sendRes.id,
+    });
+
+    return { ok: true };
+  });
+
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
   if (digits.length < 10) throw new Error("Número inválido");

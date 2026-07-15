@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos } from "@/lib/chat/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
@@ -43,6 +43,17 @@ function InboxPage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [listCollapsed, setListCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("chat-list-collapsed") === "1";
+  });
+  const toggleList = () => {
+    setListCollapsed((v) => {
+      const nv = !v;
+      if (typeof window !== "undefined") localStorage.setItem("chat-list-collapsed", nv ? "1" : "0");
+      return nv;
+    });
+  };
 
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
@@ -76,52 +87,81 @@ function InboxPage() {
   return (
     <div className="flex h-full min-h-0">
       {/* Coluna 1 — Lista */}
-      <aside className="flex w-80 shrink-0 flex-col border-r border-slate-200 bg-white">
-        <div className="border-b border-slate-200 p-3">
-          <div className="mb-2 flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar conversa…"
-                className="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-sm placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
-              />
-            </div>
-            <button
-              onClick={() => setNewOpen(true)}
-              title="Nova conversa"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
+      {listCollapsed ? (
+        <aside className="flex w-12 shrink-0 flex-col items-center gap-2 border-r border-border bg-card py-3">
+          <button
+            onClick={toggleList}
+            title="Expandir caixa de entrada"
+            className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setNewOpen(true)}
+            title="Nova conversa"
+            className="flex h-8 w-8 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <div className="mt-2 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+            {filtered.length}
           </div>
-          <div className="mt-2 flex gap-1">
-            {FOLDERS.map((f) => (
+        </aside>
+      ) : (
+        <aside className="flex w-80 shrink-0 flex-col border-r border-slate-200 bg-white">
+          <div className="border-b border-slate-200 p-3">
+            <div className="mb-2 flex items-center gap-2">
               <button
-                key={f.key}
-                onClick={() => setFolder(f.key)}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors",
-                  folder === f.key
-                    ? "bg-orange-50 text-[#F26B1F]"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
-                )}
+                onClick={toggleList}
+                title="Recolher lista"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900"
               >
-                <f.icon className="h-3 w-3" />
-                {f.label}
+                <PanelLeftClose className="h-4 w-4" />
               </button>
-            ))}
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar conversa…"
+                  className="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-sm placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+                />
+              </div>
+              <button
+                onClick={() => setNewOpen(true)}
+                title="Nova conversa"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-2 flex gap-1">
+              {FOLDERS.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setFolder(f.key)}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors",
+                    folder === f.key
+                      ? "bg-orange-50 text-[#F26B1F]"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                  )}
+                >
+                  <f.icon className="h-3 w-3" />
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {filtered.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
-          ) : (
-            filtered.map((c) => <ConvItem key={c.id} conv={c} active={activeId === c.id} onClick={() => setActiveId(c.id)} />)
-          )}
-        </div>
-      </aside>
+          <div className="flex-1 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
+            ) : (
+              filtered.map((c) => <ConvItem key={c.id} conv={c} active={activeId === c.id} onClick={() => setActiveId(c.id)} />)
+            )}
+          </div>
+        </aside>
+      )}
 
       {/* Coluna 2 — Conversa */}
       <main className="flex min-w-0 flex-1 flex-col bg-[var(--chat-conversation)]">
@@ -314,6 +354,56 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const wallpaper = useWallpaper();
+  const sendMediaFn = useServerFn(sendHumanMedia);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [pendingFile, setPendingFile] = useState<{ file: File; previewUrl: string | null; kind: "image" | "document" } | null>(null);
+  const mediaMut = useMutation({
+    mutationFn: async ({ file, caption, kind }: { file: File; caption: string; kind: "image" | "document" }) => {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      let binary = "";
+      for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
+      const b64 = btoa(binary);
+      return sendMediaFn({ data: {
+        conversation_id: conv.id,
+        kind,
+        filename: file.name,
+        mime_type: file.type || (kind === "image" ? "image/jpeg" : "application/octet-stream"),
+        data_base64: b64,
+        caption: caption || null,
+      }});
+    },
+    onSuccess: () => {
+      setPendingFile((p) => { if (p?.previewUrl) URL.revokeObjectURL(p.previewUrl); return null; });
+      setInput("");
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
+    },
+    onError: (e) => toast.error(`Falha ao enviar: ${(e as Error).message}`),
+  });
+
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    const MAX = 16 * 1024 * 1024;
+    if (f.size > MAX) { toast.error("Arquivo muito grande (máx 16MB)"); return; }
+    const isImg = f.type.startsWith("image/");
+    setPendingFile({
+      file: f,
+      previewUrl: isImg ? URL.createObjectURL(f) : null,
+      kind: isImg ? "image" : "document",
+    });
+  };
+  const clearPending = () => {
+    setPendingFile((p) => { if (p?.previewUrl) URL.revokeObjectURL(p.previewUrl); return null; });
+  };
+  const submit = () => {
+    if (pendingFile) {
+      mediaMut.mutate({ file: pendingFile.file, caption: input.trim(), kind: pendingFile.kind });
+    } else if (input.trim() && !sendMut.isPending) {
+      sendMut.mutate(input.trim());
+    }
+  };
+
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["chat", "messages", conv.id],
@@ -400,7 +490,7 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
           <DropdownMenuTrigger asChild>
             <button
               title="Alterar plano de fundo"
-              className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <ImageIcon className="h-4 w-4" />
             </button>
@@ -463,26 +553,60 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
 
       {/* Composer */}
       <div className="shrink-0 border-t border-slate-200 bg-white p-3">
+        {pendingFile && (
+          <div className="mb-2 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-2">
+            {pendingFile.kind === "image" && pendingFile.previewUrl ? (
+              <img src={pendingFile.previewUrl} alt="prévia" className="h-14 w-14 shrink-0 rounded object-cover" />
+            ) : (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-slate-200 text-slate-500">
+                <FileText className="h-6 w-6" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1 text-xs">
+              <div className="truncate font-medium text-slate-800">{pendingFile.file.name}</div>
+              <div className="text-slate-500">
+                {pendingFile.kind === "image" ? "Imagem" : "Documento"} · {(pendingFile.file.size / 1024).toFixed(0)} KB
+              </div>
+            </div>
+            <button onClick={clearPending} title="Remover" className="rounded-md p-1 text-slate-500 hover:bg-slate-200">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         <div className="flex items-end gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx"
+            hidden
+            onChange={onPickFile}
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            title="Anexar imagem ou PDF"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                if (input.trim() && !sendMut.isPending) sendMut.mutate(input.trim());
+                submit();
               }
             }}
-            placeholder={conv.mode === "ai" ? "Envio manual (a IA continua ativa)…" : "Digite uma mensagem…"}
+            placeholder={pendingFile ? "Legenda (opcional)…" : conv.mode === "ai" ? "Envio manual (a IA continua ativa)…" : "Digite uma mensagem…"}
             rows={2}
             className="flex-1 resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
           />
           <button
-            onClick={() => input.trim() && sendMut.mutate(input.trim())}
-            disabled={!input.trim() || sendMut.isPending}
+            onClick={submit}
+            disabled={(!input.trim() && !pendingFile) || sendMut.isPending || mediaMut.isPending}
             className="flex h-10 w-10 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
-            {sendMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {(sendMut.isPending || mediaMut.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         </div>
       </div>
@@ -513,7 +637,7 @@ function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><MoreVertical className="h-4 w-4" /></button>
+        <button className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"><MoreVertical className="h-4 w-4" /></button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Ações</DropdownMenuLabel>
