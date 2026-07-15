@@ -170,6 +170,8 @@ export async function saveMessage(input: {
   wa_message_id?: string | null;
   tool_calls?: unknown | null;
   sender_user_id?: string | null;
+  /** Se true, não abre/atualiza protocolo (usado pela mensagem de encerramento por inatividade). */
+  skip_protocolo?: boolean;
 }): Promise<WaMessage | null> {
   // Dedupe manual quando temos wa_message_id
   if (input.wa_message_id) {
@@ -179,6 +181,17 @@ export async function saveMessage(input: {
       .eq("wa_message_id", input.wa_message_id)
       .maybeSingle();
     if (existing.data) return null; // já processada
+  }
+
+  // Garante protocolo ativo pra vincular a mensagem
+  let protocoloId: string | null = null;
+  if (!input.skip_protocolo) {
+    try {
+      const proto = await ensureActiveProtocolo(input.conversation_id);
+      protocoloId = proto.id;
+    } catch (err) {
+      console.error("[wa/saveMessage] ensureActiveProtocolo:", err);
+    }
   }
 
   const { data, error } = await supabaseAdmin
@@ -191,12 +204,21 @@ export async function saveMessage(input: {
       wa_message_id: input.wa_message_id ?? null,
       tool_calls: (input.tool_calls ?? null) as never,
       sender_user_id: input.sender_user_id ?? null,
+      protocolo_id: protocoloId,
     })
     .select("*")
     .single();
   if (error) {
     console.error("[wa/saveMessage] error:", error.message);
     return null;
+  }
+
+  // Toca last_activity_at do protocolo
+  if (protocoloId) {
+    await supabaseAdmin
+      .from("wa_protocolos")
+      .update({ last_activity_at: new Date().toISOString() })
+      .eq("id", protocoloId);
   }
 
   // Atualiza metadados da conversa
