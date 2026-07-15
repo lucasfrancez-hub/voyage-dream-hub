@@ -6,6 +6,7 @@ import { template as orcamentoEnviadoTemplate } from './orcamento-enviado'
 import { template as contratoEnviadoTemplate } from './contrato-enviado'
 import { template as contratoConfirmadoTemplate } from './contrato-confirmado'
 import { template as viagemConfirmadaTemplate } from './viagem-confirmada'
+import { template as alteracaoVooAdminTemplate } from './alteracao-voo-admin'
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -23,4 +24,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'contrato-enviado': contratoEnviadoTemplate,
   'contrato-confirmado': contratoConfirmadoTemplate,
   'viagem-confirmada': viagemConfirmadaTemplate,
+  'alteracao-voo-admin': alteracaoVooAdminTemplate,
 }
