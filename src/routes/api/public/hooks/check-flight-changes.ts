@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
 
         const { data: items, error } = await supabaseAdmin
           .from("order_items")
-          .select("id, order_id, kind, status, details, orders!inner(id, status, wa_phone, contact_phone)")
+          .select("id, order_id, kind, status, details, orders!inner(id, status, phone, payer_phone)")
           .eq("kind", "flight")
           .neq("status", "cancelled")
           .limit(500);
@@ -110,8 +110,8 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
           if (exists) continue;
 
           // Descobre telefone do cliente
-          const order = item.orders as { wa_phone?: string | null; contact_phone?: string | null } | null;
-          const phone = order?.wa_phone ?? order?.contact_phone ?? null;
+          const order = item.orders as { phone?: string | null; payer_phone?: string | null } | null;
+          const phone = order?.phone ?? order?.payer_phone ?? null;
           if (!phone) { skipped.push(item.id); continue; }
 
           // Cria alerta primeiro (pra ter id) e depois envia
