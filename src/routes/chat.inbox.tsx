@@ -743,6 +743,29 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
     });
   }, [viewedProtocolo?.id, viewedProtocolo?.numero_pedido, viewedProtocolo?.numero_reserva, viewedProtocolo?.assunto_resumo]);
 
+  // Backfill silencioso: se um protocolo antigo/encerrado não tem resumo nem necessidade, gera via IA na primeira visualização.
+  const ensureResumoFn = useServerFn(ensureProtocoloResumo);
+  const [ensuringId, setEnsuringId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!viewedProtocolo) return;
+    const status = (viewedProtocolo as { status?: string }).status;
+    const isClosed = status && status !== "aberto";
+    const hasResumo = !!((viewedProtocolo as { resumo_conversa?: string | null }).resumo_conversa ?? "").trim();
+    const hasNecessidade = !!(viewedProtocolo.assunto_resumo ?? "").trim();
+    if (!isClosed || (hasResumo && hasNecessidade)) return;
+    if (ensuringId === viewedProtocolo.id) return;
+    setEnsuringId(viewedProtocolo.id);
+    ensureResumoFn({ data: { protocolo_id: viewedProtocolo.id } })
+      .then((r) => {
+        if (r?.updated) {
+          qc.invalidateQueries({ queryKey: ["chat", "active-protocolo", conv.id] });
+          qc.invalidateQueries({ queryKey: ["chat", "protocolo-history", conv.id] });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setEnsuringId((cur) => (cur === viewedProtocolo.id ? null : cur)));
+  }, [viewedProtocolo, ensureResumoFn, qc, conv.id, ensuringId]);
+
   const getOrdersFn = useServerFn(getConversationOrders);
   const { data: orders = [] } = useQuery({
     queryKey: ["chat", "orders", conv.id],
