@@ -1001,6 +1001,46 @@ function fmtDate(iso: string | null): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
+function fmtDateTime(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function ProtocoloHistoryMenu({ previous }: { previous: Array<{ id: string; numero: string; opened_at: string; closed_at: string | null; status: string; assunto_resumo: string | null }> }) {
+  return (
+    <DropdownMenuContent align="end" className="w-72 max-h-72 overflow-y-auto">
+      <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-slate-500">Protocolos anteriores</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      {previous.length === 0 ? (
+        <div className="px-2 py-3 text-center text-[11px] italic text-slate-500">Não há protocolos anteriores</div>
+      ) : (
+        previous.map((p) => (
+          <DropdownMenuItem key={p.id} className="flex flex-col items-start gap-0.5">
+            <div className="flex w-full items-center justify-between gap-2">
+              <span className="font-mono text-xs font-semibold">#{p.numero}</span>
+              <span className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-medium",
+                p.status === "aberto" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600",
+              )}>
+                {p.status === "aberto" ? "aberto" : "encerrado"}
+              </span>
+            </div>
+            <div className="flex w-full items-center justify-between text-[10px] text-slate-500">
+              <span>Aberto: {fmtDateTime(p.opened_at)}</span>
+              {p.closed_at && <span>Fechado: {fmtDate(p.closed_at)}</span>}
+            </div>
+            {p.assunto_resumo && (
+              <span className="line-clamp-2 text-[10px] text-slate-500">{p.assunto_resumo}</span>
+            )}
+          </DropdownMenuItem>
+        ))
+      )}
+    </DropdownMenuContent>
+  );
+}
+
+
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
