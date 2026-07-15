@@ -156,15 +156,42 @@ async function processPayload(payload: WhatsAppPayload) {
           continue;
         }
 
-        // Debounce: em vez de acionar a IA imediatamente, agenda pra daqui 3 min.
-        // Toda mensagem nova empurra o horário pra frente — assim a IA responde
-        // uma vez só, considerando tudo que o cliente mandou nesse intervalo.
-        // Um cron a cada 30s (hook dispatch-ai-debounced) dispara quando vencer.
+        // Debounce ADAPTATIVO: agenda a resposta da IA pra daqui X segundos.
+        // - Se o cliente mandou 2+ mensagens em menos de 30s (rajada) → 4 min
+        // - Se já existe uma janela de debounce aberta (mid-conversa) → 3 min
+        // - Se é a 1ª mensagem depois de um silêncio → 90s (responde mais rápido)
+        // Toda mensagem nova recalcula e empurra o horário. Um cron a cada 30s
+        // (hook dispatch-ai-debounced) dispara quando vencer.
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+        const { data: convState } = await supabaseAdmin
+          .from("wa_conversations")
+          .select("ai_debounce_until")
+          .eq("id", conv.id)
+          .maybeSingle();
+
+        const thirtySecAgo = new Date(Date.now() - 30 * 1000).toISOString();
+        const { count: recentBurst } = await supabaseAdmin
+          .from("wa_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", conv.id)
+          .eq("direction", "inbound")
+          .gte("created_at", thirtySecAgo);
+
+        let waitMs: number;
+        if ((recentBurst ?? 0) >= 2) {
+          waitMs = 4 * 60 * 1000; // rajada → espera mais
+        } else if (convState?.ai_debounce_until) {
+          waitMs = 3 * 60 * 1000; // janela já aberta → padrão
+        } else {
+          waitMs = 90 * 1000; // mensagem isolada após silêncio → responde rápido
+        }
+
         await supabaseAdmin
           .from("wa_conversations")
-          .update({ ai_debounce_until: new Date(Date.now() + 3 * 60 * 1000).toISOString() })
+          .update({ ai_debounce_until: new Date(Date.now() + waitMs).toISOString() })
           .eq("id", conv.id);
+
       }
 
     }
