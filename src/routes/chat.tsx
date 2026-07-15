@@ -42,6 +42,8 @@ function ChatLayout() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [authorized, setAuthorized] = useState<boolean | undefined>(undefined);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;
