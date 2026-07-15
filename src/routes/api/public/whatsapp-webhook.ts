@@ -125,6 +125,18 @@ async function processPayload(payload: WhatsAppPayload) {
         }
 
         const conv = await getOrCreateConversation(msg.from, profileName);
+
+        // Se a conversa foi encerrada manualmente, uma nova mensagem = novo lead:
+        // volta o modo para IA e reseta a etapa do funil para "novo".
+        if (conv.mode === "resolved") {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          await supabaseAdmin
+            .from("wa_conversations")
+            .update({ mode: "ai", funnel_stage: "novo", assigned_to: null })
+            .eq("id", conv.id);
+          conv.mode = "ai";
+        }
+
         const saved = await saveMessage({
           conversation_id: conv.id,
           direction: "inbound",
