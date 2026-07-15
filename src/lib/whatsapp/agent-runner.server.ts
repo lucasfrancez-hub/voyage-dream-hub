@@ -158,6 +158,15 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     content: m.content,
   }));
 
+  // Protocolo ativo (abre/reabre conforme regra) + detecta se ainda é a primeira resposta nele
+  const protocolo = await ensureActiveProtocolo(conv.id);
+  const { count: outboundNoProto } = await supabaseAdmin
+    .from("wa_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("protocolo_id", protocolo.id)
+    .eq("direction", "outbound");
+  const isNewProtocolo = (outboundNoProto ?? 0) === 0;
+
   const gateway = createLovableAiGatewayProvider(key);
   const model = gateway("google/gemini-3.5-flash");
   const tools = buildCamilaTools(conv);
@@ -167,7 +176,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   try {
     const result = await generateText({
       model,
-      system: buildSystemPrompt(agent, conv),
+      system: buildSystemPrompt(agent, conv, protocolo, isNewProtocolo),
       messages,
       tools: cleanTools as never,
       toolsContext: undefined as never,
