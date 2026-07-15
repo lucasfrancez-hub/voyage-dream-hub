@@ -50,6 +50,16 @@ function ChatLayout() {
   }, []);
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("chat-theme", theme);
+    // Aplica também no <body> pra portais (dropdown/tooltip/dialog) herdarem o tema correto.
+    if (typeof document !== "undefined") {
+      const body = document.body;
+      body.classList.remove("chat-dark", "chat-light", "dark");
+      if (theme === "dark") body.classList.add("chat-dark", "dark");
+      else body.classList.add("chat-light");
+      return () => {
+        body.classList.remove("chat-dark", "chat-light", "dark");
+      };
+    }
   }, [theme]);
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
