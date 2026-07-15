@@ -1000,6 +1000,17 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                 {updateProtoMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 Salvar dados do protocolo
               </button>
+
+              {viewedProtocolo && "resumo_conversa" in viewedProtocolo && (viewedProtocolo as { resumo_conversa: string | null }).resumo_conversa && (
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-2.5">
+                  <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                    Resumo da conversa (gerado ao encerrar)
+                  </div>
+                  <div className="whitespace-pre-wrap text-[11px] leading-relaxed text-slate-700">
+                    {(viewedProtocolo as { resumo_conversa: string }).resumo_conversa}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

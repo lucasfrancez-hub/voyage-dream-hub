@@ -96,7 +96,7 @@ export const getActiveProtocolo = createServerFn({ method: "POST" })
     if (!conv?.protocolo_ativo_id) return null;
     const { data: proto } = await context.supabase
       .from("wa_protocolos")
-      .select("id, numero, status, assunto_resumo, numero_pedido, numero_reserva, opened_at, last_activity_at")
+      .select("id, numero, status, assunto_resumo, numero_pedido, numero_reserva, opened_at, last_activity_at, resumo_conversa")
       .eq("id", conv.protocolo_ativo_id)
       .maybeSingle();
     return proto ?? null;
@@ -108,7 +108,7 @@ export const listConversationProtocolos = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("wa_protocolos")
-      .select("id, numero, status, assunto_resumo, numero_pedido, numero_reserva, opened_at, closed_at")
+      .select("id, numero, status, assunto_resumo, numero_pedido, numero_reserva, opened_at, closed_at, resumo_conversa")
       .eq("conversation_id", data.conversation_id)
       .order("opened_at", { ascending: false })
       .limit(50);
@@ -476,12 +476,56 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
       skip_protocolo: true,
     });
 
+    // Gera resumo automático da conversa do protocolo via IA
+    let resumoConversa: string | null = null;
+    try {
+      const { data: msgs } = await supabaseAdmin
+        .from("wa_messages")
+        .select("direction, sender, content, created_at")
+        .eq("protocolo_id", proto.id)
+        .order("created_at", { ascending: true })
+        .limit(300);
+      const transcript = (msgs ?? [])
+        .filter((m) => m.content && m.content.trim().length > 0)
+        .map((m) => {
+          const who = m.direction === "inbound"
+            ? "Cliente"
+            : m.sender === "system"
+              ? "Sistema"
+              : m.sender === "human"
+                ? "Atendente"
+                : "IA";
+          return `${who}: ${m.content}`;
+        })
+        .join("\n");
+
+      const apiKey = process.env.LOVABLE_API_KEY;
+      if (transcript.trim().length > 0 && apiKey) {
+        const { generateText } = await import("ai");
+        const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
+        const gateway = createLovableAiGatewayProvider(apiKey);
+        const { text } = await generateText({
+          model: gateway("openai/gpt-5.5"),
+          prompt:
+            "Resuma a conversa abaixo entre um cliente da VIA AIR e o atendimento (IA/humano). " +
+            "Escreva em português, tom objetivo, em no máximo 6 bullets curtos. " +
+            "Inclua: o que o cliente queria, informações importantes trocadas (datas, valores, localizadores, pedidos), " +
+            "o que foi resolvido e pendências (se houver). Não inclua saudações nem cabeçalho.\n\n" +
+            "CONVERSA:\n" + transcript,
+        });
+        resumoConversa = text.trim() || null;
+      }
+    } catch (err) {
+      console.error("[closeProtocoloManually] erro ao gerar resumo:", err);
+    }
+
     await supabaseAdmin
       .from("wa_protocolos")
       .update({
         status: "encerrado_manual",
         closed_at: new Date().toISOString(),
         funnel_stage_final: conv.funnel_stage ?? null,
+        resumo_conversa: resumoConversa,
       })
       .eq("id", proto.id);
 

@@ -1,0 +1,1 @@
+ALTER TABLE public.wa_protocolos ADD COLUMN IF NOT EXISTS resumo_conversa text;
