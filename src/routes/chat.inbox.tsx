@@ -974,6 +974,38 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
               ))}
             </div>
           )}
+
+          {orders.length > 0 && (
+            <div className="border-t border-slate-100 pt-3">
+              <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                Pedidos deste contato
+              </div>
+              <div className="space-y-1.5">
+                {orders.map((o) => (
+                  <a
+                    key={o.id}
+                    href={`/admin/pedidos/${o.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] hover:border-[#F26B1F]/50 hover:bg-orange-50/30"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono font-semibold text-slate-800">#{o.order_number}</span>
+                      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-600">{o.status}</span>
+                    </div>
+                    {o.trip_title && (
+                      <div className="mt-0.5 truncate text-[10px] text-slate-500">{o.trip_title}</div>
+                    )}
+                    {o.airline_locator && (
+                      <div className="mt-0.5 text-[10px] text-slate-600">
+                        Localizador aéreo: <span className="font-mono font-semibold">{o.airline_locator}</span>
+                      </div>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </TooltipProvider>
