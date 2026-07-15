@@ -111,6 +111,3 @@ function ProtocoloPrintView() {
     </div>
   );
 }
-
-// evita "unused import" caso um dia amarremos histórico
-void listConversationProtocolos;
