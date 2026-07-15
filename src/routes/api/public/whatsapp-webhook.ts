@@ -156,8 +156,17 @@ async function processPayload(payload: WhatsAppPayload) {
           continue;
         }
 
-        await runAgent({ wa_phone: msg.from, profile_name: profileName });
+        // Debounce: em vez de acionar a IA imediatamente, agenda pra daqui 3 min.
+        // Toda mensagem nova empurra o horário pra frente — assim a IA responde
+        // uma vez só, considerando tudo que o cliente mandou nesse intervalo.
+        // Um cron a cada 30s (hook dispatch-ai-debounced) dispara quando vencer.
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({ ai_debounce_until: new Date(Date.now() + 3 * 60 * 1000).toISOString() })
+          .eq("id", conv.id);
       }
+
     }
   }
 }
