@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Search, Bell, ArrowLeft } from "lucide-react";
 import { useMemo } from "react";
-import { firstName } from "@/lib/whatsapp/text-utils.client";
+import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 function currentAgent(): { nome: string; online: boolean } {
   const fmt = new Intl.DateTimeFormat("pt-BR", {
