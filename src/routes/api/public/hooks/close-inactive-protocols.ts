@@ -30,6 +30,28 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
 
         const warned: string[] = [];
         const closed: string[] = [];
+        const skipped: string[] = [];
+
+        // Se o protocolo está aguardando o time comercial (último handoff → human
+        // sem resposta humana desde então), NÃO contar como inatividade. O relógio
+        // só volta a andar depois que a gente responder.
+        async function isAwaitingHuman(conversationId: string): Promise<boolean> {
+          const { data: lastHandoff } = await supabaseAdmin
+            .from("wa_handoff_events")
+            .select("to_mode, created_at")
+            .eq("conversation_id", conversationId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (!lastHandoff || lastHandoff.to_mode !== "human") return false;
+          const { count } = await supabaseAdmin
+            .from("wa_messages")
+            .select("id", { count: "exact", head: true })
+            .eq("conversation_id", conversationId)
+            .eq("sender", "human")
+            .gt("created_at", lastHandoff.created_at);
+          return (count ?? 0) === 0;
+        }
 
         // ============ 1) AVISO (60min sem resposta) ============
         const { data: toWarn, error: warnErr } = await supabaseAdmin
@@ -40,6 +62,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
           .lt("last_activity_at", warnCutoff)
           .gte("last_activity_at", closeCutoff) // ainda não bateu 3h
           .limit(50);
+
 
         if (warnErr) {
           console.error("[inactivity] warn query error:", warnErr.message);
