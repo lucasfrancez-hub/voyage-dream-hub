@@ -1085,6 +1085,11 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ProtocoloMessagesDialog
+        protocoloId={readOnlyProtoId}
+        protocolo={readOnlyProtoId ? protoHistory.find((p) => p.id === readOnlyProtoId) ?? null : null}
+        onClose={() => setReadOnlyProtoId(null)}
+      />
     </TooltipProvider>
   );
 }
