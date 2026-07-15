@@ -76,7 +76,12 @@ export async function sendWhatsAppBubbles(
     if (i > 0) {
       // Delay proporcional ao tamanho do balão anterior (parece "digitando").
       const prevLen = bubbles[i - 1].length;
-      const delay = Math.min(4500, 900 + prevLen * 45);
+      let delay = Math.min(6000, 1200 + prevLen * 55);
+      // Se o balão ATUAL começa com nome de hotel em negrito (*Hotel Tal*),
+      // dá uma pausa maior antes — simula "pesquisando a próxima opção".
+      const cur = bubbles[i];
+      const looksLikeHotelHeader = /^\*[^*\n]{3,80}\*\s*$/.test(cur);
+      if (looksLikeHotelHeader) delay += 3500 + Math.floor(Math.random() * 2500);
       await new Promise((r) => setTimeout(r, delay));
     }
     const r = await sendWhatsAppText(to, body);
