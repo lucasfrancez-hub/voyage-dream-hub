@@ -9,12 +9,13 @@ import { createFileRoute } from "@tanstack/react-router";
  *      vai ser encerrado se não houver resposta, e marca `inactivity_warned_at`.
  *      Não fecha ainda.
  *
- *   2) ENCERRAMENTO (3h sem atividade): fecha o protocolo, gera resumo via IA
- *      e envia balão de encerramento — mesma lógica do close manual.
+ *   2) ENCERRAMENTO (mais 60 min depois do aviso, sem resposta): fecha o
+ *      protocolo, gera resumo via IA e envia balão curto de encerramento.
  *
- * Se o cliente responder antes das 3h, saveMessage() bumpa `last_activity_at`
+ * Se o cliente responder antes, saveMessage() bumpa `last_activity_at`
  * e o próximo ciclo do cron ignora esse protocolo. Caso volte a ficar inativo,
  * um novo aviso é enviado (o campo é resetado quando o protocolo reabre).
+
  */
 export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols")({
   server: {
@@ -25,8 +26,9 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
         const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
 
         const now = Date.now();
-        const warnCutoff = new Date(now - 60 * 60 * 1000).toISOString(); // 1h
-        const closeCutoff = new Date(now - 3 * 60 * 60 * 1000).toISOString(); // 3h
+        const warnCutoff = new Date(now - 60 * 60 * 1000).toISOString(); // 1h sem atividade → aviso
+        const closeAfterWarn = new Date(now - 60 * 60 * 1000).toISOString(); // +1h após o aviso → encerra
+
 
         const warned: string[] = [];
         const closed: string[] = [];
@@ -60,8 +62,8 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
           .eq("status", "aberto")
           .is("inactivity_warned_at", null)
           .lt("last_activity_at", warnCutoff)
-          .gte("last_activity_at", closeCutoff) // ainda não bateu 3h
           .limit(50);
+
 
 
         if (warnErr) {
@@ -80,9 +82,8 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
             if (!conv) continue;
 
             const avisoMsg =
-              `Notei que ficou um tempinho sem responder por aqui.\n\n` +
-              `Como já se passou mais de uma hora, se você não voltar em breve vou precisar encerrar esse atendimento (protocolo ${proto.numero}).\n\n` +
-              `Mas fica tranquila(o), qualquer coisa é só mandar mensagem que a gente volta a tratar do assunto de onde parou. 😊`;
+              `Notei que ficou um tempinho sem responder por aqui. Vou encerrar o atendimento por aqui, mas fique tranquila(o), qualquer coisa é só mandar mensagem que a gente volta a tratar do assunto de onde parou, ok? 😊`;
+
 
             await sendWhatsAppBubbles(conv.wa_phone, avisoMsg);
 
@@ -104,12 +105,14 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
           }
         }
 
-        // ============ 2) ENCERRAMENTO (3h sem resposta) ============
+        // ============ 2) ENCERRAMENTO (+1h após o aviso) ============
         const { data: toClose, error: closeErr } = await supabaseAdmin
           .from("wa_protocolos")
           .select("id, numero, conversation_id")
           .eq("status", "aberto")
-          .lt("last_activity_at", closeCutoff)
+          .not("inactivity_warned_at", "is", null)
+          .lt("inactivity_warned_at", closeAfterWarn)
+          .lt("last_activity_at", closeAfterWarn)
           .limit(50);
 
         if (closeErr) {
@@ -127,9 +130,8 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               .maybeSingle();
             if (!conv) continue;
 
-            const encerramentoMsg =
-              `Como não tive mais retorno, vou encerrar o protocolo ${proto.numero} por aqui. ✅\n\n` +
-              `Se precisar de qualquer coisa é só mandar mensagem que a gente abre um novo atendimento na hora. Obrigado pelo contato com a VIA AIR!`;
+            const encerramentoMsg = `Atendimento encerrado, protocolo ${proto.numero}.`;
+
 
             await sendWhatsAppBubbles(conv.wa_phone, encerramentoMsg);
 
