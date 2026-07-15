@@ -488,8 +488,9 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
       skip_protocolo: true,
     });
 
-    // Gera resumo automático da conversa do protocolo via IA
+    // Gera resumo automático da conversa do protocolo via IA (+ necessidade do cliente se estiver vazia)
     let resumoConversa: string | null = null;
+    let necessidadeIA: string | null = null;
     try {
       const { data: msgs } = await supabaseAdmin
         .from("wa_messages")
@@ -519,17 +520,27 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
         const { text } = await generateText({
           model: gateway("openai/gpt-5.5"),
           prompt:
-            "Resuma a conversa abaixo entre um cliente da VIA AIR e o atendimento (IA/humano). " +
-            "Escreva em português, tom objetivo, em no máximo 6 bullets curtos. " +
-            "Inclua: o que o cliente queria, informações importantes trocadas (datas, valores, localizadores, pedidos), " +
-            "o que foi resolvido e pendências (se houver). Não inclua saudações nem cabeçalho.\n\n" +
+            "Analise a conversa abaixo entre um cliente da VIA AIR e o atendimento (IA/humano) e retorne APENAS um JSON válido (sem markdown, sem crase, sem texto extra) no formato:\n" +
+            '{"necessidade":"...","resumo":"..."}\n\n' +
+            "- necessidade: 1 a 2 frases curtas em português descrevendo o que o cliente precisa/quer (ex.: \"Cotação de pacote para Fernando de Noronha em janeiro/2027 para 2 adultos\").\n" +
+            "- resumo: em português, tom objetivo, no máximo 6 bullets curtos separados por \\n, começando com \"• \". Inclua: o que o cliente queria, informações trocadas (datas, valores, localizadores, pedidos), o que foi resolvido e pendências. Sem saudações, sem cabeçalho.\n\n" +
             "CONVERSA:\n" + transcript,
         });
-        resumoConversa = text.trim() || null;
+        try {
+          const raw = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+          const parsed = JSON.parse(raw) as { necessidade?: string; resumo?: string };
+          necessidadeIA = (parsed.necessidade ?? "").trim() || null;
+          resumoConversa = (parsed.resumo ?? "").trim() || null;
+        } catch {
+          resumoConversa = text.trim() || null;
+        }
       }
     } catch (err) {
       console.error("[closeProtocoloManually] erro ao gerar resumo:", err);
     }
+
+    const currentNecessidade = (proto.assunto_resumo ?? "").trim();
+    const shouldFillNecessidade = !currentNecessidade && !!necessidadeIA;
 
     await supabaseAdmin
       .from("wa_protocolos")
@@ -538,6 +549,7 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
         closed_at: new Date().toISOString(),
         funnel_stage_final: conv.funnel_stage ?? null,
         resumo_conversa: resumoConversa,
+        ...(shouldFillNecessidade ? { assunto_resumo: necessidadeIA } : {}),
       })
       .eq("id", proto.id);
 
