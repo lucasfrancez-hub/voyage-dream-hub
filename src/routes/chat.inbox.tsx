@@ -87,52 +87,81 @@ function InboxPage() {
   return (
     <div className="flex h-full min-h-0">
       {/* Coluna 1 — Lista */}
-      <aside className="flex w-80 shrink-0 flex-col border-r border-slate-200 bg-white">
-        <div className="border-b border-slate-200 p-3">
-          <div className="mb-2 flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar conversa…"
-                className="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-sm placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
-              />
-            </div>
-            <button
-              onClick={() => setNewOpen(true)}
-              title="Nova conversa"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
+      {listCollapsed ? (
+        <aside className="flex w-12 shrink-0 flex-col items-center gap-2 border-r border-border bg-card py-3">
+          <button
+            onClick={toggleList}
+            title="Expandir caixa de entrada"
+            className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setNewOpen(true)}
+            title="Nova conversa"
+            className="flex h-8 w-8 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <div className="mt-2 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+            {filtered.length}
           </div>
-          <div className="mt-2 flex gap-1">
-            {FOLDERS.map((f) => (
+        </aside>
+      ) : (
+        <aside className="flex w-80 shrink-0 flex-col border-r border-slate-200 bg-white">
+          <div className="border-b border-slate-200 p-3">
+            <div className="mb-2 flex items-center gap-2">
               <button
-                key={f.key}
-                onClick={() => setFolder(f.key)}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors",
-                  folder === f.key
-                    ? "bg-orange-50 text-[#F26B1F]"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
-                )}
+                onClick={toggleList}
+                title="Recolher lista"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900"
               >
-                <f.icon className="h-3 w-3" />
-                {f.label}
+                <PanelLeftClose className="h-4 w-4" />
               </button>
-            ))}
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar conversa…"
+                  className="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-sm placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+                />
+              </div>
+              <button
+                onClick={() => setNewOpen(true)}
+                title="Nova conversa"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-2 flex gap-1">
+              {FOLDERS.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setFolder(f.key)}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors",
+                    folder === f.key
+                      ? "bg-orange-50 text-[#F26B1F]"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                  )}
+                >
+                  <f.icon className="h-3 w-3" />
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {filtered.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
-          ) : (
-            filtered.map((c) => <ConvItem key={c.id} conv={c} active={activeId === c.id} onClick={() => setActiveId(c.id)} />)
-          )}
-        </div>
-      </aside>
+          <div className="flex-1 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
+            ) : (
+              filtered.map((c) => <ConvItem key={c.id} conv={c} active={activeId === c.id} onClick={() => setActiveId(c.id)} />)
+            )}
+          </div>
+        </aside>
+      )}
 
       {/* Coluna 2 — Conversa */}
       <main className="flex min-w-0 flex-1 flex-col bg-[var(--chat-conversation)]">
