@@ -69,6 +69,14 @@ function ChatLayout() {
     if (pathname === "/chat") navigate({ to: "/chat/inbox", replace: true });
   }, [pathname, navigate]);
 
+  const profileFn = useServerFn(getMyProfile);
+  const { data: profile } = useQuery({
+    queryKey: ["chat", "my-profile", session?.user.id],
+    queryFn: () => profileFn(),
+    enabled: !!session && authorized === true,
+    staleTime: 60_000,
+  });
+
   if (session === undefined || authorized === undefined) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
@@ -88,14 +96,6 @@ function ChatLayout() {
   }
 
   const pageInfo = PAGE_TITLES[pathname] ?? { title: "Central de Atendimento" };
-
-  const profileFn = useServerFn(getMyProfile);
-  const { data: profile } = useQuery({
-    queryKey: ["chat", "my-profile", session?.user.id],
-    queryFn: () => profileFn(),
-    enabled: !!session && authorized === true,
-    staleTime: 60_000,
-  });
 
   return (
     <div className="chat-dark dark flex h-screen w-full overflow-hidden bg-[var(--chat-bg)] text-foreground">
