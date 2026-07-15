@@ -124,9 +124,17 @@ export const startOutboundConversation = createServerFn({ method: "POST" })
     const phone = normalizePhone(data.phone);
     const { getOrCreateConversation, saveMessage } = await import("@/lib/whatsapp/conversation.server");
     const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
+    const { buildSenderPrefix, capitalizeBubbles } = await import("@/lib/whatsapp/text-utils.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const conv = await getOrCreateConversation(phone, data.display_name ?? null);
+    const { data: profile } = await context.supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", context.userId)
+      .maybeSingle();
+    const content = capitalizeBubbles(data.content);
+    const prefix = buildSenderPrefix(profile?.full_name);
 
     // Conversa iniciada manualmente → modo humano por padrão (IA desligada).
     await supabaseAdmin
@@ -142,11 +150,11 @@ export const startOutboundConversation = createServerFn({ method: "POST" })
       conversation_id: conv.id,
       direction: "outbound",
       sender: "human",
-      content: data.content,
+      content,
       sender_user_id: context.userId,
     });
 
-    await sendWhatsAppBubbles(phone, data.content);
+    await sendWhatsAppBubbles(phone, content, prefix);
     return { ok: true, conversation_id: conv.id };
   });
 
