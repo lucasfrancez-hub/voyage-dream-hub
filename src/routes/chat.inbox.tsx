@@ -1026,38 +1026,6 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                 Salvar dados do protocolo
               </button>
 
-              {viewedProtocolo && (
-                <div className="rounded-md border border-slate-200 bg-slate-50 p-2.5">
-                  <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <div className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
-                      O que foi tratado no protocolo
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => window.open(`/protocolo/${viewedProtocolo.id}`, "_blank", "noopener,noreferrer")}
-                      className="inline-flex items-center gap-1 rounded-md border border-[#F26B1F]/30 bg-white px-2 py-0.5 text-[10px] font-medium text-[#F26B1F] hover:bg-[#F26B1F]/5"
-                      title="Abrir conversa completa em nova aba"
-                    >
-                      <ExternalLink className="h-3 w-3" /> Expandir
-                    </button>
-                  </div>
-                  {"resumo_conversa" in viewedProtocolo && (viewedProtocolo as { resumo_conversa: string | null }).resumo_conversa ? (
-                    <div className="whitespace-pre-wrap text-[11px] leading-relaxed text-slate-700">
-                      {(viewedProtocolo as { resumo_conversa: string }).resumo_conversa}
-                    </div>
-                  ) : ensuringId === viewedProtocolo.id ? (
-                    <div className="flex items-center gap-2 text-[11px] italic leading-relaxed text-slate-500">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Gerando resumo pela IA…
-                    </div>
-                  ) : (
-                    <div className="text-[11px] italic leading-relaxed text-slate-500">
-                      {viewedProtocolo.id === protocolo?.id
-                        ? "O resumo será gerado automaticamente pela IA quando o protocolo for encerrado. Clique em Expandir pra ver a conversa completa."
-                        : "Sem resumo salvo neste protocolo. Clique em Expandir pra ver a conversa completa."}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
