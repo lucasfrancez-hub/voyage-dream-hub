@@ -272,6 +272,32 @@ function EmptyState() {
   );
 }
 
+const WALLPAPERS: { key: string; label: string; css: string }[] = [
+  { key: "default", label: "Padrão", css: "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><g opacity=%220.05%22><circle cx=%2260%22 cy=%2260%22 r=%2240%22 fill=%22%23fff%22/></g></svg>')" },
+  { key: "none", label: "Nenhum", css: "none" },
+  { key: "grid", label: "Grade sutil", css: "linear-gradient(var(--chat-panel-raised) 1px, transparent 1px), linear-gradient(90deg, var(--chat-panel-raised) 1px, transparent 1px)" },
+  { key: "orange", label: "Brilho VIA AIR", css: "radial-gradient(circle at 20% 10%, color-mix(in oklab, var(--brand-orange) 18%, transparent) 0%, transparent 45%), radial-gradient(circle at 85% 90%, color-mix(in oklab, var(--brand-blue) 20%, transparent) 0%, transparent 50%)" },
+  { key: "dots", label: "Bolinhas", css: "radial-gradient(color-mix(in oklab, var(--foreground) 10%, transparent) 1.2px, transparent 1.2px)" },
+];
+
+function useWallpaper() {
+  const [key, setKey] = useState<string>("default");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("chat-wallpaper");
+    if (saved) setKey(saved);
+  }, []);
+  const set = (k: string) => {
+    setKey(k);
+    if (typeof window !== "undefined") localStorage.setItem("chat-wallpaper", k);
+  };
+  const cur = WALLPAPERS.find((w) => w.key === key) ?? WALLPAPERS[0];
+  const style: React.CSSProperties = { backgroundImage: cur.css };
+  if (cur.key === "grid") style.backgroundSize = "24px 24px";
+  if (cur.key === "dots") style.backgroundSize = "18px 18px";
+  return { key, set, style };
+}
+
 function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => void }) {
   const qc = useQueryClient();
   const listMsgs = useServerFn(listMessages);
@@ -279,6 +305,7 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
   const toggleFn = useServerFn(toggleConversationMode);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const wallpaper = useWallpaper();
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["chat", "messages", conv.id],
@@ -294,6 +321,7 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [conv.id, qc]);
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
