@@ -72,7 +72,7 @@ function ChatLayout() {
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
-        .in("role", ["admin", "partner"]);
+        .eq("role", "admin");
       if (error) { toast.error("Erro ao validar acesso"); setAuthorized(false); return; }
       setAuthorized((data ?? []).length > 0);
     })();
