@@ -284,19 +284,31 @@ function ConvItem({ conv, active, onClick }: { conv: Conv; active: boolean; onCl
         active ? "bg-orange-50" : "hover:bg-slate-50",
       )}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-xs font-semibold text-white">
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-xs font-semibold text-white">
         {initials}
+        {conv.mode === "human" && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
+            <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-white bg-[#F26B1F]" />
+          </span>
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
           <span className="truncate text-sm font-medium text-slate-900">{conv.display_name ?? conv.wa_phone}</span>
           <span className="shrink-0 text-[10px] text-slate-400">{time}</span>
         </div>
+        {conv.mode === "human" && (
+          <div className="mt-0.5 mb-1 inline-flex items-center gap-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-[#F26B1F]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#F26B1F]" />
+            Atendimento necessário
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-xs text-slate-500">{conv.last_message_preview ?? "—"}</span>
           <div className="flex shrink-0 items-center gap-1">
             {conv.mode === "ai" && <Bot className="h-3 w-3 text-emerald-500" />}
-            {conv.mode === "human" && <User className="h-3 w-3 text-violet-500" />}
+            {conv.mode === "human" && <User className="h-3 w-3 text-[#F26B1F]" />}
             {(conv.unread_count ?? 0) > 0 && (
               <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
             )}
