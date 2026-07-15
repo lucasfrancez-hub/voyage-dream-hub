@@ -328,12 +328,15 @@ export function buildCamilaTools(conversation: WaConversation) {
         if (observacoes) linhas.push(`📝 Obs: ${observacoes}`);
         const briefing = linhas.length ? linhas.join("\n") : "Cliente solicitou atendimento humano — dados ainda não coletados.";
 
+        const existingTags = conversation.tags ?? [];
+        const newTags = Array.from(new Set([...existingTags, motivo, "aguardando_humano"]));
         await supabaseAdmin
           .from("wa_conversations")
           .update({
-            mode: "human",
+            // IMPORTANTE: NÃO trocamos mode pra "human" automaticamente.
+            // A IA segue respondendo até um operador assumir manualmente pelo painel.
             priority: prioridade ?? "normal",
-            tags: [...(conversation.tags ?? []), motivo],
+            tags: newTags,
           })
           .eq("id", conversation.id);
 
@@ -348,7 +351,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         await recordHandoff({
           conversation_id: conversation.id,
           from_mode: "ai",
-          to_mode: "human",
+          to_mode: "ai", // marcado como pendente de humano, mas IA segue ativa
           reason: motivo,
           briefing,
         });
@@ -356,10 +359,11 @@ export function buildCamilaTools(conversation: WaConversation) {
         return {
           ok: true,
           instrucao:
-            "Agradeça, diga que um consultor humano vai continuar o atendimento em instantes e não faça mais perguntas.",
+            "Avise ao cliente que já sinalizou pro time comercial assumir e siga ajudando normalmente com o que puder — dúvidas, informações, contexto. Não fique em silêncio. Quando um humano assumir, o sistema te desativa automaticamente.",
         };
       },
     }),
+
 
 
     _meta: { isIdentityVerified }, // usado só pelo runner pra decidir prompt
