@@ -49,11 +49,35 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
     return;
   }
 
-  const history = await loadHistory(conv.id, 30);
+  // Escopo do histórico: só as mensagens do protocolo ATIVO. Se não houver protocolo ativo,
+  // usa o último closed_at pra não puxar assuntos de atendimentos já encerrados.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let sinceIso: string | undefined;
+  if (conv.protocolo_ativo_id) {
+    const { data: p } = await supabaseAdmin
+      .from("wa_protocolos")
+      .select("opened_at")
+      .eq("id", conv.protocolo_ativo_id)
+      .maybeSingle();
+    sinceIso = p?.opened_at ?? undefined;
+  } else {
+    const { data: last } = await supabaseAdmin
+      .from("wa_protocolos")
+      .select("closed_at")
+      .eq("conversation_id", conv.id)
+      .not("closed_at", "is", null)
+      .order("closed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    sinceIso = last?.closed_at ?? undefined;
+  }
+
+  const history = await loadHistory(conv.id, 30, sinceIso);
   const messages: ModelMessage[] = history.map((m) => ({
     role: m.sender === "customer" ? "user" : "assistant",
     content: m.content,
   }));
+
 
   const gateway = createLovableAiGatewayProvider(key);
   const model = gateway("google/gemini-3.5-flash");
