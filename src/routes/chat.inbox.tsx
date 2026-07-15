@@ -274,15 +274,15 @@ function EmptyState() {
 }
 
 const WALLPAPERS: { key: string; label: string; css: string }[] = [
-  { key: "default", label: "Padrão", css: "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><g opacity=%220.05%22><circle cx=%2260%22 cy=%2260%22 r=%2240%22 fill=%22%23fff%22/></g></svg>')" },
+  { key: "dots", label: "Bolinhas (padrão)", css: "radial-gradient(color-mix(in oklab, var(--foreground) 12%, transparent) 1.2px, transparent 1.2px)" },
   { key: "none", label: "Nenhum", css: "none" },
-  { key: "grid", label: "Grade sutil", css: "linear-gradient(var(--chat-panel-raised) 1px, transparent 1px), linear-gradient(90deg, var(--chat-panel-raised) 1px, transparent 1px)" },
+  { key: "grid", label: "Grade sutil", css: "linear-gradient(color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px)" },
   { key: "orange", label: "Brilho VIA AIR", css: "radial-gradient(circle at 20% 10%, color-mix(in oklab, var(--brand-orange) 18%, transparent) 0%, transparent 45%), radial-gradient(circle at 85% 90%, color-mix(in oklab, var(--brand-blue) 20%, transparent) 0%, transparent 50%)" },
-  { key: "dots", label: "Bolinhas", css: "radial-gradient(color-mix(in oklab, var(--foreground) 10%, transparent) 1.2px, transparent 1.2px)" },
+  { key: "diagonal", label: "Listras diagonais", css: "repeating-linear-gradient(45deg, color-mix(in oklab, var(--foreground) 6%, transparent) 0 2px, transparent 2px 14px)" },
 ];
 
 function useWallpaper() {
-  const [key, setKey] = useState<string>("default");
+  const [key, setKey] = useState<string>("dots");
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = localStorage.getItem("chat-wallpaper");
