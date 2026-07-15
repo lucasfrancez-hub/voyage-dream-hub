@@ -74,13 +74,45 @@ export const listProtocoloMessages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ protocolo_id: z.string().uuid() }).parse(raw))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    let { data: rows, error } = await context.supabase
       .from("wa_messages")
       .select("id, direction, sender, content, created_at, sender_user_id")
       .eq("protocolo_id", data.protocolo_id)
       .order("created_at", { ascending: true })
       .limit(1000);
     if (error) throw new Error(error.message);
+
+    // Fallback: protocolos antigos podem não ter mensagens vinculadas via protocolo_id.
+    // Nesse caso, buscamos pela janela de tempo do protocolo dentro da conversa.
+    if (!rows || rows.length === 0) {
+      const { data: proto } = await context.supabase
+        .from("wa_protocolos")
+        .select("conversation_id, opened_at, closed_at")
+        .eq("id", data.protocolo_id)
+        .maybeSingle();
+      if (proto?.conversation_id) {
+        const { data: prev } = await context.supabase
+          .from("wa_protocolos")
+          .select("closed_at")
+          .eq("conversation_id", proto.conversation_id)
+          .lt("opened_at", proto.opened_at)
+          .order("opened_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const fromTs = prev?.closed_at ?? "1970-01-01T00:00:00Z";
+        const toTs = proto.closed_at ?? new Date().toISOString();
+        const { data: winRows } = await context.supabase
+          .from("wa_messages")
+          .select("id, direction, sender, content, created_at, sender_user_id")
+          .eq("conversation_id", proto.conversation_id)
+          .gt("created_at", fromTs)
+          .lte("created_at", toTs)
+          .order("created_at", { ascending: true })
+          .limit(1000);
+        rows = winRows ?? [];
+      }
+    }
+
     const list = rows ?? [];
     const userIds = Array.from(new Set(list.map((m) => m.sender_user_id).filter((id): id is string => !!id)));
     const names: Record<string, string | null> = {};
@@ -92,6 +124,7 @@ export const listProtocoloMessages = createServerFn({ method: "POST" })
       for (const p of profs ?? []) names[p.id] = p.full_name?.trim() || null;
     }
     return list.map((m) => ({ ...m, sender_full_name: m.sender_user_id ? names[m.sender_user_id] ?? null : null }));
+
   });
 
 export const getActiveProtocolo = createServerFn({ method: "POST" })
@@ -133,7 +166,7 @@ export const ensureProtocoloResumo = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: proto, error } = await supabaseAdmin
       .from("wa_protocolos")
-      .select("id, assunto_resumo, resumo_conversa, status")
+      .select("id, assunto_resumo, resumo_conversa, status, conversation_id, opened_at, closed_at")
       .eq("id", data.protocolo_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -145,12 +178,38 @@ export const ensureProtocoloResumo = createServerFn({ method: "POST" })
       return { ok: true, updated: false, resumo_conversa: proto.resumo_conversa, assunto_resumo: proto.assunto_resumo };
     }
 
-    const { data: msgs } = await supabaseAdmin
+    // 1) tenta pelas mensagens vinculadas ao protocolo
+    let { data: msgs } = await supabaseAdmin
       .from("wa_messages")
-      .select("direction, sender, content")
+      .select("direction, sender, content, created_at")
       .eq("protocolo_id", proto.id)
       .order("created_at", { ascending: true })
       .limit(300);
+
+    // 2) fallback: se não há mensagens vinculadas, usa a janela da conversa
+    //    (do fim do protocolo anterior até o closed_at deste, ou até agora se ainda aberto)
+    if ((!msgs || msgs.length === 0) && proto.conversation_id) {
+      const { data: prev } = await supabaseAdmin
+        .from("wa_protocolos")
+        .select("closed_at")
+        .eq("conversation_id", proto.conversation_id)
+        .lt("opened_at", proto.opened_at)
+        .order("opened_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const fromTs = prev?.closed_at ?? "1970-01-01T00:00:00Z";
+      const toTs = proto.closed_at ?? new Date().toISOString();
+      const { data: winMsgs } = await supabaseAdmin
+        .from("wa_messages")
+        .select("direction, sender, content, created_at")
+        .eq("conversation_id", proto.conversation_id)
+        .gt("created_at", fromTs)
+        .lte("created_at", toTs)
+        .order("created_at", { ascending: true })
+        .limit(300);
+      msgs = winMsgs ?? [];
+    }
+
     const transcript = (msgs ?? [])
       .filter((m) => m.content && m.content.trim().length > 0)
       .map((m) => {
@@ -168,6 +227,7 @@ export const ensureProtocoloResumo = createServerFn({ method: "POST" })
     if (!transcript.trim()) {
       return { ok: true, updated: false, resumo_conversa: proto.resumo_conversa, assunto_resumo: proto.assunto_resumo };
     }
+
 
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
