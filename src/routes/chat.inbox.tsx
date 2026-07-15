@@ -6,7 +6,7 @@ import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Use
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders } from "@/lib/chat/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
