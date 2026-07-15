@@ -10,6 +10,7 @@ import {
   Calendar,
   Folder,
   Settings,
+  FileText,
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 const ITEMS = [
   { to: "/chat/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/chat/inbox", label: "Caixa de Entrada", icon: MessageSquare },
+  { to: "/chat/protocolos", label: "Protocolos", icon: FileText },
   { to: "/chat/contatos", label: "Contatos", icon: Users },
   { to: "/chat/agentes", label: "Agente IA", icon: Bot },
   { to: "/chat/fluxos", label: "Fluxos", icon: Workflow },
