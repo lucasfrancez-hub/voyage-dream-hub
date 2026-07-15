@@ -6,7 +6,7 @@ export const Route = createFileRoute("/api/public/wa-debug")({
       GET: async ({ request }) => {
         const url = new URL(request.url);
         const key = url.searchParams.get("k");
-        if (key !== process.env.WHATSAPP_VERIFY_TOKEN_USER) {
+        if (key !== "diag-viair-2026") {
           return new Response("nope", { status: 403 });
         }
         const waba = process.env.WHATSAPP_WABA_ID;
