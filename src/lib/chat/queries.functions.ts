@@ -130,20 +130,12 @@ export const getConversationOrders = createServerFn({ method: "POST" })
     // Normaliza últimos 10 dígitos pra bater com variações de DDI/DDD
     const last10 = conv.wa_phone.replace(/\D/g, "").slice(-10);
 
-    let query = context.supabase
+    const { data: rows, error } = await context.supabase
       .from("orders")
       .select("id, order_number, airline_locator, status, trip_title, phone, created_at")
+      .ilike("phone", `%${last10}`)
       .order("created_at", { ascending: false })
       .limit(5);
-
-    // Filtro OR: person_id vinculado OU telefone terminando com últimos 10 dígitos
-    if (conv.person_id) {
-      query = query.or(`phone.ilike.%${last10},id.in.(select order_id from order_items where 1=0)`);
-    } else {
-      query = query.ilike("phone", `%${last10}`);
-    }
-
-    const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
