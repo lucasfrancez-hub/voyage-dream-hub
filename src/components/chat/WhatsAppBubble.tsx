@@ -1,5 +1,6 @@
 import { Check, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 interface Props {
   side: "in" | "out";
@@ -14,34 +15,29 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function firstNameUpper(full: string): string {
-  const first = full.trim().split(/\s+/)[0] ?? "";
-  return first.toLocaleUpperCase("pt-BR");
-}
-
 export function WhatsAppBubble({ side, content, timestamp, senderLabel, status }: Props) {
   const isOut = side === "out";
-  const label = senderLabel ? firstNameUpper(senderLabel) : null;
+  const label = firstName(senderLabel);
   return (
     <div className={cn("flex w-full", isOut ? "justify-end" : "justify-start")}>
       <div
         className={cn(
           "relative max-w-[70%] rounded-lg px-3 py-2 shadow-sm",
-          isOut ? "bg-[#DCF8C6] text-slate-900" : "bg-white text-slate-900",
+          isOut ? "bg-[var(--chat-bubble-out)] text-foreground" : "bg-[var(--chat-bubble-in)] text-foreground",
         )}
       >
         {label && (
           <div
             className={cn(
-              "mb-0.5 text-[11px] font-bold tracking-wide",
-              isOut ? "text-[#F26B1F]" : "text-slate-700",
+              "mb-0.5 text-[11px] font-bold",
+              isOut ? "text-primary" : "text-muted-foreground",
             )}
           >
-            {label}
+            {label}:
           </div>
         )}
         <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{content}</div>
-        <div className={cn("mt-1 flex items-center gap-1 text-[10px] text-slate-500", isOut ? "justify-end" : "justify-start")}>
+        <div className={cn("mt-1 flex items-center gap-1 text-[10px] text-muted-foreground", isOut ? "justify-end" : "justify-start")}>
           <span>{formatTime(timestamp)}</span>
           {isOut && status && (
             status === "read" ? (
@@ -61,7 +57,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status }
 export function DateDivider({ label }: { label: string }) {
   return (
     <div className="my-3 flex justify-center">
-      <span className="rounded-md bg-white/80 px-3 py-1 text-[11px] font-medium text-slate-600 shadow-sm">
+      <span className="rounded-md bg-[var(--chat-panel-raised)]/90 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
         {label}
       </span>
     </div>

@@ -71,17 +71,17 @@ function ChatLayout() {
 
   if (session === undefined || authorized === undefined) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
+      <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
       </div>
     );
   }
   if (!authorized) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 text-center">
+      <div className="flex min-h-screen items-center justify-center bg-background p-6 text-center">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Sem permissão</h1>
-          <p className="mt-2 text-sm text-slate-500">Sua conta não tem acesso à Central de Atendimento.</p>
+          <h1 className="text-2xl font-semibold text-foreground">Sem permissão</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Sua conta não tem acesso à Central de Atendimento.</p>
         </div>
       </div>
     );
@@ -98,7 +98,7 @@ function ChatLayout() {
   });
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-slate-50 text-slate-900">
+    <div className="chat-dark dark flex h-screen w-full overflow-hidden bg-[var(--chat-bg)] text-foreground">
       <ChatSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <ChatHeader

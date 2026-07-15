@@ -26,13 +26,6 @@ export async function sendWhatsAppText(to: string, body: string): Promise<{ id: 
     text: { preview_url: true, body: body.slice(0, 4090) },
   };
 
-  console.log("[whatsapp/send] REQUEST", JSON.stringify({
-    url,
-    phone_number_id: phoneId,
-    token_preview: `${token.slice(0, 10)}...${token.slice(-6)} (len=${token.length})`,
-    payload,
-  }));
-
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -43,11 +36,7 @@ export async function sendWhatsAppText(to: string, body: string): Promise<{ id: 
       body: JSON.stringify(payload),
     });
     const rawText = await res.text();
-    console.log("[whatsapp/send] RESPONSE", JSON.stringify({
-      status: res.status,
-      ok: res.ok,
-      body: rawText,
-    }));
+    console.log("[whatsapp/send] RESPONSE", JSON.stringify({ status: res.status, ok: res.ok }));
     let data: { messages?: Array<{ id: string }>; error?: { message: string; code?: number; error_subcode?: number; error_data?: unknown; fbtrace_id?: string } } = {};
     try { data = JSON.parse(rawText); } catch { /* keep empty */ }
     if (!res.ok) {

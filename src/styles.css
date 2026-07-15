@@ -64,6 +64,14 @@
   --input: oklch(0.30 0.03 235);
   --ring: var(--brand-orange);
 
+  /* Central de atendimento — identidade escura do admin */
+  --chat-bg: oklch(0.14 0.02 235);
+  --chat-panel: oklch(0.19 0.025 235);
+  --chat-panel-raised: oklch(0.23 0.028 235);
+  --chat-conversation: oklch(0.12 0.015 235);
+  --chat-bubble-in: oklch(0.23 0.02 235);
+  --chat-bubble-out: oklch(0.27 0.055 55);
+
   --gradient-hero: linear-gradient(180deg, oklch(0.16 0.025 235 / 0.55) 0%, oklch(0.16 0.025 235 / 0.7) 60%, oklch(0.16 0.025 235 / 0.95) 100%);
   --gradient-brand: linear-gradient(135deg, var(--brand-orange), oklch(0.68 0.16 45));
   --gradient-blue: linear-gradient(135deg, var(--brand-blue), oklch(0.42 0.10 235));
@@ -104,3 +112,22 @@
 /* Widget container */
 #wrapper { width: 100%; }
 #wrapper befly-widget { display: block; width: 100%; }
+
+/* O módulo /chat ainda possui utilitários legados claros; esta camada os
+   converte para as superfícies semânticas escuras sem afetar o restante. */
+.chat-dark .bg-white { background-color: var(--chat-panel); }
+.chat-dark .bg-slate-50 { background-color: var(--chat-panel-raised); }
+.chat-dark .bg-slate-100 { background-color: var(--chat-panel-raised); }
+.chat-dark [class*="bg-orange-50"] { background-color: color-mix(in oklab, var(--brand-orange) 13%, transparent); }
+.chat-dark .text-slate-900,
+.chat-dark .text-slate-800,
+.chat-dark .text-slate-700 { color: var(--foreground); }
+.chat-dark .text-slate-600,
+.chat-dark .text-slate-500,
+.chat-dark .text-slate-400 { color: var(--muted-foreground); }
+.chat-dark .border-slate-100,
+.chat-dark .border-slate-200 { border-color: var(--border); }
+.chat-dark input,
+.chat-dark textarea { color: var(--foreground); caret-color: var(--brand-orange); }
+.chat-dark input::placeholder,
+.chat-dark textarea::placeholder { color: var(--muted-foreground); }
