@@ -175,7 +175,7 @@ export const setFunnelStage = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z.object({
       conversation_id: z.string().uuid(),
-      funnel_stage: z.enum(["novo", "cotando", "negociando", "ganhou", "perdido"]).nullable(),
+      funnel_stage: z.enum(FUNNEL_STAGE_KEYS).nullable(),
     }).parse(data),
   )
   .handler(async ({ data, context }) => {
