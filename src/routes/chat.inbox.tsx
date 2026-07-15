@@ -1006,6 +1006,20 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
           )}
         </div>
       </div>
+      <AlertDialog open={confirmCloseProto} onOpenChange={setConfirmCloseProto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Encerrar protocolo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja encerrar o protocolo? O cliente receberá uma mensagem automática avisando do encerramento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => closeProtoMut.mutate()}>Encerrar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 }
