@@ -279,8 +279,8 @@ function ConvItem({ conv, active, onClick }: { conv: Conv; active: boolean; onCl
     <button
       onClick={onClick}
       className={cn(
-        "flex w-full items-start gap-3 border-b border-slate-100 px-3 py-3 text-left transition-colors",
-        active ? "bg-orange-50/60" : "hover:bg-slate-50",
+        "flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors",
+        active ? "bg-orange-50" : "hover:bg-slate-50",
       )}
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-xs font-semibold text-white">
