@@ -905,31 +905,39 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                 </DropdownMenu>
               )}
             </Field>
-          ) : previous.length > 0 ? (
-            <Field label="Protocolos">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex w-full items-center justify-between rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
-                    <span className="flex items-center gap-1.5"><History className="h-3 w-3" /> Histórico ({previous.length})</span>
-                    <ChevronDown className="h-3 w-3" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72 max-h-72 overflow-y-auto">
-                  {previous.map((p) => (
-                    <DropdownMenuItem key={p.id} className="flex flex-col items-start gap-0.5">
-                      <div className="flex w-full items-center justify-between">
-                        <span className="font-mono text-xs font-semibold">#{p.numero}</span>
-                        <span className="text-[10px] text-slate-500">{fmtDate(p.opened_at)}</span>
-                      </div>
-                      {p.assunto_resumo && (
-                        <span className="line-clamp-2 text-[10px] text-slate-500">{p.assunto_resumo}</span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+          ) : (
+            <Field label="Protocolo atual">
+              {previous.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex w-full items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100">
+                      <span className="italic text-slate-500">Não há protocolo ativo</span>
+                      <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                        <History className="h-3 w-3" /> {previous.length} anteriores <ChevronDown className="h-3 w-3" />
+                      </span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-72 max-h-72 overflow-y-auto">
+                    {previous.map((p) => (
+                      <DropdownMenuItem key={p.id} className="flex flex-col items-start gap-0.5">
+                        <div className="flex w-full items-center justify-between">
+                          <span className="font-mono text-xs font-semibold">#{p.numero}</span>
+                          <span className="text-[10px] text-slate-500">{fmtDate(p.opened_at)}</span>
+                        </div>
+                        {p.assunto_resumo && (
+                          <span className="line-clamp-2 text-[10px] text-slate-500">{p.assunto_resumo}</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <div className="rounded-md border border-dashed border-slate-200 px-3 py-1.5 text-xs italic text-slate-400">
+                  Não há protocolo
+                </div>
+              )}
             </Field>
-          ) : null}
+          )}
 
           {protocolo && (
             <Field label="Necessidade do cliente">
