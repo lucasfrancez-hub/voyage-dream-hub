@@ -115,7 +115,9 @@ export const listMessages = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const list = rows ?? [];
 
-    // Puxa nomes dos humanos que enviaram alguma mensagem (batch)
+    // Puxa nomes dos humanos que enviaram alguma mensagem (batch).
+    // Fallback: se profile.full_name estiver vazio, usa local-part do e-mail
+    // (via supabaseAdmin) — assim o nome do atendente sempre aparece.
     const userIds = Array.from(
       new Set(list.map((m) => m.sender_user_id).filter((id): id is string => !!id)),
     );
@@ -125,13 +127,31 @@ export const listMessages = createServerFn({ method: "POST" })
         .from("profiles")
         .select("id, full_name")
         .in("id", userIds);
-      for (const p of profs ?? []) names[p.id] = p.full_name ?? null;
+      for (const p of profs ?? []) names[p.id] = p.full_name?.trim() || null;
+
+      const missing = userIds.filter((id) => !names[id]);
+      if (missing.length > 0) {
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          for (const uid of missing) {
+            const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
+            const email = u?.user?.email ?? null;
+            if (email) {
+              const local = email.split("@")[0]!.replace(/[._-]+/g, " ");
+              names[uid] = local.replace(/\b\w/g, (c) => c.toUpperCase());
+            }
+          }
+        } catch {
+          // silencioso — fallback só melhora UX
+        }
+      }
     }
     return list.map((m) => ({
       ...m,
       sender_full_name: m.sender_user_id ? names[m.sender_user_id] ?? null : null,
     }));
   });
+
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
