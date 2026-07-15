@@ -440,7 +440,7 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
           <DropdownMenuTrigger asChild>
             <button
               title="Alterar plano de fundo"
-              className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <ImageIcon className="h-4 w-4" />
             </button>
