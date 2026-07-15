@@ -23,8 +23,9 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status }
       <div
         className={cn(
           "relative max-w-[70%] rounded-lg px-3 py-2 shadow-sm",
-          isOut ? "bg-[var(--chat-bubble-out)] text-foreground" : "bg-[var(--chat-bubble-in)] text-foreground",
+          isOut ? "bg-[var(--chat-bubble-out)]" : "bg-[var(--chat-bubble-in)]",
         )}
+        style={{ color: "var(--chat-bubble-fg)" }}
       >
         {label && (
           <div
