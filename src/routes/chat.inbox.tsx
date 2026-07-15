@@ -278,7 +278,7 @@ function EmptyState() {
 }
 
 const WALLPAPERS: { key: string; label: string; css: string }[] = [
-  { key: "dots", label: "Bolinhas (padrão)", css: "radial-gradient(color-mix(in oklab, var(--foreground) 12%, transparent) 1.2px, transparent 1.2px)" },
+  { key: "dots", label: "Bolinhas (padrão)", css: "radial-gradient(circle, color-mix(in oklab, oklch(0.75 0.04 65) 55%, transparent) 42px, transparent 43px)" },
   { key: "none", label: "Nenhum", css: "none" },
   { key: "grid", label: "Grade sutil", css: "linear-gradient(color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--foreground) 8%, transparent) 1px, transparent 1px)" },
   { key: "orange", label: "Brilho VIA AIR", css: "radial-gradient(circle at 20% 10%, color-mix(in oklab, var(--brand-orange) 18%, transparent) 0%, transparent 45%), radial-gradient(circle at 85% 90%, color-mix(in oklab, var(--brand-blue) 20%, transparent) 0%, transparent 50%)" },
