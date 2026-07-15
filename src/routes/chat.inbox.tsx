@@ -943,7 +943,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <ProtocoloHistoryMenu previous={previous} onSelect={setViewedProtoId} />
+                <ProtocoloHistoryMenu previous={previous} onSelect={(id) => { setViewedProtoId(id); setReadOnlyProtoId(id); }} />
               </DropdownMenu>
             )}
           </Field>
