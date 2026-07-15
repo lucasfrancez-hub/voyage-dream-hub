@@ -708,7 +708,6 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
   const qc = useQueryClient();
   const [confirmCloseProto, setConfirmCloseProto] = useState(false);
   const [readOnlyProtoId, setReadOnlyProtoId] = useState<string | null>(null);
-  const [readOnlyProtoId, setReadOnlyProtoId] = useState<string | null>(null);
   const [protoForm, setProtoForm] = useState({ numero_pedido: "", numero_reserva: "", assunto_resumo: "" });
 
   const { data: attendants = [] } = useQuery({
