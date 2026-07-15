@@ -43,6 +43,11 @@
   --brand-orange-light: oklch(0.85 0.10 60);   /* rgb(247,196,134) */
   --brand-blue: oklch(0.52 0.11 235);          /* rgb(25,111,153) */
 
+  --gradient-brand: linear-gradient(135deg, var(--brand-orange) 0%, var(--brand-orange-light) 100%);
+  --gradient-blue: linear-gradient(135deg, var(--brand-blue) 0%, oklch(0.65 0.11 235) 100%);
+  --shadow-glow: 0 10px 30px -10px color-mix(in oklab, var(--brand-orange) 55%, transparent);
+  --shadow-card: 0 10px 30px -12px oklch(0 0 0 / 45%);
+
   /* Dark premium — neutral navy, no purple/green */
   --background: oklch(0.16 0.025 235);
   --foreground: oklch(0.98 0.005 235);
