@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -379,6 +380,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const toggleFn = useServerFn(toggleConversationMode);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const wallpaper = useWallpaper();
   const sendMediaFn = useServerFn(sendHumanMedia);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -541,8 +543,25 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        <button
+          onClick={() => setDetailsOpen(true)}
+          title="Detalhes do contato e protocolo"
+          aria-label="Detalhes do contato"
+          className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden"
+        >
+          <Info className="h-4 w-4" />
+        </button>
         <ConversationMenu conv={conv} onChange={onRefetch} />
       </div>
+
+      <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <SheetContent side="right" className="w-full max-w-md overflow-y-auto p-0 sm:max-w-md">
+          <SheetHeader className="border-b border-slate-200 px-4 py-3">
+            <SheetTitle className="text-sm text-slate-900">Detalhes do contato</SheetTitle>
+          </SheetHeader>
+          <ContactDetails conv={conv} onChange={onRefetch} />
+        </SheetContent>
+      </Sheet>
 
       {window24 && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
