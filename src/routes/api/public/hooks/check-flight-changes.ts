@@ -209,21 +209,33 @@ function fmt(v: string): string {
   return `${m[3]}/${m[2]}/${m[1]} às ${m[4]}:${m[5]}`;
 }
 
+function diffMinutes(a: string, b: string): number | null {
+  const ta = Date.parse(a);
+  const tb = Date.parse(b);
+  if (isNaN(ta) || isNaN(tb)) return null;
+  return Math.round((tb - ta) / 60000);
+}
+
 function buildMessage(p: {
   flightNumber: string;
   oldDepart: string;
   newDepart: string;
   oldArrive: string;
   newArrive: string;
+  diffMin: number | null;
+  dayChanged: boolean;
   cancelled: boolean;
+  minorChange: boolean;
 }): string {
   if (p.cancelled) {
     return (
       `⚠️ Aviso automático da companhia aérea:\n\n` +
       `Voo *${p.flightNumber}* (${fmt(p.oldDepart)}) foi *CANCELADO* pela companhia.\n\n` +
-      `Nossa equipe já foi notificada e vai entrar em contato pra remarcar.`
+      `Por regra da ANAC, você tem direito a *remarcação sem custo* ou reembolso integral. ` +
+      `Nossa equipe já foi notificada e vai entrar em contato pra resolver.`
     );
   }
+
   const lines: string[] = [
     `✈️ Aviso automático: houve alteração no voo *${p.flightNumber}*.`,
     "",
@@ -236,6 +248,25 @@ function buildMessage(p: {
     lines.push(`🛬 *Nova chegada: ${fmt(p.newArrive)}*`);
   }
   lines.push("");
-  lines.push("Você aceita a nova alteração?");
+
+  if (p.minorChange) {
+    const mag = p.diffMin === null ? "" : ` (${Math.abs(p.diffMin)} min)`;
+    lines.push(
+      `ℹ️ A alteração foi inferior a 30 minutos${mag}, então *não gera direito à remarcação sem custo*.`,
+    );
+    lines.push("Estamos apenas comunicando pra você ficar ciente da nova programação.");
+  } else {
+    if (p.dayChanged) {
+      lines.push("⚠️ *Houve mudança de dia*, o que garante direito à *remarcação sem custo* (regra ANAC).");
+    } else {
+      const mag = p.diffMin === null ? "" : ` (${Math.abs(p.diffMin)} min)`;
+      lines.push(
+        `⚠️ Alteração superior a 30 minutos${mag}. Você tem *direito à remarcação sem custo* ou reembolso, conforme regra ANAC.`,
+      );
+    }
+    lines.push("");
+    lines.push("Você aceita essa nova programação?");
+  }
   return lines.join("\n");
 }
+
