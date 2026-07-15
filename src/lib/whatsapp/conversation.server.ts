@@ -133,6 +133,30 @@ export async function saveMessage(input: {
     })
     .eq("id", input.conversation_id);
 
+  // Auto-avança funil: quando o cliente responde após um atendimento (IA ou humano),
+  // move de "novo"/null para "qualificacao".
+  if (input.direction === "inbound") {
+    const { data: conv } = await supabaseAdmin
+      .from("wa_conversations")
+      .select("funnel_stage")
+      .eq("id", input.conversation_id)
+      .maybeSingle();
+    const stage = (conv?.funnel_stage as string | null) ?? null;
+    if (stage === null || stage === "novo") {
+      const { count } = await supabaseAdmin
+        .from("wa_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", input.conversation_id)
+        .eq("direction", "outbound");
+      if ((count ?? 0) > 0) {
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({ funnel_stage: "qualificacao" })
+          .eq("id", input.conversation_id);
+      }
+    }
+  }
+
   return data as WaMessage;
 }
 
