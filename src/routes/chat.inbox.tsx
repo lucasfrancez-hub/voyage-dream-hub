@@ -510,17 +510,17 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
               </span>
             )}
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="truncate text-[11px] text-slate-500">
             {conv.wa_phone} · {conv.mode === "ai" ? `IA (${conv.agent_slug ?? "auto"})` : conv.mode === "human" ? "Humano" : "Arquivada"}
             {assignedName && (
-              <> · <span className="font-medium text-slate-700">Atendente: {assignedName}</span></>
+              <> · <span className="font-medium text-slate-700">{assignedName}</span></>
             )}
           </div>
 
         </div>
         <button
           onClick={() => toggleMut.mutate(conv.mode === "ai" ? "human" : "ai")}
-          className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          className="shrink-0 rounded-md border border-slate-200 px-2 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50 sm:px-3 sm:text-xs"
         >
           {conv.mode === "ai" ? "Assumir" : "Devolver p/ IA"}
         </button>
@@ -528,7 +528,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           <DropdownMenuTrigger asChild>
             <button
               title="Alterar plano de fundo"
-              className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="hidden rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground md:inline-flex"
             >
               <ImageIcon className="h-4 w-4" />
             </button>
@@ -654,7 +654,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             }}
             placeholder={pendingFile ? "Legenda (opcional)…" : conv.mode === "ai" ? "Envio manual (a IA continua ativa)…" : "Digite uma mensagem…"}
             rows={2}
-            className="flex-1 resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+            className="flex-1 resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-base focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none sm:text-sm"
           />
           <button
             onClick={submit}
