@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import { AdminNotificationBell } from "@/components/admin/NotificationBell";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -209,6 +210,7 @@ function AdminLayout() {
 
           </div>
           <div className="flex items-center gap-2">
+            {isAdmin && <AdminNotificationBell />}
             <Link
               to="/chat"
               className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange/15 px-3 py-1.5 text-xs font-medium text-brand-orange transition-colors hover:bg-brand-orange/25"
