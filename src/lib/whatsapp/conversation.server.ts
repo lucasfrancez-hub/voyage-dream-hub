@@ -97,6 +97,69 @@ export async function getOrCreateConversation(waPhone: string, profileName?: str
 }
 
 /**
+ * Garante que a conversa tenha um protocolo ativo.
+ * - Se já tem um `protocolo_ativo_id`, retorna esse.
+ * - Se não, verifica último protocolo encerrado dentro de REOPEN_WINDOW_MS → reabre.
+ * - Caso contrário, cria protocolo novo (número via default do banco).
+ */
+export async function ensureActiveProtocolo(conversationId: string): Promise<WaProtocolo> {
+  const { data: conv } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("id, protocolo_ativo_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+
+  if (conv?.protocolo_ativo_id) {
+    const { data } = await supabaseAdmin
+      .from("wa_protocolos")
+      .select("*")
+      .eq("id", conv.protocolo_ativo_id)
+      .maybeSingle();
+    if (data && data.status === "aberto") return data as WaProtocolo;
+  }
+
+  // Tenta reabrir um recém-encerrado
+  const cutoff = new Date(Date.now() - REOPEN_WINDOW_MS).toISOString();
+  const { data: recent } = await supabaseAdmin
+    .from("wa_protocolos")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .in("status", ["encerrado_inatividade", "encerrado_manual"])
+    .gte("closed_at", cutoff)
+    .order("closed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (recent) {
+    const nowIso = new Date().toISOString();
+    const { data: reopened } = await supabaseAdmin
+      .from("wa_protocolos")
+      .update({ status: "aberto", closed_at: null, last_activity_at: nowIso })
+      .eq("id", recent.id)
+      .select("*")
+      .single();
+    await supabaseAdmin
+      .from("wa_conversations")
+      .update({ protocolo_ativo_id: recent.id })
+      .eq("id", conversationId);
+    return reopened as WaProtocolo;
+  }
+
+  // Cria novo
+  const { data: created, error } = await supabaseAdmin
+    .from("wa_protocolos")
+    .insert({ conversation_id: conversationId })
+    .select("*")
+    .single();
+  if (error || !created) throw new Error(`create protocolo: ${error?.message}`);
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({ protocolo_ativo_id: created.id })
+    .eq("id", conversationId);
+  return created as WaProtocolo;
+}
+
+/**
  * Salva mensagem. Dedupe por wa_message_id (idempotente para retentativas da Meta).
  */
 export async function saveMessage(input: {
