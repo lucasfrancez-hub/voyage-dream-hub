@@ -354,6 +354,56 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const wallpaper = useWallpaper();
+  const sendMediaFn = useServerFn(sendHumanMedia);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [pendingFile, setPendingFile] = useState<{ file: File; previewUrl: string | null; kind: "image" | "document" } | null>(null);
+  const mediaMut = useMutation({
+    mutationFn: async ({ file, caption, kind }: { file: File; caption: string; kind: "image" | "document" }) => {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      let binary = "";
+      for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
+      const b64 = btoa(binary);
+      return sendMediaFn({ data: {
+        conversation_id: conv.id,
+        kind,
+        filename: file.name,
+        mime_type: file.type || (kind === "image" ? "image/jpeg" : "application/octet-stream"),
+        data_base64: b64,
+        caption: caption || null,
+      }});
+    },
+    onSuccess: () => {
+      setPendingFile((p) => { if (p?.previewUrl) URL.revokeObjectURL(p.previewUrl); return null; });
+      setInput("");
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
+    },
+    onError: (e) => toast.error(`Falha ao enviar: ${(e as Error).message}`),
+  });
+
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    const MAX = 16 * 1024 * 1024;
+    if (f.size > MAX) { toast.error("Arquivo muito grande (máx 16MB)"); return; }
+    const isImg = f.type.startsWith("image/");
+    setPendingFile({
+      file: f,
+      previewUrl: isImg ? URL.createObjectURL(f) : null,
+      kind: isImg ? "image" : "document",
+    });
+  };
+  const clearPending = () => {
+    setPendingFile((p) => { if (p?.previewUrl) URL.revokeObjectURL(p.previewUrl); return null; });
+  };
+  const submit = () => {
+    if (pendingFile) {
+      mediaMut.mutate({ file: pendingFile.file, caption: input.trim(), kind: pendingFile.kind });
+    } else if (input.trim() && !sendMut.isPending) {
+      sendMut.mutate(input.trim());
+    }
+  };
+
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["chat", "messages", conv.id],
