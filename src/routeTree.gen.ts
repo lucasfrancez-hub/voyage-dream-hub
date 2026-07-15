@@ -22,6 +22,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
+import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
@@ -129,6 +130,11 @@ const PacotesIndexRoute = PacotesIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => PacotesRoute,
+} as any)
+const ProtocoloProtocoloIdRoute = ProtocoloProtocoloIdRouteImport.update({
+  id: '/protocolo/$protocoloId',
+  path: '/protocolo/$protocoloId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesAdminRoute = PacotesAdminRouteImport.update({
   id: '/admin',
@@ -385,6 +391,7 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
+  '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -441,6 +448,7 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
+  '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/pacotes': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -499,6 +507,7 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
+  '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -558,6 +567,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/orcamento/$token'
     | '/pacotes/admin'
+    | '/protocolo/$protocoloId'
     | '/pacotes/'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -614,6 +624,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/orcamento/$token'
     | '/pacotes/admin'
+    | '/protocolo/$protocoloId'
     | '/pacotes'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -671,6 +682,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/orcamento/$token'
     | '/pacotes/admin'
+    | '/protocolo/$protocoloId'
     | '/pacotes/'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -707,6 +719,7 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
+  ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
@@ -813,6 +826,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/pacotes/'
       preLoaderRoute: typeof PacotesIndexRouteImport
       parentRoute: typeof PacotesRoute
+    }
+    '/protocolo/$protocoloId': {
+      id: '/protocolo/$protocoloId'
+      path: '/protocolo/$protocoloId'
+      fullPath: '/protocolo/$protocoloId'
+      preLoaderRoute: typeof ProtocoloProtocoloIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/pacotes/admin': {
       id: '/pacotes/admin'
@@ -1219,6 +1239,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
+  ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
