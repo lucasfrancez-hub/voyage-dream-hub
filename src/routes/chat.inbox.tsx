@@ -863,11 +863,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
-                          onClick={() => {
-                            if (confirm(`Encerrar o protocolo #${protocolo.numero}? O cliente receberá uma mensagem automática avisando do encerramento.`)) {
-                              closeProtoMut.mutate();
-                            }
-                          }}
+                          onClick={() => setConfirmCloseProto(true)}
                           disabled={closeProtoMut.isPending}
                           className="flex h-5 w-5 items-center justify-center rounded-full text-red-500 hover:bg-red-50 disabled:opacity-40"
                           aria-label="Encerrar protocolo"
