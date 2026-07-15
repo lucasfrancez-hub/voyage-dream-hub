@@ -96,7 +96,7 @@ export const getActiveProtocolo = createServerFn({ method: "POST" })
     if (!conv?.protocolo_ativo_id) return null;
     const { data: proto } = await context.supabase
       .from("wa_protocolos")
-      .select("id, numero, status, assunto_resumo, numero_pedido, numero_reserva, opened_at, last_activity_at")
+      .select("id, numero, status, assunto_resumo, numero_pedido, numero_reserva, opened_at, last_activity_at, resumo_conversa")
       .eq("id", conv.protocolo_ativo_id)
       .maybeSingle();
     return proto ?? null;
@@ -108,7 +108,7 @@ export const listConversationProtocolos = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("wa_protocolos")
-      .select("id, numero, status, assunto_resumo, numero_pedido, numero_reserva, opened_at, closed_at")
+      .select("id, numero, status, assunto_resumo, numero_pedido, numero_reserva, opened_at, closed_at, resumo_conversa")
       .eq("conversation_id", data.conversation_id)
       .order("opened_at", { ascending: false })
       .limit(50);
