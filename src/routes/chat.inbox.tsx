@@ -43,6 +43,17 @@ function InboxPage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [listCollapsed, setListCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("chat-list-collapsed") === "1";
+  });
+  const toggleList = () => {
+    setListCollapsed((v) => {
+      const nv = !v;
+      if (typeof window !== "undefined") localStorage.setItem("chat-list-collapsed", nv ? "1" : "0");
+      return nv;
+    });
+  };
 
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
