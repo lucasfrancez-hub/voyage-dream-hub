@@ -66,18 +66,26 @@ export async function sendWhatsAppText(to: string, body: string): Promise<{ id: 
 /**
  * Divide a resposta em balões pelo separador de linha dupla e envia sequencialmente
  * com um pequeno delay entre balões (mais humano). Retorna os wa_message_ids.
+ *
+ * Se `prefix` for informado, é anexado ao PRIMEIRO balão (ex: "*Roberto:*\nolá...").
  */
-export async function sendWhatsAppBubbles(to: string, fullText: string): Promise<Array<{ text: string; id: string | null; error?: string }>> {
+export async function sendWhatsAppBubbles(
+  to: string,
+  fullText: string,
+  prefix?: string | null,
+): Promise<Array<{ text: string; id: string | null; error?: string }>> {
   // Cada quebra de linha vira um balão separado (mais natural no WhatsApp).
   const bubbles = fullText
     .split(/\n+/)
     .map((s) => s.trim())
     .filter(Boolean);
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
-  for (const b of bubbles) {
-    const r = await sendWhatsAppText(to, b);
-    out.push({ text: b, ...r });
+  for (let i = 0; i < bubbles.length; i++) {
+    const body = i === 0 && prefix ? `${prefix}\n${bubbles[i]}` : bubbles[i];
+    const r = await sendWhatsAppText(to, body);
+    out.push({ text: body, ...r });
     if (bubbles.length > 1) await new Promise((r) => setTimeout(r, 700));
   }
   return out;
 }
+
