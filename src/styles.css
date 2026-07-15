@@ -64,13 +64,25 @@
   --input: oklch(0.30 0.03 235);
   --ring: var(--brand-orange);
 
-  /* Central de atendimento — identidade escura do admin */
+  /* Central de atendimento — modo CLARO (default). Chrome branco + conversa
+     bege quente estilo WhatsApp, pra combinar com sidebar/lista claras. */
+  --chat-bg: oklch(0.98 0.005 235);
+  --chat-panel: oklch(1 0 0);
+  --chat-panel-raised: oklch(0.97 0.008 235);
+  --chat-conversation: oklch(0.95 0.012 80);          /* bege quente */
+  --chat-bubble-in: oklch(1 0 0);                      /* branco */
+  --chat-bubble-out: oklch(0.90 0.08 90);              /* verde-claro/creme quente estilo WA */
+}
+
+/* Central de atendimento — modo ESCURO (aplicado via .chat-dark no wrapper) */
+.chat-dark {
   --chat-bg: oklch(0.14 0.02 235);
   --chat-panel: oklch(0.19 0.025 235);
   --chat-panel-raised: oklch(0.23 0.028 235);
   --chat-conversation: oklch(0.12 0.015 235);
   --chat-bubble-in: oklch(0.23 0.02 235);
   --chat-bubble-out: oklch(0.27 0.055 55);
+
 
   --gradient-hero: linear-gradient(180deg, oklch(0.16 0.025 235 / 0.55) 0%, oklch(0.16 0.025 235 / 0.7) 60%, oklch(0.16 0.025 235 / 0.95) 100%);
   --gradient-brand: linear-gradient(135deg, var(--brand-orange), oklch(0.68 0.16 45));
