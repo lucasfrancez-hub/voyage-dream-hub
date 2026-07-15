@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo } from "@/lib/chat/queries.functions";
-import { firstName } from "@/lib/whatsapp/text-utils.shared";
+import { firstName, capitalizePersonName } from "@/lib/whatsapp/text-utils.shared";
+
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
