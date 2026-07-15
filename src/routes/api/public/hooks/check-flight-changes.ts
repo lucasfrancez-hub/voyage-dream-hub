@@ -136,13 +136,21 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
             continue;
           }
 
+          // Calcula magnitude da alteração pra decidir tom da mensagem e botões
+          const diffMin = diffMinutes(departAt, newDepart);
+          const dayChanged = (departAt.slice(0, 10) !== (newDepart || "").slice(0, 10)) && !!newDepart;
+          const minorChange = !cancelled && !dayChanged && diffMin !== null && Math.abs(diffMin) < 30;
+
           const body = buildMessage({
             flightNumber,
             oldDepart: departAt,
             newDepart: newDepart || "",
             oldArrive: arriveAt,
             newArrive: newArrive || "",
+            diffMin,
+            dayChanged,
             cancelled,
+            minorChange,
           });
 
           const sent = await sendWhatsAppButtons({
@@ -150,10 +158,12 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
             body,
             buttons: cancelled
               ? [{ id: `flight_alert:${alert.id}:ack`, title: "Ok, entendi" }]
-              : [
-                  { id: `flight_alert:${alert.id}:accept`, title: "Aceito" },
-                  { id: `flight_alert:${alert.id}:reject`, title: "Não aceito" },
-                ],
+              : minorChange
+                ? [{ id: `flight_alert:${alert.id}:ack`, title: "Ok, ciente" }]
+                : [
+                    { id: `flight_alert:${alert.id}:accept`, title: "Aceito" },
+                    { id: `flight_alert:${alert.id}:reject`, title: "Não aceito" },
+                  ],
             footer: "Aviso automático VIA AIR",
           });
 
