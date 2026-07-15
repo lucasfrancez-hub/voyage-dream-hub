@@ -63,6 +63,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 
@@ -341,6 +342,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksDispatchAiDebouncedRoute =
+  ApiPublicHooksDispatchAiDebouncedRouteImport.update({
+    id: '/api/public/hooks/dispatch-ai-debounced',
+    path: '/api/public/hooks/dispatch-ai-debounced',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksCloseInactiveProtocolsRoute =
   ApiPublicHooksCloseInactiveProtocolsRouteImport.update({
     id: '/api/public/hooks/close-inactive-protocols',
@@ -406,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
+  '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -463,6 +471,7 @@ export interface FileRoutesByTo {
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
+  '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -522,6 +531,7 @@ export interface FileRoutesById {
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
+  '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -582,6 +592,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
+    | '/api/public/hooks/dispatch-ai-debounced'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -639,6 +650,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
+    | '/api/public/hooks/dispatch-ai-debounced'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -697,6 +709,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
+    | '/api/public/hooks/dispatch-ai-debounced'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -727,6 +740,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
+  ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -1114,6 +1128,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/dispatch-ai-debounced': {
+      id: '/api/public/hooks/dispatch-ai-debounced'
+      path: '/api/public/hooks/dispatch-ai-debounced'
+      fullPath: '/api/public/hooks/dispatch-ai-debounced'
+      preLoaderRoute: typeof ApiPublicHooksDispatchAiDebouncedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/close-inactive-protocols': {
       id: '/api/public/hooks/close-inactive-protocols'
       path: '/api/public/hooks/close-inactive-protocols'
@@ -1248,6 +1269,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksCheckFlightChangesRoute: ApiPublicHooksCheckFlightChangesRoute,
   ApiPublicHooksCloseInactiveProtocolsRoute:
     ApiPublicHooksCloseInactiveProtocolsRoute,
+  ApiPublicHooksDispatchAiDebouncedRoute:
+    ApiPublicHooksDispatchAiDebouncedRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,

@@ -1227,6 +1227,7 @@ export type Database = {
       wa_conversations: {
         Row: {
           agent_slug: string | null
+          ai_debounce_until: string | null
           assigned_to: string | null
           created_at: string
           display_name: string | null
@@ -1248,6 +1249,7 @@ export type Database = {
         }
         Insert: {
           agent_slug?: string | null
+          ai_debounce_until?: string | null
           assigned_to?: string | null
           created_at?: string
           display_name?: string | null
@@ -1269,6 +1271,7 @@ export type Database = {
         }
         Update: {
           agent_slug?: string | null
+          ai_debounce_until?: string | null
           assigned_to?: string | null
           created_at?: string
           display_name?: string | null
