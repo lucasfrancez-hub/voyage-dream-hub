@@ -39,3 +39,31 @@ export function buildSenderPrefix(name: string | null | undefined): string | nul
   if (!fn) return null;
   return `*${fn}:*`;
 }
+
+/**
+ * Capitaliza ocorrências de nomes conhecidos no meio do texto (word-boundary, case-insensitive).
+ * Ex.: capitalizeKnownNames("oi lucas, tem hotel em faria lima?", ["Lucas", "Faria Lima"])
+ *   → "oi Lucas, tem hotel em Faria Lima?"
+ */
+export function capitalizeKnownNames(text: string, names: (string | null | undefined)[]): string {
+  let out = text;
+  const seen = new Set<string>();
+  for (const raw of names) {
+    if (!raw) continue;
+    const cleaned = raw.trim();
+    if (cleaned.length < 2) continue;
+    // Capitaliza cada palavra do nome (ex.: "faria lima" → "Faria Lima")
+    const proper = cleaned
+      .split(/\s+/)
+      .map((w) => capitalizeName(w))
+      .join(" ");
+    const key = proper.toLocaleLowerCase("pt-BR");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const escaped = proper.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // \b não casa com acento em JS; usamos lookarounds de "não letra"
+    const re = new RegExp(`(?<![\\p{L}])${escaped}(?![\\p{L}])`, "giu");
+    out = out.replace(re, proper);
+  }
+  return out;
+}
