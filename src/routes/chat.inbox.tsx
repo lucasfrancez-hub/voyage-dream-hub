@@ -370,7 +370,7 @@ function useWallpaper() {
   return { key, set, style };
 }
 
-function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => void }) {
+function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: () => void; onBack?: () => void }) {
   const qc = useQueryClient();
   const listMsgs = useServerFn(listMessages);
   const sendFn = useServerFn(sendHumanReply);
