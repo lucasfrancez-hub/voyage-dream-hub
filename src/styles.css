@@ -72,6 +72,8 @@
   --chat-conversation: oklch(0.95 0.012 80);          /* bege quente */
   --chat-bubble-in: oklch(1 0 0);                      /* branco */
   --chat-bubble-out: oklch(0.90 0.08 90);              /* verde-claro/creme quente estilo WA */
+  --chat-bubble-fg: oklch(0.20 0.02 235);              /* texto escuro em balões claros */
+
 }
 
 /* Central de atendimento — modo ESCURO (aplicado via .chat-dark no wrapper) */
