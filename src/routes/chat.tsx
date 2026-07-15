@@ -41,6 +41,17 @@ function ChatLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [authorized, setAuthorized] = useState<boolean | undefined>(undefined);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("chat-theme") as "dark" | "light" | null;
+    if (saved === "light" || saved === "dark") setTheme(saved);
+  }, []);
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("chat-theme", theme);
+  }, [theme]);
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
@@ -51,6 +62,7 @@ function ChatLayout() {
     });
     return () => { clearTimeout(failsafe); sub.subscription.unsubscribe(); };
   }, []);
+
 
   useEffect(() => {
     if (session === undefined) return;
@@ -98,16 +110,8 @@ function ChatLayout() {
 
   const pageInfo = PAGE_TITLES[pathname] ?? { title: "Central de Atendimento" };
 
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    if (typeof window === "undefined") return "dark";
-    return (localStorage.getItem("chat-theme") as "dark" | "light") ?? "dark";
-  });
-  useEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem("chat-theme", theme);
-  }, [theme]);
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
-
   const themeClass = theme === "dark" ? "chat-dark dark" : "";
+
 
   return (
     <div className={`${themeClass} flex h-screen w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}>

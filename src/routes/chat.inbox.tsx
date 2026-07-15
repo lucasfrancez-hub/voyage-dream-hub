@@ -2,12 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo } from "@/lib/chat/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
+
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -272,6 +273,32 @@ function EmptyState() {
   );
 }
 
+const WALLPAPERS: { key: string; label: string; css: string }[] = [
+  { key: "default", label: "Padrão", css: "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><g opacity=%220.05%22><circle cx=%2260%22 cy=%2260%22 r=%2240%22 fill=%22%23fff%22/></g></svg>')" },
+  { key: "none", label: "Nenhum", css: "none" },
+  { key: "grid", label: "Grade sutil", css: "linear-gradient(var(--chat-panel-raised) 1px, transparent 1px), linear-gradient(90deg, var(--chat-panel-raised) 1px, transparent 1px)" },
+  { key: "orange", label: "Brilho VIA AIR", css: "radial-gradient(circle at 20% 10%, color-mix(in oklab, var(--brand-orange) 18%, transparent) 0%, transparent 45%), radial-gradient(circle at 85% 90%, color-mix(in oklab, var(--brand-blue) 20%, transparent) 0%, transparent 50%)" },
+  { key: "dots", label: "Bolinhas", css: "radial-gradient(color-mix(in oklab, var(--foreground) 10%, transparent) 1.2px, transparent 1.2px)" },
+];
+
+function useWallpaper() {
+  const [key, setKey] = useState<string>("default");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("chat-wallpaper");
+    if (saved) setKey(saved);
+  }, []);
+  const set = (k: string) => {
+    setKey(k);
+    if (typeof window !== "undefined") localStorage.setItem("chat-wallpaper", k);
+  };
+  const cur = WALLPAPERS.find((w) => w.key === key) ?? WALLPAPERS[0];
+  const style: React.CSSProperties = { backgroundImage: cur.css };
+  if (cur.key === "grid") style.backgroundSize = "24px 24px";
+  if (cur.key === "dots") style.backgroundSize = "18px 18px";
+  return { key, set, style };
+}
+
 function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => void }) {
   const qc = useQueryClient();
   const listMsgs = useServerFn(listMessages);
@@ -279,6 +306,7 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
   const toggleFn = useServerFn(toggleConversationMode);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const wallpaper = useWallpaper();
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["chat", "messages", conv.id],
@@ -295,9 +323,20 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
     return () => { supabase.removeChannel(ch); };
   }, [conv.id, qc]);
 
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
+
+  const listUsersFn = useServerFn(listAttendants);
+  const { data: attendantsList = [] } = useQuery({
+    queryKey: ["chat", "attendants"],
+    queryFn: () => listUsersFn(),
+    staleTime: 60_000,
+  });
+  const assignedName = conv.assigned_to
+    ? attendantsList.find((a) => a.id === conv.assigned_to)?.full_name ?? null
+    : null;
 
   const sendMut = useMutation({
     mutationFn: async (content: string) => sendFn({ data: { conversation_id: conv.id, content } }),
@@ -313,6 +352,7 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
     mutationFn: async (mode: "ai" | "human") => toggleFn({ data: { conversation_id: conv.id, mode } }),
     onSuccess: () => { onRefetch(); toast.success("Modo alterado"); },
   });
+
 
   const grouped = groupByDay(messages);
   const lastInbound = [...messages].reverse().find((m) => m.direction === "inbound");
@@ -337,7 +377,11 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
           </div>
           <div className="text-[11px] text-slate-500">
             {conv.wa_phone} · {conv.mode === "ai" ? `IA (${conv.agent_slug ?? "auto"})` : conv.mode === "human" ? "Humano" : "Arquivada"}
+            {assignedName && (
+              <> · <span className="font-medium text-slate-700">Atendente: {assignedName}</span></>
+            )}
           </div>
+
         </div>
         <button
           onClick={() => toggleMut.mutate(conv.mode === "ai" ? "human" : "ai")}
@@ -345,6 +389,25 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
         >
           {conv.mode === "ai" ? "Assumir" : "Devolver p/ IA"}
         </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              title="Alterar plano de fundo"
+              className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Plano de fundo</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {WALLPAPERS.map((w) => (
+              <DropdownMenuItem key={w.key} onClick={() => wallpaper.set(w.key)}>
+                {w.label} {wallpaper.key === w.key && "✓"}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <ConversationMenu conv={conv} onChange={onRefetch} />
       </div>
 
@@ -355,7 +418,8 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
       )}
 
       {/* Mensagens */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4" style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><g opacity=%220.035%22><circle cx=%2260%22 cy=%2260%22 r=%2240%22 fill=%22%23fff%22/></g></svg>')" }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4" style={wallpaper.style}>
+
         {isLoading ? (
           <div className="flex justify-center py-8"><Loader2 className="h-4 w-4 animate-spin text-slate-400" /></div>
         ) : messages.length === 0 ? (
