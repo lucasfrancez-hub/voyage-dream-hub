@@ -90,7 +90,7 @@ function looksLikeRealName(v: string | null | undefined): boolean {
   return true;
 }
 
-function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, isNewProtocolo: boolean): string {
+function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, _isNewProtocolo: boolean): string {
   const parts = [agent.system_prompt];
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
