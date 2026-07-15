@@ -2,12 +2,29 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const CLICKSIGN_BASE_URL = "https://app.clicksign.com/api/v1";
-
-function getToken(): string {
-  const token = process.env.CLICKSIGN_API_TOKEN;
-  if (!token) throw new Error("CLICKSIGN_API_TOKEN não configurado");
-  return token;
+// Config sandbox vs produção.
+// - Se CLICKSIGN_SANDBOX_API_TOKEN estiver setado e CLICKSIGN_ENV != "production", usa sandbox
+// - Caso contrário, usa produção com CLICKSIGN_API_TOKEN
+function getClickSignConfig(): { token: string; baseUrl: string; endpoint: string; env: "sandbox" | "production" } {
+  const sandboxToken = process.env.CLICKSIGN_SANDBOX_API_TOKEN;
+  const prodToken = process.env.CLICKSIGN_API_TOKEN;
+  const forceProd = process.env.CLICKSIGN_ENV === "production";
+  const useSandbox = !!sandboxToken && !forceProd;
+  if (useSandbox) {
+    return {
+      token: sandboxToken!,
+      baseUrl: "https://sandbox.clicksign.com/api/v1",
+      endpoint: "https://sandbox.clicksign.com",
+      env: "sandbox",
+    };
+  }
+  if (!prodToken) throw new Error("CLICKSIGN_API_TOKEN não configurado");
+  return {
+    token: prodToken,
+    baseUrl: "https://app.clicksign.com/api/v1",
+    endpoint: "https://app.clicksign.com",
+    env: "production",
+  };
 }
 
 function agenciaConfig() {
@@ -18,9 +35,9 @@ function agenciaConfig() {
 }
 
 async function csFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getToken();
+  const cfg = getClickSignConfig();
   const sep = path.includes("?") ? "&" : "?";
-  const url = `${CLICKSIGN_BASE_URL}${path}${sep}access_token=${encodeURIComponent(token)}`;
+  const url = `${cfg.baseUrl}${path}${sep}access_token=${encodeURIComponent(cfg.token)}`;
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -31,7 +48,7 @@ async function csFetch<T = unknown>(path: string, init: RequestInit = {}): Promi
   });
   const text = await res.text();
   if (!res.ok) {
-    console.error(`[ClickSign] ${res.status} ${path} → ${text.slice(0, 500)}`);
+    console.error(`[ClickSign ${cfg.env}] ${res.status} ${path} → ${text.slice(0, 500)}`);
     throw new Error(`ClickSign ${res.status}: ${text.slice(0, 300)}`);
   }
   return text ? (JSON.parse(text) as T) : ({} as T);
