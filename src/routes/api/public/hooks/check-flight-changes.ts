@@ -279,6 +279,17 @@ type OrderRow = {
   airline_locator?: string | null;
 };
 
+type FlightItemRow = {
+  id: string;
+  order_id: string;
+  kind: string;
+  status: string | null;
+  details: Record<string, unknown> | null;
+  orders: OrderRow | null;
+};
+
+
+
 type ADBFlight = {
   number?: string;
   status?: string;
