@@ -543,8 +543,25 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        <button
+          onClick={() => setDetailsOpen(true)}
+          title="Detalhes do contato e protocolo"
+          aria-label="Detalhes do contato"
+          className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden"
+        >
+          <Info className="h-4 w-4" />
+        </button>
         <ConversationMenu conv={conv} onChange={onRefetch} />
       </div>
+
+      <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <SheetContent side="right" className="w-full max-w-md overflow-y-auto p-0 sm:max-w-md">
+          <SheetHeader className="border-b border-slate-200 px-4 py-3">
+            <SheetTitle className="text-sm text-slate-900">Detalhes do contato</SheetTitle>
+          </SheetHeader>
+          <ContactDetails conv={conv} onChange={onRefetch} />
+        </SheetContent>
+      </Sheet>
 
       {window24 && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
