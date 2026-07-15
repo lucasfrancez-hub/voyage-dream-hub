@@ -64,6 +64,11 @@ type WhatsAppPayload = {
           type: string;
           text?: { body: string };
           audio?: { id: string; mime_type?: string; voice?: boolean };
+          interactive?: {
+            type: string;
+            button_reply?: { id: string; title: string };
+            list_reply?: { id: string; title: string };
+          };
           timestamp?: string;
         }>;
         contacts?: Array<{ wa_id: string; profile?: { name?: string } }>;
@@ -93,10 +98,14 @@ async function processPayload(payload: WhatsAppPayload) {
         const profileName =
           value.contacts?.find((c) => c.wa_id === msg.from)?.profile?.name ?? null;
 
-        // Monta o conteúdo textual (texto direto OU transcrição de áudio)
+        // Monta o conteúdo textual (texto direto OU transcrição de áudio OU resposta de botão)
         let content: string | null = null;
+        let buttonReplyId: string | null = null;
         if (msg.type === "text" && msg.text?.body) {
           content = msg.text.body;
+        } else if (msg.type === "interactive" && msg.interactive?.button_reply) {
+          buttonReplyId = msg.interactive.button_reply.id;
+          content = msg.interactive.button_reply.title;
         } else if ((msg.type === "audio" || msg.type === "voice") && msg.audio?.id) {
           console.log(`[wa-webhook] baixando áudio ${msg.audio.id} de ${msg.from}`);
           const media = await downloadWhatsAppMedia(msg.audio.id);
@@ -125,6 +134,13 @@ async function processPayload(payload: WhatsAppPayload) {
         });
         if (!saved) {
           console.log(`[wa-webhook] mensagem ${msg.id} já processada (dedupe)`);
+          continue;
+        }
+
+        // Se foi resposta de botão do robô de voos, trata sem acionar a IA
+        if (buttonReplyId && buttonReplyId.startsWith("flight_alert:")) {
+          const { handleFlightAlertReply } = await import("@/lib/whatsapp/flight-alert-reply.server");
+          await handleFlightAlertReply({ conversation_id: conv.id, wa_phone: msg.from, button_id: buttonReplyId });
           continue;
         }
 
