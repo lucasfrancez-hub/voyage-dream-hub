@@ -110,7 +110,7 @@ function ChatLayout() {
 
   const pageInfo = PAGE_TITLES[pathname] ?? { title: "Central de Atendimento" };
 
-  const themeClass = theme === "dark" ? "chat-dark dark" : "";
+  const themeClass = theme === "dark" ? "chat-dark dark" : "chat-light";
 
 
   return (
