@@ -229,8 +229,12 @@ export const startOutboundConversation = createServerFn({ method: "POST" })
       .select("full_name")
       .eq("id", context.userId)
       .maybeSingle();
+    const emailLocal = typeof context.claims.email === "string"
+      ? context.claims.email.split("@")[0]?.replace(/[._-]+/g, " ")
+      : null;
+    const senderName = profile?.full_name?.trim() || emailLocal || null;
     const content = capitalizeBubbles(data.content);
-    const prefix = buildSenderPrefix(profile?.full_name);
+    const prefix = buildSenderPrefix(senderName);
 
     // Conversa iniciada manualmente → modo humano por padrão (IA desligada).
     await supabaseAdmin
