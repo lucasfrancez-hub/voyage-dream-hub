@@ -102,6 +102,22 @@ export const getActiveProtocolo = createServerFn({ method: "POST" })
     return proto ?? null;
   });
 
+export const listConversationProtocolos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ conversation_id: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("wa_protocolos")
+      .select("id, numero, status, assunto_resumo, opened_at, closed_at")
+      .eq("conversation_id", data.conversation_id)
+      .order("opened_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+
+
 export const listMessages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ conversation_id: z.string().uuid() }).parse(data))
