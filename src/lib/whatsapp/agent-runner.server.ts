@@ -190,7 +190,9 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       return;
     }
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
-    const text = capitalizeBubbles(rawText);
+    // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
+    const clientFirst = extractFirstName(conv.display_name);
+    const text = capitalizeKnownNames(capitalizeBubbles(rawText), [clientFirst]);
 
     const toolCallsSummary = result.steps
       ?.flatMap((s) => s.toolCalls ?? [])
