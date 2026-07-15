@@ -20,11 +20,11 @@ function buildSystemPrompt(conv: WaConversation): string {
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Telefone: ${conv.wa_phone}`);
   if (conv.display_name) parts.push(`- Cliente reconhecido: ${conv.display_name}`);
-  else parts.push(`- Cliente NÃO reconhecido no cadastro. Se pedir dados sensíveis, peça o CPF antes.`);
+  else parts.push(`- Cliente NÃO reconhecido no cadastro. Para localizar pedido, aceite número do pedido, localizador/reserva ou CPF — qualquer um sozinho.`);
   if (conv.identity_verified_at) {
     parts.push(`- ✅ Identidade JÁ VERIFICADA (CPF ${conv.identity_verified_cpf?.slice(-4).padStart(11, "*")}). Pode falar de dados financeiros/pedidos.`);
   } else {
-    parts.push(`- ⚠️ Identidade AINDA NÃO VERIFICADA. Para dados sensíveis (valor, pagamento, alteração), chame pedir_confirmacao_identidade primeiro.`);
+    parts.push(`- Para consultas, nunca exija CPF: número do pedido, localizador/reserva ou CPF são equivalentes e basta um. pedir_confirmacao_identidade é somente para ações sensíveis.`);
   }
   parts.push(`- Data/hora atual: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");

@@ -108,7 +108,7 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
   if (conv.identity_verified_at) {
     parts.push(`- Identidade JÁ VERIFICADA. Pode falar de dados financeiros/pedidos.`);
   } else {
-    parts.push(`- Identidade NÃO VERIFICADA. Chame pedir_confirmacao_identidade para dados sensíveis.`);
+    parts.push(`- Para localizar/consultar pedido ou voo, aceite imediatamente UM destes dados: número do pedido, localizador/reserva ou CPF. Nunca exija CPF nem fale em segurança/privacidade. pedir_confirmacao_identidade é só para ações sensíveis, não para consultas.`);
   }
   if (agent.temas_proibidos?.length) {
     parts.push(`- Temas proibidos: ${agent.temas_proibidos.join(", ")}`);
