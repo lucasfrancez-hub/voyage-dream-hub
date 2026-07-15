@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Search, Bell, ArrowLeft } from "lucide-react";
 import { useMemo } from "react";
+import { firstName } from "@/lib/whatsapp/text-utils.client";
 
 function currentAgent(): { nome: string; online: boolean } {
   const fmt = new Intl.DateTimeFormat("pt-BR", {
@@ -17,10 +18,12 @@ interface ChatHeaderProps {
   title: string;
   subtitle?: string;
   userEmail?: string | null;
+  userFullName?: string | null;
 }
 
-export function ChatHeader({ title, subtitle, userEmail }: ChatHeaderProps) {
+export function ChatHeader({ title, subtitle, userEmail, userFullName }: ChatHeaderProps) {
   const agent = useMemo(currentAgent, []);
+  const shortName = firstName(userFullName);
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-5">
       <div className="min-w-0 flex-1">
@@ -58,9 +61,10 @@ export function ChatHeader({ title, subtitle, userEmail }: ChatHeaderProps) {
         <ArrowLeft className="h-3.5 w-3.5" /> Admin
       </Link>
 
-      {userEmail && (
-        <div className="hidden lg:block text-xs text-slate-500 border-l border-slate-200 pl-4">
-          {userEmail}
+      {(shortName || userEmail) && (
+        <div className="hidden lg:flex flex-col items-end border-l border-slate-200 pl-4 leading-tight">
+          {shortName && <span className="text-xs font-semibold text-slate-800">{shortName}</span>}
+          {userEmail && <span className="text-[11px] text-slate-500">{userEmail}</span>}
         </div>
       )}
     </header>
