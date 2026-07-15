@@ -603,7 +603,7 @@ function PayPage() {
                             type="button"
                             onClick={handleOpenClickSign}
                             disabled={creatingSignature || !acceptedTerms}
-                            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
+                            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60 mx-auto"
                           >
                             {creatingSignature ? (
                               <>
