@@ -1,6 +1,13 @@
-import { Check, CheckCheck } from "lucide-react";
+import { Check, CheckCheck, FileText, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
+
+type Media = { kind: "image" | "document"; url: string; filename: string };
+function parseMedia(content: string): { media: Media | null; text: string } {
+  const m = content.match(/^\[\[media:(image|document)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
+  if (!m) return { media: null, text: content };
+  return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text: (m[4] ?? "").trim() };
+}
 
 interface Props {
   side: "in" | "out";
