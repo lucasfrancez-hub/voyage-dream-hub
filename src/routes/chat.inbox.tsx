@@ -6,7 +6,7 @@ import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Use
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually } from "@/lib/chat/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
@@ -559,6 +559,8 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
   const assignFn = useServerFn(assignConversation);
   const listUsers = useServerFn(listAttendants);
   const getProto = useServerFn(getActiveProtocolo);
+  const closeProtoFn = useServerFn(closeProtocoloManually);
+  const qc = useQueryClient();
 
   const { data: attendants = [] } = useQuery({
     queryKey: ["chat", "attendants"],
@@ -571,6 +573,18 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
     queryFn: () => getProto({ data: { conversation_id: conv.id } }),
     refetchInterval: 20_000,
   });
+
+  const closeProtoMut = useMutation({
+    mutationFn: async () => closeProtoFn({ data: { conversation_id: conv.id } }),
+    onSuccess: (res) => {
+      toast.success(`Protocolo ${res.numero} encerrado`);
+      qc.invalidateQueries({ queryKey: ["chat", "active-protocolo", conv.id] });
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
+      onChange();
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao encerrar"),
+  });
+
 
   const modeMut = useMutation({
     mutationFn: async (mode: "ai" | "human" | "resolved") => toggleFn({ data: { conversation_id: conv.id, mode } }),
@@ -681,7 +695,21 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                   {protocolo.status === "aberto" ? "aberto" : "encerrado"}
                 </span>
               </div>
+              {protocolo.status === "aberto" && (
+                <button
+                  onClick={() => {
+                    if (confirm(`Encerrar o protocolo #${protocolo.numero}? O cliente receberá uma mensagem automática avisando do encerramento.`)) {
+                      closeProtoMut.mutate();
+                    }
+                  }}
+                  disabled={closeProtoMut.isPending}
+                  className="mt-2 w-full rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                >
+                  {closeProtoMut.isPending ? "Encerrando…" : "Encerrar protocolo"}
+                </button>
+              )}
             </Field>
+
 
             <Field label="Necessidade do cliente">
               {protocolo.assunto_resumo ? (
