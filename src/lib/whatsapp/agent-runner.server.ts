@@ -90,7 +90,7 @@ function looksLikeRealName(v: string | null | undefined): boolean {
   return true;
 }
 
-function buildSystemPrompt(agent: Agent, conv: WaConversation): string {
+function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, isNewProtocolo: boolean): string {
   const parts = [agent.system_prompt];
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
@@ -102,6 +102,12 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation): string {
     parts.push(`- nome_do_cliente (perfil whatsapp): "${rawName}" — NÃO parece nome real, NÃO chame por esse valor. Pergunte como pode chamar.`);
   } else {
     parts.push(`- nome_do_cliente: não informado. Pergunte como pode chamar antes de continuar.`);
+  }
+  parts.push(`- Protocolo ATIVO: ${protocolo.numero}`);
+  if (isNewProtocolo) {
+    parts.push(`- É a PRIMEIRA resposta neste protocolo. Informe o número dele em um balão dedicado logo após a saudação: "Seu protocolo de atendimento é ${protocolo.numero}" (uma única vez; nunca repetir depois).`);
+  } else {
+    parts.push(`- Protocolo já em andamento. NÃO repita o número, só siga a conversa normalmente.`);
   }
   if (conv.identity_verified_at) {
     parts.push(`- Identidade JÁ VERIFICADA. Pode falar de dados financeiros/pedidos.`);
