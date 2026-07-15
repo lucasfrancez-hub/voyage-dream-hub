@@ -44,11 +44,28 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
           }
 
           try {
+            // "Digitando…" visual no WhatsApp do cliente enquanto a IA processa.
+            // Usa o wa_message_id da última mensagem inbound da conversa.
+            const { data: lastInbound } = await supabaseAdmin
+              .from("wa_messages")
+              .select("wa_message_id")
+              .eq("conversation_id", conv.id)
+              .eq("direction", "inbound")
+              .not("wa_message_id", "is", null)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (lastInbound?.wa_message_id) {
+              const { sendWhatsAppTypingIndicator } = await import("@/lib/whatsapp/send.server");
+              await sendWhatsAppTypingIndicator(lastInbound.wa_message_id);
+            }
+
             await runAgent({ wa_phone: conv.wa_phone, profile_name: conv.display_name });
             dispatched.push(conv.id);
           } catch (e) {
             console.error(`[dispatch-ai-debounced] erro runAgent ${conv.id}:`, e);
           }
+
         }
 
         return new Response(JSON.stringify({ ok: true, dispatched: dispatched.length }), {
