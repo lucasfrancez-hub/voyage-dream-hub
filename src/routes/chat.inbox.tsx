@@ -1045,6 +1045,10 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                     <div className="whitespace-pre-wrap text-[11px] leading-relaxed text-slate-700">
                       {(viewedProtocolo as { resumo_conversa: string }).resumo_conversa}
                     </div>
+                  ) : ensuringId === viewedProtocolo.id ? (
+                    <div className="flex items-center gap-2 text-[11px] italic leading-relaxed text-slate-500">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Gerando resumo pela IA…
+                    </div>
                   ) : (
                     <div className="text-[11px] italic leading-relaxed text-slate-500">
                       {viewedProtocolo.id === protocolo?.id
