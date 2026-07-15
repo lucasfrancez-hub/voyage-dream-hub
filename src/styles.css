@@ -71,7 +71,7 @@
   --chat-panel-raised: oklch(0.97 0.008 235);
   --chat-conversation: oklch(0.95 0.012 80);          /* bege quente */
   --chat-bubble-in: oklch(1 0 0);                      /* branco */
-  --chat-bubble-out: oklch(0.90 0.08 90);              /* verde-claro/creme quente estilo WA */
+  --chat-bubble-out: oklch(0.90 0.08 155);             /* verde claro estilo WhatsApp */
   --chat-bubble-fg: oklch(0.20 0.02 235);              /* texto escuro em balões claros */
 
 }
