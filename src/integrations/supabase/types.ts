@@ -1419,6 +1419,8 @@ export type Database = {
           id: string
           last_activity_at: string
           numero: string
+          numero_pedido: string | null
+          numero_reserva: string | null
           opened_at: string
           status: string
           updated_at: string
@@ -1432,6 +1434,8 @@ export type Database = {
           id?: string
           last_activity_at?: string
           numero?: string
+          numero_pedido?: string | null
+          numero_reserva?: string | null
           opened_at?: string
           status?: string
           updated_at?: string
@@ -1445,6 +1449,8 @@ export type Database = {
           id?: string
           last_activity_at?: string
           numero?: string
+          numero_pedido?: string | null
+          numero_reserva?: string | null
           opened_at?: string
           status?: string
           updated_at?: string

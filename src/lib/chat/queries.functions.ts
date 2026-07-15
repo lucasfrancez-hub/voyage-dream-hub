@@ -96,7 +96,7 @@ export const getActiveProtocolo = createServerFn({ method: "POST" })
     if (!conv?.protocolo_ativo_id) return null;
     const { data: proto } = await context.supabase
       .from("wa_protocolos")
-      .select("id, numero, status, assunto_resumo, opened_at, last_activity_at")
+      .select("id, numero, status, assunto_resumo, numero_pedido, numero_reserva, opened_at, last_activity_at")
       .eq("id", conv.protocolo_ativo_id)
       .maybeSingle();
     return proto ?? null;
@@ -108,12 +108,38 @@ export const listConversationProtocolos = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("wa_protocolos")
-      .select("id, numero, status, assunto_resumo, opened_at, closed_at")
+      .select("id, numero, status, assunto_resumo, numero_pedido, numero_reserva, opened_at, closed_at")
       .eq("conversation_id", data.conversation_id)
       .order("opened_at", { ascending: false })
       .limit(50);
     if (error) throw new Error(error.message);
     return rows ?? [];
+  });
+
+export const updateProtocoloDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      protocolo_id: z.string().uuid(),
+      numero_pedido: z.string().trim().max(100).nullable(),
+      numero_reserva: z.string().trim().max(100).nullable(),
+      assunto_resumo: z.string().trim().max(4000).nullable(),
+    }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("wa_protocolos")
+      .update({
+        numero_pedido: data.numero_pedido || null,
+        numero_reserva: data.numero_reserva || null,
+        assunto_resumo: data.assunto_resumo || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.protocolo_id)
+      .eq("conversation_id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 
