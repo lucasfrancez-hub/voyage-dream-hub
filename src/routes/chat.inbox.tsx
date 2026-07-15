@@ -695,7 +695,21 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                   {protocolo.status === "aberto" ? "aberto" : "encerrado"}
                 </span>
               </div>
+              {protocolo.status === "aberto" && (
+                <button
+                  onClick={() => {
+                    if (confirm(`Encerrar o protocolo #${protocolo.numero}? O cliente receberá uma mensagem automática avisando do encerramento.`)) {
+                      closeProtoMut.mutate();
+                    }
+                  }}
+                  disabled={closeProtoMut.isPending}
+                  className="mt-2 w-full rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                >
+                  {closeProtoMut.isPending ? "Encerrando…" : "Encerrar protocolo"}
+                </button>
+              )}
             </Field>
+
 
             <Field label="Necessidade do cliente">
               {protocolo.assunto_resumo ? (
