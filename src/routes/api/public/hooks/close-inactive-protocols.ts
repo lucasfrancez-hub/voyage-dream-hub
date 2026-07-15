@@ -77,9 +77,6 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               .select("wa_phone")
               .eq("id", proto.conversation_id)
               .maybeSingle();
-              .select("wa_phone")
-              .eq("id", proto.conversation_id)
-              .maybeSingle();
             if (!conv) continue;
 
             const avisoMsg =
