@@ -1,5 +1,4 @@
-import { Link } from "@tanstack/react-router";
-import { Search, Bell, ArrowLeft, Sun, Moon } from "lucide-react";
+import { Search, Bell, Sun, Moon } from "lucide-react";
 import { useMemo } from "react";
 
 function currentAgent(): { nome: string; online: boolean } {
@@ -70,12 +69,14 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
         </button>
       )}
 
-      <Link
-        to="/admin"
-        className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#F26B1F]"
+      <a
+        href="/admin"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[#F26B1F] px-3 py-1 text-xs font-medium text-white shadow-sm hover:opacity-90"
       >
-        <ArrowLeft className="h-3.5 w-3.5" /> Admin
-      </Link>
+        Admin
+      </a>
 
       {(displayName || userEmail) && (
         <div className="hidden lg:flex flex-col items-end border-l border-slate-200 pl-4 leading-tight">
