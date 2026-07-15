@@ -412,8 +412,6 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
   );
 }
 
-// FUNNEL_STAGES importado de @/lib/chat/funnel-stages (adaptador para o dropdown com `color`)
-const FUNNEL_STAGE_OPTIONS = FUNNEL_STAGES.map((s) => ({ key: s.key, label: s.label, color: s.pill }));
 
 function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void }) {
   const toggleFn = useServerFn(toggleConversationMode);
@@ -547,7 +545,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
             <DropdownMenuTrigger asChild>
               <button className={cn(
                 "flex w-full items-center justify-between rounded-md border px-3 py-2 text-xs font-medium",
-                currentStage ? currentStage.color : "border-slate-200 text-slate-500 hover:bg-slate-50",
+                currentStage ? currentStage.pill : "border-slate-200 text-slate-500 hover:bg-slate-50",
               )}>
                 {currentStage?.label ?? "Definir etapa…"}
                 <ChevronDown className="h-3 w-3" />
