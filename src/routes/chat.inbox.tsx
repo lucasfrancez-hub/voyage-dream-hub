@@ -286,7 +286,7 @@ function ConvItem({ conv, active, onClick }: { conv: Conv; active: boolean; onCl
     >
       <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-xs font-semibold text-white">
         {initials}
-        {conv.mode === "human" && (
+        {conv.mode === "human" && !conv.assigned_to && (
           <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
             <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-white bg-[#F26B1F]" />
@@ -298,7 +298,7 @@ function ConvItem({ conv, active, onClick }: { conv: Conv; active: boolean; onCl
           <span className="truncate text-sm font-medium text-slate-900">{conv.display_name ?? conv.wa_phone}</span>
           <span className="shrink-0 text-[10px] text-slate-400">{time}</span>
         </div>
-        {conv.mode === "human" && (
+        {conv.mode === "human" && !conv.assigned_to && (
           <div className="mt-0.5 mb-1 inline-flex items-center gap-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-[#F26B1F]">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#F26B1F]" />
             Atendimento necessário
