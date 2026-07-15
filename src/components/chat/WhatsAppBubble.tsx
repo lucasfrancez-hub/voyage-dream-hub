@@ -23,21 +23,23 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status }
       <div
         className={cn(
           "relative max-w-[70%] rounded-lg px-3 py-2 shadow-sm",
-          isOut ? "bg-[var(--chat-bubble-out)] text-foreground" : "bg-[var(--chat-bubble-in)] text-foreground",
+          isOut ? "bg-[var(--chat-bubble-out)]" : "bg-[var(--chat-bubble-in)]",
         )}
+        style={{ color: "var(--chat-bubble-fg)" }}
       >
         {label && (
           <div
-            className={cn(
-              "mb-0.5 text-[11px] font-bold",
-              isOut ? "text-primary" : "text-muted-foreground",
-            )}
+            className="mb-0.5 text-[11px] font-bold"
+            style={{ color: isOut ? "var(--brand-orange)" : "color-mix(in oklab, var(--chat-bubble-fg) 65%, transparent)" }}
           >
             {label}:
           </div>
         )}
         <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{content}</div>
-        <div className={cn("mt-1 flex items-center gap-1 text-[10px] text-muted-foreground", isOut ? "justify-end" : "justify-start")}>
+        <div
+          className={cn("mt-1 flex items-center gap-1 text-[10px]", isOut ? "justify-end" : "justify-start")}
+          style={{ color: "color-mix(in oklab, var(--chat-bubble-fg) 55%, transparent)" }}
+        >
           <span>{formatTime(timestamp)}</span>
           {isOut && status && (
             status === "read" ? (
@@ -49,6 +51,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status }
             )
           )}
         </div>
+
       </div>
     </div>
   );
