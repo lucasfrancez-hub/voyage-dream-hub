@@ -553,7 +553,7 @@ function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><MoreVertical className="h-4 w-4" /></button>
+        <button className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"><MoreVertical className="h-4 w-4" /></button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Ações</DropdownMenuLabel>
