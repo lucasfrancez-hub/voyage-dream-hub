@@ -1,5 +1,4 @@
-import { Link } from "@tanstack/react-router";
-import { Search, Bell, ArrowLeft, Sun, Moon } from "lucide-react";
+import { Search, Bell, Sun, Moon } from "lucide-react";
 import { useMemo } from "react";
 
 function currentAgent(): { nome: string; online: boolean } {
