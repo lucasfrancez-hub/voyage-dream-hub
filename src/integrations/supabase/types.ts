@@ -1156,6 +1156,7 @@ export type Database = {
           mode: string
           person_id: string | null
           priority: string
+          protocolo_ativo_id: string | null
           tags: string[]
           unread_count: number
           updated_at: string
@@ -1176,6 +1177,7 @@ export type Database = {
           mode?: string
           person_id?: string | null
           priority?: string
+          protocolo_ativo_id?: string | null
           tags?: string[]
           unread_count?: number
           updated_at?: string
@@ -1196,6 +1198,7 @@ export type Database = {
           mode?: string
           person_id?: string | null
           priority?: string
+          protocolo_ativo_id?: string | null
           tags?: string[]
           unread_count?: number
           updated_at?: string
@@ -1207,6 +1210,13 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_protocolo_ativo_id_fkey"
+            columns: ["protocolo_ativo_id"]
+            isOneToOne: false
+            referencedRelation: "wa_protocolos"
             referencedColumns: ["id"]
           },
         ]
@@ -1262,6 +1272,7 @@ export type Database = {
           id: string
           media_type: string | null
           media_url: string | null
+          protocolo_id: string | null
           sender: string
           sender_user_id: string | null
           tool_calls: Json | null
@@ -1276,6 +1287,7 @@ export type Database = {
           id?: string
           media_type?: string | null
           media_url?: string | null
+          protocolo_id?: string | null
           sender: string
           sender_user_id?: string | null
           tool_calls?: Json | null
@@ -1290,6 +1302,7 @@ export type Database = {
           id?: string
           media_type?: string | null
           media_url?: string | null
+          protocolo_id?: string | null
           sender?: string
           sender_user_id?: string | null
           tool_calls?: Json | null
@@ -1298,6 +1311,63 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "wa_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_messages_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "wa_protocolos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_protocolos: {
+        Row: {
+          assunto_resumo: string | null
+          closed_at: string | null
+          conversation_id: string
+          created_at: string
+          funnel_stage_final: string | null
+          id: string
+          last_activity_at: string
+          numero: string
+          opened_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assunto_resumo?: string | null
+          closed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          funnel_stage_final?: string | null
+          id?: string
+          last_activity_at?: string
+          numero?: string
+          opened_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assunto_resumo?: string | null
+          closed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          funnel_stage_final?: string | null
+          id?: string
+          last_activity_at?: string
+          numero?: string
+          opened_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_protocolos_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "wa_conversations"
@@ -1321,6 +1391,7 @@ export type Database = {
         Returns: number
       }
       generate_order_number: { Args: never; Returns: string }
+      gerar_numero_protocolo: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -12,11 +12,76 @@ export const listConversations = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("wa_conversations")
-      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage")
+      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage, protocolo_ativo_id")
       .order("last_message_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const convs = data ?? [];
+
+    // Puxa números dos protocolos ativos (batch)
+    const protoIds = Array.from(new Set(convs.map((c) => c.protocolo_ativo_id).filter((v): v is string => !!v)));
+    const protoMap: Record<string, string> = {};
+    if (protoIds.length > 0) {
+      const { data: protos } = await context.supabase
+        .from("wa_protocolos")
+        .select("id, numero")
+        .in("id", protoIds);
+      for (const p of protos ?? []) protoMap[p.id] = p.numero;
+    }
+    return convs.map((c) => ({
+      ...c,
+      protocolo_numero: c.protocolo_ativo_id ? protoMap[c.protocolo_ativo_id] ?? null : null,
+    }));
+  });
+
+export const listProtocolos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      status: z.enum(["aberto", "encerrado_inatividade", "encerrado_manual"]).optional(),
+      search: z.string().optional(),
+    }).parse(raw ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    let q = context.supabase
+      .from("wa_protocolos")
+      .select("id, numero, conversation_id, status, assunto_resumo, opened_at, last_activity_at, closed_at, funnel_stage_final")
+      .order("opened_at", { ascending: false })
+      .limit(500);
+    if (data.status) q = q.eq("status", data.status);
+    if (data.search) q = q.ilike("numero", `%${data.search}%`);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    const list = rows ?? [];
+    // Junta com display_name/wa_phone da conversa
+    const convIds = Array.from(new Set(list.map((r) => r.conversation_id)));
+    const convMap: Record<string, { display_name: string | null; wa_phone: string }> = {};
+    if (convIds.length > 0) {
+      const { data: convs } = await context.supabase
+        .from("wa_conversations")
+        .select("id, display_name, wa_phone")
+        .in("id", convIds);
+      for (const c of convs ?? []) convMap[c.id] = { display_name: c.display_name, wa_phone: c.wa_phone };
+    }
+    return list.map((r) => ({
+      ...r,
+      cliente_nome: convMap[r.conversation_id]?.display_name ?? null,
+      wa_phone: convMap[r.conversation_id]?.wa_phone ?? null,
+    }));
+  });
+
+export const listProtocoloMessages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ protocolo_id: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("wa_messages")
+      .select("id, direction, sender, content, created_at")
+      .eq("protocolo_id", data.protocolo_id)
+      .order("created_at", { ascending: true })
+      .limit(1000);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
   });
 
 export const listMessages = createServerFn({ method: "POST" })

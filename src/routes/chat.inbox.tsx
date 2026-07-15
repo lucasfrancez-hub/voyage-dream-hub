@@ -327,7 +327,14 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
           {(conv.display_name ?? conv.wa_phone).slice(0, 2).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-slate-900">{conv.display_name ?? conv.wa_phone}</div>
+          <div className="flex items-center gap-2">
+            <div className="truncate text-sm font-semibold text-slate-900">{conv.display_name ?? conv.wa_phone}</div>
+            {conv.protocolo_numero && (
+              <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
+                #{conv.protocolo_numero}
+              </span>
+            )}
+          </div>
           <div className="text-[11px] text-slate-500">
             {conv.wa_phone} · {conv.mode === "ai" ? `IA (${conv.agent_slug ?? "auto"})` : conv.mode === "human" ? "Humano" : "Arquivada"}
           </div>

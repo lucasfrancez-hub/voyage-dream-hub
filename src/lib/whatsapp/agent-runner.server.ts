@@ -11,7 +11,9 @@ import {
   getOrCreateConversation,
   loadHistory,
   saveMessage,
+  ensureActiveProtocolo,
   type WaConversation,
+  type WaProtocolo,
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
@@ -88,7 +90,7 @@ function looksLikeRealName(v: string | null | undefined): boolean {
   return true;
 }
 
-function buildSystemPrompt(agent: Agent, conv: WaConversation): string {
+function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, isNewProtocolo: boolean): string {
   const parts = [agent.system_prompt];
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
@@ -100,6 +102,12 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation): string {
     parts.push(`- nome_do_cliente (perfil whatsapp): "${rawName}" — NÃO parece nome real, NÃO chame por esse valor. Pergunte como pode chamar.`);
   } else {
     parts.push(`- nome_do_cliente: não informado. Pergunte como pode chamar antes de continuar.`);
+  }
+  parts.push(`- Protocolo ATIVO: ${protocolo.numero}`);
+  if (isNewProtocolo) {
+    parts.push(`- É a PRIMEIRA resposta neste protocolo. Informe o número dele em um balão dedicado logo após a saudação: "Seu protocolo de atendimento é ${protocolo.numero}" (uma única vez; nunca repetir depois).`);
+  } else {
+    parts.push(`- Protocolo já em andamento. NÃO repita o número, só siga a conversa normalmente.`);
   }
   if (conv.identity_verified_at) {
     parts.push(`- Identidade JÁ VERIFICADA. Pode falar de dados financeiros/pedidos.`);
@@ -150,6 +158,15 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     content: m.content,
   }));
 
+  // Protocolo ativo (abre/reabre conforme regra) + detecta se ainda é a primeira resposta nele
+  const protocolo = await ensureActiveProtocolo(conv.id);
+  const { count: outboundNoProto } = await supabaseAdmin
+    .from("wa_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("protocolo_id", protocolo.id)
+    .eq("direction", "outbound");
+  const isNewProtocolo = (outboundNoProto ?? 0) === 0;
+
   const gateway = createLovableAiGatewayProvider(key);
   const model = gateway("google/gemini-3.5-flash");
   const tools = buildCamilaTools(conv);
@@ -159,7 +176,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   try {
     const result = await generateText({
       model,
-      system: buildSystemPrompt(agent, conv),
+      system: buildSystemPrompt(agent, conv, protocolo, isNewProtocolo),
       messages,
       tools: cleanTools as never,
       toolsContext: undefined as never,

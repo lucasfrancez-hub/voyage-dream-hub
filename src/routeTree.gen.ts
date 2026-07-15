@@ -25,6 +25,7 @@ import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as ChatProtocolosRouteImport } from './routes/chat.protocolos'
 import { Route as ChatPastasRouteImport } from './routes/chat.pastas'
 import { Route as ChatInboxRouteImport } from './routes/chat.inbox'
 import { Route as ChatFluxosRouteImport } from './routes/chat.fluxos'
@@ -61,6 +62,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -141,6 +143,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ChatProtocolosRoute = ChatProtocolosRouteImport.update({
+  id: '/protocolos',
+  path: '/protocolos',
+  getParentRoute: () => ChatRoute,
 } as any)
 const ChatPastasRoute = ChatPastasRouteImport.update({
   id: '/pastas',
@@ -327,6 +334,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksCloseInactiveProtocolsRoute =
+  ApiPublicHooksCloseInactiveProtocolsRouteImport.update({
+    id: '/api/public/hooks/close-inactive-protocols',
+    path: '/api/public/hooks/close-inactive-protocols',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -361,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/chat/fluxos': typeof ChatFluxosRoute
   '/chat/inbox': typeof ChatInboxRoute
   '/chat/pastas': typeof ChatPastasRoute
+  '/chat/protocolos': typeof ChatProtocolosRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -376,6 +390,7 @@ export interface FileRoutesByFullPath {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
+  '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -414,6 +429,7 @@ export interface FileRoutesByTo {
   '/chat/fluxos': typeof ChatFluxosRoute
   '/chat/inbox': typeof ChatInboxRoute
   '/chat/pastas': typeof ChatPastasRoute
+  '/chat/protocolos': typeof ChatProtocolosRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -429,6 +445,7 @@ export interface FileRoutesByTo {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
+  '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -469,6 +486,7 @@ export interface FileRoutesById {
   '/chat/fluxos': typeof ChatFluxosRoute
   '/chat/inbox': typeof ChatInboxRoute
   '/chat/pastas': typeof ChatPastasRoute
+  '/chat/protocolos': typeof ChatProtocolosRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -484,6 +502,7 @@ export interface FileRoutesById {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
+  '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -525,6 +544,7 @@ export interface FileRouteTypes {
     | '/chat/fluxos'
     | '/chat/inbox'
     | '/chat/pastas'
+    | '/chat/protocolos'
     | '/email/unsubscribe'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -540,6 +560,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
+    | '/api/public/hooks/close-inactive-protocols'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -578,6 +599,7 @@ export interface FileRouteTypes {
     | '/chat/fluxos'
     | '/chat/inbox'
     | '/chat/pastas'
+    | '/chat/protocolos'
     | '/email/unsubscribe'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -593,6 +615,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos'
     | '/pacotes/$slug'
+    | '/api/public/hooks/close-inactive-protocols'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -632,6 +655,7 @@ export interface FileRouteTypes {
     | '/chat/fluxos'
     | '/chat/inbox'
     | '/chat/pastas'
+    | '/chat/protocolos'
     | '/email/unsubscribe'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -647,6 +671,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
+    | '/api/public/hooks/close-inactive-protocols'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -674,6 +699,7 @@ export interface RootRouteChildren {
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -794,6 +820,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/chat/protocolos': {
+      id: '/chat/protocolos'
+      path: '/protocolos'
+      fullPath: '/chat/protocolos'
+      preLoaderRoute: typeof ChatProtocolosRouteImport
+      parentRoute: typeof ChatRoute
     }
     '/chat/pastas': {
       id: '/chat/pastas'
@@ -1047,6 +1080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/close-inactive-protocols': {
+      id: '/api/public/hooks/close-inactive-protocols'
+      path: '/api/public/hooks/close-inactive-protocols'
+      fullPath: '/api/public/hooks/close-inactive-protocols'
+      preLoaderRoute: typeof ApiPublicHooksCloseInactiveProtocolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1107,6 +1147,7 @@ interface ChatRouteChildren {
   ChatFluxosRoute: typeof ChatFluxosRoute
   ChatInboxRoute: typeof ChatInboxRoute
   ChatPastasRoute: typeof ChatPastasRoute
+  ChatProtocolosRoute: typeof ChatProtocolosRoute
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
@@ -1120,6 +1161,7 @@ const ChatRouteChildren: ChatRouteChildren = {
   ChatFluxosRoute: ChatFluxosRoute,
   ChatInboxRoute: ChatInboxRoute,
   ChatPastasRoute: ChatPastasRoute,
+  ChatProtocolosRoute: ChatProtocolosRoute,
 }
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
@@ -1161,6 +1203,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicHooksCloseInactiveProtocolsRoute:
+    ApiPublicHooksCloseInactiveProtocolsRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
