@@ -117,6 +117,38 @@ export const listConversationProtocolos = createServerFn({ method: "POST" })
   });
 
 
+export const getConversationOrders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ conversation_id: z.string().uuid() }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const { data: conv } = await context.supabase
+      .from("wa_conversations")
+      .select("wa_phone, person_id")
+      .eq("id", data.conversation_id)
+      .maybeSingle();
+    if (!conv) return [];
+    // Normaliza últimos 10 dígitos pra bater com variações de DDI/DDD
+    const last10 = conv.wa_phone.replace(/\D/g, "").slice(-10);
+
+    let query = context.supabase
+      .from("orders")
+      .select("id, order_number, airline_locator, status, trip_title, phone, created_at")
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    // Filtro OR: person_id vinculado OU telefone terminando com últimos 10 dígitos
+    if (conv.person_id) {
+      query = query.or(`phone.ilike.%${last10},id.in.(select order_id from order_items where 1=0)`);
+    } else {
+      query = query.ilike("phone", `%${last10}`);
+    }
+
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+
 
 export const listMessages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
