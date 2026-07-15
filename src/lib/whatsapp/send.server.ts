@@ -53,6 +53,35 @@ export async function sendWhatsAppText(to: string, body: string): Promise<{ id: 
 }
 
 /**
+ * Mostra o indicador "digitando…" pro cliente no WhatsApp e marca a mensagem como lida.
+ * O indicador some sozinho em ~25s ou quando enviarmos a próxima mensagem.
+ * Requer o wa_message_id da última mensagem recebida do cliente.
+ */
+export async function sendWhatsAppTypingIndicator(inbound_wa_message_id: string): Promise<void> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  if (!token || !phoneId) return;
+
+  const url = `https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/messages`;
+  const payload = {
+    messaging_product: "whatsapp",
+    status: "read",
+    message_id: inbound_wa_message_id,
+    typing_indicator: { type: "text" },
+  };
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.warn("[whatsapp/typing] falhou:", err instanceof Error ? err.message : err);
+  }
+}
+
+
+/**
  * Divide a resposta em balões pelo separador de linha dupla e envia sequencialmente
  * com um pequeno delay entre balões (mais humano). Retorna os wa_message_ids.
  *
