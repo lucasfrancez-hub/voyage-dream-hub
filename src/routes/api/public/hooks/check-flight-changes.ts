@@ -113,6 +113,25 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
           const phone = order?.phone ?? order?.payer_phone ?? null;
           if (!phone) { skipped.push(item.id); continue; }
 
+          const diffMin = diffMinutes(departAt, newDepart);
+          const dayChanged = (departAt.slice(0, 10) !== (newDepart || "").slice(0, 10)) && !!newDepart;
+          const minorChange = !cancelled && !dayChanged && diffMin !== null && Math.abs(diffMin) < 30;
+          const severity: "info" | "minor" | "major" | "cancelled" =
+            cancelled ? "cancelled" : minorChange ? "minor" : "major";
+          const severityLabel =
+            severity === "cancelled" ? "Voo cancelado"
+              : severity === "minor" ? "Alteração pequena (< 30min)"
+              : "Alteração significativa (> 30min)";
+
+          const routeLabel = routeLine({
+            fromCity: str(d.from_city), fromIata: str(d.from_iata), fromAirport: str(d.from_airport),
+            toCity: str(d.to_city), toIata: str(d.to_iata), toAirport: str(d.to_airport),
+          }).replace(/\*/g, "");
+
+          const summary = `${severityLabel} — ${newFlightNumber || flightNumber} ${routeLabel || ""} · ${
+            fmtLong(newDepart || departAt)
+          }`.trim();
+
           const { data: alert, error: alertErr } = await supabaseAdmin
             .from("flight_change_alerts")
             .insert({
@@ -125,6 +144,8 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
               new_arrive_at: newArrive || null,
               new_status: newStatus,
               wa_phone: phone,
+              severity,
+              summary,
             })
             .select("id")
             .single();
@@ -133,10 +154,6 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
             console.error("[flight-check] alert insert:", alertErr?.message);
             continue;
           }
-
-          const diffMin = diffMinutes(departAt, newDepart);
-          const dayChanged = (departAt.slice(0, 10) !== (newDepart || "").slice(0, 10)) && !!newDepart;
-          const minorChange = !cancelled && !dayChanged && diffMin !== null && Math.abs(diffMin) < 30;
 
           const body = buildMessage({
             customerName: order?.full_name ?? order?.payer_full_name ?? null,
@@ -181,6 +198,49 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
               .update({ wa_button_message_id: sent.id })
               .eq("id", alert.id);
           }
+
+          // E-mail para o admin (não bloqueia o loop se falhar)
+          const adminEmail = process.env.AGENCIA_EMAIL_ASSINATURA;
+          if (adminEmail) {
+            try {
+              const { sendTransactionalInternal } = await import("@/lib/email/send-internal.server");
+              const { data: ord } = await supabaseAdmin
+                .from("orders")
+                .select("order_number")
+                .eq("id", item.order_id)
+                .maybeSingle();
+              const res = await sendTransactionalInternal({
+                templateName: "alteracao-voo-admin",
+                recipientEmail: adminEmail,
+                idempotencyKey: `flight-alert-${alert.id}`,
+                templateData: {
+                  orderNumber: ord?.order_number ?? item.order_id.slice(0, 8),
+                  customerName: order?.full_name ?? order?.payer_full_name ?? "Cliente",
+                  customerPhone: phone,
+                  reservationCode: order?.airline_locator ?? undefined,
+                  route: routeLabel,
+                  flightNumber: newFlightNumber || flightNumber,
+                  oldDepart: fmtLong(departAt),
+                  newDepart: newDepart ? fmtLong(newDepart) : "—",
+                  oldArrive: arriveAt ? fmtLong(arriveAt) : undefined,
+                  newArrive: newArrive ? fmtLong(newArrive) : undefined,
+                  status: newStatus ?? undefined,
+                  severityLabel,
+                },
+              });
+              if (res.success) {
+                await supabaseAdmin
+                  .from("flight_change_alerts")
+                  .update({ admin_email_sent_at: new Date().toISOString() })
+                  .eq("id", alert.id);
+              } else {
+                console.warn("[flight-check] admin email:", res.error);
+              }
+            } catch (err) {
+              console.error("[flight-check] admin email crash:", (err as Error).message);
+            }
+          }
+
           changed.push(item.id);
         }
 
