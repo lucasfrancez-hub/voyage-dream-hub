@@ -98,8 +98,19 @@ function ChatLayout() {
 
   const pageInfo = PAGE_TITLES[pathname] ?? { title: "Central de Atendimento" };
 
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    if (typeof window === "undefined") return "dark";
+    return (localStorage.getItem("chat-theme") as "dark" | "light") ?? "dark";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("chat-theme", theme);
+  }, [theme]);
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+
+  const themeClass = theme === "dark" ? "chat-dark dark" : "";
+
   return (
-    <div className="chat-dark dark flex h-screen w-full overflow-hidden bg-[var(--chat-bg)] text-foreground">
+    <div className={`${themeClass} flex h-screen w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}>
       <ChatSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <ChatHeader
@@ -107,6 +118,8 @@ function ChatLayout() {
           subtitle={pageInfo.subtitle}
           userEmail={session?.user.email}
           userFullName={profile?.full_name ?? null}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
         <main className="min-h-0 flex-1 overflow-hidden">
           <Outlet />
