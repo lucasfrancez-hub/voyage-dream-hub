@@ -63,6 +63,7 @@ type WhatsAppPayload = {
           from: string;
           type: string;
           text?: { body: string };
+          audio?: { id: string; mime_type?: string; voice?: boolean };
           timestamp?: string;
         }>;
         contacts?: Array<{ wa_id: string; profile?: { name?: string } }>;
@@ -75,6 +76,7 @@ type WhatsAppPayload = {
 async function processPayload(payload: WhatsAppPayload) {
   const { getOrCreateConversation, saveMessage } = await import("@/lib/whatsapp/conversation.server");
   const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
+  const { downloadWhatsAppMedia, transcribeAudio } = await import("@/lib/whatsapp/media.server");
 
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
@@ -88,19 +90,37 @@ async function processPayload(payload: WhatsAppPayload) {
       }
 
       for (const msg of value.messages ?? []) {
-        if (msg.type !== "text" || !msg.text?.body) {
+        const profileName =
+          value.contacts?.find((c) => c.wa_id === msg.from)?.profile?.name ?? null;
+
+        // Monta o conteúdo textual (texto direto OU transcrição de áudio)
+        let content: string | null = null;
+        if (msg.type === "text" && msg.text?.body) {
+          content = msg.text.body;
+        } else if ((msg.type === "audio" || msg.type === "voice") && msg.audio?.id) {
+          console.log(`[wa-webhook] baixando áudio ${msg.audio.id} de ${msg.from}`);
+          const media = await downloadWhatsAppMedia(msg.audio.id);
+          if (!media) {
+            console.warn(`[wa-webhook] falha ao baixar áudio ${msg.audio.id}`);
+            continue;
+          }
+          const transcript = await transcribeAudio(media.blob, media.mimeType);
+          if (!transcript) {
+            console.warn(`[wa-webhook] transcrição vazia pra ${msg.audio.id}`);
+            continue;
+          }
+          content = `🎤 [áudio transcrito] ${transcript}`;
+        } else {
           console.log(`[wa-webhook] tipo não suportado: ${msg.type}`);
           continue;
         }
-        const profileName =
-          value.contacts?.find((c) => c.wa_id === msg.from)?.profile?.name ?? null;
 
         const conv = await getOrCreateConversation(msg.from, profileName);
         const saved = await saveMessage({
           conversation_id: conv.id,
           direction: "inbound",
           sender: "customer",
-          content: msg.text.body,
+          content,
           wa_message_id: msg.id,
         });
         if (!saved) {

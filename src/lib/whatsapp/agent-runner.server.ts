@@ -15,6 +15,7 @@ import {
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
+import { buildSenderPrefix, capitalizeBubbles } from "./text-utils.server";
 
 type Agent = {
   id: string;
@@ -166,11 +167,13 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       temperature: 0.6,
     });
 
-    const text = result.text?.trim();
-    if (!text) {
+    const rawText = result.text?.trim();
+    if (!rawText) {
       console.warn(`[agent:${agent.slug}] resposta vazia`);
       return;
     }
+    // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
+    const text = capitalizeBubbles(rawText);
 
     const toolCallsSummary = result.steps
       ?.flatMap((s) => s.toolCalls ?? [])
@@ -190,7 +193,8 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       .update({ agent_slug: agent.slug })
       .eq("id", conv.id);
 
-    const sent = await sendWhatsAppBubbles(conv.wa_phone, text);
+    const prefix = buildSenderPrefix(agent.nome);
+    const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix);
     const failed = sent.filter((s) => s.error);
     if (failed.length > 0) console.error(`[agent:${agent.slug}] falha ao enviar:`, failed);
   } catch (err) {

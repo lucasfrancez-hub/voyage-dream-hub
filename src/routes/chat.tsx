@@ -1,11 +1,14 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { ChatHeader } from "@/components/chat/ChatHeader";
+import { getMyProfile } from "@/lib/chat/queries.functions";
 
 export const Route = createFileRoute("/chat")({
   component: ChatLayout,
@@ -86,11 +89,24 @@ function ChatLayout() {
 
   const pageInfo = PAGE_TITLES[pathname] ?? { title: "Central de Atendimento" };
 
+  const profileFn = useServerFn(getMyProfile);
+  const { data: profile } = useQuery({
+    queryKey: ["chat", "my-profile", session?.user.id],
+    queryFn: () => profileFn(),
+    enabled: !!session && authorized === true,
+    staleTime: 60_000,
+  });
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-slate-50 text-slate-900">
       <ChatSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <ChatHeader title={pageInfo.title} subtitle={pageInfo.subtitle} userEmail={session?.user.email} />
+        <ChatHeader
+          title={pageInfo.title}
+          subtitle={pageInfo.subtitle}
+          userEmail={session?.user.email}
+          userFullName={profile?.full_name ?? null}
+        />
         <main className="min-h-0 flex-1 overflow-hidden">
           <Outlet />
         </main>
