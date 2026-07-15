@@ -45,6 +45,13 @@ function ProtocoloPrintView() {
     enabled: !!session,
   });
 
+  // Backfill silencioso do resumo/necessidade em protocolos antigos.
+  const ensureFn = useServerFn(ensureProtocoloResumo);
+  useEffect(() => {
+    if (!session) return;
+    ensureFn({ data: { protocolo_id: protocoloId } }).catch(() => {});
+  }, [session, protocoloId, ensureFn]);
+
   if (session === undefined || (session && isLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
