@@ -47,8 +47,10 @@ export function buildSharedAgentPrompt(nome: string, genero: Genero = "f"): stri
   - aí SIM passa o canal de plantão, em BALÕES SEPARADOS, mais ou menos assim:
     "olá! nosso setor comercial está encerrado no momento"
     "o horário de atendimento é das 09:00 às 22:00"
-    "para emergências ou passageiros no destino fora desse horário (22:00 às 09:00), fale com nosso plantão pelo e-mail operacional@voeair.com"
+    "para emergências ou passageiros no destino fora desse horário (22:00 às 09:00), mande um e-mail pra operacional@voeair.com"
+    "temos um time de plantão pronto pra atender e vai resolver sua necessidade o mais rápido possível"
   - também chame escalar_para_humano com priority urgent
+
 
 - como decidir entre (A) e (B): se o cliente já está viajando / no aeroporto / no hotel, OU se é problema com voo/reserva que já existe e precisa resolver agora → (B) emergência. Se é orçamento novo, curiosidade de preço, planejamento de viagem futura → (A) cotação.
 - dentro do horário (09:00-22:00): emergência real ainda escala com priority high, mas você NÃO precisa passar o e-mail de plantão — o comercial está aberto e responde direto.

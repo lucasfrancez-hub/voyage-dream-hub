@@ -1417,6 +1417,7 @@ export type Database = {
           created_at: string
           funnel_stage_final: string | null
           id: string
+          inactivity_warned_at: string | null
           last_activity_at: string
           numero: string
           numero_pedido: string | null
@@ -1433,6 +1434,7 @@ export type Database = {
           created_at?: string
           funnel_stage_final?: string | null
           id?: string
+          inactivity_warned_at?: string | null
           last_activity_at?: string
           numero?: string
           numero_pedido?: string | null
@@ -1449,6 +1451,7 @@ export type Database = {
           created_at?: string
           funnel_stage_final?: string | null
           id?: string
+          inactivity_warned_at?: string | null
           last_activity_at?: string
           numero?: string
           numero_pedido?: string | null
