@@ -26,6 +26,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> = {
   "/chat/dashboard": { title: "Dashboard", subtitle: "Visão geral do atendimento" },
   "/chat/inbox": { title: "Caixa de Entrada", subtitle: "Conversas em tempo real" },
   "/chat/contatos": { title: "Contatos", subtitle: "Base de clientes VIA AIR" },
+  "/chat/protocolos": { title: "Protocolos", subtitle: "Histórico de atendimentos" },
   "/chat/agentes": { title: "Agentes IA", subtitle: "Camila (dia) · Roberto (plantão)" },
   "/chat/fluxos": { title: "Fluxos", subtitle: "Automações" },
   "/chat/broadcast": { title: "Broadcast", subtitle: "Campanhas e templates" },
