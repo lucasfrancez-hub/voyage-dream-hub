@@ -84,6 +84,8 @@
   --chat-conversation: oklch(0.12 0.015 235);
   --chat-bubble-in: oklch(0.23 0.02 235);
   --chat-bubble-out: oklch(0.27 0.055 55);
+  --chat-bubble-fg: oklch(0.98 0.005 235);
+
 
 
   --gradient-hero: linear-gradient(180deg, oklch(0.16 0.025 235 / 0.55) 0%, oklch(0.16 0.025 235 / 0.7) 60%, oklch(0.16 0.025 235 / 0.95) 100%);
