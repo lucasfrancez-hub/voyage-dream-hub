@@ -5,6 +5,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { FUNNEL_STAGE_KEYS } from "@/lib/chat/funnel-stages";
 
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
