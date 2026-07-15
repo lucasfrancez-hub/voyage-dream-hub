@@ -302,7 +302,7 @@ function useWallpaper() {
     backgroundColor: "var(--chat-conversation)",
   };
   if (cur.key === "grid") style.backgroundSize = "24px 24px";
-  if (cur.key === "dots") style.backgroundSize = "18px 18px";
+  if (cur.key === "dots") style.backgroundSize = "130px 130px";
   return { key, set, style };
 }
 
