@@ -2,17 +2,20 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos } from "@/lib/chat/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+
 
 export const Route = createFileRoute("/chat/inbox")({
   component: InboxPage,
@@ -161,14 +164,15 @@ function NewConversationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white text-slate-900 border border-slate-200">
         <DialogHeader>
-          <DialogTitle>Nova conversa</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-slate-900">Nova conversa</DialogTitle>
+          <DialogDescription className="text-slate-600">
             Envia a primeira mensagem para um número. A IA fica <b>desativada</b> — você atende manualmente.
             Se o cliente nunca te mandou nada antes ou faz mais de 24h, o WhatsApp só entrega mensagem de <b>template aprovado</b>.
           </DialogDescription>
         </DialogHeader>
+
 
         <div className="space-y-3">
           <label className="block text-xs">
@@ -559,6 +563,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
   const assignFn = useServerFn(assignConversation);
   const listUsers = useServerFn(listAttendants);
   const getProto = useServerFn(getActiveProtocolo);
+  const listProtos = useServerFn(listConversationProtocolos);
   const closeProtoFn = useServerFn(closeProtocoloManually);
   const qc = useQueryClient();
 
@@ -574,17 +579,23 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
     refetchInterval: 20_000,
   });
 
+  const { data: protoHistory = [] } = useQuery({
+    queryKey: ["chat", "protocolo-history", conv.id],
+    queryFn: () => listProtos({ data: { conversation_id: conv.id } }),
+    refetchInterval: 60_000,
+  });
+
   const closeProtoMut = useMutation({
     mutationFn: async () => closeProtoFn({ data: { conversation_id: conv.id } }),
     onSuccess: (res) => {
       toast.success(`Protocolo ${res.numero} encerrado`);
       qc.invalidateQueries({ queryKey: ["chat", "active-protocolo", conv.id] });
+      qc.invalidateQueries({ queryKey: ["chat", "protocolo-history", conv.id] });
       qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
       onChange();
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao encerrar"),
   });
-
 
   const modeMut = useMutation({
     mutationFn: async (mode: "ai" | "human" | "resolved") => toggleFn({ data: { conversation_id: conv.id, mode } }),
@@ -600,150 +611,240 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
   });
 
   const currentStage = FUNNEL_STAGES.find((s) => s.key === conv.funnel_stage);
+  const previous = protoHistory.filter((p) => p.id !== protocolo?.id);
+
+  const MODES: { key: "ai" | "human" | "resolved"; label: string; icon: string }[] = [
+    { key: "ai", label: "IA", icon: "🤖" },
+    { key: "human", label: "Humano", icon: "👤" },
+    { key: "resolved", label: "Arquivada", icon: "✅" },
+  ];
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="border-b border-slate-200 p-5 text-center">
-        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-lg font-semibold text-white">
-          {(conv.display_name ?? conv.wa_phone).slice(0, 2).toUpperCase()}
-        </div>
-        <div className="text-sm font-semibold text-slate-900">{conv.display_name ?? "Contato sem cadastro"}</div>
-        <div className="text-xs text-slate-500">{conv.wa_phone}</div>
-      </div>
-
-      <div className="space-y-4 p-5">
-        <Field label="Modo de atendimento">
-          <div className="flex flex-col gap-1.5">
-            {(["ai", "human", "resolved"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => modeMut.mutate(m)}
-                className={cn(
-                  "flex items-center justify-between rounded-md border px-3 py-1.5 text-xs font-medium",
-                  conv.mode === m
-                    ? "border-[#F26B1F] bg-orange-50 text-[#F26B1F]"
-                    : "border-slate-200 text-slate-600 hover:bg-slate-50",
-                )}
-              >
-                <span>{m === "ai" ? "🤖 IA" : m === "human" ? "👤 Humano" : "✅ Arquivada"}</span>
-                {conv.mode === m && <span className="h-1.5 w-1.5 rounded-full bg-[#F26B1F]" />}
-              </button>
-            ))}
+    <TooltipProvider delayDuration={200}>
+      <div className="flex h-full flex-col overflow-y-auto bg-white">
+        {/* Header compacto */}
+        <div className="border-b border-slate-200 px-4 py-4 text-center">
+          <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-base font-semibold text-white">
+            {(conv.display_name ?? conv.wa_phone).slice(0, 2).toUpperCase()}
           </div>
-        </Field>
+          <div className="truncate text-sm font-semibold text-slate-900">{conv.display_name ?? "Sem cadastro"}</div>
+          <div className="text-[11px] text-slate-500">{conv.wa_phone}</div>
 
-        <Field label="Funil de venda">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className={cn(
-                "flex w-full items-center justify-between rounded-md border px-3 py-2 text-xs font-medium",
-                currentStage ? currentStage.pill : "border-slate-200 text-slate-500 hover:bg-slate-50",
-              )}>
-                {currentStage?.label ?? "Definir etapa…"}
-                <ChevronDown className="h-3 w-3" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              {FUNNEL_STAGES.map((s) => (
-                <DropdownMenuItem key={s.key} onClick={() => stageMut.mutate(s.key)}>
-                  {s.label} {conv.funnel_stage === s.key && "✓"}
-                </DropdownMenuItem>
-              ))}
-              {conv.funnel_stage && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => stageMut.mutate(null)}>Remover etapa</DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </Field>
+          {/* Modo em linha, só ícones + tooltip */}
+          <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 p-1">
+            {MODES.map((m) => {
+              const active = conv.mode === m.key;
+              return (
+                <Tooltip key={m.key}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => modeMut.mutate(m.key)}
+                      aria-label={m.label}
+                      className={cn(
+                        "flex h-7 w-9 items-center justify-center rounded-full text-sm transition-colors",
+                        active
+                          ? "bg-white text-[#F26B1F] shadow-sm ring-1 ring-[#F26B1F]/30"
+                          : "text-slate-500 hover:bg-white/60",
+                      )}
+                    >
+                      <span>{m.icon}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{m.label}</TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+        </div>
 
-        <Field label="Atendente responsável">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex w-full items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
-                {attendants.find((a) => a.id === conv.assigned_to)?.full_name ?? "Não atribuído"}
-                <ChevronDown className="h-3 w-3" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 max-h-64 overflow-y-auto">
-              {attendants.length === 0 ? (
-                <DropdownMenuItem disabled>Sem atendentes cadastrados</DropdownMenuItem>
-              ) : (
-                attendants.map((a) => (
-                  <DropdownMenuItem key={a.id} onClick={() => assignMut.mutate(a.id)}>
-                    {a.full_name ?? a.id.slice(0, 6)} {conv.assigned_to === a.id && "✓"}
-                  </DropdownMenuItem>
-                ))
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => assignMut.mutate(null)}>Devolver para IA</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </Field>
-
-        {protocolo && (
-          <>
-            <Field label="Protocolo atual">
-              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                <span className="font-mono text-xs font-semibold text-slate-800">#{protocolo.numero}</span>
-                <span className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                  protocolo.status === "aberto" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600",
-                )}>
-                  {protocolo.status === "aberto" ? "aberto" : "encerrado"}
-                </span>
-              </div>
-              {protocolo.status === "aberto" && (
-                <button
-                  onClick={() => {
-                    if (confirm(`Encerrar o protocolo #${protocolo.numero}? O cliente receberá uma mensagem automática avisando do encerramento.`)) {
-                      closeProtoMut.mutate();
-                    }
-                  }}
-                  disabled={closeProtoMut.isPending}
-                  className="mt-2 w-full rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
-                >
-                  {closeProtoMut.isPending ? "Encerrando…" : "Encerrar protocolo"}
-                </button>
-              )}
+        <div className="space-y-3 p-4">
+          {/* Funil + Atendente em grid compacto */}
+          <div className="grid grid-cols-1 gap-3">
+            <Field label="Funil de venda">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className={cn(
+                    "flex w-full items-center justify-between rounded-md border px-3 py-1.5 text-xs font-medium",
+                    currentStage ? currentStage.pill : "border-slate-200 text-slate-500 hover:bg-slate-50",
+                  )}>
+                    {currentStage?.label ?? "Definir etapa…"}
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  {FUNNEL_STAGES.map((s) => (
+                    <DropdownMenuItem key={s.key} onClick={() => stageMut.mutate(s.key)}>
+                      {s.label} {conv.funnel_stage === s.key && "✓"}
+                    </DropdownMenuItem>
+                  ))}
+                  {conv.funnel_stage && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => stageMut.mutate(null)}>Remover etapa</DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </Field>
 
+            <Field label="Atendente">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex w-full items-center justify-between rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                    {attendants.find((a) => a.id === conv.assigned_to)?.full_name ?? "Não atribuído"}
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 max-h-64 overflow-y-auto">
+                  {attendants.length === 0 ? (
+                    <DropdownMenuItem disabled>Sem atendentes</DropdownMenuItem>
+                  ) : (
+                    attendants.map((a) => (
+                      <DropdownMenuItem key={a.id} onClick={() => assignMut.mutate(a.id)}>
+                        {a.full_name ?? a.id.slice(0, 6)} {conv.assigned_to === a.id && "✓"}
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => assignMut.mutate(null)}>Devolver para IA</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </Field>
+          </div>
 
+          {/* Protocolo atual + histórico */}
+          {protocolo ? (
+            <Field label="Protocolo atual">
+              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5">
+                <span className="font-mono text-xs font-semibold text-slate-800">#{protocolo.numero}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    protocolo.status === "aberto" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600",
+                  )}>
+                    {protocolo.status === "aberto" ? "aberto" : "encerrado"}
+                  </span>
+                  {protocolo.status === "aberto" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Encerrar o protocolo #${protocolo.numero}? O cliente receberá uma mensagem automática avisando do encerramento.`)) {
+                              closeProtoMut.mutate();
+                            }
+                          }}
+                          disabled={closeProtoMut.isPending}
+                          className="flex h-5 w-5 items-center justify-center rounded-full text-red-500 hover:bg-red-50 disabled:opacity-40"
+                          aria-label="Encerrar protocolo"
+                        >
+                          {closeProtoMut.isPending
+                            ? <Loader2 className="h-3 w-3 animate-spin" />
+                            : <XCircle className="h-3.5 w-3.5" />}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left">Encerrar protocolo</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
+
+              {previous.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="mt-1.5 flex w-full items-center justify-between rounded-md border border-dashed border-slate-200 px-3 py-1.5 text-[11px] text-slate-500 hover:bg-slate-50">
+                      <span className="flex items-center gap-1.5"><History className="h-3 w-3" /> Protocolos anteriores ({previous.length})</span>
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-72 max-h-72 overflow-y-auto">
+                    {previous.map((p) => (
+                      <DropdownMenuItem key={p.id} className="flex flex-col items-start gap-0.5">
+                        <div className="flex w-full items-center justify-between">
+                          <span className="font-mono text-xs font-semibold">#{p.numero}</span>
+                          <span className="text-[10px] text-slate-500">{fmtDate(p.opened_at)}</span>
+                        </div>
+                        {p.assunto_resumo && (
+                          <span className="line-clamp-2 text-[10px] text-slate-500">{p.assunto_resumo}</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </Field>
+          ) : previous.length > 0 ? (
+            <Field label="Protocolos">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex w-full items-center justify-between rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
+                    <span className="flex items-center gap-1.5"><History className="h-3 w-3" /> Histórico ({previous.length})</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72 max-h-72 overflow-y-auto">
+                  {previous.map((p) => (
+                    <DropdownMenuItem key={p.id} className="flex flex-col items-start gap-0.5">
+                      <div className="flex w-full items-center justify-between">
+                        <span className="font-mono text-xs font-semibold">#{p.numero}</span>
+                        <span className="text-[10px] text-slate-500">{fmtDate(p.opened_at)}</span>
+                      </div>
+                      {p.assunto_resumo && (
+                        <span className="line-clamp-2 text-[10px] text-slate-500">{p.assunto_resumo}</span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </Field>
+          ) : null}
+
+          {protocolo && (
             <Field label="Necessidade do cliente">
               {protocolo.assunto_resumo ? (
-                <div className="whitespace-pre-wrap rounded-md border border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed text-slate-700">
+                <div className="whitespace-pre-wrap rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[11px] leading-relaxed text-slate-700">
                   {protocolo.assunto_resumo}
                 </div>
               ) : (
-                <div className="rounded-md border border-dashed border-slate-200 px-3 py-2 text-xs italic text-slate-400">
-                  Ainda não resumido — a IA preenche ao transferir o atendimento.
+                <div className="rounded-md border border-dashed border-slate-200 px-3 py-1.5 text-[11px] italic text-slate-400">
+                  Ainda não resumido — a IA preenche ao transferir.
                 </div>
               )}
             </Field>
-          </>
-        )}
+          )}
 
-        {conv.agent_slug && (
-          <Field label="Último agente IA"><div className="text-sm text-slate-900 capitalize">{conv.agent_slug}</div></Field>
-        )}
-
-        {conv.tags && conv.tags.length > 0 && (
-          <Field label="Tags">
-            <div className="flex flex-wrap gap-1">
-              {conv.tags.map((t) => <span key={t} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700">{t}</span>)}
+          {/* Rodapé: metadados compactos */}
+          <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+            {conv.agent_slug && (
+              <div>
+                <div className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Agente IA</div>
+                <div className="text-xs capitalize text-slate-800">{conv.agent_slug}</div>
+              </div>
+            )}
+            <div>
+              <div className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Cadastro</div>
+              <div className="text-xs text-slate-800">{conv.person_id ? "Vinculado ✓" : "Não vinculado"}</div>
             </div>
-          </Field>
-        )}
+          </div>
 
-        <Field label="Cliente cadastrado">
-          <div className="text-sm text-slate-900">{conv.person_id ? "Sim ✓" : "Não vinculado"}</div>
-        </Field>
+          {conv.tags && conv.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {conv.tags.map((t) => (
+                <span key={t} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700">{t}</span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+}
+
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
