@@ -412,13 +412,8 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
   );
 }
 
-const FUNNEL_STAGES = [
-  { key: "novo", label: "Novo lead", color: "bg-blue-100 text-blue-700 border-blue-200" },
-  { key: "cotando", label: "Cotando", color: "bg-amber-100 text-amber-700 border-amber-200" },
-  { key: "negociando", label: "Negociando", color: "bg-purple-100 text-purple-700 border-purple-200" },
-  { key: "ganhou", label: "Ganhou 🎉", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  { key: "perdido", label: "Perdido", color: "bg-slate-100 text-slate-600 border-slate-200" },
-] as const;
+// FUNNEL_STAGES importado de @/lib/chat/funnel-stages (adaptador para o dropdown com `color`)
+const FUNNEL_STAGE_OPTIONS = FUNNEL_STAGES.map((s) => ({ key: s.key, label: s.label, color: s.pill }));
 
 function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void }) {
   const toggleFn = useServerFn(toggleConversationMode);
