@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants } from "@/lib/chat/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
+import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
@@ -411,13 +412,6 @@ function ConversationView({ conv, onRefetch }: { conv: Conv; onRefetch: () => vo
   );
 }
 
-const FUNNEL_STAGES = [
-  { key: "novo", label: "Novo lead", color: "bg-blue-100 text-blue-700 border-blue-200" },
-  { key: "cotando", label: "Cotando", color: "bg-amber-100 text-amber-700 border-amber-200" },
-  { key: "negociando", label: "Negociando", color: "bg-purple-100 text-purple-700 border-purple-200" },
-  { key: "ganhou", label: "Ganhou 🎉", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  { key: "perdido", label: "Perdido", color: "bg-slate-100 text-slate-600 border-slate-200" },
-] as const;
 
 function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void }) {
   const toggleFn = useServerFn(toggleConversationMode);
@@ -551,7 +545,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
             <DropdownMenuTrigger asChild>
               <button className={cn(
                 "flex w-full items-center justify-between rounded-md border px-3 py-2 text-xs font-medium",
-                currentStage ? currentStage.color : "border-slate-200 text-slate-500 hover:bg-slate-50",
+                currentStage ? currentStage.pill : "border-slate-200 text-slate-500 hover:bg-slate-50",
               )}>
                 {currentStage?.label ?? "Definir etapa…"}
                 <ChevronDown className="h-3 w-3" />
