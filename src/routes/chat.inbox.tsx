@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails } from "@/lib/chat/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
@@ -704,8 +704,11 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
   const getProto = useServerFn(getActiveProtocolo);
   const listProtos = useServerFn(listConversationProtocolos);
   const closeProtoFn = useServerFn(closeProtocoloManually);
+  const updateProtoFn = useServerFn(updateProtocoloDetails);
   const qc = useQueryClient();
   const [confirmCloseProto, setConfirmCloseProto] = useState(false);
+  const [viewedProtoId, setViewedProtoId] = useState<string | null>(null);
+  const [protoForm, setProtoForm] = useState({ numero_pedido: "", numero_reserva: "", assunto_resumo: "" });
 
   const { data: attendants = [] } = useQuery({
     queryKey: ["chat", "attendants"],
@@ -725,6 +728,20 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
     refetchInterval: 60_000,
   });
 
+  useEffect(() => setViewedProtoId(null), [conv.id, protocolo?.id]);
+
+  const viewedProtocolo = viewedProtoId
+    ? protoHistory.find((p) => p.id === viewedProtoId) ?? protocolo
+    : protocolo;
+
+  useEffect(() => {
+    setProtoForm({
+      numero_pedido: viewedProtocolo?.numero_pedido ?? "",
+      numero_reserva: viewedProtocolo?.numero_reserva ?? "",
+      assunto_resumo: viewedProtocolo?.assunto_resumo ?? "",
+    });
+  }, [viewedProtocolo?.id, viewedProtocolo?.numero_pedido, viewedProtocolo?.numero_reserva, viewedProtocolo?.assunto_resumo]);
+
   const getOrdersFn = useServerFn(getConversationOrders);
   const { data: orders = [] } = useQuery({
     queryKey: ["chat", "orders", conv.id],
@@ -742,6 +759,27 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
       onChange();
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao encerrar"),
+  });
+
+  const updateProtoMut = useMutation({
+    mutationFn: async () => {
+      if (!viewedProtocolo) throw new Error("Selecione um protocolo");
+      return updateProtoFn({
+        data: {
+          conversation_id: conv.id,
+          protocolo_id: viewedProtocolo.id,
+          numero_pedido: protoForm.numero_pedido || null,
+          numero_reserva: protoForm.numero_reserva || null,
+          assunto_resumo: protoForm.assunto_resumo || null,
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Dados do protocolo salvos");
+      qc.invalidateQueries({ queryKey: ["chat", "active-protocolo", conv.id] });
+      qc.invalidateQueries({ queryKey: ["chat", "protocolo-history", conv.id] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao salvar"),
   });
 
   const modeMut = useMutation({
@@ -874,7 +912,7 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                         aberto <ChevronDown className="h-2.5 w-2.5" />
                       </button>
                     </DropdownMenuTrigger>
-                    <ProtocoloHistoryMenu previous={previous} />
+                    <ProtocoloHistoryMenu previous={previous} onSelect={setViewedProtoId} />
                   </DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -903,23 +941,66 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <ProtocoloHistoryMenu previous={previous} />
+                <ProtocoloHistoryMenu previous={previous} onSelect={setViewedProtoId} />
               </DropdownMenu>
             )}
           </Field>
 
-          {protocolo && (
-            <Field label="Necessidade do cliente">
-              {protocolo.assunto_resumo ? (
-                <div className="whitespace-pre-wrap rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[11px] leading-relaxed text-slate-700">
-                  {protocolo.assunto_resumo}
+          {viewedProtocolo && (
+            <div className="space-y-3 border-t border-slate-100 pt-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                  Dados do protocolo #{viewedProtocolo.numero}
                 </div>
-              ) : (
-                <div className="rounded-md border border-dashed border-slate-200 px-3 py-1.5 text-[11px] italic text-slate-400">
-                  Ainda não resumido — a IA preenche ao transferir.
-                </div>
-              )}
-            </Field>
+                {viewedProtocolo.id !== protocolo?.id && (
+                  <button
+                    type="button"
+                    onClick={() => setViewedProtoId(null)}
+                    className="text-[10px] font-medium text-[#F26B1F] hover:underline"
+                  >
+                    Voltar ao atual
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                <Field label="Número do pedido">
+                  <input
+                    value={protoForm.numero_pedido}
+                    onChange={(e) => setProtoForm((v) => ({ ...v, numero_pedido: e.target.value }))}
+                    placeholder="Digite o número do pedido"
+                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:outline-none"
+                  />
+                </Field>
+                <Field label="Número da reserva aérea">
+                  <input
+                    value={protoForm.numero_reserva}
+                    onChange={(e) => setProtoForm((v) => ({ ...v, numero_reserva: e.target.value.toUpperCase() }))}
+                    placeholder="Digite o número da reserva"
+                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs uppercase text-slate-800 placeholder:font-sans placeholder:normal-case placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:outline-none"
+                  />
+                </Field>
+                <Field label="Necessidade do cliente">
+                  <textarea
+                    value={protoForm.assunto_resumo}
+                    onChange={(e) => setProtoForm((v) => ({ ...v, assunto_resumo: e.target.value }))}
+                    rows={3}
+                    placeholder="Descreva a necessidade deste protocolo"
+                    className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[11px] leading-relaxed text-slate-700 placeholder:text-slate-400 focus:border-[#F26B1F]/50 focus:outline-none"
+                  />
+                </Field>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => updateProtoMut.mutate()}
+                disabled={updateProtoMut.isPending}
+                className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[#F26B1F] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {updateProtoMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Salvar dados do protocolo
+              </button>
+            </div>
           )}
 
           {/* Rodapé: metadados compactos */}
@@ -1007,7 +1088,7 @@ function fmtDateTime(iso: string | null): string {
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-function ProtocoloHistoryMenu({ previous }: { previous: Array<{ id: string; numero: string; opened_at: string; closed_at: string | null; status: string; assunto_resumo: string | null }> }) {
+function ProtocoloHistoryMenu({ previous, onSelect }: { previous: Array<{ id: string; numero: string; opened_at: string; closed_at: string | null; status: string; assunto_resumo: string | null; numero_pedido: string | null; numero_reserva: string | null }>; onSelect: (id: string) => void }) {
   return (
     <DropdownMenuContent align="end" className="w-72 max-h-72 overflow-y-auto">
       <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-slate-500">Protocolos anteriores</DropdownMenuLabel>
@@ -1016,7 +1097,7 @@ function ProtocoloHistoryMenu({ previous }: { previous: Array<{ id: string; nume
         <div className="px-2 py-3 text-center text-[11px] italic text-slate-500">Não há protocolos anteriores</div>
       ) : (
         previous.map((p) => (
-          <DropdownMenuItem key={p.id} className="flex flex-col items-start gap-0.5">
+          <DropdownMenuItem key={p.id} onSelect={() => onSelect(p.id)} className="flex cursor-pointer flex-col items-start gap-0.5">
             <div className="flex w-full items-center justify-between gap-2">
               <span className="font-mono text-xs font-semibold">#{p.numero}</span>
               <span className={cn(
