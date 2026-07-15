@@ -494,11 +494,18 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
   const stageFn = useServerFn(setFunnelStage);
   const assignFn = useServerFn(assignConversation);
   const listUsers = useServerFn(listAttendants);
+  const getProto = useServerFn(getActiveProtocolo);
 
   const { data: attendants = [] } = useQuery({
     queryKey: ["chat", "attendants"],
     queryFn: () => listUsers(),
     staleTime: 60_000,
+  });
+
+  const { data: protocolo } = useQuery({
+    queryKey: ["chat", "active-protocolo", conv.id],
+    queryFn: () => getProto({ data: { conversation_id: conv.id } }),
+    refetchInterval: 20_000,
   });
 
   const modeMut = useMutation({
