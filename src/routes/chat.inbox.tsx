@@ -605,6 +605,34 @@ function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }
           </DropdownMenu>
         </Field>
 
+        {protocolo && (
+          <>
+            <Field label="Protocolo atual">
+              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                <span className="font-mono text-xs font-semibold text-slate-800">#{protocolo.numero}</span>
+                <span className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  protocolo.status === "aberto" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600",
+                )}>
+                  {protocolo.status === "aberto" ? "aberto" : "encerrado"}
+                </span>
+              </div>
+            </Field>
+
+            <Field label="Necessidade do cliente">
+              {protocolo.assunto_resumo ? (
+                <div className="whitespace-pre-wrap rounded-md border border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed text-slate-700">
+                  {protocolo.assunto_resumo}
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed border-slate-200 px-3 py-2 text-xs italic text-slate-400">
+                  Ainda não resumido — a IA preenche ao transferir o atendimento.
+                </div>
+              )}
+            </Field>
+          </>
+        )}
+
         {conv.agent_slug && (
           <Field label="Último agente IA"><div className="text-sm text-slate-900 capitalize">{conv.agent_slug}</div></Field>
         )}
