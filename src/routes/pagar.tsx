@@ -110,9 +110,18 @@ function PayPage() {
   const [birthDate, setBirthDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [liveness, setLiveness] = useState<LivenessResult | null>(null);
+  // ClickSign embedded widget state
+  const [signingOpen, setSigningOpen] = useState(false);
+  const [creatingSignature, setCreatingSignature] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [requestSignatureKey, setRequestSignatureKey] = useState<string | null>(null);
+  const [csEndpoint, setCsEndpoint] = useState<string | null>(null);
+  const [signatureStatus, setSignatureStatus] = useState<"idle" | "pending" | "signed" | "refused">("idle");
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const createEmbeddedFn = useServerFn(createEmbeddedAuthorization);
+  const getPendingStatusFn = useServerFn(getPendingAuthorizationStatus);
+  const consumePendingFn = useServerFn(consumePendingAuthorizationSignature);
   
 
 
