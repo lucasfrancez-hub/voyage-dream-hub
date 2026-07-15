@@ -1139,6 +1139,88 @@ function ProtocoloHistoryMenu({ previous, onSelect }: { previous: Array<{ id: st
   );
 }
 
+function ProtocoloMessagesDialog({ protocoloId, protocolo, onClose }: {
+  protocoloId: string | null;
+  protocolo: { numero: string; opened_at: string; closed_at: string | null; assunto_resumo: string | null; numero_pedido: string | null; numero_reserva: string | null } | null;
+  onClose: () => void;
+}) {
+  const msgsFn = useServerFn(listProtocoloMessages);
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: ["chat", "proto-msgs", protocoloId],
+    queryFn: () => msgsFn({ data: { protocolo_id: protocoloId! } }),
+    enabled: !!protocoloId,
+  });
+
+  return (
+    <Dialog open={!!protocoloId} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="font-mono">
+            Protocolo #{protocolo?.numero ?? ""} <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-normal text-slate-600">somente leitura</span>
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {protocolo && (
+              <span>
+                Aberto em {fmtDateTime(protocolo.opened_at)}
+                {protocolo.closed_at && <> · Fechado em {fmtDateTime(protocolo.closed_at)}</>}
+                {protocolo.numero_pedido && <> · Pedido #{protocolo.numero_pedido}</>}
+                {protocolo.numero_reserva && <> · Reserva {protocolo.numero_reserva}</>}
+              </span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-3">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8 text-xs text-slate-500">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando conversa…
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="py-6 text-center text-xs italic text-slate-500">Nenhuma mensagem neste protocolo.</div>
+          ) : (
+            <div className="space-y-2">
+              {messages.map((m) => {
+                const who = m.direction === "inbound"
+                  ? "Cliente"
+                  : m.sender === "system"
+                    ? "Sistema"
+                    : m.sender === "human"
+                      ? (m.sender_full_name ?? "Atendente")
+                      : "IA";
+                const isInbound = m.direction === "inbound";
+                return (
+                  <div key={m.id} className={cn("flex", isInbound ? "justify-start" : "justify-end")}>
+                    <div className={cn(
+                      "max-w-[80%] rounded-lg px-3 py-1.5 text-xs",
+                      isInbound ? "bg-white text-slate-800 border border-slate-200" : "bg-[#F26B1F]/10 text-slate-800 border border-[#F26B1F]/20",
+                    )}>
+                      <div className="mb-0.5 flex items-center justify-between gap-3 text-[9px] uppercase tracking-wider text-slate-500">
+                        <span>{who}</span>
+                        <span>{fmtDateTime(m.created_at)}</span>
+                      </div>
+                      <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200"
+          >
+            Fechar
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+
 
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
