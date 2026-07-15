@@ -11,7 +11,9 @@ import {
   getOrCreateConversation,
   loadHistory,
   saveMessage,
+  ensureActiveProtocolo,
   type WaConversation,
+  type WaProtocolo,
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
