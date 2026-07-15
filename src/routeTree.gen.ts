@@ -50,6 +50,7 @@ import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.in
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
+import { Route as ApiPublicWaDebugRouteImport } from './routes/api/public/wa-debug'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
@@ -268,6 +269,11 @@ const ApiPublicWhatsappWebhookRoute =
     path: '/api/public/whatsapp-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWaDebugRoute = ApiPublicWaDebugRouteImport.update({
+  id: '/api/public/wa-debug',
+  path: '/api/public/wa-debug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicImportAereoRoute = ApiPublicImportAereoRouteImport.update({
   id: '/api/public/import-aereo',
   path: '/api/public/import-aereo',
@@ -371,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/wa-debug': typeof ApiPublicWaDebugRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -424,6 +431,7 @@ export interface FileRoutesByTo {
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/wa-debug': typeof ApiPublicWaDebugRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -479,6 +487,7 @@ export interface FileRoutesById {
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/wa-debug': typeof ApiPublicWaDebugRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -535,6 +544,7 @@ export interface FileRouteTypes {
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
+    | '/api/public/wa-debug'
     | '/api/public/whatsapp-webhook'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
@@ -588,6 +598,7 @@ export interface FileRouteTypes {
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
+    | '/api/public/wa-debug'
     | '/api/public/whatsapp-webhook'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
@@ -642,6 +653,7 @@ export interface FileRouteTypes {
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
+    | '/api/public/wa-debug'
     | '/api/public/whatsapp-webhook'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
@@ -672,6 +684,7 @@ export interface RootRouteChildren {
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
+  ApiPublicWaDebugRoute: typeof ApiPublicWaDebugRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -970,6 +983,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/wa-debug': {
+      id: '/api/public/wa-debug'
+      path: '/api/public/wa-debug'
+      fullPath: '/api/public/wa-debug'
+      preLoaderRoute: typeof ApiPublicWaDebugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/import-aereo': {
       id: '/api/public/import-aereo'
       path: '/api/public/import-aereo'
@@ -1159,6 +1179,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
+  ApiPublicWaDebugRoute: ApiPublicWaDebugRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
