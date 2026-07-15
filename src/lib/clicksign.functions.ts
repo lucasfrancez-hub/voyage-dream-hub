@@ -2,12 +2,29 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const CLICKSIGN_BASE_URL = "https://app.clicksign.com/api/v1";
-
-function getToken(): string {
-  const token = process.env.CLICKSIGN_API_TOKEN;
-  if (!token) throw new Error("CLICKSIGN_API_TOKEN não configurado");
-  return token;
+// Config sandbox vs produção.
+// - Se CLICKSIGN_SANDBOX_API_TOKEN estiver setado e CLICKSIGN_ENV != "production", usa sandbox
+// - Caso contrário, usa produção com CLICKSIGN_API_TOKEN
+function getClickSignConfig(): { token: string; baseUrl: string; endpoint: string; env: "sandbox" | "production" } {
+  const sandboxToken = process.env.CLICKSIGN_SANDBOX_API_TOKEN;
+  const prodToken = process.env.CLICKSIGN_API_TOKEN;
+  const forceProd = process.env.CLICKSIGN_ENV === "production";
+  const useSandbox = !!sandboxToken && !forceProd;
+  if (useSandbox) {
+    return {
+      token: sandboxToken!,
+      baseUrl: "https://sandbox.clicksign.com/api/v1",
+      endpoint: "https://sandbox.clicksign.com",
+      env: "sandbox",
+    };
+  }
+  if (!prodToken) throw new Error("CLICKSIGN_API_TOKEN não configurado");
+  return {
+    token: prodToken,
+    baseUrl: "https://app.clicksign.com/api/v1",
+    endpoint: "https://app.clicksign.com",
+    env: "production",
+  };
 }
 
 function agenciaConfig() {
@@ -18,9 +35,9 @@ function agenciaConfig() {
 }
 
 async function csFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getToken();
+  const cfg = getClickSignConfig();
   const sep = path.includes("?") ? "&" : "?";
-  const url = `${CLICKSIGN_BASE_URL}${path}${sep}access_token=${encodeURIComponent(token)}`;
+  const url = `${cfg.baseUrl}${path}${sep}access_token=${encodeURIComponent(cfg.token)}`;
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -31,7 +48,7 @@ async function csFetch<T = unknown>(path: string, init: RequestInit = {}): Promi
   });
   const text = await res.text();
   if (!res.ok) {
-    console.error(`[ClickSign] ${res.status} ${path} → ${text.slice(0, 500)}`);
+    console.error(`[ClickSign ${cfg.env}] ${res.status} ${path} → ${text.slice(0, 500)}`);
     throw new Error(`ClickSign ${res.status}: ${text.slice(0, 300)}`);
   }
   return text ? (JSON.parse(text) as T) : ({} as T);
@@ -453,4 +470,197 @@ export const syncSignatureFromClickSign = createServerFn({ method: "POST" })
     }
 
     return { ok: true, clicksignStatus: csStatus };
+  });
+
+// =============================================================================
+// EMBEDDED WIDGET — usado no link de cartão seguro (/pagar).
+// Fluxo público (sem auth): cliente preenche dados, gera PDF da autorização
+// no browser, chama esta fn, abre o widget, assina, e depois a fn
+// consumePendingAuthorizationSignature vincula o PDF assinado ao pedido
+// quando o "Fazer pedido" é enviado.
+// =============================================================================
+
+export const getEmbeddedClickSignEndpoint = createServerFn({ method: "GET" }).handler(async () => {
+  const cfg = getClickSignConfig();
+  return { endpoint: cfg.endpoint, env: cfg.env };
+});
+
+export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
+  .inputValidator((input: {
+    pdfBase64: string;
+    orderReference: string;
+    cliente: { nome: string; email: string; cpf: string; nascimento: string; telefone: string };
+    snapshot?: Record<string, unknown>;
+  }) =>
+    z
+      .object({
+        pdfBase64: z.string().min(100),
+        orderReference: z.string().min(1).max(120),
+        cliente: z.object({
+          nome: z.string().min(2),
+          email: z.string().email(),
+          cpf: z.string().min(11),
+          nascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data no formato YYYY-MM-DD"),
+          telefone: z.string().min(8),
+        }),
+        snapshot: z.record(z.string(), z.unknown()).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const cfg = getClickSignConfig();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1) Cria documento
+    const docPath = `/autorizacoes/autorizacao-${data.orderReference}-${Date.now()}.pdf`;
+    type DocResp = { document: { key: string; deadline_at: string; status: string } };
+    const deadlineAt = new Date();
+    deadlineAt.setDate(deadlineAt.getDate() + 7);
+    const docResp = await csFetch<DocResp>("/documents", {
+      method: "POST",
+      body: JSON.stringify({
+        document: {
+          path: docPath,
+          content_base64: `data:application/pdf;base64,${data.pdfBase64}`,
+          deadline_at: deadlineAt.toISOString(),
+          auto_close: true,
+          locale: "pt-BR",
+          sequence_enabled: false,
+        },
+      }),
+    });
+    const documentKey = docResp.document.key;
+
+    // 2) Cria signer com selfie liveness + foto do documento + geolocalização obrigatória
+    const cpfDigits = data.cliente.cpf.replace(/\D/g, "");
+    const phoneDigits = data.cliente.telefone.replace(/\D/g, "");
+    const phoneE164 = data.cliente.telefone.trim().startsWith("+")
+      ? `+${phoneDigits}`
+      : phoneDigits.startsWith("55")
+        ? `+${phoneDigits}`
+        : `+55${phoneDigits}`;
+
+    type SignerResp = { signer: { key: string } };
+    const signerResp = await csFetch<SignerResp>("/signers", {
+      method: "POST",
+      body: JSON.stringify({
+        signer: {
+          email: data.cliente.email,
+          phone_number: phoneE164,
+          name: data.cliente.nome,
+          documentation: cpfDigits,
+          birthday: data.cliente.nascimento,
+          has_documentation: true,
+          auths: ["email"],
+          liveness_enabled: true,
+          official_document_enabled: true,
+          location_required_enabled: true, // geolocalização OBRIGATÓRIA
+          selfie_enabled: true,
+          handwritten_enabled: false, // sem assinatura manuscrita
+        },
+      }),
+    });
+
+    // 3) Vincula signer ao documento — sem enviar notificações (widget)
+    type ListResp = { list: { request_signature_key: string } };
+    const listResp = await csFetch<ListResp>("/lists", {
+      method: "POST",
+      body: JSON.stringify({
+        list: {
+          document_key: documentKey,
+          signer_key: signerResp.signer.key,
+          sign_as: "party",
+          refusable: true,
+          message: `Autorização de débito — ${data.orderReference}`,
+          skip_email: true,
+        },
+      }),
+    });
+    const requestSignatureKey = listResp.list.request_signature_key;
+
+    // 4) Persiste registro pendente
+    const { data: pending, error } = await supabaseAdmin
+      .from("pending_authorization_signatures")
+      .insert({
+        clicksign_document_key: documentKey,
+        clicksign_signer_key: signerResp.signer.key,
+        clicksign_request_signature_key: requestSignatureKey,
+        status: "pending",
+        snapshot: (data.snapshot ?? {}) as never,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    return {
+      pendingId: pending.id,
+      requestSignatureKey,
+      documentKey,
+      endpoint: cfg.endpoint,
+      env: cfg.env,
+    };
+  });
+
+export const getPendingAuthorizationStatus = createServerFn({ method: "GET" })
+  .inputValidator((input: { pendingId: string }) =>
+    z.object({ pendingId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("pending_authorization_signatures")
+      .select("id,status,signed_at,clicksign_document_key")
+      .eq("id", data.pendingId)
+      .maybeSingle();
+    if (!row) throw new Error("Assinatura pendente não encontrada");
+    return { id: row.id, status: row.status, signedAt: row.signed_at };
+  });
+
+// Chamada após o "Fazer pedido" — copia PDF assinado pro pedido e cria registro
+// em pedido_assinaturas pra manter histórico consistente com o resto do sistema.
+export const consumePendingAuthorizationSignature = createServerFn({ method: "POST" })
+  .inputValidator((input: { pendingId: string; orderId: string }) =>
+    z.object({ pendingId: z.string().uuid(), orderId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: pending, error: eGet } = await supabaseAdmin
+      .from("pending_authorization_signatures")
+      .select("*")
+      .eq("id", data.pendingId)
+      .maybeSingle();
+    if (eGet) throw new Error(eGet.message);
+    if (!pending) throw new Error("Assinatura pendente não encontrada");
+    if (pending.status === "consumed") return { ok: true, alreadyConsumed: true };
+    if (pending.status !== "signed") throw new Error("Assinatura ainda não foi concluída");
+    if (!pending.signed_pdf_path) throw new Error("PDF assinado indisponível");
+
+    // Copia PDF para storage do pedido (order-documents) para aparecer em "Vouchers e contratos"
+    const { data: pdfBlob, error: eDl } = await supabaseAdmin.storage
+      .from("assinaturas")
+      .download(pending.signed_pdf_path);
+    if (eDl || !pdfBlob) throw new Error(`Falha ao ler PDF assinado: ${eDl?.message ?? "desconhecido"}`);
+    const buf = new Uint8Array(await pdfBlob.arrayBuffer());
+
+    const friendly = `${Date.now()}-autorizacao-debito-assinada.pdf`;
+    const contratoPath = `${data.orderId}/${friendly}`;
+    await supabaseAdmin.storage
+      .from("order-documents")
+      .upload(contratoPath, buf, { contentType: "application/pdf", upsert: true });
+
+    // Cria registro em pedido_assinaturas (closed) pra aparecer no card de assinaturas do pedido
+    await supabaseAdmin.from("pedido_assinaturas").insert({
+      pedido_id: data.orderId,
+      clicksign_document_key: pending.clicksign_document_key,
+      status: "closed",
+      signed_pdf_path: pending.signed_pdf_path,
+    });
+
+    await supabaseAdmin
+      .from("pending_authorization_signatures")
+      .update({ status: "consumed", consumed_order_id: data.orderId })
+      .eq("id", data.pendingId);
+
+    return { ok: true };
   });

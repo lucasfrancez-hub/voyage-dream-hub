@@ -1,63 +1,92 @@
-## O que vai mudar
+## O que muda para o cliente
 
-Cada conversa passa a ter **protocolos** numerados. Um protocolo abre quando o cliente inicia contato, e fecha automaticamente após **1 hora sem resposta**. Se o cliente voltar a falar depois disso, a Camila/Roberto avaliam: se é continuação do mesmo assunto, retomam o protocolo anterior; se é assunto novo, abrem um novo.
+Na página do **link de cartão seguro** (`/pagar`, modo `secureMode`):
 
-## 1. Banco (migration)
+Antes:
+1. Preenche dados + cartão
+2. Aceita termos
+3. Desenha assinatura no touchpad
+4. Faz verificação facial (liveness) próprio em 5 passos
+5. Clica "Fazer pedido"
 
-Nova tabela `wa_protocolos`:
-- `numero` (bigint, sequencial via sequence, exibido como `2026071500123`)
-- `conversation_id` (FK → wa_conversations)
-- `status` (`aberto` | `encerrado_inatividade` | `encerrado_manual`)
-- `assunto_resumo` (texto curto que a IA preenche pra decidir reabertura)
-- `opened_at`, `closed_at`, `last_activity_at`
-- `funnel_stage_final` (snapshot do estágio no encerramento)
+Depois:
+1. Preenche dados + cartão
+2. Aceita termos
+3. Clica em **"Assinar autorização com ClickSign"** → abre uma **janela embutida na própria página** (modal, sem redirect)
+4. Dentro do widget faz: selfie dinâmica (prova de vida) + foto do documento + **geolocalização obrigatória** + assinatura ICP-Brasil da ClickSign
+5. Widget confirma → botão "Fazer pedido" desbloqueia
+6. Clica "Fazer pedido" → pedido criado com PDF da autorização **já assinado e com o carimbo/página de certificação da ClickSign** anexado
 
-Em `wa_messages`: adicionar `protocolo_id` (FK) — cada mensagem pertence a um protocolo.
+Fluxo do **admin/pedidos** continua idêntico ao atual (contrato + recibo por e-mail/WhatsApp).
 
-Em `wa_conversations`: adicionar `protocolo_ativo_id` (FK, nullable).
+## O que muda por baixo
 
-## 2. Abertura automática
+### 1. Config do sandbox
+- Aproveitar o novo secret `CLICKSIGN_SANDBOX_API_TOKEN` que você acabou de salvar
+- Ler variável de ambiente `CLICKSIGN_ENV` (default `sandbox` enquanto testamos) para escolher entre sandbox e produção
+- Ajustar o helper `csFetch` em `src/lib/clicksign.functions.ts` pra usar `https://sandbox.clicksign.com/api/v1` + `CLICKSIGN_SANDBOX_API_TOKEN` quando estiver em sandbox
 
-Ao receber a **primeira mensagem inbound** sem protocolo ativo, cria protocolo novo. Camila/Roberto informam o número no **primeiro balão da saudação**:  
-*"Olá Lucas, sou Camila da VIA AIR"* → *"Seu protocolo de atendimento é 2026071500123"* → segue conversa normal.
+### 2. Nova server function
+`createEmbeddedAuthorization` em `src/lib/clicksign.functions.ts`:
+- Recebe: dados do cliente (nome, CPF, email, telefone, nascimento) + PDF da autorização em base64 + snapshot dos dados da autorização
+- Faz na ClickSign:
+  - Cria documento (`/documents`)
+  - Cria signer com `liveness_enabled: true`, `official_document_enabled: true`, `location_required_enabled: true` (geolocalização obrigatória), `handwritten_enabled: false`, `selfie_enabled: true`
+  - Vincula ao documento (`/lists`)
+  - **Não dispara notificações** (o cliente vai assinar direto no widget)
+  - Gera `request_signature_key` (que é retornado pelo `/lists`)
+- Persiste um registro provisório em uma nova tabela (ver item 4) para depois vincular ao pedido quando o "Fazer pedido" for clicado
+- Retorna `{ pendingId, requestSignatureKey, documentKey }`
 
-## 3. Encerramento por inatividade (cron)
+### 3. Componente `<ClickSignEmbedded />`
+Novo arquivo `src/components/ClickSignEmbedded.tsx`:
+- Carrega dinamicamente o script `https://cdn.clicksign.com/widget.js`
+- Recebe `requestSignatureKey` e callbacks `onSigned`, `onClosed`, `onResized`
+- Monta o widget em um `<div>` dentro de um `Dialog` (shadcn) — janela embutida na página, sem redirect
+- Detecta o evento `signed` do widget e chama `onSigned`
 
-Job `pg_cron` a cada 5 min chama `/api/public/hooks/close-inactive-protocols`:
-- Busca protocolos `aberto` cujo `last_activity_at < now() - interval '1 hour'`
-- Envia mensagem final via WhatsApp:  
-  *"Devido à inatividade, estou encerrando o protocolo 2026071500123 por aqui. Se ainda tiver interesse ou qualquer dúvida, é só chamar de novo que a gente continua o atendimento."*
-- Marca protocolo `encerrado_inatividade` e limpa `protocolo_ativo_id` da conversa.
+### 4. Nova tabela `pending_authorization_signatures`
+Antes de o pedido existir, precisamos guardar a assinatura pendente (não dá pra usar `pedido_assinaturas` porque exige `pedido_id`). Colunas:
+- `id`, `clicksign_document_key`, `clicksign_signer_key`, `clicksign_request_signature_key`
+- `status` (`pending` | `signed` | `refused`)
+- `signed_pdf_path` (preenchido pelo webhook quando a ClickSign avisa que assinou)
+- `snapshot` (jsonb com dados da autorização pra reconstruir)
+- `created_at`, `updated_at`
+- RLS: público pode inserir e ler pelo `id` (é fluxo público, sem auth); apenas service_role pode alterar
 
-## 4. Reabertura inteligente
+Quando o "Fazer pedido" for enviado com sucesso, o backend copia o PDF assinado do bucket `assinaturas` pro pedido criado e limpa o registro pendente (ou marca como consumido).
 
-Quando chega inbound e conversa não tem protocolo ativo mas tem protocolo recente encerrado (< 7 dias):
-- Runner passa contexto pra IA: "último protocolo #X, assunto: <assunto_resumo>. Cliente disse: <msg>. Isso é continuação ou assunto novo?"
-- IA responde via tool `retomar_protocolo` OU `novo_protocolo`
-- Retomar: reativa o protocolo antigo, associa a mensagem, saúda "Oi de novo, retomando nosso protocolo X"
-- Novo: cria novo protocolo, informa o número.
+### 5. Webhook `/api/public/clicksign-webhook`
+Já existe e trata `auto_close`/`close`. Estender pra:
+- Se o `document_key` for de um `pending_authorization_signatures` (e não de `pedido_assinaturas`), baixar o PDF assinado, salvar em `assinaturas/pending/{id}.pdf` e marcar `status = signed`
 
-## 5. UI — nova aba Protocolos
+### 6. Ajustes em `src/routes/pagar.tsx`
+- Remover `SignaturePad` e `FaceLiveness` do JSX (linhas 571 e 595)
+- Remover a captura de liveness/IP/geo próprios (linhas 160–256) — a ClickSign passa a coletar geolocalização
+- Substituir por um botão "Assinar autorização com ClickSign" que:
+  - Gera o PDF da autorização usando `buildAuthorizationBlob({ pendingSignature: true })` (já existe)
+  - Chama `createEmbeddedAuthorization` → recebe `requestSignatureKey`
+  - Abre modal com `<ClickSignEmbedded />`
+  - Faz polling curto (a cada 3s) do status ou espera o callback `onSigned` do widget + confirma pelo backend
+- Botão "Fazer pedido" só habilita quando `signatureStatus === 'signed'`
+- Ao clicar "Fazer pedido", envia o `pendingId` junto no `orders.insert` (no campo `package_snapshot.card_capture.clicksign`)
+- Trigger no backend (ou uma edge function chamada logo depois) copia o PDF assinado pro pedido
 
-Nova rota `/chat/protocolos` (item de menu abaixo de "Agente de Chat" na sidebar do /chat).
+### 7. Manter fallback
+Se `CLICKSIGN_SANDBOX_API_TOKEN` não estiver configurado ou der erro na ClickSign, mostrar mensagem clara pro cliente e admin — sem cair no fluxo antigo (senão a gente nunca sabe se tá funcionando no sandbox).
 
-Lista tabular:
-- Número | Cliente | Assunto | Status | Abertura | Encerramento | Estágio final
-- Filtros: status, período, busca por número/nome
-- Clicar → drawer com histórico completo daquele protocolo (mensagens read-only, ordenadas)
-- Botão "Abrir conversa" leva pro inbox no cliente
+## Como testar depois de implementado
 
-No **inbox atual**: badge com número do protocolo ativo no header do chat.
+1. Abrir um link de cartão seguro (ex: `/pagar?desc=...&total=1000&pedido=...&simples=0`)
+2. Preencher dados + cartão + aceitar termos
+3. Clicar "Assinar autorização com ClickSign" → widget abre na tela
+4. Fazer selfie, foto do documento, aprovar geolocalização
+5. Widget fecha automaticamente
+6. Clicar "Fazer pedido"
+7. Verificar no admin que o pedido veio com PDF assinado (com o carimbo ClickSign no fim)
 
-## 6. Detalhes técnicos
+## Fora do escopo
 
-- Sequence `wa_protocolo_seq` + função `gerar_numero_protocolo()` retorna `YYYYMMDD` + 5 dígitos.
-- Server functions: `listProtocolos`, `getProtocoloMessages`, `closeProtocoloManual`.
-- Ferramentas IA: `retomar_protocolo(protocolo_id)`, `encerrar_protocolo(motivo)`.
-- Todas mensagens (inbound e outbound) atualizam `last_activity_at` do protocolo ativo.
-- Mensagem de encerramento é enviada via `send.server.ts` como agente system, não conta como reset de inatividade.
-
-## Fora do escopo (confirmar depois)
-- Notificação push/email pro admin quando protocolo é encerrado por inatividade
-- Métrica de tempo médio de atendimento por protocolo no dashboard
-- Reabrir manualmente um protocolo encerrado pelo painel
+- Nada muda no fluxo de contrato+recibo dos pedidos do admin (ClickSignCard)
+- Não altera o link simples (`simples=1`) — continua sem exigir assinatura
+- Não altera pacotes prontos, checkout de pacote, boleto, etc.

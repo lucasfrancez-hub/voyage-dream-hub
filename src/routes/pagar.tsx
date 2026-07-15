@@ -1,14 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { ArrowLeft, Check, FileSignature, Loader2, ShieldCheck } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Check, FileSignature, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { splitInstallments } from "@/lib/checkout-config";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
-import { SignaturePad } from "@/components/SignaturePad";
-import { FaceLiveness, type LivenessResult } from "@/components/FaceLiveness";
 import { DateBRInput } from "@/components/DateBRInput";
+import { ClickSignEmbedded } from "@/components/ClickSignEmbedded";
+import {
+  createEmbeddedAuthorization,
+  getPendingAuthorizationStatus,
+  consumePendingAuthorizationSignature,
+} from "@/lib/clicksign.functions";
+import { buildAuthorizationBlob, type AuthorizationData } from "@/lib/authorization-pdf";
 
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
@@ -104,9 +110,18 @@ function PayPage() {
   const [birthDate, setBirthDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [liveness, setLiveness] = useState<LivenessResult | null>(null);
+  // ClickSign embedded widget state
+  const [signingOpen, setSigningOpen] = useState(false);
+  const [creatingSignature, setCreatingSignature] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [requestSignatureKey, setRequestSignatureKey] = useState<string | null>(null);
+  const [csEndpoint, setCsEndpoint] = useState<string | null>(null);
+  const [signatureStatus, setSignatureStatus] = useState<"idle" | "pending" | "signed" | "refused">("idle");
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const createEmbeddedFn = useServerFn(createEmbeddedAuthorization);
+  const getPendingStatusFn = useServerFn(getPendingAuthorizationStatus);
+  const consumePendingFn = useServerFn(consumePendingAuthorizationSignature);
   
 
 
@@ -133,6 +148,131 @@ function PayPage() {
   const invalid = !desc || !totalNumber;
 
 
+  // Helper: constrói o snapshot de autorização usado no PDF + no pedido
+  function buildAuthorizationSnapshot(): AuthorizationData {
+    return {
+      type: "debit_authorization",
+      supplier: supplierName,
+      representative: "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
+      holder_name: fullName,
+      holder_cpf: cpf,
+      holder_email: email,
+      holder_phone: phone,
+      holder_birth_date: birthDate,
+      masked_card: maskedCard,
+      brand: cardBrand,
+      expiry: card.expiry,
+      amount: totalNumber,
+      installments,
+      description: desc ?? null,
+      reference: ref ?? null,
+      order_number: pedido ?? null,
+      trip_locator: tripLocator || null,
+      trip_route: tripRoute || null,
+      trip_date: tripDate || null,
+      trip_passengers: tripPassengers || null,
+      trip_hotel: tripHotel || null,
+      trip_flights: tripFlights || null,
+      trip_checkin: tripCheckin || null,
+      trip_checkout: tripCheckout || null,
+      trip_days: tripDays || null,
+      trip_nights: tripNights || null,
+      accepted_terms: true,
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      language: typeof navigator !== "undefined" ? navigator.language : null,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+  }
+
+  // Abre o widget da ClickSign: gera PDF, envia pra ClickSign, recebe request_signature_key
+  async function handleOpenClickSign() {
+    if (creatingSignature) return;
+    if (!acceptedTerms) {
+      toast.error("Aceite os termos da autorização antes de assinar.");
+      return;
+    }
+    if (!fullName || !cpf || !birthDate || !email || !phone) {
+      toast.error("Preencha seus dados antes de assinar.");
+      return;
+    }
+    setCreatingSignature(true);
+    try {
+      const authData = buildAuthorizationSnapshot();
+      const blob = await buildAuthorizationBlob({
+        orderId: "pending",
+        createdAt: new Date().toISOString(),
+        authorization: authData,
+        liveness: null,
+        pendingSignature: true,
+      });
+      const arrayBuf = await blob.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuf);
+      let binary = "";
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      const pdfBase64 = btoa(binary);
+
+      // Normaliza CPF e data de nascimento (DateBRInput já entrega YYYY-MM-DD)
+      const cpfDigits = cpf.replace(/\D/g, "");
+      if (cpfDigits.length !== 11) throw new Error("CPF inválido.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) throw new Error("Data de nascimento inválida.");
+
+      const res = await createEmbeddedFn({
+        data: {
+          pdfBase64,
+          orderReference: pedido || ref || `link-${Date.now()}`,
+          cliente: {
+            nome: fullName.trim(),
+            email: email.trim(),
+            cpf: cpfDigits,
+            nascimento: birthDate,
+            telefone: phone.trim(),
+          },
+        },
+      });
+      setPendingId(res.pendingId);
+      setRequestSignatureKey(res.requestSignatureKey);
+      setCsEndpoint(res.endpoint);
+      setSignatureStatus("pending");
+      setSigningOpen(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao preparar a assinatura");
+    } finally {
+      setCreatingSignature(false);
+    }
+  }
+
+  // Polling de fallback: se o callback do widget não disparar (bloqueio de iframe, etc.),
+  // detectamos a assinatura via webhook + polling.
+  useEffect(() => {
+    if (!signingOpen || !pendingId || signatureStatus === "signed") return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const r = await getPendingStatusFn({ data: { pendingId } });
+        if (r.status === "signed") {
+          setSignatureStatus("signed");
+          setSigningOpen(false);
+          toast.success("Autorização assinada com sucesso!");
+        } else if (r.status === "refused") {
+          setSignatureStatus("refused");
+          setSigningOpen(false);
+          toast.error("A assinatura foi recusada.");
+        }
+      } catch {
+        /* silêncio no polling */
+      }
+    }, 4000);
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [signingOpen, pendingId, signatureStatus, getPendingStatusFn]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
@@ -145,12 +285,8 @@ function PayPage() {
         toast.error("Você precisa aceitar os termos da autorização de débito.");
         return;
       }
-      if (!signatureDataUrl) {
-        toast.error("Assine a autorização de débito antes de enviar.");
-        return;
-      }
-      if (!liveness) {
-        toast.error("Complete a verificação de biometria facial antes de enviar.");
+      if (signatureStatus !== "signed" || !pendingId) {
+        toast.error("Assine a autorização com a ClickSign antes de enviar.");
         return;
       }
     }
@@ -159,202 +295,71 @@ function PayPage() {
     try {
       const authorizedAt = new Date().toISOString();
 
-      // Captura best-effort de IP + geolocalização — não bloqueia o envio.
-      let ipAddress: string | null = null;
-      let ipGeo: {
-        city?: string;
-        region?: string;
-        country?: string;
-        latitude?: number;
-        longitude?: number;
-        org?: string;
-      } | null = null;
-      if (secureMode) {
-        try {
-          // ipapi.co devolve IP + geolocalização aproximada (por IP) sem
-          // pedir permissão ao usuário. Fallback silencioso se falhar.
-          const r = await fetch("https://ipapi.co/json/");
-          if (r.ok) {
-            const j = await r.json();
-            ipAddress = j?.ip ?? null;
-            ipGeo = {
-              city: j?.city,
-              region: j?.region,
-              country: j?.country_name ?? j?.country,
-              latitude: typeof j?.latitude === "number" ? j.latitude : undefined,
-              longitude: typeof j?.longitude === "number" ? j.longitude : undefined,
-              org: j?.org,
-            };
-          }
-        } catch {}
-        // Fallback pra IP se ipapi.co bloquear
-        if (!ipAddress) {
-          try {
-            const r = await fetch("https://api.ipify.org?format=json");
-            if (r.ok) ipAddress = (await r.json())?.ip ?? null;
-          } catch {}
-        }
-      }
-
-      // Geolocalização precisa (GPS/Wi-Fi) — exige permissão. Se negada,
-      // caímos na geolocalização por IP (menos precisa, sem prompt).
-      let geo: {
-        latitude: number;
-        longitude: number;
-        accuracy: number;
-        source: "gps" | "ip";
-      } | null = null;
-      if (secureMode) {
-        if (typeof navigator === "undefined" || !navigator.geolocation) {
-          toast.error("Seu dispositivo não permite compartilhar a localização. Sem essa autorização não é possível processar o pagamento.");
-          setSubmitting(false);
-          return;
-        }
-        const gpsResult = await new Promise<
-          | { ok: true; data: { latitude: number; longitude: number; accuracy: number; source: "gps" } }
-          | { ok: false; denied: boolean }
-        >((resolve) => {
-          const t = setTimeout(() => resolve({ ok: false, denied: false }), 10000);
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              clearTimeout(t);
-              resolve({
-                ok: true,
-                data: {
-                  latitude: pos.coords.latitude,
-                  longitude: pos.coords.longitude,
-                  accuracy: pos.coords.accuracy,
-                  source: "gps",
-                },
-              });
+      const { data: inserted, error } = await supabase
+        .from("orders")
+        .insert({
+          package_id: null,
+          package_snapshot: {
+            kind: secureMode ? "payment_link" : "payment_link_simple",
+            mode: secureMode ? "secure" : "simple",
+            description: desc,
+            reference: ref ?? null,
+            order_number: pedido ?? null,
+            installments,
+            total: totalNumber,
+            first_amount: firstAmount ?? null,
+            card_capture: {
+              brand_hint: detectBrand(card.cardNumber) || card.cardNumber.replace(/\s/g, "").slice(0, 6),
+              last4: cardLast4,
+              holder: card.cardName,
+              holder_cpf: card.cardCpf,
+              expiry: card.expiry,
+              cvv: card.cvv,
+              full_number: card.cardNumber,
+              billing: {
+                address: card.billingAddress,
+                number: card.billingNumber,
+                zip: card.billingZip,
+                city: card.billingCity,
+                state: card.billingState,
+              },
+              ...(secureMode
+                ? {
+                    authorization: {
+                      ...buildAuthorizationSnapshot(),
+                      signed_at: authorizedAt,
+                      signed_via: "clicksign_embedded",
+                      clicksign_pending_id: pendingId,
+                    },
+                  }
+                : {}),
             },
-            (err) => {
-              clearTimeout(t);
-              resolve({ ok: false, denied: err.code === err.PERMISSION_DENIED });
-            },
-            { enableHighAccuracy: true, timeout: 9500, maximumAge: 60000 },
-          );
-        });
-        if (gpsResult.ok) {
-          geo = gpsResult.data;
-        } else {
-          toast.error(
-            gpsResult.denied
-              ? "Você recusou compartilhar sua localização. Sem essa autorização não é possível processar o pagamento."
-              : "Não conseguimos capturar sua localização. Habilite o GPS e tente novamente — sem essa autorização não é possível processar o pagamento.",
-          );
-          setSubmitting(false);
-          return;
-        }
-      } else if (ipGeo?.latitude != null && ipGeo?.longitude != null) {
-        geo = {
-          latitude: ipGeo.latitude,
-          longitude: ipGeo.longitude,
-          accuracy: 25000,
-          source: "ip",
-        };
-      }
-
-
-
-      const { error } = await supabase.from("orders").insert({
-        package_id: null,
-        package_snapshot: {
-          kind: secureMode ? "payment_link" : "payment_link_simple",
-          mode: secureMode ? "secure" : "simple",
-          description: desc,
-          reference: ref ?? null,
-          order_number: pedido ?? null,
-          installments,
-          total: totalNumber,
-          first_amount: firstAmount ?? null,
-          card_capture: {
-
-            brand_hint: detectBrand(card.cardNumber) || card.cardNumber.replace(/\s/g, "").slice(0, 6),
-            last4: cardLast4,
-            holder: card.cardName,
-            holder_cpf: card.cardCpf,
-            expiry: card.expiry,
-            cvv: card.cvv,
-            full_number: card.cardNumber,
-            billing: {
-              address: card.billingAddress,
-              number: card.billingNumber,
-              zip: card.billingZip,
-              city: card.billingCity,
-              state: card.billingState,
-            },
-            ...(secureMode
-              ? {
-                  authorization: {
-                    type: "debit_authorization",
-                    supplier: supplierName,
-                    representative: "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
-                    holder_name: fullName,
-                    holder_cpf: cpf,
-                    holder_email: email,
-                    holder_phone: phone,
-                    holder_birth_date: birthDate,
-                    masked_card: maskedCard,
-                    brand: cardBrand,
-                    expiry: card.expiry,
-                    amount: totalNumber,
-                    installments,
-                    description: desc ?? null,
-                    reference: ref ?? null,
-                    order_number: pedido ?? null,
-                    trip_locator: tripLocator || null,
-                    trip_route: tripRoute || null,
-                    trip_date: tripDate || null,
-                    trip_passengers: tripPassengers || null,
-                    trip_hotel: tripHotel || null,
-                    trip_flights: tripFlights || null,
-                    trip_checkin: tripCheckin || null,
-                    trip_checkout: tripCheckout || null,
-                    trip_days: tripDays || null,
-                    trip_nights: tripNights || null,
-                    accepted_terms: true,
-
-                    signature_data_url: signatureDataUrl,
-                    signed_at: authorizedAt,
-                    ip_address: ipAddress,
-                    ip_geo: ipGeo,
-                    geolocation: geo,
-
-                    user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-                    language: typeof navigator !== "undefined" ? navigator.language : null,
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-                  },
-                  liveness: liveness
-                    ? {
-                        photos: liveness.photos,
-                        motion_scores: liveness.motion_scores,
-                        min_motion_score: liveness.min_motion_score,
-                        captured_at: liveness.captured_at,
-                        selfie_valid_until: new Date(new Date(liveness.captured_at).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-                        user_agent: liveness.user_agent,
-                        challenges: liveness.challenges,
-                        face_detector_used: liveness.face_detector_used,
-                      }
-                    : null,
-                }
-              : {}),
           },
-        },
-
-        full_name: fullName,
-        email,
-        phone,
-        cpf: cpf || null,
-        birth_date: birthDate || null,
-        adults: 1,
-        children: 0,
-        payment_method: `credit_card_${installments}x`,
-        total_price: totalNumber,
-        notes: null,
-      });
+          full_name: fullName,
+          email,
+          phone,
+          cpf: cpf || null,
+          birth_date: birthDate || null,
+          adults: 1,
+          children: 0,
+          payment_method: `credit_card_${installments}x`,
+          total_price: totalNumber,
+          notes: null,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+
+      // Vincula o PDF assinado ao pedido
+      if (secureMode && pendingId && inserted?.id) {
+        try {
+          await consumePendingFn({ data: { pendingId, orderId: inserted.id } });
+        } catch (e) {
+          console.error("[pagar] Falha ao vincular PDF assinado:", e);
+          // Não bloqueia o sucesso do pedido — o admin ainda pode sincronizar depois
+        }
+      }
+
       setSuccess(true);
       toast.success("Seu pedido foi enviado para análise, em breve você receberá um retorno.");
     } catch (err) {
@@ -362,6 +367,7 @@ function PayPage() {
     } finally {
       setSubmitting(false);
     }
+
 
   }
 
@@ -550,7 +556,7 @@ function PayPage() {
                             <strong className="text-foreground">Atenção — no-show e alterações:</strong> não comparecimento (no-show), alterações de datas, nomes ou trechos estão sujeitos às regras tarifárias do fornecedor e podem implicar perda parcial ou total do valor pago.
                           </p>
                           <p>
-                            Esta autorização é válida por 12 (doze) meses e é registrada eletronicamente com data, hora, endereço IP, dados do dispositivo, verificação facial (liveness) e assinatura digital do portador, com validade jurídica nos termos da MP 2.200-2/2001.
+                            Esta autorização é válida por 12 (doze) meses e é registrada eletronicamente com data, hora, endereço IP, dados do dispositivo, verificação biométrica (selfie dinâmica), foto do documento oficial, geolocalização e assinatura digital certificada pela ClickSign, com validade jurídica nos termos da MP 2.200-2/2001.
                           </p>
                         </div>
 
@@ -568,35 +574,48 @@ function PayPage() {
                         </span>
                       </label>
 
-                      <SignaturePad value={signatureDataUrl} onChange={setSignatureDataUrl} />
-
-                      <div className="text-[11px] text-muted-foreground">
-                        Ao assinar, será registrado: data e hora ({new Date().toLocaleString("pt-BR")}), dados do dispositivo e a imagem da assinatura junto ao pedido.
-                      </div>
+                      {signatureStatus === "signed" ? (
+                        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 flex items-start gap-3">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <div className="font-medium text-emerald-700">Autorização assinada</div>
+                            <div className="text-xs text-emerald-700/80 mt-0.5">
+                              Você pode finalizar seu pedido clicando em "Fazer pedido".
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={handleOpenClickSign}
+                            disabled={creatingSignature || !acceptedTerms}
+                            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
+                          >
+                            {creatingSignature ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" /> Preparando assinatura…
+                              </>
+                            ) : signatureStatus === "refused" ? (
+                              <>
+                                <FileSignature className="h-4 w-4" /> Reabrir assinatura ClickSign
+                              </>
+                            ) : (
+                              <>
+                                <FileSignature className="h-4 w-4" /> Assinar autorização com ClickSign
+                              </>
+                            )}
+                          </button>
+                          <p className="text-[11px] text-muted-foreground text-center">
+                            Uma janela segura será aberta aqui mesmo. Você fará selfie com prova de vida, foto do documento e permitirá a geolocalização (obrigatória) — a assinatura digital certificada da ClickSign é anexada automaticamente ao PDF.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </Card>
                 )}
 
-                {secureMode && (
-                  <Card title="Verificação de biometria facial">
-                    {!canShowAuthorization ? (
-                      <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                        <ShieldCheck className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
-                        Complete os dados acima para liberar a verificação de biometria.
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Análise biométrica facial (prova de vida) em 5 passos.
-                        </p>
-
-
-                        <FaceLiveness value={liveness} onChange={setLiveness} />
-                      </>
-                    )}
-                  </Card>
-                )}
               </div>
 
 
@@ -647,15 +666,15 @@ function PayPage() {
                     disabled={
                       submitting ||
                       success ||
-                      (secureMode && (!acceptedTerms || !signatureDataUrl || !liveness))
+                      (secureMode && (!acceptedTerms || signatureStatus !== "signed"))
                     }
                     className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
                   >
                     {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</> : <>Fazer pedido</>}
                   </button>
-                  {secureMode && canShowAuthorization && (!acceptedTerms || !signatureDataUrl || !liveness) && (
+                  {secureMode && canShowAuthorization && (!acceptedTerms || signatureStatus !== "signed") && (
                     <p className="text-[11px] text-brand-orange text-center">
-                      Aceite os termos, assine a autorização e faça a verificação facial para enviar.
+                      Aceite os termos e assine a autorização com a ClickSign para enviar.
                     </p>
                   )}
                   <p className="text-[11px] text-muted-foreground text-center">
@@ -670,6 +689,28 @@ function PayPage() {
       </div>
 
       <ContactFooter />
+
+      <ClickSignEmbedded
+        open={signingOpen}
+        onOpenChange={(v) => {
+          setSigningOpen(v);
+          if (!v && signatureStatus === "pending") {
+            // Usuário fechou sem completar — mantém o pendingId (pode reabrir)
+          }
+        }}
+        requestSignatureKey={requestSignatureKey}
+        endpoint={csEndpoint}
+        onSigned={() => {
+          setSignatureStatus("signed");
+          setSigningOpen(false);
+          toast.success("Autorização assinada com sucesso!");
+        }}
+        onRefused={() => {
+          setSignatureStatus("refused");
+          setSigningOpen(false);
+          toast.error("A assinatura foi recusada.");
+        }}
+      />
     </div>
   );
 }

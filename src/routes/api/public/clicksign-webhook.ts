@@ -74,8 +74,63 @@ export const Route = createFileRoute("/api/public/clicksign-webhook")({
           .eq("clicksign_document_key", documentKey)
           .maybeSingle();
 
+        // Se não é uma assinatura de pedido, pode ser uma assinatura pendente
+        // do link de cartão seguro (widget embedded).
         if (!assinatura) {
-          console.warn("[clicksign-webhook] assinatura não encontrada para", documentKey);
+          const { data: pending } = await supabaseAdmin
+            .from("pending_authorization_signatures")
+            .select("id,status")
+            .eq("clicksign_document_key", documentKey)
+            .maybeSingle();
+
+          if (!pending) {
+            console.warn("[clicksign-webhook] assinatura não encontrada para", documentKey);
+            return new Response("ok");
+          }
+
+          await supabaseAdmin
+            .from("pending_authorization_signatures")
+            .update({ raw_last_event: JSON.parse(JSON.stringify(payload)) })
+            .eq("id", pending.id);
+
+          if (eventName === "refusal" || eventName === "refuse") {
+            await supabaseAdmin
+              .from("pending_authorization_signatures")
+              .update({ status: "refused" })
+              .eq("id", pending.id);
+          } else if (eventName === "cancel") {
+            await supabaseAdmin
+              .from("pending_authorization_signatures")
+              .update({ status: "canceled" })
+              .eq("id", pending.id);
+          } else if (eventName === "auto_close" || eventName === "close" || eventName === "sign") {
+            const signedFileUrl = payload.document?.downloads?.signed_file_url;
+            let signedPdfPath: string | null = null;
+            if (signedFileUrl) {
+              try {
+                const pdfRes = await fetch(signedFileUrl);
+                if (pdfRes.ok) {
+                  const buf = new Uint8Array(await pdfRes.arrayBuffer());
+                  const path = `pending/${pending.id}.pdf`;
+                  const { error: upErr } = await supabaseAdmin.storage
+                    .from("assinaturas")
+                    .upload(path, buf, { contentType: "application/pdf", upsert: true });
+                  if (!upErr) signedPdfPath = path;
+                }
+              } catch (e) {
+                console.error("[clicksign-webhook][pending] erro baixando PDF:", e);
+              }
+            }
+            await supabaseAdmin
+              .from("pending_authorization_signatures")
+              .update({
+                status: "signed",
+                signed_at: new Date().toISOString(),
+                ...(signedPdfPath ? { signed_pdf_path: signedPdfPath } : {}),
+              })
+              .eq("id", pending.id);
+          }
+
           return new Response("ok");
         }
 
