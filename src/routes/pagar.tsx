@@ -556,7 +556,7 @@ function PayPage() {
                             <strong className="text-foreground">Atenção — no-show e alterações:</strong> não comparecimento (no-show), alterações de datas, nomes ou trechos estão sujeitos às regras tarifárias do fornecedor e podem implicar perda parcial ou total do valor pago.
                           </p>
                           <p>
-                            Esta autorização é válida por 12 (doze) meses e é registrada eletronicamente com data, hora, endereço IP, dados do dispositivo, verificação facial (liveness) e assinatura digital do portador, com validade jurídica nos termos da MP 2.200-2/2001.
+                            Esta autorização é válida por 12 (doze) meses e é registrada eletronicamente com data, hora, endereço IP, dados do dispositivo, verificação biométrica (selfie dinâmica), foto do documento oficial, geolocalização e assinatura digital certificada pela ClickSign, com validade jurídica nos termos da MP 2.200-2/2001.
                           </p>
                         </div>
 
