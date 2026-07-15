@@ -82,9 +82,8 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
             if (!conv) continue;
 
             const avisoMsg =
-              `Notei que ficou um tempinho sem responder por aqui.\n\n` +
-              `Como já se passou mais de uma hora, se você não voltar em breve vou precisar encerrar esse atendimento (protocolo ${proto.numero}).\n\n` +
-              `Mas fica tranquila(o), qualquer coisa é só mandar mensagem que a gente volta a tratar do assunto de onde parou. 😊`;
+              `Notei que ficou um tempinho sem responder por aqui. Vou encerrar o atendimento por aqui, mas fique tranquila(o), qualquer coisa é só mandar mensagem que a gente volta a tratar do assunto de onde parou, ok? 😊`;
+
 
             await sendWhatsAppBubbles(conv.wa_phone, avisoMsg);
 
