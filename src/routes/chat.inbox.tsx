@@ -60,8 +60,9 @@ function InboxPage() {
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
       if (folder === "ai" && c.mode !== "ai") return false;
-      if (folder === "human" && c.mode !== "human") return false;
+      if (folder === "human" && c.mode !== "human" && !(c.tags ?? []).includes("aguardando_humano")) return false;
       if (folder === "resolved" && c.mode !== "resolved") return false;
+
       if (search) {
         const s = search.toLowerCase();
         return (c.display_name?.toLowerCase().includes(s) || c.wa_phone.includes(s));
