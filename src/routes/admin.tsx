@@ -211,13 +211,15 @@ function AdminLayout() {
           </div>
           <div className="flex items-center gap-2">
             {isAdmin && <AdminNotificationBell />}
-            <Link
-              to="/chat"
+            <a
+              href="/chat"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange/15 px-3 py-1.5 text-xs font-medium text-brand-orange transition-colors hover:bg-brand-orange/25"
-              title="Central de atendimento WhatsApp + IA"
+              title="Central de atendimento WhatsApp + IA (abre em nova aba)"
             >
               <MessageCircle className="h-3.5 w-3.5" /> Chat
-            </Link>
+            </a>
             <a
               href="https://viaair.tur.br"
               target="_blank"

@@ -289,15 +289,18 @@ function useWallpaper() {
   const [key, setKey] = useState<string>("dots");
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("chat-wallpaper");
+    const saved = localStorage.getItem("chat-wallpaper-v2");
     if (saved) setKey(saved);
   }, []);
   const set = (k: string) => {
     setKey(k);
-    if (typeof window !== "undefined") localStorage.setItem("chat-wallpaper", k);
+    if (typeof window !== "undefined") localStorage.setItem("chat-wallpaper-v2", k);
   };
   const cur = WALLPAPERS.find((w) => w.key === key) ?? WALLPAPERS[0];
-  const style: React.CSSProperties = { backgroundImage: cur.css };
+  const style: React.CSSProperties = {
+    backgroundImage: cur.css,
+    backgroundColor: "var(--chat-conversation)",
+  };
   if (cur.key === "grid") style.backgroundSize = "24px 24px";
   if (cur.key === "dots") style.backgroundSize = "18px 18px";
   return { key, set, style };
