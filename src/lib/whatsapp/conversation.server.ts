@@ -16,6 +16,7 @@ export type WaConversation = {
   identity_verified_cpf: string | null;
   last_message_at: string;
   tags: string[];
+  protocolo_ativo_id: string | null;
 };
 
 export type WaMessage = {
@@ -26,8 +27,24 @@ export type WaMessage = {
   content: string;
   wa_message_id: string | null;
   tool_calls: unknown | null;
+  protocolo_id: string | null;
   created_at: string;
 };
+
+export type WaProtocolo = {
+  id: string;
+  numero: string;
+  conversation_id: string;
+  status: "aberto" | "encerrado_inatividade" | "encerrado_manual";
+  assunto_resumo: string | null;
+  opened_at: string;
+  last_activity_at: string;
+  closed_at: string | null;
+};
+
+// Janela pra reabrir o último protocolo sem gerar um novo (continuação do mesmo assunto).
+const REOPEN_WINDOW_MS = 2 * 60 * 60 * 1000; // 2h
+
 
 function digits(s: string): string {
   return s.replace(/\D/g, "");
