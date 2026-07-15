@@ -153,7 +153,7 @@ function InboxPage() {
               ))}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 space-y-1 overflow-y-auto p-2">
             {filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
             ) : (
