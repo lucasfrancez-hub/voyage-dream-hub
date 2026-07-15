@@ -76,8 +76,43 @@
 
 }
 
+/* Central de atendimento — modo CLARO (via .chat-light no wrapper).
+   Sobrescreve a paleta escura do :root apenas dentro de /chat, pra
+   nenhuma parte do fundo escapar preto quando o modo claro está ativo. */
+.chat-light {
+  --background: oklch(0.98 0.005 235);
+  --foreground: oklch(0.18 0.02 235);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 235);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 235);
+  --primary-foreground: oklch(1 0 0);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.95 0.008 235);
+  --muted-foreground: oklch(0.45 0.02 235);
+  --accent: oklch(0.95 0.012 60);
+  --accent-foreground: oklch(0.18 0.02 235);
+  --border: oklch(0.88 0.01 235);
+  --input: oklch(0.92 0.01 235);
+}
+
 /* Central de atendimento — modo ESCURO (aplicado via .chat-dark no wrapper) */
 .chat-dark {
+  --background: oklch(0.16 0.025 235);
+  --foreground: oklch(0.98 0.005 235);
+  --card: oklch(0.21 0.03 235);
+  --card-foreground: oklch(0.98 0.005 235);
+  --popover: oklch(0.21 0.03 235);
+  --popover-foreground: oklch(0.98 0.005 235);
+  --primary-foreground: oklch(0.16 0.025 235);
+  --secondary-foreground: oklch(0.98 0.005 235);
+  --muted: oklch(0.24 0.025 235);
+  --muted-foreground: oklch(0.75 0.02 235);
+  --accent: oklch(0.28 0.04 235);
+  --accent-foreground: oklch(0.98 0.005 235);
+  --border: oklch(0.32 0.03 235 / 60%);
+  --input: oklch(0.30 0.03 235);
+
   --chat-bg: oklch(0.14 0.02 235);
   --chat-panel: oklch(0.19 0.025 235);
   --chat-panel-raised: oklch(0.23 0.028 235);
@@ -85,15 +120,8 @@
   --chat-bubble-in: oklch(0.23 0.02 235);
   --chat-bubble-out: oklch(0.27 0.055 55);
   --chat-bubble-fg: oklch(0.98 0.005 235);
-
-
-
-  --gradient-hero: linear-gradient(180deg, oklch(0.16 0.025 235 / 0.55) 0%, oklch(0.16 0.025 235 / 0.7) 60%, oklch(0.16 0.025 235 / 0.95) 100%);
-  --gradient-brand: linear-gradient(135deg, var(--brand-orange), oklch(0.68 0.16 45));
-  --gradient-blue: linear-gradient(135deg, var(--brand-blue), oklch(0.42 0.10 235));
-  --shadow-glow: 0 20px 60px -20px oklch(0.75 0.14 60 / 0.4);
-  --shadow-card: 0 10px 40px -10px oklch(0 0 0 / 0.5);
 }
+
 
 @layer base {
   * { border-color: var(--color-border); }
