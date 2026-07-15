@@ -105,12 +105,14 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
           }
         }
 
-        // ============ 2) ENCERRAMENTO (3h sem resposta) ============
+        // ============ 2) ENCERRAMENTO (+1h após o aviso) ============
         const { data: toClose, error: closeErr } = await supabaseAdmin
           .from("wa_protocolos")
           .select("id, numero, conversation_id")
           .eq("status", "aberto")
-          .lt("last_activity_at", closeCutoff)
+          .not("inactivity_warned_at", "is", null)
+          .lt("inactivity_warned_at", closeAfterWarn)
+          .lt("last_activity_at", closeAfterWarn)
           .limit(50);
 
         if (closeErr) {
@@ -128,9 +130,8 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               .maybeSingle();
             if (!conv) continue;
 
-            const encerramentoMsg =
-              `Como não tive mais retorno, vou encerrar o protocolo ${proto.numero} por aqui. ✅\n\n` +
-              `Se precisar de qualquer coisa é só mandar mensagem que a gente abre um novo atendimento na hora. Obrigado pelo contato com a VIA AIR!`;
+            const encerramentoMsg = `Atendimento encerrado, protocolo ${proto.numero}.`;
+
 
             await sendWhatsAppBubbles(conv.wa_phone, encerramentoMsg);
 
