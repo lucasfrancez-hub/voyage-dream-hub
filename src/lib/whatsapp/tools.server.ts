@@ -36,13 +36,16 @@ export function buildCamilaTools(conversation: WaConversation) {
   return {
     consultar_pedido: tool({
       description:
-        "Busca um pedido pelo número (8 dígitos) ou pelo CPF do cliente. Retorna status, viajantes, voos, hotel e pagamentos. Use quando o cliente perguntar sobre um pedido específico.",
+        "Busca um pedido por UMA de três opções equivalentes: número do pedido, localizador/número da reserva ou CPF. Se o cliente já forneceu uma delas, consulte imediatamente e nunca peça outra. Retorna status, viajantes, voos, hotel e pagamentos.",
       inputSchema: z.object({
         numero: z.string().nullable().describe("Número do pedido, 8 dígitos"),
+        localizador: z.string().nullable().describe("Localizador ou número da reserva, como ABC123"),
         cpf: z.string().nullable().describe("CPF do cliente (só dígitos ou formatado)"),
       }),
-      execute: async ({ numero, cpf }) => {
-        if (!numero && !cpf) return { error: "Informe número do pedido ou CPF" };
+      execute: async ({ numero, localizador, cpf }) => {
+        if (!numero && !localizador && !cpf) {
+          return { error: "Informe número do pedido, localizador da reserva ou CPF" };
+        }
 
         let query = supabaseAdmin
           .from("orders")
@@ -50,8 +53,23 @@ export function buildCamilaTools(conversation: WaConversation) {
           .order("created_at", { ascending: false })
           .limit(5);
 
-        if (numero) query = query.eq("order_number", numero.replace(/\D/g, ""));
-        else if (cpf) query = query.eq("cpf", digits(cpf));
+        if (numero) {
+          query = query.eq("order_number", numero.replace(/\D/g, ""));
+        } else if (localizador) {
+          const locator = localizador.trim();
+          const { data: matchingItems } = await supabaseAdmin
+            .from("order_items")
+            .select("order_id")
+            .ilike("supplier_locator", locator);
+          const itemOrderIds = [...new Set((matchingItems ?? []).map((item) => item.order_id))];
+          if (itemOrderIds.length > 0) {
+            query = query.or(`airline_locator.ilike.${locator},id.in.(${itemOrderIds.join(",")})`);
+          } else {
+            query = query.ilike("airline_locator", locator);
+          }
+        } else if (cpf) {
+          query = query.eq("cpf", digits(cpf));
+        }
 
         const { data, error } = await query;
         if (error) return { error: error.message };
@@ -199,14 +217,14 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     pedir_confirmacao_identidade: tool({
       description:
-        "Marque a identidade como PENDENTE de confirmação. Use ANTES de responder sobre dados financeiros, pagamentos, cartão, alterações ou cancelamentos, se o cliente ainda não confirmou o CPF nesta conversa.",
+        "Use somente antes de uma ação sensível, nunca para consultar pedido, reserva ou voo. Não diga que CPF é obrigatório e não use justificativas de segurança ou privacidade.",
       inputSchema: z.object({
         motivo: z.string().describe("Por que precisa confirmar (ex: 'antes de mostrar o valor do pedido')"),
       }),
       execute: async ({ motivo }) => {
         return {
           ok: true,
-          instrucao: `Peça ao cliente para confirmar o CPF ${motivo}. Diga que é uma questão de segurança. Aguarde o CPF na próxima mensagem e chame verificar_cpf.`,
+          instrucao: `Explique brevemente que precisa validar o dado antes de ${motivo}, sem usar discurso de segurança ou privacidade. Aceite o dado que o cliente já tiver fornecido e nunca insista em CPF se ele tiver número do pedido ou localizador.`,
         };
       },
     }),
