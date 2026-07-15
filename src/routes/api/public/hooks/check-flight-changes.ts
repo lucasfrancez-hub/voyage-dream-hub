@@ -7,7 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
  *   1. Consulta AeroDataBox pelo número do voo + data prevista
  *   2. Compara horário de partida/chegada com o que está salvo
  *   3. Se mudou, envia WhatsApp interativo pro cliente com botões
- *      "Aceito" / "Não aceito" — SEM nome de atendente (mensagem do robô)
+ *      (mensagem do robô, sem nome de atendente)
  *   4. Registra em flight_change_alerts (idempotente por item+novo horário)
  *
  * A resposta do cliente é processada em whatsapp-webhook.ts.
@@ -24,13 +24,14 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
           return json({ ok: false, error: "RAPIDAPI_AERODATABOX_KEY não configurada" }, 500);
         }
 
-        // Janela: voos de agora até 60 dias à frente
         const now = new Date();
         const horizon = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
 
         const { data: items, error } = await supabaseAdmin
           .from("order_items")
-          .select("id, order_id, kind, status, details, orders!inner(id, status, phone, payer_phone)")
+          .select(
+            "id, order_id, kind, status, details, orders!inner(id, status, phone, payer_phone, full_name, payer_full_name, airline_locator)",
+          )
           .eq("kind", "flight")
           .neq("status", "cancelled")
           .limit(500);
@@ -64,7 +65,6 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
 
           checked.push(item.id);
 
-          // Consulta AeroDataBox
           let adbData: unknown;
           try {
             const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flightNumber)}/${departDate}?withAircraftImage=false&withLocation=false`;
@@ -88,19 +88,19 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
           const flights = Array.isArray(adbData) ? adbData : [];
           if (flights.length === 0) continue;
 
-          // Escolhe o voo cujo horário original bate mais perto do salvo
           const best = flights[0] as ADBFlight;
           const newDepart = toLocalInput(best?.departure?.scheduledTime?.local);
           const newArrive = toLocalInput(best?.arrival?.scheduledTime?.local);
+          const newFlightNumber = (best?.number ?? flightNumberRaw).replace(/\s+/g, "").toUpperCase();
           const newStatus = best?.status ?? null;
 
           const departChanged = newDepart && newDepart !== toLocalInput(departAt);
           const arriveChanged = newArrive && arriveAt && newArrive !== toLocalInput(arriveAt);
+          const flightChanged = newFlightNumber && newFlightNumber !== flightNumber;
           const cancelled = typeof newStatus === "string" && /cancel/i.test(newStatus);
 
-          if (!departChanged && !arriveChanged && !cancelled) continue;
+          if (!departChanged && !arriveChanged && !flightChanged && !cancelled) continue;
 
-          // Idempotência: já avisamos esse novo horário?
           const { data: exists } = await supabaseAdmin
             .from("flight_change_alerts")
             .select("id")
@@ -109,12 +109,10 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
             .maybeSingle();
           if (exists) continue;
 
-          // Descobre telefone do cliente
-          const order = item.orders as { phone?: string | null; payer_phone?: string | null } | null;
+          const order = item.orders as OrderRow | null;
           const phone = order?.phone ?? order?.payer_phone ?? null;
           if (!phone) { skipped.push(item.id); continue; }
 
-          // Cria alerta primeiro (pra ter id) e depois envia
           const { data: alert, error: alertErr } = await supabaseAdmin
             .from("flight_change_alerts")
             .insert({
@@ -136,18 +134,25 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
             continue;
           }
 
-          // Calcula magnitude da alteração pra decidir tom da mensagem e botões
           const diffMin = diffMinutes(departAt, newDepart);
           const dayChanged = (departAt.slice(0, 10) !== (newDepart || "").slice(0, 10)) && !!newDepart;
           const minorChange = !cancelled && !dayChanged && diffMin !== null && Math.abs(diffMin) < 30;
 
           const body = buildMessage({
-            flightNumber,
+            customerName: order?.full_name ?? order?.payer_full_name ?? null,
+            locator: order?.airline_locator ?? null,
+            fromIata: str(d.from_iata),
+            fromCity: str(d.from_city),
+            fromAirport: str(d.from_airport),
+            toIata: str(d.to_iata),
+            toCity: str(d.to_city),
+            toAirport: str(d.to_airport),
+            oldFlightNumber: flightNumber,
+            newFlightNumber: newFlightNumber || flightNumber,
             oldDepart: departAt,
             newDepart: newDepart || "",
             oldArrive: arriveAt,
             newArrive: newArrive || "",
-            diffMin,
             dayChanged,
             cancelled,
             minorChange,
@@ -157,12 +162,15 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
             to: phone,
             body,
             buttons: cancelled
-              ? [{ id: `flight_alert:${alert.id}:ack`, title: "Ok, entendi" }]
+              ? [
+                  { id: `flight_alert:${alert.id}:reschedule`, title: "Remarcar" },
+                  { id: `flight_alert:${alert.id}:refund`, title: "Reembolso" },
+                ]
               : minorChange
                 ? [{ id: `flight_alert:${alert.id}:ack`, title: "Ok, ciente" }]
                 : [
-                    { id: `flight_alert:${alert.id}:accept`, title: "Aceito" },
-                    { id: `flight_alert:${alert.id}:reject`, title: "Não aceito" },
+                    { id: `flight_alert:${alert.id}:reschedule`, title: "Remarcar" },
+                    { id: `flight_alert:${alert.id}:refund`, title: "Reembolso" },
                   ],
             footer: "Aviso automático VIA AIR",
           });
@@ -189,6 +197,14 @@ function json(payload: unknown, status = 200) {
   });
 }
 
+type OrderRow = {
+  phone?: string | null;
+  payer_phone?: string | null;
+  full_name?: string | null;
+  payer_full_name?: string | null;
+  airline_locator?: string | null;
+};
+
 type ADBFlight = {
   number?: string;
   status?: string;
@@ -196,17 +212,15 @@ type ADBFlight = {
   arrival?: { scheduledTime?: { local?: string } };
 };
 
+function str(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
 function toLocalInput(v?: string): string {
   if (!v) return "";
   const s = v.replace(" ", "T");
   const m = s.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
   return m ? `${m[1]}T${m[2]}` : "";
-}
-
-function fmt(v: string): string {
-  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if (!m) return v;
-  return `${m[3]}/${m[2]}/${m[1]} às ${m[4]}:${m[5]}`;
 }
 
 function diffMinutes(a: string, b: string): number | null {
@@ -216,57 +230,108 @@ function diffMinutes(a: string, b: string): number | null {
   return Math.round((tb - ta) / 60000);
 }
 
+const WEEKDAYS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+const MONTHS = [
+  "janeiro","fevereiro","março","abril","maio","junho",
+  "julho","agosto","setembro","outubro","novembro","dezembro",
+];
+
+function fmtLong(v: string): string {
+  // v = "YYYY-MM-DDTHH:mm"
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return v;
+  const [, y, mo, day, hh, mm] = m;
+  const dt = new Date(Number(y), Number(mo) - 1, Number(day));
+  const wd = WEEKDAYS[dt.getDay()];
+  const month = MONTHS[Number(mo) - 1];
+  return `${wd}, ${day} de ${month} de ${y}, ${hh}:${mm}.`;
+}
+
+function firstName(full: string | null): string {
+  if (!full) return "";
+  return full.trim().split(/\s+/)[0].toUpperCase();
+}
+
+function routeLine(p: {
+  fromCity: string; fromIata: string; fromAirport: string;
+  toCity: string; toIata: string; toAirport: string;
+}): string {
+  const from = p.fromCity
+    ? `${p.fromCity}${p.fromIata ? ` (${p.fromIata})` : ""}`
+    : (p.fromAirport || p.fromIata || "");
+  const to = p.toCity
+    ? `${p.toCity}${p.toIata ? ` (${p.toIata})` : ""}`
+    : (p.toAirport || p.toIata || "");
+  if (!from || !to) return "";
+  return `*${from}* a *${to}*`;
+}
+
+function destinationName(p: { toCity: string; toAirport: string; toIata: string }): string {
+  return p.toCity || p.toAirport || p.toIata || "seu destino";
+}
+
 function buildMessage(p: {
-  flightNumber: string;
+  customerName: string | null;
+  locator: string | null;
+  fromIata: string; fromCity: string; fromAirport: string;
+  toIata: string; toCity: string; toAirport: string;
+  oldFlightNumber: string;
+  newFlightNumber: string;
   oldDepart: string;
   newDepart: string;
   oldArrive: string;
   newArrive: string;
-  diffMin: number | null;
   dayChanged: boolean;
   cancelled: boolean;
   minorChange: boolean;
 }): string {
-  if (p.cancelled) {
-    return (
-      `⚠️ Aviso automático da companhia aérea:\n\n` +
-      `Voo *${p.flightNumber}* (${fmt(p.oldDepart)}) foi *CANCELADO* pela companhia.\n\n` +
-      `Por regra da ANAC, você tem direito a *remarcação sem custo* ou reembolso integral. ` +
-      `Nossa equipe já foi notificada e vai entrar em contato pra resolver.`
-    );
-  }
+  const hi = firstName(p.customerName);
+  const destino = destinationName(p);
+  const rota = routeLine(p);
+  const reserva = p.locator ? `\n* _Reserva *${p.locator}*_\n` : "";
 
-  const lines: string[] = [
-    `✈️ Aviso automático: houve alteração no voo *${p.flightNumber}*.`,
-    "",
-    `📅 Partida anterior: ${fmt(p.oldDepart)}`,
-    `📅 *Nova partida: ${fmt(p.newDepart)}*`,
-  ];
-  if (p.oldArrive && p.newArrive) {
-    lines.push("");
-    lines.push(`🛬 Chegada anterior: ${fmt(p.oldArrive)}`);
-    lines.push(`🛬 *Nova chegada: ${fmt(p.newArrive)}*`);
-  }
-  lines.push("");
+  const verbo = p.cancelled ? "cancelado" : "modificado";
+  const abertura =
+    `Olá${hi ? ` ${hi}` : ""},\n\n` +
+    `Lamentamos comunicar que seu voo com destino a *${destino}* foi *${verbo}.*\n\n` +
+    `Pedimos sinceras desculpas se isso modifica seus planos.\n\n` +
+    `Confira os detalhes 👇\n` +
+    reserva;
 
-  if (p.minorChange) {
-    const mag = p.diffMin === null ? "" : ` (${Math.abs(p.diffMin)} min)`;
-    lines.push(
-      `ℹ️ A alteração foi inferior a 30 minutos${mag}, então *não gera direito à remarcação sem custo*.`,
-    );
-    lines.push("Estamos apenas comunicando pra você ficar ciente da nova programação.");
-  } else {
-    if (p.dayChanged) {
-      lines.push("⚠️ *Houve mudança de dia*, o que garante direito à *remarcação sem custo* (regra ANAC).");
-    } else {
-      const mag = p.diffMin === null ? "" : ` (${Math.abs(p.diffMin)} min)`;
-      lines.push(
-        `⚠️ Alteração superior a 30 minutos${mag}. Você tem *direito à remarcação sem custo* ou reembolso, conforme regra ANAC.`,
+  const rotaBlock = rota ? `\n${rota}\n` : "\n";
+
+  const novoBlock = p.cancelled
+    ? ""
+    : (
+        `\n🛫 *Novo voo* *${p.newFlightNumber}* 🟢\n\n` +
+        `_*Partida:* ${fmtLong(p.newDepart)}_\n\n` +
+        (p.newArrive ? `_*Chegada:* ${fmtLong(p.newArrive)}_\n` : "")
       );
-    }
-    lines.push("");
-    lines.push("Você aceita essa nova programação?");
-  }
-  return lines.join("\n");
-}
 
+  const anteriorBlock =
+    `\n🛬 *Voo anterior* *${p.oldFlightNumber}* 🔴\n\n` +
+    `_*Partida:* ${fmtLong(p.oldDepart)}_\n\n` +
+    (p.oldArrive ? `_*Chegada:* ${fmtLong(p.oldArrive)}_\n` : "");
+
+  let footer: string;
+  if (p.cancelled) {
+    footer =
+      `\nSeu voo foi *cancelado pela companhia*. Por regra da ANAC, você tem direito a *remarcação sem custo* ou *reembolso integral*.\n\n` +
+      `Escolha uma das opções abaixo para acionar nossa equipe 👇`;
+  } else if (p.minorChange) {
+    footer =
+      `\nℹ️ Como sua alteração foi *inferior a 30 minutos*, ela *não permite remarcação ou solicitação de reembolso sem custo*.\n\n` +
+      `Estamos enviando apenas para *mero informativo*, para que você fique ciente da nova programação.`;
+  } else {
+    const motivo = p.dayChanged
+      ? "houve *mudança de dia* na sua programação"
+      : "sua alteração foi *superior a 30 minutos*";
+    footer =
+      `\nComo ${motivo}, você pode escolher uma das seguintes opções:\n\n` +
+      `👉 *Remarcar sem custo* a data do seu voo para o mesmo destino e mesma cabine.\n\n` +
+      `👉 *Solicitar o reembolso* integral do valor pago.\n\n` +
+      `Clique no botão abaixo para acionar nossa equipe 👇`;
+  }
+
+  return abertura + rotaBlock + novoBlock + anteriorBlock + footer;
+}
