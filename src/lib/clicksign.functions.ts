@@ -586,7 +586,7 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
         clicksign_signer_key: signerResp.signer.key,
         clicksign_request_signature_key: requestSignatureKey,
         status: "pending",
-        snapshot: data.snapshot ?? {},
+        snapshot: (data.snapshot ?? {}) as never,
       })
       .select("id")
       .single();
