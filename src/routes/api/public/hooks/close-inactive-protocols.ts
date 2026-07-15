@@ -9,12 +9,13 @@ import { createFileRoute } from "@tanstack/react-router";
  *      vai ser encerrado se não houver resposta, e marca `inactivity_warned_at`.
  *      Não fecha ainda.
  *
- *   2) ENCERRAMENTO (3h sem atividade): fecha o protocolo, gera resumo via IA
- *      e envia balão de encerramento — mesma lógica do close manual.
+ *   2) ENCERRAMENTO (mais 60 min depois do aviso, sem resposta): fecha o
+ *      protocolo, gera resumo via IA e envia balão curto de encerramento.
  *
- * Se o cliente responder antes das 3h, saveMessage() bumpa `last_activity_at`
+ * Se o cliente responder antes, saveMessage() bumpa `last_activity_at`
  * e o próximo ciclo do cron ignora esse protocolo. Caso volte a ficar inativo,
  * um novo aviso é enviado (o campo é resetado quando o protocolo reabre).
+
  */
 export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols")({
   server: {
