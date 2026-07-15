@@ -266,15 +266,16 @@ export async function saveMessage(input: {
 /**
  * Carrega histórico da conversa (para dar contexto ao modelo).
  */
-export async function loadHistory(conversationId: string, limit = 30): Promise<WaMessage[]> {
-  const { data } = await supabaseAdmin
+export async function loadHistory(conversationId: string, limit = 30, sinceIso?: string): Promise<WaMessage[]> {
+  let q = supabaseAdmin
     .from("wa_messages")
     .select("*")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .eq("conversation_id", conversationId);
+  if (sinceIso) q = q.gte("created_at", sinceIso);
+  const { data } = await q.order("created_at", { ascending: false }).limit(limit);
   return ((data ?? []) as WaMessage[]).reverse();
 }
+
 
 /**
  * Registra transferência (Camila -> humano / humano -> Camila).
