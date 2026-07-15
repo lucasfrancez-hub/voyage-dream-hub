@@ -469,7 +469,7 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
 
     const { data: proto } = await supabaseAdmin
       .from("wa_protocolos")
-      .select("id, numero, status")
+      .select("id, numero, status, assunto_resumo")
       .eq("id", conv.protocolo_ativo_id)
       .maybeSingle();
     if (!proto) throw new Error("Protocolo não encontrado");
