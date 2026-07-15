@@ -68,6 +68,16 @@
   --border: oklch(0.32 0.03 235 / 60%);
   --input: oklch(0.30 0.03 235);
   --ring: var(--brand-orange);
+}
+
+/* Blindagem contra CSS de terceiros (ex.: widget onertravel) que também
+   define --primary no :root com verde. html:root tem especificidade maior,
+   então nossas variáveis de marca sempre vencem. */
+html:root {
+  --primary: var(--brand-orange);
+  --primary-foreground: oklch(0.16 0.025 235);
+  --secondary: var(--brand-blue);
+  --ring: var(--brand-orange);
 
   /* Central de atendimento — modo CLARO (default). Chrome branco + conversa
      bege quente estilo WhatsApp, pra combinar com sidebar/lista claras. */
