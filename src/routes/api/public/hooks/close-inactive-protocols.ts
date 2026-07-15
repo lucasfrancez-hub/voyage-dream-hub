@@ -62,8 +62,8 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
           .eq("status", "aberto")
           .is("inactivity_warned_at", null)
           .lt("last_activity_at", warnCutoff)
-          .gte("last_activity_at", closeCutoff) // ainda não bateu 3h
           .limit(50);
+
 
 
         if (warnErr) {
