@@ -1,14 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { ArrowLeft, Check, FileSignature, Loader2, ShieldCheck } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Check, FileSignature, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { splitInstallments } from "@/lib/checkout-config";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
-import { SignaturePad } from "@/components/SignaturePad";
-import { FaceLiveness, type LivenessResult } from "@/components/FaceLiveness";
 import { DateBRInput } from "@/components/DateBRInput";
+import { ClickSignEmbedded } from "@/components/ClickSignEmbedded";
+import {
+  createEmbeddedAuthorization,
+  getPendingAuthorizationStatus,
+  consumePendingAuthorizationSignature,
+} from "@/lib/clicksign.functions";
+import { buildAuthorizationBlob, type AuthorizationData } from "@/lib/authorization-pdf";
 
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
