@@ -279,7 +279,8 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     escalar_para_humano: tool({
       description:
-        "Escala a conversa para um vendedor humano. Use quando: (a) cliente quer nova cotação personalizada; (b) voo alterado/cancelado; (c) cliente irritado ou reclamando; (d) qualquer coisa fora do seu escopo. SEMPRE preencha os campos estruturados (destino, datas, pax, voo etc) com o que já foi coletado — deixe null só o que o cliente realmente não informou. Depois de chamar, você para de responder até o humano assumir.",
+        "Sinaliza que a conversa precisa de um consultor humano (nova cotação, alteração/cancelamento de voo pela cia, reclamação, algo fora do seu escopo). Marca a conversa como aguardando_humano com prioridade e briefing pro painel do atendente. IMPORTANTE: você CONTINUA respondendo ao cliente normalmente até um humano assumir manualmente pelo painel — não pare, não fique em silêncio, siga ajudando com o que puder (dúvidas, informações, contexto). O comercial pode estar ocupado ou fora do horário. Preencha os campos estruturados com o que já foi coletado.",
+
       inputSchema: z.object({
         motivo: z
           .enum(["nova_cotacao", "alteracao_voo", "reclamacao", "outro"])
