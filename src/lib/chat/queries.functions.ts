@@ -24,12 +24,40 @@ export const listMessages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("wa_messages")
-      .select("id, direction, sender, content, created_at, tool_calls")
+      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id")
       .eq("conversation_id", data.conversation_id)
       .order("created_at", { ascending: true })
       .limit(500);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const list = rows ?? [];
+
+    // Puxa nomes dos humanos que enviaram alguma mensagem (batch)
+    const userIds = Array.from(
+      new Set(list.map((m) => m.sender_user_id).filter((id): id is string => !!id)),
+    );
+    const names: Record<string, string | null> = {};
+    if (userIds.length > 0) {
+      const { data: profs } = await context.supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+      for (const p of profs ?? []) names[p.id] = p.full_name ?? null;
+    }
+    return list.map((m) => ({
+      ...m,
+      sender_full_name: m.sender_user_id ? names[m.sender_user_id] ?? null : null,
+    }));
+  });
+
+export const getMyProfile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("id", context.userId)
+      .maybeSingle();
+    return { id: context.userId, full_name: data?.full_name ?? null };
   });
 
 export const sendHumanReply = createServerFn({ method: "POST" })
