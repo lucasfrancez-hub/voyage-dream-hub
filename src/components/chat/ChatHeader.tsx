@@ -1,4 +1,4 @@
-import { Search, Bell, Sun, Moon } from "lucide-react";
+import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
 import { useMemo } from "react";
 
 function currentAgent(): { nome: string; online: boolean } {
@@ -19,19 +19,28 @@ interface ChatHeaderProps {
   userFullName?: string | null;
   theme?: "dark" | "light";
   onToggleTheme?: () => void;
+  onOpenMobileNav?: () => void;
 }
 
-export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "dark", onToggleTheme }: ChatHeaderProps) {
+export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "dark", onToggleTheme, onOpenMobileNav }: ChatHeaderProps) {
   const agent = useMemo(currentAgent, []);
-  // Se não tiver full_name, deriva do email ("lucas@voeair.com" → "Lucas")
   const displayName = (userFullName?.trim())
     || (userEmail ? userEmail.split("@")[0]!.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : null);
   return (
-    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-5">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 sm:gap-4 sm:px-5">
+      {onOpenMobileNav && (
+        <button
+          onClick={onOpenMobileNav}
+          className="shrink-0 rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 md:hidden"
+          aria-label="Abrir menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <h1 className="truncate text-base font-semibold text-slate-900">{title}</h1>
-          {subtitle && <span className="truncate text-xs text-slate-500">{subtitle}</span>}
+          {subtitle && <span className="hidden sm:inline truncate text-xs text-slate-500">{subtitle}</span>}
         </div>
       </div>
 
@@ -44,7 +53,7 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
         />
       </div>
 
-      <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
+      <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
@@ -52,8 +61,17 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
         <span className="text-xs font-medium text-slate-700">{agent.nome} atendendo</span>
       </div>
 
+      {/* Compact online indicator on mobile */}
+      <div className="sm:hidden flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+        <span className="text-[11px] font-medium text-slate-700">{agent.nome}</span>
+      </div>
+
       <button
-        className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+        className="hidden sm:inline-flex rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
         title="Notificações"
       >
         <Bell className="h-4 w-4" />
@@ -62,7 +80,7 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
       {onToggleTheme && (
         <button
           onClick={onToggleTheme}
-          className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+          className="hidden sm:inline-flex rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
           title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
         >
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
