@@ -299,6 +299,64 @@ export const toggleConversationMode = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const closeProtocoloManually = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ conversation_id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
+    const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
+
+    const { data: conv, error: cErr } = await context.supabase
+      .from("wa_conversations")
+      .select("id, wa_phone, funnel_stage, protocolo_ativo_id")
+      .eq("id", data.conversation_id)
+      .single();
+    if (cErr || !conv) throw new Error("Conversa não encontrada");
+    if (!conv.protocolo_ativo_id) throw new Error("Nenhum protocolo ativo nessa conversa");
+
+    const { data: proto } = await supabaseAdmin
+      .from("wa_protocolos")
+      .select("id, numero, status")
+      .eq("id", conv.protocolo_ativo_id)
+      .maybeSingle();
+    if (!proto) throw new Error("Protocolo não encontrado");
+
+    const encerramentoMsg =
+      `Seu protocolo ${proto.numero} foi encerrado. ✅\n\n` +
+      `Obrigado pelo contato com a VIA AIR! Se precisar de qualquer outra coisa, é só chamar por aqui que a gente abre um novo atendimento.`;
+
+    await sendWhatsAppBubbles(conv.wa_phone, encerramentoMsg);
+
+    await saveMessage({
+      conversation_id: conv.id,
+      direction: "outbound",
+      sender: "system",
+      content: encerramentoMsg,
+      skip_protocolo: true,
+    });
+
+    await supabaseAdmin
+      .from("wa_protocolos")
+      .update({
+        status: "encerrado_manual",
+        closed_at: new Date().toISOString(),
+        funnel_stage_final: conv.funnel_stage ?? null,
+      })
+      .eq("id", proto.id);
+
+    await supabaseAdmin
+      .from("wa_conversations")
+      .update({ protocolo_ativo_id: null, mode: "resolved" })
+      .eq("id", conv.id);
+
+    return { ok: true, numero: proto.numero };
+  });
+
+
+
 export const setFunnelStage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
