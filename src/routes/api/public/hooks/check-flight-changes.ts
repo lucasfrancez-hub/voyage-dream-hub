@@ -27,23 +27,37 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
         const now = new Date();
         const horizon = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
 
-        const { data: items, error } = await supabaseAdmin
-          .from("order_items")
-          .select(
-            "id, order_id, kind, status, details, orders!inner(id, status, phone, payer_phone, full_name, payer_full_name, airline_locator)",
-          )
-          .eq("kind", "flight")
-          .neq("status", "cancelled")
-          .limit(500);
-
-        if (error) {
-          console.error("[flight-check] query error:", error.message);
-          return json({ ok: false, error: error.message }, 500);
+        // Paginação: varre TODOS os voos ativos de TODOS os pedidos (não cancelados),
+        // em lotes de 500. Cada voo consome 1 request AeroDataBox por execução.
+        // Filtro de janela (agora → +60 dias) evita gastar consulta em voo passado.
+        const PAGE = 500;
+        let from = 0;
+        const items: FlightItemRow[] = [];
+        while (true) {
+          const { data: page, error } = await supabaseAdmin
+            .from("order_items")
+            .select(
+              "id, order_id, kind, status, details, orders!inner(id, status, phone, payer_phone, full_name, payer_full_name, airline_locator)",
+            )
+            .eq("kind", "flight")
+            .neq("status", "cancelled")
+            .not("orders.status", "in", "(cancelled,refunded,canceled)")
+            .order("id", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) {
+            console.error("[flight-check] query error:", error.message);
+            return json({ ok: false, error: error.message }, 500);
+          }
+          const rows = (page ?? []) as FlightItemRow[];
+          items.push(...rows);
+          if (rows.length < PAGE) break;
+          from += PAGE;
         }
 
         const checked: string[] = [];
         const changed: string[] = [];
         const skipped: string[] = [];
+
 
         for (const item of items ?? []) {
           const d = (item.details ?? {}) as Record<string, unknown>;
@@ -264,6 +278,17 @@ type OrderRow = {
   payer_full_name?: string | null;
   airline_locator?: string | null;
 };
+
+type FlightItemRow = {
+  id: string;
+  order_id: string;
+  kind: string;
+  status: string | null;
+  details: Record<string, unknown> | null;
+  orders: OrderRow | null;
+};
+
+
 
 type ADBFlight = {
   number?: string;
