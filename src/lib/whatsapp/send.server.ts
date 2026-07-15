@@ -78,13 +78,20 @@ export async function sendWhatsAppBubbles(
   const bubbles = fullText
     .split(/\n+/)
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    // Primeira letra de cada balão em MAIÚSCULA (preserva o resto).
+    .map((s) => s.charAt(0).toLocaleUpperCase("pt-BR") + s.slice(1));
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
   for (let i = 0; i < bubbles.length; i++) {
     const body = i === 0 && prefix ? `${prefix}\n${bubbles[i]}` : bubbles[i];
+    if (i > 0) {
+      // Delay proporcional ao tamanho do balão anterior (parece "digitando").
+      const prevLen = bubbles[i - 1].length;
+      const delay = Math.min(4500, 900 + prevLen * 45);
+      await new Promise((r) => setTimeout(r, delay));
+    }
     const r = await sendWhatsAppText(to, body);
     out.push({ text: body, ...r });
-    if (bubbles.length > 1) await new Promise((r) => setTimeout(r, 700));
   }
   return out;
 }
