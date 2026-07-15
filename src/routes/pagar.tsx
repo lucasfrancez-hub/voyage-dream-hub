@@ -566,13 +566,26 @@ function PayPage() {
                         <input
                           type="checkbox"
                           checked={acceptedTerms}
-                          onChange={(e) => setAcceptedTerms(e.target.checked)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setAcceptedTerms(checked);
+                            if (checked) {
+                              console.info("[autorizacao-debito] aceite dos termos", {
+                                at: new Date().toISOString(),
+                                cardLast4,
+                                total: totalNumber,
+                                installments,
+                                userAgent: navigator.userAgent,
+                              });
+                            }
+                          }}
                           className="mt-0.5 h-4 w-4 accent-brand-orange"
                         />
                         <span>
                           Li e aceito os termos acima e autorizo o débito de <strong className="text-foreground">{formatBRL(totalNumber)}</strong> em {installments}x no cartão final <strong className="text-foreground">{cardLast4 || "----"}</strong>.
                         </span>
                       </label>
+
 
                       {signatureStatus === "signed" ? (
                         <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 flex items-start gap-3">
