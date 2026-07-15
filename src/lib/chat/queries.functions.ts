@@ -591,9 +591,19 @@ export const assignConversation = createServerFn({ method: "POST" })
 export const listAttendants = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Só usuários com role "admin" (equipe interna VIA AIR) podem atender.
+    // Parceiros/terceiros ficam de fora.
+    const { data: roles, error: rErr } = await context.supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
+    if (rErr) throw new Error(rErr.message);
+    const adminIds = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
+    if (adminIds.length === 0) return [];
     const { data, error } = await context.supabase
       .from("profiles")
       .select("id, full_name")
+      .in("id", adminIds)
       .order("full_name");
     if (error) throw new Error(error.message);
     return data ?? [];
