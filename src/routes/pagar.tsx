@@ -136,10 +136,10 @@ function PayPage() {
 
   const cardDigits = card.cardNumber.replace(/\D/g, "");
   const cardLast4 = cardDigits.slice(-4);
-  const cardFirst4 = cardDigits.slice(0, 4);
+  const cardBin6 = cardDigits.slice(0, 6);
   const cardBrand = detectBrand(card.cardNumber) || "";
-  const maskedCard = cardDigits.length >= 8
-    ? `${cardFirst4}.XXXX.XXXX.${cardLast4}`
+  const maskedCard = cardDigits.length >= 10
+    ? `${cardBin6.slice(0, 4)} ${cardBin6.slice(4, 6)}XX XXXX ${cardLast4}`
     : "";
 
   const baseFilled =
