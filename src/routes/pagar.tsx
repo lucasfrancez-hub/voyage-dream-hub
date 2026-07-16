@@ -155,21 +155,8 @@ function PayPage() {
   );
   const canShowAuthorization = baseFilled && cardFilled && billingFilled;
 
-  const missingAuthFields: string[] = [];
-  if (!fullName) missingAuthFields.push("Nome completo");
-  if (!cpf) missingAuthFields.push("CPF");
-  if (!birthDate) missingAuthFields.push("Data de nascimento");
-  if (!email) missingAuthFields.push("E-mail");
-  if (!phone) missingAuthFields.push("Telefone / WhatsApp");
-  if (cardDigits.length < 13) missingAuthFields.push("Número do cartão");
-  if (!card.cardName) missingAuthFields.push("Nome impresso no cartão");
-  if (!card.expiry || card.expiry.replace(/\D/g, "").length < 4) missingAuthFields.push("Validade do cartão (MM/AA)");
-  if (!card.cvv) missingAuthFields.push("CVV");
-  if (!card.billingZip) missingAuthFields.push("CEP de cobrança");
-  if (!card.billingAddress) missingAuthFields.push("Endereço de cobrança");
-  if (!card.billingNumber) missingAuthFields.push("Número (endereço)");
-  if (!card.billingCity) missingAuthFields.push("Cidade");
-  if (!card.billingState) missingAuthFields.push("Estado (UF)");
+
+
 
 
 
