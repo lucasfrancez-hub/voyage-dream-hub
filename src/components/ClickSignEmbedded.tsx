@@ -116,17 +116,17 @@ export function ClickSignEmbedded({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-full p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-5 pb-2 border-b border-border">
-          <DialogTitle className="text-base">Assinatura da autorização de débito</DialogTitle>
-          <p className="text-xs text-muted-foreground">
+      <DialogContent className="max-w-3xl w-full p-0 overflow-hidden bg-white text-slate-900">
+        <DialogHeader className="px-6 pt-5 pb-2 border-b border-slate-200 bg-white">
+          <DialogTitle className="text-base text-slate-900">Assinatura da autorização de débito</DialogTitle>
+          <p className="text-xs text-slate-600">
             Complete a verificação biométrica, foto do documento e permita o acesso à localização para concluir a assinatura.
           </p>
         </DialogHeader>
-        <div className="relative bg-background" style={{ minHeight: 480 }}>
+        <div className="relative bg-white" style={{ minHeight: 480 }}>
           {loading && !error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-              <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
+            <div className="absolute inset-0 flex items-center justify-center bg-white/90 z-10">
+              <div className="flex flex-col items-center gap-3 text-sm text-slate-600">
                 <Loader2 className="h-6 w-6 animate-spin text-brand-orange" />
                 Carregando ambiente seguro da ClickSign…
               </div>
@@ -137,7 +137,7 @@ export function ClickSignEmbedded({
               Não foi possível abrir a assinatura: {error}
             </div>
           )}
-          <div id={CONTAINER_ID} style={{ height, width: "100%" }} />
+          <div id={CONTAINER_ID} style={{ height, width: "100%", background: "white" }} />
         </div>
       </DialogContent>
     </Dialog>
