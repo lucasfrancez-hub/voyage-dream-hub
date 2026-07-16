@@ -607,7 +607,7 @@ function PayPage() {
                           <div className="text-sm">
                             <div className="font-medium text-emerald-700">Autorização assinada</div>
                             <div className="text-xs text-emerald-700/80 mt-0.5">
-                              Você pode finalizar seu pedido clicando em "Fazer pedido".
+                              Você pode finalizar clicando em "Realizar pagamento".
                             </div>
                           </div>
                         </div>
