@@ -512,13 +512,18 @@ function PayPage() {
                     <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                       <FileSignature className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
                       Preencha seus dados e os dados do cartão acima para gerar automaticamente a autorização de débito para assinatura.
-                      {(baseFilled && cardFilled && !billingFilled) && (
+                      {(!baseFilled || !cardFilled || !billingFilled) && (
                         <div className="mt-2 text-xs text-brand-orange">
-                          Falta preencher o endereço de cobrança (CEP, endereço, número, cidade e estado).
+                          Falta: {[
+                            !baseFilled && "seus dados",
+                            !cardFilled && "dados do cartão",
+                            !billingFilled && "endereço de cobrança",
+                          ].filter(Boolean).join(" · ")}.
                         </div>
                       )}
                     </div>
                   ) : (
+
 
 
 
