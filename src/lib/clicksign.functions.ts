@@ -179,10 +179,9 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
           name: data.cliente.nome,
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
-          has_documentation: true,
+        has_documentation: true,
           auths: ["api"],
           liveness_enabled: true, // Prova de vida (selfie dinâmica com movimento)
-          official_document_enabled: true, // Foto do documento oficial (RG/CNH)
         },
       }),
     });
@@ -568,15 +567,12 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           name: data.cliente.nome,
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
-          has_documentation: true,
+        has_documentation: true,
           auths: ["api"],
           // Fluxo no widget:
           // 1) Confirmação dos dados (nome completo + CPF + data de nascimento) — automático porque has_documentation=true + birthday
           // 2) Prova de vida (liveness — selfie dinâmica)
-          // 3) Foto do documento oficial (RG/CNH)
           liveness_enabled: true,
-          official_document_enabled: true,
-          location_required_enabled: true, // geolocalização OBRIGATÓRIA
           selfie_enabled: false, // usar liveness, não selfie estática
           handwritten_enabled: false, // sem assinatura manuscrita
         },
