@@ -189,7 +189,7 @@ function PayPage() {
   }
 
   // Abre o widget da ClickSign: gera PDF, envia pra ClickSign, recebe request_signature_key
-  async function handleOpenClickSign() {
+  async function handleOpenClickSign(confirmed = false) {
     if (creatingSignature) return;
     if (!acceptedTerms) {
       toast.error("Aceite os termos da autorização antes de assinar.");
@@ -197,6 +197,10 @@ function PayPage() {
     }
     if (!fullName || !cpf || !birthDate || !email || !phone) {
       toast.error("Preencha seus dados antes de assinar.");
+      return;
+    }
+    if (!confirmed) {
+      setConfirmOpen(true);
       return;
     }
     setCreatingSignature(true);
@@ -615,17 +619,7 @@ function PayPage() {
                         <div className="flex flex-col items-center space-y-2">
                           <button
                             type="button"
-                            onClick={() => {
-                              if (!acceptedTerms) {
-                                toast.error("Aceite os termos da autorização antes de assinar.");
-                                return;
-                              }
-                              if (!fullName || !cpf || !birthDate || !email || !phone) {
-                                toast.error("Preencha seus dados antes de assinar.");
-                                return;
-                              }
-                              setConfirmOpen(true);
-                            }}
+                            onClick={() => void handleOpenClickSign()}
                             disabled={creatingSignature || !acceptedTerms}
                             className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60 mx-auto"
                           >
@@ -750,7 +744,7 @@ function PayPage() {
       />
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-sm rounded-lg">
           <DialogHeader>
             <DialogTitle>Confirme seus dados</DialogTitle>
           </DialogHeader>
@@ -780,6 +774,14 @@ function PayPage() {
                 })()}
               </div>
             </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Telefone / WhatsApp</div>
+                <div className="font-medium text-sm text-foreground">{phone || "—"}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">E-mail</div>
+                <div className="font-medium text-sm text-foreground break-words">{email || "—"}</div>
+              </div>
             <p className="text-[11px] text-muted-foreground pt-1">
               Confira se os dados acima estão corretos. Após confirmar, você fará a selfie com prova de vida e a foto do documento.
             </p>
@@ -788,7 +790,7 @@ function PayPage() {
                 type="button"
                 onClick={() => {
                   setConfirmOpen(false);
-                  void handleOpenClickSign();
+                  void handleOpenClickSign(true);
                 }}
                 disabled={creatingSignature}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
