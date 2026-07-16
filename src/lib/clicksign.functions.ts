@@ -152,7 +152,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
           has_documentation: true,
-          auths: ["email"],
+          auths: ["whatsapp"],
           liveness_enabled: true, // Prova de vida (selfie dinâmica com movimento)
           official_document_enabled: true, // Foto do documento oficial (RG/CNH)
         },
@@ -551,7 +551,7 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
           has_documentation: true,
-          auths: ["email"],
+          auths: ["whatsapp"],
           // Fluxo no widget:
           // 1) Confirmação dos dados (nome completo + CPF + data de nascimento) — automático porque has_documentation=true + birthday
           // 2) Prova de vida (liveness — selfie dinâmica)
