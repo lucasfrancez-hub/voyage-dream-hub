@@ -536,7 +536,8 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
     const phoneNational = rawPhoneDigits.length > 11 && rawPhoneDigits.startsWith("55")
       ? rawPhoneDigits.slice(2)
       : rawPhoneDigits;
-    const phoneE164 = phoneNational;
+    // ClickSign exige telefone no formato E.164 com DDI para o auth "whatsapp".
+    const phoneE164 = `+55${phoneNational}`;
 
     type SignerResp = { signer: { key: string } };
     const signerResp = await csFetch<SignerResp>("/signers", {
