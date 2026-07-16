@@ -155,21 +155,8 @@ function PayPage() {
   );
   const canShowAuthorization = baseFilled && cardFilled && billingFilled;
 
-  const missingAuthFields: string[] = [];
-  if (!fullName) missingAuthFields.push("Nome completo");
-  if (!cpf) missingAuthFields.push("CPF");
-  if (!birthDate) missingAuthFields.push("Data de nascimento");
-  if (!email) missingAuthFields.push("E-mail");
-  if (!phone) missingAuthFields.push("Telefone / WhatsApp");
-  if (cardDigits.length < 13) missingAuthFields.push("Número do cartão");
-  if (!card.cardName) missingAuthFields.push("Nome impresso no cartão");
-  if (!card.expiry || card.expiry.replace(/\D/g, "").length < 4) missingAuthFields.push("Validade do cartão (MM/AA)");
-  if (!card.cvv) missingAuthFields.push("CVV");
-  if (!card.billingZip) missingAuthFields.push("CEP de cobrança");
-  if (!card.billingAddress) missingAuthFields.push("Endereço de cobrança");
-  if (!card.billingNumber) missingAuthFields.push("Número (endereço)");
-  if (!card.billingCity) missingAuthFields.push("Cidade");
-  if (!card.billingState) missingAuthFields.push("Estado (UF)");
+
+
 
 
 
@@ -522,21 +509,12 @@ function PayPage() {
                 {secureMode && (
                 <Card title="Autorização de débito no cartão">
                   {!canShowAuthorization ? (
-                    <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                      <div className="text-center">
-                        <FileSignature className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
-                        Para gerar a autorização de débito e liberar a assinatura ClickSign, ainda falta preencher:
-                      </div>
-                      <ul className="mt-3 mx-auto max-w-sm space-y-1 text-left">
-                        {missingAuthFields.map((f) => (
-                          <li key={f} className="flex items-start gap-2">
-                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand-orange shrink-0" />
-                            <span className="text-foreground">{f}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                      <FileSignature className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
+                      Preencha seus dados e os dados do cartão acima para gerar automaticamente a autorização de débito para assinatura.
                     </div>
                   ) : (
+
 
                     <div className="space-y-4">
                       <div className="rounded-xl border border-border bg-background overflow-hidden text-sm">
