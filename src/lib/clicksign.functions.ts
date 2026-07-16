@@ -534,11 +534,12 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
 
     // 2) Cria signer com selfie liveness + foto do documento + geolocalização obrigatória
     const cpfDigits = data.cliente.cpf.replace(/\D/g, "");
-    const rawPhoneDigits = data.cliente.telefone.replace(/\D/g, "");
-    const phoneNational = rawPhoneDigits.length > 11 && rawPhoneDigits.startsWith("55")
-      ? rawPhoneDigits.slice(2)
-      : rawPhoneDigits;
-    const phoneE164 = phoneNational;
+    const phoneDigits = data.cliente.telefone.replace(/\D/g, "");
+    const phoneE164 = data.cliente.telefone.trim().startsWith("+")
+      ? `+${phoneDigits}`
+      : phoneDigits.startsWith("55")
+        ? `+${phoneDigits}`
+        : `+55${phoneDigits}`;
 
     type SignerResp = { signer: { key: string } };
     const signerResp = await csFetch<SignerResp>("/signers", {
