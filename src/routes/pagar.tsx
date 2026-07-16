@@ -207,6 +207,10 @@ function PayPage() {
       toast.error("Preencha seus dados antes de assinar.");
       return;
     }
+    if (!card.billingAddress || !card.billingNumber || !card.billingZip || !card.billingCity || !card.billingState) {
+      toast.error("Preencha o endereço de cobrança antes de assinar.");
+      return;
+    }
     if (!confirmed) {
       setConfirmOpen(true);
       return;
