@@ -146,7 +146,15 @@ function PayPage() {
     Boolean(fullName && cpf && birthDate && email && phone);
   const cardFilled =
     cardDigits.length >= 13 && Boolean(card.cardName && card.expiry && card.cvv);
-  const canShowAuthorization = baseFilled && cardFilled;
+  const billingFilled = Boolean(
+    card.billingAddress &&
+    card.billingNumber &&
+    card.billingZip &&
+    card.billingCity &&
+    card.billingState
+  );
+  const canShowAuthorization = baseFilled && cardFilled && billingFilled;
+
 
   const invalid = !desc || !totalNumber;
 
@@ -197,6 +205,10 @@ function PayPage() {
     }
     if (!fullName || !cpf || !birthDate || !email || !phone) {
       toast.error("Preencha seus dados antes de assinar.");
+      return;
+    }
+    if (!card.billingAddress || !card.billingNumber || !card.billingZip || !card.billingCity || !card.billingState) {
+      toast.error("Preencha o endereço de cobrança antes de assinar.");
       return;
     }
     if (!confirmed) {
@@ -495,7 +507,7 @@ function PayPage() {
                   {!canShowAuthorization ? (
                     <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                       <FileSignature className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
-                      Preencha seus dados e os dados do cartão acima para gerar automaticamente a autorização de débito para assinatura.
+                      Preencha seus dados, os dados do cartão e o endereço de cobrança acima para gerar automaticamente a autorização de débito para assinatura.
                     </div>
                   ) : (
                     <div className="space-y-4">
