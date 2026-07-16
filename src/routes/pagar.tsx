@@ -453,8 +453,19 @@ function PayPage() {
                       <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={cls} />
                     </Field>
                     <Field label="Telefone / WhatsApp *">
-                      <input required value={phone} onChange={(e) => setPhone(e.target.value)} className={cls} />
+                      <input
+                        required
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel"
+                        placeholder="(44) 99909-3642"
+                        value={phone}
+                        onChange={(e) => setPhone(formatBRPhone(e.target.value))}
+                        maxLength={16}
+                        className={cls}
+                      />
                     </Field>
+
                     <Field label="Data de nascimento *">
                       <DateBRInput required value={birthDate} onChange={setBirthDate} className={cls} />
                     </Field>
