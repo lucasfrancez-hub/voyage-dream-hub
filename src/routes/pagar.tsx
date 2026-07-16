@@ -453,8 +453,19 @@ function PayPage() {
                       <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={cls} />
                     </Field>
                     <Field label="Telefone / WhatsApp *">
-                      <input required value={phone} onChange={(e) => setPhone(e.target.value)} className={cls} />
+                      <input
+                        required
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel"
+                        placeholder="(44) 99909-3642"
+                        value={phone}
+                        onChange={(e) => setPhone(formatBRPhone(e.target.value))}
+                        maxLength={16}
+                        className={cls}
+                      />
                     </Field>
+
                     <Field label="Data de nascimento *">
                       <DateBRInput required value={birthDate} onChange={setBirthDate} className={cls} />
                     </Field>
@@ -805,6 +816,19 @@ function PayPage() {
 
 const cls =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-orange/40";
+
+// Formata telefone BR: (DD) 99999-9999 (celular) ou (DD) 9999-9999 (fixo).
+// Ignora +55 se o usuário colar; sempre exibe DDD + número.
+function formatBRPhone(input: string): string {
+  let d = input.replace(/\D/g, "");
+  if (d.startsWith("55") && d.length > 11) d = d.slice(2);
+  d = d.slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
