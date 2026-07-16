@@ -707,7 +707,7 @@ function PayPage() {
                     }
                     className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
                   >
-                    {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</> : <>Fazer pedido</>}
+                    {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</> : <>Realizar pagamento</>}
                   </button>
                   {secureMode && canShowAuthorization && (!acceptedTerms || signatureStatus !== "signed") && (
                     <p className="text-[11px] text-brand-orange text-center">
