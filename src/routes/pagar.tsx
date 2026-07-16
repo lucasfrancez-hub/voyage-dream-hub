@@ -116,6 +116,7 @@ function PayPage() {
   // ClickSign embedded widget state
   const [signingOpen, setSigningOpen] = useState(false);
   const [creatingSignature, setCreatingSignature] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [requestSignatureKey, setRequestSignatureKey] = useState<string | null>(null);
   const [csEndpoint, setCsEndpoint] = useState<string | null>(null);
