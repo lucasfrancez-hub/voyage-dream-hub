@@ -481,7 +481,6 @@ function PayPage() {
                         placeholder="(11) 91234-5678"
                         value={phone}
                         onChange={(e) => setPhone(formatBRPhone(e.target.value))}
-                        maxLength={16}
                         className={cls}
                       />
                     </Field>
