@@ -667,7 +667,7 @@ function PayPage() {
                             )}
                           </button>
                           <p className="text-[11px] text-muted-foreground text-center">
-                            Uma janela segura será aberta aqui mesmo. Você fará selfie com prova de vida, foto do documento e permitirá a geolocalização (obrigatória) — a assinatura digital certificada da ClickSign é anexada automaticamente ao PDF.
+                            Uma janela segura será aberta aqui mesmo e após a conclusão retornará.
                           </p>
                         </div>
                       )}
