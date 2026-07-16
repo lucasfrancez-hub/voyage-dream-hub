@@ -604,7 +604,17 @@ function PayPage() {
                         <div className="flex flex-col items-center space-y-2">
                           <button
                             type="button"
-                            onClick={handleOpenClickSign}
+                            onClick={() => {
+                              if (!acceptedTerms) {
+                                toast.error("Aceite os termos da autorização antes de assinar.");
+                                return;
+                              }
+                              if (!fullName || !cpf || !birthDate || !email || !phone) {
+                                toast.error("Preencha seus dados antes de assinar.");
+                                return;
+                              }
+                              setConfirmOpen(true);
+                            }}
                             disabled={creatingSignature || !acceptedTerms}
                             className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60 mx-auto"
                           >
