@@ -574,12 +574,11 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           // Fluxo no widget:
           // 1) Confirmação dos dados (nome completo + CPF + data de nascimento) — automático porque has_documentation=true + birthday
           // 2) Prova de vida (liveness — selfie dinâmica)
-          // 3) Foto do documento oficial (RG/CNH)
           liveness_enabled: true,
-          official_document_enabled: true,
-          location_required_enabled: true, // geolocalização OBRIGATÓRIA
           selfie_enabled: false, // usar liveness, não selfie estática
           handwritten_enabled: false, // sem assinatura manuscrita
+          // official_document_enabled e location_required_enabled exigem auths de token
+          // (email/sms/whatsapp) — incompatíveis com auths=["api"]
         },
       }),
     });
