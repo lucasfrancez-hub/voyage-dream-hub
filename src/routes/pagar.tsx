@@ -9,6 +9,8 @@ import { splitInstallments } from "@/lib/checkout-config";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { DateBRInput } from "@/components/DateBRInput";
 import { ClickSignEmbedded } from "@/components/ClickSignEmbedded";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 import {
   createEmbeddedAuthorization,
   getPendingAuthorizationStatus,
