@@ -131,13 +131,13 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
 
     const cpfDigits = data.cliente.cpf.replace(/\D/g, "");
 
-    // Normaliza telefone para E.164 (assume BR se não vier com +)
-    const phoneDigits = data.cliente.telefone.replace(/\D/g, "");
-    const phoneE164 = data.cliente.telefone.trim().startsWith("+")
-      ? `+${phoneDigits}`
-      : phoneDigits.startsWith("55")
-        ? `+${phoneDigits}`
-        : `+55${phoneDigits}`;
+    // ClickSign espera o telefone BR só com DDD + número (10-11 dígitos), sem código do país.
+    // Se vier com 55 na frente (ou +55), removemos para não virar "(55) ...." no WhatsApp.
+    const rawPhoneDigits = data.cliente.telefone.replace(/\D/g, "");
+    const phoneNational = rawPhoneDigits.length > 11 && rawPhoneDigits.startsWith("55")
+      ? rawPhoneDigits.slice(2)
+      : rawPhoneDigits;
+    const phoneE164 = phoneNational;
 
     // 2) Cria signers
     type SignerResp = { signer: { key: string } };
