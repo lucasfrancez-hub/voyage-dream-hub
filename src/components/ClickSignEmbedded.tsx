@@ -122,10 +122,10 @@ export function ClickSignEmbedded({
                    sm:max-w-3xl sm:w-full sm:rounded-lg sm:border sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2"
         style={{ height: "100dvh", maxHeight: "100dvh", paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <DialogHeader className="px-6 pt-5 pb-2 border-b border-slate-200 bg-white shrink-0">
-          <DialogTitle className="text-base text-slate-900">Assinatura da autorização de débito</DialogTitle>
+        <DialogHeader className="px-4 pt-4 pb-2 border-b border-slate-200 bg-white shrink-0">
+          <DialogTitle className="text-sm sm:text-base text-slate-900">Faça a assinatura</DialogTitle>
           <p className="text-xs text-slate-600">
-            Complete a verificação biométrica, foto do documento e permita o acesso à localização para concluir a assinatura.
+            Ao concluir, você volta para a página de pagamento para realizar o pagamento.
           </p>
         </DialogHeader>
         <div className="relative bg-white flex-1 min-h-0 overflow-hidden">
