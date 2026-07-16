@@ -522,21 +522,12 @@ function PayPage() {
                 {secureMode && (
                 <Card title="Autorização de débito no cartão">
                   {!canShowAuthorization ? (
-                    <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                      <div className="text-center">
-                        <FileSignature className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
-                        Para gerar a autorização de débito e liberar a assinatura ClickSign, ainda falta preencher:
-                      </div>
-                      <ul className="mt-3 mx-auto max-w-sm space-y-1 text-left">
-                        {missingAuthFields.map((f) => (
-                          <li key={f} className="flex items-start gap-2">
-                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand-orange shrink-0" />
-                            <span className="text-foreground">{f}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                      <FileSignature className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
+                      Preencha seus dados e os dados do cartão acima para gerar automaticamente a autorização de débito para assinatura.
                     </div>
                   ) : (
+
 
                     <div className="space-y-4">
                       <div className="rounded-xl border border-border bg-background overflow-hidden text-sm">
