@@ -38,20 +38,49 @@ async function csFetch<T = unknown>(path: string, init: RequestInit = {}): Promi
   const cfg = getClickSignConfig();
   const sep = path.includes("?") ? "&" : "?";
   const url = `${cfg.baseUrl}${path}${sep}access_token=${encodeURIComponent(cfg.token)}`;
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    console.error(`[ClickSign ${cfg.env}] ${res.status} ${path} → ${text.slice(0, 500)}`);
-    throw new Error(`ClickSign ${res.status}: ${text.slice(0, 300)}`);
+
+  // Retry transitório: 502/503/504 (Gateway Time-out) + falhas de rede.
+  // Backoff: 500ms, 1500ms, 3500ms. Total: até 3 tentativas extras.
+  const MAX_ATTEMPTS = 4;
+  const backoffs = [500, 1500, 3500];
+  let lastErr: unknown = null;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(url, {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(init.headers ?? {}),
+        },
+      });
+      const text = await res.text();
+      if (res.ok) return text ? (JSON.parse(text) as T) : ({} as T);
+
+      const transient = res.status === 502 || res.status === 503 || res.status === 504;
+      console.error(`[ClickSign ${cfg.env}] ${res.status} ${path} (tentativa ${attempt + 1}/${MAX_ATTEMPTS}) → ${text.slice(0, 300)}`);
+      if (transient && attempt < MAX_ATTEMPTS - 1) {
+        await new Promise((r) => setTimeout(r, backoffs[attempt] ?? 3500));
+        continue;
+      }
+      if (transient) {
+        throw new Error("A ClickSign está temporariamente indisponível (gateway timeout). Tente novamente em alguns instantes.");
+      }
+      throw new Error(`ClickSign ${res.status}: ${text.slice(0, 300)}`);
+    } catch (err) {
+      lastErr = err;
+      // Erro de rede/abort: tenta de novo se ainda houver tentativas
+      const isNetwork = err instanceof TypeError;
+      if (isNetwork && attempt < MAX_ATTEMPTS - 1) {
+        console.error(`[ClickSign ${cfg.env}] network error ${path} (tentativa ${attempt + 1}/${MAX_ATTEMPTS})`, err);
+        await new Promise((r) => setTimeout(r, backoffs[attempt] ?? 3500));
+        continue;
+      }
+      throw err;
+    }
   }
-  return text ? (JSON.parse(text) as T) : ({} as T);
+  throw lastErr instanceof Error ? lastErr : new Error("Falha ao chamar ClickSign");
 }
 
 async function assertAdmin(context: { supabase: unknown; userId: string }) {
