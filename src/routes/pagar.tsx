@@ -737,6 +737,68 @@ function PayPage() {
           toast.error("A assinatura foi recusada.");
         }}
       />
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirme seus dados</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Nome completo</div>
+              <div className="font-medium text-sm text-foreground break-words">{fullName || "—"}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">CPF</div>
+              <div className="font-medium text-sm text-foreground">
+                {(() => {
+                  const d = cpf.replace(/\D/g, "");
+                  return d.length === 11
+                    ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`
+                    : cpf || "—";
+                })()}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Data de nascimento</div>
+              <div className="font-medium text-sm text-foreground">
+                {(() => {
+                  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return birthDate || "—";
+                  const [y, m, d] = birthDate.split("-");
+                  return `${d}/${m}/${y}`;
+                })()}
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground pt-1">
+              Confira se os dados acima estão corretos. Após confirmar, você fará a selfie com prova de vida e a foto do documento.
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmOpen(false);
+                  void handleOpenClickSign();
+                }}
+                disabled={creatingSignature}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
+              >
+                {creatingSignature ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Preparando…</>
+                ) : (
+                  <>Confirmar e assinar</>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                className="w-full inline-flex items-center justify-center rounded-full border border-border px-5 py-2 text-sm text-muted-foreground hover:bg-muted/40 transition"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
