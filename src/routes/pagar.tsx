@@ -146,7 +146,15 @@ function PayPage() {
     Boolean(fullName && cpf && birthDate && email && phone);
   const cardFilled =
     cardDigits.length >= 13 && Boolean(card.cardName && card.expiry && card.cvv);
-  const canShowAuthorization = baseFilled && cardFilled;
+  const billingFilled = Boolean(
+    card.billingAddress &&
+    card.billingNumber &&
+    card.billingZip &&
+    card.billingCity &&
+    card.billingState
+  );
+  const canShowAuthorization = baseFilled && cardFilled && billingFilled;
+
 
   const invalid = !desc || !totalNumber;
 
