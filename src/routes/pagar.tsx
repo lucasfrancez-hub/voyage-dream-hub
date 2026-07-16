@@ -458,7 +458,7 @@ function PayPage() {
                         type="tel"
                         inputMode="numeric"
                         autoComplete="tel"
-                        placeholder="(44) 99909-3642"
+                        placeholder="(11) 91234-5678"
                         value={phone}
                         onChange={(e) => setPhone(formatBRPhone(e.target.value))}
                         maxLength={16}
