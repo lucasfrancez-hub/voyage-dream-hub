@@ -180,7 +180,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
           has_documentation: true,
-          auths: ["whatsapp"],
+          auths: ["email"],
           liveness_enabled: true, // Prova de vida (selfie dinâmica com movimento)
           official_document_enabled: true, // Foto do documento oficial (RG/CNH)
         },
@@ -233,17 +233,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
         message: `Olá! Seu contrato do pedido ${data.orderNumber} está pronto para assinatura.`,
       }),
     });
-    try {
-      await csFetch(`/notify_by_whatsapp`, {
-        method: "POST",
-        body: JSON.stringify({
-          request_signature_key: clienteList.list.request_signature_key,
-        }),
-      });
-    } catch (err) {
-      // WhatsApp pode falhar (número inválido, plano etc.) — não bloqueia o envio
-      console.warn("[ClickSign] WhatsApp notify falhou:", err);
-    }
+    // WhatsApp desabilitado temporariamente — token será enviado por e-mail
     await csFetch(`/notifications`, {
       method: "POST",
       body: JSON.stringify({
@@ -579,7 +569,7 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
           has_documentation: true,
-          auths: ["whatsapp"],
+          auths: ["email"],
           // Fluxo no widget:
           // 1) Confirmação dos dados (nome completo + CPF + data de nascimento) — automático porque has_documentation=true + birthday
           // 2) Prova de vida (liveness — selfie dinâmica)
