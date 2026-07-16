@@ -182,8 +182,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
           has_documentation: true,
           auths: ["api"],
           liveness_enabled: true, // Prova de vida (selfie dinâmica com movimento)
-          // official_document_enabled e location_required_enabled não são compatíveis
-          // com auths=["api"] — só funcionam com email/sms/whatsapp
+          official_document_enabled: true, // Foto do documento oficial (RG/CNH)
         },
       }),
     });
