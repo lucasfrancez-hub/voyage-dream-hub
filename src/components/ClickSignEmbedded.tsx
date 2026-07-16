@@ -116,14 +116,19 @@ export function ClickSignEmbedded({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-full p-0 overflow-hidden bg-white text-slate-900">
-        <DialogHeader className="px-6 pt-5 pb-2 border-b border-slate-200 bg-white">
+      <DialogContent
+        className="p-0 overflow-hidden bg-white text-slate-900 flex flex-col
+                   max-w-none w-screen rounded-none border-0 left-0 top-0 translate-x-0 translate-y-0
+                   sm:max-w-3xl sm:w-full sm:rounded-lg sm:border sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2"
+        style={{ height: "100dvh", maxHeight: "100dvh" }}
+      >
+        <DialogHeader className="px-6 pt-5 pb-2 border-b border-slate-200 bg-white shrink-0">
           <DialogTitle className="text-base text-slate-900">Assinatura da autorização de débito</DialogTitle>
           <p className="text-xs text-slate-600">
             Complete a verificação biométrica, foto do documento e permita o acesso à localização para concluir a assinatura.
           </p>
         </DialogHeader>
-        <div className="relative bg-white" style={{ minHeight: 480 }}>
+        <div className="relative bg-white flex-1 min-h-0 overflow-y-auto overscroll-contain">
           {loading && !error && (
             <div className="absolute inset-0 flex items-center justify-center bg-white/90 z-10">
               <div className="flex flex-col items-center gap-3 text-sm text-slate-600">
