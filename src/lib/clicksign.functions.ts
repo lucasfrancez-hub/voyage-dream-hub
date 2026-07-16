@@ -131,14 +131,12 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
 
     const cpfDigits = data.cliente.cpf.replace(/\D/g, "");
 
-    // Normaliza telefone para E.164 (assume BR se não vier com +).
-    // ClickSign exige código do país para disparar o WhatsApp.
-    const phoneDigits = data.cliente.telefone.replace(/\D/g, "");
-    const phoneE164 = data.cliente.telefone.trim().startsWith("+")
-      ? `+${phoneDigits}`
-      : phoneDigits.startsWith("55")
-        ? `+${phoneDigits}`
-        : `+55${phoneDigits}`;
+    // ClickSign: enviar só DDD + número (sem código do país 55).
+    const rawPhoneDigits = data.cliente.telefone.replace(/\D/g, "");
+    const phoneNational = rawPhoneDigits.length > 11 && rawPhoneDigits.startsWith("55")
+      ? rawPhoneDigits.slice(2)
+      : rawPhoneDigits;
+    const phoneE164 = phoneNational;
 
     // 2) Cria signers
     type SignerResp = { signer: { key: string } };
@@ -534,12 +532,11 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
 
     // 2) Cria signer com selfie liveness + foto do documento + geolocalização obrigatória
     const cpfDigits = data.cliente.cpf.replace(/\D/g, "");
-    const phoneDigits = data.cliente.telefone.replace(/\D/g, "");
-    const phoneE164 = data.cliente.telefone.trim().startsWith("+")
-      ? `+${phoneDigits}`
-      : phoneDigits.startsWith("55")
-        ? `+${phoneDigits}`
-        : `+55${phoneDigits}`;
+    const rawPhoneDigits = data.cliente.telefone.replace(/\D/g, "");
+    const phoneNational = rawPhoneDigits.length > 11 && rawPhoneDigits.startsWith("55")
+      ? rawPhoneDigits.slice(2)
+      : rawPhoneDigits;
+    const phoneE164 = phoneNational;
 
     type SignerResp = { signer: { key: string } };
     const signerResp = await csFetch<SignerResp>("/signers", {
