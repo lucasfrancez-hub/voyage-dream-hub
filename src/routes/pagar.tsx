@@ -507,7 +507,7 @@ function PayPage() {
                   {!canShowAuthorization ? (
                     <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                       <FileSignature className="h-6 w-6 mx-auto mb-2 text-brand-orange/70" />
-                      Preencha seus dados e os dados do cartão acima para gerar automaticamente a autorização de débito para assinatura.
+                      Preencha seus dados, os dados do cartão e o endereço de cobrança acima para gerar automaticamente a autorização de débito para assinatura.
                     </div>
                   ) : (
                     <div className="space-y-4">
