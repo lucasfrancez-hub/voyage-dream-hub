@@ -114,6 +114,20 @@ export function ClickSignEmbedded({
     };
   }, [open, requestSignatureKey, endpoint, onSigned, onRefused]);
 
+  // Bloqueia o auto-zoom do iOS enquanto o widget da ClickSign está aberto
+  // (o iframe deles força o Safari a dar zoom nos inputs, quebrando o layout).
+  useEffect(() => {
+    if (!open) return;
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+    if (!meta) return;
+    const prev = meta.content;
+    meta.content =
+      "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
+    return () => {
+      meta.content = prev;
+    };
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -122,10 +136,10 @@ export function ClickSignEmbedded({
                    sm:max-w-3xl sm:w-full sm:rounded-lg sm:border sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2"
         style={{ height: "100dvh", maxHeight: "100dvh", paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <DialogHeader className="px-4 pt-4 pb-2 border-b border-slate-200 bg-white shrink-0">
-          <DialogTitle className="text-sm sm:text-base text-slate-900">Faça a assinatura</DialogTitle>
-          <p className="text-xs text-slate-600">
-            Ao concluir, você volta para a página de pagamento para realizar o pagamento.
+        <DialogHeader className="px-4 pt-4 pb-2 pr-12 border-b border-slate-200 bg-white shrink-0">
+          <DialogTitle className="truncate text-sm sm:text-base text-slate-900">Faça a assinatura</DialogTitle>
+          <p className="text-xs text-slate-600 truncate">
+            Ao concluir, você volta para a página de pagamento.
           </p>
         </DialogHeader>
         <div className="relative bg-white flex-1 min-h-0 overflow-hidden">
