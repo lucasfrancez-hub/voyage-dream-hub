@@ -598,7 +598,7 @@ function PayPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="flex flex-col items-center space-y-2">
                           <button
                             type="button"
                             onClick={handleOpenClickSign}
