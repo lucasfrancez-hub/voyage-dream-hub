@@ -3669,6 +3669,60 @@ function PaymentDialog({
     setForm((f) => ({ ...f, [k]: v }));
   const setPayerField = (k: keyof PayerPatch, v: string) => setPayer((p) => ({ ...p, [k]: v }));
 
+  // Auto-calcula "valor por parcela" a partir do valor total / nº de parcelas
+  // (a menos que o usuário tenha editado manualmente esse campo)
+  useEffect(() => {
+    if (installmentTouched) return;
+    const n = Number(form.installments ?? 0);
+    const total = Number(form.amount ?? 0);
+    if (n > 0 && total > 0) {
+      const per = Math.round((total / n) * 100) / 100;
+      setForm((f) => ({ ...f, installment_amount: per }));
+    }
+  }, [form.installments, form.amount, installmentTouched]);
+
+  // Autofill de endereço via ViaCEP quando o CEP tiver 8 dígitos
+  function handleZipChange(v: string) {
+    const raw = v.replace(/\D/g, "").slice(0, 8);
+    const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
+    setPayerField("payer_zip", formatted);
+    if (raw.length === 8) {
+      fetch(`https://viacep.com.br/ws/${raw}/json/`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d && !d.erro) {
+            setPayer((p) => ({
+              ...p,
+              payer_address: p.payer_address || d.logradouro || "",
+              payer_district: p.payer_district || d.bairro || "",
+              payer_city: p.payer_city || d.localidade || "",
+              payer_state: p.payer_state || (d.uf || "").toUpperCase(),
+            }));
+          }
+        })
+        .catch(() => {});
+    }
+  }
+
+  // Máscara do número do cartão + derivação automática de bandeira/last4
+  function handleCardNumberChange(v: string) {
+    const isAmex = (form.card_brand ?? "").toLowerCase().includes("amex");
+    const raw = v.replace(/\D/g, "").slice(0, isAmex ? 15 : 16);
+    const formatted = isAmex
+      ? raw.replace(/(\d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{6})(\d)/, "$1 $2")
+      : raw.replace(/(\d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{4} \d{4})(\d)/, "$1 $2");
+    setCardFullNumber(formatted);
+    const brand = detectBrand(raw);
+    setForm((f) => ({
+      ...f,
+      card_last4: raw.length >= 4 ? raw.slice(-4) : f.card_last4 ?? null,
+      card_bin: raw.length >= 6 ? raw.slice(0, 6) : f.card_bin ?? null,
+      card_brand: brand || f.card_brand || null,
+    }));
+  }
+
+
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
