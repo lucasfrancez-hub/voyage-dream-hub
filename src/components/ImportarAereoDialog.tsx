@@ -166,6 +166,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
           full_name: p.full_name,
           passenger_type: kindMap[p.kind ?? "adult"] ?? "ADT",
           ticket_number: p.ticket_number ?? null,
+          birth_date: p.birth_date ?? null,
+          cpf: p.cpf ?? null,
+          document: p.document ?? null,
+          passport_number: p.passport_number ?? null,
+          doc_type: p.doc_type ?? (p.cpf ? "cpf" : p.passport_number ? "passport" : "cpf"),
           sort_order: i,
         } });
       }
