@@ -3413,14 +3413,25 @@ function fmtDateTime(iso: string | null) {
 }
 
 function PaymentsSection({
-  orderId, order, clientName, payments, onChange,
+  orderId, order, items, clientName, payments, onChange,
 }: {
   orderId: string;
   order: OrderHeader;
+  items: OrderItem[];
   clientName: string;
   payments: OrderPayment[];
   onChange: () => void;
 }) {
+  // Fornecedor padrão para novos pagamentos: primeiro item com supplier_name preenchido
+  const defaultProvider = useMemo(() => {
+    for (const it of items) {
+      const d = (it.details ?? {}) as { supplier_name?: string };
+      const s = (d.supplier_name ?? "").trim();
+      if (s) return s;
+    }
+    return "";
+  }, [items]);
+
   const upsert = useServerFn(upsertOrderPayment);
   const del = useServerFn(deleteOrderPayment);
   const updatePayer = useServerFn(updateOrderPayer);
