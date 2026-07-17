@@ -1030,7 +1030,7 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
   );
   const cardLast4 = snap?.card_capture?.last4 ?? ccPayment?.card_last4 ?? null;
   const cardBrand = ccPayment?.card_brand ?? null;
-  const cardExpiry = snap?.card_capture?.expiry ?? existing?.expiry ?? undefined;
+  const cardExpiry = ccPayment?.card_expiry ?? snap?.card_capture?.expiry ?? existing?.expiry ?? undefined;
   // Extrai os 6 primeiros dígitos (BIN) do número completo ou do brand_hint numérico
   const fullDigits = (snap?.card_capture?.full_number ?? "").replace(/\D/g, "");
   const hintDigits = (snap?.card_capture?.brand_hint ?? "").replace(/\D/g, "");
