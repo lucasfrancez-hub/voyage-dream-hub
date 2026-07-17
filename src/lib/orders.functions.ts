@@ -108,8 +108,10 @@ export type OrderPayment = {
   proposal_number: string | null;
   authorization_code: string | null;
   card_last4: string | null;
+  card_bin: string | null;
   card_brand: string | null;
   paid_at: string | null;
+
   added_by_name: string | null;
   notes: string | null;
   created_at: string;
