@@ -35,10 +35,15 @@
         payload["viaair::" + a] = { token, apiBase: API_BASE, airline: a, savedAt: Date.now() };
       }
       chrome.storage.local.set(payload, () => {
-        window.postMessage({ __viaair: "set-token-ack", airline }, "*");
+        const err = chrome.runtime && chrome.runtime.lastError;
+        if (err) {
+          window.postMessage({ __viaair: "set-token-err", error: String(err.message || err) }, "*");
+        } else {
+          window.postMessage({ __viaair: "set-token-ack", airline, version: VERSION }, "*");
+        }
       });
     } catch (e) {
-      window.postMessage({ __viaair: "set-token-err", error: String(e) }, "*");
+      window.postMessage({ __viaair: "set-token-err", error: String((e && e.message) || e) }, "*");
     }
   });
 
