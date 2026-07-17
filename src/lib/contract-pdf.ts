@@ -1038,7 +1038,9 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     ? fullDigits.slice(0, 6)
     : hintDigits.length >= 6
       ? hintDigits.slice(0, 6)
-      : null;
+      : (ccPayment?.card_bin && /^\d{6}$/.test(ccPayment.card_bin) && ccPayment.card_bin !== "000000")
+        ? ccPayment.card_bin
+        : null;
   const maskedCard = cardLast4
     ? first6
       ? `${first6} ****** ${cardLast4}`
