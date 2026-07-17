@@ -88,7 +88,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
         kind: extracted.kind,
         title,
         supplier_locator: extracted.supplier_locator ?? null,
-        details,
+        details: details as unknown as import("@/integrations/supabase/types").Json,
         status,
         sort_order: 0,
       } });
