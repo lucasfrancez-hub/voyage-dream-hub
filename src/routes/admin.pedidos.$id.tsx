@@ -529,10 +529,12 @@ function OrderDetailPage() {
       <PaymentsSection
         orderId={order.id}
         order={order}
+        items={detail.items}
         clientName={order.fullName}
         payments={detail.payments}
         onChange={invalidate}
       />
+
 
 
       <CommissionAdjustDialog
