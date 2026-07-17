@@ -11,6 +11,9 @@
  */
 
 (function () {
+  const API_BASE = "https://pedidos.viaair.tur.br";
+  let importInProgress = false;
+
   let HOST = location.hostname;
   if (!HOST && location.ancestorOrigins && location.ancestorOrigins.length) {
     try { HOST = new URL(location.ancestorOrigins[0]).hostname; }
@@ -640,6 +643,11 @@
   }
 
   async function sendImport(ctx) {
+    if (importInProgress) {
+      showToast("A importação já está em andamento. Aguarde…");
+      return;
+    }
+    importInProgress = true;
     showToast(isConsolidator ? "Lendo iframe e enviando pra Via Air…" : "Capturando tela e enviando pra Via Air…");
     try {
       if (isConsolidator) {
@@ -655,9 +663,14 @@
         showToast("Página ainda não carregou os dados da reserva. Aguarde e tente de novo.", "err");
         return;
       }
-      const res = await fetch(ctx.apiBase.replace(/\/+$/, "") + "/api/public/import-aereo", {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 90_000);
+      let res;
+      try {
+        res = await fetch(API_BASE + "/api/public/import-aereo", {
         method: "POST",
         headers: { "content-type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           token: ctx.token,
           airline_hint: airline,
@@ -666,8 +679,13 @@
           screenshots,
           structured_data: structuredData,
         }),
-      });
-      const body = await res.json().catch(() => ({}));
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+      const responseText = await res.text();
+      let body = {};
+      try { body = responseText ? JSON.parse(responseText) : {}; } catch (e) { /* resposta não JSON */ }
       if (!res.ok) {
         const map = {
           token_not_found: "Token não encontrado. Gere um novo no pedido.",
@@ -679,9 +697,18 @@
         showToast(map[body.error] || ("Erro: " + (body.error || res.status)), "err");
         return;
       }
+      if (!body.ok) {
+        showToast("O servidor não confirmou a importação. Tente novamente.", "err");
+        return;
+      }
       showToast("✅ Dados enviados! Volte ao admin da Via Air pra conferir.", "ok");
     } catch (e) {
-      showToast("Falha de rede: " + e.message, "err");
+      const message = e && e.name === "AbortError"
+        ? "O envio demorou demais. Tente novamente."
+        : "Falha de rede: " + (e && e.message ? e.message : String(e));
+      showToast(message, "err");
+    } finally {
+      importInProgress = false;
     }
   }
 
@@ -711,7 +738,7 @@
         showToast("Token não encontrado. Abra o pedido no admin da Via Air e clique em 'Importar aéreo' — depois volte aqui.", "err");
         return;
       }
-      sendImport(ctx);
+      await sendImport(ctx);
     };
     document.body.appendChild(btn);
   }

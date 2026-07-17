@@ -6,7 +6,8 @@
  * pra que o content.js leia quando a página da cia abrir.
  */
 (function () {
-  const VERSION = "1.7.8";
+  const VERSION = "1.7.9";
+  const API_BASE = "https://pedidos.viaair.tur.br";
 
   function announce() {
     window.postMessage({ __viaair: "ready", version: VERSION }, "*");
@@ -21,8 +22,8 @@
     if (d.__viaair === "ping") { announce(); return; }
 
     if (d.__viaair !== "set-token") return;
-    const { token, apiBase, airline } = d;
-    if (!token || !apiBase || !airline) return;
+    const { token, airline } = d;
+    if (!token || !airline) return;
     const ALL = ["latam", "gol", "azul", "skyteam", "frt", "visualturismo", "infotera"];
     const targets = airline === "any"
       ? ALL
@@ -31,7 +32,7 @@
     try {
       const payload = {};
       for (const a of targets) {
-        payload["viaair::" + a] = { token, apiBase, airline: a, savedAt: Date.now() };
+        payload["viaair::" + a] = { token, apiBase: API_BASE, airline: a, savedAt: Date.now() };
       }
       chrome.storage.local.set(payload, () => {
         window.postMessage({ __viaair: "set-token-ack", airline }, "*");
