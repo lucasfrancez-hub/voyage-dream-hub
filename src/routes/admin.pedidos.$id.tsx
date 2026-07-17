@@ -3584,6 +3584,7 @@ function PaymentsSection({
         onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
         initial={editing}
         order={order}
+        defaultProvider={defaultProvider}
         onSave={async (data, payer) => {
           try {
             await updatePayer({ data: { id: orderId, ...payer } });
@@ -3594,6 +3595,7 @@ function PaymentsSection({
           upsertMut.mutate({ ...data, order_id: orderId, id: editing?.id });
         }}
       />
+
 
     </div>
   );
