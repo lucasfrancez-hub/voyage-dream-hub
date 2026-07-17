@@ -124,6 +124,56 @@ export const listPeople = createServerFn({ method: "GET" })
     return (data ?? []) as PersonRow[];
   });
 
+export const searchPeople = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ q: z.string().trim().max(120).default("") }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const q = data.q.trim();
+    let query = context.supabase
+      .from("people")
+      .select("id, name, cpf, cnpj, email, phone, mobile_phone, birth_date, zip, address, number, district, city, state, rg")
+      .order("name", { ascending: true })
+      .limit(15);
+    if (q) {
+      const digits = q.replace(/\D+/g, "");
+      const parts: string[] = [`name.ilike.%${q}%`, `email.ilike.%${q}%`];
+      if (digits.length >= 3) {
+        parts.push(`cpf.ilike.%${digits}%`);
+        parts.push(`cnpj.ilike.%${digits}%`);
+      }
+      query = query.or(parts.join(","));
+    }
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as Array<{
+      id: string; name: string; cpf: string | null; cnpj: string | null;
+      email: string | null; phone: string | null; mobile_phone: string | null;
+      birth_date: string | null; zip: string | null; address: string | null;
+      number: string | null; district: string | null; city: string | null;
+      state: string | null; rg: string | null;
+    }>;
+  });
+
+export const listPersonCards = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ person_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { data: cards, error } = await context.supabase
+      .from("people_cards")
+      .select("id, person_id, nickname, holder_name, brand, last4, expiry, is_travel_card, created_at, updated_at")
+      .eq("person_id", data.person_id)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (cards ?? []) as PersonCardRow[];
+  });
+
+
 export const getPerson = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>

@@ -62,6 +62,8 @@ import { ImportarAereoDialog } from "@/components/ImportarAereoDialog";
 import { ImportarVoucherDialog } from "@/components/ImportarVoucherDialog";
 import { confirmThen } from "@/lib/confirm";
 import { findAirline, airlineLogo } from "@/lib/airlines";
+import { searchPeople, upsertPerson, listPersonCards, addPersonCard, revealPersonCardNumber, type PersonCardRow } from "@/lib/people.functions";
+import { Search, Save } from "lucide-react";
 
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
@@ -3644,8 +3646,21 @@ function PaymentDialog({
   const [form, setForm] = useState<Partial<OrderPayment>>({});
   const [payer, setPayer] = useState<PayerPatch>({});
   const [cardFullNumber, setCardFullNumber] = useState<string>("");
-  // Marca se o usuário editou manualmente o valor da parcela — evita sobrescrever
   const [installmentTouched, setInstallmentTouched] = useState(false);
+
+  // Busca/salvamento de pessoas e cartões
+  const searchPeopleFn = useServerFn(searchPeople);
+  const upsertPersonFn = useServerFn(upsertPerson);
+  const listCardsFn = useServerFn(listPersonCards);
+  const addCardFn = useServerFn(addPersonCard);
+  const revealCardFn = useServerFn(revealPersonCardNumber);
+  const [personSearch, setPersonSearch] = useState("");
+  const [personResults, setPersonResults] = useState<Array<{ id: string; name: string; cpf: string | null }>>([]);
+  const [showPersonResults, setShowPersonResults] = useState(false);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [savedCards, setSavedCards] = useState<PersonCardRow[]>([]);
+  const [savingPerson, setSavingPerson] = useState(false);
+  const [savingCard, setSavingCard] = useState(false);
   useMemo(() => {
     const isNew = !initial;
     setForm(initial ?? {
@@ -3736,6 +3751,147 @@ function PaymentDialog({
     }));
   }
 
+  // Debounce da busca de pagador
+  useEffect(() => {
+    if (!open) return;
+    const q = personSearch.trim();
+    if (!q) { setPersonResults([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const rows = await searchPeopleFn({ data: { q } });
+        setPersonResults(rows.map((r) => ({ id: r.id, name: r.name, cpf: r.cpf })));
+      } catch { /* silencioso */ }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [personSearch, open, searchPeopleFn]);
+
+  // Carrega cartões salvos ao trocar de pessoa
+  useEffect(() => {
+    if (!selectedPersonId) { setSavedCards([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const cards = await listCardsFn({ data: { person_id: selectedPersonId } });
+        if (!cancelled) setSavedCards(cards);
+      } catch { if (!cancelled) setSavedCards([]); }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedPersonId, listCardsFn]);
+
+  async function handlePickPerson(id: string) {
+    try {
+      const rows = await searchPeopleFn({ data: { q: personSearch.trim() } });
+      const p = rows.find((r) => r.id === id);
+      if (!p) return;
+      setSelectedPersonId(id);
+      setShowPersonResults(false);
+      setPersonSearch(p.name);
+      setPayer({
+        payer_full_name: p.name ?? "",
+        payer_cpf: p.cpf ?? p.cnpj ?? "",
+        payer_ie_rg: p.rg ?? "",
+        payer_email: p.email ?? "",
+        payer_phone: p.mobile_phone ?? p.phone ?? "",
+        payer_zip: p.zip ?? "",
+        payer_address: p.address ?? "",
+        payer_number: p.number ?? "",
+        payer_district: p.district ?? "",
+        payer_city: p.city ?? "",
+        payer_state: p.state ?? "",
+        payer_birth_date: p.birth_date ?? "",
+      });
+      toast.success(`Pagador "${p.name}" carregado`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function handleSavePerson() {
+    const name = (payer.payer_full_name ?? "").trim();
+    if (!name) { toast.error("Preencha o nome do pagador."); return; }
+    setSavingPerson(true);
+    try {
+      const cpfDigits = (payer.payer_cpf ?? "").replace(/\D/g, "");
+      const isPJ = cpfDigits.length > 11;
+      const res = await upsertPersonFn({ data: {
+        id: selectedPersonId ?? undefined,
+        kind: isPJ ? "PJ" : "PF",
+        name,
+        cpf: !isPJ ? (payer.payer_cpf ?? null) : null,
+        cnpj: isPJ ? (payer.payer_cpf ?? null) : null,
+        rg: payer.payer_ie_rg ?? null,
+        email: payer.payer_email ?? null,
+        mobile_phone: payer.payer_phone ?? null,
+        birth_date: payer.payer_birth_date || null,
+        zip: payer.payer_zip ?? null,
+        address: payer.payer_address ?? null,
+        number: payer.payer_number ?? null,
+        district: payer.payer_district ?? null,
+        city: payer.payer_city ?? null,
+        state: payer.payer_state ?? null,
+        is_foreign: false,
+        charge_boleto_fee: false,
+      } });
+      setSelectedPersonId(res.id);
+      toast.success("Cliente salvo no cadastro");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingPerson(false);
+    }
+  }
+
+  async function handleSaveCard() {
+    if (!selectedPersonId) {
+      toast.error("Salve o pagador antes para vincular o cartão.");
+      return;
+    }
+    const clean = cardFullNumber.replace(/\D/g, "");
+    if (clean.length < 12) { toast.error("Informe o número completo do cartão."); return; }
+    setSavingCard(true);
+    try {
+      await addCardFn({ data: {
+        person_id: selectedPersonId,
+        holder_name: payer.payer_full_name ?? null,
+        number: clean,
+        expiry: form.card_expiry ?? null,
+        is_travel_card: false,
+      } });
+      const cards = await listCardsFn({ data: { person_id: selectedPersonId } });
+      setSavedCards(cards);
+      toast.success("Cartão salvo no cadastro");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingCard(false);
+    }
+  }
+
+  async function handlePickCard(cardId: string) {
+    const c = savedCards.find((x) => x.id === cardId);
+    if (!c) return;
+    try {
+      const { number } = await revealCardFn({ data: { id: cardId } });
+      const raw = number.replace(/\D/g, "");
+      const isAmex = (c.brand ?? "").toLowerCase().includes("amex");
+      const formatted = isAmex
+        ? raw.replace(/(\d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{6})(\d)/, "$1 $2")
+        : raw.replace(/(\d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{4} \d{4})(\d)/, "$1 $2");
+      setCardFullNumber(formatted);
+      setForm((f) => ({
+        ...f,
+        card_brand: c.brand ?? f.card_brand ?? null,
+        card_last4: c.last4 ?? f.card_last4 ?? null,
+        card_bin: raw.length >= 6 ? raw.slice(0, 6) : f.card_bin ?? null,
+        card_expiry: c.expiry ?? f.card_expiry ?? null,
+      }));
+      toast.success(`Cartão ${c.brand ?? ""} •••• ${c.last4 ?? ""} carregado`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+
 
 
 
@@ -3816,8 +3972,35 @@ function PaymentDialog({
               )}
               {showCard && (
                 <>
+                  {selectedPersonId && savedCards.length > 0 && (
+                    <div className="md:col-span-2">
+                      <Label>Cartões salvos deste pagador</Label>
+                      <Select value="" onValueChange={handlePickCard}>
+                        <SelectTrigger><SelectValue placeholder="Selecione para preencher automaticamente…" /></SelectTrigger>
+                        <SelectContent>
+                          {savedCards.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {(c.brand ?? "Cartão")} •••• {c.last4 ?? "----"}{c.expiry ? ` — ${c.expiry}` : ""}{c.nickname ? ` (${c.nickname})` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="md:col-span-2">
-                    <Label>Número do cartão (completo)</Label>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label>Número do cartão (completo)</Label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleSaveCard}
+                        disabled={savingCard || !selectedPersonId || cardFullNumber.replace(/\D/g, "").length < 12}
+                      >
+                        <Save className="h-3.5 w-3.5 mr-1" />
+                        Salvar cartão
+                      </Button>
+                    </div>
                     <Input
                       value={cardFullNumber}
                       onChange={(e) => handleCardNumberChange(e.target.value)}
@@ -3826,7 +4009,7 @@ function PaymentDialog({
                       autoComplete="off"
                     />
                     <div className="text-[11px] text-muted-foreground mt-1">
-                      Armazenado criptografado. Usado para gerar a autorização de débito com BIN + últimos 4.
+                      Armazenado criptografado. {selectedPersonId ? "Salve para reutilizar em pedidos futuros." : "Salve o pagador antes para poder gravar o cartão."}
                     </div>
                   </div>
                   <div>
@@ -3879,7 +4062,53 @@ function PaymentDialog({
             </div>
           </TabsContent>
           <TabsContent value="pagador" className="flex-1 min-h-0 overflow-y-auto pr-1">
+            <div className="mb-3 rounded-md border bg-muted/40 p-3">
+              <div className="flex items-end gap-2">
+                <div className="flex-1 relative">
+                  <Label className="text-xs">Buscar cliente cadastrado (nome ou CPF)</Label>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="pl-8"
+                      value={personSearch}
+                      onChange={(e) => { setPersonSearch(e.target.value); setShowPersonResults(true); setSelectedPersonId(null); }}
+                      onFocus={() => setShowPersonResults(true)}
+                      placeholder="Digite o nome, CPF ou e-mail…"
+                    />
+                  </div>
+                  {showPersonResults && personResults.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 max-h-56 overflow-auto rounded-md border bg-popover shadow-md">
+                      {personResults.map((r) => (
+                        <button
+                          type="button"
+                          key={r.id}
+                          onClick={() => handlePickPerson(r.id)}
+                          className="block w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+                        >
+                          <span className="font-medium">{r.name}</span>
+                          {r.cpf && <span className="text-muted-foreground"> — {r.cpf}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSavePerson}
+                  disabled={savingPerson || !(payer.payer_full_name ?? "").trim()}
+                >
+                  <Save className="h-3.5 w-3.5 mr-1" />
+                  {selectedPersonId ? "Atualizar cliente" : "Salvar cliente"}
+                </Button>
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                Selecione um cliente para puxar todos os dados automaticamente. O código de autorização é sempre digitado no momento.
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
               <div className="md:col-span-2">
                 <Label>Solicitante (nome completo)</Label>
                 <Input value={payer.payer_full_name ?? ""} onChange={(e) => setPayerField("payer_full_name", e.target.value)} />
