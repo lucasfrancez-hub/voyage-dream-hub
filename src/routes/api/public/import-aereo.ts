@@ -397,6 +397,16 @@ function normalizeDirectStructuredData(input: unknown): Record<string, unknown> 
     const out: Record<string, string> = { full_name: fullName, kind };
     const ticket = String(row.ticket_number ?? "").replace(/\s+/g, " ").trim();
     if (ticket) out.ticket_number = ticket.slice(0, 40);
+    const birth = String(row.birth_date ?? "").trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(birth)) out.birth_date = birth;
+    const cpf = String(row.cpf ?? "").replace(/\D/g, "");
+    if (cpf.length === 11) out.cpf = cpf;
+    const docNum = String(row.document_number ?? "").trim();
+    if (docNum) out.document = docNum.slice(0, 60);
+    const passport = String(row.passport ?? "").trim();
+    if (passport) out.passport_number = passport.slice(0, 60);
+    const docType = String(row.doc_type ?? "").trim();
+    if (docType === "cpf" || docType === "passport") out.doc_type = docType;
     return [out];
   });
 
@@ -433,5 +443,21 @@ function normalizeDirectStructuredData(input: unknown): Record<string, unknown> 
       segments,
     }];
   });
-  return { passengers, flights };
+
+  const result: Record<string, unknown> = { passengers, flights };
+  const currency = String(source.currency ?? "").trim().toUpperCase();
+  if (/^[A-Z]{3}$/.test(currency)) result.currency = currency;
+  const numField = (v: unknown) => {
+    const n = typeof v === "number" ? v : parseFloat(String(v ?? "").replace(",", "."));
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
+  const baseFare = numField(source.base_fare);
+  const taxes = numField(source.taxes);
+  const totalFare = numField(source.total_fare);
+  const fees = numField(source.fees);
+  if (baseFare != null) result.base_fare = baseFare;
+  if (taxes != null) result.taxes = taxes;
+  if (totalFare != null) result.total_fare = totalFare;
+  if (fees != null) result.fees = fees;
+  return result;
 }
