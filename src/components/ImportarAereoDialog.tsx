@@ -414,7 +414,6 @@ function ReviewReservation({
           </div>
         </div>
       </div>
-      )}
 
       <div>
         <div className="text-sm font-semibold mb-2">Passageiros ({reservation.passengers.length})</div>
