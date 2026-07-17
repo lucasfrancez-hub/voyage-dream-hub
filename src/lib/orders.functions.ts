@@ -61,6 +61,7 @@ export type OrderHeader = {
   phone: string;
   cpf: string | null;
   birthDate: string | null;
+  payerBirthDate: string | null;
   adults: number;
   children: number;
   totalPrice: number;
@@ -110,6 +111,7 @@ export type OrderPayment = {
   card_last4: string | null;
   card_bin: string | null;
   card_brand: string | null;
+  card_expiry: string | null;
   paid_at: string | null;
 
   added_by_name: string | null;
@@ -254,6 +256,8 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       card_last4: p.card_last4,
       card_bin: (p as { card_bin?: string | null }).card_bin ?? null,
       card_brand: p.card_brand,
+      card_expiry: (p as { card_expiry?: string | null }).card_expiry ?? null,
+
 
       paid_at: p.paid_at,
       added_by_name: p.added_by_name,
@@ -272,6 +276,8 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         phone: order.phone,
         cpf: order.cpf ?? null,
         birthDate: order.birth_date ?? null,
+        payerBirthDate: (order as { payer_birth_date?: string | null }).payer_birth_date ?? null,
+
         adults: order.adults,
         children: order.children,
         totalPrice: Number(order.total_price),
@@ -527,6 +533,7 @@ export const updateOrderPayer = createServerFn({ method: "POST" })
     payer_district?: string | null;
     payer_city?: string | null;
     payer_state?: string | null;
+    payer_birth_date?: string | null;
   }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
@@ -538,6 +545,7 @@ export const updateOrderPayer = createServerFn({ method: "POST" })
     const keys = [
       "payer_full_name", "payer_cpf", "payer_ie_rg", "payer_email", "payer_phone",
       "payer_zip", "payer_address", "payer_number", "payer_district", "payer_city", "payer_state",
+      "payer_birth_date",
     ] as const;
     for (const k of keys) {
       const v = (data as Record<string, string | null | undefined>)[k];
@@ -803,6 +811,7 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
       card_last4: data.card_last4 ?? null,
       card_bin: data.card_bin ?? null,
       card_brand: data.card_brand ?? null,
+      card_expiry: data.card_expiry ?? null,
       paid_at: data.paid_at ?? null,
       added_by_name: data.added_by_name ?? null,
       notes: data.notes ?? null,

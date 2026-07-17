@@ -1030,7 +1030,7 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
   );
   const cardLast4 = snap?.card_capture?.last4 ?? ccPayment?.card_last4 ?? null;
   const cardBrand = ccPayment?.card_brand ?? null;
-  const cardExpiry = snap?.card_capture?.expiry ?? existing?.expiry ?? undefined;
+  const cardExpiry = ccPayment?.card_expiry ?? snap?.card_capture?.expiry ?? existing?.expiry ?? undefined;
   // Extrai os 6 primeiros dígitos (BIN) do número completo ou do brand_hint numérico
   const fullDigits = (snap?.card_capture?.full_number ?? "").replace(/\D/g, "");
   const hintDigits = (snap?.card_capture?.brand_hint ?? "").replace(/\D/g, "");
@@ -1038,7 +1038,9 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     ? fullDigits.slice(0, 6)
     : hintDigits.length >= 6
       ? hintDigits.slice(0, 6)
-      : null;
+      : (ccPayment?.card_bin && /^\d{6}$/.test(ccPayment.card_bin) && ccPayment.card_bin !== "000000")
+        ? ccPayment.card_bin
+        : null;
   const maskedCard = cardLast4
     ? first6
       ? `${first6} ****** ${cardLast4}`
@@ -1054,13 +1056,13 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
 
   const authorization: import("./authorization-pdf").AuthorizationData = {
     type: "debit_authorization",
-    supplier: order.supplierName ?? "Via Air",
+    supplier: ccPayment?.provider ?? order.supplierName ?? "Via Air",
     representative: "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
     holder_name: order.payerFullName ?? order.fullName ?? "",
     holder_cpf: order.payerCpf ?? order.cpf ?? "",
     holder_email: order.payerEmail ?? order.email ?? "",
     holder_phone: order.payerPhone ?? order.phone ?? "",
-    holder_birth_date: order.birthDate ?? "",
+    holder_birth_date: order.payerBirthDate ?? order.birthDate ?? "",
     masked_card: maskedCard,
     brand: cardBrand ?? undefined,
     expiry: cardExpiry,

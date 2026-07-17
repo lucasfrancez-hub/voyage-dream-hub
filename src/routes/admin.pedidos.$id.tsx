@@ -3628,6 +3628,7 @@ type PayerPatch = {
   payer_district?: string | null;
   payer_city?: string | null;
   payer_state?: string | null;
+  payer_birth_date?: string | null;
 };
 
 function PaymentDialog({
@@ -3669,6 +3670,7 @@ function PaymentDialog({
       payer_district: order.payerDistrict ?? "",
       payer_city: order.payerCity ?? "",
       payer_state: order.payerState ?? "",
+      payer_birth_date: order.payerBirthDate ?? order.birthDate ?? "",
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial, open, order.id]);
@@ -3832,12 +3834,18 @@ function PaymentDialog({
                     <Input value={form.card_brand ?? ""} onChange={(e) => setField("card_brand", e.target.value)} placeholder="Visa, Master, Elo…" />
                   </div>
                   <div>
-                    <Label>BIN (6 primeiros)</Label>
-                    <Input maxLength={6} value={form.card_bin ?? ""} onChange={(e) => setField("card_bin", e.target.value.replace(/\D/g, ""))} placeholder="000000" />
-                  </div>
-                  <div>
-                    <Label>Últimos 4 dígitos</Label>
-                    <Input maxLength={4} value={form.card_last4 ?? ""} onChange={(e) => setField("card_last4", e.target.value.replace(/\D/g, ""))} />
+                    <Label>Validade do cartão</Label>
+                    <Input
+                      value={form.card_expiry ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        const formatted = raw.length > 2 ? `${raw.slice(0, 2)}/${raw.slice(2)}` : raw;
+                        setField("card_expiry", formatted);
+                      }}
+                      placeholder="MM/AA"
+                      inputMode="numeric"
+                      maxLength={5}
+                    />
                   </div>
                 </>
               )}
@@ -3891,6 +3899,10 @@ function PaymentDialog({
               <div>
                 <Label>Telefones</Label>
                 <Input value={payer.payer_phone ?? ""} onChange={(e) => setPayerField("payer_phone", e.target.value)} placeholder="(22) 99951-0018" />
+              </div>
+              <div>
+                <Label>Data de nascimento</Label>
+                <Input type="date" value={payer.payer_birth_date ?? ""} onChange={(e) => setPayerField("payer_birth_date", e.target.value)} />
               </div>
               <div>
                 <Label>CEP</Label>
