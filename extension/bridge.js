@@ -6,7 +6,7 @@
  * pra que o content.js leia quando a página da cia abrir.
  */
 (function () {
-  const VERSION = "1.7.10";
+  const VERSION = "1.7.11";
   const API_BASE = "https://pedidos.viaair.tur.br";
 
   function announce() {
