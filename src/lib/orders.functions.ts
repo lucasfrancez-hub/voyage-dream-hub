@@ -256,6 +256,8 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       card_last4: p.card_last4,
       card_bin: (p as { card_bin?: string | null }).card_bin ?? null,
       card_brand: p.card_brand,
+      card_expiry: (p as { card_expiry?: string | null }).card_expiry ?? null,
+
 
       paid_at: p.paid_at,
       added_by_name: p.added_by_name,
