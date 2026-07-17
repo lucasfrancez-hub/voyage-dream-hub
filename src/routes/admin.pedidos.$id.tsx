@@ -4062,7 +4062,53 @@ function PaymentDialog({
             </div>
           </TabsContent>
           <TabsContent value="pagador" className="flex-1 min-h-0 overflow-y-auto pr-1">
+            <div className="mb-3 rounded-md border bg-muted/40 p-3">
+              <div className="flex items-end gap-2">
+                <div className="flex-1 relative">
+                  <Label className="text-xs">Buscar cliente cadastrado (nome ou CPF)</Label>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="pl-8"
+                      value={personSearch}
+                      onChange={(e) => { setPersonSearch(e.target.value); setShowPersonResults(true); setSelectedPersonId(null); }}
+                      onFocus={() => setShowPersonResults(true)}
+                      placeholder="Digite o nome, CPF ou e-mail…"
+                    />
+                  </div>
+                  {showPersonResults && personResults.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 max-h-56 overflow-auto rounded-md border bg-popover shadow-md">
+                      {personResults.map((r) => (
+                        <button
+                          type="button"
+                          key={r.id}
+                          onClick={() => handlePickPerson(r.id)}
+                          className="block w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+                        >
+                          <span className="font-medium">{r.name}</span>
+                          {r.cpf && <span className="text-muted-foreground"> — {r.cpf}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSavePerson}
+                  disabled={savingPerson || !(payer.payer_full_name ?? "").trim()}
+                >
+                  <Save className="h-3.5 w-3.5 mr-1" />
+                  {selectedPersonId ? "Atualizar cliente" : "Salvar cliente"}
+                </Button>
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                Selecione um cliente para puxar todos os dados automaticamente. O código de autorização é sempre digitado no momento.
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
               <div className="md:col-span-2">
                 <Label>Solicitante (nome completo)</Label>
                 <Input value={payer.payer_full_name ?? ""} onChange={(e) => setPayerField("payer_full_name", e.target.value)} />
