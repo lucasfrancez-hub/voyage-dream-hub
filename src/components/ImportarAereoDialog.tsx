@@ -158,9 +158,14 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       }
       const { token: t } = await createToken({ data: { orderId, airlineHint: "any" } });
       setToken(t);
-      const ok = await sendTokenToExtension(t);
-      if (!ok) {
-        toast.error("A extensão não confirmou o token. Recarregue esta página e tente de novo.");
+      const res = await sendTokenToExtension(t);
+      if (!res.ok) {
+        console.warn("[via-air] set-token falhou", res.error);
+        toast.error(
+          res.error === "timeout"
+            ? "A extensão não respondeu. Verifique se está ativa em chrome://extensions e recarregue esta página."
+            : `A extensão recusou o token: ${res.error ?? "erro desconhecido"}. Recarregue a extensão em chrome://extensions.`
+        );
         setPhase("idle");
         return;
       }
