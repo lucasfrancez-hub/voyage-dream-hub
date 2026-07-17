@@ -3901,6 +3901,10 @@ function PaymentDialog({
                 <Input value={payer.payer_phone ?? ""} onChange={(e) => setPayerField("payer_phone", e.target.value)} placeholder="(22) 99951-0018" />
               </div>
               <div>
+                <Label>Data de nascimento</Label>
+                <Input type="date" value={payer.payer_birth_date ?? ""} onChange={(e) => setPayerField("payer_birth_date", e.target.value)} />
+              </div>
+              <div>
                 <Label>CEP</Label>
                 <Input
                   value={payer.payer_zip ?? ""}
