@@ -384,30 +384,36 @@ function ReviewReservation({
         </div>
       </div>
 
-      {(reservation.total_fare != null || reservation.base_fare != null || reservation.taxes != null) && (
-        <div className="rounded-lg border border-border p-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+      <div className="rounded-lg border border-border p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Valores {reservation.currency ? `(${reservation.currency})` : ""}
           </div>
-          <div className="grid grid-cols-4 gap-2 text-sm">
-            <div>
-              <Label className="text-xs">Tarifa</Label>
-              <Input type="number" step="0.01" value={reservation.base_fare ?? ""} onChange={(e) => onChange({ ...reservation, base_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label className="text-xs">Taxas</Label>
-              <Input type="number" step="0.01" value={reservation.taxes ?? ""} onChange={(e) => onChange({ ...reservation, taxes: e.target.value === "" ? undefined : Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label className="text-xs">Fees</Label>
-              <Input type="number" step="0.01" value={reservation.fees ?? ""} onChange={(e) => onChange({ ...reservation, fees: e.target.value === "" ? undefined : Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label className="text-xs">Total</Label>
-              <Input type="number" step="0.01" value={reservation.total_fare ?? ""} onChange={(e) => onChange({ ...reservation, total_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
-            </div>
+          <div className="text-[10px] text-muted-foreground">O total já inclui as taxas.</div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+          <div>
+            <Label className="text-xs">Moeda</Label>
+            <Input value={reservation.currency ?? ""} onChange={(e) => onChange({ ...reservation, currency: e.target.value.toUpperCase() })} />
+          </div>
+          <div>
+            <Label className="text-xs">Tarifa</Label>
+            <Input type="number" step="0.01" value={reservation.base_fare ?? ""} onChange={(e) => onChange({ ...reservation, base_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
+          </div>
+          <div>
+            <Label className="text-xs">Taxas (soma)</Label>
+            <Input type="number" step="0.01" value={reservation.taxes ?? ""} onChange={(e) => onChange({ ...reservation, taxes: e.target.value === "" ? undefined : Number(e.target.value) })} />
+          </div>
+          <div>
+            <Label className="text-xs">Fees</Label>
+            <Input type="number" step="0.01" value={reservation.fees ?? ""} onChange={(e) => onChange({ ...reservation, fees: e.target.value === "" ? undefined : Number(e.target.value) })} />
+          </div>
+          <div>
+            <Label className="text-xs">Total</Label>
+            <Input type="number" step="0.01" value={reservation.total_fare ?? ""} onChange={(e) => onChange({ ...reservation, total_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
           </div>
         </div>
+      </div>
       )}
 
       <div>
