@@ -3784,24 +3784,47 @@ function PaymentDialog({
                   <div>
                     <Label>Parcelas</Label>
                     <Input type="number" min={1} value={form.installments ?? ""}
-                      onChange={(e) => setField("installments", e.target.value ? Number(e.target.value) : null)} />
+                      onChange={(e) => {
+                        setInstallmentTouched(false);
+                        setField("installments", e.target.value ? Number(e.target.value) : null);
+                      }} />
                   </div>
                   <div>
                     <Label>Valor por parcela</Label>
                     <Input type="number" step="0.01" value={form.installment_amount ?? ""}
-                      onChange={(e) => setField("installment_amount", e.target.value ? Number(e.target.value) : null)} />
+                      onChange={(e) => {
+                        setInstallmentTouched(true);
+                        setField("installment_amount", e.target.value ? Number(e.target.value) : null);
+                      }} />
                   </div>
                 </>
               )}
               {showCard && (
                 <>
+                  <div className="md:col-span-2">
+                    <Label>Número do cartão (completo)</Label>
+                    <Input
+                      value={cardFullNumber}
+                      onChange={(e) => handleCardNumberChange(e.target.value)}
+                      placeholder={initial?.card_last4 ? `Preenchido — só refaça se precisar substituir` : "0000 0000 0000 0000"}
+                      inputMode="numeric"
+                      autoComplete="off"
+                    />
+                    <div className="text-[11px] text-muted-foreground mt-1">
+                      Armazenado criptografado. Usado para gerar a autorização de débito com BIN + últimos 4.
+                    </div>
+                  </div>
                   <div>
                     <Label>Bandeira</Label>
                     <Input value={form.card_brand ?? ""} onChange={(e) => setField("card_brand", e.target.value)} placeholder="Visa, Master, Elo…" />
                   </div>
                   <div>
+                    <Label>BIN (6 primeiros)</Label>
+                    <Input maxLength={6} value={form.card_bin ?? ""} onChange={(e) => setField("card_bin", e.target.value.replace(/\D/g, ""))} placeholder="000000" />
+                  </div>
+                  <div>
                     <Label>Últimos 4 dígitos</Label>
-                    <Input maxLength={4} value={form.card_last4 ?? ""} onChange={(e) => setField("card_last4", e.target.value)} />
+                    <Input maxLength={4} value={form.card_last4 ?? ""} onChange={(e) => setField("card_last4", e.target.value.replace(/\D/g, ""))} />
                   </div>
                 </>
               )}
@@ -3809,6 +3832,7 @@ function PaymentDialog({
                 <Label>Fornecedor / Adquirente</Label>
                 <Input value={form.provider ?? ""} onChange={(e) => setField("provider", e.target.value)} placeholder="FunPay, Cielo…" />
               </div>
+
               <div>
                 <Label>Nº da proposta</Label>
                 <Input value={form.proposal_number ?? ""} onChange={(e) => setField("proposal_number", e.target.value)} />
