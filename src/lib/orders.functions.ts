@@ -61,6 +61,7 @@ export type OrderHeader = {
   phone: string;
   cpf: string | null;
   birthDate: string | null;
+  payerBirthDate: string | null;
   adults: number;
   children: number;
   totalPrice: number;
