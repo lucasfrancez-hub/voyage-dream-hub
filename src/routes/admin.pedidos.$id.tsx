@@ -3628,6 +3628,7 @@ type PayerPatch = {
   payer_district?: string | null;
   payer_city?: string | null;
   payer_state?: string | null;
+  payer_birth_date?: string | null;
 };
 
 function PaymentDialog({
