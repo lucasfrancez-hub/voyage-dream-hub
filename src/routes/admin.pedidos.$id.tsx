@@ -3751,6 +3751,147 @@ function PaymentDialog({
     }));
   }
 
+  // Debounce da busca de pagador
+  useEffect(() => {
+    if (!open) return;
+    const q = personSearch.trim();
+    if (!q) { setPersonResults([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const rows = await searchPeopleFn({ data: { q } });
+        setPersonResults(rows.map((r) => ({ id: r.id, name: r.name, cpf: r.cpf })));
+      } catch { /* silencioso */ }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [personSearch, open, searchPeopleFn]);
+
+  // Carrega cartões salvos ao trocar de pessoa
+  useEffect(() => {
+    if (!selectedPersonId) { setSavedCards([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const cards = await listCardsFn({ data: { person_id: selectedPersonId } });
+        if (!cancelled) setSavedCards(cards);
+      } catch { if (!cancelled) setSavedCards([]); }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedPersonId, listCardsFn]);
+
+  async function handlePickPerson(id: string) {
+    try {
+      const rows = await searchPeopleFn({ data: { q: personSearch.trim() } });
+      const p = rows.find((r) => r.id === id);
+      if (!p) return;
+      setSelectedPersonId(id);
+      setShowPersonResults(false);
+      setPersonSearch(p.name);
+      setPayer({
+        payer_full_name: p.name ?? "",
+        payer_cpf: p.cpf ?? p.cnpj ?? "",
+        payer_ie_rg: p.rg ?? "",
+        payer_email: p.email ?? "",
+        payer_phone: p.mobile_phone ?? p.phone ?? "",
+        payer_zip: p.zip ?? "",
+        payer_address: p.address ?? "",
+        payer_number: p.number ?? "",
+        payer_district: p.district ?? "",
+        payer_city: p.city ?? "",
+        payer_state: p.state ?? "",
+        payer_birth_date: p.birth_date ?? "",
+      });
+      toast.success(`Pagador "${p.name}" carregado`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function handleSavePerson() {
+    const name = (payer.payer_full_name ?? "").trim();
+    if (!name) { toast.error("Preencha o nome do pagador."); return; }
+    setSavingPerson(true);
+    try {
+      const cpfDigits = (payer.payer_cpf ?? "").replace(/\D/g, "");
+      const isPJ = cpfDigits.length > 11;
+      const res = await upsertPersonFn({ data: {
+        id: selectedPersonId ?? undefined,
+        kind: isPJ ? "PJ" : "PF",
+        name,
+        cpf: !isPJ ? (payer.payer_cpf ?? null) : null,
+        cnpj: isPJ ? (payer.payer_cpf ?? null) : null,
+        rg: payer.payer_ie_rg ?? null,
+        email: payer.payer_email ?? null,
+        mobile_phone: payer.payer_phone ?? null,
+        birth_date: payer.payer_birth_date || null,
+        zip: payer.payer_zip ?? null,
+        address: payer.payer_address ?? null,
+        number: payer.payer_number ?? null,
+        district: payer.payer_district ?? null,
+        city: payer.payer_city ?? null,
+        state: payer.payer_state ?? null,
+        is_foreign: false,
+        charge_boleto_fee: false,
+      } });
+      setSelectedPersonId(res.id);
+      toast.success("Cliente salvo no cadastro");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingPerson(false);
+    }
+  }
+
+  async function handleSaveCard() {
+    if (!selectedPersonId) {
+      toast.error("Salve o pagador antes para vincular o cartão.");
+      return;
+    }
+    const clean = cardFullNumber.replace(/\D/g, "");
+    if (clean.length < 12) { toast.error("Informe o número completo do cartão."); return; }
+    setSavingCard(true);
+    try {
+      await addCardFn({ data: {
+        person_id: selectedPersonId,
+        holder_name: payer.payer_full_name ?? null,
+        number: clean,
+        expiry: form.card_expiry ?? null,
+        is_travel_card: false,
+      } });
+      const cards = await listCardsFn({ data: { person_id: selectedPersonId } });
+      setSavedCards(cards);
+      toast.success("Cartão salvo no cadastro");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingCard(false);
+    }
+  }
+
+  async function handlePickCard(cardId: string) {
+    const c = savedCards.find((x) => x.id === cardId);
+    if (!c) return;
+    try {
+      const { number } = await revealCardFn({ data: { id: cardId } });
+      const raw = number.replace(/\D/g, "");
+      const isAmex = (c.brand ?? "").toLowerCase().includes("amex");
+      const formatted = isAmex
+        ? raw.replace(/(\d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{6})(\d)/, "$1 $2")
+        : raw.replace(/(\d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{4} \d{4})(\d)/, "$1 $2");
+      setCardFullNumber(formatted);
+      setForm((f) => ({
+        ...f,
+        card_brand: c.brand ?? f.card_brand ?? null,
+        card_last4: c.last4 ?? f.card_last4 ?? null,
+        card_bin: raw.length >= 6 ? raw.slice(0, 6) : f.card_bin ?? null,
+        card_expiry: c.expiry ?? f.card_expiry ?? null,
+      }));
+      toast.success(`Cartão ${c.brand ?? ""} •••• ${c.last4 ?? ""} carregado`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+
 
 
 
