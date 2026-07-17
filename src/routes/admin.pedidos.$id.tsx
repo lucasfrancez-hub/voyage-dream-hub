@@ -3972,8 +3972,35 @@ function PaymentDialog({
               )}
               {showCard && (
                 <>
+                  {selectedPersonId && savedCards.length > 0 && (
+                    <div className="md:col-span-2">
+                      <Label>Cartões salvos deste pagador</Label>
+                      <Select value="" onValueChange={handlePickCard}>
+                        <SelectTrigger><SelectValue placeholder="Selecione para preencher automaticamente…" /></SelectTrigger>
+                        <SelectContent>
+                          {savedCards.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {(c.brand ?? "Cartão")} •••• {c.last4 ?? "----"}{c.expiry ? ` — ${c.expiry}` : ""}{c.nickname ? ` (${c.nickname})` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="md:col-span-2">
-                    <Label>Número do cartão (completo)</Label>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label>Número do cartão (completo)</Label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleSaveCard}
+                        disabled={savingCard || !selectedPersonId || cardFullNumber.replace(/\D/g, "").length < 12}
+                      >
+                        <Save className="h-3.5 w-3.5 mr-1" />
+                        Salvar cartão
+                      </Button>
+                    </div>
                     <Input
                       value={cardFullNumber}
                       onChange={(e) => handleCardNumberChange(e.target.value)}
@@ -3982,7 +4009,7 @@ function PaymentDialog({
                       autoComplete="off"
                     />
                     <div className="text-[11px] text-muted-foreground mt-1">
-                      Armazenado criptografado. Usado para gerar a autorização de débito com BIN + últimos 4.
+                      Armazenado criptografado. {selectedPersonId ? "Salve para reutilizar em pedidos futuros." : "Salve o pagador antes para poder gravar o cartão."}
                     </div>
                   </div>
                   <div>
