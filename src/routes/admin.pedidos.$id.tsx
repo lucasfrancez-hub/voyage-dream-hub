@@ -1084,6 +1084,18 @@ function ItemsTab({
 
             />
           )}
+          {(kind === "hotel" || kind === "other") && (
+            <ImportarVoucherDialog
+              orderId={orderId}
+              kind={kind}
+              onImported={onChange}
+              trigger={
+                <Button size="sm" className="gap-1 bg-orange-500 hover:bg-orange-600 text-white">
+                  <Download className="h-3.5 w-3.5" /> Importar voucher
+                </Button>
+              }
+            />
+          )}
           <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar {addLabel}
           </Button>
