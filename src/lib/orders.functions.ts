@@ -111,6 +111,7 @@ export type OrderPayment = {
   card_last4: string | null;
   card_bin: string | null;
   card_brand: string | null;
+  card_expiry: string | null;
   paid_at: string | null;
 
   added_by_name: string | null;
