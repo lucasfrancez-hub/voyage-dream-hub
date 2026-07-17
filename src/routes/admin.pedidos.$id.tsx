@@ -59,6 +59,7 @@ import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutoco
 import { QuoteDialog } from "@/components/QuoteDialog";
 import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { ImportarAereoDialog } from "@/components/ImportarAereoDialog";
+import { ImportarVoucherDialog } from "@/components/ImportarVoucherDialog";
 import { confirmThen } from "@/lib/confirm";
 import { findAirline, airlineLogo } from "@/lib/airlines";
 
@@ -1082,6 +1083,18 @@ function ItemsTab({
                 </Button>
               }
 
+            />
+          )}
+          {(kind === "hotel" || kind === "other") && (
+            <ImportarVoucherDialog
+              orderId={orderId}
+              kind={kind}
+              onImported={onChange}
+              trigger={
+                <Button size="sm" className="gap-1 bg-orange-500 hover:bg-orange-600 text-white">
+                  <Download className="h-3.5 w-3.5" /> Importar voucher
+                </Button>
+              }
             />
           )}
           <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
