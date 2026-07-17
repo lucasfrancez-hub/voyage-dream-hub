@@ -450,7 +450,16 @@
         if (passengerKeys.has(key)) continue;
         passengerKeys.add(key);
         const kindSource = normalizeText(cells[0] && cells[0].textContent) || cellText(cells, passengerMap, ["tipo"]);
-        passengers.push({ full_name: fullName, kind: passengerKind(kindSource) });
+        const extras = extractPassengerExtras(row);
+        const pax = { full_name: fullName, kind: passengerKind(kindSource) };
+        if (extras.birth_date) pax.birth_date = extras.birth_date;
+        if (extras.cpf) pax.cpf = extras.cpf;
+        if (extras.document_number) pax.document_number = extras.document_number;
+        if (extras.document_original) pax.document_original = extras.document_original;
+        if (extras.passport) pax.passport = extras.passport;
+        if (extras.cpf) pax.doc_type = "cpf";
+        else if (extras.passport) pax.doc_type = "passport";
+        passengers.push(pax);
       }
     }
 
