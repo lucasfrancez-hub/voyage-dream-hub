@@ -46,7 +46,10 @@ function detectExtension(timeoutMs = 1500): Promise<boolean> {
 
 function sendTokenToExtension(token: string): Promise<boolean> {
   return new Promise((resolve) => {
-    const apiBase = window.location.origin;
+    // A extensão roda fora da sessão do preview. URLs de preview exigem o
+    // auth-bridge e transformam o POST em HTML, então o endpoint público deve
+    // sempre usar o domínio publicado.
+    const apiBase = "https://pedidos.viaair.tur.br";
     let done = false;
     function onMsg(ev: MessageEvent) {
       const d = ev.data as { __viaair?: string } | null;
