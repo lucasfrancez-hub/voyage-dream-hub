@@ -254,6 +254,13 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
         }
       }
       await consume({ data: { token } });
+
+      // Localizador principal do pedido = localizador da cia (sempre sobrescreve)
+      const mainLocator = reservation.locator?.trim() ?? "";
+      if (mainLocator) {
+        await updateMeta({ data: { id: orderId, airline_locator: mainLocator.toUpperCase() } });
+      }
+
       toast.success("Reserva importada!");
       setOpen(false);
       reset();
