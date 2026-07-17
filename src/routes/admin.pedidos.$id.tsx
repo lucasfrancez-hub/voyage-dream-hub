@@ -3834,12 +3834,18 @@ function PaymentDialog({
                     <Input value={form.card_brand ?? ""} onChange={(e) => setField("card_brand", e.target.value)} placeholder="Visa, Master, Elo…" />
                   </div>
                   <div>
-                    <Label>BIN (6 primeiros)</Label>
-                    <Input maxLength={6} value={form.card_bin ?? ""} onChange={(e) => setField("card_bin", e.target.value.replace(/\D/g, ""))} placeholder="000000" />
-                  </div>
-                  <div>
-                    <Label>Últimos 4 dígitos</Label>
-                    <Input maxLength={4} value={form.card_last4 ?? ""} onChange={(e) => setField("card_last4", e.target.value.replace(/\D/g, ""))} />
+                    <Label>Validade do cartão</Label>
+                    <Input
+                      value={form.card_expiry ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        const formatted = raw.length > 2 ? `${raw.slice(0, 2)}/${raw.slice(2)}` : raw;
+                        setField("card_expiry", formatted);
+                      }}
+                      placeholder="MM/AA"
+                      inputMode="numeric"
+                      maxLength={5}
+                    />
                   </div>
                 </>
               )}
