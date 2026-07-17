@@ -108,8 +108,10 @@ export type OrderPayment = {
   proposal_number: string | null;
   authorization_code: string | null;
   card_last4: string | null;
+  card_bin: string | null;
   card_brand: string | null;
   paid_at: string | null;
+
   added_by_name: string | null;
   notes: string | null;
   created_at: string;
@@ -250,7 +252,9 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       proposal_number: p.proposal_number,
       authorization_code: p.authorization_code,
       card_last4: p.card_last4,
+      card_bin: (p as { card_bin?: string | null }).card_bin ?? null,
       card_brand: p.card_brand,
+
       paid_at: p.paid_at,
       added_by_name: p.added_by_name,
       notes: p.notes,
@@ -774,14 +778,14 @@ export const deleteItemFinancial = createServerFn({ method: "POST" })
 // --------- Payments ---------
 export const upsertOrderPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: Partial<OrderPayment> & { order_id: string; method: string; amount: number }) => input)
+  .inputValidator((input: Partial<OrderPayment> & { order_id: string; method: string; amount: number; card_full_number?: string | null }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) {
       const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
       if (!isPartner) throw new Error("Forbidden");
     }
-    const payload = {
+    const payload: Record<string, unknown> = {
       order_id: data.order_id,
       cashier_number: data.cashier_number ?? null,
       status: data.status ?? "paid",
@@ -794,13 +798,24 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
       proposal_number: data.proposal_number ?? null,
       authorization_code: data.authorization_code ?? null,
       card_last4: data.card_last4 ?? null,
+      card_bin: data.card_bin ?? null,
       card_brand: data.card_brand ?? null,
       paid_at: data.paid_at ?? null,
       added_by_name: data.added_by_name ?? null,
       notes: data.notes ?? null,
     };
+    // Cifra o número completo do cartão se enviado
+    const raw = (data.card_full_number ?? "").replace(/\D/g, "");
+    if (raw.length >= 12) {
+      const { encryptCardNumber } = await import("./card-crypto.server");
+      payload.card_number_enc = encryptCardNumber(raw);
+      payload.card_bin = raw.slice(0, 6);
+      payload.card_last4 = raw.slice(-4);
+    }
+
     if (data.id) {
-      const { error } = await context.supabase.from("order_payments").update(payload).eq("id", data.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await context.supabase.from("order_payments").update(payload as any).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
@@ -816,9 +831,11 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
     }
     const { data: created, error } = await context.supabase
       .from("order_payments")
-      .insert(payload)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(payload as any)
       .select("id")
       .single();
+
     if (error) throw new Error(error.message);
     return { id: created.id };
   });

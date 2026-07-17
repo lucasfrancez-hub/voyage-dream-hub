@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useMemo, useEffect } from "react";
+import { detectBrand } from "@/components/CardForm";
+
 import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
@@ -529,10 +531,12 @@ function OrderDetailPage() {
       <PaymentsSection
         orderId={order.id}
         order={order}
+        items={detail.items}
         clientName={order.fullName}
         payments={detail.payments}
         onChange={invalidate}
       />
+
 
 
       <CommissionAdjustDialog
@@ -3411,14 +3415,25 @@ function fmtDateTime(iso: string | null) {
 }
 
 function PaymentsSection({
-  orderId, order, clientName, payments, onChange,
+  orderId, order, items, clientName, payments, onChange,
 }: {
   orderId: string;
   order: OrderHeader;
+  items: OrderItem[];
   clientName: string;
   payments: OrderPayment[];
   onChange: () => void;
 }) {
+  // Fornecedor padrão para novos pagamentos: primeiro item com supplier_name preenchido
+  const defaultProvider = useMemo(() => {
+    for (const it of items) {
+      const d = (it.details ?? {}) as { supplier_name?: string };
+      const s = (d.supplier_name ?? "").trim();
+      if (s) return s;
+    }
+    return "";
+  }, [items]);
+
   const upsert = useServerFn(upsertOrderPayment);
   const del = useServerFn(deleteOrderPayment);
   const updatePayer = useServerFn(updateOrderPayer);
@@ -3571,6 +3586,7 @@ function PaymentsSection({
         onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
         initial={editing}
         order={order}
+        defaultProvider={defaultProvider}
         onSave={async (data, payer) => {
           try {
             await updatePayer({ data: { id: orderId, ...payer } });
@@ -3581,6 +3597,7 @@ function PaymentsSection({
           upsertMut.mutate({ ...data, order_id: orderId, id: editing?.id });
         }}
       />
+
 
     </div>
   );
@@ -3601,23 +3618,31 @@ type PayerPatch = {
 };
 
 function PaymentDialog({
-  open, onOpenChange, initial, order, onSave,
+  open, onOpenChange, initial, order, defaultProvider, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: OrderPayment | null;
   order: OrderHeader;
-  onSave: (data: Partial<OrderPayment> & { method: string; amount: number }, payer: PayerPatch) => void;
+  defaultProvider?: string;
+  onSave: (data: Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null }, payer: PayerPatch) => void;
 }) {
   const [form, setForm] = useState<Partial<OrderPayment>>({});
   const [payer, setPayer] = useState<PayerPatch>({});
+  const [cardFullNumber, setCardFullNumber] = useState<string>("");
+  // Marca se o usuário editou manualmente o valor da parcela — evita sobrescrever
+  const [installmentTouched, setInstallmentTouched] = useState(false);
   useMemo(() => {
+    const isNew = !initial;
     setForm(initial ?? {
       status: "paid",
       method: "pix",
-      amount: 0,
+      amount: order.totalPrice ?? 0,
       paid_at: new Date().toISOString(),
+      provider: defaultProvider || null,
     });
+    setCardFullNumber("");
+    setInstallmentTouched(!isNew);
     // Pré-preenche dados do pagador a partir do pedido, com fallback nos dados do cliente principal.
     setPayer({
       payer_full_name: order.payerFullName ?? order.fullName ?? "",
@@ -3639,9 +3664,64 @@ function PaymentDialog({
   const showCard = method === "credit_card" || method === "debit_card";
   const showInstallments = method === "credit_card" || method === "financing";
 
+
   const setField = <K extends keyof OrderPayment>(k: K, v: OrderPayment[K] | null) =>
     setForm((f) => ({ ...f, [k]: v }));
   const setPayerField = (k: keyof PayerPatch, v: string) => setPayer((p) => ({ ...p, [k]: v }));
+
+  // Auto-calcula "valor por parcela" a partir do valor total / nº de parcelas
+  // (a menos que o usuário tenha editado manualmente esse campo)
+  useEffect(() => {
+    if (installmentTouched) return;
+    const n = Number(form.installments ?? 0);
+    const total = Number(form.amount ?? 0);
+    if (n > 0 && total > 0) {
+      const per = Math.round((total / n) * 100) / 100;
+      setForm((f) => ({ ...f, installment_amount: per }));
+    }
+  }, [form.installments, form.amount, installmentTouched]);
+
+  // Autofill de endereço via ViaCEP quando o CEP tiver 8 dígitos
+  function handleZipChange(v: string) {
+    const raw = v.replace(/\D/g, "").slice(0, 8);
+    const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
+    setPayerField("payer_zip", formatted);
+    if (raw.length === 8) {
+      fetch(`https://viacep.com.br/ws/${raw}/json/`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d && !d.erro) {
+            setPayer((p) => ({
+              ...p,
+              payer_address: p.payer_address || d.logradouro || "",
+              payer_district: p.payer_district || d.bairro || "",
+              payer_city: p.payer_city || d.localidade || "",
+              payer_state: p.payer_state || (d.uf || "").toUpperCase(),
+            }));
+          }
+        })
+        .catch(() => {});
+    }
+  }
+
+  // Máscara do número do cartão + derivação automática de bandeira/last4
+  function handleCardNumberChange(v: string) {
+    const isAmex = (form.card_brand ?? "").toLowerCase().includes("amex");
+    const raw = v.replace(/\D/g, "").slice(0, isAmex ? 15 : 16);
+    const formatted = isAmex
+      ? raw.replace(/(\d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{6})(\d)/, "$1 $2")
+      : raw.replace(/(\d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{4} \d{4})(\d)/, "$1 $2");
+    setCardFullNumber(formatted);
+    const brand = detectBrand(raw);
+    setForm((f) => ({
+      ...f,
+      card_last4: raw.length >= 4 ? raw.slice(-4) : f.card_last4 ?? null,
+      card_bin: raw.length >= 6 ? raw.slice(0, 6) : f.card_bin ?? null,
+      card_brand: brand || f.card_brand || null,
+    }));
+  }
+
+
 
 
   return (
@@ -3704,24 +3784,47 @@ function PaymentDialog({
                   <div>
                     <Label>Parcelas</Label>
                     <Input type="number" min={1} value={form.installments ?? ""}
-                      onChange={(e) => setField("installments", e.target.value ? Number(e.target.value) : null)} />
+                      onChange={(e) => {
+                        setInstallmentTouched(false);
+                        setField("installments", e.target.value ? Number(e.target.value) : null);
+                      }} />
                   </div>
                   <div>
                     <Label>Valor por parcela</Label>
                     <Input type="number" step="0.01" value={form.installment_amount ?? ""}
-                      onChange={(e) => setField("installment_amount", e.target.value ? Number(e.target.value) : null)} />
+                      onChange={(e) => {
+                        setInstallmentTouched(true);
+                        setField("installment_amount", e.target.value ? Number(e.target.value) : null);
+                      }} />
                   </div>
                 </>
               )}
               {showCard && (
                 <>
+                  <div className="md:col-span-2">
+                    <Label>Número do cartão (completo)</Label>
+                    <Input
+                      value={cardFullNumber}
+                      onChange={(e) => handleCardNumberChange(e.target.value)}
+                      placeholder={initial?.card_last4 ? `Preenchido — só refaça se precisar substituir` : "0000 0000 0000 0000"}
+                      inputMode="numeric"
+                      autoComplete="off"
+                    />
+                    <div className="text-[11px] text-muted-foreground mt-1">
+                      Armazenado criptografado. Usado para gerar a autorização de débito com BIN + últimos 4.
+                    </div>
+                  </div>
                   <div>
                     <Label>Bandeira</Label>
                     <Input value={form.card_brand ?? ""} onChange={(e) => setField("card_brand", e.target.value)} placeholder="Visa, Master, Elo…" />
                   </div>
                   <div>
+                    <Label>BIN (6 primeiros)</Label>
+                    <Input maxLength={6} value={form.card_bin ?? ""} onChange={(e) => setField("card_bin", e.target.value.replace(/\D/g, ""))} placeholder="000000" />
+                  </div>
+                  <div>
                     <Label>Últimos 4 dígitos</Label>
-                    <Input maxLength={4} value={form.card_last4 ?? ""} onChange={(e) => setField("card_last4", e.target.value)} />
+                    <Input maxLength={4} value={form.card_last4 ?? ""} onChange={(e) => setField("card_last4", e.target.value.replace(/\D/g, ""))} />
                   </div>
                 </>
               )}
@@ -3729,6 +3832,7 @@ function PaymentDialog({
                 <Label>Fornecedor / Adquirente</Label>
                 <Input value={form.provider ?? ""} onChange={(e) => setField("provider", e.target.value)} placeholder="FunPay, Cielo…" />
               </div>
+
               <div>
                 <Label>Nº da proposta</Label>
                 <Input value={form.proposal_number ?? ""} onChange={(e) => setField("proposal_number", e.target.value)} />
@@ -3775,6 +3879,15 @@ function PaymentDialog({
                 <Label>Telefones</Label>
                 <Input value={payer.payer_phone ?? ""} onChange={(e) => setPayerField("payer_phone", e.target.value)} placeholder="(22) 99951-0018" />
               </div>
+              <div>
+                <Label>CEP</Label>
+                <Input
+                  value={payer.payer_zip ?? ""}
+                  onChange={(e) => handleZipChange(e.target.value)}
+                  placeholder="28890-052"
+                  inputMode="numeric"
+                />
+              </div>
               <div className="md:col-span-2">
                 <Label>Endereço</Label>
                 <Input value={payer.payer_address ?? ""} onChange={(e) => setPayerField("payer_address", e.target.value)} placeholder="Rua Espírito Santo 63" />
@@ -3791,10 +3904,6 @@ function PaymentDialog({
                 <Label>UF</Label>
                 <Input maxLength={2} value={payer.payer_state ?? ""} onChange={(e) => setPayerField("payer_state", e.target.value.toUpperCase())} />
               </div>
-              <div>
-                <Label>CEP</Label>
-                <Input value={payer.payer_zip ?? ""} onChange={(e) => setPayerField("payer_zip", e.target.value)} placeholder="28890-052" />
-              </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -3805,7 +3914,9 @@ function PaymentDialog({
             ...form,
             method: form.method ?? "pix",
             amount: Number(form.amount ?? 0),
-          } as Partial<OrderPayment> & { method: string; amount: number }, payer)}>Salvar</Button>
+            card_full_number: cardFullNumber.replace(/\D/g, "") || null,
+          } as Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null }, payer)}>Salvar</Button>
+
 
         </DialogFooter>
       </DialogContent>

@@ -523,8 +523,10 @@ export type Database = {
           added_by_name: string | null
           amount: number
           authorization_code: string | null
+          card_bin: string | null
           card_brand: string | null
           card_last4: string | null
+          card_number_enc: string | null
           cashier_number: string | null
           created_at: string
           created_by: string | null
@@ -545,8 +547,10 @@ export type Database = {
           added_by_name?: string | null
           amount: number
           authorization_code?: string | null
+          card_bin?: string | null
           card_brand?: string | null
           card_last4?: string | null
+          card_number_enc?: string | null
           cashier_number?: string | null
           created_at?: string
           created_by?: string | null
@@ -567,8 +571,10 @@ export type Database = {
           added_by_name?: string | null
           amount?: number
           authorization_code?: string | null
+          card_bin?: string | null
           card_brand?: string | null
           card_last4?: string | null
+          card_number_enc?: string | null
           cashier_number?: string | null
           created_at?: string
           created_by?: string | null
