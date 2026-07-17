@@ -814,7 +814,8 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
     }
 
     if (data.id) {
-      const { error } = await context.supabase.from("order_payments").update(payload).eq("id", data.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await context.supabase.from("order_payments").update(payload as any).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
@@ -830,9 +831,11 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
     }
     const { data: created, error } = await context.supabase
       .from("order_payments")
-      .insert(payload)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(payload as any)
       .select("id")
       .single();
+
     if (error) throw new Error(error.message);
     return { id: created.id };
   });
