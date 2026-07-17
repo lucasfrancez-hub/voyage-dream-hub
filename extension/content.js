@@ -309,6 +309,113 @@
     return out;
   }
 
+  // --- Dados adicionais dos passageiros (Skyteam/Infotravel) ---
+  function normalizeLabel(text) {
+    return String(text || "")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/:/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+  }
+  function parseBirthBR(value) {
+    const s = String(value || "").trim();
+    const m = s.match(/^(\d{2})[\/\-.](\d{2})[\/\-.](\d{2,4})$/);
+    if (!m) return null;
+    let y = parseInt(m[3], 10);
+    if (y < 100) y = y >= 30 ? 1900 + y : 2000 + y;
+    return `${y}-${m[2]}-${m[1]}`;
+  }
+  function extractPassengerExtras(row) {
+    const table = row.querySelector(".woo-box__tooltip table");
+    if (!table) return {};
+    const map = {};
+    for (const tr of table.querySelectorAll("tbody tr, tr")) {
+      const tds = Array.from(tr.querySelectorAll(":scope > td"));
+      if (tds.length < 2) continue;
+      if (tds[0].classList.contains("space")) continue;
+      const label = normalizeLabel(tds[0].innerText || tds[0].textContent);
+      const value = (tds[1].innerText || tds[1].textContent || "").replace(/\s+/g, " ").trim();
+      if (label) map[label] = value;
+    }
+    const docRaw = (map["documento"] || "").trim();
+    const parts = docRaw.split("/").map((s) => s.trim()).filter(Boolean);
+    const docNum = (parts[0] || "").replace(/\s/g, "");
+    const onlyDigits = docNum.replace(/\D/g, "");
+    const passport = (map["passaporte"] || "").trim();
+    return {
+      birth_date: parseBirthBR(map["nascimento"] || map["data de nascimento"] || ""),
+      document_original: docRaw || null,
+      document_number: docNum || null,
+      cpf: onlyDigits.length === 11 ? onlyDigits : null,
+      passport: passport || null,
+    };
+  }
+
+  // --- Financeiro (tarifa, taxas somadas, total, moeda) do iframe da reserva ---
+  function parseMoneyPT(raw) {
+    const s = String(raw || "");
+    const curM = s.match(/R\$|BRL|USD|EUR|US\$/i);
+    let currency = null;
+    if (curM) {
+      const c = curM[0].toUpperCase();
+      currency = c === "R$" || c === "BRL" ? "BRL" : c === "US$" ? "USD" : c;
+    }
+    const numM = s.match(/-?\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|-?\d+(?:[.,]\d{1,2})?/);
+    if (!numM) return { value: null, currency };
+    let t = numM[0].replace(/\s/g, "");
+    if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(t);
+    return { value: Number.isFinite(n) ? n : null, currency };
+  }
+  function extractFinancialFromDoc(doc) {
+    if (!doc || !doc.body) return { currency: null, base_fare: null, taxes: null, total_fare: null };
+    const clone = doc.body.cloneNode(true);
+    // Remover histórico da reserva — não representa valor atual.
+    clone.querySelectorAll('[id*="istorico" i], [class*="istorico" i]').forEach((n) => n.remove());
+    const raw = (clone.innerText || "").replace(/\r/g, "");
+    const lines = raw.split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+    let tarifa = null, total = null, currency = null;
+    let taxasSum = 0, taxasCount = 0;
+    const readVal = (line, i) => {
+      // Se linha já tem número, usa; senão pega a linha seguinte
+      const hasNum = /\d/.test(line.replace(/^[^:]*:?/, ""));
+      const target = hasNum ? line : (lines[i + 1] || "");
+      const p = parseMoneyPT(target);
+      if (p.currency && !currency) currency = p.currency;
+      return p.value;
+    };
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const low = line.toLowerCase();
+      if (/anterior/.test(low)) continue;
+      // Valor total (não "total das taxas", não "anterior")
+      if ((/\bvalor\s+total\b/.test(low) || /^total(?:\s+geral)?\b/.test(low)) && !/taxa/.test(low)) {
+        if (total == null) total = readVal(line, i);
+        continue;
+      }
+      // Total das taxas — usa como única fonte se aparecer
+      if (/total\s+das?\s+taxas?/.test(low)) {
+        const v = readVal(line, i);
+        if (v != null) { taxasSum = v; taxasCount = Math.max(taxasCount, 1); }
+        continue;
+      }
+      // Somar cada linha de "taxa..."
+      if (/\btaxa/.test(low) && !/tarifa/.test(low)) {
+        const v = readVal(line, i);
+        if (v != null && v < 1e6) { taxasSum += v; taxasCount++; }
+        continue;
+      }
+      // Tarifa
+      if (/\btarifa\b/.test(low)) {
+        if (tarifa == null) tarifa = readVal(line, i);
+      }
+    }
+    return {
+      currency,
+      base_fare: tarifa,
+      taxes: taxasCount ? Number(taxasSum.toFixed(2)) : null,
+      total_fare: total,
+    };
+  }
+
   function extractStructuredReservation(doc) {
     const passengersBlock = doc.querySelector(".woo-box__passengers");
     const flightsBlock = doc.querySelector(".woo-box__flights");
@@ -343,7 +450,16 @@
         if (passengerKeys.has(key)) continue;
         passengerKeys.add(key);
         const kindSource = normalizeText(cells[0] && cells[0].textContent) || cellText(cells, passengerMap, ["tipo"]);
-        passengers.push({ full_name: fullName, kind: passengerKind(kindSource) });
+        const extras = extractPassengerExtras(row);
+        const pax = { full_name: fullName, kind: passengerKind(kindSource) };
+        if (extras.birth_date) pax.birth_date = extras.birth_date;
+        if (extras.cpf) pax.cpf = extras.cpf;
+        if (extras.document_number) pax.document_number = extras.document_number;
+        if (extras.document_original) pax.document_original = extras.document_original;
+        if (extras.passport) pax.passport = extras.passport;
+        if (extras.cpf) pax.doc_type = "cpf";
+        else if (extras.passport) pax.doc_type = "passport";
+        passengers.push(pax);
       }
     }
 
@@ -461,7 +577,13 @@
       }),
     }));
 
-    return { passengers, flights };
+    const financial = extractFinancialFromDoc(doc);
+    const out = { passengers, flights };
+    if (financial.currency) out.currency = financial.currency;
+    if (financial.base_fare != null) out.base_fare = financial.base_fare;
+    if (financial.taxes != null) out.taxes = financial.taxes;
+    if (financial.total_fare != null) out.total_fare = financial.total_fare;
+    return out;
   }
 
   let latestStructuredReservation = null;

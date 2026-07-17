@@ -44,6 +44,11 @@ export type ImportedPassenger = {
   fare?: number;
   taxes?: number;
   total?: number;
+  birth_date?: string;
+  cpf?: string;
+  document?: string;
+  passport_number?: string;
+  doc_type?: "cpf" | "passport";
 };
 
 export type ImportedReservation = {

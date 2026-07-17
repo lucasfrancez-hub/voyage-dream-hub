@@ -166,6 +166,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
           full_name: p.full_name,
           passenger_type: kindMap[p.kind ?? "adult"] ?? "ADT",
           ticket_number: p.ticket_number ?? null,
+          birth_date: p.birth_date ?? null,
+          cpf: p.cpf ?? null,
+          document: p.document ?? null,
+          passport_number: p.passport_number ?? null,
+          doc_type: p.doc_type ?? (p.cpf ? "cpf" : p.passport_number ? "passport" : "cpf"),
           sort_order: i,
         } });
       }
@@ -379,31 +384,36 @@ function ReviewReservation({
         </div>
       </div>
 
-      {(reservation.total_fare != null || reservation.base_fare != null || reservation.taxes != null) && (
-        <div className="rounded-lg border border-border p-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+      <div className="rounded-lg border border-border p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Valores {reservation.currency ? `(${reservation.currency})` : ""}
           </div>
-          <div className="grid grid-cols-4 gap-2 text-sm">
-            <div>
-              <Label className="text-xs">Tarifa</Label>
-              <Input type="number" step="0.01" value={reservation.base_fare ?? ""} onChange={(e) => onChange({ ...reservation, base_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label className="text-xs">Taxas</Label>
-              <Input type="number" step="0.01" value={reservation.taxes ?? ""} onChange={(e) => onChange({ ...reservation, taxes: e.target.value === "" ? undefined : Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label className="text-xs">Fees</Label>
-              <Input type="number" step="0.01" value={reservation.fees ?? ""} onChange={(e) => onChange({ ...reservation, fees: e.target.value === "" ? undefined : Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label className="text-xs">Total</Label>
-              <Input type="number" step="0.01" value={reservation.total_fare ?? ""} onChange={(e) => onChange({ ...reservation, total_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
-            </div>
+          <div className="text-[10px] text-muted-foreground">O total já inclui as taxas.</div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+          <div>
+            <Label className="text-xs">Moeda</Label>
+            <Input value={reservation.currency ?? ""} onChange={(e) => onChange({ ...reservation, currency: e.target.value.toUpperCase() })} />
+          </div>
+          <div>
+            <Label className="text-xs">Tarifa</Label>
+            <Input type="number" step="0.01" value={reservation.base_fare ?? ""} onChange={(e) => onChange({ ...reservation, base_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
+          </div>
+          <div>
+            <Label className="text-xs">Taxas (soma)</Label>
+            <Input type="number" step="0.01" value={reservation.taxes ?? ""} onChange={(e) => onChange({ ...reservation, taxes: e.target.value === "" ? undefined : Number(e.target.value) })} />
+          </div>
+          <div>
+            <Label className="text-xs">Fees</Label>
+            <Input type="number" step="0.01" value={reservation.fees ?? ""} onChange={(e) => onChange({ ...reservation, fees: e.target.value === "" ? undefined : Number(e.target.value) })} />
+          </div>
+          <div>
+            <Label className="text-xs">Total</Label>
+            <Input type="number" step="0.01" value={reservation.total_fare ?? ""} onChange={(e) => onChange({ ...reservation, total_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
           </div>
         </div>
-      )}
+      </div>
 
       <div>
         <div className="text-sm font-semibold mb-2">Passageiros ({reservation.passengers.length})</div>
@@ -414,20 +424,40 @@ function ReviewReservation({
             </div>
           )}
           {reservation.passengers.map((p, i) => (
-            <div key={i} className="grid grid-cols-[1fr_140px_140px_auto] gap-2 items-end">
-              <div>
-                <Label className="text-xs">Nome completo</Label>
-                <Input value={p.full_name} onChange={(e) => patchPax(i, { full_name: e.target.value })} />
+            <div key={i} className="rounded-md border border-border/60 p-2 space-y-2">
+              <div className="grid grid-cols-[1fr_140px_140px_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-xs">Nome completo</Label>
+                  <Input value={p.full_name} onChange={(e) => patchPax(i, { full_name: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Bilhete</Label>
+                  <Input value={p.ticket_number ?? ""} onChange={(e) => patchPax(i, { ticket_number: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Assento</Label>
+                  <Input value={p.seat ?? ""} onChange={(e) => patchPax(i, { seat: e.target.value })} />
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => removePax(i)}>Remover</Button>
               </div>
-              <div>
-                <Label className="text-xs">Bilhete</Label>
-                <Input value={p.ticket_number ?? ""} onChange={(e) => patchPax(i, { ticket_number: e.target.value })} />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div>
+                  <Label className="text-xs">Nascimento</Label>
+                  <Input type="date" value={p.birth_date ?? ""} onChange={(e) => patchPax(i, { birth_date: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">CPF</Label>
+                  <Input value={p.cpf ?? ""} onChange={(e) => patchPax(i, { cpf: e.target.value.replace(/\D/g, "") })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Documento</Label>
+                  <Input value={p.document ?? ""} onChange={(e) => patchPax(i, { document: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Passaporte</Label>
+                  <Input value={p.passport_number ?? ""} onChange={(e) => patchPax(i, { passport_number: e.target.value.toUpperCase() })} />
+                </div>
               </div>
-              <div>
-                <Label className="text-xs">Assento</Label>
-                <Input value={p.seat ?? ""} onChange={(e) => patchPax(i, { seat: e.target.value })} />
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => removePax(i)}>Remover</Button>
             </div>
           ))}
         </div>
