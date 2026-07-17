@@ -1056,13 +1056,13 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
 
   const authorization: import("./authorization-pdf").AuthorizationData = {
     type: "debit_authorization",
-    supplier: order.supplierName ?? "Via Air",
+    supplier: ccPayment?.provider ?? order.supplierName ?? "Via Air",
     representative: "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
     holder_name: order.payerFullName ?? order.fullName ?? "",
     holder_cpf: order.payerCpf ?? order.cpf ?? "",
     holder_email: order.payerEmail ?? order.email ?? "",
     holder_phone: order.payerPhone ?? order.phone ?? "",
-    holder_birth_date: order.birthDate ?? "",
+    holder_birth_date: order.payerBirthDate ?? order.birthDate ?? "",
     masked_card: maskedCard,
     brand: cardBrand ?? undefined,
     expiry: cardExpiry,
