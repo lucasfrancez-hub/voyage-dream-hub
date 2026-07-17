@@ -3616,23 +3616,31 @@ type PayerPatch = {
 };
 
 function PaymentDialog({
-  open, onOpenChange, initial, order, onSave,
+  open, onOpenChange, initial, order, defaultProvider, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: OrderPayment | null;
   order: OrderHeader;
-  onSave: (data: Partial<OrderPayment> & { method: string; amount: number }, payer: PayerPatch) => void;
+  defaultProvider?: string;
+  onSave: (data: Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null }, payer: PayerPatch) => void;
 }) {
   const [form, setForm] = useState<Partial<OrderPayment>>({});
   const [payer, setPayer] = useState<PayerPatch>({});
+  const [cardFullNumber, setCardFullNumber] = useState<string>("");
+  // Marca se o usuário editou manualmente o valor da parcela — evita sobrescrever
+  const [installmentTouched, setInstallmentTouched] = useState(false);
   useMemo(() => {
+    const isNew = !initial;
     setForm(initial ?? {
       status: "paid",
       method: "pix",
-      amount: 0,
+      amount: order.totalPrice ?? 0,
       paid_at: new Date().toISOString(),
+      provider: defaultProvider || null,
     });
+    setCardFullNumber("");
+    setInstallmentTouched(!isNew);
     // Pré-preenche dados do pagador a partir do pedido, com fallback nos dados do cliente principal.
     setPayer({
       payer_full_name: order.payerFullName ?? order.fullName ?? "",
@@ -3653,6 +3661,7 @@ function PaymentDialog({
   const method = form.method ?? "pix";
   const showCard = method === "credit_card" || method === "debit_card";
   const showInstallments = method === "credit_card" || method === "financing";
+
 
   const setField = <K extends keyof OrderPayment>(k: K, v: OrderPayment[K] | null) =>
     setForm((f) => ({ ...f, [k]: v }));
