@@ -252,7 +252,9 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       proposal_number: p.proposal_number,
       authorization_code: p.authorization_code,
       card_last4: p.card_last4,
+      card_bin: (p as { card_bin?: string | null }).card_bin ?? null,
       card_brand: p.card_brand,
+
       paid_at: p.paid_at,
       added_by_name: p.added_by_name,
       notes: p.notes,
