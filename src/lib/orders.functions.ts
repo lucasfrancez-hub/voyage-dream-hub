@@ -533,6 +533,7 @@ export const updateOrderPayer = createServerFn({ method: "POST" })
     payer_district?: string | null;
     payer_city?: string | null;
     payer_state?: string | null;
+    payer_birth_date?: string | null;
   }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
