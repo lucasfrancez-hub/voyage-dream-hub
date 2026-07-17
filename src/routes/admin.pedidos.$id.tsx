@@ -3879,6 +3879,15 @@ function PaymentDialog({
                 <Label>Telefones</Label>
                 <Input value={payer.payer_phone ?? ""} onChange={(e) => setPayerField("payer_phone", e.target.value)} placeholder="(22) 99951-0018" />
               </div>
+              <div>
+                <Label>CEP</Label>
+                <Input
+                  value={payer.payer_zip ?? ""}
+                  onChange={(e) => handleZipChange(e.target.value)}
+                  placeholder="28890-052"
+                  inputMode="numeric"
+                />
+              </div>
               <div className="md:col-span-2">
                 <Label>Endereço</Label>
                 <Input value={payer.payer_address ?? ""} onChange={(e) => setPayerField("payer_address", e.target.value)} placeholder="Rua Espírito Santo 63" />
@@ -3895,9 +3904,7 @@ function PaymentDialog({
                 <Label>UF</Label>
                 <Input maxLength={2} value={payer.payer_state ?? ""} onChange={(e) => setPayerField("payer_state", e.target.value.toUpperCase())} />
               </div>
-              <div>
-                <Label>CEP</Label>
-                <Input value={payer.payer_zip ?? ""} onChange={(e) => setPayerField("payer_zip", e.target.value)} placeholder="28890-052" />
+
               </div>
             </div>
           </TabsContent>
