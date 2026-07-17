@@ -10,7 +10,7 @@ import {
   createImportToken, getImportStaging, consumeImportStaging,
   type ImportedReservation, type ImportedFlightSegment, type ImportedPassenger,
 } from "@/lib/flight-import.functions";
-import { upsertOrderItem, upsertPassenger } from "@/lib/orders.functions";
+import { upsertOrderItem, upsertPassenger, updateOrderMeta } from "@/lib/orders.functions";
 import { buildAirlineCheckinUrl } from "@/lib/airline-checkin";
 
 type Props = {
