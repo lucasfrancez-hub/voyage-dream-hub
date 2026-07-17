@@ -44,25 +44,41 @@ function detectExtension(timeoutMs = 1500): Promise<boolean> {
   });
 }
 
-function sendTokenToExtension(token: string): Promise<boolean> {
+function sendTokenToExtension(token: string): Promise<{ ok: boolean; error?: string }> {
   return new Promise((resolve) => {
     // A extensão roda fora da sessão do preview. URLs de preview exigem o
     // auth-bridge e transformam o POST em HTML, então o endpoint público deve
     // sempre usar o domínio publicado.
     const apiBase = "https://pedidos.viaair.tur.br";
     let done = false;
-    function onMsg(ev: MessageEvent) {
-      const d = ev.data as { __viaair?: string } | null;
-      if (!d || d.__viaair !== "set-token-ack") return;
+    function finish(res: { ok: boolean; error?: string }) {
+      if (done) return;
       done = true;
+      clearInterval(iv);
       window.removeEventListener("message", onMsg);
-      resolve(true);
+      resolve(res);
+    }
+    function onMsg(ev: MessageEvent) {
+      const d = ev.data as { __viaair?: string; error?: string } | null;
+      if (!d) return;
+      if (d.__viaair === "set-token-ack") finish({ ok: true });
+      else if (d.__viaair === "set-token-err") finish({ ok: false, error: d.error });
     }
     window.addEventListener("message", onMsg);
-    window.postMessage({ __viaair: "set-token", token, apiBase, airline: "any" }, window.location.origin);
-    setTimeout(() => {
-      if (!done) { window.removeEventListener("message", onMsg); resolve(false); }
-    }, 1500);
+    // Reenvia até 5x — a extensão pode ter acabado de subir/reiniciar.
+    let tries = 0;
+    const iv = setInterval(() => {
+      if (tries >= 5) return;
+      tries++;
+      try {
+        window.postMessage({ __viaair: "set-token", token, apiBase, airline: "any" }, window.location.origin);
+      } catch (e) {
+        console.warn("[via-air] set-token post failed", e);
+      }
+    }, 400);
+    // primeira tentativa imediata
+    try { window.postMessage({ __viaair: "set-token", token, apiBase, airline: "any" }, window.location.origin); } catch { /* ignore */ }
+    setTimeout(() => finish({ ok: false, error: "timeout" }), 6000);
   });
 }
 
@@ -142,9 +158,14 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       }
       const { token: t } = await createToken({ data: { orderId, airlineHint: "any" } });
       setToken(t);
-      const ok = await sendTokenToExtension(t);
-      if (!ok) {
-        toast.error("A extensão não confirmou o token. Recarregue esta página e tente de novo.");
+      const res = await sendTokenToExtension(t);
+      if (!res.ok) {
+        console.warn("[via-air] set-token falhou", res.error);
+        toast.error(
+          res.error === "timeout"
+            ? "A extensão não respondeu. Verifique se está ativa em chrome://extensions e recarregue esta página."
+            : `A extensão recusou o token: ${res.error ?? "erro desconhecido"}. Recarregue a extensão em chrome://extensions.`
+        );
         setPhase("idle");
         return;
       }
