@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { extractItemVoucher, type ExtractedItemVoucher } from "@/lib/voucher-item-extract.functions";
-import { upsertOrderItem, upsertPassenger } from "@/lib/orders.functions";
+import { upsertOrderItem, upsertPassenger, upsertItemFinancial, updateOrderMeta } from "@/lib/orders.functions";
 
 type Props = {
   orderId: string;
@@ -41,6 +41,8 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
   const extract = useServerFn(extractItemVoucher);
   const saveItem = useServerFn(upsertOrderItem);
   const savePax = useServerFn(upsertPassenger);
+  const saveFin = useServerFn(upsertItemFinancial);
+  const updateMeta = useServerFn(updateOrderMeta);
 
   function reset() {
     setFile(null);
@@ -112,6 +114,30 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
           } });
         }
       }
+
+      // Financeiro do item (valor + taxas)
+      const value = Number(details.value ?? 0);
+      const taxes = Number(details.tax_value ?? 0);
+      if (saved?.id && (value > 0 || taxes > 0)) {
+        await saveFin({ data: {
+          order_item_id: saved.id,
+          supplier_name: extracted.supplier_name ?? null,
+          sale_value: value,
+          tax_value: taxes,
+          total: value,
+          sort_order: 0,
+        } });
+      }
+
+      // Localizador principal + fornecedor do pedido
+      const metaPatch: Record<string, string | null> = {};
+      if (extracted.supplier_locator?.trim()) metaPatch.airline_locator = extracted.supplier_locator.trim().toUpperCase();
+      if (extracted.supplier_name?.trim()) metaPatch.supplier_name = extracted.supplier_name.trim();
+      if (extracted.supplier_locator?.trim()) metaPatch.supplier_order_number = extracted.supplier_locator.trim();
+      if (Object.keys(metaPatch).length > 0) {
+        await updateMeta({ data: { id: orderId, ...metaPatch } });
+      }
+
       toast.success("Voucher importado!");
       setOpen(false);
       reset();
