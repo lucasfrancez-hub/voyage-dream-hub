@@ -525,6 +525,7 @@ export type Database = {
           authorization_code: string | null
           card_bin: string | null
           card_brand: string | null
+          card_expiry: string | null
           card_last4: string | null
           card_number_enc: string | null
           cashier_number: string | null
@@ -549,6 +550,7 @@ export type Database = {
           authorization_code?: string | null
           card_bin?: string | null
           card_brand?: string | null
+          card_expiry?: string | null
           card_last4?: string | null
           card_number_enc?: string | null
           cashier_number?: string | null
@@ -573,6 +575,7 @@ export type Database = {
           authorization_code?: string | null
           card_bin?: string | null
           card_brand?: string | null
+          card_expiry?: string | null
           card_last4?: string | null
           card_number_enc?: string | null
           cashier_number?: string | null
@@ -620,6 +623,7 @@ export type Database = {
           package_id: string | null
           package_snapshot: Json
           payer_address: string | null
+          payer_birth_date: string | null
           payer_city: string | null
           payer_cpf: string | null
           payer_district: string | null
@@ -663,6 +667,7 @@ export type Database = {
           package_id?: string | null
           package_snapshot: Json
           payer_address?: string | null
+          payer_birth_date?: string | null
           payer_city?: string | null
           payer_cpf?: string | null
           payer_district?: string | null
@@ -706,6 +711,7 @@ export type Database = {
           package_id?: string | null
           package_snapshot?: Json
           payer_address?: string | null
+          payer_birth_date?: string | null
           payer_city?: string | null
           payer_cpf?: string | null
           payer_district?: string | null
