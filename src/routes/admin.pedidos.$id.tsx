@@ -3670,6 +3670,7 @@ function PaymentDialog({
       payer_district: order.payerDistrict ?? "",
       payer_city: order.payerCity ?? "",
       payer_state: order.payerState ?? "",
+      payer_birth_date: order.payerBirthDate ?? order.birthDate ?? "",
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial, open, order.id]);
