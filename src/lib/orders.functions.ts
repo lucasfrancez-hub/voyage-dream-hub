@@ -811,6 +811,7 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
       card_last4: data.card_last4 ?? null,
       card_bin: data.card_bin ?? null,
       card_brand: data.card_brand ?? null,
+      card_expiry: data.card_expiry ?? null,
       paid_at: data.paid_at ?? null,
       added_by_name: data.added_by_name ?? null,
       notes: data.notes ?? null,
