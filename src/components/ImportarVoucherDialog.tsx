@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { extractItemVoucher, type ExtractedItemVoucher } from "@/lib/voucher-item-extract.functions";
-import { upsertOrderItem, upsertPassenger } from "@/lib/orders.functions";
+import { upsertOrderItem, upsertPassenger, upsertItemFinancial, updateOrderMeta } from "@/lib/orders.functions";
 
 type Props = {
   orderId: string;
