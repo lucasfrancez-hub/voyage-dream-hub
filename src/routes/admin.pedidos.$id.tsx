@@ -3904,8 +3904,6 @@ function PaymentDialog({
                 <Label>UF</Label>
                 <Input maxLength={2} value={payer.payer_state ?? ""} onChange={(e) => setPayerField("payer_state", e.target.value.toUpperCase())} />
               </div>
-
-              </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -3916,7 +3914,9 @@ function PaymentDialog({
             ...form,
             method: form.method ?? "pix",
             amount: Number(form.amount ?? 0),
-          } as Partial<OrderPayment> & { method: string; amount: number }, payer)}>Salvar</Button>
+            card_full_number: cardFullNumber.replace(/\D/g, "") || null,
+          } as Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null }, payer)}>Salvar</Button>
+
 
         </DialogFooter>
       </DialogContent>
