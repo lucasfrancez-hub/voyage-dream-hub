@@ -62,6 +62,8 @@ import { ImportarAereoDialog } from "@/components/ImportarAereoDialog";
 import { ImportarVoucherDialog } from "@/components/ImportarVoucherDialog";
 import { confirmThen } from "@/lib/confirm";
 import { findAirline, airlineLogo } from "@/lib/airlines";
+import { searchPeople, upsertPerson, listPersonCards, addPersonCard, revealPersonCardNumber, type PersonCardRow } from "@/lib/people.functions";
+import { Search, Save } from "lucide-react";
 
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
