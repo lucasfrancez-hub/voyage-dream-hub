@@ -577,7 +577,13 @@
       }),
     }));
 
-    return { passengers, flights };
+    const financial = extractFinancialFromDoc(doc);
+    const out = { passengers, flights };
+    if (financial.currency) out.currency = financial.currency;
+    if (financial.base_fare != null) out.base_fare = financial.base_fare;
+    if (financial.taxes != null) out.taxes = financial.taxes;
+    if (financial.total_fare != null) out.total_fare = financial.total_fare;
+    return out;
   }
 
   let latestStructuredReservation = null;
