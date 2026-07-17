@@ -276,6 +276,8 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         phone: order.phone,
         cpf: order.cpf ?? null,
         birthDate: order.birth_date ?? null,
+        payerBirthDate: (order as { payer_birth_date?: string | null }).payer_birth_date ?? null,
+
         adults: order.adults,
         children: order.children,
         totalPrice: Number(order.total_price),
