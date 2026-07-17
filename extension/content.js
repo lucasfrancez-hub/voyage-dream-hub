@@ -62,7 +62,16 @@
       return { ...payload, airline };
     }
     const stored = await chrome.storage.local.get([storageKey, legacyStorageKey]);
-    return stored[storageKey] || stored[legacyStorageKey] || null;
+    const ctx = stored[storageKey] || stored[legacyStorageKey] || null;
+    if (ctx?.savedAt && Date.now() - ctx.savedAt >= 2 * 60 * 60 * 1000) {
+      await chrome.storage.local.remove([storageKey, legacyStorageKey]);
+      return null;
+    }
+    return ctx;
+  }
+
+  async function clearImportContext() {
+    await chrome.storage.local.remove([storageKey, legacyStorageKey]);
   }
 
   function extractTables(doc) {
@@ -651,6 +660,7 @@
     showToast(isConsolidator ? "Lendo iframe e enviando pra Via Air…" : "Capturando tela e enviando pra Via Air…");
     try {
       if (isConsolidator) {
+        latestStructuredReservation = null;
         publishStructuredReservation();
         requestChildFrameData();
         await sleep(600);
@@ -687,6 +697,8 @@
       let body = {};
       try { body = responseText ? JSON.parse(responseText) : {}; } catch (e) { /* resposta não JSON */ }
       if (!res.ok) {
+        const deadTokenErrors = ["token_not_found", "already_consumed", "token_expired"];
+        if (deadTokenErrors.includes(body.error)) await clearImportContext();
         const map = {
           token_not_found: "Token não encontrado. Gere um novo no pedido.",
           already_consumed: "Essa reserva já foi importada.",
@@ -701,6 +713,7 @@
         showToast("O servidor não confirmou a importação. Tente novamente.", "err");
         return;
       }
+      await clearImportContext();
       showToast("✅ Dados enviados! Volte ao admin da Via Air pra conferir.", "ok");
     } catch (e) {
       const message = e && e.name === "AbortError"
