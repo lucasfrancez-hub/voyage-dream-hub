@@ -3646,8 +3646,21 @@ function PaymentDialog({
   const [form, setForm] = useState<Partial<OrderPayment>>({});
   const [payer, setPayer] = useState<PayerPatch>({});
   const [cardFullNumber, setCardFullNumber] = useState<string>("");
-  // Marca se o usuário editou manualmente o valor da parcela — evita sobrescrever
   const [installmentTouched, setInstallmentTouched] = useState(false);
+
+  // Busca/salvamento de pessoas e cartões
+  const searchPeopleFn = useServerFn(searchPeople);
+  const upsertPersonFn = useServerFn(upsertPerson);
+  const listCardsFn = useServerFn(listPersonCards);
+  const addCardFn = useServerFn(addPersonCard);
+  const revealCardFn = useServerFn(revealPersonCardNumber);
+  const [personSearch, setPersonSearch] = useState("");
+  const [personResults, setPersonResults] = useState<Array<{ id: string; name: string; cpf: string | null }>>([]);
+  const [showPersonResults, setShowPersonResults] = useState(false);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [savedCards, setSavedCards] = useState<PersonCardRow[]>([]);
+  const [savingPerson, setSavingPerson] = useState(false);
+  const [savingCard, setSavingCard] = useState(false);
   useMemo(() => {
     const isNew = !initial;
     setForm(initial ?? {
