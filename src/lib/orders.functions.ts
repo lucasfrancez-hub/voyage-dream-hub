@@ -545,6 +545,7 @@ export const updateOrderPayer = createServerFn({ method: "POST" })
     const keys = [
       "payer_full_name", "payer_cpf", "payer_ie_rg", "payer_email", "payer_phone",
       "payer_zip", "payer_address", "payer_number", "payer_district", "payer_city", "payer_state",
+      "payer_birth_date",
     ] as const;
     for (const k of keys) {
       const v = (data as Record<string, string | null | undefined>)[k];
