@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useMemo, useEffect } from "react";
+import { detectBrand } from "@/components/CardForm";
+
 import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
