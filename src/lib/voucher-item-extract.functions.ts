@@ -182,15 +182,32 @@ function itemSchema(kind: "hotel" | "other") {
       },
     },
   } as const;
+  const passengerSchema = {
+    type: "array",
+    items: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        full_name: { type: "string" },
+        kind: { type: "string", enum: ["adult", "child", "infant"] },
+        cpf: { type: "string" },
+        birth_date: { type: "string" },
+        document: { type: "string" },
+      },
+    },
+  } as const;
   return {
     type: "object",
     additionalProperties: false,
     properties: {
       items: { type: "array", items: singleItem },
+      // Lista compartilhada quando o voucher lista passageiros/hóspedes só uma vez para o documento inteiro.
+      passengers: passengerSchema,
     },
     required: ["items"],
   } as const;
 }
+
 
 export const extractItemVoucher = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
