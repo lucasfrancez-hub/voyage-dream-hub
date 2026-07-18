@@ -556,7 +556,8 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           sequence_enabled: false,
         },
       }),
-    });
+    }, { preferSandbox: true });
+
     const documentKey = docResp.document.key;
 
     // 2) Cria signer com selfie liveness + foto do documento + geolocalização obrigatória
