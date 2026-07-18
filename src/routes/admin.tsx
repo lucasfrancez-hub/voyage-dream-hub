@@ -354,7 +354,8 @@ function CartaoNav({ pathname }: { pathname: string }) {
 function DashboardNav({ pathname }: { pathname: string }) {
   const active =
     pathname.startsWith("/admin/dashboard") ||
-    pathname.startsWith("/admin/pessoas");
+    pathname.startsWith("/admin/pessoas") ||
+    pathname.startsWith("/admin/contas-");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -364,7 +365,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
       >
         <LayoutDashboard className="h-4 w-4" /> Dashboard <ChevronDown className="h-3.5 w-3.5" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
+      <DropdownMenuContent align="start" className="w-64">
         <DropdownMenuItem asChild>
           <Link to="/admin/dashboard" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Dashboard</span>
@@ -377,10 +378,23 @@ function DashboardNav({ pathname }: { pathname: string }) {
             <span className="text-xs text-muted-foreground">Clientes e contatos</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/contas-receber" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Contas a receber</span>
+            <span className="text-xs text-muted-foreground">Vendas, comissões e entradas</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/contas-pagar" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Contas a pagar</span>
+            <span className="text-xs text-muted-foreground">Fornecedores e despesas</span>
+          </Link>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+
 
 function PedidosNav({ pathname }: { pathname: string }) {
   const active = pathname.startsWith("/admin/pedidos");
