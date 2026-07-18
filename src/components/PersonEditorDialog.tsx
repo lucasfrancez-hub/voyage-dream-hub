@@ -225,9 +225,9 @@ export function PersonEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 gap-0 max-w-6xl w-[96vw] max-h-[94vh] overflow-hidden flex flex-col bg-card/70 backdrop-blur-2xl border-border rounded-2xl">
+      <DialogContent className="p-0 gap-0 max-w-6xl w-[96vw] h-[90vh] overflow-hidden flex flex-col bg-card/70 backdrop-blur-2xl border-border rounded-2xl">
         {/* Header rico — Industrial premium */}
-        <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-border">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-4 min-w-0">
             <div className="h-14 w-14 rounded-2xl bg-brand-orange/10 border border-brand-orange/30 flex items-center justify-center text-brand-orange text-lg font-bold shrink-0 shadow-[0_0_20px_rgba(242,107,31,0.15)]">
               {getInitials(form.name) || (form.kind === "PJ" ? <Building2 className="h-6 w-6" /> : <User className="h-6 w-6" />)}
@@ -308,7 +308,7 @@ export function PersonEditorDialog({
         ) : (
           <>
             {/* Abas — underline laranja estilo industrial */}
-            <div className="px-4 border-b border-border overflow-x-auto bg-muted/20">
+            <div className="px-4 border-b border-border overflow-x-auto bg-muted/20 shrink-0">
               <div className="flex gap-1 whitespace-nowrap">
                 {TABS.map((t) => (
                   <button
@@ -349,7 +349,7 @@ export function PersonEditorDialog({
             </div>
 
             {/* Rodapé */}
-            <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-border bg-muted/30">
+            <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-border bg-muted/30 shrink-0">
               <div className="text-[11px] text-muted-foreground truncate">
                 {person && (
                   <>Código <span className="font-mono text-foreground">{person.code}</span>
