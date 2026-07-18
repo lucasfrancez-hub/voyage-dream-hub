@@ -425,7 +425,7 @@ function OrderDetailPage() {
                       }}
                     />
                     {isAuto && (
-                      <p className="mt-1 text-[10px] text-muted-foreground">Sugestão automática a partir dos itens do pedido — edite para personalizar.</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">Edite para personalizar.</p>
                     )}
                   </>
                 );
