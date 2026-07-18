@@ -385,54 +385,72 @@ export type Database = {
         Row: {
           aliquota_iss: number
           ambiente: string
+          bairro: string | null
+          cep: string | null
           cnpj: string
           codigo_tributario_municipio: string | null
           codigo_tributario_nacional: string | null
           created_at: string
           descricao_padrao: string | null
+          email: string | null
           id: string
           inscricao_municipal: string
           iss_retido: boolean
           item_lista_servico: string
+          logradouro: string | null
           municipio_prestacao: string
+          numero: string | null
           razao_social: string
           regime_tributario: string
+          telefone: string | null
           uf_prestacao: string
           updated_at: string
         }
         Insert: {
           aliquota_iss?: number
           ambiente?: string
+          bairro?: string | null
+          cep?: string | null
           cnpj: string
           codigo_tributario_municipio?: string | null
           codigo_tributario_nacional?: string | null
           created_at?: string
           descricao_padrao?: string | null
+          email?: string | null
           id?: string
           inscricao_municipal: string
           iss_retido?: boolean
           item_lista_servico?: string
+          logradouro?: string | null
           municipio_prestacao?: string
+          numero?: string | null
           razao_social?: string
           regime_tributario?: string
+          telefone?: string | null
           uf_prestacao?: string
           updated_at?: string
         }
         Update: {
           aliquota_iss?: number
           ambiente?: string
+          bairro?: string | null
+          cep?: string | null
           cnpj?: string
           codigo_tributario_municipio?: string | null
           codigo_tributario_nacional?: string | null
           created_at?: string
           descricao_padrao?: string | null
+          email?: string | null
           id?: string
           inscricao_municipal?: string
           iss_retido?: boolean
           item_lista_servico?: string
+          logradouro?: string | null
           municipio_prestacao?: string
+          numero?: string | null
           razao_social?: string
           regime_tributario?: string
+          telefone?: string | null
           uf_prestacao?: string
           updated_at?: string
         }
