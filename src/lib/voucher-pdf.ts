@@ -1578,8 +1578,35 @@ const drawHotelSection = async (
     : (guestsFallback || "-");
   const guests = ctx.lang === "en" ? translateGuestsPtToEn(rawGuestsResolved) : rawGuestsResolved;
   const locator = item.supplier_locator ?? "";
-  const rawNotes = [String(d.policies ?? "").trim(), String(d.notes ?? "").trim()].filter(Boolean).join("\n\n");
-  const notes = rawNotes ? (ctx.lang === "en" ? await translateNotesToEnglish(rawNotes) : rawNotes) : "";
+  // ---- Política de cancelamento (resumida) + Observações (tópicos) ----
+  const rawCancel = String(d.cancellation_policy ?? "").trim();
+  const rawObsList = Array.isArray(d.observations)
+    ? (d.observations as unknown[]).map((x) => String(x ?? "").trim()).filter(Boolean)
+    : [];
+  const rawPoliciesLegacy = String(d.policies ?? "").trim();
+  const rawNotesLegacy = String(d.notes ?? "").trim();
+
+  // Backward compat: quando só existe o campo antigo `policies`, joga tudo em Observações
+  let cancelText = rawCancel;
+  let obsList = rawObsList.slice();
+  if (!cancelText && !obsList.length && (rawPoliciesLegacy || rawNotesLegacy)) {
+    const legacy = [rawPoliciesLegacy, rawNotesLegacy].filter(Boolean).join("\n\n");
+    obsList = legacy.split(/\r?\n+/).map((s) => s.replace(/^[\s\-•·]+/, "").trim()).filter(Boolean);
+  } else if (rawNotesLegacy) {
+    // notes = contatos/emergência: adiciona no final se ainda não estiver listado
+    if (!obsList.some((o) => o.toLowerCase().includes(rawNotesLegacy.toLowerCase().slice(0, 40)))) {
+      obsList.push(rawNotesLegacy);
+    }
+  }
+
+  if (ctx.lang === "en") {
+    if (cancelText) cancelText = await translateNotesToEnglish(cancelText);
+    if (obsList.length) {
+      const joined = obsList.join("\n\u241E\n"); // separador único
+      const translated = await translateNotesToEnglish(joined);
+      obsList = translated.split(/\n\u241E\n/).map((s) => s.trim()).filter(Boolean);
+    }
+  }
 
 
   // Uma única foto (a primeira do TripAdvisor, se houver)
@@ -1603,14 +1630,46 @@ const drawHotelSection = async (
   const midX = innerX + (photo ? photoW + gapPhoto : 0);
   const midW = innerW - (photo ? photoW + gapPhoto : 0) - qrSize - 24;
 
-  // Pre-compute notes wrapping to size the card
-  const notesLines = notes ? wrap(ctx.font, 9, notes, innerW - 28) : [];
-  const notesBlockH = notes ? 22 + notesLines.length * 13 + 14 + 10 : 0;
-  const notesGap = notes ? 16 : 0;
+  // Pre-compute topic blocks (cancelamento + observações), empilhados
+  const contentW = innerW - 28; // padding interno dos boxes
+  const bulletIndent = 12;
+  const bulletTextW = contentW - bulletIndent;
+
+  const cancelLines: string[] = cancelText
+    ? cancelText.split(/\r?\n+/).flatMap((ln) => {
+        const clean = ln.replace(/^[\s\-•·]+/, "").trim();
+        if (!clean) return [] as string[];
+        return wrap(ctx.font, 9, clean, bulletTextW);
+      })
+    : [];
+  const cancelItems: string[][] = cancelText
+    ? cancelText
+        .split(/\r?\n+/)
+        .map((ln) => ln.replace(/^[\s\-•·]+/, "").trim())
+        .filter(Boolean)
+        .map((ln) => wrap(ctx.font, 9, ln, bulletTextW))
+    : [];
+  const obsItems: string[][] = obsList.map((ln) => wrap(ctx.font, 9, ln, bulletTextW));
+
+  const bulletBlockHeight = (items: string[][]) => {
+    if (!items.length) return 0;
+    const linesCount = items.reduce((acc, it) => acc + it.length, 0);
+    const gapsBetween = (items.length - 1) * 4; // pequeno gap entre bullets
+    return 22 + linesCount * 12 + gapsBetween + 14;
+  };
+  void cancelLines; // reservado (fallback caso queira exibir bloco corrido)
+  const cancelBlockH = bulletBlockHeight(cancelItems);
+  const obsBlockH = bulletBlockHeight(obsItems);
+  const hasCancel = cancelItems.length > 0;
+  const hasObs = obsItems.length > 0;
+  const stackGap = hasCancel && hasObs ? 10 : 0;
+  const notesBlockH = cancelBlockH + obsBlockH + stackGap;
+  const notesGap = notesBlockH > 0 ? 16 : 0;
 
 
   const topBlockH = Math.max(photo ? photoH + 8 : 0, qrSize + 30, 110);
   const cardH = topBlockH + notesBlockH + notesGap + 24;
+
 
 
   const { top } = openSectionCard(ctx, cardH + 20);
