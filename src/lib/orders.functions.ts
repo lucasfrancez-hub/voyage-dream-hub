@@ -116,6 +116,7 @@ export type OrderPayment = {
 
   added_by_name: string | null;
   notes: string | null;
+  order_item_ids: string[] | null;
   created_at: string;
 };
 
