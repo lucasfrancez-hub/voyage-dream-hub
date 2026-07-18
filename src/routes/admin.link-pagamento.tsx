@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Copy, ExternalLink, MessageCircle, Vault, AlertTriangle } from "lucide-react";
+import { Link2, Copy, ExternalLink, MessageCircle, Vault, AlertTriangle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { paymentLinkUrl, whatsappUrl, splitInstallments } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
 import { saveCofreEntry, deleteCofreEntry, popEditEntry } from "@/lib/cofre-storage";
+import { CollapsibleSection, EssentialGroup } from "@/components/LinkFormSection";
+
 
 export const Route = createFileRoute("/admin/link-pagamento")({
   validateSearch: (s: Record<string, unknown>) => s as Record<string, string | undefined>,
@@ -205,16 +207,26 @@ function LinkGenerator() {
 
 
 
+  // Contadores para pills de "X preenchidos" nas seções colapsáveis
+  const travelFilled = [locator, tripRoute, travelDate, passengers, hotel, flights, checkin, checkout, days, nights].filter((v) => v.trim()).length;
+  const extrasFilled = [orderRef, imageUrl].filter((v) => v.trim()).length;
+
   return (
     <div className="mx-auto max-w-4xl px-3 sm:px-6 py-6 sm:py-10">
+      {/* Header padronizado */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
-            <Link2 className="h-4 w-4" /> Gerar link de pagamento
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-2xl bg-brand-orange/10 border border-brand-orange/30 flex items-center justify-center text-brand-orange">
+            <ShieldCheck className="h-5 w-5" />
           </div>
-          <h1 className="mt-1 font-display text-3xl font-bold">
-            {isEditing ? "Editar link do cofre" : "Link do cofre Via Air"}
-          </h1>
+          <div>
+            <div className="flex items-center gap-2 text-brand-orange text-[11px] uppercase tracking-widest font-semibold">
+              <Link2 className="h-3.5 w-3.5" /> Link seguro · cartão com verificação
+            </div>
+            <h1 className="mt-0.5 font-display text-2xl font-bold">
+              {isEditing ? "Editar link do cofre" : "Novo link de pagamento"}
+            </h1>
+          </div>
         </div>
         <Link
           to="/admin/cofre"
@@ -223,67 +235,104 @@ function LinkGenerator() {
           <Vault className="h-4 w-4" /> Ver cofre
         </Link>
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Monte um link personalizado com valor e parcelas. O cliente abre em <code>/pagar</code>{" "}
-        dentro do próprio domínio e preenche os dados do cartão.
-      </p>
 
       <div className="mt-4 flex items-start gap-2 rounded-xl border border-yellow-500/40 bg-yellow-500/5 p-3 text-xs text-yellow-900 dark:text-yellow-200">
         <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
         <div>
-          <strong>Atenção:</strong> para clientes vindo da internet, desconhecidos ou que você nunca atendeu, use sempre este
-          <strong> link seguro</strong>.
-          O link convencional é exclusivo para clientes já conhecidos e de confiança.
+          <strong>Use este link seguro</strong> para clientes vindos da internet, desconhecidos ou que você nunca atendeu. Para clientes já conhecidos, use o link convencional.
         </div>
       </div>
 
       <div className="mt-6 grid lg:grid-cols-[1fr_400px] gap-6">
-        <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
-          <Field label="Nome do cliente">
-            <input value={customer} onChange={(e) => setCustomer(e.target.value)} className={cls} placeholder="Lucas Silva" />
-          </Field>
-          <Field label="Telefone / WhatsApp do cliente (com DDI)">
-            <input
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ""))}
-              className={cls}
-              placeholder="5544999999999"
-            />
-          </Field>
-          <Field label="Descrição / referência *">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className={`${cls} min-h-[90px]`}
-              placeholder={"Pacote Cancún 5 dias\nInclui traslados e passeios"}
-            />
-            <span className="mt-1 block text-[11px] text-muted-foreground">
-              Quebras de linha são preservadas no link do cliente e no PDF.
-            </span>
-          </Field>
-          <Field label="Fornecedor (nome que aparecerá na fatura do cartão) *">
-            <input required value={supplier} onChange={(e) => setSupplier(e.target.value)} className={cls} placeholder="Ex.: LATAM AIRLINES, CVC, Decolar" />
-            <span className="mt-1 block text-[11px] text-muted-foreground">
-              Quem aparecerá na fatura e no documento de autorização de débito. Pode ser Via Air, uma companhia aérea ou operadora.
-            </span>
-          </Field>
-          <Field label="Número do pedido (opcional)">
-            <input
-              value={orderNumber}
-              onChange={(e) => setOrderNumber(e.target.value)}
-              className={cls}
-              placeholder="Ex.: localizador da cia (ABC123) ou ID da operadora"
-              maxLength={40}
-            />
-            <span className="mt-1 block text-[11px] text-muted-foreground">
-              Aparecerá como número oficial do pedido no PDF de autorização de débito. Deixe em branco para usar o ID interno.
-            </span>
-          </Field>
-
-          <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
-              Informações da viagem (aparecem no PDF de autorização)
+        <section className="rounded-2xl border border-border bg-card p-6 space-y-6">
+          {/* ESSENCIAIS — sempre visível */}
+          <EssentialGroup title="Dados do cliente">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Field label="Nome do cliente">
+                <input value={customer} onChange={(e) => setCustomer(e.target.value)} className={cls} placeholder="Lucas Silva" />
+              </Field>
+              <Field label="WhatsApp (com DDI)">
+                <input
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ""))}
+                  className={cls}
+                  placeholder="5544999999999"
+                />
+              </Field>
             </div>
+          </EssentialGroup>
+
+          <EssentialGroup title="Sobre a cobrança">
+            <Field label="Descrição / referência *">
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className={`${cls} min-h-[80px]`}
+                placeholder={"Pacote Cancún 5 dias\nInclui traslados e passeios"}
+              />
+            </Field>
+            <Field label="Fornecedor (aparece na fatura do cartão) *">
+              <input required value={supplier} onChange={(e) => setSupplier(e.target.value)} className={cls} placeholder="Ex.: LATAM AIRLINES, CVC, VIA AIR" />
+            </Field>
+            <Field label="Nº do pedido (opcional)">
+              <input
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+                className={cls}
+                placeholder="Localizador (ABC123) ou ID da operadora"
+                maxLength={40}
+              />
+            </Field>
+          </EssentialGroup>
+
+          <EssentialGroup title="Valor e parcelas">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Field label="Valor total (R$) *">
+                <input required inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} className={cls} placeholder="4999.90" />
+              </Field>
+              <Field label="Parcelas">
+                <select value={installments} onChange={(e) => setInstallments(Number(e.target.value))} className={cls}>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n}x sem juros</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2">
+              <label className={`flex items-start gap-2 rounded-xl border p-3 cursor-pointer transition ${mode === "equal" ? "border-brand-orange bg-brand-orange/5" : "border-border hover:border-brand-orange/50"}`}>
+                <input type="radio" name="mode" checked={mode === "equal"} onChange={() => setMode("equal")} className="mt-0.5 accent-brand-orange" />
+                <span className="text-sm">
+                  <span className="block font-medium">Parcelas iguais</span>
+                  <span className="block text-xs text-muted-foreground">Todas as parcelas com o mesmo valor.</span>
+                </span>
+              </label>
+              <label className={`flex items-start gap-2 rounded-xl border p-3 cursor-pointer transition ${mode === "first-higher" ? "border-brand-orange bg-brand-orange/5" : "border-border hover:border-brand-orange/50"}`}>
+                <input type="radio" name="mode" checked={mode === "first-higher"} onChange={() => setMode("first-higher")} disabled={installments < 2} className="mt-0.5 accent-brand-orange" />
+                <span className="text-sm">
+                  <span className="block font-medium">1ª parcela maior</span>
+                  <span className="block text-xs text-muted-foreground">Ex.: soma a taxa de embarque na 1ª.</span>
+                </span>
+              </label>
+            </div>
+            {mode === "first-higher" && installments > 1 && (
+              <Field label="Valor a somar na 1ª parcela (R$)">
+                <input
+                  inputMode="decimal"
+                  value={firstAmount}
+                  onChange={(e) => setFirstAmount(e.target.value)}
+                  className={cls}
+                  placeholder="Ex.: 150.00"
+                />
+              </Field>
+            )}
+          </EssentialGroup>
+
+          {/* AVANÇADO — colapsável */}
+          <CollapsibleSection
+            title="Informações da viagem"
+            hint="Aparecem no PDF de autorização de débito. Deixe em branco se não se aplicar."
+            filledCount={travelFilled}
+          >
             <Field label="Localizador da companhia aérea">
               <input
                 value={locator}
@@ -298,7 +347,7 @@ function LinkGenerator() {
                 value={tripRoute}
                 onChange={(e) => setTripRoute(e.target.value)}
                 className={`${cls} min-h-[70px]`}
-                placeholder={"Ex.: CWB 08:15 → GRU 09:35 (LA3421)\nGRU 22:10 → MIA 06:30 (LA8188)"}
+                placeholder={"CWB 08:15 → GRU 09:35 (LA3421)\nGRU 22:10 → MIA 06:30 (LA8188)"}
               />
             </Field>
             <Field label="Data(s) da viagem">
@@ -306,15 +355,15 @@ function LinkGenerator() {
                 value={travelDate}
                 onChange={(e) => setTravelDate(e.target.value)}
                 className={cls}
-                placeholder="Ex.: 12/03/2026 a 19/03/2026"
+                placeholder="12/03/2026 a 19/03/2026"
               />
             </Field>
-            <Field label="Nome dos passageiros (um por linha)">
+            <Field label="Passageiros (um por linha)">
               <textarea
                 value={passengers}
                 onChange={(e) => setPassengers(e.target.value)}
                 className={`${cls} min-h-[70px]`}
-                placeholder={"Ex.: JOÃO DA SILVA\nMARIA DA SILVA\nPEDRO DA SILVA (CHD)"}
+                placeholder={"JOÃO DA SILVA\nMARIA DA SILVA\nPEDRO DA SILVA (CHD)"}
               />
             </Field>
             <Field label="Hotel / hospedagem">
@@ -322,7 +371,7 @@ function LinkGenerator() {
                 value={hotel}
                 onChange={(e) => setHotel(e.target.value)}
                 className={cls}
-                placeholder="Ex.: Hotel Riu Cancún — quarto duplo vista mar"
+                placeholder="Hotel Riu Cancún — quarto duplo vista mar"
               />
             </Field>
             <Field label="Voos (companhia, número, horários)">
@@ -330,99 +379,47 @@ function LinkGenerator() {
                 value={flights}
                 onChange={(e) => setFlights(e.target.value)}
                 className={`${cls} min-h-[70px]`}
-                placeholder={"Ex.: LATAM LA3421 CWB 08:15 → GRU 09:35\nLATAM LA8188 GRU 22:10 → MIA 06:30"}
+                placeholder={"LATAM LA3421 CWB 08:15 → GRU 09:35"}
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Check-in">
-                <input value={checkin} onChange={(e) => setCheckin(e.target.value)} className={cls} placeholder="12/03/2026" />
-              </Field>
-              <Field label="Check-out">
-                <input value={checkout} onChange={(e) => setCheckout(e.target.value)} className={cls} placeholder="19/03/2026" />
-              </Field>
-              <Field label="Dias">
-                <input value={days} onChange={(e) => setDays(e.target.value)} className={cls} placeholder="Ex.: 7" />
-              </Field>
-              <Field label="Noites">
-                <input value={nights} onChange={(e) => setNights(e.target.value)} className={cls} placeholder="Ex.: 6" />
-              </Field>
+              <Field label="Check-in"><input value={checkin} onChange={(e) => setCheckin(e.target.value)} className={cls} placeholder="12/03/2026" /></Field>
+              <Field label="Check-out"><input value={checkout} onChange={(e) => setCheckout(e.target.value)} className={cls} placeholder="19/03/2026" /></Field>
+              <Field label="Dias"><input value={days} onChange={(e) => setDays(e.target.value)} className={cls} placeholder="7" /></Field>
+              <Field label="Noites"><input value={nights} onChange={(e) => setNights(e.target.value)} className={cls} placeholder="6" /></Field>
             </div>
-          </div>
+          </CollapsibleSection>
 
-
-          <Field label="Referência interna (opcional)">
-            <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
-          </Field>
-
-          <Field label="Imagem do destino (URL) — aparece no topo do link do cliente">
-            <input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className={cls}
-              placeholder="https://…foto-do-destino.jpg"
-            />
-            {imageUrl && (
-              <img
-                src={imageUrl}
-                alt="Prévia do destino"
-                className="mt-2 h-28 w-full rounded-lg object-cover border border-border"
-                onError={(e) => (e.currentTarget.style.display = "none")}
+          <CollapsibleSection
+            title="Apresentação e referência interna"
+            hint="Imagem no topo do link e número interno para seu controle."
+            filledCount={extrasFilled}
+          >
+            <Field label="Imagem do destino (URL)">
+              <input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className={cls}
+                placeholder="https://…foto-do-destino.jpg"
               />
-            )}
-          </Field>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Valor total (R$) *">
-              <input required inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} className={cls} placeholder="4999.90" />
-            </Field>
-            <Field label="Parcelas">
-              <select value={installments} onChange={(e) => setInstallments(Number(e.target.value))} className={cls}>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>
-                    {n}x sem juros
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <div className="space-y-2 pt-2">
-            <span className="block text-xs text-muted-foreground">Divisão das parcelas</span>
-            <div className="grid sm:grid-cols-2 gap-2">
-              <label className={`flex items-start gap-2 rounded-xl border p-3 cursor-pointer transition ${mode === "equal" ? "border-brand-orange bg-brand-orange/5" : "border-border hover:border-brand-orange/50"}`}>
-                <input type="radio" name="mode" checked={mode === "equal"} onChange={() => setMode("equal")} className="mt-0.5 accent-brand-orange" />
-                <span className="text-sm">
-                  <span className="block font-medium">Tudo dividido igual</span>
-                  <span className="block text-xs text-muted-foreground">Todas as parcelas com o mesmo valor.</span>
-                </span>
-              </label>
-              <label className={`flex items-start gap-2 rounded-xl border p-3 cursor-pointer transition ${mode === "first-higher" ? "border-brand-orange bg-brand-orange/5" : "border-border hover:border-brand-orange/50"}`}>
-                <input type="radio" name="mode" checked={mode === "first-higher"} onChange={() => setMode("first-higher")} disabled={installments < 2} className="mt-0.5 accent-brand-orange" />
-                <span className="text-sm">
-                  <span className="block font-medium">1ª parcela mais alta</span>
-                  <span className="block text-xs text-muted-foreground">Soma a taxa de embarque na 1ª parcela; o restante do total é dividido igualmente.</span>
-                </span>
-              </label>
-            </div>
-            {mode === "first-higher" && installments > 1 && (
-              <Field label="Valor da taxa de embarque (R$)">
-                <input
-                  inputMode="decimal"
-                  value={firstAmount}
-                  onChange={(e) => setFirstAmount(e.target.value)}
-                  className={cls}
-                  placeholder="Ex.: 150.00"
+              {imageUrl && (
+                <img
+                  src={imageUrl}
+                  alt="Prévia do destino"
+                  className="mt-2 h-28 w-full rounded-lg object-cover border border-border"
+                  onError={(e) => (e.currentTarget.style.display = "none")}
                 />
-                <span className="mt-1 block text-[11px] text-muted-foreground">
-                  Esse valor é somado à 1ª parcela. Se a parcela normal já for maior que a taxa, ela é ignorada e as parcelas ficam iguais.
-                </span>
-              </Field>
-            )}
-          </div>
+              )}
+            </Field>
+            <Field label="Referência interna (CRM)">
+              <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
+            </Field>
+          </CollapsibleSection>
         </section>
 
         <aside className="rounded-2xl border border-border bg-card p-6 space-y-4 lg:sticky lg:top-24 h-fit">
-          <h2 className="font-semibold">Resumo</h2>
-          <div className="text-3xl font-display font-bold text-brand-orange">
+          <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Resumo</div>
+          <div className="text-3xl font-display font-bold text-brand-orange tabular-nums">
             {totalNumber ? formatBRL(totalNumber) : "R$ —"}
           </div>
           {totalNumber > 0 && (
@@ -430,8 +427,8 @@ function LinkGenerator() {
           )}
 
           <div className="pt-3 border-t border-border">
-            <label className="text-xs text-muted-foreground">Link gerado</label>
-            <textarea readOnly value={url} className={`${cls} mt-1 min-h-[90px] font-mono text-xs`} placeholder="Preencha descrição e valor para gerar…" />
+            <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Link gerado</label>
+            <textarea readOnly value={url} className={`${cls} mt-1 min-h-[90px] font-mono text-xs`} placeholder="Preencha descrição, fornecedor e valor…" />
           </div>
 
           <div className="grid gap-2">
@@ -455,7 +452,7 @@ function LinkGenerator() {
               onClick={() => persistToCofre()}
               className={`inline-flex items-center justify-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm hover:border-brand-orange transition ${!url ? "pointer-events-none opacity-50" : ""}`}
             >
-              <ExternalLink className="h-4 w-4" /> Abrir cofre
+              <ExternalLink className="h-4 w-4" /> Abrir link
             </a>
             <a
               href={url ? (customerPhone ? `https://wa.me/${customerPhone}?text=${encodeURIComponent(whatsMessage)}` : whatsappUrl(whatsMessage)) : "#"}
@@ -473,6 +470,7 @@ function LinkGenerator() {
     </div>
   );
 }
+
 
 const cls =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-orange/40";
