@@ -394,7 +394,7 @@ export function PersonEditorDialog({
 
             <div className="flex-1 overflow-y-auto px-5 py-5 bg-background/40">
               {tab === "detalhes" && (
-                <DetalhesTab form={form} set={set} person={person} onCepBlur={fetchCep} />
+                <DetalhesTab form={form} set={set} person={person} onCepBlur={fetchCep} onCnpjBlur={fetchCnpj} />
               )}
               {tab === "adicionais" && (
                 <AdicionaisTab form={form} set={set} summary={salesQ.data?.summary} isPF={form.kind === "PF"} />
