@@ -1053,6 +1053,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
               <th className="px-3 py-2 text-left">Nome</th>
               <th className="px-3 py-2 text-left">Número</th>
               <th className="px-3 py-2 text-left">Validade</th>
+              <th className="px-3 py-2 text-left">CVV</th>
               <th className="px-3 py-2 text-left">Operadora</th>
               <th className="px-3 py-2 text-left">Cartão Passagem</th>
               <th className="px-3 py-2"></th>
