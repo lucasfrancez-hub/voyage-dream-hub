@@ -66,21 +66,16 @@ const emptyForm: FormState = {
 };
 
 type TabId =
-  | "detalhes" | "adicionais" | "vendas" | "marcadores" | "financeiros"
-  | "contatos" | "usuario" | "anexos" | "tarefas" | "orcamentos" | "custom";
+  | "detalhes" | "adicionais" | "vendas" | "financeiros"
+  | "contatos" | "anexos";
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "detalhes", label: "Detalhes" },
   { id: "adicionais", label: "Dados Adicionais" },
   { id: "vendas", label: "Vendas" },
-  { id: "marcadores", label: "Marcadores" },
   { id: "financeiros", label: "Dados Financeiros" },
   { id: "contatos", label: "Contatos" },
-  { id: "usuario", label: "Usuário" },
   { id: "anexos", label: "Anexos" },
-  { id: "tarefas", label: "Tarefas" },
-  { id: "orcamentos", label: "Orçamentos" },
-  { id: "custom", label: "Campos Personalizados" },
 ];
 
 export function PersonEditorDialog({
@@ -116,7 +111,7 @@ export function PersonEditorDialog({
   const salesQ = useQuery({
     queryKey: ["admin-people", id, "sales"],
     queryFn: () => salesFn({ data: { id } }),
-    enabled: !isNew && open && (tab === "vendas" || tab === "financeiros" || tab === "adicionais" || tab === "orcamentos"),
+    enabled: !isNew && open && (tab === "vendas" || tab === "financeiros" || tab === "adicionais"),
   });
 
   useEffect(() => {
@@ -342,31 +337,14 @@ export function PersonEditorDialog({
               {tab === "vendas" && (
                 <VendasTab loading={salesQ.isLoading} sales={salesQ.data?.sales ?? []} onOpen={() => onOpenChange(false)} />
               )}
-              {tab === "marcadores" && (
-                <MarcadoresTab personId={id} isNew={isNew} tags={tags} qc={qc} />
-              )}
               {tab === "financeiros" && (
                 <FinanceirosTab personId={id} isNew={isNew} cards={cards} qc={qc} summary={salesQ.data?.summary} loading={salesQ.isLoading} />
               )}
               {tab === "contatos" && (
                 <ContatosTab personId={id} isNew={isNew} phones={phones} emails={emails} qc={qc} />
               )}
-              {tab === "usuario" && (
-                <UsuarioTab form={form} set={set} person={person} />
-              )}
               {tab === "anexos" && (
                 <AnexosTab personId={id} isNew={isNew} attachments={attachments} qc={qc} />
-              )}
-              {tab === "tarefas" && (
-                <PlaceholderTab icon={<ClipboardList className="h-8 w-8" />} title="Tarefas"
-                  hint="Sincronização de tarefas será liberada junto com a integração da API do Monde." />
-              )}
-              {tab === "orcamentos" && (
-                <PlaceholderTab icon={<Calculator className="h-8 w-8" />} title="Orçamentos"
-                  hint="Orçamentos vinculados aparecerão aqui após a integração." />
-              )}
-              {tab === "custom" && (
-                <CustomFieldsTab personId={id} isNew={isNew} items={customFields} qc={qc} />
               )}
             </div>
 
