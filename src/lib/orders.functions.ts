@@ -667,6 +667,22 @@ export const getMySellerInfo = createServerFn({ method: "GET" })
     };
   });
 
+// Recalcula os títulos automáticos de todos os pedidos existentes (backfill).
+export const backfillAutoTitles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = context.supabase as unknown as {
+      from: (t: string) => { select: (s: string) => Promise<{ data: Array<{ id: string }> | null }> };
+    };
+    const { data } = await sb.from("orders").select("id");
+    const ids = (data ?? []).map((o) => o.id);
+    let updated = 0;
+    for (const id of ids) {
+      try { await applyAutoTitle(context as unknown as { supabase: unknown }, id); updated++; } catch (e) { console.error(e); }
+    }
+    return { ok: true, total: ids.length, updated };
+  });
+
 // Atualiza dados do pagador (usados em contrato e recibo).
 export const updateOrderPayer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
