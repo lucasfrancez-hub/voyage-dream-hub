@@ -274,16 +274,16 @@ export function PersonEditorDialog({
         ) : (
           <>
             {/* Abas — estilo Monde: linha inferior laranja */}
-            <div className="px-3 border-b border-border overflow-x-auto bg-muted/20">
-              <div className="flex items-center whitespace-nowrap">
+            <div className="px-3 pt-2 border-b border-border overflow-x-auto bg-muted/20">
+              <div className="flex items-end gap-1 whitespace-nowrap">
                 {TABS.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setTab(t.id)}
-                    className={`px-3 py-2 text-[13px] border-b-2 -mb-px transition ${
+                    className={`px-4 py-2.5 text-sm rounded-t-md -mb-px transition ${
                       tab === t.id
-                        ? "border-brand-orange text-brand-orange font-medium bg-background"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
+                        ? "border border-b-transparent border-brand-orange text-brand-orange font-semibold bg-background"
+                        : "border border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {t.label}
