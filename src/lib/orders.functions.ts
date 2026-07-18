@@ -962,7 +962,7 @@ export const createOrder = createServerFn({ method: "POST" })
     };
     const { data: created, error } = await context.supabase
       .from("orders")
-      .insert(payload)
+      .insert(payload as never)
       .select("id, order_number")
       .single();
     if (error) throw new Error(error.message);
