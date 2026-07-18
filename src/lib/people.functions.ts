@@ -651,14 +651,34 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<{ sales: PersonSaleRow[]; summary: PersonFinancialSummary }> => {
     await ensureInternal(context);
+    // Busca a pessoa para permitir fallback por CPF/e-mail em pedidos antigos
+    // que ainda não têm person_id preenchido.
+    const { data: person } = await context.supabase
+      .from("people")
+      .select("cpf, email")
+      .eq("id", data.id)
+      .maybeSingle();
+    const cpfDigits = String(person?.cpf ?? "").replace(/\D+/g, "");
+    const emailNorm = String(person?.email ?? "").trim().toLowerCase();
+
+    const filters: string[] = [`person_id.eq.${data.id}`];
+    if (cpfDigits) {
+      // orders.payer_cpf pode ter vindo formatado; comparamos por igualdade textual
+      // usando ambos: dígitos crus e valor original.
+      filters.push(`payer_cpf.eq.${cpfDigits}`);
+      if (person?.cpf && person.cpf !== cpfDigits) filters.push(`payer_cpf.eq.${person.cpf}`);
+    }
+    if (emailNorm) filters.push(`payer_email.ilike.${emailNorm}`);
+
     const { data: orders, error } = await context.supabase
       .from("orders")
       .select("id, order_number, trip_title, supplier_name, status, total_price, created_at, going_date, return_date")
-      .eq("person_id", data.id)
+      .or(filters.join(","))
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
+
     const list = (orders ?? []) as any[];
     const ids = list.map((o) => o.id);
     let payments: any[] = [];
