@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { Loader2, TrendingUp, DollarSign, Receipt, ShoppingBag, Plane, CalendarClock, ExternalLink, CheckCircle2, Clock } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Loader2, TrendingUp, DollarSign, Receipt, ShoppingBag, Plane, CalendarClock, ExternalLink, CheckCircle2, Clock, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 
@@ -38,6 +38,8 @@ type ItemRow = {
 };
 
 const PAID = new Set(["paid", "approved"]);
+const RANGES = [7, 30, 60, 90] as const;
+type Range = (typeof RANGES)[number];
 
 function toDate(v: unknown): Date | null {
   if (!v) return null;
@@ -55,6 +57,8 @@ function daysUntil(d: Date) {
 }
 
 function DashboardPage() {
+  const [range, setRange] = useState<Range>(7);
+
   const { data: orders, isLoading: lo } = useQuery({
     queryKey: ["admin", "dashboard", "orders"],
     queryFn: async () => {
@@ -105,7 +109,6 @@ function DashboardPage() {
       .filter((f) => paidIds.has(f.order_id))
       .reduce((a, f) => a + Number(f.commission_value ?? 0), 0);
 
-    // Este mês
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthOrders = paidOrders.filter((o) => new Date(o.created_at) >= monthStart);
@@ -116,7 +119,24 @@ function DashboardPage() {
 
     const pending = (orders ?? []).filter((o) => (o.status ?? "").toLowerCase() === "pending").length;
 
-    return { totalSold, count, avgTicket, commission, monthTotal, monthCommission, monthCount: monthOrders.length, pending };
+    // 6-month trend
+    const trend: { label: string; total: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const next = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const total = paidOrders
+        .filter((o) => {
+          const c = new Date(o.created_at);
+          return c >= d && c < next;
+        })
+        .reduce((a, o) => a + Number(o.total_price ?? 0), 0);
+      trend.push({
+        label: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+        total,
+      });
+    }
+
+    return { totalSold, count, avgTicket, commission, monthTotal, monthCommission, monthCount: monthOrders.length, pending, trend };
   }, [orders, fins]);
 
   const upcoming = useMemo(() => {
@@ -133,7 +153,6 @@ function DashboardPage() {
       .map((o) => {
         const snap = (o.package_snapshot ?? {}) as Record<string, unknown>;
         const its = itemsByOrder.get(o.id) ?? [];
-        // travel date: package snapshot going_date, or earliest flight depart, or hotel check-in
         let travel: Date | null = toDate(snap.going_date);
         if (!travel) {
           for (const it of its) {
@@ -144,7 +163,7 @@ function DashboardPage() {
         }
         if (!travel) return null;
         const days = daysUntil(travel);
-        if (days < 0 || days > 60) return null;
+        if (days < 0 || days > range) return null;
 
         const flights = its.filter((it) => it.kind === "flight");
         const flightEmitted = flights.length > 0 && flights.every((f) => f.status === "confirmed");
@@ -166,8 +185,10 @@ function DashboardPage() {
       })
       .filter((x): x is NonNullable<typeof x> => x !== null)
       .sort((a, b) => a.travel.getTime() - b.travel.getTime())
-      .slice(0, 30);
-  }, [orders, items]);
+      .slice(0, 50);
+  }, [orders, items, range]);
+
+  const maxTrend = Math.max(1, ...stats.trend.map((t) => t.total));
 
   if (lo || lf) {
     return (
@@ -192,34 +213,78 @@ function DashboardPage() {
         <Kpi icon={ShoppingBag} label="Pendentes" value={String(stats.pending)} hint="Aguardando pagamento" />
       </div>
 
-      {/* Mês atual */}
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Este mês</div>
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-          <div>
-            <div className="text-[11px] text-muted-foreground">Vendido</div>
-            <div className="text-xl font-semibold">{formatBRL(stats.monthTotal)}</div>
+      {/* Mês atual + trend */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-card p-5 md:col-span-1">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Este mês</div>
+          <div className="space-y-4">
+            <div>
+              <div className="text-[11px] text-muted-foreground">Vendido</div>
+              <div className="text-2xl font-semibold">{formatBRL(stats.monthTotal)}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-[11px] text-muted-foreground">Comissão</div>
+                <div className="text-lg font-semibold text-brand-orange">{formatBRL(stats.monthCommission)}</div>
+              </div>
+              <div>
+                <div className="text-[11px] text-muted-foreground">Pedidos</div>
+                <div className="text-lg font-semibold">{stats.monthCount}</div>
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-[11px] text-muted-foreground">Comissão</div>
-            <div className="text-xl font-semibold text-brand-orange">{formatBRL(stats.monthCommission)}</div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5 md:col-span-2">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="h-4 w-4 text-brand-orange" />
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">Vendas — últimos 6 meses</div>
           </div>
-          <div>
-            <div className="text-[11px] text-muted-foreground">Pedidos</div>
-            <div className="text-xl font-semibold">{stats.monthCount}</div>
+          <div className="flex items-end justify-between gap-2 h-32">
+            {stats.trend.map((t, i) => {
+              const h = (t.total / maxTrend) * 100;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                  <div className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition">
+                    {formatBRL(t.total)}
+                  </div>
+                  <div
+                    className="w-full rounded-t-md bg-gradient-to-t from-brand-orange/80 to-brand-orange/40 hover:from-brand-orange hover:to-brand-orange/60 transition"
+                    style={{ height: `${Math.max(2, h)}%` }}
+                  />
+                  <div className="text-[10px] text-muted-foreground uppercase">{t.label}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* Próximas viagens */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-3 flex-wrap">
           <CalendarClock className="h-4 w-4 text-brand-orange" />
           <h2 className="font-semibold">Próximas viagens</h2>
-          <span className="text-xs text-muted-foreground ml-2">Próximos 60 dias</span>
+          <div className="ml-auto inline-flex rounded-lg border border-border p-0.5 bg-muted/30">
+            {RANGES.map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`px-3 py-1 text-xs rounded-md transition ${
+                  range === r
+                    ? "bg-brand-orange text-white font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {r} dias
+              </button>
+            ))}
+          </div>
         </div>
         {upcoming.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Nenhuma viagem próxima.</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            Nenhuma viagem nos próximos {range} dias.
+          </div>
         ) : (
           <div className="divide-y divide-border">
             {upcoming.map((u) => (
@@ -276,7 +341,7 @@ function Kpi({
   label: string; value: string; hint?: string; accent?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-2xl border border-border bg-card p-4 hover:border-brand-orange/40 transition">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
         <Icon className="h-3.5 w-3.5" /> {label}
       </div>
