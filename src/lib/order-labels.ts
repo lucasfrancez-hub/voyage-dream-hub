@@ -21,6 +21,12 @@ export function paymentMethodLabel(pm: string | null | undefined): {
   if (v === "boleto") {
     return { label: "Boleto", className: "bg-amber-500/15 text-amber-500" };
   }
+  if (v === "misto" || v === "mixed") {
+    return { label: "Misto", className: "bg-violet-500/15 text-violet-400" };
+  }
+  if (v === "outro" || v === "other") {
+    return { label: "Outro", className: "bg-muted text-muted-foreground" };
+  }
   return { label: pm, className: "bg-muted text-muted-foreground" };
 }
 
