@@ -327,6 +327,19 @@ function OrderDetailPage() {
           <div className="text-left sm:text-right">
             <div className="text-xs text-muted-foreground">Total</div>
             <div className="text-xl sm:text-2xl font-display font-bold text-brand-orange">{formatBRL(order.totalPrice)}</div>
+            {order.expectedTotal != null && order.expectedTotal > 0 && (() => {
+              const diff = order.totalPrice - order.expectedTotal;
+              const within = diff <= 0;
+              return (
+                <div className="mt-1 text-[11px] flex sm:justify-end items-center gap-1">
+                  <span className="text-muted-foreground">Previsto:</span>
+                  <span className="font-medium">{formatBRL(order.expectedTotal)}</span>
+                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${within ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
+                    {within ? "dentro" : `+${formatBRL(diff)}`}
+                  </span>
+                </div>
+              );
+            })()}
             <div className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>
               {pm.label}
             </div>
