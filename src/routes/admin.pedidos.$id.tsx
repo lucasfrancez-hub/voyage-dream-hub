@@ -7,7 +7,7 @@ import { detectBrand } from "@/components/CardForm";
 import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
-  Package, Percent, Mail, Printer, CheckCircle2, MoreHorizontal, Signature,
+  Package, Percent, Mail, Printer, CheckCircle2, Signature,
   Vault, ExternalLink, X, UserPlus, Star, Backpack, Briefcase, Luggage,
   Phone, CreditCard,
 } from "lucide-react";
@@ -530,8 +530,8 @@ function OrderDetailPage() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground" title="Mais ações">
-                  <MoreHorizontal className="h-4 w-4" />
+                <Button size="sm" variant="outline" className="h-9 gap-2" title="Ajustes do pedido">
+                  <Percent className="h-4 w-4" /> Ajustes
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
