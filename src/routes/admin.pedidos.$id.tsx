@@ -3559,7 +3559,7 @@ function FinanceTab({
 }
 
 function defaultCommissionPct(kind: OrderItem["kind"] | undefined, isPackage: boolean): number {
-  if (isPackage) return getCommissionDefault("package");
+  if (isPackage) return 12;
   if (kind === "hotel") return getCommissionDefault("hotel");
   if (kind === "flight") return getCommissionDefault("flight");
   return getCommissionDefault("service");
@@ -3582,6 +3582,7 @@ function FinanceDialog({
   const selectedItemObj = items.find((i) => i.id === selectedItem);
   const selectedKind = selectedItemObj?.kind;
   const isPackage = !!packageDefaults;
+  const [defaultsOpen, setDefaultsOpen] = useState(false);
 
   // Se não for pacote pronto, tenta preencher valor/taxa a partir do próprio item selecionado
   const itemDetails = (selectedItemObj?.details ?? {}) as Record<string, unknown>;
@@ -3624,7 +3625,7 @@ function FinanceDialog({
     const fallbackPct = defaultCommissionPct(selectedKind, isPackage);
     const rawPct = Number(initial?.commission_pct ?? fallbackPct);
     const commissionable = initial?.is_commissionable ?? true;
-    // Se está comissionável mas veio 0%, aplica o padrão (12%) pra usuário ajustar depois.
+    // Se está comissionável mas veio 0%, aplica o padrão configurado para o tipo do item.
     const basePct = commissionable && rawPct <= 0 ? fallbackPct : rawPct;
     const sale = initial?.sale_value ?? defaultSale;
     const tax = initial?.tax_value ?? defaultTax;
@@ -3652,7 +3653,7 @@ function FinanceDialog({
   // cobrada do cliente, então soma no total do item e no total da venda.
   const recalc = (patch: Partial<typeof form>) => {
     const next = { ...form, ...patch };
-    // Ao ligar "comissionável" com pct zerado, cai no padrão (12%) pra evitar 0% surpresa.
+    // Ao ligar "comissionável" com pct zerado, usa o padrão do tipo do item.
     if (patch.is_commissionable === true && (!next.commission_pct || Number(next.commission_pct) <= 0)) {
       next.commission_pct = defaultCommissionPct(selectedKind, isPackage);
     }
@@ -3722,7 +3723,7 @@ function FinanceDialog({
             </div>
           </div>
 
-          {/* Comissionável + comissão padrão (não editável por item) */}
+          {/* Comissionável + comissão do tipo do item */}
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -3734,8 +3735,37 @@ function FinanceDialog({
                 onCheckedChange={(v) => recalc({ is_commissionable: v })}
               />
             </div>
+            {form.is_commissionable && (
+              <div className="flex flex-col gap-2 border-t border-border/70 pt-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="w-full sm:max-w-[190px]">
+                  <Label className="text-xs">
+                    {isPackage
+                      ? "Comissão do checkout"
+                      : `Comissão — ${selectedKind === "flight" ? "Aéreo" : selectedKind === "hotel" ? "Hospedagem" : "Serviço"}`}
+                  </Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.01"
+                      value={form.commission_pct}
+                      disabled={isPackage}
+                      onChange={(e) => recalc({ commission_pct: Number(e.target.value) })}
+                      className="pr-8 font-mono"
+                    />
+                    <Percent className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                </div>
+                {!isPackage && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => setDefaultsOpen(true)}>
+                    <Settings className="mr-1.5 h-3.5 w-3.5" /> Definir padrões
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Base: {formatBRL(base)} · {form.is_commissionable ? `${form.commission_pct}% (padrão)` : "sem comissão"}</span>
+              <span>Base: {formatBRL(base)} · {form.is_commissionable ? `${form.commission_pct}%` : "sem comissão"}</span>
               <span>
                 Comissão + RAV: <span className="font-semibold text-brand-orange">{formatBRL(Number(form.commission_value) + Number(form.rav_value || 0))}</span>
               </span>
@@ -3760,6 +3790,11 @@ function FinanceDialog({
           <Button onClick={() => onSave(form)}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
+      <CommissionDefaultsDialog
+        open={defaultsOpen}
+        onOpenChange={setDefaultsOpen}
+        onSaved={() => recalc({ commission_pct: defaultCommissionPct(selectedKind, false) })}
+      />
     </Dialog>
   );
 }

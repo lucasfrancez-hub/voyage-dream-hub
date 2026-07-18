@@ -10,14 +10,15 @@ import { toast } from "sonner";
 export function CommissionDefaultsDialog({
   open,
   onOpenChange,
+  onSaved,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onSaved?: () => void;
 }) {
   const [hotel, setHotel] = useState("12");
   const [service, setService] = useState("12");
   const [flight, setFlight] = useState("0");
-  const [pkg, setPkg] = useState("12");
 
   useEffect(() => {
     if (!open) return;
@@ -25,7 +26,6 @@ export function CommissionDefaultsDialog({
     setHotel(String(d.hotel));
     setService(String(d.service));
     setFlight(String(d.flight));
-    setPkg(String(d.package));
   }, [open]);
 
   function salvar() {
@@ -33,9 +33,9 @@ export function CommissionDefaultsDialog({
       hotel: Number(hotel.replace(",", ".")) || 0,
       service: Number(service.replace(",", ".")) || 0,
       flight: Number(flight.replace(",", ".")) || 0,
-      package: Number(pkg.replace(",", ".")) || 0,
     });
     toast.success("Padrões de comissão atualizados");
+    onSaved?.();
     onOpenChange(false);
   }
 
@@ -63,15 +63,14 @@ export function CommissionDefaultsDialog({
         <DialogHeader>
           <DialogTitle>Padrões de comissão</DialogTitle>
           <DialogDescription>
-            Definem o % aplicado automaticamente ao importar produtos. Você continua podendo ajustar caso a caso.
+            Definem o percentual aplicado aos lançamentos manuais de cada tipo. Pacotes comprados pelo checkout permanecem em 12%.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-3 py-2">
-          <Field label="Hotel" value={hotel} onChange={setHotel} />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-2">
+          <Field label="Hospedagem" value={hotel} onChange={setHotel} />
           <Field label="Serviço" value={service} onChange={setService} />
           <Field label="Aéreo" value={flight} onChange={setFlight} hint="Geralmente 0% (RAV entra em outro campo)" />
-          <Field label="Pacote pronto" value={pkg} onChange={setPkg} hint="Padrão embutido no valor" />
         </div>
 
         <DialogFooter>

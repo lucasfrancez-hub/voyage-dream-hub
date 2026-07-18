@@ -23,7 +23,7 @@ export function getCommissionDefaults(): Record<CommissionKind, number> {
       hotel: sanitize(parsed.hotel, FALLBACK.hotel),
       service: sanitize(parsed.service, FALLBACK.service),
       flight: sanitize(parsed.flight, FALLBACK.flight),
-      package: sanitize(parsed.package, FALLBACK.package),
+      package: FALLBACK.package,
     };
   } catch {
     return { ...FALLBACK };
@@ -37,7 +37,7 @@ export function getCommissionDefault(kind: CommissionKind): number {
 export function setCommissionDefaults(next: Partial<Record<CommissionKind, number>>) {
   if (typeof window === "undefined") return;
   const current = getCommissionDefaults();
-  const merged = { ...current, ...next };
+  const merged = { ...current, ...next, package: FALLBACK.package };
   window.localStorage.setItem(KEY, JSON.stringify(merged));
   try {
     window.dispatchEvent(new CustomEvent("via:commission-defaults-changed"));
