@@ -7,7 +7,7 @@ import { detectBrand } from "@/components/CardForm";
 import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
-  Package, Percent, Mail, Printer, CheckCircle2, Signature,
+  Package, Percent, Mail, Printer, CheckCircle2, Signature, Settings,
   Vault, ExternalLink, X, UserPlus, Star, Backpack, Briefcase, Luggage,
   Phone, CreditCard,
 } from "lucide-react";
@@ -525,13 +525,14 @@ function OrderDetailPage() {
                 <DropdownMenuItem onClick={() => toast.info("Envio de voucher — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
 
-            <div className="h-6 w-px bg-border/60 mx-1 hidden sm:block"></div>
-
+          {/* Core / primary actions */}
+          <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline" className="h-9 gap-2" title="Ajustes do pedido">
-                  <Percent className="h-4 w-4" /> Ajustes
+                  <Settings className="h-4 w-4" /> Ajustes
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
@@ -552,13 +553,6 @@ function OrderDetailPage() {
                 }}><Signature className="h-3.5 w-3.5 mr-2 text-brand-orange" /> Acionar contrato Clicksign</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-
-          {/* Core / primary actions */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" className="h-9 gap-2">
-              <Plus className="h-4 w-4" /> Adicionar
-            </Button>
 
             <ImportarMultiDialog
               orderId={id}
