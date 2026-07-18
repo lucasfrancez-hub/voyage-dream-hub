@@ -185,6 +185,14 @@ function OrderDetailPage() {
       seller_email?: string | null;
       seller_phone?: string | null;
       supplier_logo_url?: string | null;
+      full_name?: string | null;
+      email?: string | null;
+      phone?: string | null;
+      cpf?: string | null;
+      birth_date?: string | null;
+      adults?: number | null;
+      children?: number | null;
+      expected_total?: number | null;
     }) =>
       updateOrderMetaFn({ data: { id: (data as OrderDetail | undefined)?.order.id ?? "", ...patch } }),
     onSuccess: () => { invalidate(); },
