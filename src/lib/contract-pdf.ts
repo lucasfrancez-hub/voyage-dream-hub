@@ -1152,6 +1152,7 @@ function buildAuthorizationFromOrder(detail: OrderDetail, payment?: OrderPayment
   // Se o pagamento aponta reservas específicas (order_item_ids), a autorização
   // lista apenas os passageiros vinculados a essas reservas — não todos do pedido.
   let passengers = detail.passengers;
+  let scopedLocators: string[] = [];
   const scopedItemIds = payment?.order_item_ids ?? null;
   if (scopedItemIds && scopedItemIds.length > 0) {
     const paxIds = new Set<string>();
@@ -1160,6 +1161,18 @@ function buildAuthorizationFromOrder(detail: OrderDetail, payment?: OrderPayment
     }
     const filtered = detail.passengers.filter((p) => paxIds.has(p.id));
     if (filtered.length > 0) passengers = filtered;
+
+    // Localizadores das reservas vinculadas ao pagamento — vão pra autorização.
+    const locSet = new Set<string>();
+    const scopedIdSet = new Set(scopedItemIds);
+    for (const it of detail.items) {
+      if (!scopedIdSet.has(it.id)) continue;
+      if (it.kind !== "flight") continue;
+      const det = (it.details ?? {}) as Record<string, unknown>;
+      const loc = String(det.carrier_locator ?? "").trim() || (it.supplier_locator ?? "").trim();
+      if (loc) locSet.add(loc);
+    }
+    scopedLocators = [...locSet];
   }
   const snap = (order.packageSnapshot ?? {}) as {
     card_capture?: {
