@@ -603,7 +603,7 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           document_key: documentKey,
           signer_key: signerResp.signer.key,
           sign_as: "party",
-          refusable: true,
+          refusable: false,
           message: `Autorização de débito — ${data.orderReference}`,
           skip_email: true,
         },
