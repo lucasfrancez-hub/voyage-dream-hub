@@ -364,6 +364,25 @@ function EntryDialog({
   const [form, setForm] = useState<Partial<Entry>>({});
   const [saving, setSaving] = useState(false);
 
+  const { data: peopleOptions } = useQuery({
+    queryKey: ["financial-people-options"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("people")
+        .select("id, name, cpf, cnpj")
+        .order("name", { ascending: true })
+        .limit(2000);
+      if (error) throw error;
+      return (data ?? []).map((p: { id: string; name: string; cpf: string | null; cnpj: string | null }) => ({
+        id: p.id,
+        name: p.name,
+        document: p.cnpj ?? p.cpf ?? null,
+      }));
+    },
+    enabled: open,
+  });
+
+
   useEffect(() => {
     if (!open) return;
     setForm(
@@ -448,8 +467,19 @@ function EntryDialog({
             </div>
             <div>
               <Label>{kind === "payable" ? "Fornecedor" : "Cliente"}</Label>
-              <Input value={form.counterparty ?? ""} onChange={(e) => setForm({ ...form, counterparty: e.target.value })} />
+              <Input
+                list="financial-people-list"
+                value={form.counterparty ?? ""}
+                onChange={(e) => setForm({ ...form, counterparty: e.target.value })}
+                placeholder="Digite para buscar cadastrados..."
+              />
+              <datalist id="financial-people-list">
+                {(peopleOptions ?? []).map((p) => (
+                  <option key={p.id} value={p.name}>{p.document ?? ""}</option>
+                ))}
+              </datalist>
             </div>
+
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
