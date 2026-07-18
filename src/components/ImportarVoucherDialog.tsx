@@ -173,15 +173,35 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
 
           {(phase === "idle" || phase === "uploading") && (
             <div className="space-y-4">
-              <div className="rounded-md border border-dashed border-border p-6 text-center">
+              <label
+                htmlFor="voucher-file-input"
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragOver(false);
+                  if (phase === "uploading") return;
+                  const f = e.dataTransfer.files?.[0];
+                  if (!f) return;
+                  const ok = f.type === "application/pdf" || f.type.startsWith("image/");
+                  if (!ok) { toast.error("Envie um PDF, JPG ou PNG."); return; }
+                  setFile(f);
+                }}
+                className={`block cursor-pointer rounded-md border-2 border-dashed p-6 text-center transition-colors ${
+                  dragOver ? "border-brand-orange bg-brand-orange/5" : "border-border hover:border-brand-orange/60"
+                } ${phase === "uploading" ? "opacity-60 pointer-events-none" : ""}`}
+              >
                 <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Anexe o voucher do fornecedor (PDF, JPG ou PNG). A IA vai extrair datas, nomes, endereços, políticas e demais dados.
+                  Arraste o voucher aqui ou <span className="font-medium text-foreground underline">clique para selecionar</span> (PDF, JPG ou PNG). A IA vai extrair datas, nomes, endereços, políticas e demais dados.
                 </p>
                 <Input
+                  id="voucher-file-input"
                   type="file"
                   accept="application/pdf,image/*"
-                  className="mt-3"
+                  className="sr-only"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   disabled={phase === "uploading"}
                 />
@@ -190,7 +210,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
                     {file.name} · {(file.size / 1024).toFixed(0)} KB
                   </p>
                 )}
-              </div>
+              </label>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)} disabled={phase === "uploading"}>Cancelar</Button>
                 <Button onClick={processFile} disabled={!file || phase === "uploading"} className="gap-2">
