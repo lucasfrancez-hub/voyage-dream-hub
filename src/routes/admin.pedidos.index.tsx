@@ -427,8 +427,14 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                       )}
                     </td>
                     <td className="py-5 px-4 align-top">
-                      <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
+                        {(() => { const og = orderOrigin(o); return (
+                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${og.className}`}>{og.label}</span>
+                        ); })()}
+                      </div>
                     </td>
+
                     <td className="py-5 px-4 align-top text-right">
                       <div className="text-sm font-bold tabular-nums">{formatBRL(Number(o.total_price))}</div>
                     </td>
