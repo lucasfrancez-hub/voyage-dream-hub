@@ -4911,9 +4911,12 @@ function CommissionAdjustDialog({
   const ravTax = isPackage
     ? Number((Math.max(0, commission - pkgDefaultCommission) * RAV_RATE).toFixed(2))
     : 0;
+  // Comissão é receita da agência, NÃO acréscimo na venda ao cliente.
+  // Manual: total = tarifa + taxas. Pacote pronto: delta de comissão vs. padrão
+  // ajusta o total (acima do padrão vira RAV/adicional cobrado; abaixo vira desconto).
   const total = isPackage
     ? Number((sale + tax + (commission - pkgDefaultCommission) - ravTax).toFixed(2))
-    : Number((sale + tax + commission).toFixed(2));
+    : Number((sale + tax).toFixed(2));
 
   const handleSave = async () => {
     if (items.length === 0) { toast.error("Adicione ao menos um item"); return; }
