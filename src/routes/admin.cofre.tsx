@@ -294,7 +294,7 @@ function CofrePage() {
         </div>
         <div className="flex flex-wrap justify-between items-end gap-3">
           <div className="min-w-0">
-            <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight uppercase">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight uppercase">
               Links de Pagamento
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -304,7 +304,7 @@ function CofrePage() {
           <button
             type="button"
             onClick={refresh}
-            className="flex items-center gap-2 bg-muted/40 hover:bg-muted px-4 py-2 rounded border border-border text-xs font-bold uppercase tracking-widest transition-all"
+            className="flex items-center gap-2 bg-muted/40 hover:bg-muted px-4 py-2 rounded-full border border-border text-xs font-bold uppercase tracking-widest transition-all"
           >
             <RefreshCw className="h-4 w-4" /> Atualizar
           </button>
