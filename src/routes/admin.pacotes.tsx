@@ -600,17 +600,46 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
             )}
 
             {tab === "flights" && (
-              <div className="grid grid-cols-1 gap-4">
-                <FlightFieldset
-                  title="Voo de ida"
-                  value={editing.outbound_flight ?? null}
-                  onChange={(f) => setEditing({ ...editing, outbound_flight: f })}
-                />
-                <FlightFieldset
-                  title="Voo de volta"
-                  value={editing.return_flight ?? null}
-                  onChange={(f) => setEditing({ ...editing, return_flight: f })}
-                />
+              <div className="space-y-5">
+                <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-border/70 bg-muted/30">
+                  {([
+                    { id: "outbound", label: "Voo de ida", filled: !!editing.outbound_flight },
+                    { id: "return", label: "Voo de volta", filled: !!editing.return_flight },
+                  ] as const).map((t) => {
+                    const active = flightLeg === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setFlightLeg(t.id)}
+                        className={`px-4 py-2 rounded-md text-[11px] font-bold uppercase tracking-[0.18em] transition inline-flex items-center gap-2 ${
+                          active
+                            ? "bg-brand-orange text-white shadow-[0_2px_10px_rgba(242,107,31,0.35)]"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {t.label}
+                        {t.filled && (
+                          <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-brand-orange"}`} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {flightLeg === "outbound" ? (
+                  <FlightFieldset
+                    title="Voo de ida"
+                    value={editing.outbound_flight ?? null}
+                    onChange={(f) => setEditing({ ...editing, outbound_flight: f })}
+                  />
+                ) : (
+                  <FlightFieldset
+                    title="Voo de volta"
+                    value={editing.return_flight ?? null}
+                    onChange={(f) => setEditing({ ...editing, return_flight: f })}
+                  />
+                )}
               </div>
             )}
 
