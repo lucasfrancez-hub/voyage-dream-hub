@@ -1,0 +1,4 @@
+ALTER TABLE public.packages
+  ADD COLUMN IF NOT EXISTS room_type TEXT,
+  ADD COLUMN IF NOT EXISTS room_category TEXT,
+  ADD COLUMN IF NOT EXISTS bed_type TEXT;
