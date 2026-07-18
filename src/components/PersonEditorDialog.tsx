@@ -225,7 +225,7 @@ export function PersonEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 gap-0 max-w-6xl w-[96vw] max-h-[94vh] overflow-hidden flex flex-col bg-card border-border rounded-2xl">
+      <DialogContent className="p-0 gap-0 max-w-6xl w-[96vw] max-h-[94vh] overflow-hidden flex flex-col bg-card/70 backdrop-blur-2xl border-border rounded-2xl">
         {/* Header rico — Industrial premium */}
         <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-border">
           <div className="flex items-center gap-4 min-w-0">
