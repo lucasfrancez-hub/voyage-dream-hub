@@ -98,7 +98,7 @@ export function getCertInfo(): { subject: string; issuer: string; notAfter: stri
   const pwd = process.env.NFSE_CERT_PASSWORD;
   if (!rawB64 || !pwd) throw new Error("Certificado não configurado");
   const binary = Buffer.from(normalizeBase64(rawB64), "base64").toString("binary");
-  const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(binary), pwd);
+  const p12 = forge.pkcs12.pkcs12FromAsn1((forge.asn1.fromDer as any)(binary, { strict: false, parseAllBytes: false }), pwd);
   const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag]?.[0];
   if (!certBag?.cert) throw new Error("Certificado ausente no .p12");
   return {
