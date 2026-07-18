@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Search, ExternalLink, Loader2, Plus, Cloud } from "lucide-react";
+import { Search, ExternalLink, Loader2, Plus, Cloud, Trash2, RotateCcw } from "lucide-react";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { confirmThen } from "@/lib/confirm";
+
 
 export const Route = createFileRoute("/admin/pedidos/")({
   component: () => <AdminOrders scope="mine" />,
