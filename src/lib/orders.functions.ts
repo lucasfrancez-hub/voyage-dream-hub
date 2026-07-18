@@ -1145,7 +1145,9 @@ export type CreateOrderInput = {
   email: string;
   phone: string;
   cpf?: string | null;
+  cnpj?: string | null;
   payment_method: string;
+
   total_price?: number;
   expected_total?: number | null;
   adults?: number;
