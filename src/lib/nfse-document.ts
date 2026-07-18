@@ -1,4 +1,3 @@
-import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
@@ -35,58 +34,12 @@ export type NfseDocumentData = {
   focus_response?: unknown;
 };
 
-const A4 = { width: 595.28, height: 841.89 };
-const azul = rgb(0.024, 0.231, 0.471);
-const azulEscuro = rgb(0.020, 0.173, 0.349);
-const azulClaro = rgb(0.917, 0.949, 0.984);
-const laranja = rgb(0.949, 0.478, 0.086);
-const laranjaSuave = rgb(1, 0.980, 0.960);
-const verde = rgb(0.106, 0.560, 0.306);
-const verdeBg = rgb(0.874, 0.956, 0.906);
-const ink = rgb(0.067, 0.094, 0.153);
-const cinza = rgb(0.400, 0.439, 0.494);
-const linha = rgb(0.812, 0.839, 0.874);
-const white = rgb(1, 1, 1);
-
-const clean = (v: unknown) => String(v ?? "")
-  .replace(/[\u2010-\u2015]/g, "-")
-  .replace(/[\u2018\u2019]/g, "'")
-  .replace(/[\u201C\u201D]/g, '"')
-  .replace(/[\u2013\u2014]/g, "-")
-  .replace(/[^\x00-\xFF]/g, "?");
-
-const money = (v: unknown) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-function wrap(text: string, font: PDFFont, size: number, width: number) {
-  const paragraphs = clean(text).split(/\n/);
-  const out: string[] = [];
-  for (const p of paragraphs) {
-    const words = p.split(/\s+/).filter(Boolean);
-    if (!words.length) { out.push(""); continue; }
-    let cur = "";
-    for (const w of words) {
-      const cand = cur ? `${cur} ${w}` : w;
-      if (font.widthOfTextAtSize(cand, size) <= width) cur = cand;
-      else { if (cur) out.push(cur); cur = w; }
-    }
-    if (cur) out.push(cur);
-  }
-  return out;
-}
-
-function download(bytes: Uint8Array | Blob, filename: string, type?: string) {
-  const blob = bytes instanceof Blob ? bytes : new Blob([bytes as BlobPart], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-async function barcodePng(value: string): Promise<string> {
-  const c = document.createElement("canvas");
-  JsBarcode(c, value, { format: "CODE128", displayValue: false, margin: 0, height: 60, width: 1.3 });
-  return c.toDataURL("image/png");
-}
+const money = (v: unknown) =>
+  Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const pct = (v: unknown) =>
+  Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + " %";
+const esc = (v: unknown) =>
+  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
 function responseValue(data: NfseDocumentData, key: string): string {
   const r = (data.focus_response ?? {}) as { bodyPreview?: string };
@@ -94,82 +47,65 @@ function responseValue(data: NfseDocumentData, key: string): string {
   return m?.[1]?.trim() ?? "";
 }
 
-// ---- Parsing helpers ----
-function parseDiscriminacao(disc: string): { header: string; descricao: string; ida: string; volta: string; passageiros: string[] } {
+function parseDiscriminacao(disc: string) {
   const text = String(disc || "");
   const parts = text.split(/\n{2,}/);
   const header = (parts[0] || "").trim();
   const rest = parts.slice(1).join("\n\n");
-
-  // passageiros
   const passageiros: string[] = [];
-  const paxBlockMatch = rest.match(/Passageiros?:\s*\n([\s\S]+)/i);
-  if (paxBlockMatch) {
-    paxBlockMatch[1].split(/\n/).forEach((l) => {
+  const paxBlock = rest.match(/Passageiros?:\s*\n([\s\S]+)/i);
+  if (paxBlock) {
+    paxBlock[1].split(/\n/).forEach((l) => {
       const n = l.replace(/^[-•\s]+/, "").trim();
       if (n) passageiros.push(n);
     });
   } else {
-    const singleMatch = rest.match(/Passageiro:\s*(.+)/i);
-    if (singleMatch) passageiros.push(singleMatch[1].trim());
+    const single = rest.match(/Passageiro:\s*(.+)/i);
+    if (single) passageiros.push(single[1].trim());
   }
-
-  // ida/volta e destino a partir do header "Tipo - Destino - dd/mm a dd/mm"
-  let descricao = header;
-  let ida = "", volta = "";
-  const dateRange = header.match(/(\d{2}\/\d{2}(?:\/\d{4})?)\s*a\s*(\d{2}\/\d{2}(?:\/\d{4})?)/);
-  if (dateRange) {
-    ida = dateRange[1];
-    volta = dateRange[2];
+  let descricao = header, ida = "", volta = "";
+  const range = header.match(/(\d{2}\/\d{2}(?:\/\d{4})?)\s*a\s*(\d{2}\/\d{2}(?:\/\d{4})?)/);
+  if (range) {
+    ida = range[1]; volta = range[2];
     descricao = header.replace(/\s*-\s*\d{2}\/\d{2}(?:\/\d{4})?\s*a\s*\d{2}\/\d{2}(?:\/\d{4})?/, "").trim();
-  } else {
-    const single = header.match(/(\d{2}\/\d{2}(?:\/\d{4})?)/);
-    if (single) { ida = single[1]; descricao = header.replace(/\s*-\s*\d{2}\/\d{2}(?:\/\d{4})?/, "").trim(); }
   }
-  return { header, descricao, ida, volta, passageiros };
+  return { descricao, ida, volta, passageiros };
 }
 
-// ---- Drawing helpers ----
-type Ctx = { page: PDFPage; regular: PDFFont; bold: PDFFont; margin: number; contentW: number };
-
-function sectionTitle(ctx: Ctx, title: string, y: number, x?: number, w?: number) {
-  const bx = x ?? ctx.margin;
-  const bw = w ?? ctx.contentW;
-  ctx.page.drawRectangle({ x: bx, y: y - 18, width: bw, height: 18, color: azulEscuro });
-  ctx.page.drawText(clean(title), { x: bx + 12, y: y - 13, size: 9, font: ctx.bold, color: white });
-  return y - 18;
+async function barcodeDataUrl(value: string): Promise<string> {
+  const c = document.createElement("canvas");
+  JsBarcode(c, value || "0", { format: "CODE128", displayValue: false, margin: 0, height: 60, width: 1.3 });
+  return c.toDataURL("image/png");
 }
 
-function labelValue(ctx: Ctx, x: number, y: number, label: string, value: string, valSize = 10, valColor = ink) {
-  ctx.page.drawText(clean(label).toUpperCase(), { x, y, size: 7, font: ctx.bold, color: cinza });
-  ctx.page.drawText(clean(value || "-"), { x, y: y - 12, size: valSize, font: ctx.bold, color: valColor });
+function fmtCpfCnpj(v: string | null | undefined) {
+  const n = String(v || "").replace(/\D/g, "");
+  if (n.length === 11) return n.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  if (n.length === 14) return n.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  return v || "-";
+}
+function fmtCep(v: string | null | undefined) {
+  const n = String(v || "").replace(/\D/g, "");
+  return n.length === 8 ? n.replace(/(\d{5})(\d{3})/, "$1-$2") : v || "";
 }
 
-// ============ MAIN ============
 export async function downloadNfsePdf(data: NfseDocumentData) {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([A4.width, A4.height]);
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const margin = 28;
-  const contentW = A4.width - margin * 2;
-  const ctx: Ctx = { page, regular, bold, margin, contentW };
-
-  // Puxa códigos fiscais da configuração
   const { data: cfg } = await supabase.from("nfse_config")
-    .select("item_lista_servico, ipm_codigo_servico, ipm_codigo_atividade, codigo_tributario_municipio, codigo_tributario_nacional, municipio_prestacao, uf_prestacao, cnae_principal")
-    .limit(1).maybeSingle();
+    .select("*").limit(1).maybeSingle();
+
   const codServico = String(cfg?.ipm_codigo_servico || cfg?.ipm_codigo_atividade || "-");
   const codTribMun = String(cfg?.codigo_tributario_municipio || cfg?.ipm_codigo_servico || "-");
-  const codTribNac = String(cfg?.codigo_tributario_nacional || cfg?.item_lista_servico || "-");
-  const cnae = String(cfg?.cnae_principal || "-");
+  const listaServ = String(cfg?.item_lista_servico || cfg?.codigo_tributario_nacional || "-");
+  const cnae = String(cfg?.cnae_principal || "7911-2/00");
   const municipioPrest = `${cfg?.municipio_prestacao || "Paranavaí"}/${cfg?.uf_prestacao || "PR"}`;
+  const regime = String(cfg?.regime_tributario || "Normal");
 
   const numero = data.numero_nfse || responseValue(data, "numero_nfse") || "-";
   const serie = data.serie || responseValue(data, "serie_nfse") || "1";
   const verification = data.codigo_verificacao || responseValue(data, "cod_verificador_autenticidade") || "";
-  const issuedDate = responseValue(data, "data_nfse") || new Date(data.data_emissao || data.created_at).toLocaleDateString("pt-BR");
-  const issuedTime = responseValue(data, "hora_nfse") || new Date(data.data_emissao || data.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const rps = responseValue(data, "numero_rps") || "";
+  const dateStr = new Date(data.data_emissao || data.created_at).toLocaleDateString("pt-BR");
+  const timeStr = new Date(data.data_emissao || data.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   const tomador = (data.tomador ?? {}) as Record<string, any>;
   const end = (tomador.endereco ?? {}) as Record<string, any>;
@@ -178,344 +114,260 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const qrUrl = verification
     ? `https://nfse-paranavai.atende.net/autoatendimento/servicos/consulta-de-autenticidade-de-nota-fiscal-eletronica-nfse/detalhar/1/identificador/${verification}`
     : "";
+  const qrPng = qrUrl ? await QRCode.toDataURL(qrUrl, { margin: 0, width: 260 }) : "";
+  const identificador = verification || "-";
+  const barcode = await barcodeDataUrl(verification || String(numero));
 
-  // ============ HEADER (30% / 38% / 32%) ============
-  const headerTop = A4.height - margin;
-  const headerH = 118;
-  const headerBottom = headerTop - headerH;
-  const c1 = margin + contentW * 0.30;
-  const c2 = margin + contentW * 0.68;
-
-  // Logo (menor)
-  try {
-    const logoBytes = await fetch(viaAirLogoAsset.url).then((r) => r.arrayBuffer());
-    const logo = await pdf.embedPng(logoBytes);
-    const maxW = contentW * 0.30 - 32;
-    const maxH = 46;
-    const r = Math.min(maxW / logo.width, maxH / logo.height);
-    const w = logo.width * r, h = logo.height * r;
-    page.drawImage(logo, { x: margin + 16 + ((maxW - w) / 2), y: headerBottom + (headerH - h) / 2, width: w, height: h });
-  } catch { /* fallback */ }
-
-  // Divisores verticais
-  page.drawLine({ start: { x: c1, y: headerTop - 4 }, end: { x: c1, y: headerBottom + 8 }, thickness: 0.6, color: linha });
-  page.drawLine({ start: { x: c2, y: headerTop - 4 }, end: { x: c2, y: headerBottom + 8 }, thickness: 0.6, color: linha });
-
-  // Título central
-  page.drawText("Nota Fiscal de", { x: c1 + 16, y: headerTop - 40, size: 14, font: bold, color: azulEscuro });
-  page.drawText("Serviço Eletrônica", { x: c1 + 16, y: headerTop - 60, size: 19, font: bold, color: azul });
-  page.drawText("Série NFS-e", { x: c1 + 16, y: headerTop - 80, size: 11, font: regular, color: azulEscuro });
-
-  // Coluna resumo — número, status, data + QR à direita
-  const resumoX = c2 + 12;
-  const qrSize = 78;
-  const qrX = A4.width - margin - qrSize - 4;
-  const resumoTextW = qrX - resumoX - 8;
-
-  page.drawText("NFS-e Nº", { x: resumoX, y: headerTop - 22, size: 10, font: bold, color: azulEscuro });
-  page.drawText(clean(numero), { x: resumoX, y: headerTop - 55, size: 30, font: bold, color: laranja });
-
-  // Badge EMITIDA
-  const badge = "EMITIDA";
-  const badgeW = bold.widthOfTextAtSize(badge, 8) + 14;
-  page.drawRectangle({ x: resumoX, y: headerTop - 72, width: badgeW, height: 14, color: verdeBg });
-  page.drawText(badge, { x: resumoX + 7, y: headerTop - 70, size: 8, font: bold, color: verde });
-
-  page.drawText("DATA/HORA DA EMISSÃO", { x: resumoX, y: headerTop - 90, size: 6.5, font: bold, color: cinza });
-  page.drawText(`${issuedDate} ${issuedTime}`, { x: resumoX, y: headerTop - 102, size: 9.5, font: bold, color: ink });
-
-  // QR no header
-  if (qrUrl) {
-    try {
-      const qr = await pdf.embedPng(await QRCode.toDataURL(qrUrl, { margin: 0, width: 220 }));
-      page.drawRectangle({ x: qrX - 3, y: headerBottom + (headerH - qrSize) / 2 - 3, width: qrSize + 6, height: qrSize + 6, borderColor: linha, borderWidth: 0.7, color: white });
-      page.drawImage(qr, { x: qrX, y: headerBottom + (headerH - qrSize) / 2, width: qrSize, height: qrSize });
-    } catch { /* skip */ }
-  }
-
-  // Linha laranja
-  page.drawRectangle({ x: margin, y: headerBottom - 4, width: contentW, height: 2, color: laranja });
-
-  let y = headerBottom - 14;
-
-  // ============ PRESTADOR + TOMADOR ============
-  const colW = (contentW - 8) / 2;
-  const boxH = 108;
-
-  sectionTitle(ctx, "PRESTADOR DE SERVIÇO", y, margin, colW);
-  sectionTitle(ctx, "TOMADOR DE SERVIÇO", y, margin + colW + 8, colW);
-  y -= 18;
-
-  const drawParty = (x: number, w: number, cfg: {
-    razao: string; cnpj: string; im: string; regime: string;
-    address: string; city: string; contactLeft: string; contactRight: string;
-  }) => {
-    page.drawRectangle({ x, y: y - boxH, width: w, height: boxH, borderColor: linha, borderWidth: 0.7 });
-    const px = x + 12;
-    const pw = w - 24;
-
-    // razão social
-    const razaoLines = wrap(cfg.razao, bold, 11.5, pw).slice(0, 2);
-    razaoLines.forEach((t, i) => page.drawText(t, { x: px, y: y - 16 - i * 13, size: 11.5, font: bold, color: ink }));
-    const afterRazao = y - 16 - razaoLines.length * 13 - 4;
-
-    // 3-col: CNPJ | Inscrição Municipal | Regime Tributário
-    const cw = pw / 3;
-    labelValue(ctx, px, afterRazao, "CNPJ", cfg.cnpj, 9);
-    page.drawLine({ start: { x: px + cw - 6, y: afterRazao + 8 }, end: { x: px + cw - 6, y: afterRazao - 16 }, thickness: 0.4, color: linha });
-    labelValue(ctx, px + cw, afterRazao, "Inscrição Municipal", cfg.im, 9);
-    page.drawLine({ start: { x: px + cw * 2 - 6, y: afterRazao + 8 }, end: { x: px + cw * 2 - 6, y: afterRazao - 16 }, thickness: 0.4, color: linha });
-    labelValue(ctx, px + cw * 2, afterRazao, "Regime Tributário", cfg.regime, 9);
-
-    // divisor
-    const dividerY = afterRazao - 22;
-    page.drawLine({ start: { x: px, y: dividerY }, end: { x: px + pw, y: dividerY }, thickness: 0.4, color: linha });
-
-    // endereço (2 linhas)
-    const addrLines = wrap(cfg.address, regular, 8.5, pw);
-    if (addrLines[0]) page.drawText(addrLines[0], { x: px, y: dividerY - 12, size: 8.5, font: regular, color: ink });
-    page.drawText(clean(cfg.city), { x: px, y: dividerY - 24, size: 8.5, font: regular, color: ink });
-
-    // contatos
-    if (cfg.contactLeft) page.drawText(clean(cfg.contactLeft), { x: px, y: dividerY - 42, size: 8.5, font: bold, color: azul });
-    if (cfg.contactRight) {
-      const rw = regular.widthOfTextAtSize(clean(cfg.contactRight), 8.5);
-      page.drawText(clean(cfg.contactRight), { x: px + pw - rw, y: dividerY - 42, size: 8.5, font: regular, color: cinza });
-    }
-  };
-
-  drawParty(margin, colW, {
-    razao: "VIA AIR AGÊNCIA & REPRESENTAÇÕES LTDA",
-    cnpj: "56.339.877/0001-66",
-    im: "121788",
-    regime: "Normal",
-    address: "Rua Takeshi Mitsuyasu, 355 - Jardim Panorama",
-    city: "Paranavaí/PR - CEP 87.707-120",
-    contactLeft: "lucas@voeair.com",
-    contactRight: "(44) 99909-3642",
-  });
-
-  const tomEnd = [end.logradouro, end.numero, end.complemento, end.bairro].filter(Boolean).join(", ");
-  const tomCity = [end.cidade, end.uf].filter(Boolean).join("/") + (end.cep ? ` - CEP ${end.cep}` : "");
-  drawParty(margin + colW + 8, colW, {
-    razao: String(tomador.razaoSocial || tomador.razao_social || "-"),
-    cnpj: String(tomador.cpfCnpj || tomador.cpf_cnpj || "-"),
-    im: String(tomador.inscricao_municipal || tomador.im || "-"),
-    regime: String(tomador.regime || "-"),
-    address: tomEnd || "-",
-    city: tomCity || "-",
-    contactLeft: tomador.email ? String(tomador.email) : "",
-    contactRight: tomador.telefone ? String(tomador.telefone) : "",
-  });
-
-  y -= boxH + 10;
-
-  // ============ DISCRIMINAÇÃO DOS SERVIÇOS ============
-  y = sectionTitle(ctx, "DISCRIMINAÇÃO DOS SERVIÇOS", y);
-  const discH = 116;
-  page.drawRectangle({ x: margin, y: y - discH, width: contentW, height: discH, borderColor: linha, borderWidth: 0.7 });
-
-  const g1 = contentW * 0.20;
-  const g2 = contentW * 0.54;
-  const g3 = contentW * 0.26;
-  page.drawLine({ start: { x: margin + g1, y: y }, end: { x: margin + g1, y: y - discH }, thickness: 0.5, color: linha });
-  page.drawLine({ start: { x: margin + g1 + g2, y: y }, end: { x: margin + g1 + g2, y: y - discH }, thickness: 0.5, color: linha });
-
-  // Col 1: Código serviço / Município / Cód. tributação municipal e nacional / CNAE
-  const col1x = margin + 14;
-  labelValue(ctx, col1x, y - 14, "Cód. serviço", codServico, 10);
-  labelValue(ctx, col1x, y - 40, "Município prestação", municipioPrest, 9.5);
-  labelValue(ctx, col1x, y - 66, "Cód. trib. municipal", codTribMun, 9.5);
-  labelValue(ctx, col1x, y - 90, "Cód. trib. nacional", codTribNac, 9.5);
-  labelValue(ctx, col1x, y - 108, "CNAE", cnae, 8.5);
-
-  // Col 2: Descrição + IDA/VOLTA
-  const col2x = margin + g1 + 14;
-  const col2w = g2 - 28;
-  ctx.page.drawText("DESCRIÇÃO DO SERVIÇO", { x: col2x, y: y - 16, size: 7, font: bold, color: cinza });
-  const descLines = wrap(disc.descricao || "-", bold, 12.5, col2w).slice(0, 3);
-  descLines.forEach((t, i) => page.drawText(t, { x: col2x, y: y - 34 - i * 15, size: 12.5, font: bold, color: ink }));
-  const datasY = y - 34 - descLines.length * 15 - 8;
-  if (disc.ida) {
-    page.drawText("IDA:", { x: col2x, y: datasY, size: 8, font: bold, color: cinza });
-    page.drawText(clean(disc.ida), { x: col2x + 26, y: datasY, size: 9.5, font: bold, color: ink });
-  }
-  if (disc.volta) {
-    page.drawText("VOLTA:", { x: col2x + 110, y: datasY, size: 8, font: bold, color: cinza });
-    page.drawText(clean(disc.volta), { x: col2x + 146, y: datasY, size: 9.5, font: bold, color: ink });
-  }
-
-  // Col 3: Passageiros
-  const col3x = margin + g1 + g2 + 14;
-  const col3w = g3 - 28;
-  const paxLabel = disc.passageiros.length > 1 ? "PASSAGEIROS" : "PASSAGEIRO";
-  page.drawText(paxLabel, { x: col3x, y: y - 16, size: 7, font: bold, color: cinza });
-  let py = y - 32;
-  const maxPax = 6;
-  disc.passageiros.slice(0, maxPax).forEach((p) => {
-    page.drawCircle({ x: col3x + 3, y: py + 3, size: 1.5, color: ink });
-    const lines = wrap(p, regular, 8.5, col3w - 10).slice(0, 2);
-    lines.forEach((t, i) => page.drawText(t, { x: col3x + 10, y: py - i * 10, size: 8.5, font: regular, color: ink }));
-    py -= (lines.length * 10) + 4;
-  });
-  if (disc.passageiros.length > maxPax) {
-    page.drawText(`+${disc.passageiros.length - maxPax} passageiro(s)`, { x: col3x + 10, y: py, size: 7.5, font: regular, color: cinza });
-  }
-
-  y -= discH + 10;
-
-  // ============ VALORES ============
   const n = (v: Num) => Number(v || 0);
   const vServ = n(data.valor_servicos);
   const vDed = n(data.valor_deducoes);
   const vBase = data.base_calculo != null ? n(data.base_calculo) : vServ - vDed;
+  const aliq = n(data.aliquota_iss);
   const vIss = n(data.valor_iss);
-  const vIssqn = vIss; // ISSQN = valor_iss retornado pela prefeitura
-  const vIr = n(data.valor_ir);
-  const vInss = n(data.valor_inss);
-  const vCsll = n(data.valor_csll);
-  const vCofins = n(data.valor_cofins);
-  const vPis = n(data.valor_pis);
-  const vOutras = n(data.outras_retencoes);
-  const totRet = vIssqn + vIr + vInss + vCsll + vCofins + vPis + vOutras;
-  const dInc = n(data.desconto_incondicional);
-  const dCon = n(data.desconto_condicional);
-  const vLiq = data.valor_liquido != null ? n(data.valor_liquido) : vServ - dInc - totRet;
+  const vIr = n(data.valor_ir), vInss = n(data.valor_inss), vCsll = n(data.valor_csll);
+  const vCof = n(data.valor_cofins), vPis = n(data.valor_pis), vOut = n(data.outras_retencoes);
+  const totalRet = vIss + vIr + vInss + vCsll + vCof + vPis + vOut;
+  const vLiq = data.valor_liquido != null ? n(data.valor_liquido) : Math.max(vServ - vDed - totalRet, 0);
+  const dIncond = n(data.desconto_incondicional), dCond = n(data.desconto_condicional);
   const vCred = n(data.credito_tributario);
   const tFed = n(data.tributos_federais);
 
-  y = sectionTitle(ctx, "VALORES", y);
-  const valMain = [
-    { label: "VALOR DOS SERVIÇOS", value: money(vServ) },
-    { label: "DEDUÇÕES", value: money(vDed) },
-    { label: "BASE DE CÁLCULO", value: money(vBase) },
-    { label: "ALÍQUOTA ISS", value: `${Number(data.aliquota_iss || 0).toFixed(4).replace(".", ",")} %` },
-    { label: "VALOR DO ISS", value: money(vIss), highlight: true },
-  ];
-  const vh1 = 52;
-  page.drawRectangle({ x: margin, y: y - vh1, width: contentW, height: vh1, borderColor: linha, borderWidth: 0.7 });
-  const vcol = contentW / valMain.length;
-  valMain.forEach((v, i) => {
-    const x = margin + i * vcol;
-    if (i > 0) page.drawLine({ start: { x, y: y - vh1 }, end: { x, y }, thickness: 0.4, color: linha });
-    if (v.highlight) {
-      page.drawRectangle({ x, y: y - vh1, width: vcol, height: vh1, color: laranjaSuave });
-      page.drawRectangle({ x, y: y - 4, width: vcol, height: 4, color: laranja });
-    }
-    const lw = bold.widthOfTextAtSize(v.label, 7);
-    page.drawText(v.label, { x: x + (vcol - lw) / 2, y: y - 20, size: 7, font: bold, color: cinza });
-    const vw = bold.widthOfTextAtSize(v.value, 12);
-    page.drawText(v.value, { x: x + (vcol - vw) / 2, y: y - 40, size: 12, font: bold, color: v.highlight ? laranja : azulEscuro });
-  });
-  y -= vh1;
+  const emailPrest = "lucas@voeair.com";
+  const telPrest = "(44) 99909-3642";
 
-  // Tributos (7 colunas) - ISSQN primeiro
-  const trib = [
-    { l: "ISSQN", v: money(vIssqn) },
-    { l: "IR", v: money(vIr) },
-    { l: "INSS", v: money(vInss) },
-    { l: "CSLL", v: money(vCsll) },
-    { l: "COFINS", v: money(vCofins) },
-    { l: "PIS", v: money(vPis) },
-    { l: "OUTRAS RET.", v: money(vOutras) },
-  ];
-  const trH = 38;
-  page.drawRectangle({ x: margin, y: y - trH, width: contentW, height: trH, borderColor: linha, borderWidth: 0.7 });
-  const tcol = contentW / trib.length;
-  trib.forEach((t, i) => {
-    const x = margin + i * tcol;
-    if (i > 0) page.drawLine({ start: { x, y: y - trH }, end: { x, y }, thickness: 0.4, color: linha });
-    const lw = bold.widthOfTextAtSize(t.l, 7);
-    page.drawText(t.l, { x: x + (tcol - lw) / 2, y: y - 13, size: 7, font: bold, color: cinza });
-    const vw = bold.widthOfTextAtSize(t.v, 8.5);
-    page.drawText(t.v, { x: x + (tcol - vw) / 2, y: y - 28, size: 8.5, font: bold, color: azulEscuro });
-  });
-  y -= trH + 10;
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
+<title>NFS-e ${esc(numero)} - VIA AIR</title>
+<style>
+:root{--azul:#063b78;--azul-escuro:#052c59;--azul-claro:#eaf2fb;--laranja:#f27a16;--verde:#1b8f4e;--texto:#111827;--cinza:#667085;--linha:#cfd6df;--fundo:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:#eef1f5;color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.35}
+.pagina{width:210mm;min-height:297mm;margin:20px auto;padding:12mm 10mm 10mm;background:var(--fundo);box-shadow:0 8px 30px rgba(0,0,0,.10)}
+.cabecalho{display:grid;grid-template-columns:30% 38% 32%;min-height:118px;border-bottom:2px solid var(--laranja);padding-bottom:16px;margin-bottom:14px}
+.marca,.titulo-nota,.resumo-nota{padding:4px 16px}
+.marca,.titulo-nota{border-right:1px solid var(--linha)}
+.logo{max-width:210px;max-height:76px;object-fit:contain;display:block;margin-top:8px}
+.titulo-nota{display:flex;flex-direction:column;justify-content:center}
+.titulo-nota .linha-1{font-size:17px;color:var(--azul-escuro);font-weight:700;text-transform:uppercase}
+.titulo-nota .linha-2{margin-top:4px;font-size:25px;line-height:1.1;color:var(--azul);font-weight:800;text-transform:uppercase}
+.titulo-nota .serie{margin-top:8px;font-size:14px;color:var(--azul-escuro)}
+.resumo-nota{display:grid;grid-template-columns:1fr 104px;gap:12px;align-items:center}
+.nf-numero .rotulo{font-size:13px;font-weight:700;color:var(--azul-escuro)}
+.nf-numero .numero{font-size:32px;line-height:1;font-weight:800;color:var(--laranja);margin:4px 0 8px}
+.status{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;background:#dff4e7;color:var(--verde);font-weight:800;text-transform:uppercase;font-size:11px}
+.meta-emissao{margin-top:12px}
+.meta-emissao small{display:block;color:var(--cinza);font-size:9px;font-weight:700;text-transform:uppercase;margin-bottom:3px}
+.meta-emissao strong{font-size:13px}
+.qr-topo{width:104px;height:104px;object-fit:contain;border:1px solid var(--linha);padding:4px;background:#fff}
+.linha-dupla{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.bloco{border:1px solid var(--linha);background:#fff;page-break-inside:avoid}
+.titulo-bloco{background:linear-gradient(90deg,var(--azul-escuro),var(--azul));color:#fff;font-weight:800;font-size:13px;text-transform:uppercase;padding:7px 12px;letter-spacing:.2px}
+.conteudo{padding:12px 14px}
+.razao{font-size:16px;font-weight:800;margin-bottom:11px}
+.campos-3{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:12px}
+.campo{min-width:0;padding-right:10px;margin-right:10px;border-right:1px solid var(--linha)}
+.campo:last-child{border-right:0;margin-right:0}
+.rotulo{color:var(--cinza);text-transform:uppercase;font-size:9px;font-weight:700;margin-bottom:4px}
+.valor{font-size:12px;font-weight:700;word-break:break-word}
+.endereco{border-top:1px solid #e5e9ef;padding-top:10px;margin-top:4px;line-height:1.5}
+.contatos{display:grid;grid-template-columns:1fr auto;gap:12px;margin-top:10px}
+.servico-grid{display:grid;grid-template-columns:20% 54% 26%;min-height:120px}
+.servico-coluna{padding:13px 16px;border-right:1px solid var(--linha)}
+.servico-coluna:last-child{border-right:0}
+.servico-coluna .item{margin-bottom:10px}
+.descricao-principal{font-size:14px;font-weight:700;margin:14px 0 12px}
+.datas{display:flex;gap:28px;font-size:11px}
+.passageiros{margin:10px 0 0;padding-left:17px}
+.passageiros li{margin-bottom:5px}
+.valores{margin-top:10px}
+.valores-principais{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--linha)}
+.valor-box{text-align:center;padding:13px 8px;border-right:1px solid var(--linha)}
+.valor-box:last-child{border-right:0}
+.valor-box .numero-valor{margin-top:8px;font-size:16px;font-weight:800;color:var(--azul-escuro)}
+.valor-box.destaque-iss{border-top:5px solid var(--laranja);background:#fffaf5}
+.valor-box.destaque-iss .numero-valor{color:var(--laranja)}
+.tributos{display:grid;grid-template-columns:repeat(7,1fr)}
+.tributo{text-align:center;padding:9px 4px;border-right:1px solid var(--linha)}
+.tributo:last-child{border-right:0}
+.tributo .numero-valor{margin-top:5px;font-weight:800;font-size:12px}
+.liquido{margin-top:10px;display:grid;grid-template-columns:34% repeat(4,1fr);background:linear-gradient(90deg,var(--azul),var(--azul-escuro));color:#fff;page-break-inside:avoid}
+.liquido>div{padding:11px 14px;border-right:1px solid rgba(255,255,255,.35)}
+.liquido>div:last-child{border-right:0}
+.liquido .rotulo{color:rgba(255,255,255,.86)}
+.liquido-total .numero{font-size:30px;line-height:1.05;font-weight:800;margin-top:5px}
+.liquido-secundario .numero{margin-top:8px;font-size:12px;font-weight:800}
+.informacoes-fiscais{margin-top:10px}
+.fiscal-grid{display:grid;grid-template-columns:1.35fr 1fr 1.05fr .85fr}
+.fiscal-coluna{padding:13px 14px;border-right:1px solid var(--linha)}
+.fiscal-coluna:last-child{border-right:0}
+.fiscal-item{margin-bottom:13px}
+.autenticidade{margin-top:10px}
+.autenticidade-grid{display:grid;grid-template-columns:52% 33% 15%;align-items:center;min-height:110px}
+.autenticidade-coluna{padding:12px 14px}
+.identificador{font-size:12px;font-weight:700;word-spacing:3px;margin:5px 0 10px}
+.barcode{width:100%;max-height:58px;object-fit:fill}
+.consulta{background:var(--azul-claro);padding:10px 12px;border-radius:5px;line-height:1.45;font-size:10.5px}
+.consulta strong{display:block;color:var(--azul);font-size:12px;margin-top:5px}
+.qr-rodape{width:92px;height:92px;object-fit:contain;display:block;margin:auto}
+.rodape-legal{display:grid;grid-template-columns:1fr 260px;gap:20px;align-items:end;margin-top:12px;font-size:9px;color:#475467}
+.ambiental{text-align:right}
+@media print{@page{size:A4;margin:0}body{background:#fff}.pagina{margin:0;box-shadow:none;width:210mm;min-height:297mm}}
+</style></head>
+<body>
+<div class="pagina">
+  <div class="cabecalho">
+    <div class="marca"><img class="logo" src="${esc(viaAirLogoAsset.url)}" alt="VIA AIR"/></div>
+    <div class="titulo-nota">
+      <div class="linha-1">Nota Fiscal de</div>
+      <div class="linha-2">Serviço Eletrônica</div>
+      <div class="serie">Série NFS-e ${esc(serie)}</div>
+    </div>
+    <div class="resumo-nota">
+      <div class="nf-numero">
+        <div class="rotulo">NFS-e Nº</div>
+        <div class="numero">${esc(numero)}</div>
+        <span class="status">Emitida</span>
+        <div class="meta-emissao"><small>Data/Hora da emissão</small><strong>${esc(dateStr)} ${esc(timeStr)}</strong></div>
+      </div>
+      <div>${qrPng ? `<img class="qr-topo" src="${qrPng}" alt="QR"/>` : ""}</div>
+    </div>
+  </div>
 
-  // ============ LÍQUIDO (faixa azul) ============
-  const liqH = 52;
-  page.drawRectangle({ x: margin, y: y - liqH, width: contentW, height: liqH, color: azul });
-  const liqLeftW = contentW * 0.34;
-  page.drawText("VALOR LÍQUIDO DA NFS-E", { x: margin + 14, y: y - 16, size: 8, font: bold, color: white });
-  page.drawText(money(vLiq), { x: margin + 14, y: y - 42, size: 22, font: bold, color: white });
+  <div class="linha-dupla">
+    <div class="bloco">
+      <div class="titulo-bloco">Prestador de serviço</div>
+      <div class="conteudo">
+        <div class="razao">VIA AIR AGÊNCIA &amp; REPRESENTAÇÕES LTDA</div>
+        <div class="campos-3">
+          <div class="campo"><div class="rotulo">CNPJ</div><div class="valor">${esc(cfg?.cnpj || "56.339.877/0001-66")}</div></div>
+          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${esc(cfg?.inscricao_municipal || "121788")}</div></div>
+          <div class="campo"><div class="rotulo">Regime Tributário</div><div class="valor">${esc(regime)}</div></div>
+        </div>
+        <div class="endereco">${esc(cfg?.logradouro || "")}, ${esc(cfg?.numero || "")} – ${esc(cfg?.bairro || "")}<br/>${esc(municipioPrest)} – CEP ${esc(fmtCep(cfg?.cep))}</div>
+        <div class="contatos"><div>${esc(emailPrest)}</div><div>${esc(telPrest)}</div></div>
+      </div>
+    </div>
+    <div class="bloco">
+      <div class="titulo-bloco">Tomador de serviço</div>
+      <div class="conteudo">
+        <div class="razao">${esc((tomador.razao_social || tomador.nome || "-") as string)}</div>
+        <div class="campos-3">
+          <div class="campo"><div class="rotulo">CPF/CNPJ</div><div class="valor">${esc(fmtCpfCnpj((tomador.cnpj || tomador.cpf || "") as string))}</div></div>
+          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${esc((tomador.inscricao_municipal as string) || "–")}</div></div>
+          <div class="campo"><div class="rotulo">E-mail</div><div class="valor">${esc((tomador.email as string) || "–")}</div></div>
+        </div>
+        <div class="endereco">${esc(end.logradouro || "")}${end.numero ? ", " + esc(end.numero) : ""}${end.bairro ? " – " + esc(end.bairro) : ""}<br/>${esc(end.municipio || "")}/${esc(end.uf || "")}${end.cep ? " – CEP " + esc(fmtCep(end.cep)) : ""}</div>
+        <div class="contatos"><div>${esc((tomador.telefone as string) || "")}</div><div>Brasil</div></div>
+      </div>
+    </div>
+  </div>
 
-  const secItems = [
-    { l: "DESC. INCONDICIONAL", v: money(dInc) },
-    { l: "DESC. CONDICIONAL", v: money(dCon) },
-    { l: "TOTAL DE RETENÇÕES", v: money(totRet) },
-    { l: "CRÉDITO TRIBUTÁRIO", v: money(vCred) },
-  ];
-  const secStart = margin + liqLeftW;
-  const secW = (contentW - liqLeftW) / secItems.length;
-  secItems.forEach((s, i) => {
-    const x = secStart + i * secW;
-    page.drawLine({ start: { x, y: y - liqH + 6 }, end: { x, y: y - 6 }, thickness: 0.4, color: rgb(1, 1, 1) });
-    page.drawText(s.l, { x: x + 8, y: y - 18, size: 6.5, font: bold, color: rgb(0.85, 0.9, 1) });
-    page.drawText(s.v, { x: x + 8, y: y - 36, size: 10, font: bold, color: white });
-  });
-  y -= liqH + 10;
+  <div class="bloco">
+    <div class="titulo-bloco">Discriminação dos serviços</div>
+    <div class="servico-grid">
+      <div class="servico-coluna">
+        <div class="item"><div class="rotulo">Serviço</div><div class="valor">${esc(codServico)}</div></div>
+        <div class="item"><div class="rotulo">Município da prestação</div><div class="valor">${esc(municipioPrest)}</div></div>
+        <div class="item"><div class="rotulo">Cód. tributação</div><div class="valor">${esc(codTribMun)}</div></div>
+      </div>
+      <div class="servico-coluna">
+        <div class="rotulo">Descrição do serviço</div>
+        <div class="descricao-principal">${esc(disc.descricao || "-")}</div>
+        <div class="datas">${disc.ida ? `<div><strong>IDA:</strong> ${esc(disc.ida)}</div>` : ""}${disc.volta ? `<div><strong>VOLTA:</strong> ${esc(disc.volta)}</div>` : ""}</div>
+      </div>
+      <div class="servico-coluna">
+        <div class="rotulo">${disc.passageiros.length > 1 ? "Passageiros" : "Passageiro"}</div>
+        <ul class="passageiros">${disc.passageiros.map((p) => `<li>${esc(p)}</li>`).join("") || "<li>-</li>"}</ul>
+      </div>
+    </div>
+  </div>
 
-  // ============ AUTENTICIDADE (identificador + barcode | consulta | QR) ============
-  y = sectionTitle(ctx, "AUTENTICIDADE DA NFS-E", y);
-  const autH = 100;
-  page.drawRectangle({ x: margin, y: y - autH, width: contentW, height: autH, borderColor: linha, borderWidth: 0.7 });
+  <div class="bloco valores">
+    <div class="titulo-bloco">Valores</div>
+    <div class="valores-principais">
+      <div class="valor-box"><div class="rotulo">Valor dos serviços</div><div class="numero-valor">${money(vServ)}</div></div>
+      <div class="valor-box"><div class="rotulo">Deduções</div><div class="numero-valor">${money(vDed)}</div></div>
+      <div class="valor-box"><div class="rotulo">Base de cálculo</div><div class="numero-valor">${money(vBase)}</div></div>
+      <div class="valor-box"><div class="rotulo">Alíquota ISS</div><div class="numero-valor">${pct(aliq)}</div></div>
+      <div class="valor-box destaque-iss"><div class="rotulo">Valor do ISS</div><div class="numero-valor">${money(vIss)}</div></div>
+    </div>
+    <div class="tributos">
+      <div class="tributo"><div class="rotulo">ISS</div><div class="numero-valor">${money(vIss)}</div></div>
+      <div class="tributo"><div class="rotulo">IR</div><div class="numero-valor">${money(vIr)}</div></div>
+      <div class="tributo"><div class="rotulo">INSS</div><div class="numero-valor">${money(vInss)}</div></div>
+      <div class="tributo"><div class="rotulo">CSLL</div><div class="numero-valor">${money(vCsll)}</div></div>
+      <div class="tributo"><div class="rotulo">COFINS</div><div class="numero-valor">${money(vCof)}</div></div>
+      <div class="tributo"><div class="rotulo">PIS</div><div class="numero-valor">${money(vPis)}</div></div>
+      <div class="tributo"><div class="rotulo">Outras retenções</div><div class="numero-valor">${money(vOut)}</div></div>
+    </div>
+  </div>
 
-  const aL = contentW * 0.52;
-  const aM = contentW * 0.33;
-  const aR = contentW * 0.15;
+  <div class="liquido">
+    <div class="liquido-total"><div class="rotulo">Valor líquido da NFS-e</div><div class="numero">${money(vLiq)}</div></div>
+    <div class="liquido-secundario"><div class="rotulo">Desc. incondicional</div><div class="numero">${money(dIncond)}</div></div>
+    <div class="liquido-secundario"><div class="rotulo">Desc. condicional</div><div class="numero">${money(dCond)}</div></div>
+    <div class="liquido-secundario"><div class="rotulo">Total de retenções</div><div class="numero">${money(totalRet)}</div></div>
+    <div class="liquido-secundario"><div class="rotulo">Crédito tributário</div><div class="numero">${money(vCred)}</div></div>
+  </div>
 
-  // Esquerda - identificador + barcode
-  page.drawText("IDENTIFICADOR", { x: margin + 14, y: y - 14, size: 7, font: bold, color: cinza });
-  const idFormatted = (verification || "-").match(/.{1,4}/g)?.join(" ") ?? verification;
-  wrap(idFormatted, bold, 9.5, aL - 28).slice(0, 2).forEach((t, i) =>
-    page.drawText(t, { x: margin + 14, y: y - 30 - i * 12, size: 9.5, font: bold, color: ink })
-  );
-  if (verification) {
-    try {
-      const bar = await pdf.embedPng(await barcodePng(verification));
-      page.drawImage(bar, { x: margin + 14, y: y - autH + 10, width: aL - 28, height: 42 });
-    } catch { /* skip */ }
-  }
+  <div class="bloco informacoes-fiscais">
+    <div class="titulo-bloco">Informações fiscais</div>
+    <div class="fiscal-grid">
+      <div class="fiscal-coluna">
+        <div class="fiscal-item"><div class="rotulo">Lista de serviço</div><div class="valor">${esc(listaServ)} - Organização, promoção e execução de programas de turismo, passeios, viagens, excursões, hospedagens e congêneres.</div></div>
+        <div class="fiscal-item"><div class="rotulo">Tributação</div><div class="valor">(${esc(listaServ)}) Serviço tributado no município do prestador</div></div>
+      </div>
+      <div class="fiscal-coluna">
+        <div class="fiscal-item"><div class="rotulo">Local de prestação</div><div class="valor">${esc(codTribMun)} - ${esc(cfg?.municipio_prestacao || "Paranavaí")}</div></div>
+        <div class="fiscal-item"><div class="rotulo">Autorização para emissão</div><div class="valor">${rps ? esc(rps) + " de " : ""}${esc(dateStr)} ${esc(timeStr)}</div></div>
+      </div>
+      <div class="fiscal-coluna">
+        <div class="fiscal-item"><div class="rotulo">Situação tributária</div><div class="valor">TI - Tributada Integralmente</div></div>
+        <div class="fiscal-item"><div class="rotulo">Enquadramento</div><div class="valor">Simples Nacional - Homologado de ISS ou ISS em regime estimado/fixo</div></div>
+      </div>
+      <div class="fiscal-coluna">
+        <div class="fiscal-item"><div class="rotulo">Regime</div><div class="valor">${esc(regime)}</div></div>
+        <div class="fiscal-item"><div class="rotulo">CNAE</div><div class="valor">${esc(cnae)}</div></div>
+      </div>
+    </div>
+  </div>
 
-  page.drawLine({ start: { x: margin + aL, y: y - 6 }, end: { x: margin + aL, y: y - autH + 6 }, thickness: 0.5, color: linha });
+  <div class="bloco autenticidade">
+    <div class="titulo-bloco">Autenticidade da NFS-e</div>
+    <div class="autenticidade-grid">
+      <div class="autenticidade-coluna">
+        <div class="rotulo">Identificador</div>
+        <div class="identificador">${esc(identificador)}</div>
+        <img class="barcode" src="${barcode}" alt="barcode"/>
+      </div>
+      <div class="autenticidade-coluna">
+        <div class="consulta">A veracidade das informações declaradas na NFS-e pode ser consultada no site da Prefeitura de Paranavaí.<strong>www.paranavai.pr.gov.br/nfse</strong></div>
+      </div>
+      <div class="autenticidade-coluna">${qrPng ? `<img class="qr-rodape" src="${qrPng}" alt="QR"/>` : ""}</div>
+    </div>
+  </div>
 
-  // Meio - consulta
-  const consX = margin + aL + 10;
-  const consW = aM - 20;
-  page.drawRectangle({ x: consX, y: y - autH + 10, width: consW, height: autH - 20, color: azulClaro });
-  wrap("A veracidade das informações declaradas na NFS-e pode ser consultada no site da Prefeitura de Paranavaí.", regular, 7.5, consW - 20).forEach((t, i) =>
-    page.drawText(t, { x: consX + 10, y: y - 20 - i * 10, size: 7.5, font: regular, color: ink })
-  );
-  page.drawText("nfse-paranavai.atende.net", { x: consX + 10, y: y - autH + 22, size: 8.5, font: bold, color: azul });
+  <div class="rodape-legal">
+    <div>Valor aproximado dos tributos: Federais ${money(tFed)} (0,00%), Municipais ${money(vIss)} (${pct(aliq)}), conforme Lei nº 12.741/2012 e Decreto nº 8.264/2014 — Fonte IBPT.</div>
+    <div class="ambiental">Antes de imprimir, pense em sua responsabilidade com o meio ambiente.</div>
+  </div>
+</div>
+<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),400));</script>
+</body></html>`;
 
-  page.drawLine({ start: { x: margin + aL + aM, y: y - 6 }, end: { x: margin + aL + aM, y: y - autH + 6 }, thickness: 0.5, color: linha });
-
-  // Direita - QR rodapé (também)
-  if (qrUrl) {
-    try {
-      const qr = await pdf.embedPng(await QRCode.toDataURL(qrUrl, { margin: 0, width: 220 }));
-      const size = Math.min(aR - 10, autH - 14);
-      const qx = margin + aL + aM + (aR - size) / 2;
-      const qy = y - autH + (autH - size) / 2;
-      page.drawImage(qr, { x: qx, y: qy, width: size, height: size });
-    } catch { /* skip */ }
-  }
-
-  y -= autH + 10;
-
-  // Rodapé legal
-  page.drawText(`Valor aproximado dos tributos: Federais ${money(tFed)}, Municipais ${money(vIssqn)} - Lei 12.741/2012.`, { x: margin, y: y, size: 7, font: regular, color: cinza });
-  page.drawText("Documento auxiliar - Item 9.02 (Agenciamento de viagens) - CNAE 7911-2/00", { x: margin, y: y - 10, size: 7, font: regular, color: cinza });
-  const eco = "Antes de imprimir, pense em sua responsabilidade com o meio ambiente.";
-  const ew = regular.widthOfTextAtSize(eco, 7);
-  page.drawText(eco, { x: A4.width - margin - ew, y: y - 22, size: 7, font: regular, color: cinza });
-
-  download(await pdf.save(), `NFS-e_${numero}_VIA-AIR.pdf`, "application/pdf");
+  const w = window.open("", "_blank");
+  if (!w) { alert("Permita pop-ups para gerar a NFS-e."); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
 }
 
 export function downloadNfseXml(data: NfseDocumentData) {
   const r = (data.focus_response ?? {}) as { sentXml?: string; bodyPreview?: string };
   const xml = r.sentXml || r.bodyPreview;
   if (!xml) throw new Error("XML desta emissão não está disponível");
-  download(new Blob([xml], { type: "application/xml;charset=utf-8" }), `NFS-e_${data.numero_nfse || "emissao"}.xml`);
+  const blob = new Blob([xml], { type: "application/xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `NFS-e_${data.numero_nfse || "emissao"}.xml`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
