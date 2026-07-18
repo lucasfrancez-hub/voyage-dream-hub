@@ -574,39 +574,51 @@ function AdicionaisTab({
   return (
     <div className="space-y-6">
       {isPF && (
-        <Section title="Dados adicionais">
-          <FieldRow label="Estado Civil:">
-            <select value={form.marital_status ?? ""} onChange={(e) => set("marital_status", e.target.value || null)} className={cls + " max-w-[300px]"}>
-              <option value="">—</option>
-              <option value="solteiro">Solteiro(a)</option>
-              <option value="casado">Casado(a)</option>
-              <option value="divorciado">Divorciado(a)</option>
-              <option value="viuvo">Viúvo(a)</option>
-              <option value="uniao_estavel">União estável</option>
-              <option value="separado">Separado(a)</option>
-            </select>
-          </FieldRow>
-          <FieldRow label="Local de Nascimento:">
-            <input value={form.birth_place ?? ""} onChange={(e) => set("birth_place", e.target.value)} className={cls} />
-          </FieldRow>
-          <div className="grid grid-cols-2 gap-3">
-            <MiniField label="Órgão Emissor RG:">
-              <input value={form.rg_issuer ?? ""} onChange={(e) => set("rg_issuer", e.target.value)} className={cls} />
-            </MiniField>
-            <MiniField label="Data Emissão RG:">
-              <input type="date" value={form.rg_issued_at ?? ""} onChange={(e) => set("rg_issued_at", e.target.value)} className={cls} />
-            </MiniField>
-          </div>
-          <FieldRow label="Certidão de Nascimento:">
-            <input value={form.birth_certificate ?? ""} onChange={(e) => set("birth_certificate", e.target.value)} className={cls} />
-          </FieldRow>
-          <FieldRow label="Filiação (Mãe):">
-            <input value={form.mother_name ?? ""} onChange={(e) => set("mother_name", e.target.value)} className={cls} />
-          </FieldRow>
-        </Section>
+        <>
+          <Section title="Estado civil & nascimento">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <MiniField label="Estado civil">
+                <select value={form.marital_status ?? ""} onChange={(e) => set("marital_status", e.target.value || null)} className={cls}>
+                  <option value="">—</option>
+                  <option value="solteiro">Solteiro(a)</option>
+                  <option value="casado">Casado(a)</option>
+                  <option value="divorciado">Divorciado(a)</option>
+                  <option value="viuvo">Viúvo(a)</option>
+                  <option value="uniao_estavel">União estável</option>
+                  <option value="separado">Separado(a)</option>
+                </select>
+              </MiniField>
+              <MiniField label="Local de nascimento">
+                <input value={form.birth_place ?? ""} onChange={(e) => set("birth_place", e.target.value)} className={cls} placeholder="Cidade / UF" />
+              </MiniField>
+            </div>
+          </Section>
+
+          <Section title="Documentos">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <MiniField label="Órgão emissor do RG">
+                <input value={form.rg_issuer ?? ""} onChange={(e) => set("rg_issuer", e.target.value)} className={cls} placeholder="Ex.: SSP/SP" />
+              </MiniField>
+              <MiniField label="Data de emissão do RG">
+                <input type="date" value={form.rg_issued_at ?? ""} onChange={(e) => set("rg_issued_at", e.target.value)} className={cls} />
+              </MiniField>
+              <MiniField label="Certidão de nascimento">
+                <input value={form.birth_certificate ?? ""} onChange={(e) => set("birth_certificate", e.target.value)} className={cls} />
+              </MiniField>
+            </div>
+          </Section>
+
+          <Section title="Filiação">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <MiniField label="Nome da mãe">
+                <input value={form.mother_name ?? ""} onChange={(e) => set("mother_name", e.target.value)} className={cls} />
+              </MiniField>
+            </div>
+          </Section>
+        </>
       )}
 
-      <Section title="Últimos Contatos">
+      <Section title="Últimos contatos">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <ReadStat label="Primeira Venda" value={fmtDateISO(summary?.first_sale_at)} />
           <ReadStat label="Última Venda" value={fmtDateISO(summary?.last_sale_at)} />
