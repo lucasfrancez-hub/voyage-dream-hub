@@ -162,8 +162,8 @@ function NotasFiscaisPage() {
               <div className="divide-y divide-border">
                 {filtered.map((r) => {
                   const o = (r as Row & { orders?: { order_number?: string; full_name?: string } }).orders;
-                  const err = (r.focus_response as { mensagem?: string; erros?: Array<{ mensagem?: string }> } | null);
-                  const errMsg = err?.mensagem || err?.erros?.[0]?.mensagem;
+                  const err = (r.focus_response as { mensagem?: string; erros?: Array<{ mensagem?: string }>; bodyPreview?: string; networkError?: string } | null);
+                  const errMsg = err?.mensagem || err?.erros?.[0]?.mensagem || err?.networkError || err?.bodyPreview?.slice(0, 200);
                   return (
                     <div key={r.id} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                       <div className="min-w-0 flex-1">
