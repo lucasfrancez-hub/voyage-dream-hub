@@ -184,7 +184,11 @@ export const emitirNfse = createServerFn({ method: "POST" })
 
     const reference = `viaair-${data.orderId.slice(0, 8)}-${Date.now()}`;
     const valorIss = Number((data.valorServicos * Number(cfg.aliquota_iss) / 100).toFixed(2));
-    const xml = buildAtendenetXml({ cfg: cfg as Record<string, unknown>, data, reference, valorIss });
+    const unsignedXml = buildAtendenetXml({ cfg: cfg as Record<string, unknown>, data, reference, valorIss });
+
+    // Assinatura digital XMLDSig (enveloped) com o certificado A1
+    const { signRpsXml } = await import("@/lib/nfse-xmldsig.server");
+    const xml = await signRpsXml(unsignedXml, reference);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
