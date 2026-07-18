@@ -116,20 +116,20 @@ html:root {
    Sobrescreve a paleta escura do :root apenas dentro do painel /admin,
    pra nenhum bloco escapar preto quando o modo claro está ativo. */
 .admin-light {
-  --background: oklch(0.985 0.004 235);
+  --background: oklch(0.955 0.005 235);
   --foreground: oklch(0.20 0.02 235);
-  --card: oklch(1 0 0);
+  --card: oklch(0.985 0.004 235);
   --card-foreground: oklch(0.20 0.02 235);
-  --popover: oklch(1 0 0);
+  --popover: oklch(0.985 0.004 235);
   --popover-foreground: oklch(0.20 0.02 235);
   --primary-foreground: oklch(1 0 0);
   --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.955 0.007 235);
+  --muted: oklch(0.925 0.006 235);
   --muted-foreground: oklch(0.46 0.02 235);
-  --accent: oklch(0.955 0.012 60);
+  --accent: oklch(0.93 0.01 60);
   --accent-foreground: oklch(0.20 0.02 235);
-  --border: oklch(0.88 0.01 235);
-  --input: oklch(0.92 0.01 235);
+  --border: oklch(0.86 0.01 235);
+  --input: oklch(0.90 0.008 235);
   --shadow-card: 0 10px 30px -18px oklch(0.20 0.02 235 / 22%);
 }
 
