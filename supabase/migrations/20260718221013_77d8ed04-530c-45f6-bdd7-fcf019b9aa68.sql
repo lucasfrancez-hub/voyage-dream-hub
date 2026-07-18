@@ -1,0 +1,1 @@
+ALTER TABLE public.nfse_config ADD COLUMN IF NOT EXISTS cnae_principal TEXT;
