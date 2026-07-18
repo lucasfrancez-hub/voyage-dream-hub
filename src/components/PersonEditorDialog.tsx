@@ -609,14 +609,14 @@ function DetalhesTab({
       <Section title="Dados de contato">
         <div className={`grid ${isPJ ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
           <MiniField label="Telefone:">
-            <input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={cls} />
+            <IntlPhoneInput value={form.phone ?? ""} onChange={(v) => set("phone", v)} foreign={!!form.is_foreign} className={cls} />
           </MiniField>
           <MiniField label="Celular:">
-            <input value={form.mobile_phone ?? ""} onChange={(e) => set("mobile_phone", e.target.value)} className={cls} />
+            <IntlPhoneInput value={form.mobile_phone ?? ""} onChange={(v) => set("mobile_phone", v)} foreign={!!form.is_foreign} className={cls} />
           </MiniField>
           {!isPJ && (
             <MiniField label="Telefone Comercial:">
-              <input value={form.business_phone ?? ""} onChange={(e) => set("business_phone", e.target.value)} className={cls} />
+              <IntlPhoneInput value={form.business_phone ?? ""} onChange={(v) => set("business_phone", v)} foreign={!!form.is_foreign} className={cls} />
             </MiniField>
           )}
         </div>
