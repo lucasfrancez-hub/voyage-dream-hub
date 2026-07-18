@@ -493,6 +493,41 @@ export const upsertPassenger = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
+    // Dedupe por (order_id, nome normalizado) — evita 5x o mesmo passageiro quando o voucher
+    // traz vários serviços com a mesma lista de participantes.
+    const normalized = (data.full_name || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toUpperCase();
+    if (normalized) {
+      const { data: existing } = await context.supabase
+        .from("order_passengers")
+        .select("id, full_name, cpf, document, birth_date, passport_number")
+        .eq("order_id", data.order_id);
+      const match = (existing ?? []).find((p) => {
+        const n = String(p.full_name || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toUpperCase();
+        return n === normalized;
+      });
+      if (match?.id) {
+        // Enriquece campos ainda vazios sem sobrescrever dados existentes.
+        const patch: { cpf?: string; document?: string; birth_date?: string; passport_number?: string } = {};
+        if (!match.cpf && payload.cpf) patch.cpf = payload.cpf;
+        if (!match.document && payload.document) patch.document = payload.document;
+        if (!match.birth_date && payload.birth_date) patch.birth_date = payload.birth_date;
+        if (!match.passport_number && payload.passport_number) patch.passport_number = payload.passport_number;
+        if (Object.keys(patch).length > 0) {
+          await context.supabase.from("order_passengers").update(patch).eq("id", match.id);
+        }
+        return { id: match.id };
+      }
+    }
     const { data: created, error } = await context.supabase
       .from("order_passengers")
       .insert(payload)
