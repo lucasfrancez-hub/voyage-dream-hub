@@ -294,7 +294,7 @@ function CofrePage() {
         </div>
         <div className="flex flex-wrap justify-between items-end gap-3">
           <div className="min-w-0">
-            <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight uppercase">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight uppercase">
               Links de Pagamento
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -304,7 +304,7 @@ function CofrePage() {
           <button
             type="button"
             onClick={refresh}
-            className="flex items-center gap-2 bg-muted/40 hover:bg-muted px-4 py-2 rounded border border-border text-xs font-bold uppercase tracking-widest transition-all"
+            className="flex items-center gap-2 bg-muted/40 hover:bg-muted px-4 py-2 rounded-full border border-border text-xs font-bold uppercase tracking-widest transition-all"
           >
             <RefreshCw className="h-4 w-4" /> Atualizar
           </button>
@@ -467,7 +467,7 @@ function CofrePage() {
                       navigator.clipboard.writeText(e.url);
                       toast.success("Link copiado");
                     }}
-                    className="w-full flex items-center justify-center gap-2 py-2 bg-brand-orange text-white rounded text-xs font-bold uppercase tracking-widest hover:bg-brand-orange/90 transition-all"
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-brand-orange text-white rounded-full text-xs font-bold uppercase tracking-widest hover:bg-brand-orange/90 transition-all"
                   >
                     <Copy className="w-4 h-4" /> Copiar Link
                   </button>
@@ -475,7 +475,7 @@ function CofrePage() {
                     href={waHref}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-2 bg-emerald-500/15 text-emerald-500 rounded text-xs font-bold uppercase tracking-widest border border-emerald-500/20 hover:bg-emerald-500/25 transition-all"
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-emerald-500/15 text-emerald-500 rounded-full text-xs font-bold uppercase tracking-widest border border-emerald-500/20 hover:bg-emerald-500/25 transition-all"
                   >
                     <MessageCircle className="w-4 h-4" /> WhatsApp
                   </a>
@@ -483,7 +483,7 @@ function CofrePage() {
                     href={e.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-2 bg-muted/60 text-foreground rounded text-xs font-bold uppercase tracking-widest border border-border hover:bg-muted transition-all"
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-muted/60 text-foreground rounded-full text-xs font-bold uppercase tracking-widest border border-border hover:bg-muted transition-all"
                   >
                     <ExternalLink className="w-4 h-4" /> Abrir cofre
                   </a>
@@ -492,7 +492,7 @@ function CofrePage() {
                     <button
                       type="button"
                       onClick={() => onFinalize(e.orderId!)}
-                      className="w-full flex items-center justify-center gap-2 py-2 bg-green-500/10 text-green-500 rounded text-xs font-bold uppercase tracking-widest border border-green-500/20 hover:bg-green-500/20 transition-all"
+                      className="w-full flex items-center justify-center gap-2 py-2 bg-green-500/10 text-green-500 rounded-full text-xs font-bold uppercase tracking-widest border border-green-500/20 hover:bg-green-500/20 transition-all"
                     >
                       <CheckCircle2 className="w-4 h-4" /> Finalizar
                     </button>
@@ -658,7 +658,7 @@ function TabPill({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all ${
+      className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all ${
         active
           ? "bg-brand-orange text-white shadow-lg shadow-brand-orange/20"
           : "text-muted-foreground hover:text-foreground"

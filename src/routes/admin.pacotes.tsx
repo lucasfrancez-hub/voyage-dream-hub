@@ -204,11 +204,11 @@ function AdminPackages() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-3 sm:px-6 py-6 sm:py-12 selection:bg-brand-orange/30">
+    <div className="mx-auto max-w-5xl px-3 sm:px-6 py-6 sm:py-10 text-[0.95em] selection:bg-brand-orange/30">
       {/* Command Center header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <div className="min-w-0">
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter uppercase text-foreground mb-2">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tighter uppercase text-foreground mb-2">
             Command Center <span className="text-brand-orange">/</span> Pacotes
           </h1>
           <p className="text-[10px] sm:text-xs text-muted-foreground">
@@ -217,7 +217,7 @@ function AdminPackages() {
         </div>
         <button
           onClick={() => setEditing({ ...emptyForm })}
-          className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-6 py-3 rounded-none font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
+          className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
         >
           <Plus className="h-5 w-5" strokeWidth={3} /> Novo Pacote
         </button>
