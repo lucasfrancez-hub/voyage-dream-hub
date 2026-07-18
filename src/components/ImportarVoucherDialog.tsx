@@ -19,6 +19,18 @@ type Props = {
 
 const MAX_BYTES = 15 * 1024 * 1024;
 
+// Normaliza entrada monetária BRL. Aceita "11.585,85", "11585,85", "11585.85".
+function parseMoneyInputVoucher(raw: string): number | "" {
+  if (raw == null) return "";
+  const s = String(raw).trim();
+  if (!s) return "";
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+  const norm = hasComma && hasDot ? s.replace(/\./g, "").replace(",", ".") : hasComma ? s.replace(",", ".") : s;
+  const n = Number(norm);
+  return Number.isFinite(n) ? n : "";
+}
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
