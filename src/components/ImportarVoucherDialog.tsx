@@ -278,17 +278,8 @@ function ReviewExtracted({
                 onSelect={(h) => {
                   const next: Record<string, unknown> = { ...d };
                   next.hotel_name = h.name;
-                  if (h.rating != null) next.hotel_stars = Math.round(h.rating);
-                  if (h.address) next.address = h.address;
-                  if (h.city) next.city = h.city;
-                  if (h.country) next.country = h.country;
-                  if (h.latitude != null) next.hotel_lat = h.latitude;
-                  if (h.longitude != null) next.hotel_lng = h.longitude;
-                  if (h.phone) next.hotel_phone = h.phone;
-                  if (h.website) next.hotel_website = h.website;
                   if (h.tripadvisor_url) next.tripadvisor_url = h.tripadvisor_url;
-                  if (h.description) next.hotel_description = h.description;
-                  if (h.photos?.length) next.hotel_photos = h.photos;
+                  if (h.photos?.length) next.tripadvisor_photos = h.photos;
                   onChange({ ...value, details: next } as ExtractedItemVoucher);
                 }}
                 initialMode={String(d.hotel_name ?? "").trim() ? "manual" : null}
