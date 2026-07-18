@@ -2566,11 +2566,11 @@ function ItemDialog({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label>Valor total (R$)</Label>
-                  <Input type="number" step="0.01" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="0,00" />
+                  <Input inputMode="decimal" value={String(details.value ?? "")} onChange={(e) => setMoneyField("value", e.target.value)} placeholder="0,00" />
                 </div>
                 <div>
                   <Label>Taxa inclusa (R$)</Label>
-                  <Input type="number" step="0.01" value={String(details.tax_value ?? "")} onChange={(e) => setField("tax_value", e.target.value)} placeholder="0,00" />
+                  <Input inputMode="decimal" value={String(details.tax_value ?? "")} onChange={(e) => setMoneyField("tax_value", e.target.value)} placeholder="0,00" />
                   <p className="mt-1 text-[10px] text-muted-foreground">Parte não comissionável.</p>
                 </div>
                 <div>
