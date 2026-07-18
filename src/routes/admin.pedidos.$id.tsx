@@ -4966,7 +4966,7 @@ function CommissionAdjustDialog({
           : 0;
         const itemTotal = isPackage
           ? Number((itemSale + itemTax + Math.max(0, itemCommission - itemDefaultComm) - itemDiscount).toFixed(2))
-          : Number((itemSale + itemTax + itemCommission).toFixed(2));
+          : Number((itemSale + itemTax).toFixed(2));
         rebuiltTotal += itemTotal;
 
         await upsert({
