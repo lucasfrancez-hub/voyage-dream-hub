@@ -395,11 +395,15 @@ export type Database = {
           email: string | null
           id: string
           inscricao_municipal: string
+          ipm_codigo_atividade: string | null
+          ipm_codigo_servico: string | null
+          ipm_endpoint: string
           iss_retido: boolean
           item_lista_servico: string
           logradouro: string | null
           municipio_prestacao: string
           numero: string | null
+          provedor: string
           razao_social: string
           regime_tributario: string
           telefone: string | null
@@ -419,11 +423,15 @@ export type Database = {
           email?: string | null
           id?: string
           inscricao_municipal: string
+          ipm_codigo_atividade?: string | null
+          ipm_codigo_servico?: string | null
+          ipm_endpoint?: string
           iss_retido?: boolean
           item_lista_servico?: string
           logradouro?: string | null
           municipio_prestacao?: string
           numero?: string | null
+          provedor?: string
           razao_social?: string
           regime_tributario?: string
           telefone?: string | null
@@ -443,11 +451,15 @@ export type Database = {
           email?: string | null
           id?: string
           inscricao_municipal?: string
+          ipm_codigo_atividade?: string | null
+          ipm_codigo_servico?: string | null
+          ipm_endpoint?: string
           iss_retido?: boolean
           item_lista_servico?: string
           logradouro?: string | null
           municipio_prestacao?: string
           numero?: string | null
+          provedor?: string
           razao_social?: string
           regime_tributario?: string
           telefone?: string | null
