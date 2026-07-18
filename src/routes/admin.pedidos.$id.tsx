@@ -3594,8 +3594,10 @@ function FinanceDialog({
   selectedItem: string | null;
   setSelectedItem: (v: string) => void;
   packageDefaults: { sale_value: number; tax_value: number } | null;
-  onSave: (p: Partial<OrderItemFinancial>) => void;
+  onSave: (p: Partial<OrderItemFinancial>, extra?: { otherTitle?: string }) => void;
 }) {
+  const [otherTitle, setOtherTitle] = useState("");
+
   const selectedItemObj = items.find((i) => i.id === selectedItem);
   const selectedKind = selectedItemObj?.kind;
   const isPackage = !!packageDefaults;
