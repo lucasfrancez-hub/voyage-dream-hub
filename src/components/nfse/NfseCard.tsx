@@ -345,35 +345,86 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Emitir NFS-e</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Nome / Razão social do tomador</Label>
-              <Input value={form.razaoSocial} onChange={(e) => setForm((f) => ({ ...f, razaoSocial: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tomador</div>
               <div>
-                <Label>CPF ou CNPJ</Label>
-                <Input value={form.cpfCnpj} onChange={(e) => setForm((f) => ({ ...f, cpfCnpj: e.target.value }))} />
+                <Label>Nome / Razão social</Label>
+                <Input value={form.razaoSocial} onChange={(e) => setForm((f) => ({ ...f, razaoSocial: e.target.value }))} />
               </div>
-              <div>
-                <Label>Valor dos serviços (R$)</Label>
-                <Input value={form.valor} onChange={(e) => setForm((f) => ({ ...f, valor: e.target.value }))} />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>CPF ou CNPJ</Label>
+                  <Input value={form.cpfCnpj} onChange={(e) => setForm((f) => ({ ...f, cpfCnpj: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Valor dos serviços (R$)</Label>
+                  <Input value={form.valor} onChange={(e) => setForm((f) => ({ ...f, valor: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>E-mail (opcional)</Label>
+                  <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Telefone (opcional)</Label>
+                  <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+                </div>
               </div>
             </div>
-            <div>
-              <Label>E-mail (opcional)</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+
+            <div className="space-y-3">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Endereço</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>CEP</Label>
+                  <Input value={form.cep} onChange={(e) => setForm((f) => ({ ...f, cep: e.target.value }))} />
+                </div>
+                <div className="col-span-2">
+                  <Label>Logradouro</Label>
+                  <Input value={form.logradouro} onChange={(e) => setForm((f) => ({ ...f, logradouro: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Número</Label>
+                  <Input value={form.numero} onChange={(e) => setForm((f) => ({ ...f, numero: e.target.value }))} />
+                </div>
+                <div className="col-span-2">
+                  <Label>Complemento</Label>
+                  <Input value={form.complemento} onChange={(e) => setForm((f) => ({ ...f, complemento: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Bairro</Label>
+                  <Input value={form.bairro} onChange={(e) => setForm((f) => ({ ...f, bairro: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Cidade</Label>
+                  <Input value={form.cidade} onChange={(e) => setForm((f) => ({ ...f, cidade: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>UF</Label>
+                  <Input maxLength={2} value={form.uf} onChange={(e) => setForm((f) => ({ ...f, uf: e.target.value.toUpperCase() }))} />
+                </div>
+              </div>
             </div>
+
             <div>
               <Label>Discriminação do serviço</Label>
               <Textarea rows={8} className="font-mono text-xs" value={form.discriminacao} onChange={(e) => setForm((f) => ({ ...f, discriminacao: e.target.value }))} />
             </div>
             <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
               ISS calculado: <b>{brl(Number(form.valor.replace(",", ".") || 0) * 0.04)}</b> · Item 9.02 · Paranavaí/PR
+              {personId && personData && (
+                <span className="ml-2 text-emerald-600">· Dados do tomador carregados do cadastro</span>
+              )}
             </div>
           </div>
           <DialogFooter>
