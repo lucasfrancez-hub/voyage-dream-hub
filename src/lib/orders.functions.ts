@@ -688,6 +688,8 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
     email?: string | null;
     phone?: string | null;
     cpf?: string | null;
+    cnpj?: string | null;
+    person_id?: string | null;
     birth_date?: string | null;
     adults?: number | null;
     children?: number | null;
@@ -700,7 +702,7 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
       if (!isPartner) throw new Error("Forbidden");
     }
     const patch: Record<string, string | number | null> = {};
-    const strKeys = ["notes", "travel_reason", "coupon", "trip_title", "seller_name", "seller_email", "seller_phone", "supplier_logo_url", "airline_locator", "supplier_order_number", "supplier_name", "full_name", "email", "phone", "cpf", "birth_date"] as const;
+    const strKeys = ["notes", "travel_reason", "coupon", "trip_title", "seller_name", "seller_email", "seller_phone", "supplier_logo_url", "airline_locator", "supplier_order_number", "supplier_name", "full_name", "email", "phone", "cpf", "cnpj", "person_id", "birth_date"] as const;
     for (const k of strKeys) {
       const v = (data as Record<string, string | null | undefined>)[k];
       if (v !== undefined) patch[k] = v;
