@@ -942,9 +942,9 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           deleted_reason: string | null
-          email: string
+          email: string | null
           expected_total: number | null
-          full_name: string
+          full_name: string | null
           id: string
           notes: string | null
           notes_log: Json
@@ -967,7 +967,7 @@ export type Database = {
           payer_zip: string | null
           payment_method: string
           person_id: string | null
-          phone: string
+          phone: string | null
           quote_config: Json | null
           seller_email: string | null
           seller_name: string | null
@@ -993,9 +993,9 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           deleted_reason?: string | null
-          email: string
+          email?: string | null
           expected_total?: number | null
-          full_name: string
+          full_name?: string | null
           id?: string
           notes?: string | null
           notes_log?: Json
@@ -1018,7 +1018,7 @@ export type Database = {
           payer_zip?: string | null
           payment_method: string
           person_id?: string | null
-          phone: string
+          phone?: string | null
           quote_config?: Json | null
           seller_email?: string | null
           seller_name?: string | null
@@ -1044,9 +1044,9 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           deleted_reason?: string | null
-          email?: string
+          email?: string | null
           expected_total?: number | null
-          full_name?: string
+          full_name?: string | null
           id?: string
           notes?: string | null
           notes_log?: Json
@@ -1069,7 +1069,7 @@ export type Database = {
           payer_zip?: string | null
           payment_method?: string
           person_id?: string | null
-          phone?: string
+          phone?: string | null
           quote_config?: Json | null
           seller_email?: string | null
           seller_name?: string | null
