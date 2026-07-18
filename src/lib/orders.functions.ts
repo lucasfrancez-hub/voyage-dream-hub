@@ -86,21 +86,10 @@ async function buildAutoTitle(context: { supabase: unknown }, orderId: string): 
     const firstOrig = allSegs[0].orig;
     const lastDest = allSegs[allSegs.length - 1].dest;
     if (firstOrig === lastDest && allSegs.length > 1) {
-      // Ida e volta: descobre a cidade "de destino" (ponto de virada).
-      // Estratégia: cidade mais frequente entre as destinações intermediárias
-      // que também aparece como origem (i.e., aeroporto de virada).
-      const midCounts = new Map<string, number>();
-      for (let i = 0; i < allSegs.length - 1; i++) {
-        const d = allSegs[i].dest;
-        if (d === firstOrig) continue;
-        midCounts.set(d, (midCounts.get(d) ?? 0) + 1);
-      }
-      let turnaround = "";
-      let best = -1;
-      for (const [city, c] of midCounts) {
-        if (c > best) { best = c; turnaround = city; }
-      }
-      if (!turnaround) turnaround = allSegs[0].dest;
+      // Ida e volta: ponto de virada = destino do segmento no meio da jornada.
+      // Ex.: MGF→GRU, GRU→BEL, BEL→GRU, GRU→MGF → virada = BEL (segmento 2, cnt=4).
+      const mid = Math.max(0, Math.floor(allSegs.length / 2) - 1);
+      const turnaround = allSegs[mid]?.dest || allSegs[0].dest;
       parts.push(`Aéreo ${cityOf(firstOrig)} ⇄ ${cityOf(turnaround)}`);
     } else {
       parts.push(`Aéreo ${cityOf(firstOrig)} → ${cityOf(lastDest)}`);
