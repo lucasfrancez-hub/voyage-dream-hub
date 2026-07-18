@@ -655,6 +655,13 @@ function OrderDetailPage() {
         orderNumber={order.orderNumber}
         customerPhone={order.phone}
       />
+
+      <EditOrderDialog
+        open={openEdit}
+        onOpenChange={setOpenEdit}
+        order={order}
+        onSave={(patch) => { metaMut.mutate(patch); setOpenEdit(false); }}
+      />
     </div>
 
   );
