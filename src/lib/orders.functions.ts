@@ -526,8 +526,11 @@ export const deleteOrderItem = createServerFn({ method: "POST" })
       const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
       if (!isPartner) throw new Error("Forbidden");
     }
+    const { data: existing } = await context.supabase.from("order_items").select("order_id").eq("id", data.id).maybeSingle();
     const { error } = await context.supabase.from("order_items").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    const oid = (existing as { order_id?: string } | null)?.order_id;
+    if (oid) await applyAutoTitle(context, oid);
     return { ok: true };
   });
 
