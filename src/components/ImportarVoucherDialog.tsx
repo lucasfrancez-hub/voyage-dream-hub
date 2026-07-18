@@ -67,6 +67,8 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
   const [items, setItems] = useState<ExtractedItemVoucher[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const [defaultsOpen, setDefaultsOpen] = useState(false);
+
 
   const extract = useServerFn(extractItemVoucher);
   const saveItem = useServerFn(upsertOrderItem);
