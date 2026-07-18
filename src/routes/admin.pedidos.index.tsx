@@ -49,6 +49,25 @@ function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
 }
 
+type OrderOriginRow = {
+  package_id?: string | null;
+  package_snapshot?: unknown;
+};
+function orderOrigin(o: OrderOriginRow): { label: string; className: string } {
+  const snap = (o.package_snapshot ?? {}) as { kind?: string; manual?: boolean };
+  if (snap.kind === "payment_link" || snap.kind === "payment_link_simple") {
+    return { label: "Link de pagamento", className: "border-purple-500/40 bg-purple-500/10 text-purple-300" };
+  }
+  if (snap.manual === true) {
+    return { label: "Avulso", className: "border-amber-500/40 bg-amber-500/10 text-amber-300" };
+  }
+  if (o.package_id) {
+    return { label: "Pacote pronto", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" };
+  }
+  return { label: "Checkout", className: "border-sky-500/40 bg-sky-500/10 text-sky-300" };
+}
+
+
 export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_party"; initialStatus?: StatusFilter }) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus ?? "all");
   const [search, setSearch] = useState("");
@@ -67,7 +86,7 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
     queryFn: async () => {
       let q = supabase
         .from("orders")
-        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator, owner_user_id, deleted_at, deleted_reason")
+        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, package_id, supplier_name, supplier_order_number, airline_locator, owner_user_id, deleted_at, deleted_reason")
         .order("created_at", { ascending: false })
         .limit(500);
       if (scope === "mine") q = q.eq("owner_user_id", currentUserId!);
@@ -317,9 +336,13 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
+                    {(() => { const og = orderOrigin(o); return (
+                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${og.className}`}>{og.label}</span>
+                    ); })()}
                   </div>
+
                 </Link>
                 {showDeleted ? (
                   <button
@@ -404,8 +427,14 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                       )}
                     </td>
                     <td className="py-5 px-4 align-top">
-                      <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
+                        {(() => { const og = orderOrigin(o); return (
+                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${og.className}`}>{og.label}</span>
+                        ); })()}
+                      </div>
                     </td>
+
                     <td className="py-5 px-4 align-top text-right">
                       <div className="text-sm font-bold tabular-nums">{formatBRL(Number(o.total_price))}</div>
                     </td>
