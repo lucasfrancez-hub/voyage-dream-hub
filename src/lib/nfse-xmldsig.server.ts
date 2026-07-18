@@ -41,7 +41,7 @@ function loadCertFromEnv(): LoadedCert {
   try {
     // strict=false + parseAllBytes=false para aceitar BER com comprimento indefinido (0x3080),
     // comum em .p12 gerados no Windows/OpenSSL.
-    const asn1 = forge.asn1.fromDer(binary, { strict: false, parseAllBytes: false });
+    const asn1 = (forge.asn1.fromDer as any)(binary, { strict: false, parseAllBytes: false });
     p12 = forge.pkcs12.pkcs12FromAsn1(asn1, pwd);
   } catch (e: any) {
     throw new Error(
