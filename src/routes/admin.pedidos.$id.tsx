@@ -4131,8 +4131,9 @@ function PaymentDialog({
               </div>
               <div>
                 <Label>Valor pago (R$)</Label>
-                <Input type="number" step="0.01" value={form.amount ?? 0}
-                  onChange={(e) => setField("amount", Number(e.target.value))} />
+                <Input inputMode="decimal" value={rawAmount} placeholder="0,00"
+                  onChange={(e) => { setRawAmount(e.target.value); const n = parseBRLInput(e.target.value); setField("amount", (n ?? 0) as OrderPayment["amount"]); }}
+                  onBlur={() => { const n = parseBRLInput(rawAmount); if (n != null) setRawAmount(fmtBRLInput(n)); }} />
               </div>
               <div>
                 <Label>Nº do caixa</Label>
