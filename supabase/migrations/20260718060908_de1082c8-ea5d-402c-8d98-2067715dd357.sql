@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS cnpj text, ADD COLUMN IF NOT EXISTS payer_cnpj text;

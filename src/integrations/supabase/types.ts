@@ -699,6 +699,7 @@ export type Database = {
           airline_locator: string | null
           birth_date: string | null
           children: number
+          cnpj: string | null
           coupon: string | null
           cpf: string | null
           created_at: string
@@ -718,6 +719,7 @@ export type Database = {
           payer_address: string | null
           payer_birth_date: string | null
           payer_city: string | null
+          payer_cnpj: string | null
           payer_cpf: string | null
           payer_district: string | null
           payer_email: string | null
@@ -748,6 +750,7 @@ export type Database = {
           airline_locator?: string | null
           birth_date?: string | null
           children?: number
+          cnpj?: string | null
           coupon?: string | null
           cpf?: string | null
           created_at?: string
@@ -767,6 +770,7 @@ export type Database = {
           payer_address?: string | null
           payer_birth_date?: string | null
           payer_city?: string | null
+          payer_cnpj?: string | null
           payer_cpf?: string | null
           payer_district?: string | null
           payer_email?: string | null
@@ -797,6 +801,7 @@ export type Database = {
           airline_locator?: string | null
           birth_date?: string | null
           children?: number
+          cnpj?: string | null
           coupon?: string | null
           cpf?: string | null
           created_at?: string
@@ -816,6 +821,7 @@ export type Database = {
           payer_address?: string | null
           payer_birth_date?: string | null
           payer_city?: string | null
+          payer_cnpj?: string | null
           payer_cpf?: string | null
           payer_district?: string | null
           payer_email?: string | null

@@ -1145,7 +1145,9 @@ export type CreateOrderInput = {
   email: string;
   phone: string;
   cpf?: string | null;
+  cnpj?: string | null;
   payment_method: string;
+
   total_price?: number;
   expected_total?: number | null;
   adults?: number;
@@ -1157,6 +1159,8 @@ export type CreateOrderInput = {
   birth_date?: string | null;
   payer_full_name?: string | null;
   payer_cpf?: string | null;
+  payer_cnpj?: string | null;
+
   payer_ie_rg?: string | null;
   payer_email?: string | null;
   payer_phone?: string | null;
@@ -1184,6 +1188,8 @@ export const createOrder = createServerFn({ method: "POST" })
       email: data.email,
       phone: data.phone,
       cpf: nn(data.cpf),
+      cnpj: nn(data.cnpj),
+
       payment_method: data.payment_method,
       total_price: data.total_price ?? 0,
       expected_total: data.expected_total ?? null,
@@ -1196,6 +1202,8 @@ export const createOrder = createServerFn({ method: "POST" })
       birth_date: nn(data.birth_date),
       payer_full_name: nn(data.payer_full_name),
       payer_cpf: nn(data.payer_cpf),
+      payer_cnpj: nn(data.payer_cnpj),
+
       payer_ie_rg: nn(data.payer_ie_rg),
       payer_email: nn(data.payer_email),
       payer_phone: nn(data.payer_phone),

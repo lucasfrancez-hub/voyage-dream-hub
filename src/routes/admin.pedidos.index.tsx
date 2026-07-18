@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { confirmThen } from "@/lib/confirm";
 
@@ -504,23 +504,18 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
     email: "",
     phone: "",
     cpf: "",
-    payment_method: "credit_card",
+    cnpj: "",
     expected_total: 0,
     adults: 1,
     children: 0,
-    supplier_name: "",
-    airline_locator: "",
-    notes: "",
     person_id: "" as string,
     birth_date: "",
     rg: "",
     zip: "",
     address: "",
     number: "",
-    district: "",
-    city: "",
-    state: "",
   });
+
   const [savedCardInfo, setSavedCardInfo] = useState<string | null>(null);
   const [personQuery, setPersonQuery] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -544,17 +539,16 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
       email: form.email,
       phone: form.phone,
       cpf: form.cpf,
-      payment_method: form.payment_method,
+      cnpj: form.cnpj,
+      payment_method: "other",
       expected_total: form.expected_total,
       adults: form.adults,
       children: form.children,
-      supplier_name: form.supplier_name,
-      airline_locator: form.airline_locator,
-      notes: form.notes,
       person_id: form.person_id || null,
       birth_date: form.birth_date || null,
       payer_full_name: form.full_name || null,
       payer_cpf: form.cpf || null,
+      payer_cnpj: form.cnpj || null,
       payer_ie_rg: form.rg || null,
       payer_email: form.email || null,
       payer_phone: form.phone || null,
@@ -562,9 +556,6 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
       payer_zip: form.zip || null,
       payer_address: form.address || null,
       payer_number: form.number || null,
-      payer_district: form.district || null,
-      payer_city: form.city || null,
-      payer_state: form.state || null,
     } }),
     onSuccess: (r) => {
       toast.success(`Pedido ${r.order_number} criado`);
@@ -575,12 +566,17 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
   });
 
   const submit = () => {
-    if (!form.full_name || !form.email || !form.phone) {
-      toast.error("Preencha nome, e-mail e telefone");
+    if (!form.full_name.trim()) {
+      toast.error("Preencha o nome completo");
+      return;
+    }
+    if (!form.cpf.trim() && !form.cnpj.trim()) {
+      toast.error("Informe CPF ou CNPJ");
       return;
     }
     mut.mutate();
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -618,15 +614,13 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
                         full_name: p.name ?? f.full_name,
                         email: p.email ?? f.email,
                         phone: p.mobile_phone ?? p.phone ?? f.phone,
-                        cpf: p.cpf ?? p.cnpj ?? f.cpf,
+                        cpf: p.cpf ?? f.cpf,
+                        cnpj: p.cnpj ?? f.cnpj,
                         birth_date: p.birth_date ?? f.birth_date,
                         rg: p.rg ?? f.rg,
                         zip: p.zip ?? f.zip,
                         address: p.address ?? f.address,
                         number: p.number ?? f.number,
-                        district: p.district ?? f.district,
-                        city: p.city ?? f.city,
-                        state: p.state ?? f.state,
                       }));
                       setPersonQuery(p.name ?? "");
                       setShowResults(false);
@@ -656,10 +650,12 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
             )}
           </div>
 
+          <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
-            <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
+            <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="000.000.000-00" /></div>
+            <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} placeholder="00.000.000/0000-00" /></div>
           </div>
+          <p className="text-[11px] text-muted-foreground -mt-2">Informe CPF ou CNPJ (obrigatório).</p>
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
             <div><Label>RG</Label><Input value={form.rg} onChange={(e) => setForm({ ...form, rg: e.target.value })} /></div>
@@ -669,47 +665,19 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
             <div className="col-span-2"><Label>Endereço</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
             <div><Label>Número</Label><Input value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })} /></div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div><Label>Bairro</Label><Input value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} /></div>
-            <div><Label>Cidade</Label><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
-            <div><Label>UF</Label><Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value.toUpperCase() })} maxLength={2} /></div>
-          </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-            <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+            <div><Label>E-mail</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+            <div><Label>Telefone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Adultos</Label><Input type="number" min={0} value={form.adults} onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })} /></div>
             <div><Label>Crianças</Label><Input type="number" min={0} value={form.children} onChange={(e) => setForm({ ...form, children: Number(e.target.value) })} /></div>
-            <div><Label>Orçamento previsto (R$)</Label><Input type="number" step="0.01" value={form.expected_total} onChange={(e) => setForm({ ...form, expected_total: Number(e.target.value) })} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Meio de pagamento</Label>
-              <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit_card">Cartão de crédito</SelectItem>
-                  <SelectItem value="pix">Pix</SelectItem>
-                  <SelectItem value="boleto">Boleto</SelectItem>
-                  <SelectItem value="transfer">Transferência</SelectItem>
-                  <SelectItem value="other">Outro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label>Fornecedor</Label><Input value={form.supplier_name} onChange={(e) => setForm({ ...form, supplier_name: e.target.value })} /></div>
-          </div>
-          <div>
-            <Label>Localizador aéreo (opcional)</Label>
-            <Input value={form.airline_locator} onChange={(e) => setForm({ ...form, airline_locator: e.target.value.toUpperCase() })} />
-          </div>
-          <div>
-            <Label>Observações</Label>
-            <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <div><Label>Total previsto (R$)</Label><Input type="number" step="0.01" value={form.expected_total} onChange={(e) => setForm({ ...form, expected_total: Number(e.target.value) })} /></div>
           </div>
           <p className="text-xs text-muted-foreground">
             Depois de criar, você entra na tela do pedido para adicionar hospedagem, aéreo, passageiros e lançamentos financeiros.
           </p>
+
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
