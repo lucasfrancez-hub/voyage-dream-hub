@@ -104,14 +104,21 @@ function LinkBoletoGenerator() {
 
 
 
+  const extrasFilled = [orderRef, imageUrl].filter((v) => v.trim()).length;
+
   return (
     <div className="mx-auto max-w-4xl px-3 sm:px-6 py-6 sm:py-10">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
-            <FileText className="h-4 w-4" /> Gerar link — Boleto bancário
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-2xl bg-brand-orange/10 border border-brand-orange/30 flex items-center justify-center text-brand-orange">
+            <FileText className="h-5 w-5" />
           </div>
-          <h1 className="mt-1 font-display text-3xl font-bold">Link de ficha de crédito</h1>
+          <div>
+            <div className="flex items-center gap-2 text-brand-orange text-[11px] uppercase tracking-widest font-semibold">
+              <FileText className="h-3.5 w-3.5" /> Boleto bancário · ficha de crédito
+            </div>
+            <h1 className="mt-0.5 font-display text-2xl font-bold">Novo link de ficha</h1>
+          </div>
         </div>
         <Link
           to="/admin/cofre"
@@ -120,67 +127,80 @@ function LinkBoletoGenerator() {
           <Vault className="h-4 w-4" /> Ver cofre
         </Link>
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Envie ao cliente um link para preencher a ficha de crédito (passageiros + dados do financiador) do
-        boleto bancário. O pedido chega em <code>/admin/pedidos</code> com todos os dados.
-      </p>
 
-      <div className="mt-8 grid lg:grid-cols-[1fr_400px] gap-6">
-        <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
-          <Field label="Nome do cliente">
-            <input value={customer} onChange={(e) => setCustomer(e.target.value)} className={cls} placeholder="Lucas Silva" />
-          </Field>
-          <Field label="Telefone / WhatsApp do cliente (com DDI)">
-            <input
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ""))}
-              className={cls}
-              placeholder="5544999999999"
-            />
-          </Field>
-          <Field label="Descrição / referência *">
-            <input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} placeholder="Pacote Cancún 5 dias" />
-          </Field>
-          <Field label="Número do pedido (opcional)">
-            <input
-              value={orderNumber}
-              onChange={(e) => setOrderNumber(e.target.value)}
-              className={cls}
-              placeholder="Ex.: localizador da cia (ABC123) ou ID da operadora"
-              maxLength={40}
-            />
-            <span className="mt-1 block text-[11px] text-muted-foreground">
-              Aparecerá como número do pedido no cofre e nos comprovantes.
-            </span>
-          </Field>
-          <Field label="Referência interna (opcional)">
-            <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
-          </Field>
+      <div className="mt-4 flex items-start gap-2 rounded-xl border border-sky-500/40 bg-sky-500/5 p-3 text-xs text-sky-900 dark:text-sky-200">
+        <Info className="h-4 w-4 mt-0.5 shrink-0" />
+        <div>
+          O cliente preenche passageiros e dados do financiador. O pedido chega em <code>/admin/pedidos</code> pronto para análise de crédito.
+        </div>
+      </div>
 
-          <Field label="Imagem do destino (URL) — aparece no topo do link">
-            <input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className={cls}
-              placeholder="https://…foto-do-destino.jpg"
-            />
-            {imageUrl && (
-              <img
-                src={imageUrl}
-                alt="Prévia do destino"
-                className="mt-2 h-28 w-full rounded-lg object-cover border border-border"
-                onError={(e) => (e.currentTarget.style.display = "none")}
+      <div className="mt-6 grid lg:grid-cols-[1fr_400px] gap-6">
+        <section className="rounded-2xl border border-border bg-card p-6 space-y-6">
+          <EssentialGroup title="Dados do cliente">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Field label="Nome do cliente">
+                <input value={customer} onChange={(e) => setCustomer(e.target.value)} className={cls} placeholder="Lucas Silva" />
+              </Field>
+              <Field label="WhatsApp (com DDI)">
+                <input
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ""))}
+                  className={cls}
+                  placeholder="5544999999999"
+                />
+              </Field>
+            </div>
+          </EssentialGroup>
+
+          <EssentialGroup title="Sobre a cobrança">
+            <Field label="Descrição / referência *">
+              <input value={description} onChange={(e) => setDescription(e.target.value)} className={cls} placeholder="Pacote Cancún 5 dias" />
+            </Field>
+            <Field label="Nº do pedido (opcional)">
+              <input
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+                className={cls}
+                placeholder="Localizador (ABC123) ou ID da operadora"
+                maxLength={40}
               />
-            )}
-          </Field>
-          <Field label="Valor total (R$) *">
-            <input required inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} className={cls} placeholder="4999.90" />
-          </Field>
+            </Field>
+            <Field label="Valor total (R$) *">
+              <input required inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} className={cls} placeholder="4999.90" />
+            </Field>
+          </EssentialGroup>
+
+          <CollapsibleSection
+            title="Apresentação e referência interna"
+            hint="Imagem no topo do link e número interno para seu controle."
+            filledCount={extrasFilled}
+          >
+            <Field label="Imagem do destino (URL)">
+              <input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className={cls}
+                placeholder="https://…foto-do-destino.jpg"
+              />
+              {imageUrl && (
+                <img
+                  src={imageUrl}
+                  alt="Prévia do destino"
+                  className="mt-2 h-28 w-full rounded-lg object-cover border border-border"
+                  onError={(e) => (e.currentTarget.style.display = "none")}
+                />
+              )}
+            </Field>
+            <Field label="Referência interna (CRM)">
+              <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} className={cls} placeholder="Ex.: número do orçamento no CRM" />
+            </Field>
+          </CollapsibleSection>
         </section>
 
         <aside className="rounded-2xl border border-border bg-card p-6 space-y-4 lg:sticky lg:top-24 h-fit">
-          <h2 className="font-semibold">Resumo</h2>
-          <div className="text-3xl font-display font-bold text-brand-orange">
+          <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Resumo</div>
+          <div className="text-3xl font-display font-bold text-brand-orange tabular-nums">
             {totalNumber ? formatBRL(totalNumber) : "R$ —"}
           </div>
           <div className="text-xs text-muted-foreground">
@@ -188,9 +208,10 @@ function LinkBoletoGenerator() {
           </div>
 
           <div className="pt-3 border-t border-border">
-            <label className="text-xs text-muted-foreground">Link gerado</label>
-            <textarea readOnly value={url} className={`${cls} mt-1 min-h-[90px] font-mono text-xs`} placeholder="Preencha descrição e valor para gerar…" />
+            <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Link gerado</label>
+            <textarea readOnly value={url} className={`${cls} mt-1 min-h-[90px] font-mono text-xs`} placeholder="Preencha descrição e valor…" />
           </div>
+
 
           <div className="grid gap-2">
             <button
