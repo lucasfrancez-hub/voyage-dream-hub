@@ -181,10 +181,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
   async function confirmar() {
     if (!reservation || !token) return;
     try {
+      const newPassengerIds: string[] = [];
       for (let i = 0; i < reservation.passengers.length; i++) {
         const p = reservation.passengers[i]!;
         const kindMap: Record<string, "ADT" | "CHD" | "INF"> = { adult: "ADT", child: "CHD", infant: "INF" };
-        await savePax({ data: {
+        const { id: paxId } = await savePax({ data: {
           order_id: orderId,
           full_name: p.full_name,
           passenger_type: kindMap[p.kind ?? "adult"] ?? "ADT",
@@ -196,6 +197,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
           doc_type: p.doc_type ?? (p.cpf ? "cpf" : p.passport_number ? "passport" : "cpf"),
           sort_order: i,
         } });
+        newPassengerIds.push(paxId);
       }
       let sort = 0;
       let firstItem = true;
