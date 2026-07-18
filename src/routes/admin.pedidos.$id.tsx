@@ -532,8 +532,12 @@ function OrderDetailPage() {
               variant="ghost"
               className="h-9 gap-2 text-muted-foreground hover:text-foreground"
               onClick={() => {
-                window.dispatchEvent(new CustomEvent("nfse:open-emit", { detail: { orderId: order.id } }));
+                setActiveTab("contract");
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent("nfse:open-emit", { detail: { orderId: order.id } }));
+                }, 80);
               }}
+
             >
               <FileText className="h-4 w-4" /> Emitir NFS-e
             </Button>
