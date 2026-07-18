@@ -228,27 +228,33 @@ function OrderDetailPage() {
     refetchInterval: (q) => (q.state.data?.assinatura?.status === "running" ? 15000 : false),
   });
 
-  // Deriva o status "visível" no cabeçalho a partir de itens + assinatura.
-  // Regras: manual (cancelled/rejected) vence; assinado → Finalizado;
-  // enviado e não assinado → Aguardando assinatura; todos itens confirmados → Confirmado.
-  const activeItems = detail.items.filter((i) => i.status !== "cancelled");
-  const allConfirmed = activeItems.length > 0 && activeItems.every((i) => i.status === "confirmed");
-  const anyReserved = activeItems.some((i) => i.status === "reserved" || i.status === "confirmed");
+  // Deriva o status "visível" no cabeçalho a partir de pagamentos + assinatura,
+  // permitindo override manual pelo botão de Ação (paid/confirmed/cancelled/rejected).
+  // Regras (ordem de prioridade):
+  //   1) manual cancelled/rejected → mantém
+  //   2) assinatura fechada OU manual paid → Finalizado (paid)
+  //   3) assinatura em andamento/rascunho → Aguardando assinatura
+  //   4) manual confirmed → Confirmado
+  //   5) tem pagamento (não cancelado) → Confirmado
+  //   6) senão → Pendente
+  const hasPayment = (detail.payments ?? []).some(
+    (p) => String(p.status ?? "").toLowerCase() !== "cancelled",
+  );
   const sigStatus = sigData?.assinatura?.status ?? null;
 
   const manual = (order.status || "").toLowerCase();
   const derivedStatus: string =
     manual === "cancelled" || manual === "canceled" || manual === "rejected"
       ? manual
-      : sigStatus === "closed"
+      : (sigStatus === "closed" || manual === "paid" || manual === "approved")
         ? "paid"
         : (sigStatus === "running" || sigStatus === "draft")
           ? "awaiting_signature"
-          : allConfirmed
+          : manual === "confirmed"
             ? "confirmed"
-            : anyReserved
-              ? "reserved"
-              : manual || "pending";
+            : hasPayment
+              ? "confirmed"
+              : "pending";
 
   const st = statusLabel(derivedStatus);
 
