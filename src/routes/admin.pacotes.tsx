@@ -211,7 +211,7 @@ function AdminPackages() {
           <h1 className="text-3xl sm:text-4xl font-black tracking-tighter uppercase text-foreground mb-2">
             Command Center <span className="text-brand-orange">/</span> Pacotes
           </h1>
-          <p className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="text-[10px] sm:text-xs text-muted-foreground">
             {packages?.length ?? 0} pacote(s) cadastrados no sistema via air
           </p>
         </div>
@@ -252,7 +252,7 @@ function AdminPackages() {
                     {p.title}
                   </h3>
                 </div>
-                <div className="flex items-center gap-2 pl-5 font-mono text-[11px] text-muted-foreground uppercase min-w-0">
+                <div className="flex items-center gap-2 pl-5 text-[11px] text-muted-foreground uppercase min-w-0">
                   <span className="truncate">/{p.slug}</span>
                   <span className="text-muted-foreground/40 shrink-0">•</span>
                   <span className="text-muted-foreground/90 italic truncate">{p.destination}</span>
@@ -261,7 +261,7 @@ function AdminPackages() {
 
               {/* Dates */}
               <div className="col-span-1 md:col-span-3 flex md:justify-center">
-                <div className="inline-flex items-center gap-3 font-mono text-xs sm:text-sm tracking-tight text-muted-foreground bg-background/60 px-3 py-1.5 border border-border/60">
+                <div className="inline-flex items-center gap-3 text-xs sm:text-sm tracking-tight text-muted-foreground bg-background/60 px-3 py-1.5 border border-border/60">
                   <span>{p.going_date ? formatDate(p.going_date) : "—"}</span>
                   <span className="text-muted-foreground/40">→</span>
                   <span>{p.return_date ? formatDate(p.return_date) : "—"}</span>
@@ -270,7 +270,7 @@ function AdminPackages() {
 
               {/* Price */}
               <div className="col-span-1 md:col-span-2 md:text-right">
-                <div className="text-[10px] text-muted-foreground font-mono uppercase mb-0.5">BRL</div>
+                <div className="text-[10px] text-muted-foreground uppercase mb-0.5">BRL</div>
                 <div className="text-lg sm:text-xl font-black text-foreground tabular-nums tracking-tight">
                   {formatBRLNoSymbol(p.price_per_person)}
                 </div>
