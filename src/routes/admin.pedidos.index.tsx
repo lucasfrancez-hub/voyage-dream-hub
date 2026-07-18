@@ -352,6 +352,7 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
 function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const navigate = useNavigate();
   const create = useServerFn(createOrder);
+  const search = useServerFn(searchPeople);
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -365,6 +366,21 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
     airline_locator: "",
     notes: "",
   });
+  const [personQuery, setPersonQuery] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(personQuery.trim()), 250);
+    return () => clearTimeout(t);
+  }, [personQuery]);
+
+  const { data: people, isFetching } = useQuery({
+    enabled: open && debouncedQ.length >= 2,
+    queryKey: ["admin", "new-order", "people-search", debouncedQ],
+    queryFn: () => search({ data: { q: debouncedQ } }),
+  });
+
 
   const mut = useMutation({
     mutationFn: async () => create({ data: { ...form } }),
