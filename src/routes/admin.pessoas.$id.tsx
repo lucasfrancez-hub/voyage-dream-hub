@@ -1,15 +1,18 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Save, Trash2, Loader2, Plus, CreditCard, Eye, EyeOff, User, Building2,
+  ShoppingBag, Wallet, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPerson, upsertPerson, deletePerson,
   addPersonCard, deletePersonCard, revealPersonCardNumber,
+  getPersonSalesAndFinancials,
   type PersonRow, type PersonCardRow, type PersonKind,
+  type PersonSaleRow, type PersonFinancialSummary,
 } from "@/lib/people.functions";
 
 export const Route = createFileRoute("/admin/pessoas/$id")({
