@@ -2152,7 +2152,20 @@ function ItemDialog({
   }, [locator, kind, ticketNumber]);
 
 
+  // Normaliza entrada monetária BRL. Aceita "11.585,85" (ponto milhar + vírgula decimal),
+  // "11585,85", "11585.85" e devolve string com ponto decimal parsável por Number().
+  const parseMoneyInput = (raw: string): string => {
+    if (raw == null) return "";
+    const s = String(raw).trim();
+    if (!s) return "";
+    const hasComma = s.includes(",");
+    const hasDot = s.includes(".");
+    if (hasComma && hasDot) return s.replace(/\./g, "").replace(",", ".");
+    if (hasComma) return s.replace(",", ".");
+    return s;
+  };
   const setField = (k: string, v: string | boolean) => setDetails((p) => ({ ...p, [k]: v }));
+  const setMoneyField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: parseMoneyInput(v) }));
   const setSegField = (idx: number, k: string, v: string | boolean) =>
     setExtraSegments((arr) => arr.map((s, i) => (i === idx ? { ...s, details: { ...s.details, [k]: v } } : s)));
   const addSegment = (direction: "outbound" | "return") =>
@@ -2434,11 +2447,11 @@ function ItemDialog({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Valor total (R$)</Label>
-                <Input inputMode="decimal" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="11.406,30" />
+                <Input inputMode="decimal" value={String(details.value ?? "")} onChange={(e) => setMoneyField("value", e.target.value)} placeholder="11.406,30" />
               </div>
               <div>
                 <Label>Taxas inclusas (R$)</Label>
-                <Input inputMode="decimal" value={String(details.tax_value ?? "")} onChange={(e) => setField("tax_value", e.target.value)} placeholder="0,00" />
+                <Input inputMode="decimal" value={String(details.tax_value ?? "")} onChange={(e) => setMoneyField("tax_value", e.target.value)} placeholder="0,00" />
                 <p className="mt-1 text-[10px] text-muted-foreground">As taxas já fazem parte do valor total.</p>
               </div>
             </div>
@@ -2553,11 +2566,11 @@ function ItemDialog({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label>Valor total (R$)</Label>
-                  <Input type="number" step="0.01" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="0,00" />
+                  <Input inputMode="decimal" value={String(details.value ?? "")} onChange={(e) => setMoneyField("value", e.target.value)} placeholder="0,00" />
                 </div>
                 <div>
                   <Label>Taxa inclusa (R$)</Label>
-                  <Input type="number" step="0.01" value={String(details.tax_value ?? "")} onChange={(e) => setField("tax_value", e.target.value)} placeholder="0,00" />
+                  <Input inputMode="decimal" value={String(details.tax_value ?? "")} onChange={(e) => setMoneyField("tax_value", e.target.value)} placeholder="0,00" />
                   <p className="mt-1 text-[10px] text-muted-foreground">Parte não comissionável.</p>
                 </div>
                 <div>

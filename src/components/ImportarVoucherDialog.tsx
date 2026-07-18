@@ -19,6 +19,18 @@ type Props = {
 
 const MAX_BYTES = 15 * 1024 * 1024;
 
+// Normaliza entrada monetária BRL. Aceita "11.585,85", "11585,85", "11585.85".
+function parseMoneyInputVoucher(raw: string): number | "" {
+  if (raw == null) return "";
+  const s = String(raw).trim();
+  if (!s) return "";
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+  const norm = hasComma && hasDot ? s.replace(/\./g, "").replace(",", ".") : hasComma ? s.replace(",", ".") : s;
+  const n = Number(norm);
+  return Number.isFinite(n) ? n : "";
+}
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -333,11 +345,11 @@ function ReviewExtracted({
       <div className="grid grid-cols-3 gap-3">
         <div>
           <Label>Valor total</Label>
-          <Input type="number" step="0.01" value={String(d.value ?? "")} onChange={(e) => patchDetails("value", e.target.value ? Number(e.target.value) : "")} />
+          <Input inputMode="decimal" value={String(d.value ?? "")} onChange={(e) => patchDetails("value", parseMoneyInputVoucher(e.target.value))} placeholder="0,00" />
         </div>
         <div>
           <Label>Taxas inclusas</Label>
-          <Input type="number" step="0.01" value={String(d.tax_value ?? "")} onChange={(e) => patchDetails("tax_value", e.target.value ? Number(e.target.value) : "")} />
+          <Input inputMode="decimal" value={String(d.tax_value ?? "")} onChange={(e) => patchDetails("tax_value", parseMoneyInputVoucher(e.target.value))} placeholder="0,00" />
         </div>
         <div>
           <Label>Moeda</Label>
