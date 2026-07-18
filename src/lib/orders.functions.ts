@@ -517,7 +517,7 @@ export const upsertPassenger = createServerFn({ method: "POST" })
       });
       if (match?.id) {
         // Enriquece campos ainda vazios sem sobrescrever dados existentes.
-        const patch: Record<string, unknown> = {};
+        const patch: { cpf?: string; document?: string; birth_date?: string; passport_number?: string } = {};
         if (!match.cpf && payload.cpf) patch.cpf = payload.cpf;
         if (!match.document && payload.document) patch.document = payload.document;
         if (!match.birth_date && payload.birth_date) patch.birth_date = payload.birth_date;
