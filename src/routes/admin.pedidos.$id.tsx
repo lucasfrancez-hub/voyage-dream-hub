@@ -525,7 +525,7 @@ function OrderDetailPage() {
                 <DropdownMenuItem onClick={() => toast.info("Envio de voucher — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
+          </div>
 
           {/* Core / primary actions */}
           <div className="flex flex-wrap items-center gap-2">
