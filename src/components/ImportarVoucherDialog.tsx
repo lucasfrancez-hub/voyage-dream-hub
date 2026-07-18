@@ -56,6 +56,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
   const saveItem = useServerFn(upsertOrderItem);
   const savePax = useServerFn(upsertPassenger);
   const saveFin = useServerFn(upsertItemFinancial);
+  const findFin = useServerFn(getFirstFinancialForItem);
   const updateMeta = useServerFn(updateOrderMeta);
 
   function reset() {
