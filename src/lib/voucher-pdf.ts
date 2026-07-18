@@ -819,7 +819,7 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
   const colHeaderH = 18;
   const cardH = headerH + colHeaderH + rowH * passengers.length + 16;
   const { top } = openSectionCard(ctx, cardH + 20);
-  const headerBottom = drawSectionHeader(ctx, top, "user", t.passageiro);
+  const headerBottom = drawSectionHeader(ctx, top, "user", "PASSAGEIROS");
 
   const innerX = MARGIN + 20;
   const innerW = CONTENT_W - 40;
@@ -854,7 +854,7 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
   });
   cy -= 12;
 
-  passengers.forEach((p) => {
+  passengers.forEach((p, idx) => {
     const name = (p.full_name ?? "").toUpperCase();
     const doc = p.doc_type === "passport"
       ? (p.passport_number ? `PPT ${p.passport_number}` : "-")
@@ -874,6 +874,13 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
       });
     });
     cy -= rowH;
+    if (idx < passengers.length - 1) {
+      ctx.page.drawLine({
+        start: { x: MARGIN + 12, y: cy + 5 },
+        end: { x: MARGIN + CONTENT_W - 12, y: cy + 5 },
+        thickness: 0.3, color: COLOR_BORDER,
+      });
+    }
   });
 
   closeSectionCard(ctx, top, cy + 6);
