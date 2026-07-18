@@ -283,7 +283,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
             <FileText className="h-4 w-4" /> Nota Fiscal de Serviço (NFS-e)
           </div>
           <div className="text-xs text-muted-foreground mt-0.5">
-            Emissão via Focus NFe · Paranavaí/PR · ISS 4% · Item 9.02
+            Emissão via AtendeNet (IPM) · Paranavaí/PR · ISS 4% · Item 9.02
           </div>
         </div>
         <Button size="sm" onClick={openDialog}>
