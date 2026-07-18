@@ -32,6 +32,17 @@ function parseMoneyInputVoucher(raw: string): number | "" {
   return Number.isFinite(n) ? n : "";
 }
 
+// Serviços costumam vir com um hash imenso + o número real do pedido no final
+// (ex.: "wAhhTcaBPkD90XLT29cDdhcnS5C40045919" → "40045919"). Se o localizador
+// tem letras E termina em 5+ dígitos, preserva só os dígitos finais.
+function normalizeServiceLocator(raw: string | null | undefined): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  if (!/[A-Za-z]/.test(s)) return s;
+  const m = s.match(/(\d{5,})\s*$/);
+  return m ? m[1]! : s;
+}
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -88,6 +99,11 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
         toast.error("Nenhum item detectado no voucher.");
         setPhase("idle");
         return;
+      }
+      for (const it of list) {
+        if (it.kind === "other" || it.kind === "hotel") {
+          it.supplier_locator = normalizeServiceLocator(it.supplier_locator) ?? undefined;
+        }
       }
       setItems(list);
       setActiveIdx(0);

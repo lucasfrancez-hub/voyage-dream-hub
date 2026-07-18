@@ -39,6 +39,16 @@ function parseMoneyInput(raw: string): number | "" {
   return Number.isFinite(n) ? n : "";
 }
 
+// Serviços/hotéis podem trazer um hash imenso + o número real no final
+// (ex.: "wAhhTcaBPkD90XLT29cDdhcnS5C40045919" → "40045919").
+function normalizeServiceLocator(raw: string | null | undefined): string | undefined {
+  const s = String(raw ?? "").trim();
+  if (!s) return undefined;
+  if (!/[A-Za-z]/.test(s)) return s;
+  const m = s.match(/(\d{5,})\s*$/);
+  return m ? m[1]! : s;
+}
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -102,6 +112,11 @@ export function ImportarMultiDialog({ orderId, onImported, trigger }: Props) {
         toast.error("Nenhum item identificado no documento.");
         setPhase("idle");
         return;
+      }
+      for (const it of r.items) {
+        if (it.kind === "other" || it.kind === "hotel") {
+          it.supplier_locator = normalizeServiceLocator(it.supplier_locator);
+        }
       }
       setResult(r);
       const initSel: Record<number, boolean> = {};
