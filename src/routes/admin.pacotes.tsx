@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -303,11 +303,11 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
   const [tab, setTab] = useState<TabId>("about");
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: "about", label: "Sobre o pacote", icon: <span className="text-base">ℹ</span> },
-    { id: "dates", label: "Datas e Preços", icon: <span className="text-base">📅</span> },
-    { id: "hotel", label: "Hospedagem", icon: <span className="text-base">🏨</span> },
-    { id: "flights", label: "Aéreos", icon: <span className="text-base">✈</span> },
-    { id: "extras", label: "Extras e Inclusos", icon: <span className="text-base">📝</span> },
+    { id: "about", label: "SOBRE O PACOTE", icon: <Info className="h-4 w-4" strokeWidth={1.75} /> },
+    { id: "dates", label: "DATAS E PREÇOS", icon: <CalendarRange className="h-4 w-4" strokeWidth={1.75} /> },
+    { id: "hotel", label: "HOSPEDAGEM", icon: <Building2 className="h-4 w-4" strokeWidth={1.75} /> },
+    { id: "flights", label: "AÉREOS", icon: <Plane className="h-4 w-4" strokeWidth={1.75} /> },
+    { id: "extras", label: "EXTRAS E INCLUSOS", icon: <ListChecks className="h-4 w-4" strokeWidth={1.75} /> },
   ];
 
   return (
@@ -339,13 +339,13 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                  className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-[0.14em] whitespace-nowrap transition-all ${
                     active
-                      ? "bg-brand-orange/10 text-brand-orange border border-brand-orange/20"
+                      ? "bg-brand-orange/10 text-brand-orange border border-brand-orange/30 shadow-[0_0_0_1px_rgba(242,107,31,0.08)]"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
                   }`}
                 >
-                  <span className="opacity-80">{t.icon}</span>
+                  <span className={active ? "text-brand-orange" : "opacity-70"}>{t.icon}</span>
                   {t.label}
                 </button>
               );
