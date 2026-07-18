@@ -99,6 +99,7 @@ export const listCofreOrders = createServerFn({ method: "GET" })
             ? (snap.first_amount as number)
             : null,
         snapshotKind: (snap.kind as string) ?? null,
+        isManual: snap.manual === true,
       };
 
     });
