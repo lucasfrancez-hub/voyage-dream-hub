@@ -49,7 +49,8 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<"idle" | "uploading" | "review">("idle");
-  const [extracted, setExtracted] = useState<ExtractedItemVoucher | null>(null);
+  const [items, setItems] = useState<ExtractedItemVoucher[]>([]);
+  const [activeIdx, setActiveIdx] = useState(0);
   const [dragOver, setDragOver] = useState(false);
 
   const extract = useServerFn(extractItemVoucher);
@@ -61,7 +62,8 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
 
   function reset() {
     setFile(null);
-    setExtracted(null);
+    setItems([]);
+    setActiveIdx(0);
     setPhase("idle");
   }
 
@@ -80,7 +82,14 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
         fileBase64: b64,
         kind,
       } });
-      setExtracted(result);
+      const list = Array.isArray(result) ? result : [result as ExtractedItemVoucher];
+      if (list.length === 0) {
+        toast.error("Nenhum item detectado no voucher.");
+        setPhase("idle");
+        return;
+      }
+      setItems(list);
+      setActiveIdx(0);
       setPhase("review");
     } catch (e) {
       toast.error("Erro ao extrair: " + (e as Error).message);
@@ -88,77 +97,94 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
     }
   }
 
-  async function confirmar() {
-    if (!extracted) return;
-    try {
-      const details: Record<string, unknown> = { ...(extracted.details ?? {}) };
-      if (extracted.kind === "hotel" && extracted.details?.hotel_name && !details.hotel_name) {
-        details.hotel_name = extracted.details.hotel_name;
+  function patchActive(next: ExtractedItemVoucher) {
+    setItems((prev) => prev.map((it, i) => (i === activeIdx ? next : it)));
+  }
+
+  function removeActive() {
+    setItems((prev) => {
+      const nx = prev.filter((_, i) => i !== activeIdx);
+      setActiveIdx((cur) => Math.max(0, Math.min(cur, nx.length - 1)));
+      return nx;
+    });
+  }
+
+  async function saveOne(extracted: ExtractedItemVoucher, sortOrder: number) {
+    const details: Record<string, unknown> = { ...(extracted.details ?? {}) };
+    if (extracted.kind === "hotel" && extracted.details?.hotel_name && !details.hotel_name) {
+      details.hotel_name = extracted.details.hotel_name;
+    }
+    const status: "confirmed" | "reserved" | "pending" = extracted.status ?? (extracted.supplier_locator ? "confirmed" : "reserved");
+    const title = extracted.title?.trim() ||
+      (extracted.kind === "hotel"
+        ? `Hospedagem — ${String(details.hotel_name ?? "")}`.trim()
+        : "Serviço");
+    const saved = await saveItem({ data: {
+      order_id: orderId,
+      kind: extracted.kind,
+      title,
+      supplier_locator: extracted.supplier_locator ?? null,
+      details: details as unknown as import("@/integrations/supabase/types").Json,
+      status,
+      sort_order: sortOrder,
+    } });
+
+    const paxList = extracted.passengers ?? [];
+    if (paxList.length && saved?.id) {
+      const kindMap: Record<string, "ADT" | "CHD" | "INF"> = { adult: "ADT", child: "CHD", infant: "INF" };
+      for (let i = 0; i < paxList.length; i++) {
+        const p = paxList[i]!;
+        if (!p.full_name?.trim()) continue;
+        const cpf = (p.cpf ?? "").replace(/\D/g, "");
+        await savePax({ data: {
+          order_id: orderId,
+          full_name: p.full_name.trim(),
+          passenger_type: kindMap[p.kind ?? "adult"] ?? "ADT",
+          birth_date: p.birth_date ?? null,
+          cpf: cpf.length === 11 ? cpf : null,
+          document: p.document ?? null,
+          doc_type: cpf.length === 11 ? "cpf" : "cpf",
+          sort_order: i,
+        } });
       }
-      const status: "confirmed" | "reserved" | "pending" = extracted.status ?? (extracted.supplier_locator ? "confirmed" : "reserved");
-      const title = extracted.title?.trim() ||
-        (extracted.kind === "hotel"
-          ? `Hospedagem — ${String(details.hotel_name ?? "")}`.trim()
-          : "Serviço");
-      const saved = await saveItem({ data: {
-        order_id: orderId,
-        kind: extracted.kind,
-        title,
-        supplier_locator: extracted.supplier_locator ?? null,
-        details: details as unknown as import("@/integrations/supabase/types").Json,
-        status,
+    }
+
+    const value = Number(details.value ?? 0) || 0;
+    const taxes = Number(details.tax_value ?? 0) || 0;
+    if (saved?.id) {
+      const existing = await findFin({ data: { order_item_id: saved.id } });
+      await saveFin({ data: {
+        ...(existing?.id ? { id: existing.id } : {}),
+        order_item_id: saved.id,
+        supplier_name: extracted.supplier_name ?? null,
+        sale_value: value,
+        tax_value: taxes,
+        total: value + taxes,
         sort_order: 0,
       } });
+    }
+  }
 
-      const paxList = extracted.passengers ?? [];
-      if (paxList.length && saved?.id) {
-        const kindMap: Record<string, "ADT" | "CHD" | "INF"> = { adult: "ADT", child: "CHD", infant: "INF" };
-        for (let i = 0; i < paxList.length; i++) {
-          const p = paxList[i]!;
-          if (!p.full_name?.trim()) continue;
-          const cpf = (p.cpf ?? "").replace(/\D/g, "");
-          await savePax({ data: {
-            order_id: orderId,
-            full_name: p.full_name.trim(),
-            passenger_type: kindMap[p.kind ?? "adult"] ?? "ADT",
-            birth_date: p.birth_date ?? null,
-            cpf: cpf.length === 11 ? cpf : null,
-            document: p.document ?? null,
-            doc_type: cpf.length === 11 ? "cpf" : "cpf",
-            sort_order: i,
-          } });
+  async function confirmar() {
+    if (items.length === 0) return;
+    try {
+      for (let i = 0; i < items.length; i++) {
+        await saveOne(items[i]!, i);
+      }
+
+      // Meta do pedido: pega do primeiro item que tiver localizador/fornecedor
+      const withMeta = items.find((it) => it.supplier_locator?.trim() || it.supplier_name?.trim());
+      if (withMeta) {
+        const metaPatch: Record<string, string | null> = {};
+        if (withMeta.supplier_locator?.trim()) metaPatch.airline_locator = withMeta.supplier_locator.trim().toUpperCase();
+        if (withMeta.supplier_name?.trim()) metaPatch.supplier_name = withMeta.supplier_name.trim();
+        if (withMeta.supplier_locator?.trim()) metaPatch.supplier_order_number = withMeta.supplier_locator.trim();
+        if (Object.keys(metaPatch).length > 0) {
+          await updateMeta({ data: { id: orderId, ...metaPatch } });
         }
       }
 
-      // Financeiro do item (valor + taxas) — sempre espelha no financeiro
-      // para hotel/serviço, mesmo com valor zerado, para o usuário editar depois.
-      const value = Number(details.value ?? 0) || 0;
-      const taxes = Number(details.tax_value ?? 0) || 0;
-      if (saved?.id) {
-        // Se já existe um financeiro para este item (reimportação), atualiza
-        // em vez de duplicar. Caso contrário, cria.
-        const existing = await findFin({ data: { order_item_id: saved.id } });
-        await saveFin({ data: {
-          ...(existing?.id ? { id: existing.id } : {}),
-          order_item_id: saved.id,
-          supplier_name: extracted.supplier_name ?? null,
-          sale_value: value,
-          tax_value: taxes,
-          total: value + taxes,
-          sort_order: 0,
-        } });
-      }
-
-      // Localizador principal + fornecedor do pedido
-      const metaPatch: Record<string, string | null> = {};
-      if (extracted.supplier_locator?.trim()) metaPatch.airline_locator = extracted.supplier_locator.trim().toUpperCase();
-      if (extracted.supplier_name?.trim()) metaPatch.supplier_name = extracted.supplier_name.trim();
-      if (extracted.supplier_locator?.trim()) metaPatch.supplier_order_number = extracted.supplier_locator.trim();
-      if (Object.keys(metaPatch).length > 0) {
-        await updateMeta({ data: { id: orderId, ...metaPatch } });
-      }
-
-      toast.success("Voucher importado!");
+      toast.success(items.length > 1 ? `${items.length} itens importados!` : "Voucher importado!");
       setOpen(false);
       reset();
       onImported();
