@@ -241,13 +241,13 @@ function AdminPackages() {
         {packages?.map((p) => (
           <div
             key={p.id}
-            className="group bg-card/60 border border-border/60 hover:border-brand-orange/50 transition-all"
+            className="group bg-card/60 border border-border/60 rounded-2xl hover:border-brand-orange/50 transition-all"
           >
             <div className="grid grid-cols-1 md:grid-cols-12 items-center p-5 md:px-8 md:py-6 gap-4 md:gap-2">
               {/* Info */}
               <div className="col-span-1 md:col-span-5 space-y-1 min-w-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-brand-orange shrink-0" />
+                  <div className="w-2 h-2 rounded-sm bg-brand-orange shrink-0" />
                   <h3 className="text-base sm:text-lg font-bold text-foreground group-hover:text-brand-orange transition-colors truncate">
                     {p.title}
                   </h3>
@@ -261,7 +261,7 @@ function AdminPackages() {
 
               {/* Dates */}
               <div className="col-span-1 md:col-span-3 flex md:justify-center">
-                <div className="inline-flex items-center gap-3 text-xs sm:text-sm tracking-tight text-muted-foreground bg-background/60 px-3 py-1.5 border border-border/60">
+                <div className="inline-flex items-center gap-3 text-xs sm:text-sm tracking-tight text-muted-foreground bg-background/60 px-4 py-1.5 border border-border/60 rounded-full">
                   <span>{p.going_date ? formatDate(p.going_date) : "—"}</span>
                   <span className="text-muted-foreground/40">→</span>
                   <span>{p.return_date ? formatDate(p.return_date) : "—"}</span>
@@ -283,7 +283,7 @@ function AdminPackages() {
               <div className="col-span-1 md:col-span-2 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3">
                 <button
                   onClick={() => toggleActive(p)}
-                  className={`inline-flex items-center gap-2 px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest transition-colors ${
                     p.is_active
                       ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
                       : "bg-muted border-border text-muted-foreground"
