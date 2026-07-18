@@ -2,13 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Search, ExternalLink, Loader2, Plus, Cloud, Trash2, RotateCcw } from "lucide-react";
+import { Search, ExternalLink, Loader2, Plus, Cloud, Trash2, RotateCcw, Sparkles } from "lucide-react";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
-import { createOrder } from "@/lib/orders.functions";
+import { createOrder, backfillAutoTitles } from "@/lib/orders.functions";
 import { searchPeople, listPersonCards } from "@/lib/people.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -199,6 +199,23 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
         </div>
         {scope === "mine" && (
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 flex-1 sm:flex-none"
+              onClick={async () => {
+                const t = toast.loading("Recalculando títulos…");
+                try {
+                  const r = await backfillAutoTitles();
+                  toast.success(`Títulos atualizados em ${r.updated}/${r.total} pedidos.`, { id: t });
+                  qc.invalidateQueries({ queryKey: ["orders"] });
+                } catch (e) {
+                  toast.error("Falha ao recalcular títulos", { id: t, description: (e as Error).message });
+                }
+              }}
+            >
+              <Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">Recalcular</span> títulos
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setMondeOpen(true)} className="gap-2 flex-1 sm:flex-none">
               <Cloud className="h-4 w-4" /> <span>Importar do Monde</span>
             </Button>
@@ -207,6 +224,7 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
             </Button>
           </div>
         )}
+
       </div>
 
       <NewOrderDialog open={newOpen} onOpenChange={setNewOpen} />
