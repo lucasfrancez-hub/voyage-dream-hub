@@ -230,12 +230,51 @@ export function PersonEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 gap-0 max-w-6xl w-[96vw] max-h-[94vh] overflow-hidden flex flex-col bg-card border-border">
-        {/* Título estilo Monde */}
-        <div className="flex items-center justify-center px-5 py-2.5 pr-12 border-b border-border bg-muted/40 relative">
-          <div className="font-display text-sm font-semibold">
-            {form.kind === "PJ" ? "Pessoa Jurídica" : "Pessoa Física"}
+      <DialogContent className="p-0 gap-0 max-w-6xl w-[96vw] max-h-[94vh] overflow-hidden flex flex-col bg-card border-border rounded-2xl">
+        {/* Header rico — Industrial premium */}
+        <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-border">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="h-14 w-14 rounded-2xl bg-brand-orange/10 border border-brand-orange/30 flex items-center justify-center text-brand-orange text-lg font-bold shrink-0 shadow-[0_0_20px_rgba(242,107,31,0.15)]">
+              {getInitials(form.name) || (form.kind === "PJ" ? <Building2 className="h-6 w-6" /> : <User className="h-6 w-6" />)}
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-display text-lg font-semibold truncate max-w-[36ch]">
+                  {form.name || (isNew ? "Novo cadastro" : "Sem nome")}
+                </h2>
+                {person?.code && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground border border-border tabular-nums">
+                    #{person.code}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-orange text-primary-foreground uppercase tracking-wider">
+                  {form.kind === "PJ" ? "Pessoa Jurídica" : "Pessoa Física"}
+                </span>
+                {!isNew && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-wider">
+                    Ativo
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
+
+          {person && (
+            <div className="hidden md:flex gap-6 text-[11px] text-muted-foreground">
+              <div className="space-y-0.5">
+                <p className="uppercase tracking-widest font-bold text-muted-foreground/70">Criado em</p>
+                <p className="text-foreground tabular-nums">{new Date(person.created_at).toLocaleString("pt-BR")}</p>
+              </div>
+              {person.updated_at && (
+                <div className="space-y-0.5">
+                  <p className="uppercase tracking-widest font-bold text-muted-foreground/70">Atualizado</p>
+                  <p className="text-foreground tabular-nums">{new Date(person.updated_at).toLocaleString("pt-BR")}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {!isNew && q.isLoading ? (
@@ -273,17 +312,17 @@ export function PersonEditorDialog({
           </div>
         ) : (
           <>
-            {/* Abas — estilo Monde: linha inferior laranja */}
-            <div className="px-3 pt-2 border-b border-border overflow-x-auto bg-muted/20">
-              <div className="flex items-end gap-1 whitespace-nowrap">
+            {/* Abas — underline laranja estilo industrial */}
+            <div className="px-4 border-b border-border overflow-x-auto bg-muted/20">
+              <div className="flex gap-1 whitespace-nowrap">
                 {TABS.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setTab(t.id)}
-                    className={`px-4 py-2.5 text-sm rounded-t-md -mb-px transition ${
+                    className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 ${
                       tab === t.id
-                        ? "border border-b-transparent border-brand-orange text-brand-orange font-semibold bg-background"
-                        : "border border-transparent text-muted-foreground hover:text-foreground"
+                        ? "border-brand-orange text-brand-orange"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {t.label}
@@ -291,6 +330,7 @@ export function PersonEditorDialog({
                 ))}
               </div>
             </div>
+
 
             <div className="flex-1 overflow-y-auto px-5 py-5 bg-background/40">
               {tab === "detalhes" && (
@@ -1250,3 +1290,12 @@ function FinancialSummaryView({ summary }: { summary?: PersonFinancialSummary })
     </div>
   );
 }
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
