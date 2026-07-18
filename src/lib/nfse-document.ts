@@ -78,13 +78,13 @@ async function barcodeDataUrl(value: string): Promise<string> {
   return c.toDataURL("image/png");
 }
 
-function fmtCpfCnpj(v: string) {
+function fmtCpfCnpj(v: string | null | undefined) {
   const n = String(v || "").replace(/\D/g, "");
   if (n.length === 11) return n.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
   if (n.length === 14) return n.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
   return v || "-";
 }
-function fmtCep(v: string) {
+function fmtCep(v: string | null | undefined) {
   const n = String(v || "").replace(/\D/g, "");
   return n.length === 8 ? n.replace(/(\d{5})(\d{3})/, "$1-$2") : v || "";
 }
