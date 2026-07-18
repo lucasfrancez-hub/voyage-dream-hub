@@ -1132,12 +1132,8 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
                     {["Visa", "MasterCard", "Amex", "Elo", "Hipercard", "Diners", "Discover"].map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </MiniField>
-                <MiniField label="Cartão Passagem:">
-                  <select value={form.travel_card_type} onChange={(e) => setForm({ ...form, travel_card_type: e.target.value })} className={cls}>
-                    <option value="">Nenhum</option>
-                    <option value="CTA">CTA</option>
-                    <option value="CPB">CPB</option>
-                  </select>
+                <MiniField label="Descrição / uso do cartão:">
+                  <input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} className={cls} placeholder="Ex.: Corporativo — Cliente X" />
                 </MiniField>
               </div>
               <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-900 dark:text-amber-200">
