@@ -767,50 +767,61 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
 
   sectionTitle(ctx, "Passagem Aérea");
 
-  // Cia + localizador (agrupa por localizador)
-  const byLoc = new Map<string, OrderItem[]>();
-  for (const f of flights) {
-    const key = f.supplier_locator ?? "";
-    const arr = byLoc.get(key) ?? [];
-    arr.push(f);
-    byLoc.set(key, arr);
-  }
+  // Chave de agrupamento por reserva — mesma lógica de drawPassengers:
+  // import_group_id → carrier_locator → supplier_locator → fallback por item.
+  const keyOf = (f: OrderItem) => {
+    const det = (f.details ?? {}) as Record<string, unknown>;
+    const importGroupId = String(det.import_group_id ?? "").trim();
+    const carrierLocator = String(det.carrier_locator ?? "").trim();
+    return importGroupId || carrierLocator || (f.supplier_locator ?? "").trim() || `__item_${f.id}`;
+  };
 
-  const cols1: Col[] = [
-    { header: "Cia Aérea", width: 200 },
-    { header: "Localizador", width: CONTENT_W - 200 },
-  ];
-  drawTableHeader(ctx, cols1);
-  for (const [loc, arr] of byLoc) {
-    const first = arr[0];
+  const sortedFlights = [...flights].sort((a, b) => a.sort_order - b.sort_order);
+  const seenKeys = new Set<string>();
+
+  for (const f of sortedFlights) {
+    const key = keyOf(f);
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    const groupItems = sortedFlights.filter((x) => keyOf(x) === key);
+    const first = groupItems[0];
     const det = (first.details ?? {}) as Record<string, unknown>;
     const airline = (det.airline as string) ?? "";
-    drawTableRow(ctx, cols1, [airline, loc || "—"]);
-  }
-  ctx.y -= 6;
+    const carrierLocator = String(det.carrier_locator ?? "").trim();
+    const locator = carrierLocator || (first.supplier_locator ?? "").trim();
 
-  // Voos (segmentos)
-  const cols2: Col[] = [
-    { header: "Cia", width: 38, align: "center" },
-    { header: "Voo", width: 54, align: "center" },
-    { header: "Trecho", width: 315 },
-    { header: "Saída / Chegada", width: CONTENT_W - 38 - 54 - 315, align: "center" },
-  ];
-  drawTableHeader(ctx, cols2);
-  for (const f of flights) {
-    const rows = collectFlightRows(f);
-    for (const r of rows) {
-      const from = [r.fromIata, r.fromCity].filter(Boolean).join(" ");
-      const to = [r.toIata, r.toCity].filter(Boolean).join(" ");
-      drawTableRow(ctx, cols2, [
-        r.airlineCode,
-        r.flightNum,
-        `${from || "—"}\n${to || "—"}`,
-        `${fmtDateTime(r.depart) || "—"}\n${fmtDateTime(r.arrive) || "—"}`,
-      ]);
+    // Cabeçalho da reserva: Cia Aérea + Localizador
+    const cols1: Col[] = [
+      { header: "Cia Aérea", width: 200 },
+      { header: "Localizador", width: CONTENT_W - 200 },
+    ];
+    drawTableHeader(ctx, cols1);
+    drawTableRow(ctx, cols1, [airline, locator || "—"]);
+    ctx.y -= 4;
+
+    // Segmentos da reserva
+    const cols2: Col[] = [
+      { header: "Cia", width: 38, align: "center" },
+      { header: "Voo", width: 54, align: "center" },
+      { header: "Trecho", width: 315 },
+      { header: "Saída / Chegada", width: CONTENT_W - 38 - 54 - 315, align: "center" },
+    ];
+    drawTableHeader(ctx, cols2);
+    for (const it of groupItems) {
+      const rows = collectFlightRows(it);
+      for (const r of rows) {
+        const from = [r.fromIata, r.fromCity].filter(Boolean).join(" ");
+        const to = [r.toIata, r.toCity].filter(Boolean).join(" ");
+        drawTableRow(ctx, cols2, [
+          r.airlineCode,
+          r.flightNum,
+          `${from || "—"}\n${to || "—"}`,
+          `${fmtDateTime(r.depart) || "—"}\n${fmtDateTime(r.arrive) || "—"}`,
+        ]);
+      }
     }
+    ctx.y -= 8;
   }
-  ctx.y -= 4;
 };
 
 
