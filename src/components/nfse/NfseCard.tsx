@@ -333,6 +333,18 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
                       <XCircle className="h-3.5 w-3.5" />
                     </Button>
                   )}
+                  {(e.status === "erro" || e.status === "cancelado") && (
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600"
+                      disabled={deleteMut.isPending}
+                      title="Excluir emissão"
+                      onClick={() => {
+                        if (window.confirm("Excluir esta emissão? Esta ação não pode ser desfeita.")) {
+                          deleteMut.mutate(e.id);
+                        }
+                      }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </div>
               {e.codigo_verificacao && (
