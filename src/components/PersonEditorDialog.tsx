@@ -1181,7 +1181,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
                 ⚠ Por questões de segurança, o número completo é criptografado (AES-256-GCM) e só pode ser revelado sob demanda.
               </div>
               <div className="flex items-center gap-2 justify-end pt-3 border-t border-border">
-                <button type="button" onClick={() => setShowForm(false)} className="rounded-full border border-border px-4 py-1.5 text-xs">Cancelar</button>
+                <button type="button" onClick={() => { setShowForm(false); resetForm(); }} className="rounded-full border border-border px-4 py-1.5 text-xs">Cancelar</button>
                 <button type="button" disabled={saving} onClick={submit} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60">
                   {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} OK
                 </button>
