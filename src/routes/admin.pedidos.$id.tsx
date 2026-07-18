@@ -3876,26 +3876,50 @@ function PaymentDialog({
   }
 
   async function handleSaveCard() {
-    if (!selectedPersonId) {
-      toast.error("Salve o pagador antes para vincular o cartão.");
-      return;
-    }
     const clean = cardFullNumber.replace(/\D/g, "");
     if (clean.length < 12) { toast.error("Informe o número completo do cartão."); return; }
     setSavingCard(true);
     try {
+      // Se ainda não há pagador selecionado, cadastra/atualiza antes.
+      let personId = selectedPersonId;
+      if (!personId) {
+        const name = (payer.payer_full_name ?? "").trim();
+        if (!name) { toast.error("Preencha o nome do pagador antes de salvar o cartão."); setSavingCard(false); return; }
+        const cpfDigits = (payer.payer_cpf ?? "").replace(/\D/g, "");
+        const isPJ = cpfDigits.length > 11;
+        const res = await upsertPersonFn({ data: {
+          kind: isPJ ? "PJ" : "PF",
+          name,
+          cpf: !isPJ ? (payer.payer_cpf ?? null) : null,
+          cnpj: isPJ ? (payer.payer_cpf ?? null) : null,
+          rg: payer.payer_ie_rg ?? null,
+          email: payer.payer_email ?? null,
+          mobile_phone: payer.payer_phone ?? null,
+          birth_date: payer.payer_birth_date || null,
+          zip: payer.payer_zip ?? null,
+          address: payer.payer_address ?? null,
+          number: payer.payer_number ?? null,
+          district: payer.payer_district ?? null,
+          city: payer.payer_city ?? null,
+          state: payer.payer_state ?? null,
+          is_foreign: false,
+          charge_boleto_fee: false,
+        } });
+        personId = res.id;
+        setSelectedPersonId(res.id);
+      }
       await addCardFn({ data: {
-        person_id: selectedPersonId,
+        person_id: personId,
         holder_name: payer.payer_full_name ?? null,
         number: clean,
         expiry: form.card_expiry ?? null,
         is_travel_card: false,
       } });
-      const cards = await listCardsFn({ data: { person_id: selectedPersonId } });
+      const cards = await listCardsFn({ data: { person_id: personId } });
       setSavedCards(cards);
       toast.success("Cartão salvo no cadastro");
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error((e as Error).message || "Falha ao salvar cartão");
     } finally {
       setSavingCard(false);
     }
