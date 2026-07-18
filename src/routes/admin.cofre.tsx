@@ -288,7 +288,7 @@ function CofrePage() {
     <div className="mx-auto max-w-5xl px-3 sm:px-6 py-6 sm:py-10 space-y-8">
       {/* Command Center Header */}
       <div className="flex flex-col gap-1 border-l-4 border-brand-orange pl-6 py-1">
-        <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] text-brand-orange uppercase font-mono">
+        <div className="flex items-center gap-2 text-[10px] font-bold text-brand-orange uppercase">
           <Vault className="h-4 w-4" /> Cofre VIA AIR
         </div>
         <div className="flex flex-wrap justify-between items-end gap-3">
@@ -373,13 +373,13 @@ function CofrePage() {
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <Badge kind={e.kind} />
                     {e.status && <StatusBadge status={e.status} />}
-                    <span className="ml-auto text-[10px] font-medium text-muted-foreground uppercase tracking-tight font-mono">
+                    <span className="ml-auto text-[10px] font-medium text-muted-foreground uppercase tracking-tight">
                       {new Date(e.createdAt).toLocaleString("pt-BR")} • {e.meta}
                     </span>
                   </div>
 
                   {e.orderNumber && (
-                    <div className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-mono font-semibold text-foreground">
+                    <div className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-semibold text-foreground">
                       <Hash className="h-3 w-3 text-muted-foreground" />
                       Pedido {e.orderNumber}
                     </div>
@@ -395,7 +395,7 @@ function CofrePage() {
                         {e.customerPhone && (
                           <>
                             <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
-                            <span className="font-mono">{e.customerPhone}</span>
+                            <span className="">{e.customerPhone}</span>
                           </>
                         )}
                         {e.email && (
@@ -435,7 +435,7 @@ function CofrePage() {
                         <div><span className="text-muted-foreground">Fornecedor: </span><span className="font-medium text-foreground">{e.supplier}</span></div>
                       )}
                       {e.locator && (
-                        <div><span className="text-muted-foreground">Localizador: </span><span className="font-mono font-semibold text-foreground">{e.locator}</span></div>
+                        <div><span className="text-muted-foreground">Localizador: </span><span className="font-semibold text-foreground">{e.locator}</span></div>
                       )}
                       {e.route && (
                         <div><span className="text-muted-foreground">Rota: </span><span className="whitespace-pre-line text-foreground">{e.route}</span></div>
@@ -454,7 +454,7 @@ function CofrePage() {
                     <div className="p-1.5 bg-muted rounded shrink-0">
                       <Link2 className="w-4 h-4 text-muted-foreground" />
                     </div>
-                    <span className="flex-1 text-[10px] text-muted-foreground font-mono truncate">{e.url}</span>
+                    <span className="flex-1 text-[10px] text-muted-foreground truncate">{e.url}</span>
                   </div>
                 </div>
 
@@ -936,7 +936,7 @@ function FieldRow({
         {label}
       </div>
       <div
-        className={`flex-1 min-w-0 text-sm truncate ${mono ? "font-mono" : ""}`}
+        className={`flex-1 min-w-0 text-sm truncate ${mono ? "" : ""}`}
       >
         {value}
       </div>
