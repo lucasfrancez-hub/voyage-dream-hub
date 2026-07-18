@@ -46,6 +46,7 @@ export type CofreOrder = {
   orderNumber: string | null;
   firstAmount: number | null;
   snapshotKind: string | null;
+  isManual: boolean;
 };
 
 
