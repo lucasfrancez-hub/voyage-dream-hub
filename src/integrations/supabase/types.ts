@@ -155,6 +155,92 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_categories: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      financial_entries: {
+        Row: {
+          amount: number
+          auto_generated: boolean
+          category: string | null
+          counterparty: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string | null
+          id: string
+          kind: string
+          notes: string | null
+          order_id: string | null
+          paid_date: string | null
+          payment_method: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          auto_generated?: boolean
+          category?: string | null
+          counterparty?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          kind: string
+          notes?: string | null
+          order_id?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          auto_generated?: boolean
+          category?: string | null
+          counterparty?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          order_id?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_entries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flight_change_alerts: {
         Row: {
           admin_email_sent_at: string | null
