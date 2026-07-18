@@ -191,8 +191,14 @@ function CofrePage() {
     const pedidos: UnifiedItem[] = (ordersQuery.data ?? [])
       .filter((o: CofreOrder) => {
         const pm = (o.paymentMethod ?? "").toLowerCase();
-        // Pix e WhatsApp não vão para o cofre — só cartão e boleto.
-        return pm !== "pix" && pm !== "whatsapp";
+        if (pm === "pix" || pm === "whatsapp") return false;
+        // Só entram no cofre: links gerados pelo "link seguro" convencional
+        // (payment_link / payment_link_simple / payment_link_boleto) OU
+        // checkouts de pacote pronto (package_id preenchido pelo cliente).
+        // Pedidos criados manualmente no admin (snapshot.manual === true) ficam de fora.
+        const isLinkOrder = (o.snapshotKind ?? "").startsWith("payment_link");
+        const isPackageCheckout = !!o.packageId && !o.isManual && !o.snapshotKind;
+        return isLinkOrder || isPackageCheckout;
       })
       .map((o: CofreOrder) => {
         const isLinkOrder = (o.snapshotKind ?? "").startsWith("payment_link");
