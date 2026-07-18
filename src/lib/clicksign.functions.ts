@@ -360,10 +360,17 @@ export const cancelSignatureRequest = createServerFn({ method: "POST" })
     if (a.status === "closed") throw new Error("Documento já foi assinado, não pode ser cancelado.");
 
     if (a.clicksign_document_key) {
-      await csFetch(`/documents/${a.clicksign_document_key}/cancel`, { method: "POST" });
+      try {
+        await csFetch(`/documents/${a.clicksign_document_key}/cancel`, { method: "POST" });
+      } catch (err) {
+        // Se o documento não existe na ClickSign (ex.: foi criado em outro ambiente/sandbox
+        // ou já cancelado), seguimos e marcamos como cancelado localmente pra liberar reenvio.
+        console.warn("[clicksign cancel] ignorando erro remoto:", err instanceof Error ? err.message : err);
+      }
     }
     await supabase.from("pedido_assinaturas").update({ status: "canceled" }).eq("id", data.assinaturaId);
     return { ok: true };
+
   });
 
 // -----------------------------------------------------------------------------
