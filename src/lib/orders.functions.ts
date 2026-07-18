@@ -214,6 +214,7 @@ export type OrderHeader = {
   email: string;
   phone: string;
   cpf: string | null;
+  cnpj: string | null;
   birthDate: string | null;
   payerBirthDate: string | null;
   adults: number;
