@@ -427,7 +427,23 @@ function DetalhesTab({
               <div className="text-sm font-mono">{person?.code ?? "—"}</div>
             </FieldRow>
             <FieldRow label="Nome:" required>
-              <input value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} />
+              <div className="flex items-center gap-2">
+                <input value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} />
+                {!isPJ && (
+                  <button
+                    type="button"
+                    onClick={() => set("is_foreign", !form.is_foreign)}
+                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs whitespace-nowrap transition ${
+                      form.is_foreign
+                        ? "bg-brand-orange/15 border-brand-orange/40 text-brand-orange"
+                        : "border-border text-muted-foreground hover:bg-muted/50"
+                    }`}
+                    title="Marcar como estrangeiro (oculta CPF/RG)"
+                  >
+                    🌐 Estrangeiro
+                  </button>
+                )}
+              </div>
             </FieldRow>
             {isPJ && (
               <FieldRow label="Razão Social:">
@@ -523,14 +539,10 @@ function DetalhesTab({
             <input value={form.district ?? ""} onChange={(e) => set("district", e.target.value)} className={cls} />
           </MiniField>
         </div>
-        <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+        <div className="grid grid-cols-2 gap-3">
           <MiniField label="Cidade:">
             <input value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} className={cls} />
           </MiniField>
-          <label className="flex items-center gap-2 text-sm pb-2.5 whitespace-nowrap">
-            <input type="checkbox" checked={form.is_foreign} onChange={(e) => set("is_foreign", e.target.checked)} />
-            Estrangeiro
-          </label>
         </div>
       </Section>
 
