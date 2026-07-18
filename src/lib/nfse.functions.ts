@@ -124,7 +124,7 @@ export const emitirNfse = createServerFn({ method: "POST" })
         valor_servicos: data.valorServicos,
         valor_iss: valorIss,
         aliquota_iss: Number(cfg.aliquota_iss),
-        tomador: data.tomador as unknown as Record<string, unknown>,
+        tomador: data.tomador as unknown as never,
         discriminacao: data.discriminacao,
         created_by: context.userId,
       })

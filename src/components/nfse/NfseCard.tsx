@@ -50,18 +50,18 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   const [open, setOpen] = useState(false);
   const defaultDisc = `Serviços de agenciamento de viagens referente ao pedido #${order.orderNumber}${order.tripTitle ? ` — ${order.tripTitle}` : ""}.`;
   const [form, setForm] = useState({
-    razaoSocial: order.fullName ?? "",
-    cpfCnpj: order.cnpj || order.cpf || "",
-    email: order.email ?? "",
+    razaoSocial: order.payerFullName || order.fullName || "",
+    cpfCnpj: order.payerCpf || order.cpf || "",
+    email: order.payerEmail || order.email || "",
     valor: String(order.totalPrice ?? 0),
     discriminacao: defaultDisc,
   });
 
   const openDialog = () => {
     setForm({
-      razaoSocial: order.fullName ?? "",
-      cpfCnpj: order.cnpj || order.cpf || "",
-      email: order.email ?? "",
+      razaoSocial: order.payerFullName || order.fullName || "",
+      cpfCnpj: order.payerCpf || order.cpf || "",
+      email: order.payerEmail || order.email || "",
       valor: String(order.totalPrice ?? 0),
       discriminacao: defaultDisc,
     });
@@ -85,12 +85,12 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
             cpfCnpj: doc,
             email: form.email.trim() || null,
             endereco: {
-              logradouro: order.address ?? null,
-              numero: order.number ?? null,
-              complemento: order.complement ?? null,
-              bairro: order.neighborhood ?? null,
-              uf: order.state ?? null,
-              cep: order.zipCode ?? null,
+              logradouro: order.payerAddress ?? null,
+              numero: order.payerNumber ?? null,
+              complemento: null,
+              bairro: order.payerDistrict ?? null,
+              uf: order.payerState ?? null,
+              cep: order.payerZip ?? null,
             },
           },
         },
