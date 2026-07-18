@@ -1233,19 +1233,22 @@ export const setImportLinks = createServerFn({ method: "POST" })
       });
       if (ownerError || !ownsOrder) throw new Error("Forbidden");
     }
-    if (data.item_ids.length === 0 || data.passenger_ids.length === 0) return { ok: true };
+    if (data.item_ids.length === 0) return { ok: true };
 
     // Valida os IDs antes de usar o cliente privilegiado. A operação abaixo precisa
     // ignorar RLS porque o trigger SECURITY DEFINER cria vínculos que podem ficar
     // invisíveis para a sessão durante a mesma importação.
     const [{ data: validItems, error: itemsError }, { data: validPassengers, error: passengersError }] = await Promise.all([
       context.supabase.from("order_items").select("id").eq("order_id", data.order_id).in("id", data.item_ids),
-      context.supabase.from("order_passengers").select("id").eq("order_id", data.order_id).in("id", data.passenger_ids),
+      data.passenger_ids.length > 0
+        ? context.supabase.from("order_passengers").select("id").eq("order_id", data.order_id).in("id", data.passenger_ids)
+        : Promise.resolve({ data: [] as { id: string }[], error: null }),
     ]);
     if (itemsError) throw new Error(itemsError.message);
     if (passengersError) throw new Error(passengersError.message);
     if ((validItems ?? []).length !== new Set(data.item_ids).size) throw new Error("Item importado inválido");
     if ((validPassengers ?? []).length !== new Set(data.passenger_ids).size) throw new Error("Passageiro importado inválido");
+
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
