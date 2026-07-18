@@ -3,13 +3,14 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // Config sandbox vs produção.
-// - Se CLICKSIGN_SANDBOX_API_TOKEN estiver setado e CLICKSIGN_ENV != "production", usa sandbox
-// - Caso contrário, usa produção com CLICKSIGN_API_TOKEN
-function getClickSignConfig(): { token: string; baseUrl: string; endpoint: string; env: "sandbox" | "production" } {
+// - Fluxo de pedidos (createSignatureRequest, cancel, resend, sync): SEMPRE produção.
+// - Fluxo embedded (/pagar): usa sandbox se CLICKSIGN_SANDBOX_API_TOKEN estiver setado
+//   e CLICKSIGN_ENV != "production"; caso contrário produção.
+function getClickSignConfig(opts: { preferSandbox?: boolean } = {}): { token: string; baseUrl: string; endpoint: string; env: "sandbox" | "production" } {
   const sandboxToken = process.env.CLICKSIGN_SANDBOX_API_TOKEN;
   const prodToken = process.env.CLICKSIGN_API_TOKEN;
   const forceProd = process.env.CLICKSIGN_ENV === "production";
-  const useSandbox = !!sandboxToken && !forceProd;
+  const useSandbox = !!opts.preferSandbox && !!sandboxToken && !forceProd;
   if (useSandbox) {
     return {
       token: sandboxToken!,
@@ -34,10 +35,11 @@ function agenciaConfig() {
   return { email, nome };
 }
 
-async function csFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-  const cfg = getClickSignConfig();
+async function csFetch<T = unknown>(path: string, init: RequestInit = {}, opts: { preferSandbox?: boolean } = {}): Promise<T> {
+  const cfg = getClickSignConfig(opts);
   const sep = path.includes("?") ? "&" : "?";
   const url = `${cfg.baseUrl}${path}${sep}access_token=${encodeURIComponent(cfg.token)}`;
+
 
   // Retry transitório: 502/503/504 (Gateway Time-out) + falhas de rede.
   // Backoff: 500ms, 1500ms, 3500ms. Total: até 3 tentativas extras.
@@ -156,6 +158,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
         },
       }),
     });
+
     const documentKey = docResp.document.key;
 
     const cpfDigits = data.cliente.cpf.replace(/\D/g, "");
@@ -358,10 +361,17 @@ export const cancelSignatureRequest = createServerFn({ method: "POST" })
     if (a.status === "closed") throw new Error("Documento já foi assinado, não pode ser cancelado.");
 
     if (a.clicksign_document_key) {
-      await csFetch(`/documents/${a.clicksign_document_key}/cancel`, { method: "POST" });
+      try {
+        await csFetch(`/documents/${a.clicksign_document_key}/cancel`, { method: "POST" });
+      } catch (err) {
+        // Se o documento não existe na ClickSign (ex.: foi criado em outro ambiente/sandbox
+        // ou já cancelado), seguimos e marcamos como cancelado localmente pra liberar reenvio.
+        console.warn("[clicksign cancel] ignorando erro remoto:", err instanceof Error ? err.message : err);
+      }
     }
     await supabase.from("pedido_assinaturas").update({ status: "canceled" }).eq("id", data.assinaturaId);
     return { ok: true };
+
   });
 
 // -----------------------------------------------------------------------------
@@ -497,9 +507,10 @@ export const syncSignatureFromClickSign = createServerFn({ method: "POST" })
 // =============================================================================
 
 export const getEmbeddedClickSignEndpoint = createServerFn({ method: "GET" }).handler(async () => {
-  const cfg = getClickSignConfig();
+  const cfg = getClickSignConfig({ preferSandbox: true });
   return { endpoint: cfg.endpoint, env: cfg.env };
 });
+
 
 export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
   .inputValidator((input: {
@@ -524,7 +535,7 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const cfg = getClickSignConfig();
+    const cfg = getClickSignConfig({ preferSandbox: true });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // 1) Cria documento
@@ -533,6 +544,7 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
     const deadlineAt = new Date();
     deadlineAt.setDate(deadlineAt.getDate() + 7);
     const docResp = await csFetch<DocResp>("/documents", {
+
       method: "POST",
       body: JSON.stringify({
         document: {
@@ -544,7 +556,8 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           sequence_enabled: false,
         },
       }),
-    });
+    }, { preferSandbox: true });
+
     const documentKey = docResp.document.key;
 
     // 2) Cria signer com selfie liveness + foto do documento + geolocalização obrigatória
@@ -578,7 +591,8 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           handwritten_enabled: false, // sem assinatura manuscrita
         },
       }),
-    });
+    }, { preferSandbox: true });
+
 
     // 3) Vincula signer ao documento — sem enviar notificações (widget)
     type ListResp = { list: { request_signature_key: string } };
@@ -594,7 +608,8 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           skip_email: true,
         },
       }),
-    });
+    }, { preferSandbox: true });
+
     const requestSignatureKey = listResp.list.request_signature_key;
 
     // 4) Persiste registro pendente
