@@ -3641,6 +3641,9 @@ function PaymentsSection({
         onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
         initial={editing}
         order={order}
+        items={items}
+        itemPassengers={detail.itemPassengers}
+        passengers={detail.passengers}
         defaultProvider={defaultProvider}
         onSave={async (data, payer) => {
           try {
