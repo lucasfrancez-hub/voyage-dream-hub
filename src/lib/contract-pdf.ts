@@ -1140,7 +1140,19 @@ export async function generateReceiptOnly(detail: OrderDetail): Promise<Blob> {
  *  últimos 4, validade, parcelas do próprio pagamento). Sem `payment`, usa
  *  o primeiro cartão encontrado (compatibilidade com pedidos antigos). */
 function buildAuthorizationFromOrder(detail: OrderDetail, payment?: OrderPayment) {
-  const { order, passengers, payments } = detail;
+  const { order, payments } = detail;
+  // Se o pagamento aponta reservas específicas (order_item_ids), a autorização
+  // lista apenas os passageiros vinculados a essas reservas — não todos do pedido.
+  let passengers = detail.passengers;
+  const scopedItemIds = payment?.order_item_ids ?? null;
+  if (scopedItemIds && scopedItemIds.length > 0) {
+    const paxIds = new Set<string>();
+    for (const iid of scopedItemIds) {
+      for (const pid of (detail.itemPassengers?.[iid] ?? [])) paxIds.add(pid);
+    }
+    const filtered = detail.passengers.filter((p) => paxIds.has(p.id));
+    if (filtered.length > 0) passengers = filtered;
+  }
   const snap = (order.packageSnapshot ?? {}) as {
     card_capture?: {
       authorization?: import("./authorization-pdf").AuthorizationData;
