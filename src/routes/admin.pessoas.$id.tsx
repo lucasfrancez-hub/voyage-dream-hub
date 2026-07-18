@@ -73,6 +73,7 @@ function PersonEditPage() {
 
   const [tab, setTab] = useState<"detalhes" | "endereco" | "documentos" | "financeiros" | "obs">("detalhes");
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [kindChosen, setKindChosen] = useState<boolean>(!isNew);
 
   useEffect(() => {
     if (!isNew && q.data?.person) {
