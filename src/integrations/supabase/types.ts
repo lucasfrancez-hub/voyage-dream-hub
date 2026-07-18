@@ -405,8 +405,10 @@ export type Database = {
           municipio_prestacao: string
           numero: string | null
           provedor: string
+          proximo_numero_rps: number
           razao_social: string
           regime_tributario: string
+          serie_rps: string
           telefone: string | null
           uf_prestacao: string
           updated_at: string
@@ -434,8 +436,10 @@ export type Database = {
           municipio_prestacao?: string
           numero?: string | null
           provedor?: string
+          proximo_numero_rps?: number
           razao_social?: string
           regime_tributario?: string
+          serie_rps?: string
           telefone?: string | null
           uf_prestacao?: string
           updated_at?: string
@@ -463,8 +467,10 @@ export type Database = {
           municipio_prestacao?: string
           numero?: string | null
           provedor?: string
+          proximo_numero_rps?: number
           razao_social?: string
           regime_tributario?: string
+          serie_rps?: string
           telefone?: string | null
           uf_prestacao?: string
           updated_at?: string
@@ -487,6 +493,7 @@ export type Database = {
           id: string
           motivo_cancelamento: string | null
           numero_nfse: string | null
+          numero_rps: number | null
           order_id: string | null
           reference: string
           serie: string | null
@@ -513,6 +520,7 @@ export type Database = {
           id?: string
           motivo_cancelamento?: string | null
           numero_nfse?: string | null
+          numero_rps?: number | null
           order_id?: string | null
           reference: string
           serie?: string | null
@@ -539,6 +547,7 @@ export type Database = {
           id?: string
           motivo_cancelamento?: string | null
           numero_nfse?: string | null
+          numero_rps?: number | null
           order_id?: string | null
           reference?: string
           serie?: string | null
@@ -2112,6 +2121,7 @@ export type Database = {
         }
         Returns: number
       }
+      nfse_next_rps: { Args: never; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

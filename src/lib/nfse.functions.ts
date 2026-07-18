@@ -94,9 +94,11 @@ function buildAtendenetXml(args: {
   cfg: Record<string, unknown>;
   data: z.infer<typeof emitirInput>;
   reference: string;
+  numeroRps: number;
+  serieRps: string;
   valorIss: number;
 }): string {
-  const { cfg, data, reference, valorIss } = args;
+  const { cfg, data, reference, numeroRps, serieRps, valorIss } = args;
   const cpfCnpj = onlyDigits(data.tomador.cpfCnpj);
   const isPJ = cpfCnpj.length === 14;
   const end = data.tomador.endereco ?? null;
@@ -114,10 +116,11 @@ function buildAtendenetXml(args: {
 <Nfse xmlns="http://www.publica.inf.br" versao="2.00">
   <Rps id="${xmlEscape(reference)}">
     <IdentificacaoRps>
-      <Numero>${xmlEscape(reference)}</Numero>
-      <Serie>RPS</Serie>
+      <Numero>${numeroRps}</Numero>
+      <Serie>${xmlEscape(serieRps)}</Serie>
       <Tipo>1</Tipo>
     </IdentificacaoRps>
+
     <DataEmissao>${nowBr}</DataEmissao>
     <NaturezaOperacao>1</NaturezaOperacao>
     <OptanteSimplesNacional>2</OptanteSimplesNacional>
@@ -184,7 +187,22 @@ export const emitirNfse = createServerFn({ method: "POST" })
 
     const reference = `viaair-${data.orderId.slice(0, 8)}-${Date.now()}`;
     const valorIss = Number((data.valorServicos * Number(cfg.aliquota_iss) / 100).toFixed(2));
-    const unsignedXml = buildAtendenetXml({ cfg: cfg as Record<string, unknown>, data, reference, valorIss });
+
+    // Próximo número de RPS sequencial (começa em 113 - última NFS-e emitida foi 112)
+    const { data: numeroRps, error: rpsErr } = await context.supabase.rpc("nfse_next_rps");
+    if (rpsErr || typeof numeroRps !== "number") {
+      throw new Error(`Falha ao obter número do RPS: ${rpsErr?.message ?? "resposta inválida"}`);
+    }
+    const serieRps = ((cfg as { serie_rps?: string }).serie_rps) ?? "RPS";
+
+    const unsignedXml = buildAtendenetXml({
+      cfg: cfg as Record<string, unknown>,
+      data,
+      reference,
+      numeroRps,
+      serieRps,
+      valorIss,
+    });
 
     // Assinatura digital XMLDSig (enveloped) com o certificado A1
     const { signRpsXml } = await import("@/lib/nfse-xmldsig.server");
@@ -198,6 +216,8 @@ export const emitirNfse = createServerFn({ method: "POST" })
         order_id: data.orderId,
         reference,
         status: "processando",
+        numero_rps: numeroRps,
+        serie: serieRps,
         valor_servicos: data.valorServicos,
         valor_iss: valorIss,
         aliquota_iss: Number(cfg.aliquota_iss),
@@ -207,6 +227,7 @@ export const emitirNfse = createServerFn({ method: "POST" })
       })
       .select().single();
     if (insErr) throw new Error(insErr.message);
+
 
     // Envia para o AtendeNet (POST multipart/form-data, campo "xml", Basic Auth)
     const { basic } = atendenetAuth();
