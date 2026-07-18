@@ -498,113 +498,139 @@ function CofrePage() {
                     </button>
                   )}
 
-                  <div className="grid grid-cols-4 gap-2 mt-auto pt-2">
-                    {e.order && (
-                      <button
-                        type="button"
-                        onClick={() => setDetailsItem(e)}
-                        title="Ver dados"
-                        className="p-2 flex items-center justify-center bg-muted/60 border border-border rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <FileText className="w-4 h-4" />
-                      </button>
-                    )}
-                    {isPedido && (
-                      <button
-                        type="button"
-                        onClick={() => router.navigate({ to: "/admin/pedidos" as never })}
-                        title="Ver pedido"
-                        className="p-2 flex items-center justify-center bg-muted/60 border border-border rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <Package className="w-4 h-4" />
-                      </button>
-                    )}
-                    {hasSignature && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const ord = e.order!;
-                            const rawAuth = ord.cardCapture!.authorization as unknown as AuthorizationData;
-                            const signedAt = rawAuth.signed_at ?? ord.createdAt;
-                            const validUntil =
-                              rawAuth.valid_until ??
-                              new Date(new Date(signedAt).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
-                            const enriched: AuthorizationData = {
-                              ...rawAuth,
-                              holder_name: rawAuth.holder_name ?? ord.fullName,
-                              holder_cpf: rawAuth.holder_cpf ?? ord.cpf ?? undefined,
-                              holder_email: rawAuth.holder_email ?? ord.email,
-                              holder_phone: rawAuth.holder_phone ?? ord.phone,
-                              holder_birth_date: rawAuth.holder_birth_date ?? ord.birthDate ?? undefined,
-                              description: rawAuth.description ?? ord.linkDescription ?? e.description,
-                              reference: rawAuth.reference ?? ord.linkReference ?? null,
-                              order_number: rawAuth.order_number ?? ord.orderNumber ?? null,
-                              supplier: rawAuth.supplier ?? "—",
-                              representative:
-                                rawAuth.representative ??
-                                "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
-                              installments: rawAuth.installments ?? e.installments,
-                              amount: rawAuth.amount ?? ord.totalPrice,
-                              signed_at: signedAt,
-                              valid_until: validUntil,
-                            };
-                            await generateAuthorizationPDF({
-                              orderId: e.orderId!,
-                              createdAt: ord.createdAt,
-                              authorization: enriched,
-                              liveness: (ord.cardCapture!.liveness ?? null) as unknown as LivenessData | null,
-                            });
-                          } catch (err) {
-                            toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
-                          }
-                        }}
-                        title="Autorização de débito"
-                        className="p-2 flex items-center justify-center bg-blue-500/10 border border-blue-500/20 rounded hover:bg-blue-500/20 text-blue-500 transition-colors"
-                      >
-                        <FileSignature className="w-4 h-4" />
-                      </button>
-                    )}
-                    {!e.order && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const entry = entries.find((x) => x.id === e.id.replace(/^avulso:/, ""));
-                          if (!entry) return toast.error("Entrada não encontrada");
-                          stashEditEntry(entry);
-                          const isSimples = /[?&]simples=1(?:&|$)/.test(entry.url);
-                          router.navigate({
-                            to: isSimples ? "/admin/link-cartao-simples" : "/admin/link-pagamento",
-                          });
-                        }}
-                        title="Editar"
-                        className="p-2 flex items-center justify-center bg-brand-orange/10 border border-brand-orange/30 rounded hover:bg-brand-orange/20 text-brand-orange transition-colors"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                    )}
-                    {canReject && (
-                      <button
-                        type="button"
-                        onClick={() => onReject(e.orderId!, e.notes ?? null)}
-                        title="Rejeitar"
-                        className="p-2 flex items-center justify-center bg-red-500/10 border border-red-500/20 rounded hover:bg-red-500/20 text-red-400 transition-colors"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (e.order && e.orderId) onDeleteOrder(e.orderId);
-                        else onDelete(e.id.replace(/^avulso:/, ""));
-                      }}
-                      title="Excluir"
-                      className="p-2 flex items-center justify-center bg-muted/60 border border-border rounded hover:bg-red-500/10 hover:border-red-500/30 text-muted-foreground hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <TooltipProvider delayDuration={150}>
+                    <div className="grid grid-cols-4 gap-2 mt-auto pt-2">
+                      {e.order && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => setDetailsItem(e)}
+                              className="p-2 flex items-center justify-center bg-muted/60 border border-border rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Ver dados</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {isPedido && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => router.navigate({ to: "/admin/pedidos" as never })}
+                              className="p-2 flex items-center justify-center bg-muted/60 border border-border rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <Package className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Ver pedido</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {hasSignature && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const ord = e.order!;
+                                  const rawAuth = ord.cardCapture!.authorization as unknown as AuthorizationData;
+                                  const signedAt = rawAuth.signed_at ?? ord.createdAt;
+                                  const validUntil =
+                                    rawAuth.valid_until ??
+                                    new Date(new Date(signedAt).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+                                  const enriched: AuthorizationData = {
+                                    ...rawAuth,
+                                    holder_name: rawAuth.holder_name ?? ord.fullName,
+                                    holder_cpf: rawAuth.holder_cpf ?? ord.cpf ?? undefined,
+                                    holder_email: rawAuth.holder_email ?? ord.email,
+                                    holder_phone: rawAuth.holder_phone ?? ord.phone,
+                                    holder_birth_date: rawAuth.holder_birth_date ?? ord.birthDate ?? undefined,
+                                    description: rawAuth.description ?? ord.linkDescription ?? e.description,
+                                    reference: rawAuth.reference ?? ord.linkReference ?? null,
+                                    order_number: rawAuth.order_number ?? ord.orderNumber ?? null,
+                                    supplier: rawAuth.supplier ?? "—",
+                                    representative:
+                                      rawAuth.representative ??
+                                      "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
+                                    installments: rawAuth.installments ?? e.installments,
+                                    amount: rawAuth.amount ?? ord.totalPrice,
+                                    signed_at: signedAt,
+                                    valid_until: validUntil,
+                                  };
+                                  await generateAuthorizationPDF({
+                                    orderId: e.orderId!,
+                                    createdAt: ord.createdAt,
+                                    authorization: enriched,
+                                    liveness: (ord.cardCapture!.liveness ?? null) as unknown as LivenessData | null,
+                                  });
+                                } catch (err) {
+                                  toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
+                                }
+                              }}
+                              className="p-2 flex items-center justify-center bg-blue-500/10 border border-blue-500/20 rounded-full hover:bg-blue-500/20 text-blue-500 transition-colors"
+                            >
+                              <FileSignature className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Autorização de débito</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {!e.order && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const entry = entries.find((x) => x.id === e.id.replace(/^avulso:/, ""));
+                                if (!entry) return toast.error("Entrada não encontrada");
+                                stashEditEntry(entry);
+                                const isSimples = /[?&]simples=1(?:&|$)/.test(entry.url);
+                                router.navigate({
+                                  to: isSimples ? "/admin/link-cartao-simples" : "/admin/link-pagamento",
+                                });
+                              }}
+                              className="p-2 flex items-center justify-center bg-brand-orange/10 border border-brand-orange/30 rounded-full hover:bg-brand-orange/20 text-brand-orange transition-colors"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {canReject && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => onReject(e.orderId!, e.notes ?? null)}
+                              className="p-2 flex items-center justify-center bg-red-500/10 border border-red-500/20 rounded-full hover:bg-red-500/20 text-red-400 transition-colors"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Rejeitar</TooltipContent>
+                        </Tooltip>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (e.order && e.orderId) onDeleteOrder(e.orderId);
+                              else onDelete(e.id.replace(/^avulso:/, ""));
+                            }}
+                            className="p-2 flex items-center justify-center bg-muted/60 border border-border rounded-full hover:bg-red-500/10 hover:border-red-500/30 text-muted-foreground hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Excluir</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
                 </div>
               </div>
             </div>
