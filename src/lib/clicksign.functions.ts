@@ -209,7 +209,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
           document_key: documentKey,
           signer_key: clienteResp.signer.key,
           sign_as: "party",
-          refusable: true,
+          refusable: false,
           message: `Contrato e recibo do pedido ${data.orderNumber}. Por favor, revise e assine.`,
         },
       }),
