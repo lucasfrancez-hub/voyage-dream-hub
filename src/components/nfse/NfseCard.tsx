@@ -321,7 +321,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
             </div>
             <div>
               <Label>Discriminação do serviço</Label>
-              <Textarea rows={4} value={form.discriminacao} onChange={(e) => setForm((f) => ({ ...f, discriminacao: e.target.value }))} />
+              <Textarea rows={8} className="font-mono text-xs" value={form.discriminacao} onChange={(e) => setForm((f) => ({ ...f, discriminacao: e.target.value }))} />
             </div>
             <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
               ISS calculado: <b>{brl(Number(form.valor.replace(",", ".") || 0) * 0.04)}</b> · Item 9.02 · Paranavaí/PR
