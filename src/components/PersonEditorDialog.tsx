@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import {
   getPerson, upsertPerson, deletePerson,
-  addPersonCard, deletePersonCard, revealPersonCardNumber,
+  addPersonCard, updatePersonCard, deletePersonCard, revealPersonCardNumber,
   getPersonSalesAndFinancials,
   savePersonPhone, deletePersonPhone,
   savePersonEmail, deletePersonEmail,
