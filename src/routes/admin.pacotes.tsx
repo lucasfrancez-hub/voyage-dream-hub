@@ -243,16 +243,16 @@ function AdminPackages() {
             key={p.id}
             className="group bg-card/60 border border-border/60 rounded-2xl hover:border-brand-orange/50 transition-all"
           >
-            <div className="grid grid-cols-1 md:grid-cols-12 items-center p-5 md:px-8 md:py-6 gap-4 md:gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-12 items-center p-4 md:px-6 md:py-4 gap-3 md:gap-2">
               {/* Info */}
-              <div className="col-span-1 md:col-span-5 space-y-1 min-w-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-sm bg-brand-orange shrink-0" />
-                  <h3 className="text-base sm:text-lg font-bold text-foreground group-hover:text-brand-orange transition-colors truncate">
+              <div className="col-span-1 md:col-span-5 space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-1.5 h-1.5 rounded-sm bg-brand-orange shrink-0" />
+                  <h3 className="text-sm sm:text-[15px] font-bold text-foreground group-hover:text-brand-orange transition-colors truncate">
                     {p.title}
                   </h3>
                 </div>
-                <div className="flex items-center gap-2 pl-5 text-[11px] text-muted-foreground uppercase min-w-0">
+                <div className="flex items-center gap-2 pl-4 text-[10px] text-muted-foreground uppercase min-w-0">
                   <span className="truncate">/{p.slug}</span>
                   <span className="text-muted-foreground/40 shrink-0">•</span>
                   <span className="text-muted-foreground/90 italic truncate">{p.destination}</span>
@@ -261,7 +261,7 @@ function AdminPackages() {
 
               {/* Dates */}
               <div className="col-span-1 md:col-span-3 flex md:justify-center">
-                <div className="inline-flex items-center gap-3 text-xs sm:text-sm tracking-tight text-muted-foreground bg-background/60 px-4 py-1.5 border border-border/60 rounded-full">
+                <div className="inline-flex items-center gap-2.5 text-[11px] sm:text-xs tracking-tight text-muted-foreground bg-background/60 px-3 py-1 border border-border/60 rounded-full">
                   <span>{p.going_date ? formatDate(p.going_date) : "—"}</span>
                   <span className="text-muted-foreground/40">→</span>
                   <span>{p.return_date ? formatDate(p.return_date) : "—"}</span>
@@ -270,14 +270,15 @@ function AdminPackages() {
 
               {/* Price */}
               <div className="col-span-1 md:col-span-2 md:text-right">
-                <div className="text-[10px] text-muted-foreground uppercase mb-0.5">BRL</div>
-                <div className="text-lg sm:text-xl font-black text-foreground tabular-nums tracking-tight">
+                <div className="text-[9px] text-muted-foreground uppercase mb-0.5">BRL</div>
+                <div className="text-base sm:text-lg font-black text-foreground tabular-nums tracking-tight">
                   {formatBRLNoSymbol((Number(p.price_per_person) || 0) * (Number(p.base_occupancy) || 1))}
                 </div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">
+                <div className="text-[9px] text-muted-foreground mt-0.5">
                   Total {p.base_occupancy || 1} pax
                 </div>
               </div>
+
 
               {/* Status + Actions */}
               <div className="col-span-1 md:col-span-2 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3">
