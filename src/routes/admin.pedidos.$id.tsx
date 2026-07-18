@@ -160,7 +160,7 @@ function OrderDetailPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "orderDetail", id] });
 
   const orderStatusMut = useMutation({
-    mutationFn: (status: "confirmed" | "reserved" | "cancelled" | "pending" | "paid") =>
+    mutationFn: (status: "confirmed" | "reserved" | "cancelled" | "pending" | "paid" | "awaiting_signature") =>
       setOrderStatusFn({ data: { id: (data as OrderDetail | undefined)?.order.id ?? "", status } }),
     onSuccess: (_r, status) => {
       toast.success(
