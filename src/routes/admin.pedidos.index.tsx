@@ -679,12 +679,35 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
             )}
           </div>
 
-          <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="000.000.000-00" /></div>
-            <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} placeholder="00.000.000/0000-00" /></div>
+            <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div>
+              <Label>CPF / CNPJ *</Label>
+              <Input
+                value={form.cpf || form.cnpj}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, 14);
+                  let formatted = digits;
+                  if (digits.length <= 11) {
+                    formatted = digits
+                      .replace(/^(\d{3})(\d)/, "$1.$2")
+                      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+                      .replace(/\.(\d{3})(\d)/, ".$1-$2");
+                    setForm({ ...form, cpf: formatted, cnpj: "" });
+                  } else {
+                    formatted = digits
+                      .replace(/^(\d{2})(\d)/, "$1.$2")
+                      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+                      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+                      .replace(/(\d{4})(\d)/, "$1-$2");
+                    setForm({ ...form, cnpj: formatted, cpf: "" });
+                  }
+                }}
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+              />
+            </div>
           </div>
-          <p className="text-[11px] text-muted-foreground -mt-2">Informe CPF ou CNPJ (obrigatório).</p>
+
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
             <div><Label>RG</Label><Input value={form.rg} onChange={(e) => setForm({ ...form, rg: e.target.value })} /></div>
