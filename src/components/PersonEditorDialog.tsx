@@ -1081,7 +1081,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
               </tr>
             ))}
             {cards.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-4 text-sm text-muted-foreground text-center">Nenhum cartão salvo.</td></tr>
+              <tr><td colSpan={7} className="px-3 py-4 text-sm text-muted-foreground text-center">Nenhum cartão salvo.</td></tr>
             )}
           </tbody>
         </table>
