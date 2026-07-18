@@ -205,86 +205,116 @@ function AdminPackages() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-6 py-4 sm:py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="mx-auto max-w-6xl px-3 sm:px-6 py-6 sm:py-12 selection:bg-brand-orange/30">
+      {/* Command Center header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-display font-bold">Pacotes</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            {packages?.length ?? 0} pacote(s) cadastrado(s)
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter uppercase text-foreground mb-2">
+            Command Center <span className="text-brand-orange">/</span> Pacotes
+          </h1>
+          <p className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
+            {packages?.length ?? 0} pacote(s) cadastrados no sistema via air
           </p>
         </div>
         <button
           onClick={() => setEditing({ ...emptyForm })}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90"
+          className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-6 py-3 rounded-none font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
         >
-          <Plus className="h-4 w-4" /> Novo pacote
+          <Plus className="h-5 w-5" strokeWidth={3} /> Novo Pacote
         </button>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-border overflow-hidden">
-       <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[520px]">
-          <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
-            <tr>
-              <th className="text-left px-3 sm:px-4 py-3">Pacote</th>
-              <th className="text-left px-4 py-3 hidden md:table-cell">Período</th>
-              <th className="text-right px-3 sm:px-4 py-3">Preço</th>
-              <th className="text-center px-3 sm:px-4 py-3">Status</th>
-              <th className="text-right px-3 sm:px-4 py-3">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                  Carregando…
-                </td>
-              </tr>
-            )}
-            {packages?.map((p) => (
-              <tr key={p.id} className="border-t border-border">
-                <td className="px-4 py-3">
-                  <div className="font-medium">{p.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    /{p.slug} · {p.destination}
-                  </div>
-                </td>
-                <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
-                  {formatDateRange(p.going_date, p.return_date)}
-                </td>
-                <td className="px-4 py-3 text-right font-medium">{formatBRL(p.price_per_person)}</td>
-                <td className="px-4 py-3 text-center">
-                  <button
-                    onClick={() => toggleActive(p)}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] ${
-                      p.is_active
-                        ? "bg-emerald-500/10 text-emerald-500"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {p.is_active ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                    {p.is_active ? "Ativo" : "Oculto"}
-                  </button>
-                </td>
-                <td className="px-4 py-3 text-right">
+      {/* Row Header */}
+      <div className="hidden md:grid grid-cols-12 px-8 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60">
+        <div className="col-span-5">Identificação do Pacote</div>
+        <div className="col-span-3 text-center">Período Operacional</div>
+        <div className="col-span-2 text-right">Valor Base</div>
+        <div className="col-span-2 text-right">Status / Gestão</div>
+      </div>
+
+      {/* List */}
+      <div className="space-y-3 mt-2">
+        {isLoading && (
+          <div className="p-8 text-center text-muted-foreground text-sm">
+            <Loader2 className="inline h-4 w-4 animate-spin mr-2" /> Carregando…
+          </div>
+        )}
+        {packages?.map((p) => (
+          <div
+            key={p.id}
+            className="group bg-card/60 border border-border/60 hover:border-brand-orange/50 transition-all"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-12 items-center p-5 md:px-8 md:py-6 gap-4 md:gap-2">
+              {/* Info */}
+              <div className="col-span-1 md:col-span-5 space-y-1 min-w-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-brand-orange shrink-0" />
+                  <h3 className="text-base sm:text-lg font-bold text-foreground group-hover:text-brand-orange transition-colors truncate">
+                    {p.title}
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2 pl-5 font-mono text-[11px] text-muted-foreground uppercase min-w-0">
+                  <span className="truncate">/{p.slug}</span>
+                  <span className="text-muted-foreground/40 shrink-0">•</span>
+                  <span className="text-muted-foreground/90 italic truncate">{p.destination}</span>
+                </div>
+              </div>
+
+              {/* Dates */}
+              <div className="col-span-1 md:col-span-3 flex md:justify-center">
+                <div className="inline-flex items-center gap-3 font-mono text-xs sm:text-sm tracking-tight text-muted-foreground bg-background/60 px-3 py-1.5 border border-border/60">
+                  <span>{p.going_date ? formatDate(p.going_date) : "—"}</span>
+                  <span className="text-muted-foreground/40">→</span>
+                  <span>{p.return_date ? formatDate(p.return_date) : "—"}</span>
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="col-span-1 md:col-span-2 md:text-right">
+                <div className="text-[10px] text-muted-foreground font-mono uppercase mb-0.5">BRL</div>
+                <div className="text-lg sm:text-xl font-black text-foreground tabular-nums tracking-tight">
+                  {formatBRLNoSymbol(p.price_per_person)}
+                </div>
+              </div>
+
+              {/* Status + Actions */}
+              <div className="col-span-1 md:col-span-2 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3">
+                <button
+                  onClick={() => toggleActive(p)}
+                  className={`inline-flex items-center gap-2 px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                    p.is_active
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                      : "bg-muted border-border text-muted-foreground"
+                  }`}
+                  title={p.is_active ? "Clique para ocultar" : "Clique para ativar"}
+                >
+                  {p.is_active ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  ) : (
+                    <EyeOff className="h-3 w-3" />
+                  )}
+                  {p.is_active ? "Ativo" : "Oculto"}
+                </button>
+                <div className="flex items-center gap-4">
                   <button
                     onClick={() => setEditing(p)}
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-muted"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="Editar"
                   >
-                    <Pencil className="h-3.5 w-3.5" /> Editar
+                    <Pencil className="h-[18px] w-[18px]" strokeWidth={2} />
                   </button>
                   <button
                     onClick={() => remove(p)}
-                    className="ml-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+                    className="text-muted-foreground/60 hover:text-red-500 transition-colors"
+                    title="Excluir"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-[18px] w-[18px]" strokeWidth={2} />
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-       </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {editing && (
@@ -297,6 +327,16 @@ function AdminPackages() {
       )}
     </div>
   );
+}
+
+function formatDate(iso: string): string {
+  const [y, m, d] = iso.split("T")[0].split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
+function formatBRLNoSymbol(n: number): string {
+  return (n ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 type PackageEditorModalProps = {
