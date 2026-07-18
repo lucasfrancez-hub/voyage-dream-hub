@@ -3789,6 +3789,7 @@ function PaymentDialog({
     if (n > 0 && total > 0) {
       const per = Math.round((total / n) * 100) / 100;
       setForm((f) => ({ ...f, installment_amount: per }));
+      setRawInstallment(fmtBRLInput(per));
     }
   }, [form.installments, form.amount, installmentTouched]);
 
