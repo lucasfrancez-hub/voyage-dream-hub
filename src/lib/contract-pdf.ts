@@ -1252,7 +1252,7 @@ function buildAuthorizationFromOrder(detail: OrderDetail, payment?: OrderPayment
       ? `Pedido ${order.orderNumber} — ${ccPayment.description}`
       : `Pedido ${order.orderNumber}`,
     order_number: order.orderNumber,
-    trip_locator: snap?.locator ?? order.airlineLocator ?? null,
+    trip_locator: (scopedLocators.length > 0 ? scopedLocators.join(", ") : null) ?? snap?.locator ?? order.airlineLocator ?? null,
     trip_route: snap?.route ?? null,
     trip_date: snap?.travel_date ?? null,
     trip_passengers: paxNames ?? null,
