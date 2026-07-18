@@ -644,7 +644,7 @@ const drawHeader = (ctx: Ctx) => {
   const autoFromItems = manualTitle
     ? ""
     : (computeAutoTitle(
-        (order.items ?? []).map((i) => ({
+        (ctx.items ?? []).map((i) => ({
           kind: i.kind,
           title: i.title,
           status: i.status,
