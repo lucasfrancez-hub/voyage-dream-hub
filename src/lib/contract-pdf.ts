@@ -991,8 +991,11 @@ export async function generateReceiptOnly(detail: OrderDetail): Promise<Blob> {
   return new Blob([buf], { type: "application/pdf" });
 }
 
-/** Constrói AuthorizationData a partir do OrderDetail (para pedidos sem card_capture). */
-function buildAuthorizationFromOrder(detail: OrderDetail) {
+/** Constrói AuthorizationData a partir do OrderDetail. Se `payment` for
+ *  informado, gera a autorização específica daquele cartão (valor, bandeira,
+ *  últimos 4, validade, parcelas do próprio pagamento). Sem `payment`, usa
+ *  o primeiro cartão encontrado (compatibilidade com pedidos antigos). */
+function buildAuthorizationFromOrder(detail: OrderDetail, payment?: OrderPayment) {
   const { order, passengers, payments } = detail;
   const snap = (order.packageSnapshot ?? {}) as {
     card_capture?: {
@@ -1019,40 +1022,39 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
   const liveness = snap?.card_capture?.liveness ?? null;
   const paxNames = passengers.map((p) => p.full_name).join(", ") || undefined;
 
-  const method = (order.paymentMethod ?? "").toLowerCase();
-  const installments = /credit_card|boleto/.test(method)
-    ? Number((method.match(/\d+/) ?? ["1"])[0])
-    : 1;
-
-  // Pacote pronto: puxa dados do cartão de order_payments (last4/brand)
-  const ccPayment = (payments ?? []).find(
-    (p) => (p.method ?? "").toLowerCase() === "credit_card",
+  const ccPayment = payment ?? (payments ?? []).find(
+    (p) => (p.method ?? "").toLowerCase() === "credit_card" || (p.method ?? "").toLowerCase() === "debit_card",
   );
-  const cardLast4 = snap?.card_capture?.last4 ?? ccPayment?.card_last4 ?? null;
+  // Parcelas: usa as do próprio pagamento quando existir; senão infere do method do pedido.
+  const orderMethod = (order.paymentMethod ?? "").toLowerCase();
+  const installments = ccPayment?.installments
+    ?? (/credit_card|boleto/.test(orderMethod) ? Number((orderMethod.match(/\d+/) ?? ["1"])[0]) : 1);
+
+  const cardLast4 = ccPayment?.card_last4 ?? snap?.card_capture?.last4 ?? null;
   const cardBrand = ccPayment?.card_brand ?? null;
   const cardExpiry = ccPayment?.card_expiry ?? snap?.card_capture?.expiry ?? existing?.expiry ?? undefined;
-  // Extrai os 6 primeiros dígitos (BIN) do número completo ou do brand_hint numérico
+  // BIN: usa o do pagamento; só cai no card_capture do pedido se não vier específico.
   const fullDigits = (snap?.card_capture?.full_number ?? "").replace(/\D/g, "");
   const hintDigits = (snap?.card_capture?.brand_hint ?? "").replace(/\D/g, "");
-  const first6 = fullDigits.length >= 6
-    ? fullDigits.slice(0, 6)
-    : hintDigits.length >= 6
-      ? hintDigits.slice(0, 6)
-      : (ccPayment?.card_bin && /^\d{6}$/.test(ccPayment.card_bin) && ccPayment.card_bin !== "000000")
-        ? ccPayment.card_bin
-        : null;
+  const paymentBin = (ccPayment?.card_bin && /^\d{6}$/.test(ccPayment.card_bin) && ccPayment.card_bin !== "000000")
+    ? ccPayment.card_bin
+    : null;
+  const first6 = paymentBin
+    ?? (fullDigits.length >= 6 ? fullDigits.slice(0, 6)
+      : hintDigits.length >= 6 ? hintDigits.slice(0, 6) : null);
   const maskedCard = cardLast4
-    ? first6
-      ? `${first6} ****** ${cardLast4}`
-      : `**** ****** ${cardLast4}`
+    ? first6 ? `${first6} ****** ${cardLast4}` : `**** ****** ${cardLast4}`
     : undefined;
 
-  // Duração: garante dias = noites + 1 (pacote pronto)
   const nightsNum = snap?.nights ? Number(String(snap.nights).replace(/\D/g, "")) : null;
   const tripNights = snap?.nights ?? null;
   const tripDays = nightsNum && Number.isFinite(nightsNum) && nightsNum > 0
     ? String(nightsNum + 1)
     : (snap?.days ?? null);
+
+  // Valor: quando é autorização por cartão, usa o valor do próprio pagamento;
+  // sem cartão específico, cai no total do pedido.
+  const authAmount = ccPayment?.amount ?? order.totalPrice;
 
   const authorization: import("./authorization-pdf").AuthorizationData = {
     type: "debit_authorization",
@@ -1066,10 +1068,12 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     masked_card: maskedCard,
     brand: cardBrand ?? undefined,
     expiry: cardExpiry,
-    amount: order.totalPrice,
+    amount: authAmount,
     installments,
     authorization_code: ccPayment?.authorization_code ?? existing?.authorization_code ?? null,
-    description: `Pedido ${order.orderNumber}`,
+    description: ccPayment?.description
+      ? `Pedido ${order.orderNumber} — ${ccPayment.description}`
+      : `Pedido ${order.orderNumber}`,
     order_number: order.orderNumber,
     trip_locator: snap?.locator ?? order.airlineLocator ?? null,
     trip_route: snap?.route ?? null,
@@ -1081,15 +1085,14 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
     trip_checkout: snap?.checkout ?? null,
     trip_days: tripDays,
     trip_nights: tripNights,
-    ...(existing ?? {}),
+    // Só reaproveita a assinatura do checkout se não há cartão específico
+    // (senão colaríamos a mesma assinatura em múltiplas autorizações).
+    ...(payment ? {} : (existing ?? {})),
   };
 
-  // O checkout de pacote pronto guarda o número completo e a validade em
-  // card_capture. Normalizamos somente esse fluxo; o link de pagamento mantém
-  // integralmente a autorização já registrada durante o checkout.
   const isPaymentLink = ["payment_link", "payment_link_simple"].includes(snap?.kind ?? "");
   if (!isPaymentLink) {
-    authorization.masked_card = maskedCard ?? existing?.masked_card;
+    authorization.masked_card = maskedCard ?? (payment ? undefined : existing?.masked_card);
     authorization.expiry = cardExpiry;
     authorization.trip_days = tripDays;
     authorization.trip_nights = tripNights;
@@ -1097,50 +1100,70 @@ function buildAuthorizationFromOrder(detail: OrderDetail) {
   return { authorization, liveness };
 }
 
-/** Recibo + Contrato + Autorização de débito, tudo num único PDF. */
-export async function generateReceiptContractAndAuthorization(detail: OrderDetail): Promise<Blob> {
-  const { buildAuthorizationBlob } = await import("./authorization-pdf");
-  const [contractBlob, authData] = await Promise.all([
-    generateReceiptAndContract(detail),
-    Promise.resolve(buildAuthorizationFromOrder(detail)),
-  ]);
-  const authBlob = await buildAuthorizationBlob({
-    orderId: detail.order.id,
-    createdAt: detail.order.createdAt,
-    authorization: authData.authorization,
-    liveness: authData.liveness,
-    pendingSignature: true,
+/** Lista de pagamentos em cartão do pedido (crédito/débito). */
+function cardPayments(detail: OrderDetail): OrderPayment[] {
+  return (detail.payments ?? []).filter((p) => {
+    const m = (p.method ?? "").toLowerCase();
+    return m === "credit_card" || m === "debit_card";
   });
+}
 
-  // Merge com pdf-lib
+async function mergePdfBlobs(blobs: Blob[]): Promise<Blob> {
   const merged = await PDFDocument.create();
-  const [aBytes, bBytes] = await Promise.all([contractBlob.arrayBuffer(), authBlob.arrayBuffer()]);
-  const [pdfA, pdfB] = await Promise.all([PDFDocument.load(aBytes), PDFDocument.load(bBytes)]);
-  const pagesA = await merged.copyPages(pdfA, pdfA.getPageIndices());
-  pagesA.forEach((p) => merged.addPage(p));
-  const pagesB = await merged.copyPages(pdfB, pdfB.getPageIndices());
-  pagesB.forEach((p) => merged.addPage(p));
-
-  const bytes = await merged.save();
-  const buf = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buf).set(bytes);
+  for (const b of blobs) {
+    const bytes = await b.arrayBuffer();
+    const src = await PDFDocument.load(bytes);
+    const pages = await merged.copyPages(src, src.getPageIndices());
+    pages.forEach((p) => merged.addPage(p));
+  }
+  const out = await merged.save();
+  const buf = new ArrayBuffer(out.byteLength);
+  new Uint8Array(buf).set(out);
   return new Blob([buf], { type: "application/pdf" });
 }
 
-/** Autorização avulsa para pedido, assinada no checkout ou pendente no ClickSign. */
+/** Recibo + Contrato + Autorização de débito (uma autorização por cartão). */
+export async function generateReceiptContractAndAuthorization(detail: OrderDetail): Promise<Blob> {
+  const { buildAuthorizationBlob } = await import("./authorization-pdf");
+  const contractBlob = await generateReceiptAndContract(detail);
+  const cards = cardPayments(detail);
+  // Sem cartão nenhum registrado: gera uma única autorização “genérica” (fluxo antigo).
+  const targets: (OrderPayment | undefined)[] = cards.length > 0 ? cards : [undefined];
+  const authBlobs = await Promise.all(targets.map(async (payment) => {
+    const authData = buildAuthorizationFromOrder(detail, payment);
+    return buildAuthorizationBlob({
+      orderId: detail.order.id,
+      createdAt: detail.order.createdAt,
+      authorization: authData.authorization,
+      liveness: authData.liveness,
+      pendingSignature: true,
+    });
+  }));
+  return mergePdfBlobs([contractBlob, ...authBlobs]);
+}
+
+/** Autorização avulsa. Sem `payment`, gera uma por cartão (mescladas). */
 export async function generateOrderAuthorization(
   detail: OrderDetail,
   pendingSignature = true,
+  payment?: OrderPayment,
 ): Promise<Blob> {
   const { buildAuthorizationBlob } = await import("./authorization-pdf");
-  const authData = buildAuthorizationFromOrder(detail);
-  return buildAuthorizationBlob({
-    orderId: detail.order.id,
-    createdAt: detail.order.createdAt,
-    authorization: authData.authorization,
-    liveness: authData.liveness,
-    pendingSignature,
-  });
+  const cards = cardPayments(detail);
+  const targets: (OrderPayment | undefined)[] = payment
+    ? [payment]
+    : cards.length > 0 ? cards : [undefined];
+  const blobs = await Promise.all(targets.map(async (p) => {
+    const authData = buildAuthorizationFromOrder(detail, p);
+    return buildAuthorizationBlob({
+      orderId: detail.order.id,
+      createdAt: detail.order.createdAt,
+      authorization: authData.authorization,
+      liveness: authData.liveness,
+      pendingSignature,
+    });
+  }));
+  return blobs.length === 1 ? blobs[0] : mergePdfBlobs(blobs);
 }
 
 export function openBlobInNewTab(blob: Blob, filename: string) {

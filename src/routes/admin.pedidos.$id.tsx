@@ -534,6 +534,7 @@ function OrderDetailPage() {
       <PaymentsSection
         orderId={order.id}
         order={order}
+        detail={detail}
         items={detail.items}
         clientName={order.fullName}
         payments={detail.payments}
@@ -3430,10 +3431,11 @@ function fmtDateTime(iso: string | null) {
 }
 
 function PaymentsSection({
-  orderId, order, items, clientName, payments, onChange,
+  orderId, order, detail, items, clientName, payments, onChange,
 }: {
   orderId: string;
   order: OrderHeader;
+  detail: OrderDetail;
   items: OrderItem[];
   clientName: string;
   payments: OrderPayment[];
@@ -3542,12 +3544,28 @@ function PaymentsSection({
                     )}
                     {p.description && <div className="text-muted-foreground text-xs mt-1">{p.description}</div>}
                     {(p.method === "credit_card" || p.method === "debit_card") && (
-                      <Link
-                        to="/admin/cofre"
-                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-brand-orange hover:underline"
-                      >
-                        <Vault className="h-3.5 w-3.5" /> Abrir cofre <ExternalLink className="h-3 w-3" />
-                      </Link>
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <Link
+                          to="/admin/cofre"
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-orange hover:underline"
+                        >
+                          <Vault className="h-3.5 w-3.5" /> Abrir cofre <ExternalLink className="h-3 w-3" />
+                        </Link>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-orange hover:underline"
+                          onClick={async () => {
+                            try {
+                              const blob = await generateOrderAuthorization(detail, true, p);
+                              openBlobInNewTab(blob, `autorizacao-debito-${order.orderNumber}-${p.card_last4 ?? p.id.slice(0, 6)}.pdf`);
+                            } catch (e) {
+                              toast.error(e instanceof Error ? e.message : "Erro ao gerar autorização");
+                            }
+                          }}
+                        >
+                          <Download className="h-3.5 w-3.5" /> Autorização deste cartão
+                        </button>
+                      </div>
                     )}
                   </div>
                   <div>
