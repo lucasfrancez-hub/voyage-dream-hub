@@ -3431,10 +3431,11 @@ function fmtDateTime(iso: string | null) {
 }
 
 function PaymentsSection({
-  orderId, order, items, clientName, payments, onChange,
+  orderId, order, detail, items, clientName, payments, onChange,
 }: {
   orderId: string;
   order: OrderHeader;
+  detail: OrderDetail;
   items: OrderItem[];
   clientName: string;
   payments: OrderPayment[];
