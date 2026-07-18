@@ -164,6 +164,8 @@ const L = {
     footerLeveText: "with you throughout your trip.",
     footerObr: "Thank you for choosing Via Air. Safe travels!",
     politicaHotel: "HOTEL POLICY",
+    politicaCancelamento: "CANCELLATION POLICY",
+    observacoes: "OBSERVATIONS",
     adulto: "Adult",
     crianca: "Child",
     infantil: "Infant",
