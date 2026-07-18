@@ -578,13 +578,14 @@ const receiptAmounts = (d: OrderDetail): ReceiptAmounts => {
   return { fare, taxes, discount, total };
 };
 
-const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
-  if (d.passengers.length === 0) return;
-
-  sectionTitle(ctx, "Passageiros", 72);
-  // A tabela de passageiros representa o rateio do pedido completo, não só
-  // do aéreo. Cada coluna é dividida em centavos para a soma fechar exata.
-  const amounts = receiptAmounts(d);
+const drawPassengerTable = (
+  ctx: Ctx,
+  title: string,
+  passengers: OrderDetail["passengers"],
+  amounts: { fare: number; taxes: number; discount: number },
+) => {
+  if (passengers.length === 0) return;
+  sectionTitle(ctx, title, 72);
   const showDiscount = amounts.discount > 0.005;
   const cols: Col[] = showDiscount
     ? [
@@ -604,20 +605,129 @@ const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
       ];
 
   drawTableHeader(ctx, cols);
-  const fares = splitCents(amounts.fare, d.passengers.length);
-  const taxes = splitCents(amounts.taxes, d.passengers.length);
-  const discounts = splitCents(amounts.discount, d.passengers.length);
-  const totals = fares.map((fare, index) =>
-    fromCents(toCents(fare + taxes[index] - discounts[index])),
-  );
+  const fares = splitCents(amounts.fare, passengers.length);
+  const taxes = splitCents(amounts.taxes, passengers.length);
+  const discounts = splitCents(amounts.discount, passengers.length);
+  const totals = fares.map((fare, i) => fromCents(toCents(fare + taxes[i] - discounts[i])));
 
-  d.passengers.forEach((passenger, index) => {
+  passengers.forEach((p, i) => {
     const row = showDiscount
-      ? [passenger.full_name, passenger.ticket_number ?? "—", brl(fares[index]), brl(taxes[index]), brl(discounts[index]), brl(totals[index])]
-      : [passenger.full_name, passenger.ticket_number ?? "—", brl(fares[index]), brl(taxes[index]), brl(totals[index])];
+      ? [p.full_name, p.ticket_number ?? "—", brl(fares[i]), brl(taxes[i]), brl(discounts[i]), brl(totals[i])]
+      : [p.full_name, p.ticket_number ?? "—", brl(fares[i]), brl(taxes[i]), brl(totals[i])];
     drawTableRow(ctx, cols, row);
   });
   ctx.y -= 4;
+};
+
+const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
+  if (d.passengers.length === 0) return;
+
+  // Agrupa aéreos por localizador (uma "reserva" pode ter ida + volta).
+  // Cada reserva ganha sua própria tabela com os passageiros ligados a
+  // qualquer item dessa reserva, e valores tirados dos financials daqueles
+  // itens divididos pela quantidade de passageiros daquela reserva.
+  const flights = d.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
+  const finByItem = new Map(d.financials.map((f) => [f.order_item_id, f]));
+  const paxById = new Map(d.passengers.map((p) => [p.id, p]));
+
+  type Group = {
+    label: string;
+    itemIds: string[];
+    passengers: OrderDetail["passengers"];
+    fare: number;
+    taxes: number;
+    discount: number;
+  };
+  const groups: Group[] = [];
+  const seenKeys = new Set<string>();
+
+  // Ordena os aéreos por sort_order para reservas com múltiplos trechos
+  // aparecerem na mesma ordem do pedido.
+  const sortedFlights = [...flights].sort((a, b) => a.sort_order - b.sort_order);
+
+  for (const f of sortedFlights) {
+    const key = (f.supplier_locator ?? "").trim() || `__item_${f.id}`;
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    const groupItems = sortedFlights.filter((x) => {
+      const k = (x.supplier_locator ?? "").trim() || `__item_${x.id}`;
+      return k === key;
+    });
+    const itemIds = groupItems.map((x) => x.id);
+
+    // Passageiros da reserva: união dos vinculados a qualquer item do grupo.
+    const paxIdSet = new Set<string>();
+    for (const id of itemIds) {
+      for (const pid of d.itemPassengers[id] ?? []) paxIdSet.add(pid);
+    }
+    const passengers = [...paxIdSet]
+      .map((pid) => paxById.get(pid))
+      .filter((p): p is OrderDetail["passengers"][number] => Boolean(p))
+      .sort((a, b) => a.sort_order - b.sort_order);
+    if (passengers.length === 0) continue;
+
+    // Financeiro somado dos itens do grupo (mesmo localizador soma ida+volta).
+    let fare = 0, taxes = 0, discount = 0, total = 0;
+    for (const id of itemIds) {
+      const fin = finByItem.get(id);
+      if (!fin) continue;
+      taxes += Number(fin.tax_value || 0);
+      discount += Number(fin.discount_value || 0);
+      total += Number(fin.total || 0);
+    }
+    // Reconciliação: tarifa = total - taxas + desconto (garante que a soma feche).
+    fare = fromCents(toCents(total - taxes + discount));
+    taxes = fromCents(toCents(taxes));
+    discount = fromCents(toCents(discount));
+
+    const first = groupItems[0];
+    const det = (first.details ?? {}) as Record<string, unknown>;
+    const airline = (det.airline as string) ?? "";
+    const locator = (first.supplier_locator ?? "").trim();
+    const label = locator
+      ? `Passageiros — ${airline ? airline + " " : ""}Loc. ${locator}`
+      : `Passageiros — ${airline || first.title}`;
+
+    groups.push({ label, itemIds, passengers, fare, taxes, discount });
+  }
+
+  // Se conseguimos agrupar por reserva com valores próprios, usa uma tabela
+  // por reserva. Senão, cai no comportamento antigo: uma única tabela com o
+  // total do pedido rateado entre todos os passageiros.
+  const hasPerReservaBreakdown = groups.length > 0
+    && groups.every((g) => (g.fare + g.taxes + g.discount) > 0.005);
+
+  if (hasPerReservaBreakdown && groups.length >= 1) {
+    for (const g of groups) {
+      drawPassengerTable(ctx, g.label, g.passengers, {
+        fare: g.fare, taxes: g.taxes, discount: g.discount,
+      });
+    }
+    // Passageiros não vinculados a nenhuma reserva aérea entram numa tabela
+    // extra rateando o restante do pedido (comum quando só há hospedagem).
+    const usedIds = new Set(groups.flatMap((g) => g.passengers.map((p) => p.id)));
+    const others = d.passengers.filter((p) => !usedIds.has(p.id));
+    if (others.length > 0) {
+      const totalOrder = receiptAmounts(d);
+      const usedFare = groups.reduce((s, g) => s + g.fare, 0);
+      const usedTax = groups.reduce((s, g) => s + g.taxes, 0);
+      const usedDisc = groups.reduce((s, g) => s + g.discount, 0);
+      const rest = {
+        fare: Math.max(0, fromCents(toCents(totalOrder.fare - usedFare))),
+        taxes: Math.max(0, fromCents(toCents(totalOrder.taxes - usedTax))),
+        discount: Math.max(0, fromCents(toCents(totalOrder.discount - usedDisc))),
+      };
+      if (rest.fare + rest.taxes + rest.discount > 0.005) {
+        drawPassengerTable(ctx, "Passageiros — Demais serviços", others, rest);
+      }
+    }
+    return;
+  }
+
+  const amounts = receiptAmounts(d);
+  drawPassengerTable(ctx, "Passageiros", d.passengers, {
+    fare: amounts.fare, taxes: amounts.taxes, discount: amounts.discount,
+  });
 };
 
 const drawFlights = (ctx: Ctx, d: OrderDetail) => {
