@@ -256,46 +256,70 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
             const displayOrderNumber =
               ((o as { order_number?: string | null }).order_number ?? snap.order_number ?? shortId(o.id));
             return (
-              <Link
-                key={o.id}
-                to="/admin/pedidos/$id"
-                params={{ id: o.id }}
-                className="block px-4 py-3 active:bg-muted/40 transition"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-sm font-semibold">{displayOrderNumber}</span>
-                      {o.airline_locator && (
-                        <span className="font-mono text-[10px] text-muted-foreground">LOC {o.airline_locator}</span>
+              <div key={o.id} className="relative">
+                <Link
+                  to="/admin/pedidos/$id"
+                  params={{ id: o.id }}
+                  className="block px-4 py-3 active:bg-muted/40 transition"
+                >
+                  <div className="flex items-start justify-between gap-3 pr-8">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-sm font-semibold">{displayOrderNumber}</span>
+                        {o.airline_locator && (
+                          <span className="font-mono text-[10px] text-muted-foreground">LOC {o.airline_locator}</span>
+                        )}
+                      </div>
+                      <div className="mt-1 font-medium text-sm truncate">{o.full_name}</div>
+                      {scope === "third_party" && (
+                        <div className="text-[10px] font-semibold text-brand-orange truncate">
+                          {agencyByUser?.[o.owner_user_id ?? ""] ?? "Agência parceira"}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground truncate">{o.email}</div>
+                      <div className="text-xs text-muted-foreground">{o.phone}</div>
+
+                      {(snap.title || snap.reference) && (
+                        <div className="mt-1 text-xs truncate">{snap.title ?? snap.reference}</div>
+                      )}
+                      {showDeleted && o.deleted_reason && (
+                        <div className="mt-1 text-[11px] text-destructive truncate">Motivo: {o.deleted_reason}</div>
                       )}
                     </div>
-                    <div className="mt-1 font-medium text-sm truncate">{o.full_name}</div>
-                    {scope === "third_party" && (
-                      <div className="text-[10px] font-semibold text-brand-orange truncate">
-                        {agencyByUser?.[o.owner_user_id ?? ""] ?? "Agência parceira"}
+                    <div className="text-right shrink-0">
+                      <div className="font-semibold text-sm">{formatBRL(Number(o.total_price))}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        {new Date(o.created_at).toLocaleDateString("pt-BR")}
                       </div>
-                    )}
-                    <div className="text-xs text-muted-foreground truncate">{o.email}</div>
-                    <div className="text-xs text-muted-foreground">{o.phone}</div>
-
-                    {(snap.title || snap.reference) && (
-                      <div className="mt-1 text-xs truncate">{snap.title ?? snap.reference}</div>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="font-semibold text-sm">{formatBRL(Number(o.total_price))}</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                      {new Date(o.created_at).toLocaleDateString("pt-BR")}
                     </div>
                   </div>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>{pm.label}</span>
-                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>{st.label}</span>
-                </div>
-              </Link>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>{pm.label}</span>
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>{st.label}</span>
+                  </div>
+                </Link>
+                {showDeleted ? (
+                  <button
+                    type="button"
+                    aria-label="Restaurar pedido"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); confirmThen("Restaurar este pedido?", () => restore.mutate(o.id)); }}
+                    className="absolute top-3 right-3 rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="Excluir pedido"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
+                    className="absolute top-3 right-3 rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             );
+
           })}
         </div>
 
