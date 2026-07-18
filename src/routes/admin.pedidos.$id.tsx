@@ -1243,7 +1243,12 @@ function ItemsTab({
         passengers={allPax}
         siblings={
           editing && editing.kind === "flight"
-            ? items.filter((i) => i.kind === "flight" && i.status !== "cancelled" && i.id !== editing.id)
+            ? items.filter((i) =>
+                i.kind === "flight" &&
+                i.status !== "cancelled" &&
+                i.id !== editing.id &&
+                flightGroupKey(i) === flightGroupKey(editing),
+              )
             : undefined
         }
         onSave={async (payload) => {
@@ -1457,13 +1462,19 @@ function formatDT(v: string | null | undefined): string {
 }
 
 type FlightGroup = { key: string; locator: string | null; items: OrderItem[] };
+function flightGroupKey(item: OrderItem): string {
+  const details = (item.details ?? {}) as Record<string, unknown>;
+  const importGroupId = String(details.import_group_id ?? "").trim();
+  const carrierLocator = String(details.carrier_locator ?? "").trim();
+  return importGroupId || carrierLocator || item.supplier_locator?.trim() || "__no_locator__";
+}
 function groupFlightItems(items: OrderItem[]): FlightGroup[] {
   const map = new Map<string, FlightGroup>();
   for (const it of items) {
     const details = (it.details ?? {}) as Record<string, unknown>;
-    const importGroupId = String(details.import_group_id ?? "").trim();
-    const key = importGroupId || it.supplier_locator?.trim() || "__no_locator__";
-    if (!map.has(key)) map.set(key, { key, locator: it.supplier_locator?.trim() || null, items: [] });
+    const carrierLocator = String(details.carrier_locator ?? "").trim();
+    const key = flightGroupKey(it);
+    if (!map.has(key)) map.set(key, { key, locator: carrierLocator || it.supplier_locator?.trim() || null, items: [] });
     map.get(key)!.items.push(it);
   }
   for (const g of map.values()) {
@@ -2423,11 +2434,11 @@ function ItemDialog({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Valor total (R$)</Label>
-                <Input type="number" step="0.01" min="0" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="0,00" />
+                <Input inputMode="decimal" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="11.406,30" />
               </div>
               <div>
                 <Label>Taxas inclusas (R$)</Label>
-                <Input type="number" step="0.01" min="0" value={String(details.tax_value ?? "")} onChange={(e) => setField("tax_value", e.target.value)} placeholder="0,00" />
+                <Input inputMode="decimal" value={String(details.tax_value ?? "")} onChange={(e) => setField("tax_value", e.target.value)} placeholder="0,00" />
                 <p className="mt-1 text-[10px] text-muted-foreground">As taxas já fazem parte do valor total.</p>
               </div>
             </div>
@@ -2591,7 +2602,14 @@ function ItemDialog({
               const cd: Record<string, unknown> = {};
               for (const [k, v] of Object.entries(raw)) {
                 if (v === "" || v === undefined || v === null) continue;
-                cd[k] = numFields.has(k) ? Number(v) : v;
+                if (numFields.has(k)) {
+                  const raw = String(v).trim().replace(/\s/g, "").replace(/^R\$/i, "");
+                  const normalized = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+                  const parsed = Number(normalized);
+                  if (Number.isFinite(parsed)) cd[k] = parsed;
+                } else {
+                  cd[k] = v;
+                }
               }
               return cd;
             };
