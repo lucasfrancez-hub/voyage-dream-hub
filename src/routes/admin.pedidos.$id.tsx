@@ -526,33 +526,6 @@ function OrderDetailPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="h-6 w-px bg-border/60 mx-1 hidden sm:block"></div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-9 gap-2" title="Ajustes do pedido">
-                  <Percent className="h-4 w-4" /> Ajustes
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => setOpenEdit(true)}><Pencil className="h-3.5 w-3.5 mr-2" /> Editar pedido</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setOpenCommission(true)}><Percent className="h-3.5 w-3.5 mr-2" /> Ajuste de comissão</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setOpenLog("notes_log")}><FileText className="h-3.5 w-3.5 mr-2" /> Observação ({order.notesLog?.length ?? 0})</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setOpenLog("travel_reason_log")}><FileText className="h-3.5 w-3.5 mr-2" /> Motivo da viagem ({order.travelReasonLog?.length ?? 0})</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => confirmThen("Confirmar o pedido e todos os itens?", () => orderStatusMut.mutate("confirmed"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Confirmar</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => confirmThen("Marcar o pedido como finalizado?", () => orderStatusMut.mutate("paid"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-500" /> Finalizado</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => confirmThen("Cancelar o pedido e todos os itens?", () => orderStatusMut.mutate("cancelled"))}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => confirmThen("Reabrir o pedido como pendente?", () => orderStatusMut.mutate("pending"))}><RotateCcw className="h-3.5 w-3.5 mr-2" /> Reabrir</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  setActiveTab("contract");
-                  setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent("clicksign:open-send", { detail: { orderId: order.id, withAuth: true } }));
-                  }, 150);
-                }}><Signature className="h-3.5 w-3.5 mr-2 text-brand-orange" /> Acionar contrato Clicksign</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
 
           {/* Core / primary actions */}
           <div className="flex flex-wrap items-center gap-2">
