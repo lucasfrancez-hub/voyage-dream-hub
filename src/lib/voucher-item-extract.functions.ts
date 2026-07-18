@@ -121,6 +121,8 @@ function itemSchema(kind: "hotel" | "other") {
     currency: { type: "string" },
     supplier_name: { type: "string" },
     policies: { type: "string" },
+    cancellation_policy: { type: "string" },
+    observations: { type: "array", items: { type: "string" } },
     address: { type: "string" },
     notes: { type: "string" },
   };
