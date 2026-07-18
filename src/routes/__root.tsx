@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -37,21 +37,58 @@ function NotFoundComponent() {
   );
 }
 
+const STALE_CODE_PATTERNS = [
+  "Invalid server function ID",
+  "Failed to fetch dynamically imported module",
+  "Importing a module script failed",
+  "error loading dynamically imported module",
+  "ChunkLoadError",
+  "Loading chunk",
+  "Loading CSS chunk",
+];
+
+function isStaleCodeError(error: unknown): boolean {
+  const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error ?? "");
+  return STALE_CODE_PATTERNS.some((p) => msg.includes(p));
+}
+
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const [autoRecovering, setAutoRecovering] = useState(false);
+
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+
+    // Auto-recover from stale-code / stale-chunk errors (e.g. old tab after a deploy).
+    // Only try once per session to avoid infinite reload loops.
+    if (typeof window === "undefined") return;
+    if (!isStaleCodeError(error)) return;
+    const key = "__viaair_stale_reload__";
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, String(Date.now()));
+    } catch {
+      // sessionStorage may be unavailable; skip auto-reload rather than loop.
+      return;
+    }
+    setAutoRecovering(true);
+    const t = setTimeout(() => {
+      window.location.reload();
+    }, 300);
+    return () => clearTimeout(t);
   }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          {autoRecovering ? "Recarregando…" : "This page didn't load"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          {autoRecovering
+            ? "Detectamos uma versão desatualizada e estamos atualizando pra você."
+            : "Something went wrong on our end. You can try refreshing or head back home."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -74,6 +111,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     </div>
   );
 }
+
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
