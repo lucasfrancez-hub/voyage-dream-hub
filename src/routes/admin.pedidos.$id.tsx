@@ -534,6 +534,7 @@ function OrderDetailPage() {
       <PaymentsSection
         orderId={order.id}
         order={order}
+        detail={detail}
         items={detail.items}
         clientName={order.fullName}
         payments={detail.payments}
