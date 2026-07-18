@@ -398,13 +398,32 @@ function ReviewExtracted({
       </div>
 
       <div>
-        <Label>Políticas (cancelamento, reembolso, taxas)</Label>
-        <Textarea rows={4} value={String(d.policies ?? "")} onChange={(e) => patchDetails("policies", e.target.value)} />
+        <Label>Política de cancelamento</Label>
+        <Textarea
+          rows={5}
+          placeholder="Resumo curto: prazos, multas, no-show..."
+          value={String(d.cancellation_policy ?? d.policies ?? "")}
+          onChange={(e) => patchDetails("cancellation_policy", e.target.value)}
+        />
       </div>
 
       <div>
-        <Label>Observações</Label>
-        <Textarea rows={2} value={String(d.notes ?? "")} onChange={(e) => patchDetails("notes", e.target.value)} />
+        <Label>Observações (uma por linha)</Label>
+        <Textarea
+          rows={6}
+          placeholder="- Check-in 14h / Check-out 11h&#10;- City tax CHF 4,25 por pessoa/diária&#10;- Café da manhã não incluso"
+          value={
+            Array.isArray(d.observations)
+              ? (d.observations as string[]).join("\n")
+              : String(d.observations ?? d.notes ?? "")
+          }
+          onChange={(e) =>
+            patchDetails(
+              "observations",
+              e.target.value.split("\n").map((s) => s.replace(/^\s*[-•]\s*/, "").trim()).filter(Boolean),
+            )
+          }
+        />
       </div>
 
       {(value.passengers?.length ?? 0) > 0 && (
