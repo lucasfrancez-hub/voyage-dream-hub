@@ -825,11 +825,13 @@ function PassengersSection({
           </Button>
           <Button
             size="sm"
-            onClick={openNew}
-            className="h-9 gap-2 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold shadow-[0_10px_20px_-10px_rgba(242,107,31,0.5)]"
+            variant="outline"
+            className="h-9 gap-2 text-muted-foreground border-border/60 hover:text-foreground"
+            onClick={() => setMondeOpen(true)}
           >
-            <Plus className="h-4 w-4" /> Adicionar
+            <Cloud className="h-4 w-4" /> Importar do Monde
           </Button>
+
         </div>
       </div>
 
