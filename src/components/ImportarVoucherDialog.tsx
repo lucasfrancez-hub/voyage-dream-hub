@@ -296,12 +296,14 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
 }
 
 function ReviewExtracted({
-  value, onChange, onCancel, onConfirm,
+  value, onChange, onCancel, onConfirm, onRemove, itemLabel,
 }: {
   value: ExtractedItemVoucher;
   onChange: (v: ExtractedItemVoucher) => void;
   onCancel: () => void;
   onConfirm: () => void;
+  onRemove?: () => void;
+  itemLabel?: string;
 }) {
   const isHotel = value.kind === "hotel";
   const d = (value.details ?? {}) as Record<string, unknown>;
@@ -325,11 +327,19 @@ function ReviewExtracted({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 flex items-start gap-2">
-        <CheckCircle2 className="h-4 w-4 text-emerald-700 mt-0.5 shrink-0" />
-        <div className="text-sm text-emerald-800">
-          Dados extraídos. Confira antes de salvar — você pode editar qualquer campo.
+      <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2">
+          <CheckCircle2 className="h-4 w-4 text-emerald-700 mt-0.5 shrink-0" />
+          <div className="text-sm text-emerald-800">
+            {itemLabel ? <span className="font-semibold">{itemLabel} · </span> : null}
+            Dados extraídos. Confira antes de salvar — você pode editar qualquer campo.
+          </div>
         </div>
+        {onRemove && (
+          <Button variant="ghost" size="sm" onClick={onRemove} className="text-red-600 hover:text-red-700 shrink-0">
+            Remover este item
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
