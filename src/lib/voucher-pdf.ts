@@ -2093,8 +2093,33 @@ export async function generateVoucher(
 
 
 
-  await drawAereoSection(ctx, outbound, returning);
+  // Agrupa voos por reserva (import_group_id || carrier_locator || supplier_locator).
+  // Cada grupo vira uma seção AEREO separada, para não misturar reservas distintas.
+  const flightGroupKey = (it: OrderItem): string => {
+    const d = (it.details ?? {}) as Record<string, unknown>;
+    const importGroup = String(d.import_group_id ?? "").trim();
+    if (importGroup) return `g:${importGroup}`;
+    const carrierLoc = String(d.carrier_locator ?? "").trim().toUpperCase();
+    if (carrierLoc) return `c:${carrierLoc}`;
+    const supplierLoc = String(it.supplier_locator ?? "").trim().toUpperCase();
+    if (supplierLoc) return `s:${supplierLoc}`;
+    return `i:${it.id}`;
+  };
+  const groupOrder: string[] = [];
+  const groups = new Map<string, { outbound: OrderItem[]; returning: OrderItem[] }>();
+  for (const it of [...outbound, ...returning]) {
+    const key = flightGroupKey(it);
+    if (!groups.has(key)) { groups.set(key, { outbound: [], returning: [] }); groupOrder.push(key); }
+    const dir = String(((it.details ?? {}) as Record<string, unknown>).direction ?? "outbound");
+    if (dir === "return") groups.get(key)!.returning.push(it);
+    else groups.get(key)!.outbound.push(it);
+  }
+  for (const key of groupOrder) {
+    const g = groups.get(key)!;
+    await drawAereoSection(ctx, g.outbound, g.returning);
+  }
   drawPassengersSection(ctx, detail.passengers);
+
 
   // Monta string de hóspedes a partir dos passageiros (ex.: "2 adultos, 1 criança, 1 bebê")
   const adt = detail.passengers.filter((p) => (p.passenger_type ?? "ADT") === "ADT").length;
