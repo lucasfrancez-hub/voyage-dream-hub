@@ -201,6 +201,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       }
       let sort = 0;
       let firstItem = true;
+      const allNewItemIds: string[] = [];
       // Se qualquer passageiro veio com bilhete emitido, a reserva inteira
       // é considerada Emitida (confirmed). Sem bilhete, fica Reservada.
       const anyTicket = reservation.passengers.some((p) => (p.ticket_number ?? "").trim().length > 0);
