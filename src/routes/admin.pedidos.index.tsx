@@ -20,9 +20,17 @@ import { confirmThen } from "@/lib/confirm";
 
 
 export const Route = createFileRoute("/admin/pedidos/")({
-  component: () => <AdminOrders scope="mine" />,
+  validateSearch: (s: Record<string, unknown>) => ({
+    status: (typeof s.status === "string" ? s.status : "all") as StatusFilter,
+  }),
+  component: RouteComponent,
   head: () => ({ meta: [{ title: "Pedidos — Admin" }] }),
 });
+
+function RouteComponent() {
+  const { status } = Route.useSearch();
+  return <AdminOrders scope="mine" initialStatus={status} />;
+}
 
 
 const STATUS_FILTERS = [
