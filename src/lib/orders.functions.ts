@@ -1064,7 +1064,7 @@ export const createOrder = createServerFn({ method: "POST" })
       payer_city: nn(data.payer_city),
       payer_state: nn(data.payer_state),
       status: "pending",
-      package_snapshot: { manual: true, title: "Pedido manual" },
+      package_snapshot: { manual: true },
     };
     const { data: created, error } = await context.supabase
       .from("orders")
