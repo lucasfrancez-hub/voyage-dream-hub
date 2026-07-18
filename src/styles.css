@@ -33,6 +33,7 @@
   --color-brand-blue: var(--brand-blue);
   --font-display: "Urbanist", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Epilogue", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Epilogue", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 :root {
