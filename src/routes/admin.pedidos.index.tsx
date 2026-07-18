@@ -592,17 +592,35 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setForm((f) => ({
                         ...f,
+                        person_id: p.id,
                         full_name: p.name ?? f.full_name,
                         email: p.email ?? f.email,
                         phone: p.mobile_phone ?? p.phone ?? f.phone,
                         cpf: p.cpf ?? p.cnpj ?? f.cpf,
+                        birth_date: p.birth_date ?? f.birth_date,
+                        rg: p.rg ?? f.rg,
+                        zip: p.zip ?? f.zip,
+                        address: p.address ?? f.address,
+                        number: p.number ?? f.number,
+                        district: p.district ?? f.district,
+                        city: p.city ?? f.city,
+                        state: p.state ?? f.state,
                       }));
                       setPersonQuery(p.name ?? "");
                       setShowResults(false);
                       toast.success(`Cliente "${p.name}" carregado`);
+                      try {
+                        const cards = await listPersonCards({ data: { person_id: p.id } });
+                        if (cards && cards.length > 0) {
+                          const c = cards[0];
+                          setSavedCardInfo(`${cards.length} cartão(ões) salvo(s) — ${c.brand ?? ""} •••• ${c.last4 ?? ""}`);
+                        } else {
+                          setSavedCardInfo(null);
+                        }
+                      } catch { setSavedCardInfo(null); }
                     }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-muted/60 border-b border-border/40 last:border-b-0"
                   >
@@ -614,11 +632,28 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
                 ))}
               </div>
             )}
+            {savedCardInfo && (
+              <p className="mt-1 text-[11px] text-primary">💳 {savedCardInfo} — será sugerido no pagamento</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
             <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label>Nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+            <div><Label>RG</Label><Input value={form.rg} onChange={(e) => setForm({ ...form, rg: e.target.value })} /></div>
+            <div><Label>CEP</Label><Input value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2"><Label>Endereço</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+            <div><Label>Número</Label><Input value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label>Bairro</Label><Input value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} /></div>
+            <div><Label>Cidade</Label><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
+            <div><Label>UF</Label><Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value.toUpperCase() })} maxLength={2} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
