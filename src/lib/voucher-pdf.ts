@@ -2151,7 +2151,7 @@ export async function generateVoucher(
   const ctx: Ctx = {
     pdf, page: firstPage, y: A4.h - MARGIN,
     font, fontBold, lang,
-    order: detail.order, logo,
+    order: detail.order, items: detail.items, logo,
     pages: [firstPage],
   };
 
