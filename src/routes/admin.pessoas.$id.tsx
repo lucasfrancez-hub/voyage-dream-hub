@@ -832,3 +832,32 @@ function Field({
 
 const cls =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-orange/40";
+
+function fmtBRL(v: number) {
+  return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function FinancialSummaryView({ summary }: { summary?: PersonFinancialSummary }) {
+  if (!summary) return null;
+  const items = [
+    { label: "Pedidos", value: String(summary.orders_count) },
+    { label: "Total contratado", value: fmtBRL(summary.total_gross) },
+    { label: "Pago", value: fmtBRL(summary.total_paid), tone: "text-emerald-600" },
+    { label: "Pendente", value: fmtBRL(summary.total_pending), tone: "text-amber-600" },
+  ];
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {items.map((it) => (
+        <div key={it.label} className="rounded-xl border border-border p-4">
+          <div className="text-[11px] uppercase text-muted-foreground tracking-wide">{it.label}</div>
+          <div className={`mt-1 text-lg font-semibold ${it.tone ?? ""}`}>{it.value}</div>
+        </div>
+      ))}
+      {summary.last_order_at && (
+        <div className="col-span-2 md:col-span-4 text-xs text-muted-foreground">
+          Último pedido em {new Date(summary.last_order_at).toLocaleDateString("pt-BR")}.
+        </div>
+      )}
+    </div>
+  );
+}
