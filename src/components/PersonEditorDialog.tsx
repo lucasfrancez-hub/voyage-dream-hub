@@ -4,15 +4,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   Save, Trash2, Loader2, Plus, CreditCard, Eye, EyeOff, User, Building2,
-  ShoppingBag, Wallet, ExternalLink, X,
+  ShoppingBag, Wallet, ExternalLink, Check, X as XIcon, Tag as TagIcon, Paperclip,
+  Download, Upload, FileText, ClipboardList, Calculator,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPerson, upsertPerson, deletePerson,
   addPersonCard, deletePersonCard, revealPersonCardNumber,
   getPersonSalesAndFinancials,
+  savePersonPhone, deletePersonPhone,
+  savePersonEmail, deletePersonEmail,
+  savePersonTag, deletePersonTag,
+  savePersonCustomField, deletePersonCustomField,
+  addPersonAttachment, deletePersonAttachment, getPersonAttachmentUrl,
   type PersonRow, type PersonCardRow, type PersonKind,
-  type PersonFinancialSummary,
+  type PersonFinancialSummary, type PersonPhone, type PersonEmail,
+  type PersonTag, type PersonAttachment, type PersonCustomField,
 } from "@/lib/people.functions";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { confirm } from "@/lib/confirm";
@@ -50,9 +57,31 @@ const emptyForm: FormState = {
   notes: null,
   seller_name: null,
   charge_boleto_fee: false,
+  marital_status: null,
+  birth_place: null,
+  rg_issuer: null,
+  rg_issued_at: null,
+  birth_certificate: null,
+  mother_name: null,
 };
 
-type TabId = "detalhes" | "adicionais" | "vendas" | "financeiros" | "contato" | "endereco" | "documentos" | "obs";
+type TabId =
+  | "detalhes" | "adicionais" | "vendas" | "marcadores" | "financeiros"
+  | "contatos" | "usuario" | "anexos" | "tarefas" | "orcamentos" | "custom";
+
+const TABS: Array<{ id: TabId; label: string }> = [
+  { id: "detalhes", label: "Detalhes" },
+  { id: "adicionais", label: "Dados Adicionais" },
+  { id: "vendas", label: "Vendas" },
+  { id: "marcadores", label: "Marcadores" },
+  { id: "financeiros", label: "Dados Financeiros" },
+  { id: "contatos", label: "Contatos" },
+  { id: "usuario", label: "Usuário" },
+  { id: "anexos", label: "Anexos" },
+  { id: "tarefas", label: "Tarefas" },
+  { id: "orcamentos", label: "Orçamentos" },
+  { id: "custom", label: "Campos Personalizados" },
+];
 
 export function PersonEditorDialog({
   personId,
@@ -60,7 +89,7 @@ export function PersonEditorDialog({
   onOpenChange,
   onSaved,
 }: {
-  personId: string | null; // null | "novo" = create, otherwise edit
+  personId: string | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSaved?: (id: string) => void;
@@ -72,9 +101,6 @@ export function PersonEditorDialog({
   const getFn = useServerFn(getPerson);
   const saveFn = useServerFn(upsertPerson);
   const delFn = useServerFn(deletePerson);
-  const addCardFn = useServerFn(addPersonCard);
-  const delCardFn = useServerFn(deletePersonCard);
-  const revealFn = useServerFn(revealPersonCardNumber);
   const salesFn = useServerFn(getPersonSalesAndFinancials);
 
   const q = useQuery({
@@ -90,10 +116,9 @@ export function PersonEditorDialog({
   const salesQ = useQuery({
     queryKey: ["admin-people", id, "sales"],
     queryFn: () => salesFn({ data: { id } }),
-    enabled: !isNew && open && (tab === "vendas" || tab === "financeiros"),
+    enabled: !isNew && open && (tab === "vendas" || tab === "financeiros" || tab === "adicionais" || tab === "orcamentos"),
   });
 
-  // reset when dialog opens/changes person
   useEffect(() => {
     if (!open) return;
     setTab("detalhes");
@@ -139,6 +164,12 @@ export function PersonEditorDialog({
         notes: p.notes,
         seller_name: p.seller_name,
         charge_boleto_fee: p.charge_boleto_fee,
+        marital_status: p.marital_status,
+        birth_place: p.birth_place,
+        rg_issuer: p.rg_issuer,
+        rg_issued_at: p.rg_issued_at,
+        birth_certificate: p.birth_certificate,
+        mother_name: p.mother_name,
       });
     }
   }, [isNew, q.data]);
@@ -172,46 +203,46 @@ export function PersonEditorDialog({
     setForm((s) => ({ ...s, [k]: v }));
   }
 
+  async function fetchCep(cep: string) {
+    const d = cep.replace(/\D+/g, "");
+    if (d.length !== 8) return;
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${d}/json/`);
+      const j = await r.json();
+      if (j.erro) return;
+      setForm((s) => ({
+        ...s,
+        address: j.logradouro || s.address,
+        district: j.bairro || s.district,
+        city: j.localidade || s.city,
+        state: j.uf || s.state,
+      }));
+    } catch { /* ignore */ }
+  }
+
   const person = q.data?.person;
   const cards = q.data?.cards ?? [];
-
-  const tabs: Array<{ id: TabId; label: string }> = useMemo(() => ([
-    { id: "detalhes", label: "Detalhes" },
-    { id: "adicionais", label: "Dados Adicionais" },
-    { id: "vendas", label: "Vendas" },
-    { id: "financeiros", label: "Dados Financeiros" },
-    { id: "contato", label: "Contatos" },
-    { id: "endereco", label: "Endereço" },
-    { id: "documentos", label: "Documentos" },
-    { id: "obs", label: "Observações" },
-  ]), []);
+  const phones = q.data?.phones ?? [];
+  const emails = q.data?.emails ?? [];
+  const tags = q.data?.tags ?? [];
+  const attachments = q.data?.attachments ?? [];
+  const customFields = q.data?.custom_fields ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="p-0 gap-0 max-w-5xl w-[95vw] max-h-[92vh] overflow-hidden flex flex-col bg-card border-border"
-      >
-        {/* header */}
-        <div className="flex items-center gap-3 px-5 py-3 pr-12 border-b border-border bg-muted/30">
-          <span className="h-9 w-9 rounded-full bg-brand-orange/10 text-brand-orange flex items-center justify-center">
-            {form.kind === "PJ" ? <Building2 className="h-4 w-4" /> : <User className="h-4 w-4" />}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="font-display text-base font-semibold truncate">
-              {isNew ? (form.kind === "PJ" ? "Nova Pessoa Jurídica" : "Nova Pessoa Física") : (form.name || "—")}
-            </div>
-            <div className="text-[11px] text-muted-foreground truncate">
-              {isNew
-                ? "Preencha os dados abaixo."
-                : person
-                ? `#${person.code} · ${form.kind === "PJ" ? "Pessoa Jurídica" : "Pessoa Física"} · atualizado em ${new Date(person.updated_at).toLocaleDateString("pt-BR")}`
-                : ""}
-            </div>
+      <DialogContent className="p-0 gap-0 max-w-6xl w-[96vw] max-h-[94vh] overflow-hidden flex flex-col bg-card border-border">
+        {/* Título estilo Monde */}
+        <div className="flex items-center justify-center px-5 py-2.5 pr-12 border-b border-border bg-muted/40 relative">
+          <div className="font-display text-sm font-semibold">
+            {form.kind === "PJ" ? "Pessoa Jurídica" : "Pessoa Física"}
+          </div>
+          <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-full bg-red-400/70" />
+            <span className="h-3 w-3 rounded-full bg-yellow-400/70" />
+            <span className="h-3 w-3 rounded-full bg-green-400/70" />
           </div>
         </div>
 
-
-        {/* body */}
         {!isNew && q.isLoading ? (
           <div className="min-h-[50vh] flex items-center justify-center text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -247,16 +278,16 @@ export function PersonEditorDialog({
           </div>
         ) : (
           <>
-            {/* tabs */}
-            <div className="px-4 border-b border-border overflow-x-auto">
-              <div className="flex items-center gap-1 whitespace-nowrap">
-                {tabs.map((t) => (
+            {/* Abas — estilo Monde: linha inferior laranja */}
+            <div className="px-3 border-b border-border overflow-x-auto bg-muted/20">
+              <div className="flex items-center whitespace-nowrap">
+                {TABS.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setTab(t.id)}
-                    className={`px-3.5 py-2.5 text-[13px] border-b-2 -mb-px transition ${
+                    className={`px-3 py-2 text-[13px] border-b-2 -mb-px transition ${
                       tab === t.id
-                        ? "border-brand-orange text-brand-orange font-medium"
+                        ? "border-brand-orange text-brand-orange font-medium bg-background"
                         : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -266,291 +297,57 @@ export function PersonEditorDialog({
               </div>
             </div>
 
-            {/* content */}
             <div className="flex-1 overflow-y-auto px-5 py-5 bg-background/40">
               {tab === "detalhes" && (
-                <Section title="Dados pessoais">
-                  <Row>
-                    <Field label="Tipo">
-                      <select value={form.kind} onChange={(e) => set("kind", e.target.value as PersonKind)} className={cls}>
-                        <option value="PF">Pessoa Física</option>
-                        <option value="PJ">Pessoa Jurídica</option>
-                      </select>
-                    </Field>
-                    <Field label={form.kind === "PJ" ? "Nome fantasia" : "Nome"} required full>
-                      <input value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} />
-                    </Field>
-                  </Row>
-                  {form.kind === "PJ" ? (
-                    <Row>
-                      <Field label="Razão social" full>
-                        <input value={form.legal_name ?? ""} onChange={(e) => set("legal_name", e.target.value)} className={cls} />
-                      </Field>
-                      <Field label="Data de fundação">
-                        <input type="date" value={form.foundation_date ?? ""} onChange={(e) => set("foundation_date", e.target.value)} className={cls} />
-                      </Field>
-                    </Row>
-                  ) : (
-                    <>
-                      <Row>
-                        <Field label="Data de nascimento">
-                          <input type="date" value={form.birth_date ?? ""} onChange={(e) => set("birth_date", e.target.value)} className={cls} />
-                        </Field>
-                        <Field label="RG">
-                          <input value={form.rg ?? ""} onChange={(e) => set("rg", e.target.value)} className={cls} />
-                        </Field>
-                        <Field label="Sexo">
-                          <select value={form.gender ?? ""} onChange={(e) => set("gender", e.target.value)} className={cls}>
-                            <option value="">—</option>
-                            <option value="M">Masculino</option>
-                            <option value="F">Feminino</option>
-                            <option value="O">Outro</option>
-                          </select>
-                        </Field>
-                      </Row>
-                      <Row>
-                        <Field label="Passaporte">
-                          <input value={form.passport_number ?? ""} onChange={(e) => set("passport_number", e.target.value)} className={cls} />
-                        </Field>
-                        <Field label="Validade do passaporte">
-                          <input type="date" value={form.passport_expiration ?? ""} onChange={(e) => set("passport_expiration", e.target.value)} className={cls} />
-                        </Field>
-                      </Row>
-                    </>
-                  )}
-                </Section>
+                <DetalhesTab form={form} set={set} person={person} onCepBlur={fetchCep} />
               )}
-
-              {tab === "endereco" && (
-                <Section title="Endereço">
-                  <label className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                    <input type="checkbox" checked={form.is_foreign} onChange={(e) => set("is_foreign", e.target.checked)} />
-                    Endereço no exterior
-                  </label>
-                  <Row>
-                    <Field label="CEP">
-                      <input value={form.zip ?? ""} onChange={(e) => set("zip", e.target.value)} className={cls} />
-                    </Field>
-                    <Field label="Endereço" full>
-                      <input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} className={cls} />
-                    </Field>
-                    <Field label="Número">
-                      <input value={form.number ?? ""} onChange={(e) => set("number", e.target.value)} className={cls} />
-                    </Field>
-                  </Row>
-                  <Row>
-                    <Field label="Complemento">
-                      <input value={form.complement ?? ""} onChange={(e) => set("complement", e.target.value)} className={cls} />
-                    </Field>
-                    <Field label="Bairro">
-                      <input value={form.district ?? ""} onChange={(e) => set("district", e.target.value)} className={cls} />
-                    </Field>
-                  </Row>
-                  <Row>
-                    <Field label="Cidade">
-                      <input value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} className={cls} />
-                    </Field>
-                    <Field label="UF">
-                      <input value={form.state ?? ""} onChange={(e) => set("state", e.target.value)} className={cls} />
-                    </Field>
-                    <Field label="País">
-                      <input value={form.country ?? ""} onChange={(e) => set("country", e.target.value)} className={cls} />
-                    </Field>
-                  </Row>
-                </Section>
-              )}
-
-              {tab === "documentos" && (
-                <Section title="Documentos">
-                  {form.kind === "PF" ? (
-                    <>
-                      <Row>
-                        <Field label="CPF">
-                          <input value={form.cpf ?? ""} onChange={(e) => set("cpf", e.target.value)} className={cls} />
-                        </Field>
-                        <Field label="RG">
-                          <input value={form.rg ?? ""} onChange={(e) => set("rg", e.target.value)} className={cls} />
-                        </Field>
-                        <Field label="Inscrição Municipal">
-                          <input value={form.municipal_registration ?? ""} onChange={(e) => set("municipal_registration", e.target.value)} className={cls} />
-                        </Field>
-                      </Row>
-                      <Row>
-                        <Field label="Passaporte">
-                          <input value={form.passport_number ?? ""} onChange={(e) => set("passport_number", e.target.value)} className={cls} />
-                        </Field>
-                        <Field label="Validade do passaporte">
-                          <input type="date" value={form.passport_expiration ?? ""} onChange={(e) => set("passport_expiration", e.target.value)} className={cls} />
-                        </Field>
-                      </Row>
-                    </>
-                  ) : (
-                    <Row>
-                      <Field label="CNPJ">
-                        <input value={form.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} className={cls} />
-                      </Field>
-                      <Field label="Inscrição Estadual">
-                        <input value={form.state_registration ?? ""} onChange={(e) => set("state_registration", e.target.value)} className={cls} />
-                      </Field>
-                      <Field label="Inscrição Municipal">
-                        <input value={form.municipal_registration ?? ""} onChange={(e) => set("municipal_registration", e.target.value)} className={cls} />
-                      </Field>
-                    </Row>
-                  )}
-                </Section>
-              )}
-
-              {tab === "contato" && (
-                <Section title="Contato">
-                  <Row>
-                    <Field label="E-mail" full>
-                      <input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} className={cls} />
-                    </Field>
-                    <Field label="Website">
-                      <input value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} className={cls} />
-                    </Field>
-                  </Row>
-                  <Row>
-                    <Field label="Telefone">
-                      <input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={cls} />
-                    </Field>
-                    <Field label="Celular">
-                      <input value={form.mobile_phone ?? ""} onChange={(e) => set("mobile_phone", e.target.value)} className={cls} />
-                    </Field>
-                    <Field label="Telefone comercial">
-                      <input value={form.business_phone ?? ""} onChange={(e) => set("business_phone", e.target.value)} className={cls} />
-                    </Field>
-                  </Row>
-                </Section>
-              )}
-
               {tab === "adicionais" && (
-                <Section title="Dados Adicionais">
-                  <Row>
-                    <Field label="Vendedor responsável">
-                      <input value={form.seller_name ?? ""} onChange={(e) => set("seller_name", e.target.value)} className={cls} />
-                    </Field>
-                    <label className="flex items-end gap-2 text-sm text-muted-foreground pb-2">
-                      <input
-                        type="checkbox"
-                        checked={form.charge_boleto_fee}
-                        onChange={(e) => set("charge_boleto_fee", e.target.checked)}
-                      />
-                      Cobrar taxa de boleto
-                    </label>
-                  </Row>
-                  <div className="text-xs text-muted-foreground">
-                    Campos adicionais importados do Monde aparecerão aqui após a integração da API.
-                  </div>
-                </Section>
+                <AdicionaisTab form={form} set={set} summary={salesQ.data?.summary} isPF={form.kind === "PF"} />
               )}
-
-              {tab === "vendas" && !isNew && (
-                <Section title="Vendas vinculadas">
-                  {salesQ.isLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
-                    </div>
-                  ) : (salesQ.data?.sales.length ?? 0) === 0 ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <ShoppingBag className="h-4 w-4" /> Nenhum pedido vinculado a esta pessoa.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto rounded-xl border border-border">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                          <tr>
-                            <th className="px-3 py-2 text-left">Pedido</th>
-                            <th className="px-3 py-2 text-left">Título</th>
-                            <th className="px-3 py-2 text-left">Fornecedor</th>
-                            <th className="px-3 py-2 text-left">Status</th>
-                            <th className="px-3 py-2 text-right">Total</th>
-                            <th className="px-3 py-2 text-right">Pago</th>
-                            <th className="px-3 py-2 text-right">Pendente</th>
-                            <th className="px-3 py-2"></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {salesQ.data!.sales.map((s) => (
-                            <tr key={s.id} className="border-t border-border">
-                              <td className="px-3 py-2 font-mono text-xs">#{s.order_number ?? "—"}</td>
-                              <td className="px-3 py-2">{s.trip_title ?? "—"}</td>
-                              <td className="px-3 py-2">{s.supplier_name ?? "—"}</td>
-                              <td className="px-3 py-2 text-xs">{s.status ?? "—"}</td>
-                              <td className="px-3 py-2 text-right">{fmtBRL(s.total_price ?? 0)}</td>
-                              <td className="px-3 py-2 text-right text-emerald-600">{fmtBRL(s.paid)}</td>
-                              <td className="px-3 py-2 text-right text-amber-600">{fmtBRL(s.pending)}</td>
-                              <td className="px-3 py-2 text-right">
-                                <Link
-                                  to="/admin/pedidos/$id"
-                                  params={{ id: s.id }}
-                                  onClick={() => onOpenChange(false)}
-                                  className="inline-flex items-center gap-1 text-brand-orange hover:underline text-xs"
-                                >
-                                  Abrir <ExternalLink className="h-3 w-3" />
-                                </Link>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </Section>
+              {tab === "vendas" && (
+                <VendasTab loading={salesQ.isLoading} sales={salesQ.data?.sales ?? []} onOpen={() => onOpenChange(false)} />
               )}
-
+              {tab === "marcadores" && (
+                <MarcadoresTab personId={id} isNew={isNew} tags={tags} qc={qc} />
+              )}
               {tab === "financeiros" && (
-                <div className="space-y-6">
-                  {!isNew && (
-                    <Section title="Resumo financeiro">
-                      {salesQ.isLoading ? (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
-                        </div>
-                      ) : (
-                        <FinancialSummaryView summary={salesQ.data?.summary} />
-                      )}
-                    </Section>
-                  )}
-                  <Section title="Cartões de Crédito">
-                    {isNew ? (
-                      <p className="text-sm text-muted-foreground">
-                        Salve o cadastro primeiro para adicionar cartões.
-                      </p>
-                    ) : (
-                      <CardsSection
-                        cards={cards}
-                        onAdd={async (payload) => {
-                          await addCardFn({ data: { ...payload, person_id: id } });
-                          qc.invalidateQueries({ queryKey: ["admin-people", id] });
-                        }}
-                        onDelete={async (cardId) => {
-                          await delCardFn({ data: { id: cardId } });
-                          qc.invalidateQueries({ queryKey: ["admin-people", id] });
-                        }}
-                        onReveal={async (cardId) => (await revealFn({ data: { id: cardId } })).number}
-                      />
-                    )}
-                  </Section>
-                </div>
+                <FinanceirosTab personId={id} isNew={isNew} cards={cards} qc={qc} summary={salesQ.data?.summary} loading={salesQ.isLoading} />
               )}
-
-              {tab === "obs" && (
-                <Section title="Observações">
-                  <textarea
-                    value={form.notes ?? ""}
-                    onChange={(e) => set("notes", e.target.value)}
-                    rows={10}
-                    className={cls}
-                    placeholder="Notas internas sobre a pessoa…"
-                  />
-                </Section>
+              {tab === "contatos" && (
+                <ContatosTab personId={id} isNew={isNew} phones={phones} emails={emails} qc={qc} />
+              )}
+              {tab === "usuario" && (
+                <UsuarioTab form={form} set={set} person={person} />
+              )}
+              {tab === "anexos" && (
+                <AnexosTab personId={id} isNew={isNew} attachments={attachments} qc={qc} />
+              )}
+              {tab === "tarefas" && (
+                <PlaceholderTab icon={<ClipboardList className="h-8 w-8" />} title="Tarefas"
+                  hint="Sincronização de tarefas será liberada junto com a integração da API do Monde." />
+              )}
+              {tab === "orcamentos" && (
+                <PlaceholderTab icon={<Calculator className="h-8 w-8" />} title="Orçamentos"
+                  hint="Orçamentos vinculados aparecerão aqui após a integração." />
+              )}
+              {tab === "custom" && (
+                <CustomFieldsTab personId={id} isNew={isNew} items={customFields} qc={qc} />
               )}
             </div>
 
-            {/* footer */}
+            {/* Rodapé */}
             <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-border bg-muted/30">
-              <div>
+              <div className="text-[11px] text-muted-foreground truncate">
+                {person && (
+                  <>Código <span className="font-mono text-foreground">{person.code}</span>
+                    {person.created_by_name && (
+                      <> · Cadastrado por <span className="text-foreground">{person.created_by_name}</span></>
+                    )}
+                    <> em <span className="text-foreground">{new Date(person.created_at).toLocaleString("pt-BR")}</span></>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
                 {!isNew && (
                   <button
                     type="button"
@@ -569,8 +366,6 @@ export function PersonEditorDialog({
                     <Trash2 className="h-3.5 w-3.5" /> Remover
                   </button>
                 )}
-              </div>
-              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => onOpenChange(false)}
@@ -585,7 +380,7 @@ export function PersonEditorDialog({
                   className="inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
                 >
                   {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Salvar
+                  OK
                 </button>
               </div>
             </div>
@@ -596,212 +391,837 @@ export function PersonEditorDialog({
   );
 }
 
-/* ---------- helpers ---------- */
+/* ==================== TABS ==================== */
 
-function CardsSection({
-  cards,
-  onAdd,
-  onDelete,
-  onReveal,
+function DetalhesTab({
+  form, set, person, onCepBlur,
 }: {
-  cards: PersonCardRow[];
-  onAdd: (p: { nickname?: string; holder_name?: string; number: string; expiry?: string; is_travel_card: boolean }) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
-  onReveal: (id: string) => Promise<string>;
+  form: FormState;
+  set: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  person?: PersonRow;
+  onCepBlur: (cep: string) => void;
 }) {
+  const isPJ = form.kind === "PJ";
+  const age = form.birth_date ? calcAge(form.birth_date) : null;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-6">
+      <div className="space-y-3">
+        <FieldRow label="Código:">
+          <div className="text-sm font-mono">{person?.code ?? "—"}</div>
+        </FieldRow>
+        <FieldRow label={isPJ ? "Nome:" : "Nome:"} required>
+          <input value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} />
+        </FieldRow>
+        {isPJ && (
+          <FieldRow label="Razão Social:">
+            <input value={form.legal_name ?? ""} onChange={(e) => set("legal_name", e.target.value)} className={cls} />
+          </FieldRow>
+        )}
+        <div className="grid grid-cols-[140px_1fr_120px] gap-3">
+          <MiniField label="CEP:">
+            <div className="flex gap-1">
+              <input
+                value={form.zip ?? ""}
+                onChange={(e) => set("zip", e.target.value)}
+                onBlur={(e) => onCepBlur(e.target.value)}
+                className={cls}
+                placeholder="00000-000"
+              />
+            </div>
+          </MiniField>
+          <MiniField label="Endereço:">
+            <input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} className={cls} />
+          </MiniField>
+          <MiniField label="Número:">
+            <input value={form.number ?? ""} onChange={(e) => set("number", e.target.value)} className={cls} />
+          </MiniField>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <MiniField label="Complemento:">
+            <input value={form.complement ?? ""} onChange={(e) => set("complement", e.target.value)} className={cls} />
+          </MiniField>
+          <MiniField label="Bairro:">
+            <input value={form.district ?? ""} onChange={(e) => set("district", e.target.value)} className={cls} />
+          </MiniField>
+        </div>
+        <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+          <MiniField label="Cidade:">
+            <input value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} className={cls} />
+          </MiniField>
+          <label className="flex items-center gap-2 text-sm pb-2.5 whitespace-nowrap">
+            <input type="checkbox" checked={form.is_foreign} onChange={(e) => set("is_foreign", e.target.checked)} />
+            Estrangeiro
+          </label>
+        </div>
+        {isPJ ? (
+          <FieldRow label="Nascimento (Fundação):">
+            <input type="date" value={form.foundation_date ?? ""} onChange={(e) => set("foundation_date", e.target.value)} className={cls + " max-w-[200px]"} />
+          </FieldRow>
+        ) : (
+          <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-end">
+            <MiniField label="Nascimento:">
+              <input type="date" value={form.birth_date ?? ""} onChange={(e) => set("birth_date", e.target.value)} className={cls} />
+            </MiniField>
+            <div className="text-sm text-muted-foreground pb-2.5">{age != null ? `${age} anos` : ""}</div>
+            <MiniField label="Sexo:">
+              <select value={form.gender ?? ""} onChange={(e) => set("gender", e.target.value || null)} className={cls}>
+                <option value="">—</option>
+                <option value="M">Masculino</option>
+                <option value="F">Feminino</option>
+                <option value="O">Outro</option>
+              </select>
+            </MiniField>
+          </div>
+        )}
+        {isPJ ? (
+          <div className="grid grid-cols-3 gap-3">
+            <MiniField label="CNPJ:">
+              <input value={form.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} className={cls} />
+            </MiniField>
+            <MiniField label="Inscrição Estadual:">
+              <input value={form.state_registration ?? ""} onChange={(e) => set("state_registration", e.target.value)} className={cls} />
+            </MiniField>
+            <MiniField label="Inscrição Municipal:">
+              <input value={form.municipal_registration ?? ""} onChange={(e) => set("municipal_registration", e.target.value)} className={cls} />
+            </MiniField>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              <MiniField label="CPF:">
+                <input value={form.cpf ?? ""} onChange={(e) => set("cpf", e.target.value)} className={cls} />
+              </MiniField>
+              <MiniField label="RG:">
+                <input value={form.rg ?? ""} onChange={(e) => set("rg", e.target.value)} className={cls} />
+              </MiniField>
+              <MiniField label="Inscrição Municipal:">
+                <input value={form.municipal_registration ?? ""} onChange={(e) => set("municipal_registration", e.target.value)} className={cls} />
+              </MiniField>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <MiniField label="Passaporte Nº:">
+                <input value={form.passport_number ?? ""} onChange={(e) => set("passport_number", e.target.value)} className={cls} />
+              </MiniField>
+              <MiniField label="Validade Passaporte:">
+                <input type="date" value={form.passport_expiration ?? ""} onChange={(e) => set("passport_expiration", e.target.value)} className={cls} />
+              </MiniField>
+            </div>
+          </>
+        )}
+        <div className={`grid ${isPJ ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
+          <MiniField label="Telefone:">
+            <input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={cls} />
+          </MiniField>
+          <MiniField label="Celular:">
+            <input value={form.mobile_phone ?? ""} onChange={(e) => set("mobile_phone", e.target.value)} className={cls} />
+          </MiniField>
+          {!isPJ && (
+            <MiniField label="Telefone Comercial:">
+              <input value={form.business_phone ?? ""} onChange={(e) => set("business_phone", e.target.value)} className={cls} />
+            </MiniField>
+          )}
+        </div>
+        <FieldRow label="E-mail:">
+          <input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} className={cls} />
+        </FieldRow>
+        {isPJ && (
+          <FieldRow label="Website:">
+            <input value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} className={cls} />
+          </FieldRow>
+        )}
+        <FieldRow label="Observações:">
+          <textarea rows={5} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} className={cls} />
+        </FieldRow>
+        <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+          <MiniField label="Vendedor:">
+            <input value={form.seller_name ?? ""} onChange={(e) => set("seller_name", e.target.value)} className={cls} />
+          </MiniField>
+          <label className="flex items-center gap-2 text-sm pb-2.5 whitespace-nowrap">
+            <input type="checkbox" checked={form.charge_boleto_fee} onChange={(e) => set("charge_boleto_fee", e.target.checked)} />
+            Cobrar taxa de boleto
+          </label>
+        </div>
+      </div>
+
+      {/* Foto/Logotipo placeholder */}
+      <div className="hidden lg:block">
+        <div className="rounded-xl border border-dashed border-border h-[180px] flex items-center justify-center text-sm text-muted-foreground bg-muted/20">
+          {isPJ ? "Logotipo" : "Foto"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdicionaisTab({
+  form, set, summary, isPF,
+}: {
+  form: FormState;
+  set: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  summary?: PersonFinancialSummary;
+  isPF: boolean;
+}) {
+  return (
+    <div className="space-y-6">
+      {isPF && (
+        <Section title="Dados adicionais">
+          <FieldRow label="Estado Civil:">
+            <select value={form.marital_status ?? ""} onChange={(e) => set("marital_status", e.target.value || null)} className={cls + " max-w-[300px]"}>
+              <option value="">—</option>
+              <option value="solteiro">Solteiro(a)</option>
+              <option value="casado">Casado(a)</option>
+              <option value="divorciado">Divorciado(a)</option>
+              <option value="viuvo">Viúvo(a)</option>
+              <option value="uniao_estavel">União estável</option>
+              <option value="separado">Separado(a)</option>
+            </select>
+          </FieldRow>
+          <FieldRow label="Local de Nascimento:">
+            <input value={form.birth_place ?? ""} onChange={(e) => set("birth_place", e.target.value)} className={cls} />
+          </FieldRow>
+          <div className="grid grid-cols-2 gap-3">
+            <MiniField label="Órgão Emissor RG:">
+              <input value={form.rg_issuer ?? ""} onChange={(e) => set("rg_issuer", e.target.value)} className={cls} />
+            </MiniField>
+            <MiniField label="Data Emissão RG:">
+              <input type="date" value={form.rg_issued_at ?? ""} onChange={(e) => set("rg_issued_at", e.target.value)} className={cls} />
+            </MiniField>
+          </div>
+          <FieldRow label="Certidão de Nascimento:">
+            <input value={form.birth_certificate ?? ""} onChange={(e) => set("birth_certificate", e.target.value)} className={cls} />
+          </FieldRow>
+          <FieldRow label="Filiação (Mãe):">
+            <input value={form.mother_name ?? ""} onChange={(e) => set("mother_name", e.target.value)} className={cls} />
+          </FieldRow>
+        </Section>
+      )}
+
+      <Section title="Últimos Contatos">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <ReadStat label="Primeira Venda" value={fmtDateISO(summary?.first_sale_at)} />
+          <ReadStat label="Última Venda" value={fmtDateISO(summary?.last_sale_at)} />
+          <ReadStat label="Último Embarque" value={summary?.last_departure_at ? fmtDateISO(summary.last_departure_at) : "—"} />
+          <ReadStat label="Último Retorno" value={summary?.last_return_at ? fmtDateISO(summary.last_return_at) : "—"} />
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+function VendasTab({
+  loading, sales, onOpen,
+}: {
+  loading: boolean;
+  sales: Array<{ id: string; order_number: string | null; created_at: string; going_date: string | null; trip_title: string | null; supplier_name: string | null }>;
+  onOpen: () => void;
+}) {
+  if (loading) {
+    return <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando…</div>;
+  }
+  if (!sales.length) {
+    return <div className="flex items-center gap-2 text-sm text-muted-foreground"><ShoppingBag className="h-4 w-4" /> Nenhuma venda vinculada.</div>;
+  }
+  return (
+    <div className="overflow-x-auto rounded-xl border border-border">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2 text-left">Número da Venda</th>
+            <th className="px-3 py-2 text-left">Data da Venda</th>
+            <th className="px-3 py-2 text-left">Data de Embarque</th>
+            <th className="px-3 py-2 text-left">Produto</th>
+            <th className="px-3 py-2 text-center">Pagante</th>
+            <th className="px-3 py-2 text-center">Passageiro</th>
+            <th className="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {sales.map((s) => (
+            <tr key={s.id} className="border-t border-border">
+              <td className="px-3 py-2 font-mono text-xs">{s.order_number ?? "—"}</td>
+              <td className="px-3 py-2">{fmtDateISO(s.created_at)}</td>
+              <td className="px-3 py-2">{s.going_date ? fmtDateISO(s.going_date) : "—"}</td>
+              <td className="px-3 py-2">{s.trip_title ?? s.supplier_name ?? "—"}</td>
+              <td className="px-3 py-2 text-center"><CheckBadge on /></td>
+              <td className="px-3 py-2 text-center"><CheckBadge on /></td>
+              <td className="px-3 py-2 text-right">
+                <Link to="/admin/pedidos/$id" params={{ id: s.id }} onClick={onOpen}
+                  className="inline-flex items-center gap-1 text-brand-orange hover:underline text-xs">
+                  Abrir <ExternalLink className="h-3 w-3" />
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MarcadoresTab({ personId, isNew, tags, qc }: { personId: string; isNew: boolean; tags: PersonTag[]; qc: any }) {
+  const [label, setLabel] = useState("");
+  const [color, setColor] = useState("#F26B1F");
+  const saveFn = useServerFn(savePersonTag);
+  const delFn = useServerFn(deletePersonTag);
+
+  if (isNew) return <p className="text-sm text-muted-foreground">Salve o cadastro primeiro para adicionar marcadores.</p>;
+
+  async function add() {
+    if (!label.trim()) return;
+    try {
+      await saveFn({ data: { person_id: personId, label: label.trim(), color } });
+      setLabel("");
+      qc.invalidateQueries({ queryKey: ["admin-people", personId] });
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
+  }
+  async function remove(id: string) {
+    try {
+      await delFn({ data: { id } });
+      qc.invalidateQueries({ queryKey: ["admin-people", personId] });
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
+  }
+
+  return (
+    <Section title="Marcadores">
+      <div className="flex items-center gap-2 flex-wrap">
+        {tags.map((t) => (
+          <span key={t.id} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border"
+            style={{ borderColor: t.color ?? "hsl(var(--border))", background: t.color ? `${t.color}20` : undefined, color: t.color ?? undefined }}>
+            <TagIcon className="h-3 w-3" /> {t.label}
+            <button type="button" onClick={() => remove(t.id)} className="ml-1 hover:opacity-70"><XIcon className="h-3 w-3" /></button>
+          </span>
+        ))}
+        {tags.length === 0 && <span className="text-sm text-muted-foreground">Nenhum marcador ainda.</span>}
+      </div>
+      <div className="flex items-end gap-2 pt-3 border-t border-border">
+        <MiniField label="Rótulo">
+          <input value={label} onChange={(e) => setLabel(e.target.value)} className={cls} placeholder="Ex.: VIP, aniversário…" />
+        </MiniField>
+        <div>
+          <div className="text-xs text-muted-foreground mb-1.5">Cor</div>
+          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-10 w-14 rounded-xl border border-border bg-background cursor-pointer" />
+        </div>
+        <button type="button" onClick={add} className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange text-primary-foreground px-4 py-2 text-xs hover:opacity-90">
+          <Plus className="h-3.5 w-3.5" /> Adicionar
+        </button>
+      </div>
+    </Section>
+  );
+}
+
+function FinanceirosTab({
+  personId, isNew, cards, qc, summary, loading,
+}: {
+  personId: string; isNew: boolean; cards: PersonCardRow[]; qc: any;
+  summary?: PersonFinancialSummary; loading: boolean;
+}) {
+  return (
+    <div className="space-y-6">
+      {!isNew && (
+        <Section title="Resumo financeiro">
+          {loading ? <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando…</div>
+            : <FinancialSummaryView summary={summary} />}
+        </Section>
+      )}
+      <Section title="Cartões de Crédito">
+        {isNew ? (
+          <p className="text-sm text-muted-foreground">Salve o cadastro primeiro para adicionar cartões.</p>
+        ) : (
+          <CardsSection personId={personId} cards={cards} qc={qc} />
+        )}
+      </Section>
+    </div>
+  );
+}
+
+function ContatosTab({
+  personId, isNew, phones, emails, qc,
+}: {
+  personId: string; isNew: boolean; phones: PersonPhone[]; emails: PersonEmail[]; qc: any;
+}) {
+  const savePh = useServerFn(savePersonPhone);
+  const delPh = useServerFn(deletePersonPhone);
+  const saveEm = useServerFn(savePersonEmail);
+  const delEm = useServerFn(deletePersonEmail);
+
+  if (isNew) return <p className="text-sm text-muted-foreground">Salve o cadastro primeiro para adicionar contatos.</p>;
+
+  const [phone, setPhone] = useState({ kind: "personal", number: "", is_primary: false });
+  const [email, setEmail] = useState({ kind: "personal", address: "", is_primary: false });
+
+  async function addPhone() {
+    if (!phone.number.trim()) return;
+    try { await savePh({ data: { person_id: personId, ...phone } }); setPhone({ kind: "personal", number: "", is_primary: false }); qc.invalidateQueries({ queryKey: ["admin-people", personId] }); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
+  }
+  async function addEmail() {
+    if (!email.address.trim()) return;
+    try { await saveEm({ data: { person_id: personId, ...email } }); setEmail({ kind: "personal", address: "", is_primary: false }); qc.invalidateQueries({ queryKey: ["admin-people", personId] }); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
+  }
+  async function removePhone(id: string) { await delPh({ data: { id } }); qc.invalidateQueries({ queryKey: ["admin-people", personId] }); }
+  async function removeEmail(id: string) { await delEm({ data: { id } }); qc.invalidateQueries({ queryKey: ["admin-people", personId] }); }
+
+  return (
+    <div className="space-y-6">
+      <Section title="Telefones">
+        <ul className="divide-y divide-border rounded-xl border border-border">
+          {phones.map((p) => (
+            <li key={p.id} className="p-3 flex items-center gap-3 text-sm">
+              <span className="text-[10px] uppercase rounded-full bg-muted px-2 py-0.5">{kindLabel(p.kind)}</span>
+              <span className="font-mono flex-1">{p.number}</span>
+              {p.is_primary && <span className="text-[10px] uppercase rounded-full bg-brand-orange/10 text-brand-orange px-2 py-0.5">Principal</span>}
+              <button type="button" onClick={() => removePhone(p.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+            </li>
+          ))}
+          {phones.length === 0 && <li className="p-3 text-sm text-muted-foreground">Nenhum telefone cadastrado.</li>}
+        </ul>
+        <div className="grid grid-cols-[140px_1fr_auto_auto] gap-2 items-end pt-3 border-t border-border">
+          <MiniField label="Tipo">
+            <select value={phone.kind} onChange={(e) => setPhone({ ...phone, kind: e.target.value })} className={cls}>
+              <option value="personal">Pessoal</option>
+              <option value="mobile">Celular</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="business">Comercial</option>
+              <option value="home">Residencial</option>
+              <option value="other">Outro</option>
+            </select>
+          </MiniField>
+          <MiniField label="Número">
+            <input value={phone.number} onChange={(e) => setPhone({ ...phone, number: e.target.value })} className={cls} placeholder="(11) 99999-9999" />
+          </MiniField>
+          <label className="flex items-center gap-2 text-xs whitespace-nowrap pb-2.5">
+            <input type="checkbox" checked={phone.is_primary} onChange={(e) => setPhone({ ...phone, is_primary: e.target.checked })} /> Principal
+          </label>
+          <button type="button" onClick={addPhone} className="rounded-full bg-brand-orange text-primary-foreground px-4 py-2 text-xs hover:opacity-90 inline-flex items-center gap-1"><Plus className="h-3 w-3" /> Adicionar</button>
+        </div>
+      </Section>
+
+      <Section title="E-mails">
+        <ul className="divide-y divide-border rounded-xl border border-border">
+          {emails.map((e) => (
+            <li key={e.id} className="p-3 flex items-center gap-3 text-sm">
+              <span className="text-[10px] uppercase rounded-full bg-muted px-2 py-0.5">{kindLabel(e.kind)}</span>
+              <span className="flex-1 truncate">{e.address}</span>
+              {e.is_primary && <span className="text-[10px] uppercase rounded-full bg-brand-orange/10 text-brand-orange px-2 py-0.5">Principal</span>}
+              <button type="button" onClick={() => removeEmail(e.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+            </li>
+          ))}
+          {emails.length === 0 && <li className="p-3 text-sm text-muted-foreground">Nenhum e-mail cadastrado.</li>}
+        </ul>
+        <div className="grid grid-cols-[140px_1fr_auto_auto] gap-2 items-end pt-3 border-t border-border">
+          <MiniField label="Tipo">
+            <select value={email.kind} onChange={(ev) => setEmail({ ...email, kind: ev.target.value })} className={cls}>
+              <option value="personal">Pessoal</option>
+              <option value="business">Comercial</option>
+              <option value="billing">Financeiro</option>
+              <option value="other">Outro</option>
+            </select>
+          </MiniField>
+          <MiniField label="E-mail">
+            <input type="email" value={email.address} onChange={(ev) => setEmail({ ...email, address: ev.target.value })} className={cls} placeholder="cliente@exemplo.com" />
+          </MiniField>
+          <label className="flex items-center gap-2 text-xs whitespace-nowrap pb-2.5">
+            <input type="checkbox" checked={email.is_primary} onChange={(ev) => setEmail({ ...email, is_primary: ev.target.checked })} /> Principal
+          </label>
+          <button type="button" onClick={addEmail} className="rounded-full bg-brand-orange text-primary-foreground px-4 py-2 text-xs hover:opacity-90 inline-flex items-center gap-1"><Plus className="h-3 w-3" /> Adicionar</button>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+function UsuarioTab({ form, set, person }: { form: FormState; set: any; person?: PersonRow }) {
+  return (
+    <Section title="Usuário / vendedor">
+      <FieldRow label="Vendedor responsável:">
+        <input value={form.seller_name ?? ""} onChange={(e) => set("seller_name", e.target.value)} className={cls} />
+      </FieldRow>
+      <FieldRow label="Cadastrado por:">
+        <div className="text-sm">{person?.created_by_name ?? "—"}</div>
+      </FieldRow>
+      <FieldRow label="Cadastrado em:">
+        <div className="text-sm">{person?.created_at ? new Date(person.created_at).toLocaleString("pt-BR") : "—"}</div>
+      </FieldRow>
+      <FieldRow label="Última atualização:">
+        <div className="text-sm">{person?.updated_at ? new Date(person.updated_at).toLocaleString("pt-BR") : "—"}</div>
+      </FieldRow>
+    </Section>
+  );
+}
+
+function AnexosTab({ personId, isNew, attachments, qc }: { personId: string; isNew: boolean; attachments: PersonAttachment[]; qc: any }) {
+  const addFn = useServerFn(addPersonAttachment);
+  const delFn = useServerFn(deletePersonAttachment);
+  const urlFn = useServerFn(getPersonAttachmentUrl);
+  const [uploading, setUploading] = useState(false);
+  const [desc, setDesc] = useState("");
+
+  if (isNew) return <p className="text-sm text-muted-foreground">Salve o cadastro primeiro para anexar arquivos.</p>;
+
+  async function upload(file: File) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const b64 = arrayBufferToBase64(buf);
+      await addFn({ data: {
+        person_id: personId,
+        description: desc.trim() || file.name,
+        mime_type: file.type || null,
+        size_bytes: file.size,
+        data_base64: b64,
+        filename: file.name,
+      }});
+      setDesc("");
+      qc.invalidateQueries({ queryKey: ["admin-people", personId] });
+      toast.success("Anexo enviado");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
+    finally { setUploading(false); }
+  }
+  async function remove(id: string) {
+    const ok = await confirm({ title: "Remover anexo?", confirmText: "Remover", destructive: true });
+    if (!ok) return;
+    await delFn({ data: { id } });
+    qc.invalidateQueries({ queryKey: ["admin-people", personId] });
+  }
+  async function open(id: string) {
+    try {
+      const { url } = await urlFn({ data: { id } });
+      window.open(url, "_blank", "noopener");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
+  }
+
+  return (
+    <Section title="Anexos">
+      <div className="flex items-end gap-2 border-b border-border pb-3">
+        <MiniField label="Descrição">
+          <input value={desc} onChange={(e) => setDesc(e.target.value)} className={cls} placeholder="Ex.: Cartão João, RG, comprovante…" />
+        </MiniField>
+        <label className={`inline-flex items-center gap-1.5 rounded-full bg-brand-orange text-primary-foreground px-4 py-2 text-xs cursor-pointer hover:opacity-90 ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          Anexar
+          <input type="file" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+        </label>
+      </div>
+      <table className="w-full text-sm">
+        <thead className="text-xs uppercase text-muted-foreground">
+          <tr>
+            <th className="px-2 py-2 text-left">Descrição</th>
+            <th className="px-2 py-2 text-left">Tipo</th>
+            <th className="px-2 py-2 text-right">Tamanho</th>
+            <th className="px-2 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {attachments.map((a) => (
+            <tr key={a.id} className="border-t border-border">
+              <td className="px-2 py-2 flex items-center gap-2"><Paperclip className="h-3.5 w-3.5 text-muted-foreground" /> {a.description}</td>
+              <td className="px-2 py-2 text-xs text-muted-foreground">{a.mime_type ?? "—"}</td>
+              <td className="px-2 py-2 text-right text-xs text-muted-foreground">{a.size_bytes ? fmtBytes(a.size_bytes) : "—"}</td>
+              <td className="px-2 py-2 text-right flex items-center gap-1 justify-end">
+                <button type="button" onClick={() => open(a.id)} className="text-brand-orange hover:underline text-xs inline-flex items-center gap-1"><Download className="h-3 w-3" /> Abrir</button>
+                <button type="button" onClick={() => remove(a.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+              </td>
+            </tr>
+          ))}
+          {attachments.length === 0 && (
+            <tr><td colSpan={4} className="px-2 py-4 text-sm text-muted-foreground text-center">Nenhum anexo.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </Section>
+  );
+}
+
+function CustomFieldsTab({ personId, isNew, items, qc }: { personId: string; isNew: boolean; items: PersonCustomField[]; qc: any }) {
+  const saveFn = useServerFn(savePersonCustomField);
+  const delFn = useServerFn(deletePersonCustomField);
+  const [key, setKey] = useState("");
+  const [value, setValue] = useState("");
+
+  if (isNew) return <p className="text-sm text-muted-foreground">Salve o cadastro primeiro para adicionar campos personalizados.</p>;
+
+  async function add() {
+    if (!key.trim()) return;
+    await saveFn({ data: { person_id: personId, field_key: key.trim(), field_value: value.trim() || null, sort_order: items.length } });
+    setKey(""); setValue("");
+    qc.invalidateQueries({ queryKey: ["admin-people", personId] });
+  }
+  async function remove(id: string) { await delFn({ data: { id } }); qc.invalidateQueries({ queryKey: ["admin-people", personId] }); }
+
+  return (
+    <Section title="Campos Personalizados">
+      <ul className="divide-y divide-border rounded-xl border border-border">
+        {items.map((f) => (
+          <li key={f.id} className="p-3 grid grid-cols-[180px_1fr_auto] gap-3 items-center text-sm">
+            <span className="font-medium">{f.field_key}</span>
+            <span className="text-muted-foreground truncate">{f.field_value ?? "—"}</span>
+            <button type="button" onClick={() => remove(f.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+          </li>
+        ))}
+        {items.length === 0 && <li className="p-3 text-sm text-muted-foreground">Nenhum campo cadastrado.</li>}
+      </ul>
+      <div className="grid grid-cols-[180px_1fr_auto] gap-2 items-end pt-3 border-t border-border">
+        <MiniField label="Nome do campo"><input value={key} onChange={(e) => setKey(e.target.value)} className={cls} /></MiniField>
+        <MiniField label="Valor"><input value={value} onChange={(e) => setValue(e.target.value)} className={cls} /></MiniField>
+        <button type="button" onClick={add} className="rounded-full bg-brand-orange text-primary-foreground px-4 py-2 text-xs hover:opacity-90 inline-flex items-center gap-1"><Plus className="h-3 w-3" /> Adicionar</button>
+      </div>
+    </Section>
+  );
+}
+
+function PlaceholderTab({ icon, title, hint }: { icon: React.ReactNode; title: string; hint: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">
+      <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">{icon}</div>
+      <div className="font-semibold text-foreground mb-1">{title}</div>
+      <div className="text-sm">{hint}</div>
+    </div>
+  );
+}
+
+/* ==================== CARDS SECTION ==================== */
+
+function CardsSection({ personId, cards, qc }: { personId: string; cards: PersonCardRow[]; qc: any }) {
+  const addFn = useServerFn(addPersonCard);
+  const delFn = useServerFn(deletePersonCard);
+  const revealFn = useServerFn(revealPersonCardNumber);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    nickname: "",
-    holder_name: "",
-    number: "",
-    expiry: "",
-    is_travel_card: false,
+    number: "", security_code_hint: "", exp_month: "", exp_year: "",
+    holder_name: "", operator: "MasterCard", travel_card_type: "",
   });
   const [revealed, setRevealed] = useState<Record<string, string>>({});
 
   async function submit() {
-    if (!form.number.replace(/\D+/g, "")) {
-      toast.error("Informe o número do cartão");
-      return;
-    }
+    if (!form.number.replace(/\D+/g, "")) { toast.error("Informe o número do cartão"); return; }
     setSaving(true);
     try {
-      await onAdd({
-        nickname: form.nickname || undefined,
-        holder_name: form.holder_name || undefined,
+      const expiry = form.exp_month && form.exp_year ? `${form.exp_month.padStart(2, "0")}/${form.exp_year.slice(-4)}` : undefined;
+      await addFn({ data: {
+        person_id: personId,
         number: form.number,
-        expiry: form.expiry || undefined,
-        is_travel_card: form.is_travel_card,
-      });
-      setForm({ nickname: "", holder_name: "", number: "", expiry: "", is_travel_card: false });
+        expiry,
+        security_code_hint: form.security_code_hint || undefined,
+        holder_name: form.holder_name || undefined,
+        operator: form.operator || undefined,
+        travel_card_type: form.travel_card_type || undefined,
+        is_travel_card: !!form.travel_card_type,
+      }});
+      qc.invalidateQueries({ queryKey: ["admin-people", personId] });
+      setForm({ number: "", security_code_hint: "", exp_month: "", exp_year: "", holder_name: "", operator: "MasterCard", travel_card_type: "" });
       setShowForm(false);
       toast.success("Cartão adicionado");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
+    finally { setSaving(false); }
   }
-
   async function toggleReveal(id: string) {
-    if (revealed[id]) {
-      setRevealed((r) => { const n = { ...r }; delete n[id]; return n; });
-      return;
-    }
-    try {
-      const n = await onReveal(id);
-      setRevealed((r) => ({ ...r, [id]: n }));
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
-    }
+    if (revealed[id]) { setRevealed((r) => { const n = { ...r }; delete n[id]; return n; }); return; }
+    try { const n = (await revealFn({ data: { id } })).number; setRevealed((r) => ({ ...r, [id]: n })); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
+  }
+  async function remove(id: string) {
+    const ok = await confirm({ title: "Remover cartão?", confirmText: "Remover", destructive: true });
+    if (!ok) return;
+    await delFn({ data: { id } });
+    qc.invalidateQueries({ queryKey: ["admin-people", personId] });
   }
 
   return (
     <div className="space-y-4">
-      {cards.length === 0 && !showForm && (
-        <p className="text-sm text-muted-foreground">Nenhum cartão salvo.</p>
-      )}
-      {cards.length > 0 && (
-        <ul className="divide-y divide-border rounded-xl border border-border">
-          {cards.map((c) => (
-            <li key={c.id} className="p-4 flex items-center gap-4">
-              <CreditCard className="h-5 w-5 text-muted-foreground" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{c.nickname || c.holder_name || c.brand || "Cartão"}</span>
-                  {c.brand && <span className="text-[10px] uppercase rounded-full bg-muted px-2 py-0.5">{c.brand}</span>}
-                  {c.is_travel_card && (
-                    <span className="text-[10px] uppercase rounded-full bg-brand-orange/10 text-brand-orange px-2 py-0.5">
-                      Cartão passagem
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5 font-mono">
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => setShowForm(true)} className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 text-xs hover:bg-emerald-500/20">
+          <Plus className="h-3.5 w-3.5" /> Adicionar
+        </button>
+      </div>
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left">Nome</th>
+              <th className="px-3 py-2 text-left">Número</th>
+              <th className="px-3 py-2 text-left">Validade</th>
+              <th className="px-3 py-2 text-left">Operadora</th>
+              <th className="px-3 py-2 text-left">Cartão Passagem</th>
+              <th className="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {cards.map((c) => (
+              <tr key={c.id} className="border-t border-border">
+                <td className="px-3 py-2">{c.holder_name || c.nickname || "—"}</td>
+                <td className="px-3 py-2 font-mono text-xs">
                   {revealed[c.id]
                     ? revealed[c.id].replace(/(.{4})/g, "$1 ").trim()
-                    : `**** **** **** ${c.last4 ?? "----"}`}
-                  {c.expiry && <span className="ml-3">Val. {c.expiry}</span>}
-                </div>
+                    : `${c.last4 ? c.last4.slice(0, 4) : "----"}.XXXX.XXXX.${c.last4 ?? "----"}`}
+                </td>
+                <td className="px-3 py-2">{c.expiry ?? "—"}</td>
+                <td className="px-3 py-2">{c.operator ?? c.brand ?? "—"}</td>
+                <td className="px-3 py-2">{c.travel_card_type ?? "—"}</td>
+                <td className="px-3 py-2 text-right flex items-center gap-1 justify-end">
+                  <button type="button" onClick={() => toggleReveal(c.id)} className="text-muted-foreground hover:text-foreground">
+                    {revealed[c.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                  <button type="button" onClick={() => remove(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                </td>
+              </tr>
+            ))}
+            {cards.length === 0 && (
+              <tr><td colSpan={6} className="px-3 py-4 text-sm text-muted-foreground text-center">Nenhum cartão salvo.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {showForm && (
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-lg">
+            <div className="text-center font-semibold text-sm border-b border-border pb-3">Cartão de Crédito</div>
+            <div className="space-y-3 pt-3">
+              <MiniField label="Número:">
+                <input value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })} className={cls + " font-mono"} placeholder="0000 0000 0000 0000" />
+              </MiniField>
+              <div className="grid grid-cols-[1fr_120px_120px] gap-3">
+                <MiniField label="Código de Segurança (opcional):">
+                  <input value={form.security_code_hint} onChange={(e) => setForm({ ...form, security_code_hint: e.target.value })} className={cls} maxLength={4} />
+                </MiniField>
+                <MiniField label="Mês">
+                  <select value={form.exp_month} onChange={(e) => setForm({ ...form, exp_month: e.target.value })} className={cls}>
+                    <option value="">—</option>
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </MiniField>
+                <MiniField label="Ano">
+                  <select value={form.exp_year} onChange={(e) => setForm({ ...form, exp_year: e.target.value })} className={cls}>
+                    <option value="">—</option>
+                    {Array.from({ length: 15 }, (_, i) => new Date().getFullYear() + i).map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </MiniField>
               </div>
-              <button
-                type="button"
-                onClick={() => toggleReveal(c.id)}
-                className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs hover:border-brand-orange hover:text-brand-orange"
-              >
-                {revealed[c.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                {revealed[c.id] ? "Ocultar" : "Revelar"}
-              </button>
-              <button
-                type="button"
-                onClick={() => { if (window.confirm("Remover este cartão?")) onDelete(c.id); }}
-                className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:border-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-3 w-3" /> Remover
-              </button>
-            </li>
-          ))}
-        </ul>
+              <MiniField label="Nome:">
+                <input value={form.holder_name} onChange={(e) => setForm({ ...form, holder_name: e.target.value })} className={cls} />
+              </MiniField>
+              <div className="grid grid-cols-2 gap-3">
+                <MiniField label="Operadora:">
+                  <select value={form.operator} onChange={(e) => setForm({ ...form, operator: e.target.value })} className={cls}>
+                    {["Visa", "MasterCard", "Amex", "Elo", "Hipercard", "Diners", "Discover"].map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </MiniField>
+                <MiniField label="Cartão Passagem:">
+                  <select value={form.travel_card_type} onChange={(e) => setForm({ ...form, travel_card_type: e.target.value })} className={cls}>
+                    <option value="">Nenhum</option>
+                    <option value="CTA">CTA</option>
+                    <option value="CPB">CPB</option>
+                  </select>
+                </MiniField>
+              </div>
+              <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-900 dark:text-amber-200">
+                ⚠ Por questões de segurança, o número completo é criptografado (AES-256-GCM) e só pode ser revelado sob demanda.
+              </div>
+              <div className="flex items-center gap-2 justify-end pt-3 border-t border-border">
+                <button type="button" onClick={() => setShowForm(false)} className="rounded-full border border-border px-4 py-1.5 text-xs">Cancelar</button>
+                <button type="button" disabled={saving} onClick={submit} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60">
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} OK
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
-
-      {showForm ? (
-        <div className="rounded-xl border border-border p-4 space-y-3">
-          <Row>
-            <Field label="Apelido">
-              <input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} className={cls} />
-            </Field>
-            <Field label="Titular">
-              <input value={form.holder_name} onChange={(e) => setForm({ ...form, holder_name: e.target.value })} className={cls} />
-            </Field>
-          </Row>
-          <Row>
-            <Field label="Número" full>
-              <input
-                value={form.number}
-                onChange={(e) => setForm({ ...form, number: e.target.value })}
-                className={cls + " font-mono"}
-                placeholder="0000 0000 0000 0000"
-              />
-            </Field>
-            <Field label="Validade (MM/AA)">
-              <input value={form.expiry} onChange={(e) => setForm({ ...form, expiry: e.target.value })} className={cls} placeholder="12/28" />
-            </Field>
-          </Row>
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <input type="checkbox" checked={form.is_travel_card} onChange={(e) => setForm({ ...form, is_travel_card: e.target.checked })} />
-            Cartão passagem
-          </label>
-          <div className="flex items-center gap-2 justify-end">
-            <button type="button" onClick={() => setShowForm(false)} className="rounded-full border border-border px-4 py-1.5 text-xs text-muted-foreground hover:text-foreground">
-              Cancelar
-            </button>
-            <button type="button" disabled={saving} onClick={submit} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-4 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60">
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              Salvar cartão
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button type="button" onClick={() => setShowForm(true)} className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange text-brand-orange px-4 py-1.5 text-xs hover:bg-brand-orange/10">
-          <Plus className="h-3.5 w-3.5" /> Adicionar cartão
-        </button>
-      )}
-      <p className="text-[11px] text-muted-foreground">
-        Números completos ficam criptografados no banco (AES-256-GCM) e só são revelados sob demanda por usuários internos autenticados.
-      </p>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-      <h2 className="font-semibold text-sm">{title}</h2>
-      <div className="space-y-3">{children}</div>
-    </div>
-  );
-}
+/* ==================== HELPERS ==================== */
 
-function Row({ children }: { children: React.ReactNode }) {
-  return <div className="grid gap-3 md:grid-cols-3">{children}</div>;
-}
-
-function Field({
-  label,
-  required,
-  full,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  full?: boolean;
-  children: React.ReactNode;
-}) {
+function FieldRow({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <label className={`block ${full ? "md:col-span-2" : ""}`}>
-      <span className="block text-xs text-muted-foreground mb-1.5">
+    <div className="grid grid-cols-[140px_1fr] gap-3 items-start">
+      <div className="text-sm text-muted-foreground pt-2.5">
         {label} {required && <span className="text-brand-orange">*</span>}
-      </span>
+      </div>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+function MiniField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block text-xs text-muted-foreground mb-1.5">{label}</span>
       {children}
     </label>
   );
 }
 
-const cls =
-  "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-orange/40";
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="rounded-xl border border-border p-5 space-y-3 bg-card">
+      <legend className="px-2 text-xs font-medium text-muted-foreground">{title}</legend>
+      {children}
+    </fieldset>
+  );
+}
 
-function fmtBRL(v: number) {
-  return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+function ReadStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border p-3 bg-muted/10">
+      <div className="text-[10px] uppercase text-muted-foreground tracking-wide">{label}</div>
+      <div className="mt-1 text-sm font-medium">{value}</div>
+    </div>
+  );
+}
+
+function CheckBadge({ on }: { on: boolean }) {
+  return on
+    ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white"><Check className="h-3 w-3" /></span>
+    : <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white"><XIcon className="h-3 w-3" /></span>;
+}
+
+const cls = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-orange/40";
+
+function fmtBRL(v: number) { return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+function fmtDateISO(v: string | null | undefined) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return v;
+  return d.toLocaleDateString("pt-BR");
+}
+function fmtBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+function calcAge(iso: string) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age;
+}
+function kindLabel(k: string) {
+  return ({
+    personal: "Pessoal", mobile: "Celular", whatsapp: "WhatsApp",
+    business: "Comercial", home: "Residencial", billing: "Financeiro", other: "Outro",
+  } as Record<string, string>)[k] ?? k;
+}
+function arrayBufferToBase64(buf: ArrayBuffer) {
+  let s = "";
+  const bytes = new Uint8Array(buf);
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    s += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
+  }
+  return btoa(s);
 }
 
 function FinancialSummaryView({ summary }: { summary?: PersonFinancialSummary }) {
-  if (!summary) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Wallet className="h-4 w-4" /> Sem dados financeiros ainda.
-      </div>
-    );
-  }
+  if (!summary) return <div className="flex items-center gap-2 text-sm text-muted-foreground"><Wallet className="h-4 w-4" /> Sem dados ainda.</div>;
   const items = [
     { label: "Pedidos", value: String(summary.orders_count) },
     { label: "Total contratado", value: fmtBRL(summary.total_gross) },
@@ -816,11 +1236,6 @@ function FinancialSummaryView({ summary }: { summary?: PersonFinancialSummary })
           <div className={`mt-1 text-lg font-semibold ${it.tone ?? ""}`}>{it.value}</div>
         </div>
       ))}
-      {summary.last_order_at && (
-        <div className="col-span-2 md:col-span-4 text-xs text-muted-foreground">
-          Último pedido em {new Date(summary.last_order_at).toLocaleDateString("pt-BR")}.
-        </div>
-      )}
     </div>
   );
 }
