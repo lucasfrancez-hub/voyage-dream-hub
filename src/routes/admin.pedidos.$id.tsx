@@ -581,6 +581,7 @@ function PassengersSection({
   const upsert = useServerFn(upsertPassenger);
   const upsertItem = useServerFn(upsertOrderItem);
   const del = useServerFn(deletePassenger);
+  const delAll = useServerFn(deleteAllOrderPassengers);
   const [editing, setEditing] = useState<OrderPassenger | null>(null);
   const [open, setOpen] = useState(false);
   const [mondeOpen, setMondeOpen] = useState(false);
@@ -594,6 +595,11 @@ function PassengersSection({
   const remove = useMutation({
     mutationFn: async (pid: string) => del({ data: { id: pid } }),
     onSuccess: () => { toast.success("Passageiro removido"); onChange(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+  const removeAll = useMutation({
+    mutationFn: async () => delAll({ data: { order_id: orderId } }),
+    onSuccess: () => { toast.success("Passageiros removidos"); onChange(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
