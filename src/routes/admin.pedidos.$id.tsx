@@ -4328,7 +4328,8 @@ function PaymentDialog({
               method: form.method ?? "pix",
               amount: Number(form.amount ?? 0),
               card_full_number: cardFullNumber.replace(/\D/g, "") || null,
-            } as Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null }, cleanPayer);
+              order_item_ids: selectedItemIds.length > 0 ? selectedItemIds : null,
+            } as Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null; order_item_ids?: string[] | null }, cleanPayer);
           }}>Salvar</Button>
 
 
