@@ -33,7 +33,7 @@ import {
   getOrderDetail, upsertPassenger, deletePassenger,
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
   upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice, recalculateOrderTotal,
-  upsertOrderPayment, deleteOrderPayment, updateOrderPayer,
+  upsertOrderPayment, deleteOrderPayment, updateOrderPayer, revealOrderPaymentCardNumber,
   appendOrderLogEntry, deleteOrderLogEntry,
   linkPassengerToItem, unlinkPassengerFromItem, getMySellerInfo, deleteAllOrderPassengers,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
