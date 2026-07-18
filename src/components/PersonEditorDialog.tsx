@@ -1082,7 +1082,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
                 <td className="px-3 py-2">{c.expiry ?? "—"}</td>
                 <td className="px-3 py-2 font-mono">{c.security_code_hint ?? "—"}</td>
                 <td className="px-3 py-2">{c.operator ?? c.brand ?? "—"}</td>
-                <td className="px-3 py-2">{c.travel_card_type ?? "—"}</td>
+                <td className="px-3 py-2 text-muted-foreground">{c.nickname ?? "—"}</td>
                 <td className="px-3 py-2 text-right flex items-center gap-1 justify-end">
                   <button type="button" onClick={() => toggleReveal(c.id)} className="text-muted-foreground hover:text-foreground">
                     {revealed[c.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
