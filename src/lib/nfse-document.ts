@@ -91,11 +91,11 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   try {
     const logoBytes = await fetch(viaAirLogoAsset.url).then((r) => r.arrayBuffer());
     const logo = await pdf.embedPng(logoBytes);
-    const dimensions = logo.scale(0.14);
+    const dimensions = logo.scale(0.09);
     page.drawImage(logo, { x: margin, y: 748, width: dimensions.width, height: dimensions.height });
   } catch { /* O texto mantém a identificação caso a imagem não carregue. */ }
 
-  page.drawText("NOTA FISCAL DE SERVIÇO ELETRÔNICA", { x: 235, y: 782, size: 12, font: bold, color: ink });
+  page.drawText("NOTA FISCAL DE SERVIÇO ELETRÔNICA", { x: 255, y: 782, size: 11, font: bold, color: ink });
   page.drawText("NFS-e", { x: 500, y: 754, size: 11, font: bold, color: orange });
   page.drawText(`Nº ${clean(number)}`, { x: 455, y: 729, size: 20, font: bold, color: ink });
   page.drawText(`Série ${clean(data.serie || responseValue(data, "serie_nfse") || "1")}`, { x: 500, y: 712, size: 8, font: regular, color: muted });
@@ -113,7 +113,8 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   page.drawText(`CPF/CNPJ: ${clean(tomador.cpfCnpj || tomador.cpf_cnpj || "-")}`, { x: margin + 12, y: 540, size: 8.5, font: regular, color: muted });
   page.drawText(`E-mail: ${clean(tomador.email || "-")}`, { x: 320, y: 540, size: 8.5, font: regular, color: muted });
   const address = [endereco.logradouro, endereco.numero, endereco.complemento, endereco.bairro, endereco.cidade, endereco.uf, endereco.cep].filter(Boolean).join(", ");
-  page.drawText(`Endereço: ${clean(address || "-")}`, { x: margin + 12, y: 520, size: 8.5, font: regular, color: muted });
+  wrap(`Endereço: ${clean(address || "-")}`, regular, 8.5, contentWidth - 24).slice(0, 2)
+    .forEach((text, index) => page.drawText(text, { x: margin + 12, y: 520 - index * 11, size: 8.5, font: regular, color: muted }));
 
   page.drawText("DISCRIMINAÇÃO DOS SERVIÇOS", { x: margin, y: 476, size: 8, font: bold, color: orange });
   const descriptionLines = wrap(data.discriminacao, regular, 9, contentWidth - 20).slice(0, 13);

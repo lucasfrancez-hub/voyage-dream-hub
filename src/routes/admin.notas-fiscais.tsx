@@ -27,7 +27,7 @@ const fmtDate = (s: string) => new Date(s).toLocaleString("pt-BR");
 function statusBadge(s: string) {
   const map: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
     processando: { label: "Processando", cls: "bg-amber-500/15 text-amber-700 border-amber-500/30", icon: <Clock className="h-3 w-3" /> },
-    autorizado: { label: "Autorizado", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" /> },
+    autorizado: { label: "Autorizada", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" /> },
     emitida: { label: "Autorizada", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" /> },
     cancelando: { label: "Cancelando", cls: "bg-orange-500/15 text-orange-700 border-orange-500/30", icon: <Clock className="h-3 w-3" /> },
     cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground", icon: <Ban className="h-3 w-3" /> },

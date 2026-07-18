@@ -121,7 +121,7 @@ function buildAutoDescricao(detail: OrderDetail): string {
 function statusBadge(s: string) {
   const map: Record<string, { label: string; cls: string }> = {
     processando: { label: "Processando", cls: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
-    autorizado: { label: "Autorizado", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
+    autorizado: { label: "Autorizada", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
     emitida: { label: "Autorizada", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
     cancelando: { label: "Cancelando", cls: "bg-orange-500/15 text-orange-700 border-orange-500/30" },
     cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground" },
