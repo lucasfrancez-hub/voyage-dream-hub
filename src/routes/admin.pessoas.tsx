@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
-import { Users, Plus, Search, User, Building2, Mail, Phone, Loader2 } from "lucide-react";
-import { listPeople, type PersonRow } from "@/lib/people.functions";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Users, Plus, Search, User, Building2, Mail, Phone, Loader2, Trash2 } from "lucide-react";
+import { listPeople, deletePerson, type PersonRow } from "@/lib/people.functions";
+import { confirm } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/pessoas")({
   component: PeoplePage,
@@ -12,7 +14,19 @@ export const Route = createFileRoute("/admin/pessoas")({
 
 function PeoplePage() {
   const list = useServerFn(listPeople);
+  const del = useServerFn(deletePerson);
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: ["admin-people"], queryFn: () => list() });
+
+  const delMut = useMutation({
+    mutationFn: async (id: string) => del({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Pessoa excluída");
+      qc.invalidateQueries({ queryKey: ["admin-people"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao excluir"),
+  });
+
 
   const [term, setTerm] = useState("");
   const [kind, setKind] = useState<"all" | "PF" | "PJ">("all");
