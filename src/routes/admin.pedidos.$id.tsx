@@ -3822,6 +3822,8 @@ function PaymentDialog({
       payer_state: order.payerState ?? "",
       payer_birth_date: order.payerBirthDate ?? order.birthDate ?? "",
     });
+    // Vincula automaticamente o pagador já cadastrado no pedido (aparecem cartões salvos e a venda no cadastro dele).
+    setSelectedPersonId(order.personId ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial, open, order.id]);
 

@@ -92,6 +92,7 @@ export type OrderHeader = {
   payerDistrict: string | null;
   payerCity: string | null;
   payerState: string | null;
+  personId: string | null;
 };
 
 
@@ -312,6 +313,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         payerDistrict: (order as { payer_district?: string | null }).payer_district ?? null,
         payerCity: (order as { payer_city?: string | null }).payer_city ?? null,
         payerState: (order as { payer_state?: string | null }).payer_state ?? null,
+        personId: (order as { person_id?: string | null }).person_id ?? null,
       },
 
       passengers: (passengers ?? []) as OrderPassenger[],
