@@ -190,10 +190,9 @@ export function PersonEditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="p-0 gap-0 max-w-5xl w-[95vw] max-h-[92vh] overflow-hidden flex flex-col bg-card border-border"
-        showCloseButton={false}
       >
         {/* header */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-3 px-5 py-3 pr-12 border-b border-border bg-muted/30">
           <span className="h-9 w-9 rounded-full bg-brand-orange/10 text-brand-orange flex items-center justify-center">
             {form.kind === "PJ" ? <Building2 className="h-4 w-4" /> : <User className="h-4 w-4" />}
           </span>
@@ -209,15 +208,8 @@ export function PersonEditorDialog({
                 : ""}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
+
 
         {/* body */}
         {!isNew && q.isLoading ? (
