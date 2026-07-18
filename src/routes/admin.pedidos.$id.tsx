@@ -379,15 +379,35 @@ function OrderDetailPage() {
               <Label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">
                 Título da viagem (voucher)
               </Label>
-              <Input
-                defaultValue={order.tripTitle ?? ""}
-                placeholder="Ex: Pacote para São Paulo"
-                className="h-10 text-sm bg-muted/30 border-border/60 focus-visible:border-brand-orange/50 focus-visible:ring-brand-orange/40"
-                onBlur={(e) => {
-                  const v = e.target.value.trim();
-                  if ((v || null) !== (order.tripTitle ?? null)) metaMut.mutate({ trip_title: v || null });
-                }}
-              />
+              {(() => {
+                const snap = (order.packageSnapshot ?? {}) as { title?: unknown; auto_title?: unknown; manual?: unknown };
+                const autoTitle = (snap.auto_title === true || snap.manual !== true) && typeof snap.title === "string" && snap.title.trim()
+                  ? String(snap.title).trim()
+                  : "";
+                const shown = order.tripTitle ?? autoTitle ?? "";
+                const isAuto = !order.tripTitle && !!autoTitle;
+                return (
+                  <>
+                    <Input
+                      key={shown}
+                      defaultValue={shown}
+                      placeholder="Ex: Pacote para São Paulo"
+                      className="h-10 text-sm bg-muted/30 border-border/60 focus-visible:border-brand-orange/50 focus-visible:ring-brand-orange/40"
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if ((v || null) !== (order.tripTitle ?? null) && v !== (isAuto ? autoTitle : "")) {
+                          metaMut.mutate({ trip_title: v || null });
+                        } else if (!v && order.tripTitle) {
+                          metaMut.mutate({ trip_title: null });
+                        }
+                      }}
+                    />
+                    {isAuto && (
+                      <p className="mt-1 text-[10px] text-muted-foreground">Sugestão automática — edite para personalizar.</p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
 
