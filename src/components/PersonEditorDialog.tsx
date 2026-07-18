@@ -111,7 +111,7 @@ export function PersonEditorDialog({
   const salesQ = useQuery({
     queryKey: ["admin-people", id, "sales"],
     queryFn: () => salesFn({ data: { id } }),
-    enabled: !isNew && open && (tab === "vendas" || tab === "financeiros" || tab === "adicionais" || tab === "orcamentos"),
+    enabled: !isNew && open && (tab === "vendas" || tab === "financeiros" || tab === "adicionais"),
   });
 
   useEffect(() => {
