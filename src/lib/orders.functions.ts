@@ -1159,6 +1159,8 @@ export type CreateOrderInput = {
   birth_date?: string | null;
   payer_full_name?: string | null;
   payer_cpf?: string | null;
+  payer_cnpj?: string | null;
+
   payer_ie_rg?: string | null;
   payer_email?: string | null;
   payer_phone?: string | null;
