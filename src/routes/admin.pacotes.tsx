@@ -310,6 +310,7 @@ type TabId = "about" | "dates" | "hotel" | "flights" | "extras";
 
 function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("about");
+  const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: "about", label: "SOBRE O PACOTE", icon: <Info className="h-4 w-4" strokeWidth={1.75} /> },
