@@ -1202,6 +1202,8 @@ export const createOrder = createServerFn({ method: "POST" })
       birth_date: nn(data.birth_date),
       payer_full_name: nn(data.payer_full_name),
       payer_cpf: nn(data.payer_cpf),
+      payer_cnpj: nn(data.payer_cnpj),
+
       payer_ie_rg: nn(data.payer_ie_rg),
       payer_email: nn(data.payer_email),
       payer_phone: nn(data.payer_phone),
