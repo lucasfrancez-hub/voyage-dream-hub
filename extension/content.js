@@ -789,8 +789,9 @@
       }
       const structuredData = isConsolidator ? (extractStructuredReservation(document) || latestStructuredReservation) : null;
       const rawText = structuredData ? JSON.stringify(structuredData) : collectPageText();
-      // Consolidadora: SÓ iframe (sem screenshot). Companhia: iframe + screenshot.
-      const screenshots = isConsolidator ? [] : await captureFullPage();
+      // Híbrido: sempre captura tela — a IA usa as imagens pra ler VALORES
+      // (tarifa, taxas, TU, total, moeda) que o portal exibe fora do iframe.
+      const screenshots = await captureFullPage();
       if ((!structuredData && rawText.length < 200) && screenshots.length === 0) {
         showToast("Página ainda não carregou os dados da reserva. Aguarde e tente de novo.", "err");
         return;
