@@ -277,6 +277,7 @@ export const Route = createFileRoute("/api/public/import-aereo")({
             if (screenshots.length > 0) {
               try {
                 const values = await extractValuesFromScreenshots(screenshots);
+                console.info("[import-aereo] vision values", { airline, token, shots: screenshots.length, values });
                 if (values) {
                   if (values.currency) direct.currency = values.currency;
                   if (values.base_fare != null) direct.base_fare = values.base_fare;
@@ -287,6 +288,8 @@ export const Route = createFileRoute("/api/public/import-aereo")({
               } catch (e) {
                 console.warn("[import-aereo] vision values fallback", (e as Error).message);
               }
+            } else {
+              console.warn("[import-aereo] sem screenshots — valores podem ficar zerados", { airline, token });
             }
             const parsed = normalizeAirlineFields(direct);
             await supabaseAdmin.from("flight_import_staging").update({
@@ -407,17 +410,20 @@ async function extractValuesFromScreenshots(
 ): Promise<{ currency?: string; base_fare?: number; taxes?: number; fees?: number; total_fare?: number } | null> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) return null;
-  const prompt = `Nas capturas de tela abaixo há uma tabela de VALORES da reserva.
-Extraia SOMENTE os totais finais da reserva inteira (a linha de "Total" no rodapé
-da tabela, que consolida todos os passageiros). Retorne:
-- currency (BRL/USD/EUR — "R$" = BRL)
-- base_fare (soma das Tarifas de todos os passageiros)
-- taxes (soma de Taxas / Tx Emb. / TU / Taxas Inclusas)
-- fees (soma de outras Fees, se houver)
-- total_fare (Total geral da reserva)
-Valores sempre em número (sem "R$", vírgula → ponto). Se um campo não aparecer, omita.`;
+  const prompt = `Você recebe capturas de tela de uma página de reserva aérea de um portal consolidador (SkyTeam, FRT, Visual Turismo, Infotera).
+
+Procure a seção "Resumo Financeiro" (ou tabela equivalente no rodapé) que contém colunas como "Tarifa", "Taxas" (também "Tx Emb.", "TU", "Taxas Inclusas") e "Total". Pode haver uma linha por passageiro e uma linha final "Total". Se houver linha "Total" no rodapé, é ela que deve ser retornada. Se só houver linhas por passageiro, some cada coluna.
+
+Retorne SEMPRE:
+- currency: "BRL" quando o símbolo for "R$", "USD" para "US$/$", "EUR" para "€".
+- base_fare: soma/total da coluna Tarifa.
+- taxes: soma/total das colunas Taxas + Tx Emb. + TU + Taxas Inclusas.
+- fees: soma de outras Fees / DU / Encargos, quando houver (0 se não houver).
+- total_fare: valor da coluna Total (Total geral da reserva).
+
+Todos os valores como número puro (sem "R$", vírgula → ponto). Se o valor exibido for realmente "0,00", devolva 0 — NÃO omita. Só omita se a captura estiver ilegível ou a tabela não aparecer em nenhuma imagem.`;
   const aiBody = {
-    model: "google/gemini-2.5-flash",
+    model: "google/gemini-2.5-pro",
     messages: [
       { role: "user", content: [
         { type: "text", text: prompt },
@@ -428,7 +434,7 @@ Valores sempre em número (sem "R$", vírgula → ponto). Se um campo não apare
       type: "function",
       function: {
         name: "return_values",
-        description: "Devolve os totais monetários da reserva.",
+        description: "Devolve os totais monetários da reserva lidos das imagens.",
         parameters: {
           type: "object",
           additionalProperties: false,
@@ -439,6 +445,7 @@ Valores sempre em número (sem "R$", vírgula → ponto). Se um campo não apare
             fees: { type: "number" },
             total_fare: { type: "number" },
           },
+          required: ["currency", "base_fare", "taxes", "total_fare"],
         },
       },
     }],
