@@ -1053,6 +1053,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
               <th className="px-3 py-2 text-left">Nome</th>
               <th className="px-3 py-2 text-left">Número</th>
               <th className="px-3 py-2 text-left">Validade</th>
+              <th className="px-3 py-2 text-left">CVV</th>
               <th className="px-3 py-2 text-left">Operadora</th>
               <th className="px-3 py-2 text-left">Cartão Passagem</th>
               <th className="px-3 py-2"></th>
@@ -1068,6 +1069,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
                     : `${c.last4 ? c.last4.slice(0, 4) : "----"}.XXXX.XXXX.${c.last4 ?? "----"}`}
                 </td>
                 <td className="px-3 py-2">{c.expiry ?? "—"}</td>
+                <td className="px-3 py-2 font-mono">{c.security_code_hint ?? "—"}</td>
                 <td className="px-3 py-2">{c.operator ?? c.brand ?? "—"}</td>
                 <td className="px-3 py-2">{c.travel_card_type ?? "—"}</td>
                 <td className="px-3 py-2 text-right flex items-center gap-1 justify-end">
@@ -1079,7 +1081,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
               </tr>
             ))}
             {cards.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-4 text-sm text-muted-foreground text-center">Nenhum cartão salvo.</td></tr>
+              <tr><td colSpan={7} className="px-3 py-4 text-sm text-muted-foreground text-center">Nenhum cartão salvo.</td></tr>
             )}
           </tbody>
         </table>

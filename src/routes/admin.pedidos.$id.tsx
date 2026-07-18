@@ -3757,6 +3757,7 @@ function PaymentDialog({
   const [form, setForm] = useState<Partial<OrderPayment>>({});
   const [payer, setPayer] = useState<PayerPatch>({});
   const [cardFullNumber, setCardFullNumber] = useState<string>("");
+  const [cardCvv, setCardCvv] = useState<string>("");
   const [installmentTouched, setInstallmentTouched] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
@@ -3802,6 +3803,7 @@ function PaymentDialog({
       provider: defaultProvider || null,
     });
     setCardFullNumber("");
+    setCardCvv("");
     setInstallmentTouched(!isNew);
     setSelectedItemIds(initial?.order_item_ids ?? []);
     const initAmount = initial?.amount ?? order.totalPrice ?? 0;
@@ -4049,6 +4051,7 @@ function PaymentDialog({
         holder_name: payer.payer_full_name ?? null,
         number: clean,
         expiry: form.card_expiry ?? null,
+        security_code_hint: cardCvv || null,
         is_travel_card: false,
       } });
       const cards = await listCardsFn({ data: { person_id: personId } });
@@ -4310,6 +4313,20 @@ function PaymentDialog({
                       maxLength={5}
                     />
                   </div>
+                  <div>
+                    <Label>CVV</Label>
+                    <Input
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="000"
+                      inputMode="numeric"
+                      maxLength={4}
+                      autoComplete="off"
+                    />
+                    <div className="text-[11px] text-muted-foreground mt-1">
+                      Salvo criptografado junto ao cartão no cadastro da pessoa.
+                    </div>
+                  </div>
                 </>
               )}
               <div>
@@ -4462,6 +4479,7 @@ function PaymentDialog({
                     holder_name: payer.payer_full_name ?? null,
                     number: cleanCard,
                     expiry: form.card_expiry ?? null,
+                    security_code_hint: cardCvv || null,
                     is_travel_card: false,
                   } });
                 } catch (e) {
