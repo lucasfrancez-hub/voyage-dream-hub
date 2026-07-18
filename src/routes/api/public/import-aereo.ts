@@ -277,6 +277,7 @@ export const Route = createFileRoute("/api/public/import-aereo")({
             if (screenshots.length > 0) {
               try {
                 const values = await extractValuesFromScreenshots(screenshots);
+                console.info("[import-aereo] vision values", { airline, token, shots: screenshots.length, values });
                 if (values) {
                   if (values.currency) direct.currency = values.currency;
                   if (values.base_fare != null) direct.base_fare = values.base_fare;
@@ -287,6 +288,8 @@ export const Route = createFileRoute("/api/public/import-aereo")({
               } catch (e) {
                 console.warn("[import-aereo] vision values fallback", (e as Error).message);
               }
+            } else {
+              console.warn("[import-aereo] sem screenshots — valores podem ficar zerados", { airline, token });
             }
             const parsed = normalizeAirlineFields(direct);
             await supabaseAdmin.from("flight_import_staging").update({
