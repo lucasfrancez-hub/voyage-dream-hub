@@ -61,57 +61,38 @@ async function buildAutoTitle(context: { supabase: unknown }, orderId: string): 
     return IATA_CITY[k] || k;
   };
 
-  // Agrupa segmentos por localizador (ou "sem localizador" como um bucket só)
-  const groups = new Map<string, Array<{ orig: string; dest: string; order: number }>>();
+  // Coleta TODOS os segmentos, ordena globalmente (por localizador + índice/horário)
+  // e reduz para os extremos: primeira origem e última destinação.
+  // Se a última destinação retorna à primeira origem → ida e volta.
+  const allSegs: Array<{ orig: string; dest: string; locator: string; order: number; depart: string; idx: number }> = [];
   flights.forEach((f, idx) => {
     const d = (f.details ?? {}) as Record<string, unknown>;
-    const orig = String(d.origin ?? d.from ?? d.origin_code ?? "").toUpperCase();
-    const dest = String(d.destination ?? d.to ?? d.destination_code ?? "").toUpperCase();
+    const orig = String(d.origin ?? d.from ?? d.origin_code ?? d.from_iata ?? "").toUpperCase();
+    const dest = String(d.destination ?? d.to ?? d.destination_code ?? d.to_iata ?? "").toUpperCase();
     if (!orig || !dest) return;
-    const key = f.supplier_locator || `__idx_${idx}`;
-    const arr = groups.get(key) ?? [];
     const orderVal = Number(d.segment_index ?? d.order ?? idx);
-    arr.push({ orig, dest, order: isFinite(orderVal) ? orderVal : idx });
-    groups.set(key, arr);
+    const depart = String(d.depart_at ?? d.departure_at ?? d.departure ?? "");
+    allSegs.push({ orig, dest, locator: f.supplier_locator || "", order: isFinite(orderVal) ? orderVal : idx, depart, idx });
+  });
+  allSegs.sort((a, b) => {
+    if (a.locator !== b.locator) return a.locator.localeCompare(b.locator);
+    if (a.depart && b.depart && a.depart !== b.depart) return a.depart < b.depart ? -1 : 1;
+    if (a.order !== b.order) return a.order - b.order;
+    return a.idx - b.idx;
   });
 
-  // Para cada grupo, encadeia segmentos e extrai endpoints (colapsa conexões)
-  const legs: Array<{ from: string; to: string }> = [];
-  for (const segs of groups.values()) {
-    segs.sort((a, b) => a.order - b.order);
-    // Colapsa segmentos consecutivos onde dest[i] == orig[i+1] (conexão)
-    let curFrom = segs[0].orig;
-    let curTo = segs[0].dest;
-    for (let i = 1; i < segs.length; i++) {
-      if (segs[i].orig === curTo) {
-        curTo = segs[i].dest; // conexão: estende
-      } else {
-        legs.push({ from: curFrom, to: curTo });
-        curFrom = segs[i].orig;
-        curTo = segs[i].dest;
-      }
-    }
-    legs.push({ from: curFrom, to: curTo });
-  }
-
   const parts: string[] = [];
-  if (legs.length) {
-    // Detecta ida-e-volta: 2 legs invertidos
-    if (legs.length === 2 && legs[0].from === legs[1].to && legs[0].to === legs[1].from) {
-      parts.push(`Aéreo ${cityOf(legs[0].from)} ⇄ ${cityOf(legs[0].to)}`);
-    } else if (legs.length === 1) {
-      parts.push(`Aéreo ${cityOf(legs[0].from)} → ${cityOf(legs[0].to)}`);
+  if (allSegs.length) {
+    const firstOrig = allSegs[0].orig;
+    const lastDest = allSegs[allSegs.length - 1].dest;
+    if (firstOrig === lastDest && allSegs.length > 1) {
+      // Ida e volta: ponto de virada = destino do segmento no meio da jornada.
+      // Ex.: MGF→GRU, GRU→BEL, BEL→GRU, GRU→MGF → virada = BEL (segmento 2, cnt=4).
+      const mid = Math.max(0, Math.floor(allSegs.length / 2) - 1);
+      const turnaround = allSegs[mid]?.dest || allSegs[0].dest;
+      parts.push(`Aéreo ${cityOf(firstOrig)} ⇄ ${cityOf(turnaround)}`);
     } else {
-      // Múltiplos trechos independentes: junta com " + "
-      const seen = new Set<string>();
-      const rendered: string[] = [];
-      for (const l of legs) {
-        const k = `${l.from}-${l.to}`;
-        if (seen.has(k)) continue;
-        seen.add(k);
-        rendered.push(`${cityOf(l.from)} → ${cityOf(l.to)}`);
-      }
-      parts.push(`Aéreo ${rendered.join(" + ")}`);
+      parts.push(`Aéreo ${cityOf(firstOrig)} → ${cityOf(lastDest)}`);
     }
   } else if (flights.length) {
     parts.push(`Aéreo${flights.length > 1 ? ` (${flights.length})` : ""}`);
@@ -675,6 +656,22 @@ export const getMySellerInfo = createServerFn({ method: "GET" })
       email,
       phone: (profile as { phone?: string | null } | null)?.phone ?? null,
     };
+  });
+
+// Recalcula os títulos automáticos de todos os pedidos existentes (backfill).
+export const backfillAutoTitles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = context.supabase as unknown as {
+      from: (t: string) => { select: (s: string) => Promise<{ data: Array<{ id: string }> | null }> };
+    };
+    const { data } = await sb.from("orders").select("id");
+    const ids = (data ?? []).map((o) => o.id);
+    let updated = 0;
+    for (const id of ids) {
+      try { await applyAutoTitle(context as unknown as { supabase: unknown }, id); updated++; } catch (e) { console.error(e); }
+    }
+    return { ok: true, total: ids.length, updated };
   });
 
 // Atualiza dados do pagador (usados em contrato e recibo).
