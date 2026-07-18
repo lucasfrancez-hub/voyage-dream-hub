@@ -245,11 +245,13 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
             razaoSocial: form.razaoSocial.trim(),
             cpfCnpj: doc,
             email: form.email.trim() || null,
+            telefone: form.phone.trim() || null,
             endereco: {
               logradouro: form.logradouro.trim() || null,
               numero: form.numero.trim() || null,
               complemento: form.complemento.trim() || null,
               bairro: form.bairro.trim() || null,
+              cidade: form.cidade.trim() || null,
               uf: (form.uf.trim() || null)?.toUpperCase() ?? null,
               cep: form.cep.replace(/\D/g, "") || null,
             },
