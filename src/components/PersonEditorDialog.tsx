@@ -255,6 +255,31 @@ export function PersonEditorDialog({
     } catch { /* ignore */ }
   }
 
+  async function fetchCnpj(cnpj: string) {
+    const d = cnpj.replace(/\D+/g, "");
+    if (d.length !== 14) return;
+    try {
+      const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${d}`);
+      if (!r.ok) return;
+      const j = await r.json();
+      setForm((s) => ({
+        ...s,
+        name: s.name?.trim() ? s.name : (j.nome_fantasia || j.razao_social || s.name),
+        legal_name: j.razao_social || s.legal_name,
+        trade_name: j.nome_fantasia || s.trade_name,
+        foundation_date: j.data_inicio_atividade || s.foundation_date,
+        zip: j.cep ? String(j.cep).replace(/\D+/g, "").replace(/(\d{5})(\d{3})/, "$1-$2") : s.zip,
+        address: j.logradouro || s.address,
+        number: j.numero || s.number,
+        complement: j.complemento || s.complement,
+        district: j.bairro || s.district,
+        city: j.municipio || s.city,
+        state: j.uf || s.state,
+      }));
+    } catch { /* ignore */ }
+  }
+
+
   const person = q.data?.person;
   const cards = q.data?.cards ?? [];
   const phones = q.data?.phones ?? [];
