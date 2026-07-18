@@ -152,6 +152,30 @@ async function applyAutoTitle(context: { supabase: unknown }, orderId: string): 
   }
 }
 
+// Recalcula o auto-title para TODOS os pedidos (retroativo).
+// Só sobrescreve quando o título atual está vazio ou foi marcado como auto_title.
+export const backfillAutoTitles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = context.supabase as unknown as {
+      from: (t: string) => {
+        select: (s: string) => Promise<{ data: Array<{ id: string }> | null; error: unknown }>;
+      };
+    };
+    const { data, error } = await sb.from("orders").select("id");
+    if (error) throw new Error(String(error));
+    const ids = (data ?? []).map((r) => r.id);
+    let updated = 0;
+    for (const id of ids) {
+      try {
+        await applyAutoTitle(context, id);
+        updated += 1;
+      } catch { /* noop */ }
+    }
+    return { total: ids.length, updated };
+  });
+
+
 
 
 // --------- Types ---------
