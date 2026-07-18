@@ -215,6 +215,9 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       const holderLastName = rawHolder.includes("/")
         ? (rawHolder.split("/")[0]?.trim().split(/\s+/).pop() ?? "")
         : (rawHolder.split(/\s+/).pop() ?? "");
+      // Identificador estável desta importação. O cartão aéreo usa este valor
+      // para não misturar reservas diferentes que tenham o mesmo localizador.
+      const importGroupId = crypto.randomUUID();
       for (const block of reservation.flights) {
         // Origem do 1º trecho do bloco (usada no link de check-in de GOL/Azul).
         const blockOrigin = block.segments[0]?.from_iata ?? "";
@@ -246,6 +249,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
             supplier_locator: reservation.locator ?? seg.carrier_locator ?? null,
             sort_order: sort++,
             details: {
+              import_group_id: importGroupId,
               direction: block.direction,
               airline: seg.airline ?? block.airline,
               airline_iata: seg.airline_iata,
