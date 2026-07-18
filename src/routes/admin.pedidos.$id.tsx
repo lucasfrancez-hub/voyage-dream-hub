@@ -312,10 +312,11 @@ function OrderDetailPage() {
               <span className="opacity-60">Ref</span>
               <span className="text-foreground/80">{shortId(order.id)}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className={`inline-block h-1.5 w-1.5 rounded-full ${st.dotClassName ?? "bg-brand-orange"}`}></span>
-              <span className={st.textClassName ?? "text-brand-orange"}>{st.label}</span>
+            <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 ${st.className}`}>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-80"></span>
+              <span>{st.label}</span>
             </div>
+
           </div>
           <div className="text-[10px] normal-case tracking-normal text-muted-foreground">
             <span className="opacity-70 italic">Criado em </span>
