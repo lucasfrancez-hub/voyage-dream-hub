@@ -309,7 +309,7 @@ function ReviewExtracted({
                   if (h.photos?.length) next.tripadvisor_photos = h.photos;
                   onChange({ ...value, details: next } as ExtractedItemVoucher);
                 }}
-                initialMode={String(d.hotel_name ?? "").trim() ? "manual" : null}
+                initialMode="live"
                 placeholder="Nome do hotel"
               />
             </div>

@@ -61,57 +61,47 @@ async function buildAutoTitle(context: { supabase: unknown }, orderId: string): 
     return IATA_CITY[k] || k;
   };
 
-  // Agrupa segmentos por localizador (ou "sem localizador" como um bucket só)
-  const groups = new Map<string, Array<{ orig: string; dest: string; order: number }>>();
+  // Coleta TODOS os segmentos, ordena globalmente (por localizador + índice)
+  // e reduz para os extremos: primeira origem e última destinação.
+  // Se a última destinação retorna à primeira origem → ida e volta.
+  const allSegs: Array<{ orig: string; dest: string; locator: string; order: number; idx: number }> = [];
   flights.forEach((f, idx) => {
     const d = (f.details ?? {}) as Record<string, unknown>;
     const orig = String(d.origin ?? d.from ?? d.origin_code ?? "").toUpperCase();
     const dest = String(d.destination ?? d.to ?? d.destination_code ?? "").toUpperCase();
     if (!orig || !dest) return;
-    const key = f.supplier_locator || `__idx_${idx}`;
-    const arr = groups.get(key) ?? [];
     const orderVal = Number(d.segment_index ?? d.order ?? idx);
-    arr.push({ orig, dest, order: isFinite(orderVal) ? orderVal : idx });
-    groups.set(key, arr);
+    allSegs.push({ orig, dest, locator: f.supplier_locator || "", order: isFinite(orderVal) ? orderVal : idx, idx });
+  });
+  allSegs.sort((a, b) => {
+    if (a.locator !== b.locator) return a.locator.localeCompare(b.locator);
+    if (a.order !== b.order) return a.order - b.order;
+    return a.idx - b.idx;
   });
 
-  // Para cada grupo, encadeia segmentos e extrai endpoints (colapsa conexões)
-  const legs: Array<{ from: string; to: string }> = [];
-  for (const segs of groups.values()) {
-    segs.sort((a, b) => a.order - b.order);
-    // Colapsa segmentos consecutivos onde dest[i] == orig[i+1] (conexão)
-    let curFrom = segs[0].orig;
-    let curTo = segs[0].dest;
-    for (let i = 1; i < segs.length; i++) {
-      if (segs[i].orig === curTo) {
-        curTo = segs[i].dest; // conexão: estende
-      } else {
-        legs.push({ from: curFrom, to: curTo });
-        curFrom = segs[i].orig;
-        curTo = segs[i].dest;
-      }
-    }
-    legs.push({ from: curFrom, to: curTo });
-  }
-
   const parts: string[] = [];
-  if (legs.length) {
-    // Detecta ida-e-volta: 2 legs invertidos
-    if (legs.length === 2 && legs[0].from === legs[1].to && legs[0].to === legs[1].from) {
-      parts.push(`Aéreo ${cityOf(legs[0].from)} ⇄ ${cityOf(legs[0].to)}`);
-    } else if (legs.length === 1) {
-      parts.push(`Aéreo ${cityOf(legs[0].from)} → ${cityOf(legs[0].to)}`);
-    } else {
-      // Múltiplos trechos independentes: junta com " + "
-      const seen = new Set<string>();
-      const rendered: string[] = [];
-      for (const l of legs) {
-        const k = `${l.from}-${l.to}`;
-        if (seen.has(k)) continue;
-        seen.add(k);
-        rendered.push(`${cityOf(l.from)} → ${cityOf(l.to)}`);
+  if (allSegs.length) {
+    const firstOrig = allSegs[0].orig;
+    const lastDest = allSegs[allSegs.length - 1].dest;
+    if (firstOrig === lastDest && allSegs.length > 1) {
+      // Ida e volta: descobre a cidade "de destino" (ponto de virada).
+      // Estratégia: cidade mais frequente entre as destinações intermediárias
+      // que também aparece como origem (i.e., aeroporto de virada).
+      const midCounts = new Map<string, number>();
+      for (let i = 0; i < allSegs.length - 1; i++) {
+        const d = allSegs[i].dest;
+        if (d === firstOrig) continue;
+        midCounts.set(d, (midCounts.get(d) ?? 0) + 1);
       }
-      parts.push(`Aéreo ${rendered.join(" + ")}`);
+      let turnaround = "";
+      let best = -1;
+      for (const [city, c] of midCounts) {
+        if (c > best) { best = c; turnaround = city; }
+      }
+      if (!turnaround) turnaround = allSegs[0].dest;
+      parts.push(`Aéreo ${cityOf(firstOrig)} ⇄ ${cityOf(turnaround)}`);
+    } else {
+      parts.push(`Aéreo ${cityOf(firstOrig)} → ${cityOf(lastDest)}`);
     }
   } else if (flights.length) {
     parts.push(`Aéreo${flights.length > 1 ? ` (${flights.length})` : ""}`);
