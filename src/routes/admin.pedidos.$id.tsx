@@ -61,6 +61,7 @@ import { QuoteDialog } from "@/components/QuoteDialog";
 import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { ImportarAereoDialog } from "@/components/ImportarAereoDialog";
 import { ImportarVoucherDialog } from "@/components/ImportarVoucherDialog";
+import { ImportarMultiDialog } from "@/components/ImportarMultiDialog";
 import { confirmThen } from "@/lib/confirm";
 import { findAirline, airlineLogo } from "@/lib/airlines";
 import { searchPeople, upsertPerson, listPersonCards, addPersonCard, revealPersonCardNumber, type PersonCardRow } from "@/lib/people.functions";
