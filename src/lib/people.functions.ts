@@ -679,13 +679,20 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<{ sales: PersonSaleRow[]; summary: PersonFinancialSummary }> => {
     await ensureInternal(context);
+    // A aba de pessoas também é acessível ao papel interno "user", enquanto
+    // as políticas de pedidos/pagamentos são mais restritas. Depois de validar
+    // o papel acima, fazemos esta leitura interna no servidor para que a venda
+    // vinculada por person_id/CPF não desapareça por causa dessas políticas.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Busca a pessoa para permitir fallback por CPF/e-mail em pedidos antigos
     // que ainda não têm person_id preenchido.
-    const { data: person } = await context.supabase
+    const { data: person, error: personError } = await supabaseAdmin
       .from("people")
       .select("cpf, email")
       .eq("id", data.id)
       .maybeSingle();
+    if (personError) throw new Error(personError.message);
+    if (!person) throw new Error("Pessoa não encontrada");
     const cpfDigits = String(person?.cpf ?? "").replace(/\D+/g, "");
     const emailNorm = String(person?.email ?? "").trim().toLowerCase();
 
@@ -708,7 +715,7 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
       filters.push(`payer_email.ilike.${emailNorm}`);
     }
 
-    const { data: orders, error } = await context.supabase
+    const { data: orders, error } = await supabaseAdmin
       .from("orders")
       .select("id, order_number, trip_title, supplier_name, status, total_price, created_at, going_date, return_date")
       .or(filters.join(","))
@@ -721,7 +728,7 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
     const ids = list.map((o) => o.id);
     let payments: any[] = [];
     if (ids.length > 0) {
-      const { data: pays, error: pErr } = await context.supabase
+      const { data: pays, error: pErr } = await supabaseAdmin
         .from("order_payments")
         .select("order_id, amount, status")
         .in("order_id", ids);
