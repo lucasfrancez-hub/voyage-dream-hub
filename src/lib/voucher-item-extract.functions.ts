@@ -34,6 +34,8 @@ export type ExtractedHotelItem = {
     nights?: number;
     guests?: string;
     policies?: string;
+    cancellation_policy?: string;
+    observations?: string[];
     value?: number;
     tax_value?: number;
     currency?: string;
