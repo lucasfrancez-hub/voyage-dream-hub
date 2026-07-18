@@ -288,6 +288,43 @@ function DashboardPage() {
         </div>
       </div>
 
+      {/* Financeiro: a pagar / a receber */}
+      <div className="grid gap-3 md:grid-cols-2">
+        <Link to="/admin/contas-receber" className="rounded-2xl border border-border bg-card p-5 hover:border-emerald-500/40 transition group">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <ArrowDownRight className="h-3.5 w-3.5 text-emerald-500" /> Contas a receber
+            </div>
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-emerald-500">{formatBRL(finSummary.receivable.total)}</div>
+          <div className="text-[11px] text-muted-foreground">Pendente</div>
+          {finSummary.receivable.overdueCount > 0 && (
+            <div className="mt-2 inline-flex items-center gap-1 text-xs text-red-500">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {formatBRL(finSummary.receivable.overdue)} vencido ({finSummary.receivable.overdueCount})
+            </div>
+          )}
+        </Link>
+        <Link to="/admin/contas-pagar" className="rounded-2xl border border-border bg-card p-5 hover:border-red-500/40 transition group">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <ArrowUpRight className="h-3.5 w-3.5 text-red-500" /> Contas a pagar
+            </div>
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-red-500">{formatBRL(finSummary.payable.total)}</div>
+          <div className="text-[11px] text-muted-foreground">Pendente</div>
+          {finSummary.payable.overdueCount > 0 && (
+            <div className="mt-2 inline-flex items-center gap-1 text-xs text-red-500">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {formatBRL(finSummary.payable.overdue)} vencido ({finSummary.payable.overdueCount})
+            </div>
+          )}
+        </Link>
+      </div>
+
+
       {/* Próximas viagens */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <div className="px-5 py-4 border-b border-border flex items-center gap-3 flex-wrap">
