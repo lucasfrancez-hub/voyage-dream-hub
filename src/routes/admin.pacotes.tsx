@@ -69,6 +69,9 @@ type PackageRow = {
   hotel_name: string | null;
   hotel_stars: number | null;
   meal_plan: string | null;
+  room_type: string | null;
+  room_category: string | null;
+  bed_type: string | null;
   is_active: boolean;
   sort_order: number;
   base_occupancy: number;
