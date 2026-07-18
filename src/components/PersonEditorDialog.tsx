@@ -266,7 +266,7 @@ export function PersonEditorDialog({
         ...s,
         name: s.name?.trim() ? s.name : (j.nome_fantasia || j.razao_social || s.name),
         legal_name: j.razao_social || s.legal_name,
-        trade_name: j.nome_fantasia || s.trade_name,
+
         foundation_date: j.data_inicio_atividade || s.foundation_date,
         zip: j.cep ? String(j.cep).replace(/\D+/g, "").replace(/(\d{5})(\d{3})/, "$1-$2") : s.zip,
         address: j.logradouro || s.address,
