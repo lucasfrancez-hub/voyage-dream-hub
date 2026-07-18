@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
 
+type Num = number | string | null | undefined;
 export type NfseDocumentData = {
   numero_nfse?: string | null;
   serie?: string | null;
@@ -10,8 +11,24 @@ export type NfseDocumentData = {
   data_emissao?: string | null;
   created_at: string;
   valor_servicos: number | string;
-  valor_iss?: number | string | null;
-  aliquota_iss?: number | string | null;
+  valor_iss?: Num;
+  aliquota_iss?: Num;
+  valor_deducoes?: Num;
+  base_calculo?: Num;
+  valor_iss_retido?: Num;
+  valor_ir?: Num;
+  valor_inss?: Num;
+  valor_csll?: Num;
+  valor_cofins?: Num;
+  valor_pis?: Num;
+  outras_retencoes?: Num;
+  tributos_federais?: Num;
+  tributos_estaduais?: Num;
+  tributos_municipais?: Num;
+  desconto_incondicional?: Num;
+  desconto_condicional?: Num;
+  valor_liquido?: Num;
+  credito_tributario?: Num;
   discriminacao: string;
   tomador: unknown;
   focus_response?: unknown;
