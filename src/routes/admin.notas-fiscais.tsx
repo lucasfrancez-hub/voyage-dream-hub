@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   FileText, RefreshCw, Download, XCircle, ExternalLink, Search,
-  CheckCircle2, AlertTriangle, Clock, Ban,
+  CheckCircle2, AlertTriangle, Clock, Ban, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Tabs, TabsList, TabsTrigger, TabsContent,
 } from "@/components/ui/tabs";
-import { listAllNfse, consultarNfse, cancelarNfse } from "@/lib/nfse.functions";
+import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse } from "@/lib/nfse.functions";
 
 export const Route = createFileRoute("/admin/notas-fiscais")({
   head: () => ({ meta: [{ title: "Notas Fiscais — VIA AIR" }] }),
