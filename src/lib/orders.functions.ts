@@ -2,6 +2,102 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
 
+// --------- Auto-title (resumo automático do pedido) ---------
+// Gera um título curto para o pedido (para substituir "Pedido manual" na listagem).
+// Regras: se order.trip_title está preenchido, usa-o. Caso contrário, resume itens via IA.
+async function buildAutoTitle(context: { supabase: unknown }, orderId: string): Promise<string | null> {
+  const sb = context.supabase as {
+    from: (t: string) => {
+      select: (s: string) => {
+        eq: (c: string, v: string) => {
+          maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>;
+          neq: (c: string, v: string) => Promise<{ data: Array<Record<string, unknown>> | null }>;
+        };
+      };
+    };
+  };
+  const ord = await sb.from("orders").select("trip_title").eq("id", orderId).maybeSingle();
+  const tripTitle = (ord.data as { trip_title?: string | null } | null)?.trip_title;
+  if (tripTitle && String(tripTitle).trim()) return String(tripTitle).trim().slice(0, 140);
+
+  const it = await sb.from("order_items").select("kind, title, details, supplier_locator, status").eq("order_id", orderId).neq("status", "cancelled");
+  const list = ((it.data as Array<{ kind: string; title: string | null; details: Record<string, unknown> | null; supplier_locator: string | null }>) ?? []);
+  if (list.length === 0) return null;
+
+  // Fallback heurístico determinístico
+  const flights = list.filter((i) => i.kind === "flight");
+  const hotels = list.filter((i) => i.kind === "hotel");
+  const others = list.filter((i) => i.kind !== "flight" && i.kind !== "hotel");
+  const parts: string[] = [];
+  if (flights.length) {
+    const d = (flights[0].details ?? {}) as Record<string, unknown>;
+    const orig = (d.origin ?? d.from ?? d.origin_code ?? "") as string;
+    const dest = (d.destination ?? d.to ?? d.destination_code ?? "") as string;
+    parts.push(orig && dest ? `Aéreo ${orig}→${dest}` : `Aéreo${flights.length > 1 ? ` (${flights.length})` : ""}`);
+  }
+  if (hotels.length) parts.push(hotels[0].title ? `Hospedagem ${hotels[0].title}` : "Hospedagem");
+  if (others.length) parts.push(others[0].title || "Serviços");
+  const heuristic = parts.join(" + ").slice(0, 120) || null;
+
+  // Enriquecimento via IA (best-effort — se falhar, cai no heurístico)
+  try {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (apiKey) {
+      const summary = list.map((i) => `- ${i.kind}: ${i.title ?? ""}${i.supplier_locator ? ` (${i.supplier_locator})` : ""}`).join("\n");
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            { role: "system", content: "Você resume pacotes de viagem em UMA linha curta em português (até 80 caracteres), no formato de título comercial (ex: 'Aéreo GRU→MIA + Hospedagem Marriott'). Sem aspas, sem pontuação final, sem a palavra 'Pedido'." },
+            { role: "user", content: summary },
+          ],
+          max_tokens: 60,
+          temperature: 0.3,
+        }),
+      });
+      if (res.ok) {
+        const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+        const txt = json?.choices?.[0]?.message?.content?.trim();
+        if (txt) return txt.replace(/^["']+|["']+$/g, "").slice(0, 140);
+      }
+    }
+  } catch {
+    // usa heurístico
+  }
+  return heuristic;
+}
+
+async function applyAutoTitle(context: { supabase: unknown }, orderId: string): Promise<void> {
+  try {
+    const sb = context.supabase as {
+      from: (t: string) => {
+        select: (s: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: Record<string, unknown> | null }> } };
+        update: (p: unknown) => { eq: (c: string, v: string) => Promise<unknown> };
+      };
+    };
+    const cur = await sb.from("orders").select("package_snapshot, trip_title").eq("id", orderId).maybeSingle();
+    const row = (cur.data ?? {}) as { package_snapshot?: Record<string, unknown> | null; trip_title?: string | null };
+    const snap = (row.package_snapshot ?? {}) as Record<string, unknown>;
+    const tt = row.trip_title;
+    // Se um fluxo externo (ex: importação de pacote) cravou snap.title "de verdade" e o usuário
+    // não definiu trip_title, respeitamos o título existente.
+    const hasExternalTitle = typeof snap.title === "string" && snap.title.trim() !== ""
+      && snap.manual !== true && snap.auto_title !== true;
+    if (hasExternalTitle && !(tt && String(tt).trim())) return;
+
+    const title = await buildAutoTitle(context, orderId);
+    if (!title) return;
+    const next = { ...snap, title, auto_title: true, manual: false };
+    await sb.from("orders").update({ package_snapshot: next as never }).eq("id", orderId);
+  } catch (e) {
+    console.error("[orders] applyAutoTitle falhou:", e);
+  }
+}
+
+
+
 // --------- Types ---------
 export type OrderLogEntry = { text: string; created_at: string; author?: string | null };
 
