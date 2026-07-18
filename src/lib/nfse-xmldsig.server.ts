@@ -7,7 +7,10 @@ let cached: LoadedCert | null = null;
 
 function parsePkcs12(buf: Buffer, password: string): forge.pkcs12.Pkcs12Pfx {
   const binary = buf.toString("binary");
-  const asn1 = forge.asn1.fromDer(binary, {
+  const asn1 = (forge.asn1.fromDer as unknown as (
+    bytes: string,
+    options: { strict: boolean; parseAllBytes: boolean; decodeBitStrings: boolean },
+  ) => forge.asn1.Asn1)(binary, {
     strict: false,
     parseAllBytes: true,
     decodeBitStrings: true,
