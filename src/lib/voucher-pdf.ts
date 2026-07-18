@@ -2114,12 +2114,10 @@ export async function generateVoucher(
     if (dir === "return") groups.get(key)!.returning.push(it);
     else groups.get(key)!.outbound.push(it);
   }
-  // ---- Combinação inteligente de passageiros ----
-  // Regra: se todos os "itens" do pedido (grupos de voo, hotéis, serviços) têm
-  // exatamente a mesma lista de passageiros, imprimimos UMA tabela de
-  // passageiros no fim do voucher. Se algum item tem passageiros diferentes
-  // (ex.: um serviço extra com pessoa a mais), imprimimos a tabela DENTRO
-  // de cada item.
+  // ---- Passageiros por reserva ----
+  // Cada localizador aéreo sempre recebe sua própria tabela de passageiros.
+  // Hotéis e serviços só repetem a tabela quando tiverem uma composição de
+  // passageiros diferente das reservas já exibidas.
   const allPassengerIds = new Set(detail.passengers.map((p) => p.id));
   const paxSetForItems = (its: OrderItem[]): Set<string> => {
     const s = new Set<string>();
@@ -2131,35 +2129,20 @@ export async function generateVoucher(
     // quando os passageiros não foram atrelados via order_item_passengers).
     return s.size === 0 ? new Set(allPassengerIds) : s;
   };
-  const setsEqual = (a: Set<string>, b: Set<string>): boolean => {
-    if (a.size !== b.size) return false;
-    for (const v of a) if (!b.has(v)) return false;
-    return true;
-  };
-
-  type UnitPax = { key: string; ids: Set<string> };
-  const units: UnitPax[] = [];
-  for (const key of groupOrder) {
-    const g = groups.get(key)!;
-    units.push({ key: `flight:${key}`, ids: paxSetForItems([...g.outbound, ...g.returning]) });
-  }
-  for (const h of hotels) units.push({ key: `hotel:${h.id}`, ids: paxSetForItems([h]) });
-  for (const s of others) units.push({ key: `srv:${s.id}`, ids: paxSetForItems([s]) });
-
-  const combineMode = units.length > 0 && units.every((u) => setsEqual(u.ids, units[0].ids));
-
   const drawPaxForIds = (ids: Set<string>) => {
     const list = detail.passengers.filter((p) => ids.has(p.id));
     if (list.length > 0) drawPassengersSection(ctx, list);
   };
+  const paxSignature = (ids: Set<string>) => [...ids].sort().join("|");
+  const passengerSetsAlreadyShown = new Set<string>();
 
-  // --- Voos (com passageiros inline apenas quando os grupos diferem entre si) ---
+  // Voos: a lista fica sempre imediatamente abaixo do respectivo localizador.
   for (const key of groupOrder) {
     const g = groups.get(key)!;
     await drawAereoSection(ctx, g.outbound, g.returning);
-    if (!combineMode) {
-      drawPaxForIds(paxSetForItems([...g.outbound, ...g.returning]));
-    }
+    const ids = paxSetForItems([...g.outbound, ...g.returning]);
+    drawPaxForIds(ids);
+    passengerSetsAlreadyShown.add(paxSignature(ids));
   }
 
 
@@ -2194,19 +2177,27 @@ export async function generateVoucher(
       };
     }
     await drawHotelSection(ctx, h, mapData, guestsFallbackStr);
-    if (!combineMode) drawPaxForIds(paxSetForItems([h]));
+    const ids = paxSetForItems([h]);
+    const signature = paxSignature(ids);
+    if (!passengerSetsAlreadyShown.has(signature)) {
+      drawPaxForIds(ids);
+      passengerSetsAlreadyShown.add(signature);
+    }
   }
 
   // Serviços (transfers, ingressos, transporte terrestre, etc.)
   for (const s of others) {
     await drawServiceSection(ctx, s);
-    if (!combineMode) drawPaxForIds(paxSetForItems([s]));
+    const ids = paxSetForItems([s]);
+    const signature = paxSignature(ids);
+    if (!passengerSetsAlreadyShown.has(signature)) {
+      drawPaxForIds(ids);
+      passengerSetsAlreadyShown.add(signature);
+    }
   }
 
-  // Modo combinado: uma única tabela de passageiros ao final.
-  if (combineMode) drawPaxForIds(units[0].ids);
-  // Sem nenhum item mas com passageiros no pedido (raro): imprime a lista.
-  else if (units.length === 0 && detail.passengers.length > 0) {
+  // Sem itens, mantém uma lista única como fallback.
+  if (groupOrder.length === 0 && hotels.length === 0 && others.length === 0 && detail.passengers.length > 0) {
     drawPassengersSection(ctx, detail.passengers);
   }
 
