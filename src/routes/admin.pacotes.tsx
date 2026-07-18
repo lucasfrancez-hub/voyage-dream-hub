@@ -544,6 +544,59 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                     <option value="All inclusive">All inclusive</option>
                   </select>
                 </FormField>
+                <FormField label="Tipo de quarto">
+                  <select
+                    className={inp}
+                    value={editing.room_type ?? ""}
+                    onChange={(e) => setEditing({ ...editing, room_type: e.target.value })}
+                  >
+                    <option value="">— Não informado —</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Superior">Superior</option>
+                    <option value="Luxo">Luxo</option>
+                    <option value="Suíte">Suíte</option>
+                    <option value="Suíte Master">Suíte Master</option>
+                    <option value="Suíte Presidencial">Suíte Presidencial</option>
+                    <option value="Bangalô">Bangalô</option>
+                    <option value="Chalé">Chalé</option>
+                  </select>
+                </FormField>
+                <FormField label="Categoria / vista">
+                  <select
+                    className={inp}
+                    value={editing.room_category ?? ""}
+                    onChange={(e) => setEditing({ ...editing, room_category: e.target.value })}
+                  >
+                    <option value="">— Não informado —</option>
+                    <option value="Vista interna">Vista interna</option>
+                    <option value="Vista cidade">Vista cidade</option>
+                    <option value="Vista jardim">Vista jardim</option>
+                    <option value="Vista piscina">Vista piscina</option>
+                    <option value="Vista parcial mar">Vista parcial mar</option>
+                    <option value="Vista mar">Vista mar</option>
+                    <option value="Frente mar">Frente mar</option>
+                    <option value="Vista montanha">Vista montanha</option>
+                  </select>
+                </FormField>
+                <FormField label="Tipo de cama">
+                  <select
+                    className={inp}
+                    value={editing.bed_type ?? ""}
+                    onChange={(e) => setEditing({ ...editing, bed_type: e.target.value })}
+                  >
+                    <option value="">— Não informado —</option>
+                    <option value="1 cama de casal">1 cama de casal</option>
+                    <option value="1 cama king">1 cama king</option>
+                    <option value="1 cama queen">1 cama queen</option>
+                    <option value="2 camas de solteiro">2 camas de solteiro</option>
+                    <option value="1 casal + 1 solteiro">1 casal + 1 solteiro</option>
+                    <option value="1 casal + 2 solteiros">1 casal + 2 solteiros</option>
+                    <option value="3 camas de solteiro">3 camas de solteiro</option>
+                    <option value="Cama de casal + sofá-cama">Cama de casal + sofá-cama</option>
+                  </select>
+                </FormField>
+              </div>
+            )}
               </div>
             )}
 
