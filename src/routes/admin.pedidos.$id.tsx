@@ -784,48 +784,71 @@ function PassengersSection({
   function openNew() { setEditing(null); setOpen(true); }
   function openEdit(p: OrderPassenger) { setEditing(p); setOpen(true); }
 
+  // Sinal de "dados completos": todos os passageiros com nascimento + (CPF/passaporte).
+  const allComplete = passengers.length > 0 && passengers.every((p) => {
+    const hasDoc = p.doc_type === "passport" ? !!(p.passport_number ?? "").trim() : !!(p.cpf ?? "").trim();
+    return !!p.birth_date && hasDoc;
+  });
+
   return (
-    <div className="mt-6 rounded-2xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold flex items-center gap-2">
-          <Users className="h-4 w-4" /> Passageiros ({passengers.length})
-        </h2>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setMondeOpen(true)}>
-            <Cloud className="h-3.5 w-3.5 mr-1" /> Importar do Monde
-          </Button>
-          <Button size="sm" variant="outline" onClick={openNew}>
-            <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
-          </Button>
+    <div className="mt-6 rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+      {/* Section header — command center */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-border/60 bg-muted/30">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-brand-orange/10">
+            <Users className="h-4 w-4 text-brand-orange" />
+          </div>
+          <h2 className="text-base font-semibold text-foreground">
+            Passageiros <span className="ml-1 text-muted-foreground font-normal">({passengers.length})</span>
+          </h2>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
           {passengers.length > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-destructive hover:text-destructive"
+            <button
+              type="button"
               onClick={() => confirmThen(`Excluir todos os ${passengers.length} passageiros?`, () => removeAll.mutate())}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/5 rounded-md transition-all"
             >
-              <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir todos
-            </Button>
+              <Trash2 className="h-3.5 w-3.5" />
+              Excluir todos
+            </button>
           )}
+          {passengers.length > 0 && <div className="h-4 w-px bg-border mx-1" />}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 gap-2 text-muted-foreground border-border/60 hover:text-foreground"
+            onClick={() => setMondeOpen(true)}
+          >
+            <Cloud className="h-4 w-4" /> Importar do Monde
+          </Button>
+          <Button
+            size="sm"
+            onClick={openNew}
+            className="h-9 gap-2 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold shadow-[0_10px_20px_-10px_rgba(242,107,31,0.5)]"
+          >
+            <Plus className="h-4 w-4" /> Adicionar
+          </Button>
         </div>
       </div>
+
       {passengers.length === 0 ? (
-        <div className="text-sm text-muted-foreground text-center py-6">Nenhum passageiro cadastrado.</div>
+        <div className="text-sm text-muted-foreground text-center py-10">Nenhum passageiro cadastrado.</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs text-muted-foreground border-b border-border">
-              <tr>
-                <th className="text-left py-2 px-2">Nome</th>
-                <th className="text-left py-2 px-2 w-[70px]">Tipo</th>
-                <th className="text-left py-2 px-2 w-[130px]">Nascimento</th>
-                <th className="text-left py-2 px-2 min-w-[300px]">Documento</th>
-                <th className="text-left py-2 px-2">Bilhete</th>
-                <th className="w-16"></th>
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold border-b border-border/40">
+                <th className="text-left px-5 sm:px-6 py-3">Nome completo</th>
+                <th className="text-left px-3 py-3 w-[80px]">Tipo</th>
+                <th className="text-left px-3 py-3 w-[140px]">Nascimento</th>
+                <th className="text-left px-3 py-3 min-w-[300px]">Documento</th>
+                <th className="text-left px-3 py-3">Bilhete</th>
+                <th className="px-3 py-3 w-16 text-right">Ações</th>
               </tr>
-
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border/40">
               {(() => {
                 const fallbackTicket = flightItems
                   .map((fi) => String(((fi.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
@@ -880,10 +903,24 @@ function PassengersSection({
                 ));
               })()}
             </tbody>
-
           </table>
         </div>
       )}
+
+      {passengers.length > 0 && (
+        <div className="px-5 sm:px-6 py-3 border-t border-border/60 bg-background/40 flex flex-wrap items-center justify-between gap-2">
+          <div className="text-[11px] text-muted-foreground">
+            Bilhetes emitidos aparecem automaticamente nos vouchers e recibos.
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={`inline-block w-1.5 h-1.5 rounded-full ${allComplete ? "bg-emerald-500" : "bg-amber-500/70"}`} />
+            <span className="text-[11px] text-muted-foreground">
+              {allComplete ? "Dados completos" : "Faltam dados de documento ou nascimento"}
+            </span>
+          </div>
+        </div>
+      )}
+
 
 
       <PassengerDialog
@@ -929,17 +966,22 @@ function PassengerRow({
   fallbackTicket?: string;
 }) {
   const effectiveTicket = passenger.ticket_number ?? (fallbackTicket || null);
+  const typeStyles: Record<string, string> = {
+    ADT: "bg-muted text-foreground/80 border-border",
+    CHD: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    INF: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  };
+  const typeClass = typeStyles[passenger.passenger_type] ?? typeStyles.ADT;
   return (
-    <tr className="border-b border-border/50 group align-middle">
-
-      <td className="py-1 px-1">
-        <InlineText value={passenger.full_name} placeholder="Nome" className="font-medium"
+    <tr className="group align-middle hover:bg-muted/40 transition-colors">
+      <td className="px-5 sm:px-6 py-3">
+        <InlineText value={passenger.full_name} placeholder="Nome" className="font-medium text-foreground"
           onCommit={(v) => v.trim() && v !== passenger.full_name && onPatch({ full_name: v.trim() })} />
       </td>
-      <td className="py-1 px-1 w-[70px]">
+      <td className="px-3 py-3 w-[80px]">
         <Select value={passenger.passenger_type}
           onValueChange={(v) => onPatch({ passenger_type: v as "ADT" | "CHD" | "INF" })}>
-          <SelectTrigger className="h-7 w-[70px] text-xs border-transparent hover:border-border">
+          <SelectTrigger className={`h-7 w-[68px] text-[10px] font-bold uppercase tracking-wide rounded border ${typeClass}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -949,17 +991,17 @@ function PassengerRow({
           </SelectContent>
         </Select>
       </td>
-      <td className="py-1 px-1 w-[130px]">
+      <td className="px-3 py-3 w-[140px]">
         <InlineText type="date" value={passenger.birth_date ?? ""} placeholder="—" className="text-xs w-[120px]"
           onCommit={(v) => (v || null) !== passenger.birth_date && onPatch({ birth_date: v || null })} />
       </td>
-      <td className="py-1 px-1 w-[280px] align-top">
+      <td className="px-3 py-3 w-[300px] align-top">
         <div className="flex items-start gap-1.5">
           <Select
             value={passenger.doc_type ?? "cpf"}
             onValueChange={(v) => onPatch({ doc_type: v as "cpf" | "passport" })}
           >
-            <SelectTrigger className="h-7 w-[110px] shrink-0 text-xs border-transparent hover:border-border">
+            <SelectTrigger className="h-7 w-[110px] shrink-0 text-[10px] font-bold uppercase tracking-wide border-transparent bg-muted/40 hover:border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1002,21 +1044,19 @@ function PassengerRow({
           </div>
         </div>
       </td>
-      <td className="py-1 px-1">
+      <td className="px-3 py-3">
         <InlineText value={effectiveTicket ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
           onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
       </td>
-
-
-
-      <td className="py-1 px-1 text-right">
-        <Button size="sm" variant="ghost" onClick={onDelete} className="opacity-0 group-hover:opacity-100 transition">
+      <td className="px-3 py-3 text-right">
+        <Button size="sm" variant="ghost" onClick={onDelete} className="opacity-0 group-hover:opacity-100 transition h-8 w-8 p-0">
           <Trash2 className="h-3.5 w-3.5 text-destructive" />
         </Button>
       </td>
     </tr>
   );
 }
+
 
 function InlineText({
   value, onCommit, placeholder, className, type = "text",
