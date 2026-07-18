@@ -10,7 +10,7 @@ import {
   createImportToken, getImportStaging, consumeImportStaging,
   type ImportedReservation, type ImportedFlightSegment, type ImportedPassenger,
 } from "@/lib/flight-import.functions";
-import { upsertOrderItem, upsertPassenger, updateOrderMeta, setImportLinks } from "@/lib/orders.functions";
+import { recalculateOrderTotal, setImportLinks, updateOrderMeta, upsertItemFinancial, upsertOrderItem, upsertPassenger } from "@/lib/orders.functions";
 import { buildAirlineCheckinUrl } from "@/lib/airline-checkin";
 
 type Props = {
@@ -95,6 +95,8 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
   const consume = useServerFn(consumeImportStaging);
   const saveItem = useServerFn(upsertOrderItem);
   const savePax = useServerFn(upsertPassenger);
+  const saveFin = useServerFn(upsertItemFinancial);
+  const recalculateTotal = useServerFn(recalculateOrderTotal);
   const updateMeta = useServerFn(updateOrderMeta);
   const linkImport = useServerFn(setImportLinks);
 
@@ -201,6 +203,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
       }
       let sort = 0;
       let firstItem = true;
+      let financialItemId: string | null = null;
       const allNewItemIds: string[] = [];
       // Se qualquer passageiro veio com bilhete emitido, a reserva inteira
       // é considerada Emitida (confirmed). Sem bilhete, fica Reservada.
@@ -250,6 +253,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
             sort_order: sort++,
             details: {
               import_group_id: importGroupId,
+              ...(pricing ? {
+                value: Number(reservation.total_fare ?? 0) || 0,
+                tax_value: Number((Number(reservation.taxes ?? 0) + Number(reservation.fees ?? 0)).toFixed(2)),
+                supplier_name: reservation.supplier_name ?? "",
+              } : {}),
               direction: block.direction,
               airline: seg.airline ?? block.airline,
               airline_iata: seg.airline_iata,
@@ -280,6 +288,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               ...(checkinUrl ? { airline_checkin_url: checkinUrl } : {}),
             },
           } });
+          if (!financialItemId) financialItemId = itemId;
           allNewItemIds.push(itemId);
         }
       }
@@ -293,6 +302,24 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
           item_ids: allNewItemIds,
           passenger_ids: newPassengerIds,
         } });
+      }
+
+      // Grava o valor diretamente no financeiro da reserva. O total informado
+      // já inclui taxas; por isso a tarifa líquida é total menos taxas/fees.
+      const totalFare = Number(reservation.total_fare ?? 0) || 0;
+      const includedTaxes = Number((Number(reservation.taxes ?? 0) + Number(reservation.fees ?? 0)).toFixed(2));
+      const baseFare = Number(reservation.base_fare ?? 0) || Math.max(0, totalFare - includedTaxes);
+      if (financialItemId && (totalFare > 0 || baseFare > 0 || includedTaxes > 0)) {
+        const saleValue = totalFare > 0 ? Math.max(0, totalFare - includedTaxes) : baseFare;
+        await saveFin({ data: {
+          order_item_id: financialItemId,
+          supplier_name: reservation.supplier_name ?? null,
+          sale_value: saleValue,
+          tax_value: includedTaxes,
+          total: totalFare || Number((saleValue + includedTaxes).toFixed(2)),
+          sort_order: 0,
+        } });
+        await recalculateTotal({ data: { id: orderId } });
       }
 
       // Localizador principal do pedido = localizador da cia (sempre sobrescreve)
@@ -403,6 +430,15 @@ function ReviewReservation({
     });
     onChange({ ...reservation, flights });
   }
+  const parseBRL = (value: string): number | undefined => {
+    const raw = value.trim().replace(/\s/g, "").replace(/^R\$/i, "");
+    if (!raw) return undefined;
+    const normalized = raw.includes(",")
+      ? raw.replace(/\./g, "").replace(",", ".")
+      : raw;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
 
   return (
     <div className="space-y-5">
@@ -446,19 +482,19 @@ function ReviewReservation({
           </div>
           <div>
             <Label className="text-xs">Tarifa</Label>
-            <Input type="number" step="0.01" value={reservation.base_fare ?? ""} onChange={(e) => onChange({ ...reservation, base_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
+            <Input inputMode="decimal" value={reservation.base_fare ?? ""} onChange={(e) => onChange({ ...reservation, base_fare: parseBRL(e.target.value) })} placeholder="0,00" />
           </div>
           <div>
             <Label className="text-xs">Taxas (soma)</Label>
-            <Input type="number" step="0.01" value={reservation.taxes ?? ""} onChange={(e) => onChange({ ...reservation, taxes: e.target.value === "" ? undefined : Number(e.target.value) })} />
+            <Input inputMode="decimal" value={reservation.taxes ?? ""} onChange={(e) => onChange({ ...reservation, taxes: parseBRL(e.target.value) })} placeholder="0,00" />
           </div>
           <div>
             <Label className="text-xs">Fees</Label>
-            <Input type="number" step="0.01" value={reservation.fees ?? ""} onChange={(e) => onChange({ ...reservation, fees: e.target.value === "" ? undefined : Number(e.target.value) })} />
+            <Input inputMode="decimal" value={reservation.fees ?? ""} onChange={(e) => onChange({ ...reservation, fees: parseBRL(e.target.value) })} placeholder="0,00" />
           </div>
           <div>
             <Label className="text-xs">Total</Label>
-            <Input type="number" step="0.01" value={reservation.total_fare ?? ""} onChange={(e) => onChange({ ...reservation, total_fare: e.target.value === "" ? undefined : Number(e.target.value) })} />
+            <Input inputMode="decimal" value={reservation.total_fare ?? ""} onChange={(e) => onChange({ ...reservation, total_fare: parseBRL(e.target.value) })} placeholder="11.406,30" />
           </div>
         </div>
       </div>

@@ -1243,7 +1243,12 @@ function ItemsTab({
         passengers={allPax}
         siblings={
           editing && editing.kind === "flight"
-            ? items.filter((i) => i.kind === "flight" && i.status !== "cancelled" && i.id !== editing.id)
+            ? items.filter((i) =>
+                i.kind === "flight" &&
+                i.status !== "cancelled" &&
+                i.id !== editing.id &&
+                flightGroupKey(i) === flightGroupKey(editing),
+              )
             : undefined
         }
         onSave={async (payload) => {
@@ -1457,13 +1462,19 @@ function formatDT(v: string | null | undefined): string {
 }
 
 type FlightGroup = { key: string; locator: string | null; items: OrderItem[] };
+function flightGroupKey(item: OrderItem): string {
+  const details = (item.details ?? {}) as Record<string, unknown>;
+  const importGroupId = String(details.import_group_id ?? "").trim();
+  const carrierLocator = String(details.carrier_locator ?? "").trim();
+  return importGroupId || carrierLocator || item.supplier_locator?.trim() || "__no_locator__";
+}
 function groupFlightItems(items: OrderItem[]): FlightGroup[] {
   const map = new Map<string, FlightGroup>();
   for (const it of items) {
     const details = (it.details ?? {}) as Record<string, unknown>;
-    const importGroupId = String(details.import_group_id ?? "").trim();
-    const key = importGroupId || it.supplier_locator?.trim() || "__no_locator__";
-    if (!map.has(key)) map.set(key, { key, locator: it.supplier_locator?.trim() || null, items: [] });
+    const carrierLocator = String(details.carrier_locator ?? "").trim();
+    const key = flightGroupKey(it);
+    if (!map.has(key)) map.set(key, { key, locator: carrierLocator || it.supplier_locator?.trim() || null, items: [] });
     map.get(key)!.items.push(it);
   }
   for (const g of map.values()) {
