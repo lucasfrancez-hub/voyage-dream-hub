@@ -61,6 +61,7 @@ import { QuoteDialog } from "@/components/QuoteDialog";
 import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { ImportarAereoDialog } from "@/components/ImportarAereoDialog";
 import { ImportarVoucherDialog } from "@/components/ImportarVoucherDialog";
+import { ImportarMultiDialog } from "@/components/ImportarMultiDialog";
 import { confirmThen } from "@/lib/confirm";
 import { findAirline, airlineLogo } from "@/lib/airlines";
 import { searchPeople, upsertPerson, listPersonCards, addPersonCard, revealPersonCardNumber, type PersonCardRow } from "@/lib/people.functions";
@@ -397,6 +398,16 @@ function OrderDetailPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+
+              <ImportarMultiDialog
+                orderId={id}
+                onImported={invalidate}
+                trigger={
+                  <Button size="sm" className="gap-1 bg-orange-500 hover:bg-orange-600 text-white">
+                    <Download className="h-3.5 w-3.5" /> Importar voucher
+                  </Button>
+                }
+              />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
