@@ -35,6 +35,11 @@ function AdminLayout() {
   });
   useEffect(() => {
     try { window.localStorage.setItem("admin-theme", theme); } catch { /* noop */ }
+    // Also apply on <html> so Radix Portals (rendered outside the wrapper) inherit the tokens.
+    const root = document.documentElement;
+    if (theme === "light") root.classList.add("admin-light");
+    else root.classList.remove("admin-light");
+    return () => { root.classList.remove("admin-light"); };
   }, [theme]);
 
 
