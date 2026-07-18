@@ -216,6 +216,23 @@ function DashboardPage() {
       .slice(0, 50);
   }, [orders, items, range]);
 
+  const topClients = useMemo(() => {
+    const paidOrders = (orders ?? []).filter((o) => PAID.has((o.status ?? "").toLowerCase()));
+    const map = new Map<string, { name: string; total: number; count: number }>();
+    for (const o of paidOrders) {
+      const name = (o.full_name ?? "").trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      const cur = map.get(key) ?? { name, total: 0, count: 0 };
+      cur.total += Number(o.total_price ?? 0);
+      cur.count += 1;
+      map.set(key, cur);
+    }
+    return Array.from(map.values())
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+  }, [orders]);
+
   const maxTrend = Math.max(1, ...stats.trend.map((t) => t.total));
 
   if (lo || lf) {
