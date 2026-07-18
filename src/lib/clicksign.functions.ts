@@ -534,7 +534,7 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const cfg = getClickSignConfig();
+    const cfg = getClickSignConfig({ preferSandbox: true });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // 1) Cria documento
