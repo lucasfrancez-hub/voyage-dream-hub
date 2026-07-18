@@ -2329,12 +2329,13 @@ function ItemDialog({
         <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Bagagem inclusa</div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <label className="inline-flex items-center gap-1.5">
-            <input type="checkbox" checked={!!d.personal_item} onChange={(e) => onChangeField("personal_item", e.target.checked)} />
+            <input type="checkbox" checked={d.personal_item !== false} onChange={(e) => onChangeField("personal_item", e.target.checked)} />
             Bolsa/mochila
           </label>
           <label className="inline-flex items-center gap-1.5">
-            <input type="checkbox" checked={!!d.carry_on} onChange={(e) => onChangeField("carry_on", e.target.checked)} />
+            <input type="checkbox" checked={d.carry_on !== false} onChange={(e) => onChangeField("carry_on", e.target.checked)} />
             Bagagem de mão
+
           </label>
           <label className="inline-flex items-center gap-1.5">
             <input type="checkbox" checked={!!d.checked_bag} onChange={(e) => onChangeField("checked_bag", e.target.checked)} />
