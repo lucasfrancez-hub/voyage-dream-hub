@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   FileText, RefreshCw, Download, XCircle, ExternalLink, Search,
-  CheckCircle2, AlertTriangle, Clock, Ban,
+  CheckCircle2, AlertTriangle, Clock, Ban, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Tabs, TabsList, TabsTrigger, TabsContent,
 } from "@/components/ui/tabs";
-import { listAllNfse, consultarNfse, cancelarNfse } from "@/lib/nfse.functions";
+import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse } from "@/lib/nfse.functions";
 
 export const Route = createFileRoute("/admin/notas-fiscais")({
   head: () => ({ meta: [{ title: "Notas Fiscais — VIA AIR" }] }),
@@ -41,6 +41,7 @@ function NotasFiscaisPage() {
   const listFn = useServerFn(listAllNfse);
   const consultFn = useServerFn(consultarNfse);
   const cancelFn = useServerFn(cancelarNfse);
+  const deleteFn = useServerFn(deleteNfse);
   const qc = useQueryClient();
   const [tab, setTab] = useState<string>("todas");
   const [search, setSearch] = useState("");
@@ -62,6 +63,11 @@ function NotasFiscaisPage() {
   const cancelMut = useMutation({
     mutationFn: (v: { id: string; justificativa: string }) => cancelFn({ data: v }),
     onSuccess: () => { toast.success("Cancelamento solicitado"); qc.invalidateQueries({ queryKey: key }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: () => { toast.success("Emissão excluída"); qc.invalidateQueries({ queryKey: key }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
@@ -217,6 +223,18 @@ function NotasFiscaisPage() {
                               else if (j !== null) toast.error("Justificativa muito curta");
                             }}>
                             <XCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {(r.status === "erro" || r.status === "cancelado") && (
+                          <Button size="sm" variant="ghost" className="h-8 px-2 text-red-600"
+                            disabled={deleteMut.isPending}
+                            title="Excluir emissão"
+                            onClick={() => {
+                              if (window.confirm("Excluir esta emissão? Esta ação não pode ser desfeita.")) {
+                                deleteMut.mutate(r.id);
+                              }
+                            }}>
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
                       </div>

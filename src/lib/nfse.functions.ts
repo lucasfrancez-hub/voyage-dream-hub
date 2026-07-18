@@ -354,3 +354,26 @@ export const cancelarNfse = createServerFn({ method: "POST" })
     // TODO: implementar cancelamento via AtendeNet (pedidoCancelamentoNfse assinado)
     throw new Error("Cancelamento via AtendeNet ainda não implementado (assinatura digital pendente).");
   });
+
+/* ============================== EXCLUIR (somente erro/cancelado) ============================== */
+export const deleteNfse = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const isAdmin = await context.supabase
+      .rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin.data) throw new Error("Apenas administradores");
+
+    const { data: row, error: selErr } = await context.supabase
+      .from("nfse_emissoes").select("id,status").eq("id", data.id).maybeSingle();
+    if (selErr) throw new Error(selErr.message);
+    if (!row) throw new Error("Emissão não encontrada");
+    if (row.status !== "erro" && row.status !== "cancelado") {
+      throw new Error("Só é possível excluir emissões com erro ou canceladas.");
+    }
+
+    const { error } = await context.supabase
+      .from("nfse_emissoes").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

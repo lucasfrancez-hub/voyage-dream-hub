@@ -375,6 +375,42 @@ export const cancelSignatureRequest = createServerFn({ method: "POST" })
   });
 
 // -----------------------------------------------------------------------------
+// deleteSignatureRequest — remove a assinatura local (recusada/cancelada/rascunho)
+// -----------------------------------------------------------------------------
+
+export const deleteSignatureRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { assinaturaId: string }) =>
+    z.object({ assinaturaId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabase } = context;
+    const { data: a } = await supabase
+      .from("pedido_assinaturas")
+      .select("id,status,clicksign_document_key")
+      .eq("id", data.assinaturaId)
+      .maybeSingle();
+    if (!a) throw new Error("Assinatura não encontrada");
+    if (a.status === "closed") throw new Error("Documento assinado não pode ser excluído.");
+    if (a.status === "running") throw new Error("Cancele o envio antes de excluir.");
+
+    // Tenta cancelar no ClickSign por garantia (silencioso se já cancelado / inexistente).
+    if (a.clicksign_document_key && a.status !== "canceled") {
+      try {
+        await csFetch(`/documents/${a.clicksign_document_key}/cancel`, { method: "POST" });
+      } catch (err) {
+        console.warn("[clicksign delete] ignorando erro remoto:", err instanceof Error ? err.message : err);
+      }
+    }
+
+    await supabase.from("pedido_assinatura_signers").delete().eq("assinatura_id", data.assinaturaId);
+    const { error } = await supabase.from("pedido_assinaturas").delete().eq("id", data.assinaturaId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// -----------------------------------------------------------------------------
 // resendSignerEmail
 // -----------------------------------------------------------------------------
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileText, Loader2, RefreshCw, Send, XCircle, Download, ExternalLink } from "lucide-react";
+import { FileText, Loader2, RefreshCw, Send, XCircle, Download, ExternalLink, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  emitirNfse, consultarNfse, cancelarNfse, listNfseByOrder,
+  emitirNfse, consultarNfse, cancelarNfse, listNfseByOrder, deleteNfse,
 } from "@/lib/nfse.functions";
 import { getPerson } from "@/lib/people.functions";
 import type { OrderDetail } from "@/lib/orders.functions";
@@ -136,6 +136,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   const emitFn = useServerFn(emitirNfse);
   const consultFn = useServerFn(consultarNfse);
   const cancelFn = useServerFn(cancelarNfse);
+  const deleteFn = useServerFn(deleteNfse);
   const getPersonFn = useServerFn(getPerson);
 
   const key = ["nfse", order.id] as const;
@@ -275,6 +276,12 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: () => { toast.success("Emissão excluída"); qc.invalidateQueries({ queryKey: key }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
   return (
     <div id="nfse-card" className="rounded-xl border border-border p-4">
       <div className="flex items-start justify-between gap-3">
@@ -324,6 +331,18 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
                         else if (j !== null) toast.error("Justificativa muito curta");
                       }}>
                       <XCircle className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {(e.status === "erro" || e.status === "cancelado") && (
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600"
+                      disabled={deleteMut.isPending}
+                      title="Excluir emissão"
+                      onClick={() => {
+                        if (window.confirm("Excluir esta emissão? Esta ação não pode ser desfeita.")) {
+                          deleteMut.mutate(e.id);
+                        }
+                      }}>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>

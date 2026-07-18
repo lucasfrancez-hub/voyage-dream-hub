@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Signature, CheckCircle2, XCircle, Send, RotateCcw, Download, RefreshCw } from "lucide-react";
+import { Loader2, Signature, CheckCircle2, XCircle, Send, RotateCcw, Download, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  createSignatureRequest, getSignatureStatus, cancelSignatureRequest, resendSignerEmail, syncSignatureFromClickSign,
+  createSignatureRequest, getSignatureStatus, cancelSignatureRequest, resendSignerEmail, syncSignatureFromClickSign, deleteSignatureRequest,
 } from "@/lib/clicksign.functions";
 import { confirmThen } from "@/lib/confirm";
 
@@ -49,6 +49,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
   const cancelFn = useServerFn(cancelSignatureRequest);
   const resendFn = useServerFn(resendSignerEmail);
   const syncFn = useServerFn(syncSignatureFromClickSign);
+  const deleteFn = useServerFn(deleteSignatureRequest);
 
   const queryKey = ["clicksign", "status", order.id] as const;
   const { data, isLoading } = useQuery({
@@ -154,6 +155,12 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao sincronizar"),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: async (assinaturaId: string) => deleteFn({ data: { assinaturaId } }),
+    onSuccess: () => { toast.success("Assinatura excluída"); invalidate(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao excluir"),
+  });
+
   const assinatura = data?.assinatura;
   const signers = data?.signers ?? [];
 
@@ -227,6 +234,25 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
           {assinatura?.status === "canceled" && (
             <Button size="sm" onClick={() => openSendDialog(isCreditCard)}>
               <Send className="h-3.5 w-3.5 mr-1.5" /> Reenviar
+            </Button>
+          )}
+
+          {assinatura && (assinatura.status === "refused" || assinatura.status === "canceled" || assinatura.status === "draft") && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-red-600 hover:text-red-700"
+              disabled={deleteMut.isPending}
+              title="Excluir este envio"
+              onClick={() => confirmThen(
+                "Excluir esta assinatura? Esta ação não pode ser desfeita.",
+                () => deleteMut.mutate(assinatura.id),
+              )}
+            >
+              {deleteMut.isPending
+                ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                : <Trash2 className="h-3.5 w-3.5 mr-1.5" />}
+              Excluir
             </Button>
           )}
         </div>
