@@ -3141,9 +3141,11 @@ function FinanceTab({
   const upsert = useServerFn(upsertItemFinancial);
   const del = useServerFn(deleteItemFinancial);
   const recalculateTotal = useServerFn(recalculateOrderTotal);
+  const createItem = useServerFn(upsertOrderItem);
   const [editing, setEditing] = useState<OrderItemFinancial | null>(null);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+
 
   const save = useMutation({
     mutationFn: async (payload: Parameters<typeof upsert>[0]["data"]) => {
@@ -3547,11 +3549,26 @@ function FinanceTab({
           selectedItem={selectedItem}
           setSelectedItem={setSelectedItem}
          packageDefaults={isPackageOrder ? { sale_value: packageFare, tax_value: packageTaxes } : null}
-          onSave={(payload) => {
-            if (!selectedItem) { toast.error("Selecione um item"); return; }
-            save.mutate({ ...payload, order_item_id: selectedItem, id: editing?.id });
+          onSave={async (payload, extra) => {
+            let itemId = selectedItem;
+            if (itemId === "__other__") {
+              const title = (extra?.otherTitle ?? "").trim();
+              if (!title) { toast.error("Descreva o adicional"); return; }
+              try {
+                const created = await createItem({
+                  data: { order_id: order.id, kind: "other", title: `[Adicional] ${title}` },
+                });
+                itemId = created.id;
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Erro ao criar adicional");
+                return;
+              }
+            }
+            if (!itemId) { toast.error("Selecione um item"); return; }
+            save.mutate({ ...payload, order_item_id: itemId, id: editing?.id });
           }}
         />
+
 
       </div>
     </div>
@@ -3577,8 +3594,12 @@ function FinanceDialog({
   selectedItem: string | null;
   setSelectedItem: (v: string) => void;
   packageDefaults: { sale_value: number; tax_value: number } | null;
-  onSave: (p: Partial<OrderItemFinancial>) => void;
+  onSave: (p: Partial<OrderItemFinancial>, extra?: { otherTitle?: string }) => void;
 }) {
+  const [otherTitle, setOtherTitle] = useState("");
+  useEffect(() => { if (!open) setOtherTitle(""); }, [open]);
+
+
   const selectedItemObj = items.find((i) => i.id === selectedItem);
   const selectedKind = selectedItemObj?.kind;
   const isPackage = !!packageDefaults;
@@ -3681,7 +3702,7 @@ function FinanceDialog({
         <div className="grid gap-4">
           <div>
             <Label>Item</Label>
-            <Select value={selectedItem ?? ""} onValueChange={(v) => { setSelectedItem(v); const k = items.find((i) => i.id === v)?.kind; if (!initial) recalc({ commission_pct: defaultCommissionPct(k, isPackage) }); }}>
+            <Select value={selectedItem ?? ""} onValueChange={(v) => { setSelectedItem(v); if (v !== "__other__") { const k = items.find((i) => i.id === v)?.kind; if (!initial) recalc({ commission_pct: defaultCommissionPct(k, isPackage) }); } else if (!initial) { recalc({ commission_pct: defaultCommissionPct("other", isPackage), is_commissionable: false }); } }}>
               <SelectTrigger><SelectValue placeholder="Escolha um item" /></SelectTrigger>
               <SelectContent>
                 {items.map((it) => (
@@ -3689,9 +3710,24 @@ function FinanceDialog({
                     [{it.kind === "flight" ? "Aéreo" : it.kind === "hotel" ? "Hotel" : "Outro"}] {it.title}
                   </SelectItem>
                 ))}
+                <SelectItem value="__other__">➕ Adicional (outros)</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {selectedItem === "__other__" && (
+            <div>
+              <Label>Descrição do adicional</Label>
+              <Input
+                value={otherTitle}
+                onChange={(e) => setOtherTitle(e.target.value)}
+                placeholder="Ex.: Seguro extra, upgrade de assento, taxa de manuseio…"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Será criado como um item "Outro" no pedido e vinculado a este lançamento.
+              </p>
+            </div>
+          )}
+
           <div>
             <Label>Fornecedor</Label>
             <Input value={form.supplier_name ?? ""} onChange={(e) => setForm({ ...form, supplier_name: e.target.value })} />
@@ -3787,7 +3823,7 @@ function FinanceDialog({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => onSave(form)}>Salvar</Button>
+          <Button onClick={() => onSave(form, { otherTitle })}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
       <CommissionDefaultsDialog
