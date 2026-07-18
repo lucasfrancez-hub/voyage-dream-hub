@@ -100,6 +100,11 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
         setPhase("idle");
         return;
       }
+      for (const it of list) {
+        if (it.kind === "other" || it.kind === "hotel") {
+          it.supplier_locator = normalizeServiceLocator(it.supplier_locator);
+        }
+      }
       setItems(list);
       setActiveIdx(0);
       setPhase("review");
