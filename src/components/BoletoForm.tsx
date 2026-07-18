@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { uploadBoletoDocument } from "@/lib/boleto-upload.functions";
 import { maskCPF } from "@/lib/format";
 import { DateBRInput } from "@/components/DateBRInput";
 
