@@ -966,17 +966,22 @@ function PassengerRow({
   fallbackTicket?: string;
 }) {
   const effectiveTicket = passenger.ticket_number ?? (fallbackTicket || null);
+  const typeStyles: Record<string, string> = {
+    ADT: "bg-muted text-foreground/80 border-border",
+    CHD: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    INF: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  };
+  const typeClass = typeStyles[passenger.passenger_type] ?? typeStyles.ADT;
   return (
-    <tr className="border-b border-border/50 group align-middle">
-
-      <td className="py-1 px-1">
-        <InlineText value={passenger.full_name} placeholder="Nome" className="font-medium"
+    <tr className="group align-middle hover:bg-muted/40 transition-colors">
+      <td className="px-5 sm:px-6 py-3">
+        <InlineText value={passenger.full_name} placeholder="Nome" className="font-medium text-foreground"
           onCommit={(v) => v.trim() && v !== passenger.full_name && onPatch({ full_name: v.trim() })} />
       </td>
-      <td className="py-1 px-1 w-[70px]">
+      <td className="px-3 py-3 w-[80px]">
         <Select value={passenger.passenger_type}
           onValueChange={(v) => onPatch({ passenger_type: v as "ADT" | "CHD" | "INF" })}>
-          <SelectTrigger className="h-7 w-[70px] text-xs border-transparent hover:border-border">
+          <SelectTrigger className={`h-7 w-[68px] text-[10px] font-bold uppercase tracking-wide rounded border ${typeClass}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -986,17 +991,17 @@ function PassengerRow({
           </SelectContent>
         </Select>
       </td>
-      <td className="py-1 px-1 w-[130px]">
+      <td className="px-3 py-3 w-[140px]">
         <InlineText type="date" value={passenger.birth_date ?? ""} placeholder="—" className="text-xs w-[120px]"
           onCommit={(v) => (v || null) !== passenger.birth_date && onPatch({ birth_date: v || null })} />
       </td>
-      <td className="py-1 px-1 w-[280px] align-top">
+      <td className="px-3 py-3 w-[300px] align-top">
         <div className="flex items-start gap-1.5">
           <Select
             value={passenger.doc_type ?? "cpf"}
             onValueChange={(v) => onPatch({ doc_type: v as "cpf" | "passport" })}
           >
-            <SelectTrigger className="h-7 w-[110px] shrink-0 text-xs border-transparent hover:border-border">
+            <SelectTrigger className="h-7 w-[110px] shrink-0 text-[10px] font-bold uppercase tracking-wide border-transparent bg-muted/40 hover:border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1039,21 +1044,19 @@ function PassengerRow({
           </div>
         </div>
       </td>
-      <td className="py-1 px-1">
+      <td className="px-3 py-3">
         <InlineText value={effectiveTicket ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
           onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
       </td>
-
-
-
-      <td className="py-1 px-1 text-right">
-        <Button size="sm" variant="ghost" onClick={onDelete} className="opacity-0 group-hover:opacity-100 transition">
+      <td className="px-3 py-3 text-right">
+        <Button size="sm" variant="ghost" onClick={onDelete} className="opacity-0 group-hover:opacity-100 transition h-8 w-8 p-0">
           <Trash2 className="h-3.5 w-3.5 text-destructive" />
         </Button>
       </td>
     </tr>
   );
 }
+
 
 function InlineText({
   value, onCommit, placeholder, className, type = "text",
