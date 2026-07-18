@@ -266,7 +266,23 @@ function OrderDetailPage() {
 
   const detail = data as OrderDetail;
   const { order } = detail;
-  const pm = paymentMethodLabel(order.paymentMethod);
+  // Deriva forma de pagamento igual à lista de pedidos: agrega pelos lançamentos
+  // não cancelados; se houver mistura de métodos, mostra "Misto".
+  const pmAgg = (() => {
+    let acc: string | null = null;
+    for (const p of detail.payments ?? []) {
+      if ((p.status ?? "").toLowerCase() === "cancelled") continue;
+      const m = String(p.method || "").toLowerCase();
+      const normalized = m.startsWith("credit_card") && p.installments && p.installments > 1
+        ? `credit_card_${p.installments}x`
+        : m;
+      if (!acc) acc = normalized;
+      else if (acc !== normalized) { acc = "misto"; break; }
+    }
+    return acc ?? order.paymentMethod;
+  })();
+  const pm = paymentMethodLabel(pmAgg);
+
 
   const hotelItems = detail.items.filter((i) => i.kind === "hotel" && i.status !== "cancelled");
   const flightItems = detail.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
