@@ -191,7 +191,7 @@ function buildAtendenetXml(args: {
     ${end?.complemento ? `<complemento>${xmlEscape(end.complemento)}</complemento>` : ""}
     ${end?.bairro ? `<bairro>${xmlEscape(end.bairro)}</bairro>` : ""}
     ${end ? `<cidade>${cidadeTomador}</cidade>` : ""}
-    ${end?.cep ? `<cep>${onlyDigits(end.cep)}</cep>` : ""}
+    ${end ? `<cep>${cepDigits}</cep>` : ""}
   </tomador>
   <itens>
     <lista>
