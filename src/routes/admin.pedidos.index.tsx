@@ -552,7 +552,7 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
       phone: form.phone,
       cpf: form.cpf,
       payment_method: form.payment_method,
-      total_price: form.total_price,
+      expected_total: form.expected_total,
       adults: form.adults,
       children: form.children,
       supplier_name: form.supplier_name,
