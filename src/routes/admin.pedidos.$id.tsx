@@ -3549,11 +3549,26 @@ function FinanceTab({
           selectedItem={selectedItem}
           setSelectedItem={setSelectedItem}
          packageDefaults={isPackageOrder ? { sale_value: packageFare, tax_value: packageTaxes } : null}
-          onSave={(payload) => {
-            if (!selectedItem) { toast.error("Selecione um item"); return; }
-            save.mutate({ ...payload, order_item_id: selectedItem, id: editing?.id });
+          onSave={async (payload, extra) => {
+            let itemId = selectedItem;
+            if (itemId === "__other__") {
+              const title = (extra?.otherTitle ?? "").trim();
+              if (!title) { toast.error("Descreva o adicional"); return; }
+              try {
+                const created = await createItem({
+                  data: { order_id: order.id, kind: "other", title: `[Adicional] ${title}` },
+                });
+                itemId = created.id;
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Erro ao criar adicional");
+                return;
+              }
+            }
+            if (!itemId) { toast.error("Selecione um item"); return; }
+            save.mutate({ ...payload, order_item_id: itemId, id: editing?.id });
           }}
         />
+
 
       </div>
     </div>
