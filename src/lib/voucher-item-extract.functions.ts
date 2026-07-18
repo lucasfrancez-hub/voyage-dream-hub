@@ -90,7 +90,7 @@ Regras (por item):
 - description: RESUMO CURTO E BONITINHO da hospedagem para o cliente (1–3 frases em português claro, tom acolhedor).
 - policies: (LEGADO — pode omitir se preencher cancellation_policy + observations).
 - cancellation_policy: RESUMO CURTO da política de cancelamento/reembolso/no-show em português claro, com no máximo 3–5 frases OU bullets separados por "\n- ".
-- observations: ARRAY de tópicos curtos com TODAS as demais informações relevantes do voucher. Cada item = 1 tópico curto (1 linha, máx ~140 chars). Não omita nenhuma.
+- observations: ARRAY completo de tópicos com TODAS as demais informações do voucher — nunca resuma nem descarte bullets. Inclua OBRIGATORIAMENTE, quando aparecerem no voucher: "Check-in instructions" (todos os bullets), "Special check-in instructions", "Know before you go" (todos os bullets), "Mandatory fees" (cada taxa como 1 tópico), "Optional fees" (cada taxa 1 tópico), "Overview" do quarto (configuração, internet, entretenimento, alimentação/bebida, repouso, banheiro, praticidades, conforto, acessibilidade, sustentabilidade, importante, "para não fumantes" etc.), Other Fees, avisos "To The Passenger", "Dear Client" e mensagens finais. Cada item do array = 1 tópico (1 linha, até ~220 chars) em português. Preserve o texto original quando útil; só remova cabeçalhos redundantes e linhas duplicadas.
 - value: valor total pago em número. tax_value: taxas incluídas no total. currency: BRL/USD/EUR.
 - status: "confirmed" se o voucher confirma emissão; "reserved" se aguardando pagamento; "pending" se apenas pedido.
 - passengers: lista de hóspedes com nome completo; kind = "adult"/"child"/"infant"; cpf/document só se explícitos.
