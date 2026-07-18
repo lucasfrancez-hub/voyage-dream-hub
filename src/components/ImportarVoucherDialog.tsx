@@ -573,11 +573,17 @@ function ReviewExtracted({
         </div>
       )}
 
-      <DialogFooter>
-        <Button variant="ghost" onClick={onCancel}>Voltar</Button>
-        <Button onClick={onConfirm} className="gap-2">
-          Confirmar e salvar <ChevronRight className="h-4 w-4" />
+      <DialogFooter className="sm:justify-between gap-2">
+        <Button variant="ghost" size="sm" onClick={() => setDefaultsOpen(true)} className="gap-2 text-muted-foreground">
+          <Percent className="h-3.5 w-3.5" /> Padrões de comissão
         </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={onCancel}>Voltar</Button>
+          <Button onClick={onConfirm} className="gap-2">
+            Confirmar e salvar <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
       </DialogFooter>
     </div>
   );
