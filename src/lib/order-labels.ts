@@ -21,6 +21,12 @@ export function paymentMethodLabel(pm: string | null | undefined): {
   if (v === "boleto") {
     return { label: "Boleto", className: "bg-amber-500/15 text-amber-500" };
   }
+  if (v === "misto" || v === "mixed") {
+    return { label: "Misto", className: "bg-violet-500/15 text-violet-400" };
+  }
+  if (v === "outro" || v === "other") {
+    return { label: "Outro", className: "bg-muted text-muted-foreground" };
+  }
   return { label: pm, className: "bg-muted text-muted-foreground" };
 }
 
@@ -40,7 +46,7 @@ export function statusLabel(status: string | null | undefined): {
     pending:             { label: "Pendente",             className: "bg-amber-500/15 text-amber-400 border border-amber-500/30" },
     reserved:            { label: "Reservado",            className: "bg-sky-500/15 text-sky-400 border border-sky-500/30" },
     confirmed:           { label: "Confirmado",           className: "bg-blue-500/15 text-blue-400 border border-blue-500/30" },
-    awaiting_signature:  { label: "Aguardando assinatura", className: "bg-brand-orange/15 text-brand-orange border border-brand-orange/40" },
+    awaiting_signature:  { label: "Aguard. assinatura", className: "bg-brand-orange/15 text-brand-orange border border-brand-orange/40 whitespace-nowrap" },
     paid:                { label: "Finalizado",           className: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" },
     approved:            { label: "Finalizado",           className: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" },
     rejected:            { label: "Rejeitado",            className: "bg-red-500/15 text-red-400 border border-red-500/30" },

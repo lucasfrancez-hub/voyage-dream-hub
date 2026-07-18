@@ -72,6 +72,31 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
     },
   });
 
+  const orderIds = (orders ?? []).map((o) => o.id);
+  const { data: paymentsByOrder } = useQuery({
+    enabled: orderIds.length > 0,
+    queryKey: ["admin", "orders", "payments-summary", orderIds.join(",")],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_payments")
+        .select("order_id, method, installments, status")
+        .in("order_id", orderIds)
+        .neq("status", "cancelled");
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      for (const p of data ?? []) {
+        const key = p.order_id as string;
+        const m = String(p.method || "").toLowerCase();
+        const normalized = m.startsWith("credit_card") && p.installments && p.installments > 1
+          ? `credit_card_${p.installments}x`
+          : m;
+        if (!map[key]) map[key] = normalized;
+        else if (map[key] !== normalized) map[key] = "misto";
+      }
+      return map;
+    },
+  });
+
   const softDelete = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
       const { error } = await supabase
@@ -251,7 +276,7 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
             const snap = (o.package_snapshot ?? {}) as {
               order_number?: string; title?: string; destination?: string; reference?: string;
             };
-            const pm = paymentMethodLabel(o.payment_method);
+            const pm = paymentMethodLabel(paymentsByOrder?.[o.id] ?? o.payment_method);
             const st = statusLabel(o.status);
             const displayOrderNumber =
               ((o as { order_number?: string | null }).order_number ?? snap.order_number ?? shortId(o.id));
@@ -355,7 +380,7 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
                   destination?: string;
                   reference?: string;
                 };
-                const pm = paymentMethodLabel(o.payment_method);
+                const pm = paymentMethodLabel(paymentsByOrder?.[o.id] ?? o.payment_method);
                 const st = statusLabel(o.status);
                 const displayOrderNumber =
                   ((o as { order_number?: string | null }).order_number ?? snap.order_number ?? shortId(o.id));

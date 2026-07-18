@@ -952,12 +952,13 @@ export const getFirstFinancialForItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const res = await context.supabase
       .from("order_item_financials")
-      .select("id")
+      .select("id, commission_pct")
       .eq("order_item_id", data.order_item_id)
       .order("sort_order", { ascending: true })
       .limit(1)
       .maybeSingle();
-    return { id: (res.data as { id?: string } | null)?.id ?? null };
+    const row = res.data as { id?: string; commission_pct?: number | string | null } | null;
+    return { id: row?.id ?? null, commission_pct: row?.commission_pct ?? null };
   });
 
 // --------- Payments ---------
