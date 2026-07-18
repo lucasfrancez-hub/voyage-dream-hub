@@ -363,18 +363,18 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
         {/* Desktop: table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs text-muted-foreground uppercase tracking-wider">
+            <thead className="bg-muted/40 text-[11px] text-muted-foreground uppercase tracking-widest">
               <tr>
-                <th className="text-left py-2 px-3 font-normal">Id</th>
-                <th className="text-left py-2 px-3 font-normal">Contato</th>
-                <th className="text-left py-2 px-3 font-normal">Produto</th>
-                <th className="text-left py-2 px-3 font-normal">Tipo / Status</th>
-                <th className="text-right py-2 px-3 font-normal">Total</th>
-                <th className="text-left py-2 px-3 font-normal">Criação</th>
-                <th className="w-10"></th>
+                <th className="text-left py-3 px-4 font-bold">Id</th>
+                <th className="text-left py-3 px-4 font-bold">Contato</th>
+                <th className="text-left py-3 px-4 font-bold">Produto</th>
+                <th className="text-left py-3 px-4 font-bold">Status</th>
+                <th className="text-right py-3 px-4 font-bold">Total</th>
+                <th className="text-left py-3 px-4 font-bold">Criação</th>
+                <th className="text-right py-3 px-4 font-bold">Ações</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border/50">
               {isLoading && (
                 <tr><td colSpan={7} className="text-center py-10 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Carregando…
@@ -392,54 +392,52 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
                   destination?: string;
                   reference?: string;
                 };
-                const pm = paymentMethodLabel(paymentsByOrder?.[o.id] ?? o.payment_method);
                 const st = statusLabel(o.status);
                 const displayOrderNumber =
                   ((o as { order_number?: string | null }).order_number ?? snap.order_number ?? shortId(o.id));
                 return (
-                  <tr key={o.id} className="border-b border-border/50 hover:bg-muted/30 transition">
-                    <td className="py-3 px-3 align-top">
-                      <div className="font-mono text-sm font-semibold">{displayOrderNumber}</div>
-                      {o.airline_locator && (
-                        <div className="font-mono text-[10px] text-muted-foreground mt-0.5">LOC {o.airline_locator}</div>
-                      )}
+                  <tr key={o.id} className="group hover:bg-muted/30 transition-colors">
+                    <td className="py-5 px-4 align-top">
+                      <div className="text-sm font-bold tabular-nums tracking-tight">{displayOrderNumber}</div>
                     </td>
-                    <td className="py-3 px-3 align-top">
-                      <div className="font-medium">{o.full_name}</div>
+                    <td className="py-5 px-4 align-top">
+                      <div className="text-sm font-semibold">{o.full_name}</div>
                       {scope === "third_party" && (
-                        <div className="text-[10px] font-semibold text-brand-orange">
+                        <div className="text-[10px] font-semibold text-brand-orange mt-0.5">
                           {agencyByUser?.[o.owner_user_id ?? ""] ?? "Agência parceira"}
                         </div>
                       )}
-                      <div className="text-xs text-muted-foreground">{o.email}</div>
-                      <div className="text-xs text-muted-foreground">{o.phone}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1">{o.email}</div>
+                      <div className="text-[11px] text-muted-foreground tabular-nums">{o.phone}</div>
                     </td>
 
-                    <td className="py-3 px-3 align-top max-w-md">
-                      <div className="text-sm">{snap.title ?? snap.reference ?? "—"}</div>
+                    <td className="py-5 px-4 align-top max-w-[280px]">
+                      <div className="text-sm font-medium leading-tight">{snap.title ?? snap.reference ?? "—"}</div>
                       {snap.destination && (
-                        <div className="text-xs text-muted-foreground">{snap.destination}</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">{snap.destination}</div>
                       )}
                       {o.supplier_name && (
-                        <div className="text-[10px] text-muted-foreground mt-0.5">Fornecedor: {o.supplier_name}</div>
+                        <div className="text-[10px] text-muted-foreground/70 uppercase font-bold tracking-wider mt-1">{o.supplier_name}</div>
                       )}
                     </td>
-                    <td className="py-3 px-3 align-top">
-                      <div className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>{pm.label}</div>
-                      <div className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>{st.label}</div>
+                    <td className="py-5 px-4 align-top">
+                      <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
                     </td>
-                    <td className="py-3 px-3 align-top text-right">
-                      <div className="font-semibold">{formatBRL(Number(o.total_price))}</div>
+                    <td className="py-5 px-4 align-top text-right">
+                      <div className="text-sm font-bold tabular-nums">{formatBRL(Number(o.total_price))}</div>
                     </td>
-                    <td className="py-3 px-3 align-top text-xs text-muted-foreground">
-                      {new Date(o.created_at).toLocaleString("pt-BR")}
+                    <td className="py-5 px-4 align-top">
+                      <div className="text-[11px] tabular-nums">
+                        <div className="text-foreground/70 font-medium">{new Date(o.created_at).toLocaleDateString("pt-BR")}</div>
+                        <div className="text-muted-foreground/60">{new Date(o.created_at).toLocaleTimeString("pt-BR")}</div>
+                      </div>
                     </td>
-                    <td className="py-3 px-3 align-top text-right">
-                      <div className="inline-flex items-center gap-1">
+                    <td className="py-5 px-4 align-top text-right">
+                      <div className="inline-flex items-center gap-1.5">
                         <Link
                           to="/admin/pedidos/$id"
                           params={{ id: o.id }}
-                          className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs hover:border-brand-orange hover:text-brand-orange transition"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-brand-orange px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground hover:brightness-110 active:scale-95 transition-all"
                         >
                           <ExternalLink className="h-3 w-3" /> Abrir
                         </Link>
@@ -449,18 +447,18 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
                             aria-label="Restaurar"
                             title={o.deleted_reason ? `Motivo: ${o.deleted_reason}` : "Restaurar"}
                             onClick={() => confirmThen("Restaurar este pedido?", () => restore.mutate(o.id))}
-                            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                            className="rounded-md p-2 text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground transition-all"
                           >
-                            <RotateCcw className="h-3.5 w-3.5" />
+                            <RotateCcw className="h-4 w-4" />
                           </button>
                         ) : (
                           <button
                             type="button"
                             aria-label="Excluir"
                             onClick={() => { setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
-                            className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            className="rounded-md p-2 text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         )}
                       </div>
