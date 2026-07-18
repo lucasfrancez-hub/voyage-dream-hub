@@ -165,7 +165,7 @@ function PeoplePage() {
                         title: "Excluir pessoa?",
                         description: `Tem certeza que deseja excluir "${p.name}"? Esta ação não pode ser desfeita.`,
                         confirmText: "Excluir",
-                        variant: "destructive",
+                        destructive: true,
                       });
                       if (ok) delMut.mutate(p.id);
                     }}
