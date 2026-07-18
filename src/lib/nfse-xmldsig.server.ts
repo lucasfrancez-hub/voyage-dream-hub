@@ -78,10 +78,11 @@ export async function signNfseXml(xml: string): Promise<string> {
 }
 
 export function getCertInfo(): { subject: string; issuer: string; notAfter: string } {
-  const b64 = process.env.NFSE_CERT_PFX_BASE64;
+  const rawB64 = process.env.NFSE_CERT_PFX_BASE64;
   const pwd = process.env.NFSE_CERT_PASSWORD;
-  if (!b64 || !pwd) throw new Error("Certificado não configurado");
-  const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(forge.util.decode64(b64)), pwd);
+  if (!rawB64 || !pwd) throw new Error("Certificado não configurado");
+  const binary = Buffer.from(normalizeBase64(rawB64), "base64").toString("binary");
+  const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(binary), pwd);
   const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag]?.[0];
   if (!certBag?.cert) throw new Error("Certificado ausente no .p12");
   return {
