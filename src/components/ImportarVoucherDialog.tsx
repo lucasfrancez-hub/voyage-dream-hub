@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { extractItemVoucher, type ExtractedItemVoucher } from "@/lib/voucher-item-extract.functions";
-import { upsertOrderItem, upsertPassenger, upsertItemFinancial, updateOrderMeta } from "@/lib/orders.functions";
+import { upsertOrderItem, upsertPassenger, upsertItemFinancial, updateOrderMeta, getFirstFinancialForItem } from "@/lib/orders.functions";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 
 type Props = {
@@ -56,6 +56,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
   const saveItem = useServerFn(upsertOrderItem);
   const savePax = useServerFn(upsertPassenger);
   const saveFin = useServerFn(upsertItemFinancial);
+  const findFin = useServerFn(getFirstFinancialForItem);
   const updateMeta = useServerFn(updateOrderMeta);
 
   function reset() {
@@ -129,16 +130,21 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
         }
       }
 
-      // Financeiro do item (valor + taxas)
-      const value = Number(details.value ?? 0);
-      const taxes = Number(details.tax_value ?? 0);
-      if (saved?.id && (value > 0 || taxes > 0)) {
+      // Financeiro do item (valor + taxas) — sempre espelha no financeiro
+      // para hotel/serviço, mesmo com valor zerado, para o usuário editar depois.
+      const value = Number(details.value ?? 0) || 0;
+      const taxes = Number(details.tax_value ?? 0) || 0;
+      if (saved?.id) {
+        // Se já existe um financeiro para este item (reimportação), atualiza
+        // em vez de duplicar. Caso contrário, cria.
+        const existing = await findFin({ data: { order_item_id: saved.id } });
         await saveFin({ data: {
+          ...(existing?.id ? { id: existing.id } : {}),
           order_item_id: saved.id,
           supplier_name: extracted.supplier_name ?? null,
           sale_value: value,
           tax_value: taxes,
-          total: value,
+          total: value + taxes,
           sort_order: 0,
         } });
       }

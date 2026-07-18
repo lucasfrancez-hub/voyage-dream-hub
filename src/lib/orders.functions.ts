@@ -947,6 +947,22 @@ export const deleteItemFinancial = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Retorna o primeiro financeiro (menor sort_order) de um item — usado pelo
+// import de voucher para atualizar em vez de duplicar em reimportação.
+export const getFirstFinancialForItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { order_item_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const res = await context.supabase
+      .from("order_item_financials")
+      .select("id")
+      .eq("order_item_id", data.order_item_id)
+      .order("sort_order", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return { id: (res.data as { id?: string } | null)?.id ?? null };
+  });
+
 // --------- Payments ---------
 export const upsertOrderPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
