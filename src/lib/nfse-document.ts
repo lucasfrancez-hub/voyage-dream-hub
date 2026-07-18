@@ -32,6 +32,7 @@ export type NfseDocumentData = {
   discriminacao: string;
   tomador: unknown;
   focus_response?: unknown;
+  order_id?: string | null;
 };
 
 const money = (v: unknown) =>
@@ -125,8 +126,17 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const docTomador = pick(t.cpfCnpj, t.cnpj, t.cpf, t.documento, t.document, t.doc);
   const imTomador = pick(t.inscricaoMunicipal, t.inscricao_municipal, t.im);
   const emailTomador = pick(t.email, t.mail, t.e_mail);
-  const telTomador = pick(t.telefone, t.phone, t.celular, t.whatsapp);
+  let telTomador = pick(t.telefone, t.phone, t.celular, t.whatsapp);
   const paisTomador = pick(t.pais, end.pais, "Brasil");
+
+  // Fallback: buscar telefone/e-mail do pedido quando não estiverem no tomador salvo
+  let emailTomadorFinal = emailTomador;
+  if ((!telTomador || !emailTomadorFinal) && data.order_id) {
+    const { data: ord } = await supabase.from("orders")
+      .select("phone,email").eq("id", data.order_id).maybeSingle();
+    if (!telTomador) telTomador = pick(ord?.phone);
+    if (!emailTomadorFinal) emailTomadorFinal = pick(ord?.email);
+  }
 
   const disc = parseDiscriminacao(data.discriminacao);
 
@@ -292,11 +302,11 @@ body{color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:10.2px;
         <div class="razao">${dash(esc(nomeTomador))}</div>
         <div class="campos-3">
           <div class="campo"><div class="rotulo">CPF/CNPJ</div><div class="valor">${dash(esc(fmtCpfCnpj(docTomador)))}</div></div>
-          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${dash(esc(imTomador))}</div></div>
-          <div class="campo"><div class="rotulo">E-mail</div><div class="valor email" style="white-space:normal;font-size:8.4px">${dash(esc(emailTomador))}</div></div>
+          <div class="campo"><div class="rotulo">Telefone</div><div class="valor">${dash(esc(telTomador))}</div></div>
+          <div class="campo"><div class="rotulo">E-mail</div><div class="valor email" style="white-space:normal;font-size:8.4px">${dash(esc(emailTomadorFinal))}</div></div>
         </div>
         <div class="endereco">${esc(enderecoTomador) || '<span class="sem-informacao">Endereço não informado</span>'}${enderecoTomador ? "<br/>" : ""}${esc(cidadeTomador)}${ufTomador ? "/" + esc(ufTomador) : ""}${cepTomador ? " – CEP " + esc(cepTomador) : ""}</div>
-        <div class="contatos"><div>${dash(esc(telTomador))}</div><div>${esc(paisTomador)}</div></div>
+        <div class="contatos"><div>${dash(esc(imTomador ? "IM: " + imTomador : ""))}</div><div>${esc(paisTomador)}</div></div>
       </div>
     </div>
   </div>
