@@ -819,7 +819,7 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
   const colHeaderH = 18;
   const cardH = headerH + colHeaderH + rowH * passengers.length + 16;
   const { top } = openSectionCard(ctx, cardH + 20);
-  const headerBottom = drawSectionHeader(ctx, top, "user", t.passageiro);
+  const headerBottom = drawSectionHeader(ctx, top, "user", "PASSAGEIROS");
 
   const innerX = MARGIN + 20;
   const innerW = CONTENT_W - 40;
