@@ -321,11 +321,13 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   page.drawLine({ start: { x: margin + g1, y: y }, end: { x: margin + g1, y: y - discH }, thickness: 0.5, color: linha });
   page.drawLine({ start: { x: margin + g1 + g2, y: y }, end: { x: margin + g1 + g2, y: y - discH }, thickness: 0.5, color: linha });
 
-  // Col 1: Serviço / Município / Cód. tributação
+  // Col 1: Código serviço / Município / Cód. tributação municipal e nacional / CNAE
   const col1x = margin + 14;
-  labelValue(ctx, col1x, y - 16, "Serviço", "90202", 10);
-  labelValue(ctx, col1x, y - 50, "Município da prestação", "Paranavaí/PR", 10);
-  labelValue(ctx, col1x, y - 84, "Cód. tributação", "7749", 10);
+  labelValue(ctx, col1x, y - 14, "Cód. serviço", codServico, 10);
+  labelValue(ctx, col1x, y - 40, "Município prestação", municipioPrest, 9.5);
+  labelValue(ctx, col1x, y - 66, "Cód. trib. municipal", codTribMun, 9.5);
+  labelValue(ctx, col1x, y - 90, "Cód. trib. nacional", codTribNac, 9.5);
+  labelValue(ctx, col1x, y - 108, "CNAE", cnae, 8.5);
 
   // Col 2: Descrição + IDA/VOLTA
   const col2x = margin + g1 + 14;
