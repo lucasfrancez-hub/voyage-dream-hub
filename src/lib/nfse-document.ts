@@ -82,20 +82,31 @@ function fmtCpfCnpj(v: string | null | undefined) {
   const n = String(v || "").replace(/\D/g, "");
   if (n.length === 11) return n.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
   if (n.length === 14) return n.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
-  return v || "-";
+  return v || "";
 }
 function fmtCep(v: string | null | undefined) {
   const n = String(v || "").replace(/\D/g, "");
   return n.length === 8 ? n.replace(/(\d{5})(\d{3})/, "$1-$2") : v || "";
 }
 
+const pick = (...vals: unknown[]): string => {
+  for (const v of vals) {
+    if (v == null) continue;
+    const s = String(v).trim();
+    if (s) return s;
+  }
+  return "";
+};
+
 export async function downloadNfsePdf(data: NfseDocumentData) {
   const { data: cfg } = await supabase.from("nfse_config")
     .select("*").limit(1).maybeSingle();
 
-  const codServico = String(cfg?.ipm_codigo_servico || cfg?.ipm_codigo_atividade || "-");
-  const codTribMun = String(cfg?.codigo_tributario_municipio || cfg?.ipm_codigo_servico || "-");
-  const listaServ = String(cfg?.item_lista_servico || cfg?.codigo_tributario_nacional || "-");
+  // Distintos — sem fallback cruzado entre campos diferentes
+  const codServico = String(cfg?.ipm_codigo_servico || "");
+  const codTribMun = String(cfg?.codigo_tributario_municipio || "");
+  const listaServ = String(cfg?.item_lista_servico || cfg?.codigo_tributario_nacional || "");
+  const codMun = String((cfg as unknown as { codigo_municipio?: string })?.codigo_municipio || "4118402");
   const cnae = String(cfg?.cnae_principal || "7911-2/00");
   const municipioPrest = `${cfg?.municipio_prestacao || "Paranavaí"}/${cfg?.uf_prestacao || "PR"}`;
   const regime = String(cfg?.regime_tributario || "Normal");
@@ -107,8 +118,16 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const dateStr = new Date(data.data_emissao || data.created_at).toLocaleDateString("pt-BR");
   const timeStr = new Date(data.data_emissao || data.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-  const tomador = (data.tomador ?? {}) as Record<string, any>;
-  const end = (tomador.endereco ?? {}) as Record<string, any>;
+  // Tomador — mapeamento robusto com fallback amplo
+  const t = (data.tomador ?? {}) as Record<string, any>;
+  const end = (t.endereco ?? t.address ?? {}) as Record<string, any>;
+  const nomeTomador = pick(t.razaoSocial, t.razao_social, t.nome, t.name, t.full_name, t.fullName);
+  const docTomador = pick(t.cpfCnpj, t.cnpj, t.cpf, t.documento, t.document, t.doc);
+  const imTomador = pick(t.inscricaoMunicipal, t.inscricao_municipal, t.im);
+  const emailTomador = pick(t.email, t.mail, t.e_mail);
+  const telTomador = pick(t.telefone, t.phone, t.celular, t.whatsapp);
+  const paisTomador = pick(t.pais, end.pais, "Brasil");
+
   const disc = parseDiscriminacao(data.discriminacao);
 
   const qrUrl = verification
@@ -135,82 +154,103 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const emailPrest = "lucas@voeair.com";
   const telPrest = "(44) 99909-3642";
 
+  const dash = (v: string) => v || '<span class="sem-informacao">–</span>';
+
+  const enderecoTomador = [
+    [pick(end.logradouro, end.rua, end.street), pick(end.numero, end.number)].filter(Boolean).join(", "),
+    pick(end.complemento),
+    pick(end.bairro),
+  ].filter(Boolean).join(" – ");
+  const cidadeTomador = pick(end.cidade, end.municipio, end.city);
+  const ufTomador = pick(end.uf, end.estado, end.state);
+  const cepTomador = fmtCep(pick(end.cep, end.zip, end.postal_code));
+
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
 <title>NFS-e ${esc(numero)} - VIA AIR</title>
 <style>
 :root{--azul:#063b78;--azul-escuro:#052c59;--azul-claro:#eaf2fb;--laranja:#f27a16;--verde:#1b8f4e;--texto:#111827;--cinza:#667085;--linha:#cfd6df;--fundo:#fff}
 *{box-sizing:border-box}
-body{margin:0;background:#eef1f5;color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.35}
-.pagina{width:210mm;min-height:297mm;margin:20px auto;padding:12mm 10mm 10mm;background:var(--fundo);box-shadow:0 8px 30px rgba(0,0,0,.10)}
-.cabecalho{display:grid;grid-template-columns:30% 38% 32%;min-height:118px;border-bottom:2px solid var(--laranja);padding-bottom:16px;margin-bottom:14px}
-.marca,.titulo-nota,.resumo-nota{padding:4px 16px}
+@page{size:A4 portrait;margin:0}
+html,body{width:210mm;height:297mm;margin:0;padding:0;background:#fff}
+body{color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:10.2px;line-height:1.22}
+.pagina{width:210mm;height:297mm;min-height:297mm;margin:0 auto;padding:8mm 8mm 6mm;background:var(--fundo);box-shadow:none;overflow:hidden}
+.cabecalho{display:grid;grid-template-columns:30% 38% 32%;min-height:102px;border-bottom:2px solid var(--laranja);padding-bottom:10px;margin-bottom:9px}
+.marca,.titulo-nota,.resumo-nota{padding:4px 12px}
 .marca,.titulo-nota{border-right:1px solid var(--linha)}
-.logo{max-width:210px;max-height:76px;object-fit:contain;display:block;margin-top:8px}
+.logo{max-width:175px;max-height:64px;object-fit:contain;display:block;margin-top:7px}
 .titulo-nota{display:flex;flex-direction:column;justify-content:center}
-.titulo-nota .linha-1{font-size:17px;color:var(--azul-escuro);font-weight:700;text-transform:uppercase}
-.titulo-nota .linha-2{margin-top:4px;font-size:25px;line-height:1.1;color:var(--azul);font-weight:800;text-transform:uppercase}
-.titulo-nota .serie{margin-top:8px;font-size:14px;color:var(--azul-escuro)}
-.resumo-nota{display:grid;grid-template-columns:1fr 104px;gap:12px;align-items:center}
-.nf-numero .rotulo{font-size:13px;font-weight:700;color:var(--azul-escuro)}
-.nf-numero .numero{font-size:32px;line-height:1;font-weight:800;color:var(--laranja);margin:4px 0 8px}
-.status{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;background:#dff4e7;color:var(--verde);font-weight:800;text-transform:uppercase;font-size:11px}
-.meta-emissao{margin-top:12px}
-.meta-emissao small{display:block;color:var(--cinza);font-size:9px;font-weight:700;text-transform:uppercase;margin-bottom:3px}
-.meta-emissao strong{font-size:13px}
-.qr-topo{width:104px;height:104px;object-fit:contain;border:1px solid var(--linha);padding:4px;background:#fff}
-.linha-dupla{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.bloco{border:1px solid var(--linha);background:#fff;page-break-inside:avoid}
-.titulo-bloco{background:linear-gradient(90deg,var(--azul-escuro),var(--azul));color:#fff;font-weight:800;font-size:13px;text-transform:uppercase;padding:7px 12px;letter-spacing:.2px}
-.conteudo{padding:12px 14px}
-.razao{font-size:16px;font-weight:800;margin-bottom:11px}
-.campos-3{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:12px}
-.campo{min-width:0;padding-right:10px;margin-right:10px;border-right:1px solid var(--linha)}
-.campo:last-child{border-right:0;margin-right:0}
-.rotulo{color:var(--cinza);text-transform:uppercase;font-size:9px;font-weight:700;margin-bottom:4px}
-.valor{font-size:12px;font-weight:700;word-break:break-word}
-.endereco{border-top:1px solid #e5e9ef;padding-top:10px;margin-top:4px;line-height:1.5}
-.contatos{display:grid;grid-template-columns:1fr auto;gap:12px;margin-top:10px}
-.servico-grid{display:grid;grid-template-columns:20% 54% 26%;min-height:120px}
-.servico-coluna{padding:13px 16px;border-right:1px solid var(--linha)}
+.titulo-nota .linha-1{font-size:14px;color:var(--azul-escuro);font-weight:700;text-transform:uppercase}
+.titulo-nota .linha-2{margin-top:3px;font-size:22px;line-height:1.04;color:var(--azul);font-weight:800;text-transform:uppercase}
+.titulo-nota .serie{margin-top:5px;font-size:11px;color:var(--azul-escuro)}
+.resumo-nota{display:grid;grid-template-columns:1fr 88px;gap:10px;align-items:center}
+.nf-numero .rotulo{font-size:10px;font-weight:700;color:var(--azul-escuro)}
+.nf-numero .numero{font-size:29px;line-height:1;font-weight:800;color:var(--laranja);margin:3px 0 6px}
+.status{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:6px;background:#dff4e7;color:var(--verde);font-weight:800;text-transform:uppercase;font-size:10px}
+.meta-emissao{margin-top:8px}
+.meta-emissao small{display:block;color:var(--cinza);font-size:7.8px;font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.meta-emissao strong{font-size:10px;white-space:nowrap}
+.qr-topo{width:82px;height:82px;object-fit:contain;border:1px solid var(--linha);padding:3px;background:#fff}
+.linha-dupla{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;align-items:stretch}
+.linha-dupla .bloco{height:100%}
+.linha-dupla .conteudo{height:calc(100% - 26px);display:flex;flex-direction:column}
+.linha-dupla .contatos{margin-top:auto}
+.bloco{border:1px solid var(--linha);background:#fff;break-inside:avoid;page-break-inside:avoid}
+.titulo-bloco{background:linear-gradient(90deg,var(--azul-escuro),var(--azul));color:#fff;font-weight:800;font-size:11px;text-transform:uppercase;padding:5px 10px;letter-spacing:.2px}
+.conteudo{padding:8px 10px}
+.razao{font-size:12.5px;font-weight:800;margin-bottom:8px;line-height:1.18}
+.campos-3{display:grid;grid-template-columns:1fr .82fr 1.18fr;margin-bottom:8px}
+.campo{min-width:0;padding-right:7px;margin-right:7px;border-right:1px solid var(--linha)}
+.campo:last-child{border-right:0;margin-right:0;padding-right:0}
+.rotulo{color:var(--cinza);text-transform:uppercase;font-size:7.8px;font-weight:700;margin-bottom:3px}
+.valor{font-size:9.8px;font-weight:700;word-break:normal;overflow-wrap:normal}
+.campo:nth-child(1) .valor,.campo:nth-child(3) .valor{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.endereco{border-top:1px solid #e5e9ef;padding-top:7px;margin-top:3px;line-height:1.32;font-size:9.4px}
+.contatos{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:7px;font-size:9px}
+.contatos div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal;overflow-wrap:normal}
+.contatos .email{font-size:8.6px}
+.servico-grid{display:grid;grid-template-columns:20% 54% 26%;min-height:96px}
+.servico-coluna{padding:8px 10px;border-right:1px solid var(--linha)}
 .servico-coluna:last-child{border-right:0}
-.servico-coluna .item{margin-bottom:10px}
-.descricao-principal{font-size:14px;font-weight:700;margin:14px 0 12px}
-.datas{display:flex;gap:28px;font-size:11px}
-.passageiros{margin:10px 0 0;padding-left:17px}
-.passageiros li{margin-bottom:5px}
-.valores{margin-top:10px}
+.servico-coluna .item{margin-bottom:7px}
+.descricao-principal{font-size:11px;font-weight:700;margin:11px 0 8px}
+.datas{display:flex;gap:20px;font-size:9.2px}
+.passageiros{margin:6px 0 0;padding-left:15px;font-size:9.4px}
+.passageiros li{margin-bottom:3px}
+.valores{margin-top:8px}
 .valores-principais{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--linha)}
-.valor-box{text-align:center;padding:13px 8px;border-right:1px solid var(--linha)}
+.valor-box{text-align:center;padding:8px 5px;border-right:1px solid var(--linha)}
 .valor-box:last-child{border-right:0}
-.valor-box .numero-valor{margin-top:8px;font-size:16px;font-weight:800;color:var(--azul-escuro)}
-.valor-box.destaque-iss{border-top:5px solid var(--laranja);background:#fffaf5}
+.valor-box .numero-valor{margin-top:4px;font-size:13px;font-weight:800;color:var(--azul-escuro)}
+.valor-box.destaque-iss{border-top:4px solid var(--laranja);background:#fffaf5}
 .valor-box.destaque-iss .numero-valor{color:var(--laranja)}
 .tributos{display:grid;grid-template-columns:repeat(7,1fr)}
-.tributo{text-align:center;padding:9px 4px;border-right:1px solid var(--linha)}
+.tributo{text-align:center;padding:5px 2px;border-right:1px solid var(--linha)}
 .tributo:last-child{border-right:0}
-.tributo .numero-valor{margin-top:5px;font-weight:800;font-size:12px}
-.liquido{margin-top:10px;display:grid;grid-template-columns:34% repeat(4,1fr);background:linear-gradient(90deg,var(--azul),var(--azul-escuro));color:#fff;page-break-inside:avoid}
-.liquido>div{padding:11px 14px;border-right:1px solid rgba(255,255,255,.35)}
+.tributo .numero-valor{margin-top:3px;font-weight:800;font-size:9.6px}
+.liquido{margin-top:8px;display:grid;grid-template-columns:34% repeat(4,1fr);background:linear-gradient(90deg,var(--azul),var(--azul-escuro));color:#fff;break-inside:avoid}
+.liquido>div{padding:8px 10px;border-right:1px solid rgba(255,255,255,.35)}
 .liquido>div:last-child{border-right:0}
 .liquido .rotulo{color:rgba(255,255,255,.86)}
-.liquido-total .numero{font-size:30px;line-height:1.05;font-weight:800;margin-top:5px}
-.liquido-secundario .numero{margin-top:8px;font-size:12px;font-weight:800}
-.informacoes-fiscais{margin-top:10px}
+.liquido-total .numero{font-size:23px;line-height:1.05;font-weight:800;margin-top:3px}
+.liquido-secundario .numero{margin-top:5px;font-size:10px;font-weight:800}
+.informacoes-fiscais{margin-top:8px}
 .fiscal-grid{display:grid;grid-template-columns:1.35fr 1fr 1.05fr .85fr}
-.fiscal-coluna{padding:13px 14px;border-right:1px solid var(--linha)}
+.fiscal-coluna{padding:8px 10px;border-right:1px solid var(--linha)}
 .fiscal-coluna:last-child{border-right:0}
-.fiscal-item{margin-bottom:13px}
-.autenticidade{margin-top:10px}
-.autenticidade-grid{display:grid;grid-template-columns:52% 33% 15%;align-items:center;min-height:110px}
-.autenticidade-coluna{padding:12px 14px}
-.identificador{font-size:12px;font-weight:700;word-spacing:3px;margin:5px 0 10px}
-.barcode{width:100%;max-height:58px;object-fit:fill}
-.consulta{background:var(--azul-claro);padding:10px 12px;border-radius:5px;line-height:1.45;font-size:10.5px}
-.consulta strong{display:block;color:var(--azul);font-size:12px;margin-top:5px}
-.qr-rodape{width:92px;height:92px;object-fit:contain;display:block;margin:auto}
-.rodape-legal{display:grid;grid-template-columns:1fr 260px;gap:20px;align-items:end;margin-top:12px;font-size:9px;color:#475467}
+.fiscal-item{margin-bottom:6px}
+.autenticidade{margin-top:8px}
+.autenticidade-grid{display:grid;grid-template-columns:52% 33% 15%;align-items:center;min-height:78px}
+.autenticidade-coluna{padding:7px 10px}
+.identificador{font-size:9.4px;font-weight:700;word-spacing:2px;margin:3px 0 6px;word-break:break-all}
+.barcode{width:100%;max-height:38px;object-fit:fill}
+.consulta{background:var(--azul-claro);padding:7px 9px;border-radius:5px;line-height:1.35;font-size:9.4px}
+.consulta strong{display:block;color:var(--azul);font-size:10px;margin-top:4px}
+.qr-rodape{width:68px;height:68px;object-fit:contain;display:block;margin:auto}
+.rodape-legal{display:grid;grid-template-columns:1fr 245px;gap:14px;align-items:end;margin-top:5px;font-size:6.8px;color:#475467}
 .ambiental{text-align:right}
-@media print{@page{size:A4;margin:0}body{background:#fff}.pagina{margin:0;box-shadow:none;width:210mm;min-height:297mm}}
+.sem-informacao{color:#98a2b3;font-style:italic}
+.cabecalho,.linha-dupla,.bloco,.valores,.liquido,.informacoes-fiscais,.autenticidade,.rodape-legal{break-inside:avoid;page-break-inside:avoid}
+@media print{html,body{width:210mm;height:297mm;margin:0;padding:0;background:#fff}.pagina{width:210mm;height:297mm;min-height:297mm;margin:0;padding:8mm 8mm 6mm;box-shadow:none;overflow:hidden}*{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}}
 </style></head>
 <body>
 <div class="pagina">
@@ -238,25 +278,25 @@ body{margin:0;background:#eef1f5;color:var(--texto);font-family:Arial,Helvetica,
       <div class="conteudo">
         <div class="razao">VIA AIR AGÊNCIA &amp; REPRESENTAÇÕES LTDA</div>
         <div class="campos-3">
-          <div class="campo"><div class="rotulo">CNPJ</div><div class="valor">${esc(cfg?.cnpj || "56.339.877/0001-66")}</div></div>
+          <div class="campo"><div class="rotulo">CNPJ</div><div class="valor">${esc(fmtCpfCnpj(cfg?.cnpj || "56339877000166"))}</div></div>
           <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${esc(cfg?.inscricao_municipal || "121788")}</div></div>
           <div class="campo"><div class="rotulo">Regime Tributário</div><div class="valor">${esc(regime)}</div></div>
         </div>
-        <div class="endereco">${esc(cfg?.logradouro || "")}, ${esc(cfg?.numero || "")} – ${esc(cfg?.bairro || "")}<br/>${esc(municipioPrest)} – CEP ${esc(fmtCep(cfg?.cep))}</div>
-        <div class="contatos"><div>${esc(emailPrest)}</div><div>${esc(telPrest)}</div></div>
+        <div class="endereco">${esc(cfg?.logradouro || "")}${cfg?.numero ? ", " + esc(cfg?.numero) : ""}${cfg?.bairro ? " – " + esc(cfg?.bairro) : ""}<br/>${esc(municipioPrest)}${cfg?.cep ? " – CEP " + esc(fmtCep(cfg?.cep)) : ""}</div>
+        <div class="contatos"><div class="email">${esc(emailPrest)}</div><div>${esc(telPrest)}</div></div>
       </div>
     </div>
     <div class="bloco">
       <div class="titulo-bloco">Tomador de serviço</div>
       <div class="conteudo">
-        <div class="razao">${esc((tomador.razaoSocial || tomador.razao_social || tomador.nome || "-") as string)}</div>
+        <div class="razao">${dash(esc(nomeTomador))}</div>
         <div class="campos-3">
-          <div class="campo"><div class="rotulo">CPF/CNPJ</div><div class="valor">${esc(fmtCpfCnpj((tomador.cpfCnpj || tomador.cnpj || tomador.cpf || "") as string))}</div></div>
-          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${esc((tomador.inscricaoMunicipal || tomador.inscricao_municipal) as string || "–")}</div></div>
-          <div class="campo"><div class="rotulo">E-mail</div><div class="valor">${esc((tomador.email as string) || "–")}</div></div>
+          <div class="campo"><div class="rotulo">CPF/CNPJ</div><div class="valor">${dash(esc(fmtCpfCnpj(docTomador)))}</div></div>
+          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${dash(esc(imTomador))}</div></div>
+          <div class="campo"><div class="rotulo">E-mail</div><div class="valor email" style="white-space:normal;font-size:8.4px">${dash(esc(emailTomador))}</div></div>
         </div>
-        <div class="endereco">${esc(end.logradouro || "")}${end.numero ? ", " + esc(end.numero) : ""}${end.complemento ? " – " + esc(end.complemento) : ""}${end.bairro ? " – " + esc(end.bairro) : ""}<br/>${esc(end.cidade || end.municipio || "")}${end.uf ? "/" + esc(end.uf) : ""}${end.cep ? " – CEP " + esc(fmtCep(end.cep)) : ""}</div>
-        <div class="contatos"><div>${esc((tomador.telefone as string) || "")}</div><div>Brasil</div></div>
+        <div class="endereco">${esc(enderecoTomador) || '<span class="sem-informacao">Endereço não informado</span>'}${enderecoTomador ? "<br/>" : ""}${esc(cidadeTomador)}${ufTomador ? "/" + esc(ufTomador) : ""}${cepTomador ? " – CEP " + esc(cepTomador) : ""}</div>
+        <div class="contatos"><div>${dash(esc(telTomador))}</div><div>${esc(paisTomador)}</div></div>
       </div>
     </div>
   </div>
@@ -265,9 +305,9 @@ body{margin:0;background:#eef1f5;color:var(--texto);font-family:Arial,Helvetica,
     <div class="titulo-bloco">Discriminação dos serviços</div>
     <div class="servico-grid">
       <div class="servico-coluna">
-        <div class="item"><div class="rotulo">Serviço</div><div class="valor">${esc(codServico)}</div></div>
-        <div class="item"><div class="rotulo">Município da prestação</div><div class="valor">${esc(municipioPrest)}</div></div>
-        <div class="item"><div class="rotulo">Cód. tributação</div><div class="valor">${esc(codTribMun)}</div></div>
+        <div class="item"><div class="rotulo">Cód. serviço</div><div class="valor">${dash(esc(codServico))}</div></div>
+        <div class="item"><div class="rotulo">Município da prestação</div><div class="valor">${esc(municipioPrest)}${codMun ? ` (${esc(codMun)})` : ""}</div></div>
+        <div class="item"><div class="rotulo">Cód. tributação municipal</div><div class="valor">${dash(esc(codTribMun))}</div></div>
       </div>
       <div class="servico-coluna">
         <div class="rotulo">Descrição do serviço</div>
@@ -313,20 +353,20 @@ body{margin:0;background:#eef1f5;color:var(--texto);font-family:Arial,Helvetica,
     <div class="titulo-bloco">Informações fiscais</div>
     <div class="fiscal-grid">
       <div class="fiscal-coluna">
-        <div class="fiscal-item"><div class="rotulo">Lista de serviço</div><div class="valor">${esc(listaServ)} - Organização, promoção e execução de programas de turismo, passeios, viagens, excursões, hospedagens e congêneres.</div></div>
-        <div class="fiscal-item"><div class="rotulo">Tributação</div><div class="valor">(${esc(listaServ)}) Serviço tributado no município do prestador</div></div>
+        <div class="fiscal-item"><div class="rotulo">Lista de serviço</div><div class="valor">${dash(esc(listaServ))} - Organização, promoção e execução de programas de turismo, passeios, viagens, excursões, hospedagens e congêneres.</div></div>
+        <div class="fiscal-item"><div class="rotulo">Tributação</div><div class="valor">Serviço tributado no município do prestador</div></div>
       </div>
       <div class="fiscal-coluna">
-        <div class="fiscal-item"><div class="rotulo">Local de prestação</div><div class="valor">${esc(codTribMun)} - ${esc(cfg?.municipio_prestacao || "Paranavaí")}</div></div>
+        <div class="fiscal-item"><div class="rotulo">Local de prestação</div><div class="valor">${esc(municipioPrest)}${codMun ? ` (${esc(codMun)})` : ""}</div></div>
         <div class="fiscal-item"><div class="rotulo">Autorização para emissão</div><div class="valor">${rps ? esc(rps) + " de " : ""}${esc(dateStr)} ${esc(timeStr)}</div></div>
       </div>
       <div class="fiscal-coluna">
         <div class="fiscal-item"><div class="rotulo">Situação tributária</div><div class="valor">TI - Tributada Integralmente</div></div>
-        <div class="fiscal-item"><div class="rotulo">Enquadramento</div><div class="valor">Simples Nacional - Homologado de ISS ou ISS em regime estimado/fixo</div></div>
+        <div class="fiscal-item"><div class="rotulo">Enquadramento</div><div class="valor">${esc(regime)}</div></div>
       </div>
       <div class="fiscal-coluna">
-        <div class="fiscal-item"><div class="rotulo">Regime</div><div class="valor">${esc(regime)}</div></div>
         <div class="fiscal-item"><div class="rotulo">CNAE</div><div class="valor">${esc(cnae)}</div></div>
+        <div class="fiscal-item"><div class="rotulo">Cód. município</div><div class="valor">${dash(esc(codMun))}</div></div>
       </div>
     </div>
   </div>
@@ -351,7 +391,13 @@ body{margin:0;background:#eef1f5;color:var(--texto);font-family:Arial,Helvetica,
     <div class="ambiental">Antes de imprimir, pense em sua responsabilidade com o meio ambiente.</div>
   </div>
 </div>
-<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),400));</script>
+<script>
+async function aguardarImagens(){
+  const imgs=Array.from(document.images);
+  await Promise.all(imgs.map(i=>i.complete?Promise.resolve():new Promise(r=>{i.onload=r;i.onerror=r;})));
+}
+window.addEventListener('load',async()=>{await aguardarImagens();setTimeout(()=>window.print(),300);});
+</script>
 </body></html>`;
 
   const w = window.open("", "_blank");
