@@ -146,7 +146,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   });
 
   const [open, setOpen] = useState(false);
-  const defaultDisc = `Serviços de agenciamento de viagens referente ao pedido #${order.orderNumber}${order.tripTitle ? ` — ${order.tripTitle}` : ""}.`;
+  const defaultDisc = buildAutoDescricao(detail);
   const [form, setForm] = useState({
     razaoSocial: order.payerFullName || order.fullName || "",
     cpfCnpj: order.payerCpf || order.cpf || "",
