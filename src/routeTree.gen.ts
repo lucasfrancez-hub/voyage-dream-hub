@@ -41,6 +41,7 @@ import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
+import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
@@ -229,6 +230,11 @@ const AdminPacotesRoute = AdminPacotesRouteImport.update({
   path: '/pacotes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminNotasFiscaisRoute = AdminNotasFiscaisRouteImport.update({
+  id: '/notas-fiscais',
+  path: '/notas-fiscais',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminLinkPagamentoRoute = AdminLinkPagamentoRouteImport.update({
   id: '/link-pagamento',
   path: '/link-pagamento',
@@ -394,6 +400,7 @@ export interface FileRoutesByFullPath {
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
+  '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -454,6 +461,7 @@ export interface FileRoutesByTo {
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
+  '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -516,6 +524,7 @@ export interface FileRoutesById {
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
+  '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -579,6 +588,7 @@ export interface FileRouteTypes {
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
+    | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pessoas'
     | '/admin/seguranca'
@@ -639,6 +649,7 @@ export interface FileRouteTypes {
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
+    | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pessoas'
     | '/admin/seguranca'
@@ -700,6 +711,7 @@ export interface FileRouteTypes {
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
+    | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pessoas'
     | '/admin/seguranca'
@@ -998,6 +1010,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPacotesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/notas-fiscais': {
+      id: '/admin/notas-fiscais'
+      path: '/notas-fiscais'
+      fullPath: '/admin/notas-fiscais'
+      preLoaderRoute: typeof AdminNotasFiscaisRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/link-pagamento': {
       id: '/admin/link-pagamento'
       path: '/link-pagamento'
@@ -1211,6 +1230,7 @@ interface AdminRouteChildren {
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
+  AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
   AdminSegurancaRoute: typeof AdminSegurancaRoute
@@ -1229,6 +1249,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
+  AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
   AdminSegurancaRoute: AdminSegurancaRoute,
