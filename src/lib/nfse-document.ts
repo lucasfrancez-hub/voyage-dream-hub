@@ -155,6 +155,16 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const contentW = A4.width - margin * 2;
   const ctx: Ctx = { page, regular, bold, margin, contentW };
 
+  // Puxa códigos fiscais da configuração
+  const { data: cfg } = await supabase.from("nfse_config")
+    .select("item_lista_servico, ipm_codigo_servico, ipm_codigo_atividade, codigo_tributario_municipio, codigo_tributario_nacional, municipio_prestacao, uf_prestacao, cnae_principal")
+    .limit(1).maybeSingle();
+  const codServico = String(cfg?.ipm_codigo_servico || cfg?.ipm_codigo_atividade || "-");
+  const codTribMun = String(cfg?.codigo_tributario_municipio || cfg?.ipm_codigo_servico || "-");
+  const codTribNac = String(cfg?.codigo_tributario_nacional || cfg?.item_lista_servico || "-");
+  const cnae = String(cfg?.cnae_principal || "-");
+  const municipioPrest = `${cfg?.municipio_prestacao || "Paranavaí"}/${cfg?.uf_prestacao || "PR"}`;
+
   const numero = data.numero_nfse || responseValue(data, "numero_nfse") || "-";
   const serie = data.serie || responseValue(data, "serie_nfse") || "1";
   const verification = data.codigo_verificacao || responseValue(data, "cod_verificador_autenticidade") || "";
