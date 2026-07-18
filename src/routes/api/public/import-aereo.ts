@@ -271,6 +271,23 @@ export const Route = createFileRoute("/api/public/import-aereo")({
         try {
           if (["skyteam", "frt", "visualturismo", "infotera"].includes(airline) && hasStructuredData) {
             const direct = normalizeDirectStructuredData(body.structured_data);
+            // Híbrido: usa iframe pra dados estruturados, mas relê VALORES pelas
+            // capturas de tela — os portais mostram tarifa/taxas/TU/total numa
+            // tabela que fica fora do iframe e o texto perde os totais reais.
+            if (screenshots.length > 0) {
+              try {
+                const values = await extractValuesFromScreenshots(screenshots);
+                if (values) {
+                  if (values.currency) direct.currency = values.currency;
+                  if (values.base_fare != null) direct.base_fare = values.base_fare;
+                  if (values.taxes != null) direct.taxes = values.taxes;
+                  if (values.fees != null) direct.fees = values.fees;
+                  if (values.total_fare != null) direct.total_fare = values.total_fare;
+                }
+              } catch (e) {
+                console.warn("[import-aereo] vision values fallback", (e as Error).message);
+              }
+            }
             const parsed = normalizeAirlineFields(direct);
             await supabaseAdmin.from("flight_import_staging").update({
               status: "ready", parsed: parsed as never, error: null,
