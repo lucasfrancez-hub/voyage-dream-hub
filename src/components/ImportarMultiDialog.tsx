@@ -218,7 +218,7 @@ export function ImportarMultiDialog({ orderId, onImported, trigger }: Props) {
           const title =
             item.title?.trim() ||
             (item.kind === "hotel"
-              ? `Hospedagem — ${String(details.hotel_name ?? "")}`.trim()
+              ? String(details.hotel_name ?? "").trim() || "Hospedagem"
               : String(details.category ?? "Serviço"));
           const saved = await saveItem({
             data: {
@@ -234,6 +234,8 @@ export function ImportarMultiDialog({ orderId, onImported, trigger }: Props) {
           const value = Number(details.value ?? 0) || 0;
           const taxes = Number(details.tax_value ?? 0) || 0;
           if (saved?.id) {
+            const pct = item.kind === "hotel" ? 12 : 0;
+            const commission = Number((value * (pct / 100)).toFixed(2));
             await saveFin({
               data: {
                 order_item_id: saved.id,
@@ -241,6 +243,9 @@ export function ImportarMultiDialog({ orderId, onImported, trigger }: Props) {
                 sale_value: value,
                 tax_value: taxes,
                 total: value + taxes,
+                commission_pct: pct,
+                commission_value: commission,
+                is_commissionable: pct > 0,
                 sort_order: 0,
               },
             });
