@@ -5,14 +5,34 @@ import { SignedXml } from "xml-crypto";
 type LoadedCert = { privateKeyPem: string; certBase64: string };
 let cached: LoadedCert | null = null;
 
+function normalizeBase64(raw: string): string {
+  let s = raw.trim();
+  // remove eventual prefixo data URI
+  s = s.replace(/^data:[^;]+;base64,/i, "");
+  // remove aspas e espaços/quebras de linha
+  s = s.replace(/^["']|["']$/g, "").replace(/\s+/g, "");
+  // url-safe -> padrão
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  // padding
+  const pad = s.length % 4;
+  if (pad) s += "=".repeat(4 - pad);
+  return s;
+}
+
 function loadCertFromEnv(): LoadedCert {
   if (cached) return cached;
-  const b64 = process.env.NFSE_CERT_PFX_BASE64;
+  const rawB64 = process.env.NFSE_CERT_PFX_BASE64;
   const pwd = process.env.NFSE_CERT_PASSWORD;
-  if (!b64 || !pwd) throw new Error("Certificado NFS-e não configurado");
+  if (!rawB64 || !pwd) throw new Error("Certificado NFS-e não configurado");
 
+  const b64 = normalizeBase64(rawB64);
+  const buf = Buffer.from(b64, "base64");
+  if (buf.length < 100) {
+    throw new Error(`Certificado inválido: base64 decodificou apenas ${buf.length} bytes (esperado .p12 com vários KB). Verifique se a secret NFSE_CERT_PFX_BASE64 contém o conteúdo completo do arquivo .p12 em base64.`);
+  }
+  const binary = buf.toString("binary");
   const p12 = forge.pkcs12.pkcs12FromAsn1(
-    forge.asn1.fromDer(forge.util.decode64(b64)),
+    forge.asn1.fromDer(binary),
     pwd,
   );
   const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
@@ -58,10 +78,11 @@ export async function signNfseXml(xml: string): Promise<string> {
 }
 
 export function getCertInfo(): { subject: string; issuer: string; notAfter: string } {
-  const b64 = process.env.NFSE_CERT_PFX_BASE64;
+  const rawB64 = process.env.NFSE_CERT_PFX_BASE64;
   const pwd = process.env.NFSE_CERT_PASSWORD;
-  if (!b64 || !pwd) throw new Error("Certificado não configurado");
-  const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(forge.util.decode64(b64)), pwd);
+  if (!rawB64 || !pwd) throw new Error("Certificado não configurado");
+  const binary = Buffer.from(normalizeBase64(rawB64), "base64").toString("binary");
+  const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(binary), pwd);
   const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag]?.[0];
   if (!certBag?.cert) throw new Error("Certificado ausente no .p12");
   return {
