@@ -3721,6 +3721,23 @@ function PaymentDialog({
   const [savedCards, setSavedCards] = useState<PersonCardRow[]>([]);
   const [savingPerson, setSavingPerson] = useState(false);
   const [savingCard, setSavingCard] = useState(false);
+  const [rawAmount, setRawAmount] = useState<string>("");
+  const [rawInstallment, setRawInstallment] = useState<string>("");
+  // Helpers de moeda BR: exibe "16.220,19" e aceita colar nesse mesmo formato.
+  const fmtBRLInput = (n?: number | null): string => {
+    if (n == null || !Number.isFinite(Number(n))) return "";
+    return Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  const parseBRLInput = (s: string): number | null => {
+    if (!s) return null;
+    const t = String(s).trim();
+    if (!t) return null;
+    const hasComma = t.includes(",");
+    const hasDot = t.includes(".");
+    const norm = hasComma && hasDot ? t.replace(/\./g, "").replace(",", ".") : hasComma ? t.replace(",", ".") : t;
+    const n = Number(norm.replace(/[^\d.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  };
   useMemo(() => {
     const isNew = !initial;
     setForm(initial ?? {
@@ -3733,6 +3750,9 @@ function PaymentDialog({
     setCardFullNumber("");
     setInstallmentTouched(!isNew);
     setSelectedItemIds(initial?.order_item_ids ?? []);
+    const initAmount = initial?.amount ?? order.totalPrice ?? 0;
+    setRawAmount(fmtBRLInput(initAmount));
+    setRawInstallment(initial?.installment_amount != null ? fmtBRLInput(initial.installment_amount) : "");
     // Pré-preenche dados do pagador a partir do pedido, com fallback nos dados do cliente principal.
     setPayer({
       payer_full_name: order.payerFullName ?? order.fullName ?? "",
@@ -3769,6 +3789,7 @@ function PaymentDialog({
     if (n > 0 && total > 0) {
       const per = Math.round((total / n) * 100) / 100;
       setForm((f) => ({ ...f, installment_amount: per }));
+      setRawInstallment(fmtBRLInput(per));
     }
   }, [form.installments, form.amount, installmentTouched]);
 
@@ -4110,8 +4131,9 @@ function PaymentDialog({
               </div>
               <div>
                 <Label>Valor pago (R$)</Label>
-                <Input type="number" step="0.01" value={form.amount ?? 0}
-                  onChange={(e) => setField("amount", Number(e.target.value))} />
+                <Input inputMode="decimal" value={rawAmount} placeholder="0,00"
+                  onChange={(e) => { setRawAmount(e.target.value); const n = parseBRLInput(e.target.value); setField("amount", (n ?? 0) as OrderPayment["amount"]); }}
+                  onBlur={() => { const n = parseBRLInput(rawAmount); if (n != null) setRawAmount(fmtBRLInput(n)); }} />
               </div>
               <div>
                 <Label>Nº do caixa</Label>
@@ -4129,11 +4151,14 @@ function PaymentDialog({
                   </div>
                   <div>
                     <Label>Valor por parcela</Label>
-                    <Input type="number" step="0.01" value={form.installment_amount ?? ""}
+                    <Input inputMode="decimal" value={rawInstallment} placeholder="0,00"
                       onChange={(e) => {
                         setInstallmentTouched(true);
-                        setField("installment_amount", e.target.value ? Number(e.target.value) : null);
-                      }} />
+                        setRawInstallment(e.target.value);
+                        const n = parseBRLInput(e.target.value);
+                        setField("installment_amount", (n as OrderPayment["installment_amount"]) ?? null);
+                      }}
+                      onBlur={() => { const n = parseBRLInput(rawInstallment); if (n != null) setRawInstallment(fmtBRLInput(n)); }} />
                   </div>
                 </>
               )}
