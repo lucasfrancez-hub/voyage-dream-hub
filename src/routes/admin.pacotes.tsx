@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks } from "lucide-react";
+import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, formatDateRange } from "@/lib/format";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
