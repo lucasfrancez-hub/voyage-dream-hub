@@ -2116,8 +2116,6 @@ export async function generateVoucher(
   }
   // Passageiros usados em algum voo (para não duplicar no fallback).
   const usedPassengerIds = new Set<string>();
-  const passengerById = new Map<string, OrderPassenger>();
-  for (const p of detail.passengers) passengerById.set(p.id, p);
 
   for (const key of groupOrder) {
     const g = groups.get(key)!;
