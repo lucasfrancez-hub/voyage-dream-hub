@@ -76,9 +76,10 @@ export type ExtractedServiceItem = {
 export type ExtractedItemVoucher = ExtractedHotelItem | ExtractedServiceItem;
 
 const HOTEL_PROMPT = `Você extrai vouchers de HOSPEDAGEM (hotéis, pousadas, resorts).
-Devolve JSON estruturado com TODOS os dados úteis, incluindo políticas.
+Retorne SEMPRE um array \`items\`. Se o voucher tiver mais de uma hospedagem (ex.: pacote com 2 hotéis em cidades diferentes), retorne UM item POR HOSPEDAGEM. Não colapse hotéis distintos.
+Devolve JSON estruturado com TODOS os dados úteis por item, incluindo políticas.
 
-Regras:
+Regras (por item):
 - Datas no formato YYYY-MM-DD (sem hora). Só use hora quando check-in/check-out estiverem explicitamente com horário — nesse caso, deixe as datas puras e coloque a hora em notes.
 - title: nome descritivo curto do item (ex.: "Hospedagem — Hotel Pestana Rio").
 - supplier_name: fornecedor emissor do voucher (ex.: "CVC", "Bancorbrás", "HotelDo", "Direto no hotel").
@@ -86,9 +87,10 @@ Regras:
 - hotel_name: nome do hotel. hotel_stars: 1..5 se informado. address: endereço completo com cidade/estado/país.
 - room: tipo/descrição do quarto. board: regime (café, meia pensão, all inclusive, apenas hospedagem).
 - nights: número de diárias. guests: descrição textual dos hóspedes (ex.: "2 adultos + 1 criança").
+- description: RESUMO CURTO E BONITINHO da hospedagem para o cliente (1–3 frases em português claro, tom acolhedor).
 - policies: (LEGADO — pode omitir se preencher cancellation_policy + observations).
-- cancellation_policy: RESUMO CURTO da política de cancelamento/reembolso/no-show em português claro, com no máximo 3–5 frases OU bullets separados por "\n- ". Não copie parágrafos gigantes do voucher; sintetize prazos e valores (ex.: "Cancelamento gratuito até 48h antes; após, cobra-se 1 diária. No-show: 100% da estadia.").
-- observations: ARRAY de tópicos curtos com TODAS as demais informações relevantes do voucher (taxa de resort/city tax, horários de check-in/out, política de crianças, política de pet, café, wi-fi, estacionamento, depósito na chegada, documentos exigidos, itens inclusos/não inclusos, contatos, instruções especiais). CADA item do array = 1 tópico curto (1 linha, máx ~140 caracteres). NÃO agrupe várias em um só. Não omita nenhuma observação existente no voucher.
+- cancellation_policy: RESUMO CURTO da política de cancelamento/reembolso/no-show em português claro, com no máximo 3–5 frases OU bullets separados por "\n- ".
+- observations: ARRAY de tópicos curtos com TODAS as demais informações relevantes do voucher. Cada item = 1 tópico curto (1 linha, máx ~140 chars). Não omita nenhuma.
 - value: valor total pago em número. tax_value: taxas incluídas no total. currency: BRL/USD/EUR.
 - status: "confirmed" se o voucher confirma emissão; "reserved" se aguardando pagamento; "pending" se apenas pedido.
 - passengers: lista de hóspedes com nome completo; kind = "adult"/"child"/"infant"; cpf/document só se explícitos.
