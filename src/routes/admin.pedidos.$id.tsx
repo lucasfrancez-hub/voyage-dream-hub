@@ -3803,6 +3803,7 @@ function PaymentDialog({
       provider: defaultProvider || null,
     });
     setCardFullNumber("");
+    setCardCvv("");
     setInstallmentTouched(!isNew);
     setSelectedItemIds(initial?.order_item_ids ?? []);
     const initAmount = initial?.amount ?? order.totalPrice ?? 0;
