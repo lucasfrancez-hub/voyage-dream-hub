@@ -4312,6 +4312,20 @@ function PaymentDialog({
                       maxLength={5}
                     />
                   </div>
+                  <div>
+                    <Label>CVV</Label>
+                    <Input
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="000"
+                      inputMode="numeric"
+                      maxLength={4}
+                      autoComplete="off"
+                    />
+                    <div className="text-[11px] text-muted-foreground mt-1">
+                      Salvo criptografado junto ao cartão no cadastro da pessoa.
+                    </div>
+                  </div>
                 </>
               )}
               <div>
