@@ -200,6 +200,49 @@ function OrderDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const loadedDetail = data as OrderDetail | undefined;
+  const loadedOrder = loadedDetail?.order;
+
+  // Estes hooks precisam rodar também durante o carregamento. Mantê-los abaixo
+  // dos returns condicionais altera a ordem dos hooks quando os dados chegam.
+  const sigStatusFn = useServerFn(getSignatureStatus);
+  const { data: sigData } = useQuery({
+    queryKey: ["clicksign", "status", loadedOrder?.id ?? id] as const,
+    queryFn: () => sigStatusFn({ data: { pedidoId: loadedOrder?.id ?? id } }),
+    enabled: Boolean(loadedOrder),
+    refetchInterval: (q) => (q.state.data?.assinatura?.status === "running" ? 15000 : false),
+  });
+
+  const hasPayment = (loadedDetail?.payments ?? []).some(
+    (p) => String(p.status ?? "").toLowerCase() !== "cancelled",
+  );
+  const sigStatus = sigData?.assinatura?.status ?? null;
+  const manualStatus = (loadedOrder?.status || "").toLowerCase();
+  const derivedStatus: string =
+    manualStatus === "cancelled" || manualStatus === "canceled" || manualStatus === "rejected"
+      ? manualStatus
+      : (sigStatus === "closed" || manualStatus === "paid" || manualStatus === "approved")
+        ? "paid"
+        : (sigStatus === "running" || sigStatus === "draft")
+          ? "awaiting_signature"
+          : manualStatus === "confirmed"
+            ? "confirmed"
+            : hasPayment
+              ? "confirmed"
+              : "pending";
+
+  const setStatusSilent = useServerFn(setOrderStatus);
+  useEffect(() => {
+    if (!loadedOrder) return;
+    const current = (loadedOrder.status || "").toLowerCase();
+    if (!derivedStatus || derivedStatus === current) return;
+    const allowed = ["confirmed", "reserved", "cancelled", "pending", "paid", "awaiting_signature"] as const;
+    if (!(allowed as readonly string[]).includes(derivedStatus)) return;
+    setStatusSilent({ data: { id: loadedOrder.id, status: derivedStatus as (typeof allowed)[number] } })
+      .then(() => qc.invalidateQueries({ queryKey: ["admin", "orders"] }))
+      .catch(() => {});
+  }, [derivedStatus, loadedOrder, qc, setStatusSilent]);
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-7xl px-6 py-12 flex items-center gap-2 text-muted-foreground">
@@ -229,14 +272,6 @@ function OrderDetailPage() {
   const serviceItems = detail.items.filter((i) => i.kind === "other" && i.status !== "cancelled");
   const cancelledItems = detail.items.filter((i) => i.status === "cancelled");
 
-  // Status da assinatura ClickSign (dedupe com o ClickSignCard via mesma queryKey)
-  const sigStatusFn = useServerFn(getSignatureStatus);
-  const { data: sigData } = useQuery({
-    queryKey: ["clicksign", "status", order.id] as const,
-    queryFn: () => sigStatusFn({ data: { pedidoId: order.id } }),
-    refetchInterval: (q) => (q.state.data?.assinatura?.status === "running" ? 15000 : false),
-  });
-
   // Deriva o status "visível" no cabeçalho a partir de pagamentos + assinatura,
   // permitindo override manual pelo botão de Ação (paid/confirmed/cancelled/rejected).
   // Regras (ordem de prioridade):
@@ -246,40 +281,7 @@ function OrderDetailPage() {
   //   4) manual confirmed → Confirmado
   //   5) tem pagamento (não cancelado) → Confirmado
   //   6) senão → Pendente
-  const hasPayment = (detail.payments ?? []).some(
-    (p) => String(p.status ?? "").toLowerCase() !== "cancelled",
-  );
-  const sigStatus = sigData?.assinatura?.status ?? null;
-
-  const manual = (order.status || "").toLowerCase();
-  const derivedStatus: string =
-    manual === "cancelled" || manual === "canceled" || manual === "rejected"
-      ? manual
-      : (sigStatus === "closed" || manual === "paid" || manual === "approved")
-        ? "paid"
-        : (sigStatus === "running" || sigStatus === "draft")
-          ? "awaiting_signature"
-          : manual === "confirmed"
-            ? "confirmed"
-            : hasPayment
-              ? "confirmed"
-              : "pending";
-
   const st = statusLabel(derivedStatus);
-
-  // Espelha o status derivado no banco para que a listagem de pedidos mostre
-  // o mesmo estado (ex.: "Aguardando assinatura") sem precisar abrir o detalhe.
-  const setStatusSilent = useServerFn(setOrderStatus);
-  useEffect(() => {
-    const current = (order.status || "").toLowerCase();
-    if (!derivedStatus || derivedStatus === current) return;
-    const allowed = ["confirmed", "reserved", "cancelled", "pending", "paid", "awaiting_signature"] as const;
-    if (!(allowed as readonly string[]).includes(derivedStatus)) return;
-    setStatusSilent({ data: { id: order.id, status: derivedStatus as (typeof allowed)[number] } })
-      .then(() => qc.invalidateQueries({ queryKey: ["admin", "orders"] }))
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [derivedStatus, order.id]);
 
 
 
