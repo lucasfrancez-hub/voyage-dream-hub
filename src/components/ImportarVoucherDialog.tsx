@@ -254,13 +254,40 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
             </div>
           )}
 
-          {phase === "review" && extracted && (
-            <ReviewExtracted
-              value={extracted}
-              onChange={setExtracted}
-              onCancel={reset}
-              onConfirm={confirmar}
-            />
+          {phase === "review" && items.length > 0 && items[activeIdx] && (
+            <div className="space-y-3">
+              {items.length > 1 && (
+                <div className="rounded-md border bg-muted/40 p-2">
+                  <div className="text-xs font-medium text-muted-foreground mb-2">
+                    {items.length} itens detectados no voucher — clique para editar cada um:
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {items.map((it, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setActiveIdx(i)}
+                        className={`px-2.5 py-1 rounded-md text-xs border transition ${
+                          i === activeIdx
+                            ? "bg-brand-orange text-white border-brand-orange"
+                            : "bg-background hover:border-brand-orange/60"
+                        }`}
+                      >
+                        {i + 1}. {(it.title ?? "").slice(0, 40) || `Item ${i + 1}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <ReviewExtracted
+                value={items[activeIdx]!}
+                onChange={patchActive}
+                onCancel={reset}
+                onConfirm={confirmar}
+                onRemove={items.length > 1 ? removeActive : undefined}
+                itemLabel={items.length > 1 ? `Item ${activeIdx + 1} de ${items.length}` : undefined}
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>
