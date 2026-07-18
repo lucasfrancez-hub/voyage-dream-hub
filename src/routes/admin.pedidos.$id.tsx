@@ -3757,6 +3757,7 @@ function PaymentDialog({
   const [form, setForm] = useState<Partial<OrderPayment>>({});
   const [payer, setPayer] = useState<PayerPatch>({});
   const [cardFullNumber, setCardFullNumber] = useState<string>("");
+  const [cardCvv, setCardCvv] = useState<string>("");
   const [installmentTouched, setInstallmentTouched] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
