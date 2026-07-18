@@ -54,18 +54,12 @@ type OrderOriginRow = {
   package_snapshot?: unknown;
 };
 function orderOrigin(o: OrderOriginRow): { label: string; className: string } {
-  const snap = (o.package_snapshot ?? {}) as { kind?: string; manual?: boolean };
-  if (snap.kind === "payment_link" || snap.kind === "payment_link_simple") {
-    return { label: "Link de pagamento", className: "border-purple-500/40 bg-purple-500/10 text-purple-300" };
-  }
-  if (snap.manual === true) {
-    return { label: "Avulso", className: "border-amber-500/40 bg-amber-500/10 text-amber-300" };
-  }
   if (o.package_id) {
     return { label: "Pacote pronto", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" };
   }
-  return { label: "Checkout", className: "border-sky-500/40 bg-sky-500/10 text-sky-300" };
+  return { label: "Avulso", className: "border-amber-500/40 bg-amber-500/10 text-amber-300" };
 }
+
 
 
 export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_party"; initialStatus?: StatusFilter }) {
