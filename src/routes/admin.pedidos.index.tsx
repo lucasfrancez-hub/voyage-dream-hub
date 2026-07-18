@@ -512,7 +512,7 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
     phone: "",
     cpf: "",
     payment_method: "credit_card",
-    total_price: 0,
+    expected_total: 0,
     adults: 1,
     children: 0,
     supplier_name: "",
