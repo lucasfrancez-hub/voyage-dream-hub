@@ -656,6 +656,14 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
     airline_locator?: string | null;
     supplier_order_number?: string | null;
     supplier_name?: string | null;
+    full_name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    cpf?: string | null;
+    birth_date?: string | null;
+    adults?: number | null;
+    children?: number | null;
+    expected_total?: number | null;
   }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
@@ -663,10 +671,14 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
       const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
       if (!isPartner) throw new Error("Forbidden");
     }
-    const patch: Record<string, string | null> = {};
-    const keys = ["notes", "travel_reason", "coupon", "trip_title", "seller_name", "seller_email", "seller_phone", "supplier_logo_url", "airline_locator", "supplier_order_number", "supplier_name"] as const;
-    for (const k of keys) {
+    const patch: Record<string, string | number | null> = {};
+    const strKeys = ["notes", "travel_reason", "coupon", "trip_title", "seller_name", "seller_email", "seller_phone", "supplier_logo_url", "airline_locator", "supplier_order_number", "supplier_name", "full_name", "email", "phone", "cpf", "birth_date"] as const;
+    for (const k of strKeys) {
       const v = (data as Record<string, string | null | undefined>)[k];
+      if (v !== undefined) patch[k] = v;
+    }
+    for (const k of ["adults", "children", "expected_total"] as const) {
+      const v = (data as Record<string, number | null | undefined>)[k];
       if (v !== undefined) patch[k] = v;
     }
     if (Object.keys(patch).length === 0) return { ok: true };
