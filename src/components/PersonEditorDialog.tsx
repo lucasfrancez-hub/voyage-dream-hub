@@ -694,7 +694,7 @@ function CardsSection({
               </button>
               <button
                 type="button"
-                onClick={() => { if (confirm ? window.confirm("Remover este cartão?") : true) onDelete(c.id); }}
+                onClick={() => { if (window.confirm("Remover este cartão?")) onDelete(c.id); }}
                 className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:border-destructive hover:text-destructive"
               >
                 <Trash2 className="h-3 w-3" /> Remover
