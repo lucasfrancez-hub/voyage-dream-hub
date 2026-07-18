@@ -480,12 +480,16 @@ export type Database = {
       nfse_emissoes: {
         Row: {
           aliquota_iss: number | null
+          base_calculo: number | null
           cancelada_em: string | null
           chave_acesso: string | null
           codigo_verificacao: string | null
           created_at: string
           created_by: string | null
+          credito_tributario: number
           data_emissao: string | null
+          desconto_condicional: number
+          desconto_incondicional: number
           discriminacao: string
           focus_ref: string | null
           focus_response: Json | null
@@ -495,24 +499,40 @@ export type Database = {
           numero_nfse: string | null
           numero_rps: number | null
           order_id: string | null
+          outras_retencoes: number
           reference: string
           serie: string | null
           status: string
           tomador: Json
+          tributos_estaduais: number
+          tributos_federais: number
+          tributos_municipais: number
           updated_at: string
           url_pdf: string | null
           url_xml: string | null
+          valor_cofins: number
+          valor_csll: number
+          valor_deducoes: number
+          valor_inss: number
+          valor_ir: number
           valor_iss: number | null
+          valor_iss_retido: number
+          valor_liquido: number | null
+          valor_pis: number
           valor_servicos: number
         }
         Insert: {
           aliquota_iss?: number | null
+          base_calculo?: number | null
           cancelada_em?: string | null
           chave_acesso?: string | null
           codigo_verificacao?: string | null
           created_at?: string
           created_by?: string | null
+          credito_tributario?: number
           data_emissao?: string | null
+          desconto_condicional?: number
+          desconto_incondicional?: number
           discriminacao: string
           focus_ref?: string | null
           focus_response?: Json | null
@@ -522,24 +542,40 @@ export type Database = {
           numero_nfse?: string | null
           numero_rps?: number | null
           order_id?: string | null
+          outras_retencoes?: number
           reference: string
           serie?: string | null
           status?: string
           tomador: Json
+          tributos_estaduais?: number
+          tributos_federais?: number
+          tributos_municipais?: number
           updated_at?: string
           url_pdf?: string | null
           url_xml?: string | null
+          valor_cofins?: number
+          valor_csll?: number
+          valor_deducoes?: number
+          valor_inss?: number
+          valor_ir?: number
           valor_iss?: number | null
+          valor_iss_retido?: number
+          valor_liquido?: number | null
+          valor_pis?: number
           valor_servicos: number
         }
         Update: {
           aliquota_iss?: number | null
+          base_calculo?: number | null
           cancelada_em?: string | null
           chave_acesso?: string | null
           codigo_verificacao?: string | null
           created_at?: string
           created_by?: string | null
+          credito_tributario?: number
           data_emissao?: string | null
+          desconto_condicional?: number
+          desconto_incondicional?: number
           discriminacao?: string
           focus_ref?: string | null
           focus_response?: Json | null
@@ -549,14 +585,26 @@ export type Database = {
           numero_nfse?: string | null
           numero_rps?: number | null
           order_id?: string | null
+          outras_retencoes?: number
           reference?: string
           serie?: string | null
           status?: string
           tomador?: Json
+          tributos_estaduais?: number
+          tributos_federais?: number
+          tributos_municipais?: number
           updated_at?: string
           url_pdf?: string | null
           url_xml?: string | null
+          valor_cofins?: number
+          valor_csll?: number
+          valor_deducoes?: number
+          valor_inss?: number
+          valor_ir?: number
           valor_iss?: number | null
+          valor_iss_retido?: number
+          valor_liquido?: number | null
+          valor_pis?: number
           valor_servicos?: number
         }
         Relationships: [

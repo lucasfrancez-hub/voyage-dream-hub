@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
 
+type Num = number | string | null | undefined;
 export type NfseDocumentData = {
   numero_nfse?: string | null;
   serie?: string | null;
@@ -10,8 +11,24 @@ export type NfseDocumentData = {
   data_emissao?: string | null;
   created_at: string;
   valor_servicos: number | string;
-  valor_iss?: number | string | null;
-  aliquota_iss?: number | string | null;
+  valor_iss?: Num;
+  aliquota_iss?: Num;
+  valor_deducoes?: Num;
+  base_calculo?: Num;
+  valor_iss_retido?: Num;
+  valor_ir?: Num;
+  valor_inss?: Num;
+  valor_csll?: Num;
+  valor_cofins?: Num;
+  valor_pis?: Num;
+  outras_retencoes?: Num;
+  tributos_federais?: Num;
+  tributos_estaduais?: Num;
+  tributos_municipais?: Num;
+  desconto_incondicional?: Num;
+  desconto_condicional?: Num;
+  valor_liquido?: Num;
+  credito_tributario?: Num;
   discriminacao: string;
   tomador: unknown;
   focus_response?: unknown;
@@ -219,17 +236,37 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   );
   y -= descBoxH + 8;
 
+  // Cálculos com fallback
+  const n = (v: Num) => Number(v || 0);
+  const vServ = n(data.valor_servicos);
+  const vDed = n(data.valor_deducoes);
+  const vBase = data.base_calculo != null ? n(data.base_calculo) : vServ - vDed;
+  const vIss = n(data.valor_iss);
+  const vIssRet = n(data.valor_iss_retido);
+  const vIr = n(data.valor_ir);
+  const vInss = n(data.valor_inss);
+  const vCsll = n(data.valor_csll);
+  const vCofins = n(data.valor_cofins);
+  const vPis = n(data.valor_pis);
+  const vOutras = n(data.outras_retencoes);
+  const totRet = vIssRet + vIr + vInss + vCsll + vCofins + vPis + vOutras;
+  const dInc = n(data.desconto_incondicional);
+  const dCon = n(data.desconto_condicional);
+  const vLiq = data.valor_liquido != null ? n(data.valor_liquido) : vServ - dInc - totRet;
+  const vCred = n(data.credito_tributario);
+  const tFed = n(data.tributos_federais);
+
   // ============ VALORES ============
   y = drawSectionTitle("VALORES", y);
   const valW = contentWidth / 5;
   const valH = 48;
   page.drawRectangle({ x: margin, y: y - valH, width: contentWidth, height: valH, borderColor: linha, borderWidth: 0.7 });
   const valores = [
-    { label: "VALOR DOS SERVIÇOS", value: money(data.valor_servicos) },
-    { label: "DEDUÇÕES", value: money(0) },
-    { label: "BASE DE CÁLCULO", value: money(data.valor_servicos) },
-    { label: "ALÍQUOTA ISS", value: `${Number(data.aliquota_iss || 4).toFixed(4).replace(".", ",")} %` },
-    { label: "VALOR DO ISS", value: money(data.valor_iss), highlight: true },
+    { label: "VALOR DOS SERVIÇOS", value: money(vServ) },
+    { label: "DEDUÇÕES", value: money(vDed) },
+    { label: "BASE DE CÁLCULO", value: money(vBase) },
+    { label: "ALÍQUOTA ISS", value: `${Number(data.aliquota_iss || 0).toFixed(4).replace(".", ",")} %` },
+    { label: "VALOR DO ISS", value: money(vIss), highlight: true },
   ];
   valores.forEach((v, i) => {
     const x = margin + i * valW;
@@ -244,24 +281,48 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   });
   y -= valH + 8;
 
+  // ============ TRIBUTOS/RETENÇÕES ============
+  const tribs = [
+    { l: "ISS RETIDO", v: money(vIssRet) },
+    { l: "IR", v: money(vIr) },
+    { l: "INSS", v: money(vInss) },
+    { l: "CSLL", v: money(vCsll) },
+    { l: "COFINS", v: money(vCofins) },
+    { l: "PIS", v: money(vPis) },
+    { l: "OUTRAS RET.", v: money(vOutras) },
+  ];
+  const trW = contentWidth / tribs.length;
+  const trH = 40;
+  page.drawRectangle({ x: margin, y: y - trH, width: contentWidth, height: trH, borderColor: linha, borderWidth: 0.7 });
+  tribs.forEach((t, i) => {
+    const x = margin + i * trW;
+    if (i > 0) page.drawLine({ start: { x, y: y - trH }, end: { x, y }, thickness: 0.5, color: linha });
+    const lw = bold.widthOfTextAtSize(t.l, 6.5);
+    page.drawText(t.l, { x: x + (trW - lw) / 2, y: y - 14, size: 6.5, font: bold, color: cinza });
+    const vw = bold.widthOfTextAtSize(t.v, 8.5);
+    page.drawText(t.v, { x: x + (trW - vw) / 2, y: y - 30, size: 8.5, font: bold, color: azulEscuro });
+  });
+  y -= trH + 8;
+
   // ============ LÍQUIDO (faixa azul) ============
   const liqH = 46;
   page.drawRectangle({ x: margin, y: y - liqH, width: contentWidth, height: liqH, color: azul });
   page.drawText("VALOR LÍQUIDO DA NFS-E", { x: margin + 12, y: y - 16, size: 8, font: bold, color: rgb(1, 1, 1) });
-  page.drawText(money(data.valor_servicos), { x: margin + 12, y: y - 38, size: 20, font: bold, color: rgb(1, 1, 1) });
+  page.drawText(money(vLiq), { x: margin + 12, y: y - 38, size: 20, font: bold, color: rgb(1, 1, 1) });
   const secItems = [
-    { l: "DESC. INCONDICIONAL", v: money(0) },
-    { l: "DESC. CONDICIONAL", v: money(0) },
-    { l: "TOTAL DE RETENÇÕES", v: money(0) },
-    { l: "CRÉDITO TRIBUTÁRIO", v: money(0) },
+    { l: "DESC. INCONDICIONAL", v: money(dInc) },
+    { l: "DESC. CONDICIONAL", v: money(dCon) },
+    { l: "TOTAL DE RETENÇÕES", v: money(totRet) },
+    { l: "TRIB. FEDERAIS", v: money(tFed) },
+    { l: "CRÉDITO TRIB.", v: money(vCred) },
   ];
-  const secW = (contentWidth * 0.62) / 4;
+  const secW = (contentWidth * 0.62) / secItems.length;
   const secStartX = margin + contentWidth * 0.38;
   secItems.forEach((s, i) => {
     const x = secStartX + i * secW;
     page.drawLine({ start: { x, y: y - liqH + 4 }, end: { x, y: y - 4 }, thickness: 0.5, color: rgb(1, 1, 1) });
-    page.drawText(s.l, { x: x + 8, y: y - 16, size: 6.5, font: bold, color: rgb(0.9, 0.94, 1) });
-    page.drawText(s.v, { x: x + 8, y: y - 32, size: 9, font: bold, color: rgb(1, 1, 1) });
+    page.drawText(s.l, { x: x + 6, y: y - 16, size: 6, font: bold, color: rgb(0.9, 0.94, 1) });
+    page.drawText(s.v, { x: x + 6, y: y - 32, size: 8.5, font: bold, color: rgb(1, 1, 1) });
   });
   y -= liqH + 10;
 
