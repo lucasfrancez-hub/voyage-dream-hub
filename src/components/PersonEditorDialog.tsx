@@ -1013,7 +1013,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     number: "", security_code_hint: "", exp_month: "", exp_year: "",
-    holder_name: "", operator: "MasterCard", travel_card_type: "",
+    holder_name: "", operator: "MasterCard", nickname: "",
   });
   const [revealed, setRevealed] = useState<Record<string, string>>({});
 
@@ -1029,11 +1029,10 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
         security_code_hint: form.security_code_hint || undefined,
         holder_name: form.holder_name || undefined,
         operator: form.operator || undefined,
-        travel_card_type: form.travel_card_type || undefined,
-        is_travel_card: !!form.travel_card_type,
+        nickname: form.nickname || undefined,
       }});
       qc.invalidateQueries({ queryKey: ["admin-people", personId] });
-      setForm({ number: "", security_code_hint: "", exp_month: "", exp_year: "", holder_name: "", operator: "MasterCard", travel_card_type: "" });
+      setForm({ number: "", security_code_hint: "", exp_month: "", exp_year: "", holder_name: "", operator: "MasterCard", nickname: "" });
       setShowForm(false);
       toast.success("Cartão adicionado");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
@@ -1067,7 +1066,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
               <th className="px-3 py-2 text-left">Validade</th>
               <th className="px-3 py-2 text-left">CVV</th>
               <th className="px-3 py-2 text-left">Operadora</th>
-              <th className="px-3 py-2 text-left">Cartão Passagem</th>
+              <th className="px-3 py-2 text-left">Descrição</th>
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
@@ -1083,7 +1082,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
                 <td className="px-3 py-2">{c.expiry ?? "—"}</td>
                 <td className="px-3 py-2 font-mono">{c.security_code_hint ?? "—"}</td>
                 <td className="px-3 py-2">{c.operator ?? c.brand ?? "—"}</td>
-                <td className="px-3 py-2">{c.travel_card_type ?? "—"}</td>
+                <td className="px-3 py-2 text-muted-foreground">{c.nickname ?? "—"}</td>
                 <td className="px-3 py-2 text-right flex items-center gap-1 justify-end">
                   <button type="button" onClick={() => toggleReveal(c.id)} className="text-muted-foreground hover:text-foreground">
                     {revealed[c.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -1133,12 +1132,8 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
                     {["Visa", "MasterCard", "Amex", "Elo", "Hipercard", "Diners", "Discover"].map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </MiniField>
-                <MiniField label="Cartão Passagem:">
-                  <select value={form.travel_card_type} onChange={(e) => setForm({ ...form, travel_card_type: e.target.value })} className={cls}>
-                    <option value="">Nenhum</option>
-                    <option value="CTA">CTA</option>
-                    <option value="CPB">CPB</option>
-                  </select>
+                <MiniField label="Descrição / uso do cartão:">
+                  <input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} className={cls} placeholder="Ex.: Corporativo — Cliente X" />
                 </MiniField>
               </div>
               <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-900 dark:text-amber-200">
