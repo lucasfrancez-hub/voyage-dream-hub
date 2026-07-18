@@ -308,7 +308,7 @@ export const emitirNfse = createServerFn({ method: "POST" })
     );
     const httpOk = respStatus >= 200 && respStatus < 300 && !networkError;
     const ok = httpOk && !providerRejected;
-    const finalStatus = ok ? (numeroNfse ? "emitida" : "processando") : "erro";
+    const finalStatus = ok ? (numeroNfse ? "autorizado" : "processando") : "erro";
 
     await supabaseAdmin.from("nfse_emissoes").update({
       focus_ref: reference,

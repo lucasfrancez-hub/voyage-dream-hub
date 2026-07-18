@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
-  FileText, RefreshCw, Download, XCircle, ExternalLink, Search,
+  FileText, RefreshCw, Download, XCircle, ExternalLink, Search, FileCode2,
   CheckCircle2, AlertTriangle, Clock, Ban, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   Tabs, TabsList, TabsTrigger, TabsContent,
 } from "@/components/ui/tabs";
 import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse } from "@/lib/nfse.functions";
+import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 
 export const Route = createFileRoute("/admin/notas-fiscais")({
   head: () => ({ meta: [{ title: "Notas Fiscais — VIA AIR" }] }),
@@ -26,7 +27,8 @@ const fmtDate = (s: string) => new Date(s).toLocaleString("pt-BR");
 function statusBadge(s: string) {
   const map: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
     processando: { label: "Processando", cls: "bg-amber-500/15 text-amber-700 border-amber-500/30", icon: <Clock className="h-3 w-3" /> },
-    autorizado: { label: "Autorizado", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" /> },
+    autorizado: { label: "Autorizada", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" /> },
+    emitida: { label: "Autorizada", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" /> },
     cancelando: { label: "Cancelando", cls: "bg-orange-500/15 text-orange-700 border-orange-500/30", icon: <Clock className="h-3 w-3" /> },
     cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground", icon: <Ban className="h-3 w-3" /> },
     erro: { label: "Erro", cls: "bg-red-500/15 text-red-700 border-red-500/30", icon: <AlertTriangle className="h-3 w-3" /> },
@@ -74,7 +76,7 @@ function NotasFiscaisPage() {
   const counts = useMemo(() => {
     const c = { todas: rows.length, autorizado: 0, processando: 0, erro: 0, cancelado: 0 };
     for (const r of rows) {
-      if (r.status === "autorizado") c.autorizado++;
+      if (r.status === "autorizado" || r.status === "emitida") c.autorizado++;
       else if (r.status === "processando" || r.status === "cancelando") c.processando++;
       else if (r.status === "erro") c.erro++;
       else if (r.status === "cancelado") c.cancelado++;
@@ -85,7 +87,7 @@ function NotasFiscaisPage() {
   const totals = useMemo(() => {
     let valor = 0, iss = 0;
     for (const r of rows) {
-      if (r.status !== "autorizado") continue;
+      if (r.status !== "autorizado" && r.status !== "emitida") continue;
       valor += Number(r.valor_servicos ?? 0);
       iss += Number(r.valor_iss ?? 0);
     }
@@ -95,7 +97,7 @@ function NotasFiscaisPage() {
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return rows.filter((r) => {
-      if (tab === "autorizado" && r.status !== "autorizado") return false;
+      if (tab === "autorizado" && r.status !== "autorizado" && r.status !== "emitida") return false;
       if (tab === "processando" && !(r.status === "processando" || r.status === "cancelando")) return false;
       if (tab === "erro" && r.status !== "erro") return false;
       if (tab === "cancelado" && r.status !== "cancelado") return false;
@@ -169,7 +171,9 @@ function NotasFiscaisPage() {
                 {filtered.map((r) => {
                   const o = (r as Row & { orders?: { order_number?: string; full_name?: string } }).orders;
                   const err = (r.focus_response as { mensagem?: string; erros?: Array<{ mensagem?: string }>; bodyPreview?: string; networkError?: string } | null);
-                  const errMsg = err?.mensagem || err?.erros?.[0]?.mensagem || err?.networkError || err?.bodyPreview?.slice(0, 200);
+                  const errMsg = r.status === "erro"
+                    ? err?.mensagem || err?.erros?.[0]?.mensagem || err?.networkError || err?.bodyPreview?.slice(0, 200)
+                    : null;
                   return (
                     <div key={r.id} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                       <div className="min-w-0 flex-1">
@@ -207,14 +211,19 @@ function NotasFiscaisPage() {
                           onClick={() => consultMut.mutate(r.id)}>
                           <RefreshCw className="h-3.5 w-3.5" />
                         </Button>
-                        {r.url_pdf && (
-                          <Button size="sm" variant="ghost" className="h-8 px-2" asChild title="Baixar PDF">
-                            <a href={r.url_pdf} target="_blank" rel="noreferrer">
+                        {(r.status === "autorizado" || r.status === "emitida") && (
+                          <>
+                            <Button size="sm" variant="ghost" className="h-8 px-2" title="Baixar PDF da NFS-e"
+                              onClick={() => downloadNfsePdf(r)}>
                               <Download className="h-3.5 w-3.5" />
-                            </a>
-                          </Button>
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-8 px-2" title="Baixar XML da NFS-e"
+                              onClick={() => { try { downloadNfseXml(r); } catch (e) { toast.error(e instanceof Error ? e.message : "XML indisponível"); } }}>
+                              <FileCode2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
                         )}
-                        {r.status === "autorizado" && (
+                        {(r.status === "autorizado" || r.status === "emitida") && (
                           <Button size="sm" variant="ghost" className="h-8 px-2 text-red-600"
                             title="Cancelar NFS-e"
                             onClick={() => {
