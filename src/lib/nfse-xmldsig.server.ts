@@ -28,23 +28,27 @@ function loadCertFromEnv(): LoadedCert {
   const b64 = normalizeBase64(rawB64);
   const buf = Buffer.from(b64, "base64");
   const header = buf.subarray(0, 4).toString("hex");
-  // .p12 (PKCS#12) sempre começa com 0x30 0x82 (SEQUENCE, long-form length)
-  if (buf.length < 500 || !header.startsWith("3082")) {
+  // .p12 (PKCS#12) começa com SEQUENCE: 0x3082 (DER long-form) OU 0x3080 (BER indefinite)
+  if (buf.length < 500 || !header.startsWith("30")) {
     throw new Error(
       `Certificado NFSE_CERT_PFX_BASE64 inválido ou truncado: ` +
       `base64 length=${rawB64.length}, decoded bytes=${buf.length}, header=0x${header}. ` +
-      `Esperado .p12 iniciando com 0x3082 e com vários KB. ` +
-      `Regere a base64 com: base64 -w0 certificado.p12 > cert.b64 e cole o conteúdo COMPLETO na secret.`
+      `Esperado .p12 iniciando com 0x30 e com vários KB.`
     );
   }
   const binary = buf.toString("binary");
   let p12;
   try {
-    p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(binary), pwd);
+    // strict=false + parseAllBytes=false para aceitar BER com comprimento indefinido (0x3080),
+    // comum em .p12 gerados no Windows/OpenSSL.
+    const asn1 = (forge.asn1.fromDer as any)(binary, { strict: false, parseAllBytes: false });
+    p12 = forge.pkcs12.pkcs12FromAsn1(asn1, pwd);
   } catch (e: any) {
     throw new Error(
       `Falha ao decodificar .p12 (bytes=${buf.length}, header=0x${header}): ${e?.message || e}. ` +
-      `Verifique se o arquivo não foi truncado no upload da secret e se a senha está correta.`
+      `Se a senha estiver correta, reexporte o certificado como PKCS#12 (.pfx) padrão: ` +
+      `openssl pkcs12 -in original.p12 -nodes -out tmp.pem -passin pass:SENHA && ` +
+      `openssl pkcs12 -export -in tmp.pem -out novo.p12 -passout pass:SENHA`
     );
   }
   const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
@@ -94,7 +98,7 @@ export function getCertInfo(): { subject: string; issuer: string; notAfter: stri
   const pwd = process.env.NFSE_CERT_PASSWORD;
   if (!rawB64 || !pwd) throw new Error("Certificado não configurado");
   const binary = Buffer.from(normalizeBase64(rawB64), "base64").toString("binary");
-  const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(binary), pwd);
+  const p12 = forge.pkcs12.pkcs12FromAsn1((forge.asn1.fromDer as any)(binary, { strict: false, parseAllBytes: false }), pwd);
   const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag]?.[0];
   if (!certBag?.cert) throw new Error("Certificado ausente no .p12");
   return {
