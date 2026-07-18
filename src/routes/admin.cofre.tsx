@@ -467,7 +467,7 @@ function CofrePage() {
                       navigator.clipboard.writeText(e.url);
                       toast.success("Link copiado");
                     }}
-                    className="w-full flex items-center justify-center gap-2 py-2 bg-brand-orange text-white rounded text-xs font-bold uppercase tracking-widest hover:bg-brand-orange/90 transition-all"
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-brand-orange text-white rounded-full text-xs font-bold uppercase tracking-widest hover:bg-brand-orange/90 transition-all"
                   >
                     <Copy className="w-4 h-4" /> Copiar Link
                   </button>
@@ -475,7 +475,7 @@ function CofrePage() {
                     href={waHref}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-2 bg-emerald-500/15 text-emerald-500 rounded text-xs font-bold uppercase tracking-widest border border-emerald-500/20 hover:bg-emerald-500/25 transition-all"
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-emerald-500/15 text-emerald-500 rounded-full text-xs font-bold uppercase tracking-widest border border-emerald-500/20 hover:bg-emerald-500/25 transition-all"
                   >
                     <MessageCircle className="w-4 h-4" /> WhatsApp
                   </a>
@@ -483,7 +483,7 @@ function CofrePage() {
                     href={e.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-2 bg-muted/60 text-foreground rounded text-xs font-bold uppercase tracking-widest border border-border hover:bg-muted transition-all"
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-muted/60 text-foreground rounded-full text-xs font-bold uppercase tracking-widest border border-border hover:bg-muted transition-all"
                   >
                     <ExternalLink className="w-4 h-4" /> Abrir cofre
                   </a>
@@ -492,7 +492,7 @@ function CofrePage() {
                     <button
                       type="button"
                       onClick={() => onFinalize(e.orderId!)}
-                      className="w-full flex items-center justify-center gap-2 py-2 bg-green-500/10 text-green-500 rounded text-xs font-bold uppercase tracking-widest border border-green-500/20 hover:bg-green-500/20 transition-all"
+                      className="w-full flex items-center justify-center gap-2 py-2 bg-green-500/10 text-green-500 rounded-full text-xs font-bold uppercase tracking-widest border border-green-500/20 hover:bg-green-500/20 transition-all"
                     >
                       <CheckCircle2 className="w-4 h-4" /> Finalizar
                     </button>
