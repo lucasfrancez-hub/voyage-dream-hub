@@ -678,7 +678,7 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
       if (v !== undefined) patch[k] = v;
     }
     for (const k of ["adults", "children", "expected_total"] as const) {
-      const v = (data as Record<string, number | null | undefined>)[k];
+      const v = (data as unknown as Record<string, number | null | undefined>)[k];
       if (v !== undefined) patch[k] = v;
     }
     if (Object.keys(patch).length === 0) return { ok: true };
