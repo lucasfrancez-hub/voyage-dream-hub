@@ -50,6 +50,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<"idle" | "uploading" | "review">("idle");
   const [extracted, setExtracted] = useState<ExtractedItemVoucher | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const extract = useServerFn(extractItemVoucher);
   const saveItem = useServerFn(upsertOrderItem);
