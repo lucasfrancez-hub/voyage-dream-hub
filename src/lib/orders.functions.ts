@@ -24,49 +24,102 @@ async function buildAutoTitle(context: { supabase: unknown }, orderId: string): 
   const list = ((it.data as Array<{ kind: string; title: string | null; details: Record<string, unknown> | null; supplier_locator: string | null }>) ?? []);
   if (list.length === 0) return null;
 
-  // Fallback heurístico determinístico
   const flights = list.filter((i) => i.kind === "flight");
   const hotels = list.filter((i) => i.kind === "hotel");
   const others = list.filter((i) => i.kind !== "flight" && i.kind !== "hotel");
+
+  // ---- Resumo inteligente de aéreos: colapsa conexões e detecta ida-e-volta ----
+  // Cada item flight representa UM segmento (origem/destino). Agrupamos por
+  // supplier_locator (uma jornada = um localizador) e reduzimos a pares
+  // (primeira origem, último destino), colapsando aeroportos de conexão.
+  const IATA_CITY: Record<string, string> = {
+    GRU: "São Paulo", CGH: "São Paulo", VCP: "Campinas",
+    GIG: "Rio de Janeiro", SDU: "Rio de Janeiro",
+    BSB: "Brasília", CNF: "Belo Horizonte", PLU: "Belo Horizonte",
+    CWB: "Curitiba", POA: "Porto Alegre", FLN: "Florianópolis",
+    SSA: "Salvador", REC: "Recife", FOR: "Fortaleza", NAT: "Natal",
+    MCZ: "Maceió", AJU: "Aracaju", THE: "Teresina", SLZ: "São Luís",
+    BEL: "Belém", MAO: "Manaus", MGF: "Maringá", LDB: "Londrina",
+    CGB: "Cuiabá", CGR: "Campo Grande", GYN: "Goiânia", VIX: "Vitória",
+    IGU: "Foz do Iguaçu", NVT: "Navegantes", JPA: "João Pessoa",
+    PMW: "Palmas", MCP: "Macapá", PVH: "Porto Velho", RBR: "Rio Branco",
+    BVB: "Boa Vista", STM: "Santarém",
+    // Internacionais comuns
+    MIA: "Miami", MCO: "Orlando", JFK: "Nova York", LGA: "Nova York", EWR: "Newark",
+    LAX: "Los Angeles", SFO: "São Francisco", ORD: "Chicago", IAH: "Houston",
+    DFW: "Dallas", ATL: "Atlanta", BOS: "Boston", LAS: "Las Vegas",
+    LIS: "Lisboa", OPO: "Porto", MAD: "Madri", BCN: "Barcelona",
+    CDG: "Paris", ORY: "Paris", LHR: "Londres", LGW: "Londres",
+    FCO: "Roma", MXP: "Milão", FRA: "Frankfurt", MUC: "Munique",
+    AMS: "Amsterdã", ZRH: "Zurique", GVA: "Genebra",
+    EZE: "Buenos Aires", AEP: "Buenos Aires", SCL: "Santiago", LIM: "Lima",
+    BOG: "Bogotá", MEX: "Cidade do México", CUN: "Cancún",
+    DXB: "Dubai", DOH: "Doha", IST: "Istambul",
+  };
+  const cityOf = (iata: string) => {
+    const k = String(iata || "").toUpperCase().trim();
+    return IATA_CITY[k] || k;
+  };
+
+  // Agrupa segmentos por localizador (ou "sem localizador" como um bucket só)
+  const groups = new Map<string, Array<{ orig: string; dest: string; order: number }>>();
+  flights.forEach((f, idx) => {
+    const d = (f.details ?? {}) as Record<string, unknown>;
+    const orig = String(d.origin ?? d.from ?? d.origin_code ?? "").toUpperCase();
+    const dest = String(d.destination ?? d.to ?? d.destination_code ?? "").toUpperCase();
+    if (!orig || !dest) return;
+    const key = f.supplier_locator || `__idx_${idx}`;
+    const arr = groups.get(key) ?? [];
+    const orderVal = Number(d.segment_index ?? d.order ?? idx);
+    arr.push({ orig, dest, order: isFinite(orderVal) ? orderVal : idx });
+    groups.set(key, arr);
+  });
+
+  // Para cada grupo, encadeia segmentos e extrai endpoints (colapsa conexões)
+  const legs: Array<{ from: string; to: string }> = [];
+  for (const segs of groups.values()) {
+    segs.sort((a, b) => a.order - b.order);
+    // Colapsa segmentos consecutivos onde dest[i] == orig[i+1] (conexão)
+    let curFrom = segs[0].orig;
+    let curTo = segs[0].dest;
+    for (let i = 1; i < segs.length; i++) {
+      if (segs[i].orig === curTo) {
+        curTo = segs[i].dest; // conexão: estende
+      } else {
+        legs.push({ from: curFrom, to: curTo });
+        curFrom = segs[i].orig;
+        curTo = segs[i].dest;
+      }
+    }
+    legs.push({ from: curFrom, to: curTo });
+  }
+
   const parts: string[] = [];
-  if (flights.length) {
-    const d = (flights[0].details ?? {}) as Record<string, unknown>;
-    const orig = (d.origin ?? d.from ?? d.origin_code ?? "") as string;
-    const dest = (d.destination ?? d.to ?? d.destination_code ?? "") as string;
-    parts.push(orig && dest ? `Aéreo ${orig}→${dest}` : `Aéreo${flights.length > 1 ? ` (${flights.length})` : ""}`);
+  if (legs.length) {
+    // Detecta ida-e-volta: 2 legs invertidos
+    if (legs.length === 2 && legs[0].from === legs[1].to && legs[0].to === legs[1].from) {
+      parts.push(`Aéreo ${cityOf(legs[0].from)} ⇄ ${cityOf(legs[0].to)}`);
+    } else if (legs.length === 1) {
+      parts.push(`Aéreo ${cityOf(legs[0].from)} → ${cityOf(legs[0].to)}`);
+    } else {
+      // Múltiplos trechos independentes: junta com " + "
+      const seen = new Set<string>();
+      const rendered: string[] = [];
+      for (const l of legs) {
+        const k = `${l.from}-${l.to}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        rendered.push(`${cityOf(l.from)} → ${cityOf(l.to)}`);
+      }
+      parts.push(`Aéreo ${rendered.join(" + ")}`);
+    }
+  } else if (flights.length) {
+    parts.push(`Aéreo${flights.length > 1 ? ` (${flights.length})` : ""}`);
   }
   if (hotels.length) parts.push(hotels[0].title ? `Hospedagem ${hotels[0].title}` : "Hospedagem");
   if (others.length) parts.push(others[0].title || "Serviços");
-  const heuristic = parts.join(" + ").slice(0, 120) || null;
+  return parts.join(" + ").slice(0, 140) || null;
 
-  // Enriquecimento via IA (best-effort — se falhar, cai no heurístico)
-  try {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (apiKey) {
-      const summary = list.map((i) => `- ${i.kind}: ${i.title ?? ""}${i.supplier_locator ? ` (${i.supplier_locator})` : ""}`).join("\n");
-      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
-          messages: [
-            { role: "system", content: "Você resume pacotes de viagem em UMA linha curta em português (até 80 caracteres), no formato de título comercial (ex: 'Aéreo GRU→MIA + Hospedagem Marriott'). Sem aspas, sem pontuação final, sem a palavra 'Pedido'." },
-            { role: "user", content: summary },
-          ],
-          max_tokens: 60,
-          temperature: 0.3,
-        }),
-      });
-      if (res.ok) {
-        const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-        const txt = json?.choices?.[0]?.message?.content?.trim();
-        if (txt) return txt.replace(/^["']+|["']+$/g, "").slice(0, 140);
-      }
-    }
-  } catch {
-    // usa heurístico
-  }
-  return heuristic;
 }
 
 async function applyAutoTitle(context: { supabase: unknown }, orderId: string): Promise<void> {
