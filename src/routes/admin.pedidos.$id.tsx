@@ -9,6 +9,7 @@ import {
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
   Package, Percent, Mail, Printer, CheckCircle2, MoreHorizontal, Signature,
   Vault, ExternalLink, X, UserPlus, Star, Backpack, Briefcase, Luggage,
+  Phone, CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -298,27 +299,71 @@ function OrderDetailPage() {
         <div className="text-xs text-muted-foreground">/ Detalhe</div>
       </div>
 
-      {/* Header */}
-      <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Hash className="h-3 w-3" />
-              <span className="font-mono text-sm text-foreground font-semibold">{order.orderNumber}</span>
-              <span className="text-[10px] text-muted-foreground/70">ref {shortId(order.id)}</span>
-              <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>
-                {st.label}
-              </span>
+      {/* Header — Command center layout */}
+      <div className="rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+        {/* Top meta bar */}
+        <div className="px-4 sm:px-6 py-2.5 bg-muted/30 border-b border-border/60 flex flex-wrap items-center justify-between gap-2 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+            <div className="flex items-center gap-1.5">
+              <Hash className="h-3 w-3 opacity-60" />
+              <span className="text-foreground font-mono">{order.orderNumber}</span>
             </div>
-            <div className="mt-1 text-xl sm:text-2xl font-display font-bold break-words">{order.fullName}</div>
-            <div className="text-sm text-muted-foreground break-words">{order.email} · {order.phone}</div>
-            {order.cpf && <div className="text-xs text-muted-foreground mt-0.5">CPF {order.cpf}</div>}
-            <div className="mt-2 max-w-full sm:max-w-md">
-              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Título da viagem (aparece no voucher)</Label>
+            <div className="flex items-center gap-1.5">
+              <span className="opacity-60">Ref</span>
+              <span className="text-foreground/80">{shortId(order.id)}</span>
+            </div>
+            <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 ${st.className}`}>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-80"></span>
+              <span>{st.label}</span>
+            </div>
+
+          </div>
+          <div className="text-[10px] normal-case tracking-normal text-muted-foreground">
+            <span className="opacity-70 italic">Criado em </span>
+            <span className="text-foreground/80">{new Date(order.createdAt).toLocaleString("pt-BR")}</span>
+          </div>
+        </div>
+
+        {/* Main content — identity + total */}
+        <div className="p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="lg:col-span-7 min-w-0 space-y-5">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight leading-tight break-words">
+                {order.fullName}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                {order.email && (
+                  <div className="flex items-center gap-1.5">
+                    <Mail className="h-4 w-4 opacity-60" />
+                    <span className="break-all">{order.email}</span>
+                  </div>
+                )}
+                {order.phone && (
+                  <>
+                    <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-border"></span>
+                    <div className="flex items-center gap-1.5">
+                      <Phone className="h-4 w-4 opacity-60" />
+                      <span>{order.phone}</span>
+                    </div>
+                  </>
+                )}
+                {order.cpf && (
+                  <>
+                    <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-border"></span>
+                    <span className="text-xs">CPF {order.cpf}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">
+                Título da viagem (voucher)
+              </Label>
               <Input
                 defaultValue={order.tripTitle ?? ""}
                 placeholder="Ex: Pacote para São Paulo"
-                className="mt-1 h-8 text-sm"
+                className="h-10 text-sm bg-muted/30 border-border/60 focus-visible:border-brand-orange/50 focus-visible:ring-brand-orange/40"
                 onBlur={(e) => {
                   const v = e.target.value.trim();
                   if ((v || null) !== (order.tripTitle ?? null)) metaMut.mutate({ trip_title: v || null });
@@ -326,215 +371,227 @@ function OrderDetailPage() {
               />
             </div>
           </div>
-          <div className="text-left sm:text-right">
-            <div className="text-xs text-muted-foreground">Total</div>
-            <div className="text-xl sm:text-2xl font-display font-bold text-brand-orange">{formatBRL(order.totalPrice)}</div>
-            {order.expectedTotal != null && order.expectedTotal > 0 && (() => {
-              const diff = order.totalPrice - order.expectedTotal;
-              const within = diff <= 0;
-              return (
-                <div className="mt-1 text-[11px] flex sm:justify-end items-center gap-1">
-                  <span className="text-muted-foreground">Previsto:</span>
-                  <span className="font-medium">{formatBRL(order.expectedTotal)}</span>
-                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${within ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
-                    {within ? "dentro" : `+${formatBRL(diff)}`}
-                  </span>
-                </div>
-              );
-            })()}
-            <div className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>
-              {pm.label}
+
+          <div className="lg:col-span-5 flex flex-col items-start lg:items-end">
+            <div className="text-left lg:text-right">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Valor total</p>
+              <div className="flex items-baseline gap-2 lg:justify-end">
+                <span className="text-brand-orange text-base font-medium">BRL</span>
+                <span className="text-3xl sm:text-4xl font-display font-bold tabular-nums tracking-tight">
+                  {new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(order.totalPrice || 0)}
+                </span>
+              </div>
+
+              {order.expectedTotal != null && order.expectedTotal > 0 && (() => {
+                const diff = order.totalPrice - order.expectedTotal;
+                const within = diff <= 0;
+                return (
+                  <div className="mt-1.5 text-[11px] flex lg:justify-end items-center gap-1 text-muted-foreground">
+                    <span>Previsto:</span>
+                    <span className="font-medium text-foreground/80">{formatBRL(order.expectedTotal)}</span>
+                    <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${within ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
+                      {within ? "dentro" : `+${formatBRL(diff)}`}
+                    </span>
+                  </div>
+                );
+              })()}
+
+              <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full border ${pm.className}`}>
+                <CreditCard className="h-3 w-3 opacity-70" />
+                <span className="text-[10px] font-bold uppercase tracking-wide">{pm.label}</span>
+              </div>
             </div>
-            <div className="text-[11px] text-muted-foreground mt-1">
-              Criado em {new Date(order.createdAt).toLocaleString("pt-BR")}
-            </div>
-            <div className="mt-3 flex flex-wrap justify-end gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm">Gerar link de pagamento</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Escolha a modalidade</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {(() => {
-                    const snap = (order.packageSnapshot ?? {}) as Record<string, unknown>;
-                    const hotelItem = detail.items.find((i) => i.kind === "hotel" && i.status !== "cancelled");
-                    const flightItems = detail.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
-                    const pax = detail.passengers.map((p) => p.full_name).filter(Boolean).join("\n");
-                    const flightsTxt = flightItems.map((f) => f.title).join("\n");
-                    const hotelTxt = hotelItem?.title
-                      ?? (snap.hotel_name ? String(snap.hotel_name) : "");
-                    const checkin = snap.going_date ? String(snap.going_date) : "";
-                    const checkout = snap.return_date ? String(snap.return_date) : "";
-                    const nights = snap.nights != null ? String(snap.nights) : "";
-                    const destination = snap.destination ? String(snap.destination) : "";
-                    const origin = snap.origin ? String(snap.origin) : "";
-                    const packageTitle = snap.title ? String(snap.title) : "";
-                    const desc = packageTitle
-                      || [destination && `Pacote ${destination}`, origin && `saindo de ${origin}`].filter(Boolean).join(" ")
-                      || `Pedido ${order.orderNumber}`;
-                    const travelDate = checkin && checkout
-                      ? `${new Date(checkin + "T00:00").toLocaleDateString("pt-BR")} a ${new Date(checkout + "T00:00").toLocaleDateString("pt-BR")}`
-                      : "";
-                    const search = {
-                      customer: order.fullName,
-                      phone: order.phone,
-                      total: String(order.totalPrice ?? ""),
-                      orderRef: order.id,
-                      orderNumber: order.orderNumber,
-                      locator: order.airlineLocator ?? "",
-                      supplier: order.supplierName || "Via Air",
-                      description: desc,
-                      passengers: pax,
-                      hotel: hotelTxt,
-                      flights: flightsTxt,
-                      checkin,
-                      checkout,
-                      nights,
-                      days: nights ? String(Number(nights) + 1) : "",
-                      travelDate,
-                      route: [origin, destination].filter(Boolean).join(" → "),
-                      imageUrl: snap.image_url ? String(snap.image_url) : "",
-                      autogen: "1",
-                    };
-                    const openInNewTab = (path: string) => {
-                      const qs = new URLSearchParams();
-                      for (const [k, v] of Object.entries(search)) {
-                        if (v != null && String(v).length > 0) qs.set(k, String(v));
-                      }
-                      // Fallback via sessionStorage caso a nova aba perca a querystring
-                      try {
-                        sessionStorage.setItem(
-                          `paymentLinkPrefill:${path}`,
-                          JSON.stringify(search),
-                        );
-                      } catch { /* ignore */ }
-                      window.open(`${path}?${qs.toString()}`, "_blank", "noopener");
-                    };
-                    return (
-                      <>
-                        <DropdownMenuItem onClick={() => openInNewTab("/admin/link-pagamento")}>
-                          <FileText className="h-3.5 w-3.5 mr-2" /> Seguro (personalizado)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openInNewTab("/admin/link-cartao-simples")}>
-                          <DollarSign className="h-3.5 w-3.5 mr-2" /> Convencional (cartão simples)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openInNewTab("/admin/link-boleto")}>
-                          <FileText className="h-3.5 w-3.5 mr-2" /> Boleto
-                        </DropdownMenuItem>
-                      </>
-                    );
-                  })()}
-                </DropdownMenuContent>
-              </DropdownMenu>
+          </div>
+        </div>
 
+        {/* Actions bar */}
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-background/40 border-t border-border/60 flex flex-wrap items-center justify-between gap-3">
+          {/* Utility / secondary actions */}
+          <div className="flex flex-wrap items-center gap-1">
+            <Button size="sm" variant="ghost" className="h-9 gap-2 text-muted-foreground hover:text-foreground" onClick={() => setOpenQuote(true)}>
+              <FileText className="h-4 w-4" /> Orçamento
+            </Button>
 
-              <ImportarMultiDialog
-                orderId={id}
-                onImported={invalidate}
-                trigger={
-                  <Button size="sm" className="gap-1 bg-orange-500 hover:bg-orange-600 text-white">
-                    <Download className="h-3.5 w-3.5" /> Importar voucher
-                  </Button>
-                }
-              />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-9 gap-2 text-muted-foreground hover:text-foreground">
+                  <Printer className="h-4 w-4" /> Imprimir
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={async () => {
+                  try {
+                    const blob = await generateReceiptAndContract(detail);
+                    openBlobInNewTab(blob, `contrato-${order.orderNumber}.pdf`);
+                  } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar contrato"); }
+                }}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato + Recibo</DropdownMenuItem>
+                <DropdownMenuItem onClick={async () => {
+                  try {
+                    const blob = await generateReceiptOnly(detail);
+                    openBlobInNewTab(blob, `recibo-${order.orderNumber}.pdf`);
+                  } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar recibo"); }
+                }}><FileText className="h-3.5 w-3.5 mr-2" /> Recibo</DropdownMenuItem>
+                <DropdownMenuItem onClick={async () => {
+                  const tId = toast.loading("Gerando voucher em português…");
+                  try {
+                    const { generateVoucher } = await import("@/lib/voucher-pdf");
+                    const blob = await generateVoucher(detail, "pt");
+                    openBlobInNewTab(blob, `voucher-${order.orderNumber}.pdf`);
+                    toast.success("Voucher gerado", { id: tId });
+                  } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar voucher", { id: tId }); }
+                }}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher (PT)</DropdownMenuItem>
+                <DropdownMenuItem onClick={async () => {
+                  const tId = toast.loading("Generating voucher in English…");
+                  try {
+                    const { generateVoucher } = await import("@/lib/voucher-pdf");
+                    const blob = await generateVoucher(detail, "en");
+                    openBlobInNewTab(blob, `voucher-${order.orderNumber}-en.pdf`);
+                    toast.success("Voucher ready", { id: tId });
+                  } catch (e) { toast.error(e instanceof Error ? e.message : "Error generating voucher", { id: tId }); }
+                }}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher (EN)</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" /> Adicionar</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setOpenCommission(true)}><Percent className="h-3.5 w-3.5 mr-2" /> Ajuste de comissão</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setOpenLog("notes_log")}><FileText className="h-3.5 w-3.5 mr-2" /> Observação ({order.notesLog?.length ?? 0})</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setOpenLog("travel_reason_log")}><FileText className="h-3.5 w-3.5 mr-2" /> Motivo da viagem ({order.travelReasonLog?.length ?? 0})</DropdownMenuItem>
-                </DropdownMenuContent>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-9 gap-2 text-muted-foreground hover:text-foreground">
+                  <Mail className="h-4 w-4" /> E-mail
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => toast.info("Envio de contrato — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info("Envio de confirmação — em breve")}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Confirmação</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info("Envio de voucher — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-              </DropdownMenu>
+            <div className="h-6 w-px bg-border/60 mx-1 hidden sm:block"></div>
 
-              <Button size="sm" variant="outline" onClick={() => setOpenQuote(true)}>
-                <FileText className="h-3.5 w-3.5 mr-1" /> Orçamento
-              </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground" title="Mais ações">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setOpenEdit(true)}><Pencil className="h-3.5 w-3.5 mr-2" /> Editar pedido</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setOpenCommission(true)}><Percent className="h-3.5 w-3.5 mr-2" /> Ajuste de comissão</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setOpenLog("notes_log")}><FileText className="h-3.5 w-3.5 mr-2" /> Observação ({order.notesLog?.length ?? 0})</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setOpenLog("travel_reason_log")}><FileText className="h-3.5 w-3.5 mr-2" /> Motivo da viagem ({order.travelReasonLog?.length ?? 0})</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => confirmThen("Confirmar o pedido e todos os itens?", () => orderStatusMut.mutate("confirmed"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Confirmar</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => confirmThen("Marcar o pedido como finalizado?", () => orderStatusMut.mutate("paid"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-500" /> Finalizado</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => confirmThen("Cancelar o pedido e todos os itens?", () => orderStatusMut.mutate("cancelled"))}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => confirmThen("Reabrir o pedido como pendente?", () => orderStatusMut.mutate("pending"))}><RotateCcw className="h-3.5 w-3.5 mr-2" /> Reabrir</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  setActiveTab("contract");
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent("clicksign:open-send", { detail: { orderId: order.id, withAuth: true } }));
+                  }, 150);
+                }}><Signature className="h-3.5 w-3.5 mr-2 text-brand-orange" /> Acionar contrato Clicksign</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
+          {/* Core / primary actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" className="h-9 gap-2">
+              <Plus className="h-4 w-4" /> Adicionar
+            </Button>
 
+            <ImportarMultiDialog
+              orderId={id}
+              onImported={invalidate}
+              trigger={
+                <Button size="sm" variant="outline" className="h-9 gap-2 border-brand-orange/30 bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/20 hover:text-brand-orange">
+                  <Download className="h-4 w-4" /> Importar voucher
+                </Button>
+              }
+            />
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline"><Printer className="h-3.5 w-3.5 mr-1" /> Imprimir</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={async () => {
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="h-9 gap-2 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold shadow-[0_10px_20px_-10px_rgba(242,107,31,0.5)]">
+                  <DollarSign className="h-4 w-4" /> Gerar link de pagamento
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Escolha a modalidade</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {(() => {
+                  const snap = (order.packageSnapshot ?? {}) as Record<string, unknown>;
+                  const hotelItem = detail.items.find((i) => i.kind === "hotel" && i.status !== "cancelled");
+                  const flightItems = detail.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
+                  const pax = detail.passengers.map((p) => p.full_name).filter(Boolean).join("\n");
+                  const flightsTxt = flightItems.map((f) => f.title).join("\n");
+                  const hotelTxt = hotelItem?.title
+                    ?? (snap.hotel_name ? String(snap.hotel_name) : "");
+                  const checkin = snap.going_date ? String(snap.going_date) : "";
+                  const checkout = snap.return_date ? String(snap.return_date) : "";
+                  const nights = snap.nights != null ? String(snap.nights) : "";
+                  const destination = snap.destination ? String(snap.destination) : "";
+                  const origin = snap.origin ? String(snap.origin) : "";
+                  const packageTitle = snap.title ? String(snap.title) : "";
+                  const desc = packageTitle
+                    || [destination && `Pacote ${destination}`, origin && `saindo de ${origin}`].filter(Boolean).join(" ")
+                    || `Pedido ${order.orderNumber}`;
+                  const travelDate = checkin && checkout
+                    ? `${new Date(checkin + "T00:00").toLocaleDateString("pt-BR")} a ${new Date(checkout + "T00:00").toLocaleDateString("pt-BR")}`
+                    : "";
+                  const search = {
+                    customer: order.fullName,
+                    phone: order.phone,
+                    total: String(order.totalPrice ?? ""),
+                    orderRef: order.id,
+                    orderNumber: order.orderNumber,
+                    locator: order.airlineLocator ?? "",
+                    supplier: order.supplierName || "Via Air",
+                    description: desc,
+                    passengers: pax,
+                    hotel: hotelTxt,
+                    flights: flightsTxt,
+                    checkin,
+                    checkout,
+                    nights,
+                    days: nights ? String(Number(nights) + 1) : "",
+                    travelDate,
+                    route: [origin, destination].filter(Boolean).join(" → "),
+                    imageUrl: snap.image_url ? String(snap.image_url) : "",
+                    autogen: "1",
+                  };
+                  const openInNewTab = (path: string) => {
+                    const qs = new URLSearchParams();
+                    for (const [k, v] of Object.entries(search)) {
+                      if (v != null && String(v).length > 0) qs.set(k, String(v));
+                    }
                     try {
-                      const blob = await generateReceiptAndContract(detail);
-                      openBlobInNewTab(blob, `contrato-${order.orderNumber}.pdf`);
-                    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar contrato"); }
-                  }}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato + Recibo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={async () => {
-                    try {
-                      const blob = await generateReceiptOnly(detail);
-                      openBlobInNewTab(blob, `recibo-${order.orderNumber}.pdf`);
-                    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar recibo"); }
-                  }}><FileText className="h-3.5 w-3.5 mr-2" /> Recibo</DropdownMenuItem>
-                  <DropdownMenuItem onClick={async () => {
-                    const tId = toast.loading("Gerando voucher em português…");
-                    try {
-                      const { generateVoucher } = await import("@/lib/voucher-pdf");
-                      const blob = await generateVoucher(detail, "pt");
-                      openBlobInNewTab(blob, `voucher-${order.orderNumber}.pdf`);
-                      toast.success("Voucher gerado", { id: tId });
-                    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar voucher", { id: tId }); }
-                  }}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher (PT)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={async () => {
-                    const tId = toast.loading("Generating voucher in English…");
-                    try {
-                      const { generateVoucher } = await import("@/lib/voucher-pdf");
-                      const blob = await generateVoucher(detail, "en");
-                      openBlobInNewTab(blob, `voucher-${order.orderNumber}-en.pdf`);
-                      toast.success("Voucher ready", { id: tId });
-                    } catch (e) { toast.error(e instanceof Error ? e.message : "Error generating voucher", { id: tId }); }
-                  }}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher (EN)</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline"><Mail className="h-3.5 w-3.5 mr-1" /> Enviar e-mail</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => toast.info("Envio de contrato — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Contrato</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info("Envio de confirmação — em breve")}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Confirmação</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info("Envio de voucher — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
-                </DropdownMenuContent>
-
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline"><MoreHorizontal className="h-3.5 w-3.5 mr-1" /> Ações</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setOpenEdit(true)}><Pencil className="h-3.5 w-3.5 mr-2" /> Editar pedido</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => confirmThen("Confirmar o pedido e todos os itens?", () => orderStatusMut.mutate("confirmed"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Confirmar</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => confirmThen("Marcar o pedido como finalizado?", () => orderStatusMut.mutate("paid"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-500" /> Finalizado</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => confirmThen("Cancelar o pedido e todos os itens?", () => orderStatusMut.mutate("cancelled"))}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => confirmThen("Reabrir o pedido como pendente?", () => orderStatusMut.mutate("pending"))}><RotateCcw className="h-3.5 w-3.5 mr-2" /> Reabrir</DropdownMenuItem>
-
-                  <DropdownMenuItem onClick={() => {
-                    setActiveTab("contract");
-                    setTimeout(() => {
-                      window.dispatchEvent(new CustomEvent("clicksign:open-send", { detail: { orderId: order.id, withAuth: true } }));
-                    }, 150);
-                  }}><Signature className="h-3.5 w-3.5 mr-2 text-brand-orange" /> Acionar contrato Clicksign</DropdownMenuItem>
-                </DropdownMenuContent>
-
-              </DropdownMenu>
-            </div>
-
-
-
+                      sessionStorage.setItem(
+                        `paymentLinkPrefill:${path}`,
+                        JSON.stringify(search),
+                      );
+                    } catch { /* ignore */ }
+                    window.open(`${path}?${qs.toString()}`, "_blank", "noopener");
+                  };
+                  return (
+                    <>
+                      <DropdownMenuItem onClick={() => openInNewTab("/admin/link-pagamento")}>
+                        <FileText className="h-3.5 w-3.5 mr-2" /> Seguro (personalizado)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openInNewTab("/admin/link-cartao-simples")}>
+                        <DollarSign className="h-3.5 w-3.5 mr-2" /> Convencional (cartão simples)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openInNewTab("/admin/link-boleto")}>
+                        <FileText className="h-3.5 w-3.5 mr-2" /> Boleto
+                      </DropdownMenuItem>
+                    </>
+                  );
+                })()}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
+
 
 
       {/* Passageiros */}
