@@ -1795,6 +1795,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _iata_city: { Args: { code: string }; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
