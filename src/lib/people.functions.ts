@@ -751,6 +751,11 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
     }
     const paidMap: Record<string, number> = {};
     const pendMap: Record<string, number> = {};
+    const snapshotDate = (snapshot: unknown, key: "going_date" | "return_date") => {
+      if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
+      const value = (snapshot as Record<string, unknown>)[key];
+      return typeof value === "string" ? value : null;
+    };
     for (const p of payments) {
       const amt = Number(p.amount) || 0;
       if (String(p.status).toLowerCase() === "paid") paidMap[p.order_id] = (paidMap[p.order_id] ?? 0) + amt;
@@ -764,7 +769,7 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
       status: o.status,
       total_price: o.total_price != null ? Number(o.total_price) : null,
       created_at: o.created_at,
-      going_date: typeof o.package_snapshot?.going_date === "string" ? o.package_snapshot.going_date : null,
+      going_date: snapshotDate(o.package_snapshot, "going_date"),
       paid: paidMap[o.id] ?? 0,
       pending: pendMap[o.id] ?? 0,
     }));
@@ -772,8 +777,8 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
     const total_paid = sales.reduce((s, r) => s + r.paid, 0);
     const total_pending = sales.reduce((s, r) => s + r.pending, 0);
     const sortedByCreated = [...sales].sort((a, b) => a.created_at.localeCompare(b.created_at));
-    const departures = list.map((o) => o.package_snapshot?.going_date).filter((v): v is string => typeof v === "string").sort();
-    const returns = list.map((o) => o.package_snapshot?.return_date).filter((v): v is string => typeof v === "string").sort();
+    const departures = list.map((o) => snapshotDate(o.package_snapshot, "going_date")).filter((v): v is string => v !== null).sort();
+    const returns = list.map((o) => snapshotDate(o.package_snapshot, "return_date")).filter((v): v is string => v !== null).sort();
     return {
       sales,
       summary: {
