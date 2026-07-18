@@ -1260,12 +1260,14 @@ export const setImportLinks = createServerFn({ method: "POST" })
       .in("order_item_id", data.item_ids);
     if (deleteNewItemsError) throw new Error(deleteNewItemsError.message);
 
-    const { error: deleteNewPassengersError } = await supabaseAdmin
-      .from("order_item_passengers")
-      .delete()
-      .eq("order_id", data.order_id)
-      .in("passenger_id", data.passenger_ids);
-    if (deleteNewPassengersError) throw new Error(deleteNewPassengersError.message);
+    if (data.passenger_ids.length > 0) {
+      const { error: deleteNewPassengersError } = await supabaseAdmin
+        .from("order_item_passengers")
+        .delete()
+        .eq("order_id", data.order_id)
+        .in("passenger_id", data.passenger_ids);
+      if (deleteNewPassengersError) throw new Error(deleteNewPassengersError.message);
+    }
 
     // 2) Recria somente novos_passageiros × novos_itens.
     const rows = data.item_ids.flatMap((iid) =>
@@ -1275,10 +1277,13 @@ export const setImportLinks = createServerFn({ method: "POST" })
         passenger_id: pid,
       })),
     );
-    const { error: insErr } = await supabaseAdmin
-      .from("order_item_passengers")
-      .upsert(rows, { onConflict: "order_item_id,passenger_id", ignoreDuplicates: true });
-    if (insErr) throw new Error(insErr.message);
+    if (rows.length > 0) {
+      const { error: insErr } = await supabaseAdmin
+        .from("order_item_passengers")
+        .upsert(rows, { onConflict: "order_item_id,passenger_id", ignoreDuplicates: true });
+      if (insErr) throw new Error(insErr.message);
+    }
+
 
     // Não conclui a importação se o resultado persistido divergir do esperado.
     const { data: persistedLinks, error: verifyError } = await supabaseAdmin
