@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { extractItemVoucher, type ExtractedItemVoucher } from "@/lib/voucher-item-extract.functions";
-import { upsertOrderItem, upsertPassenger, upsertItemFinancial, updateOrderMeta, getFirstFinancialForItem } from "@/lib/orders.functions";
+import { upsertOrderItem, upsertPassenger, upsertItemFinancial, updateOrderMeta, getFirstFinancialForItem, setImportLinks } from "@/lib/orders.functions";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 
 type Props = {
@@ -59,6 +59,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
   const saveFin = useServerFn(upsertItemFinancial);
   const findFin = useServerFn(getFirstFinancialForItem);
   const updateMeta = useServerFn(updateOrderMeta);
+  const fixLinks = useServerFn(setImportLinks);
 
   function reset() {
     setFile(null);
@@ -109,7 +110,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
     });
   }
 
-  async function saveOne(extracted: ExtractedItemVoucher, sortOrder: number) {
+  async function saveOne(extracted: ExtractedItemVoucher, sortOrder: number): Promise<{ itemId: string | null; passengerIds: string[] }> {
     const details: Record<string, unknown> = { ...(extracted.details ?? {}) };
     if (extracted.kind === "hotel" && extracted.details?.hotel_name && !details.hotel_name) {
       details.hotel_name = extracted.details.hotel_name;
@@ -129,6 +130,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
       sort_order: sortOrder,
     } });
 
+    const passengerIds: string[] = [];
     const paxList = extracted.passengers ?? [];
     if (paxList.length && saved?.id) {
       const kindMap: Record<string, "ADT" | "CHD" | "INF"> = { adult: "ADT", child: "CHD", infant: "INF" };
@@ -136,7 +138,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
         const p = paxList[i]!;
         if (!p.full_name?.trim()) continue;
         const cpf = (p.cpf ?? "").replace(/\D/g, "");
-        await savePax({ data: {
+        const res = await savePax({ data: {
           order_id: orderId,
           full_name: p.full_name.trim(),
           passenger_type: kindMap[p.kind ?? "adult"] ?? "ADT",
@@ -146,6 +148,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
           doc_type: cpf.length === 11 ? "cpf" : "cpf",
           sort_order: i,
         } });
+        if (res?.id) passengerIds.push(res.id);
       }
     }
 
@@ -170,13 +173,26 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
         sort_order: 0,
       } });
     }
+    return { itemId: saved?.id ?? null, passengerIds };
   }
 
   async function confirmar() {
     if (items.length === 0) return;
     try {
+      const perItem: Array<{ itemId: string | null; passengerIds: string[] }> = [];
       for (let i = 0; i < items.length; i++) {
-        await saveOne(items[i]!, i);
+        perItem.push(await saveOne(items[i]!, i));
+      }
+
+      // Isola vínculos por item: só os passageiros extraídos deste voucher
+      // entram nesta reserva — nunca herdar passageiros de outras reservas.
+      for (const r of perItem) {
+        if (!r.itemId) continue;
+        await fixLinks({ data: {
+          order_id: orderId,
+          item_ids: [r.itemId],
+          passenger_ids: r.passengerIds,
+        } });
       }
 
       // Meta do pedido: pega do primeiro item que tiver localizador/fornecedor
@@ -198,6 +214,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
     } catch (e) {
       toast.error("Erro ao salvar: " + (e as Error).message);
     }
+
   }
 
   return (
