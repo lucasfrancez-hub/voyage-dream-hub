@@ -94,9 +94,11 @@ function buildAtendenetXml(args: {
   cfg: Record<string, unknown>;
   data: z.infer<typeof emitirInput>;
   reference: string;
+  numeroRps: number;
+  serieRps: string;
   valorIss: number;
 }): string {
-  const { cfg, data, reference, valorIss } = args;
+  const { cfg, data, reference, numeroRps, serieRps, valorIss } = args;
   const cpfCnpj = onlyDigits(data.tomador.cpfCnpj);
   const isPJ = cpfCnpj.length === 14;
   const end = data.tomador.endereco ?? null;
@@ -114,10 +116,11 @@ function buildAtendenetXml(args: {
 <Nfse xmlns="http://www.publica.inf.br" versao="2.00">
   <Rps id="${xmlEscape(reference)}">
     <IdentificacaoRps>
-      <Numero>${xmlEscape(reference)}</Numero>
-      <Serie>RPS</Serie>
+      <Numero>${numeroRps}</Numero>
+      <Serie>${xmlEscape(serieRps)}</Serie>
       <Tipo>1</Tipo>
     </IdentificacaoRps>
+
     <DataEmissao>${nowBr}</DataEmissao>
     <NaturezaOperacao>1</NaturezaOperacao>
     <OptanteSimplesNacional>2</OptanteSimplesNacional>
