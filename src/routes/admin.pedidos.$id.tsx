@@ -3700,7 +3700,7 @@ function FinanceDialog({
         <div className="grid gap-4">
           <div>
             <Label>Item</Label>
-            <Select value={selectedItem ?? ""} onValueChange={(v) => { setSelectedItem(v); const k = items.find((i) => i.id === v)?.kind; if (!initial) recalc({ commission_pct: defaultCommissionPct(k, isPackage) }); }}>
+            <Select value={selectedItem ?? ""} onValueChange={(v) => { setSelectedItem(v); if (v !== "__other__") { const k = items.find((i) => i.id === v)?.kind; if (!initial) recalc({ commission_pct: defaultCommissionPct(k, isPackage) }); } else if (!initial) { recalc({ commission_pct: defaultCommissionPct("other", isPackage), is_commissionable: false }); } }}>
               <SelectTrigger><SelectValue placeholder="Escolha um item" /></SelectTrigger>
               <SelectContent>
                 {items.map((it) => (
@@ -3708,9 +3708,24 @@ function FinanceDialog({
                     [{it.kind === "flight" ? "Aéreo" : it.kind === "hotel" ? "Hotel" : "Outro"}] {it.title}
                   </SelectItem>
                 ))}
+                <SelectItem value="__other__">➕ Adicional (outros)</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {selectedItem === "__other__" && (
+            <div>
+              <Label>Descrição do adicional</Label>
+              <Input
+                value={otherTitle}
+                onChange={(e) => setOtherTitle(e.target.value)}
+                placeholder="Ex.: Seguro extra, upgrade de assento, taxa de manuseio…"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Será criado como um item "Outro" no pedido e vinculado a este lançamento.
+              </p>
+            </div>
+          )}
+
           <div>
             <Label>Fornecedor</Label>
             <Input value={form.supplier_name ?? ""} onChange={(e) => setForm({ ...form, supplier_name: e.target.value })} />
