@@ -539,14 +539,10 @@ function DetalhesTab({
             <input value={form.district ?? ""} onChange={(e) => set("district", e.target.value)} className={cls} />
           </MiniField>
         </div>
-        <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+        <div className="grid grid-cols-2 gap-3">
           <MiniField label="Cidade:">
             <input value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} className={cls} />
           </MiniField>
-          <label className="flex items-center gap-2 text-sm pb-2.5 whitespace-nowrap">
-            <input type="checkbox" checked={form.is_foreign} onChange={(e) => set("is_foreign", e.target.checked)} />
-            Estrangeiro
-          </label>
         </div>
       </Section>
 
