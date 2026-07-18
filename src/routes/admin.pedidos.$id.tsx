@@ -1464,9 +1464,13 @@ function formatDT(v: string | null | undefined): string {
 type FlightGroup = { key: string; locator: string | null; items: OrderItem[] };
 function flightGroupKey(item: OrderItem): string {
   const details = (item.details ?? {}) as Record<string, unknown>;
-  const importGroupId = String(details.import_group_id ?? "").trim();
   const carrierLocator = String(details.carrier_locator ?? "").trim();
-  return importGroupId || carrierLocator || item.supplier_locator?.trim() || "__no_locator__";
+  const supplierLocator = item.supplier_locator?.trim() ?? "";
+  const locator = carrierLocator || supplierLocator;
+  if (locator) return `loc:${locator.toUpperCase()}`;
+  // Sem localizador: cada item vira seu próprio card pra não misturar
+  // reservas diferentes num único bloco "sem localizador".
+  return `item:${item.id}`;
 }
 function groupFlightItems(items: OrderItem[]): FlightGroup[] {
   const map = new Map<string, FlightGroup>();
