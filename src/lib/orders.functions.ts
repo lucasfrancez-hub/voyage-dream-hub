@@ -415,6 +415,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         adults: order.adults,
         children: order.children,
         totalPrice: Number(order.total_price),
+        expectedTotal: (order as { expected_total?: number | string | null }).expected_total != null ? Number((order as { expected_total?: number | string | null }).expected_total) : null,
         paymentMethod: order.payment_method,
         notes: order.notes,
         travelReason: (order as { travel_reason?: string | null }).travel_reason ?? null,
