@@ -1590,21 +1590,22 @@ function FlightReservationCard({
     ? (packageSnapshot as Record<string, unknown>) : null;
   const bagsFor = (seg: OrderItem) => {
     const d = (seg.details ?? {}) as Record<string, unknown>;
-    let personal = !!d.personal_item;
-    let carry = !!d.carry_on;
+    // Padrão: bolsa/mochila e bagagem de mão sempre inclusas, exceto quando
+    // o usuário desmarcar (=== false). Despachada continua opt-in.
+    let personal = d.personal_item !== false;
+    let carry = d.carry_on !== false;
     let checked = !!d.checked_bag;
-    if (!personal && !carry && !checked && snap) {
+    if (!checked && snap) {
       const dir = String(d.direction ?? "outbound");
       const src = dir === "return" ? snap.return_flight : snap.outbound_flight;
       if (src && typeof src === "object") {
         const s = src as Record<string, unknown>;
-        personal ||= !!s.personal_item;
-        carry ||= !!s.carry_on;
         checked ||= !!s.checked_bag;
       }
     }
     return { personal, carry, checked, any: personal || carry || checked };
   };
+
 
 
   
@@ -2328,12 +2329,13 @@ function ItemDialog({
         <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Bagagem inclusa</div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <label className="inline-flex items-center gap-1.5">
-            <input type="checkbox" checked={!!d.personal_item} onChange={(e) => onChangeField("personal_item", e.target.checked)} />
+            <input type="checkbox" checked={d.personal_item !== false} onChange={(e) => onChangeField("personal_item", e.target.checked)} />
             Bolsa/mochila
           </label>
           <label className="inline-flex items-center gap-1.5">
-            <input type="checkbox" checked={!!d.carry_on} onChange={(e) => onChangeField("carry_on", e.target.checked)} />
+            <input type="checkbox" checked={d.carry_on !== false} onChange={(e) => onChangeField("carry_on", e.target.checked)} />
             Bagagem de mão
+
           </label>
           <label className="inline-flex items-center gap-1.5">
             <input type="checkbox" checked={!!d.checked_bag} onChange={(e) => onChangeField("checked_bag", e.target.checked)} />
