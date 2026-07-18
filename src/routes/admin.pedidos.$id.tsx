@@ -1131,12 +1131,21 @@ function ItemsTab({
     onSuccess: () => { toast.success("Item salvo"); onChange(); setOpen(false); setEditing(null); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
+  const qc = useQueryClient();
   const remove = useMutation({
     mutationFn: async (iid: string) => {
       await del({ data: { id: iid } });
       return recalculateTotal({ data: { id: orderId } });
     },
+    onMutate: (iid: string) => {
+      qc.setQueryData<OrderDetail>(["admin", "orderDetail", orderId], (d) => d ? ({
+        ...d,
+        items: d.items.filter((i) => i.id !== iid),
+        financials: d.financials.filter((f) => f.order_item_id !== iid),
+      }) : d);
+    },
     onSuccess: () => { toast.success("Item removido"); onChange(); },
+
   });
   const cancel = useMutation({
     mutationFn: async (iid: string) => {
