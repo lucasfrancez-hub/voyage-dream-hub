@@ -448,7 +448,7 @@ export const setOrderItemStatus = createServerFn({ method: "POST" })
 // Confirma ou cancela o pedido inteiro (status do pedido + status de todos os itens)
 export const setOrderStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string; status: "confirmed" | "reserved" | "cancelled" | "pending" | "paid" }) => input)
+  .inputValidator((input: { id: string; status: "confirmed" | "reserved" | "cancelled" | "pending" | "paid" | "awaiting_signature" }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) {
@@ -457,12 +457,13 @@ export const setOrderStatus = createServerFn({ method: "POST" })
     }
     const { error: e1 } = await context.supabase.from("orders").update({ status: data.status }).eq("id", data.id);
     if (e1) throw new Error(e1.message);
-    const itemStatus =
-      data.status === "cancelled" ? "cancelled"
-      : data.status === "confirmed" || data.status === "paid" ? "confirmed"
-      : "pending";
-    const { error: e2 } = await context.supabase.from("order_items").update({ status: itemStatus }).eq("order_id", data.id);
-    if (e2) throw new Error(e2.message);
+    // Só sincroniza itens em transições manuais explícitas (confirmar/cancelar).
+    // Status derivados (awaiting_signature, paid) não devem sobrescrever itens.
+    if (data.status === "cancelled" || data.status === "confirmed") {
+      const itemStatus = data.status === "cancelled" ? "cancelled" : "confirmed";
+      const { error: e2 } = await context.supabase.from("order_items").update({ status: itemStatus }).eq("order_id", data.id);
+      if (e2) throw new Error(e2.message);
+    }
     return { ok: true };
   });
 
