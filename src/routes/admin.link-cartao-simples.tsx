@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Copy, ExternalLink, MessageCircle, Vault, AlertTriangle } from "lucide-react";
+import { Link2, Copy, ExternalLink, MessageCircle, Vault, AlertTriangle, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { paymentSimpleLinkUrl, whatsappUrl, splitInstallments } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
 import { saveCofreEntry, deleteCofreEntry, popEditEntry } from "@/lib/cofre-storage";
+import { CollapsibleSection, EssentialGroup } from "@/components/LinkFormSection";
+
 
 export const Route = createFileRoute("/admin/link-cartao-simples")({
   validateSearch: (s: Record<string, unknown>) => s as Record<string, string | undefined>,
