@@ -1140,9 +1140,9 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
       </div>
 
       {showForm && (
-        <Dialog open={showForm} onOpenChange={setShowForm}>
+        <Dialog open={showForm} onOpenChange={(o) => { setShowForm(o); if (!o) resetForm(); }}>
           <DialogContent className="max-w-lg">
-            <div className="text-center font-semibold text-sm border-b border-border pb-3">Cartão de Crédito</div>
+            <div className="text-center font-semibold text-sm border-b border-border pb-3">{editingId ? "Editar cartão" : "Cartão de Crédito"}</div>
             <div className="space-y-3 pt-3">
               <MiniField label="Número:">
                 <input value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })} className={cls + " font-mono"} placeholder="0000 0000 0000 0000" />
