@@ -291,7 +291,7 @@ function PersonEditPage() {
 
       <div className="mt-6">
         {tab === "detalhes" && (
-          <Section title="Identificação">
+          <Section title="Dados pessoais">
             <Row>
               <Field label="Tipo">
                 <select
@@ -303,22 +303,29 @@ function PersonEditPage() {
                   <option value="PJ">Pessoa Jurídica</option>
                 </select>
               </Field>
-              <Field label="Nome" required>
+              <Field label={form.kind === "PJ" ? "Nome fantasia" : "Nome"} required full>
                 <input value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} />
               </Field>
             </Row>
-            {form.kind === "PJ" && (
-              <Row>
-                <Field label="Razão Social" full>
-                  <input value={form.legal_name ?? ""} onChange={(e) => set("legal_name", e.target.value)} className={cls} />
-                </Field>
-              </Row>
-            )}
-            <Row>
-              {form.kind === "PF" ? (
-                <>
-                  <Field label="Nascimento">
+            {form.kind === "PJ" ? (
+              <>
+                <Row>
+                  <Field label="Razão social" full>
+                    <input value={form.legal_name ?? ""} onChange={(e) => set("legal_name", e.target.value)} className={cls} />
+                  </Field>
+                  <Field label="Data de fundação">
+                    <input type="date" value={form.foundation_date ?? ""} onChange={(e) => set("foundation_date", e.target.value)} className={cls} />
+                  </Field>
+                </Row>
+              </>
+            ) : (
+              <>
+                <Row>
+                  <Field label="Data de nascimento">
                     <input type="date" value={form.birth_date ?? ""} onChange={(e) => set("birth_date", e.target.value)} className={cls} />
+                  </Field>
+                  <Field label="RG">
+                    <input value={form.rg ?? ""} onChange={(e) => set("rg", e.target.value)} className={cls} />
                   </Field>
                   <Field label="Sexo">
                     <select value={form.gender ?? ""} onChange={(e) => set("gender", e.target.value)} className={cls}>
@@ -328,49 +335,17 @@ function PersonEditPage() {
                       <option value="O">Outro</option>
                     </select>
                   </Field>
-                </>
-              ) : (
-                <Field label="Fundação">
-                  <input type="date" value={form.foundation_date ?? ""} onChange={(e) => set("foundation_date", e.target.value)} className={cls} />
-                </Field>
-              )}
-            </Row>
-            <Row>
-              <Field label="E-mail" full>
-                <input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} className={cls} />
-              </Field>
-            </Row>
-            <Row>
-              <Field label="Telefone">
-                <input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={cls} />
-              </Field>
-              <Field label="Celular">
-                <input value={form.mobile_phone ?? ""} onChange={(e) => set("mobile_phone", e.target.value)} className={cls} />
-              </Field>
-              <Field label="Telefone comercial">
-                <input value={form.business_phone ?? ""} onChange={(e) => set("business_phone", e.target.value)} className={cls} />
-              </Field>
-            </Row>
-            {form.kind === "PJ" && (
-              <Row>
-                <Field label="Website" full>
-                  <input value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} className={cls} />
-                </Field>
-              </Row>
+                </Row>
+                <Row>
+                  <Field label="Passaporte">
+                    <input value={form.passport_number ?? ""} onChange={(e) => set("passport_number", e.target.value)} className={cls} />
+                  </Field>
+                  <Field label="Validade do passaporte">
+                    <input type="date" value={form.passport_expiration ?? ""} onChange={(e) => set("passport_expiration", e.target.value)} className={cls} />
+                  </Field>
+                </Row>
+              </>
             )}
-            <Row>
-              <Field label="Vendedor">
-                <input value={form.seller_name ?? ""} onChange={(e) => set("seller_name", e.target.value)} className={cls} />
-              </Field>
-              <label className="flex items-end gap-2 text-sm text-muted-foreground pb-2">
-                <input
-                  type="checkbox"
-                  checked={form.charge_boleto_fee}
-                  onChange={(e) => set("charge_boleto_fee", e.target.checked)}
-                />
-                Cobrar taxa de boleto
-              </label>
-            </Row>
           </Section>
         )}
 
