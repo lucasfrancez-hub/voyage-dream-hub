@@ -966,29 +966,43 @@ export const setImportLinks = createServerFn({ method: "POST" })
     if (!isAdmin) {
       const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
       if (!isPartner) throw new Error("Forbidden");
+      const { data: ownsOrder, error: ownerError } = await context.supabase.rpc("is_partner_order_owner", {
+        _order_id: data.order_id,
+      });
+      if (ownerError || !ownsOrder) throw new Error("Forbidden");
     }
     if (data.item_ids.length === 0 || data.passenger_ids.length === 0) return { ok: true };
 
-    // 1) Zera links dos novos itens (remove novos_itens × pax_antigos criados pelo trigger)
-    await context.supabase
+    // Valida os IDs antes de usar o cliente privilegiado. A operação abaixo precisa
+    // ignorar RLS porque o trigger SECURITY DEFINER cria vínculos que podem ficar
+    // invisíveis para a sessão durante a mesma importação.
+    const [{ data: validItems, error: itemsError }, { data: validPassengers, error: passengersError }] = await Promise.all([
+      context.supabase.from("order_items").select("id").eq("order_id", data.order_id).in("id", data.item_ids),
+      context.supabase.from("order_passengers").select("id").eq("order_id", data.order_id).in("id", data.passenger_ids),
+    ]);
+    if (itemsError) throw new Error(itemsError.message);
+    if (passengersError) throw new Error(passengersError.message);
+    if ((validItems ?? []).length !== new Set(data.item_ids).size) throw new Error("Item importado inválido");
+    if ((validPassengers ?? []).length !== new Set(data.passenger_ids).size) throw new Error("Passageiro importado inválido");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1) Remove novos_itens × qualquer passageiro e novos_passageiros × itens
+    // antigos. As duas condições em uma única exclusão impedem vínculo residual.
+    const { error: deleteNewItemsError } = await supabaseAdmin
       .from("order_item_passengers")
       .delete()
       .in("order_item_id", data.item_ids);
+    if (deleteNewItemsError) throw new Error(deleteNewItemsError.message);
 
-    // 2) Remove links dos novos pax para itens antigos (criados pelo trigger).
-    const { data: strayLinks } = await context.supabase
+    const { error: deleteNewPassengersError } = await supabaseAdmin
       .from("order_item_passengers")
-      .select("id, order_item_id, passenger_id")
+      .delete()
       .eq("order_id", data.order_id)
       .in("passenger_id", data.passenger_ids);
-    const strayIds = (strayLinks ?? [])
-      .filter((l) => !data.item_ids.includes(l.order_item_id))
-      .map((l) => l.id);
-    if (strayIds.length > 0) {
-      await context.supabase.from("order_item_passengers").delete().in("id", strayIds);
-    }
+    if (deleteNewPassengersError) throw new Error(deleteNewPassengersError.message);
 
-    // 3) Insere novos_pax × novos_itens
+    // 2) Recria somente novos_passageiros × novos_itens.
     const rows = data.item_ids.flatMap((iid) =>
       data.passenger_ids.map((pid) => ({
         order_id: data.order_id,
@@ -996,10 +1010,20 @@ export const setImportLinks = createServerFn({ method: "POST" })
         passenger_id: pid,
       })),
     );
-    const { error: insErr } = await context.supabase
+    const { error: insErr } = await supabaseAdmin
       .from("order_item_passengers")
       .upsert(rows, { onConflict: "order_item_id,passenger_id", ignoreDuplicates: true });
     if (insErr) throw new Error(insErr.message);
+
+    // Não conclui a importação se o resultado persistido divergir do esperado.
+    const { data: persistedLinks, error: verifyError } = await supabaseAdmin
+      .from("order_item_passengers")
+      .select("order_item_id, passenger_id")
+      .in("order_item_id", data.item_ids);
+    if (verifyError) throw new Error(verifyError.message);
+    if ((persistedLinks ?? []).length !== rows.length) {
+      throw new Error("Não foi possível isolar os passageiros desta reserva");
+    }
 
     return { ok: true };
   });
