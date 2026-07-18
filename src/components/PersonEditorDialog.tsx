@@ -472,13 +472,15 @@ export function PersonEditorDialog({
 /* ==================== TABS ==================== */
 
 function DetalhesTab({
-  form, set, person, onCepBlur,
+  form, set, person, onCepBlur, onCnpjBlur,
 }: {
   form: FormState;
   set: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
   person?: PersonRow;
   onCepBlur: (cep: string) => void;
+  onCnpjBlur: (cnpj: string) => void;
 }) {
+
   const isPJ = form.kind === "PJ";
   const age = form.birth_date ? calcAge(form.birth_date) : null;
 
