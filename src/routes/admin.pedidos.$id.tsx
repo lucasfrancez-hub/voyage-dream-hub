@@ -59,6 +59,7 @@ import { CommissionDefaultsDialog } from "@/components/CommissionDefaultsDialog"
 
 import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
+import { NfseCard } from "@/components/nfse/NfseCard";
 import { getSignatureStatus } from "@/lib/clicksign.functions";
 import type { Json } from "@/integrations/supabase/types";
 import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
@@ -3085,6 +3086,7 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
           </div>
         </div>
         <ClickSignCard detail={detail} />
+        <NfseCard detail={detail} />
         <div className="flex items-center justify-between rounded-xl border border-border p-4">
           <div>
             <div className="font-medium text-sm">Autorização de débito</div>
