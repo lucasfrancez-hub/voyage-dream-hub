@@ -688,7 +688,7 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Adultos</Label><Input type="number" min={0} value={form.adults} onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })} /></div>
             <div><Label>Crianças</Label><Input type="number" min={0} value={form.children} onChange={(e) => setForm({ ...form, children: Number(e.target.value) })} /></div>
-            <div><Label>Total previsto (R$)</Label><Input type="number" step="0.01" value={form.total_price} onChange={(e) => setForm({ ...form, total_price: Number(e.target.value) })} /></div>
+            <div><Label>Orçamento previsto (R$)</Label><Input type="number" step="0.01" value={form.expected_total} onChange={(e) => setForm({ ...form, expected_total: Number(e.target.value) })} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
