@@ -61,20 +61,22 @@ async function buildAutoTitle(context: { supabase: unknown }, orderId: string): 
     return IATA_CITY[k] || k;
   };
 
-  // Coleta TODOS os segmentos, ordena globalmente (por localizador + índice)
+  // Coleta TODOS os segmentos, ordena globalmente (por localizador + índice/horário)
   // e reduz para os extremos: primeira origem e última destinação.
   // Se a última destinação retorna à primeira origem → ida e volta.
-  const allSegs: Array<{ orig: string; dest: string; locator: string; order: number; idx: number }> = [];
+  const allSegs: Array<{ orig: string; dest: string; locator: string; order: number; depart: string; idx: number }> = [];
   flights.forEach((f, idx) => {
     const d = (f.details ?? {}) as Record<string, unknown>;
-    const orig = String(d.origin ?? d.from ?? d.origin_code ?? "").toUpperCase();
-    const dest = String(d.destination ?? d.to ?? d.destination_code ?? "").toUpperCase();
+    const orig = String(d.origin ?? d.from ?? d.origin_code ?? d.from_iata ?? "").toUpperCase();
+    const dest = String(d.destination ?? d.to ?? d.destination_code ?? d.to_iata ?? "").toUpperCase();
     if (!orig || !dest) return;
     const orderVal = Number(d.segment_index ?? d.order ?? idx);
-    allSegs.push({ orig, dest, locator: f.supplier_locator || "", order: isFinite(orderVal) ? orderVal : idx, idx });
+    const depart = String(d.depart_at ?? d.departure_at ?? d.departure ?? "");
+    allSegs.push({ orig, dest, locator: f.supplier_locator || "", order: isFinite(orderVal) ? orderVal : idx, depart, idx });
   });
   allSegs.sort((a, b) => {
     if (a.locator !== b.locator) return a.locator.localeCompare(b.locator);
+    if (a.depart && b.depart && a.depart !== b.depart) return a.depart < b.depart ? -1 : 1;
     if (a.order !== b.order) return a.order - b.order;
     return a.idx - b.idx;
   });
