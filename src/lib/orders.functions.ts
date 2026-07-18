@@ -703,9 +703,11 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
     }
     const patch: Record<string, string | number | null> = {};
     const strKeys = ["notes", "travel_reason", "coupon", "trip_title", "seller_name", "seller_email", "seller_phone", "supplier_logo_url", "airline_locator", "supplier_order_number", "supplier_name", "full_name", "email", "phone", "cpf", "cnpj", "person_id", "birth_date"] as const;
+    const nullableKeys = new Set(["email", "phone", "cpf", "cnpj", "birth_date", "person_id", "seller_email", "seller_phone", "airline_locator", "supplier_order_number", "supplier_name", "supplier_logo_url", "coupon", "travel_reason", "notes"]);
     for (const k of strKeys) {
       const v = (data as Record<string, string | null | undefined>)[k];
-      if (v !== undefined) patch[k] = v;
+      if (v === undefined) continue;
+      patch[k] = v === null || (typeof v === "string" && v.trim() === "") ? (nullableKeys.has(k) ? null : "") : v;
     }
     for (const k of ["adults", "children", "expected_total"] as const) {
       const v = (data as unknown as Record<string, number | null | undefined>)[k];
