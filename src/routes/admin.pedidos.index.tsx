@@ -539,17 +539,16 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
       email: form.email,
       phone: form.phone,
       cpf: form.cpf,
-      payment_method: form.payment_method,
+      cnpj: form.cnpj,
+      payment_method: "other",
       expected_total: form.expected_total,
       adults: form.adults,
       children: form.children,
-      supplier_name: form.supplier_name,
-      airline_locator: form.airline_locator,
-      notes: form.notes,
       person_id: form.person_id || null,
       birth_date: form.birth_date || null,
       payer_full_name: form.full_name || null,
       payer_cpf: form.cpf || null,
+      payer_cnpj: form.cnpj || null,
       payer_ie_rg: form.rg || null,
       payer_email: form.email || null,
       payer_phone: form.phone || null,
@@ -557,9 +556,6 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
       payer_zip: form.zip || null,
       payer_address: form.address || null,
       payer_number: form.number || null,
-      payer_district: form.district || null,
-      payer_city: form.city || null,
-      payer_state: form.state || null,
     } }),
     onSuccess: (r) => {
       toast.success(`Pedido ${r.order_number} criado`);
@@ -570,12 +566,17 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
   });
 
   const submit = () => {
-    if (!form.full_name || !form.email || !form.phone) {
-      toast.error("Preencha nome, e-mail e telefone");
+    if (!form.full_name.trim()) {
+      toast.error("Preencha o nome completo");
+      return;
+    }
+    if (!form.cpf.trim() && !form.cnpj.trim()) {
+      toast.error("Informe CPF ou CNPJ");
       return;
     }
     mut.mutate();
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
