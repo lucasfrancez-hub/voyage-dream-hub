@@ -157,7 +157,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
           sequence_enabled: false,
         },
       }),
-    }, { preferSandbox: true });
+    });
 
     const documentKey = docResp.document.key;
 
