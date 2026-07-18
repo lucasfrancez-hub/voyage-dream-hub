@@ -118,7 +118,8 @@ Regras (por item):
 - observations: ARRAY completo de tópicos com TODAS as demais informações DESTE serviço — nunca resuma nem descarte. Inclua OBRIGATORIAMENTE, quando aparecerem: itens inclusos/não inclusos (cada um em 1 tópico), ponto de encontro, horário de apresentação, duração, idiomas do guia, documentos exigidos, restrições, política de crianças, franquia de bagagem, taxas obrigatórias, taxas opcionais, contatos, avisos finais. Cada item = 1 tópico (1 linha, até ~220 chars) em português. Preserve o texto original quando útil.
 - value/tax_value/currency: se o voucher trouxer valor DAQUELE serviço específico. Se o valor for único e geral, deixe apenas no primeiro item ou omita nos demais.
 - status: "confirmed" (voucher emitido/confirmado), "reserved" (aguardando pgto), "pending" (solicitado).
-- passengers: participantes/beneficiários DAQUELE serviço; kind = adult/child/infant.
+- passengers (por item): participantes/beneficiários EXPLICITAMENTE nomeados NAQUELE serviço; kind = adult/child/infant. Se o voucher lista os passageiros só UMA vez (no topo, capa ou "Titular/Passageiros"), coloque essa lista no CAMPO SUPERIOR \`passengers\` (fora de items) e NÃO repita em cada item — o sistema propaga automaticamente para todos os serviços.
+- passengers no NÍVEL SUPERIOR do JSON: lista compartilhada de passageiros/hóspedes do documento inteiro. Use SEMPRE que o voucher listar as pessoas de forma única. Sem inventar.
 - notes: contatos, telefone de emergência (se houver). NÃO duplique observações nem a description.
 - NUNCA invente. Se um campo não estiver no voucher, omita-o do JSON.`;
 
@@ -182,15 +183,32 @@ function itemSchema(kind: "hotel" | "other") {
       },
     },
   } as const;
+  const passengerSchema = {
+    type: "array",
+    items: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        full_name: { type: "string" },
+        kind: { type: "string", enum: ["adult", "child", "infant"] },
+        cpf: { type: "string" },
+        birth_date: { type: "string" },
+        document: { type: "string" },
+      },
+    },
+  } as const;
   return {
     type: "object",
     additionalProperties: false,
     properties: {
       items: { type: "array", items: singleItem },
+      // Lista compartilhada quando o voucher lista passageiros/hóspedes só uma vez para o documento inteiro.
+      passengers: passengerSchema,
     },
     required: ["items"],
   } as const;
 }
+
 
 export const extractItemVoucher = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -280,7 +298,22 @@ export const extractItemVoucher = createServerFn({ method: "POST" })
     const rawItems = Array.isArray((parsed as { items?: unknown }).items)
       ? ((parsed as { items: unknown[] }).items)
       : [parsed];
+    const topPax = Array.isArray((parsed as { passengers?: unknown }).passengers)
+      ? ((parsed as { passengers: unknown[] }).passengers).filter(
+          (p): p is Record<string, unknown> => !!p && typeof p === "object",
+        )
+      : [];
     return rawItems
       .filter((it): it is Record<string, unknown> => !!it && typeof it === "object")
-      .map((it) => ({ kind: data.kind, ...it }) as ExtractedItemVoucher);
+      .map((it) => {
+        const merged = { kind: data.kind, ...it } as ExtractedItemVoucher;
+        const own = Array.isArray((it as { passengers?: unknown }).passengers)
+          ? ((it as { passengers: unknown[] }).passengers)
+          : [];
+        if (own.length === 0 && topPax.length > 0) {
+          (merged as { passengers?: unknown }).passengers = topPax;
+        }
+        return merged;
+      });
   });
+
