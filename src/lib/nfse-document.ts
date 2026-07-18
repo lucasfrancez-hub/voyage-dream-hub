@@ -302,11 +302,11 @@ body{color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:10.2px;
         <div class="razao">${dash(esc(nomeTomador))}</div>
         <div class="campos-3">
           <div class="campo"><div class="rotulo">CPF/CNPJ</div><div class="valor">${dash(esc(fmtCpfCnpj(docTomador)))}</div></div>
-          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${dash(esc(imTomador))}</div></div>
-          <div class="campo"><div class="rotulo">E-mail</div><div class="valor email" style="white-space:normal;font-size:8.4px">${dash(esc(emailTomador))}</div></div>
+          <div class="campo"><div class="rotulo">Telefone</div><div class="valor">${dash(esc(telTomador))}</div></div>
+          <div class="campo"><div class="rotulo">E-mail</div><div class="valor email" style="white-space:normal;font-size:8.4px">${dash(esc(emailTomadorFinal))}</div></div>
         </div>
         <div class="endereco">${esc(enderecoTomador) || '<span class="sem-informacao">Endereço não informado</span>'}${enderecoTomador ? "<br/>" : ""}${esc(cidadeTomador)}${ufTomador ? "/" + esc(ufTomador) : ""}${cepTomador ? " – CEP " + esc(cepTomador) : ""}</div>
-        <div class="contatos"><div>${dash(esc(telTomador))}</div><div>${esc(paisTomador)}</div></div>
+        <div class="contatos"><div>${dash(esc(imTomador ? "IM: " + imTomador : ""))}</div><div>${esc(paisTomador)}</div></div>
       </div>
     </div>
   </div>
