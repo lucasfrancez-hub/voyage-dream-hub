@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 import { createOrder } from "@/lib/orders.functions";
+import { searchPeople } from "@/lib/people.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
