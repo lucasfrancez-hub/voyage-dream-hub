@@ -106,7 +106,7 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const codServico = String(cfg?.ipm_codigo_servico || "");
   const codTribMun = String(cfg?.codigo_tributario_municipio || "");
   const listaServ = String(cfg?.item_lista_servico || cfg?.codigo_tributario_nacional || "");
-  const codMun = String(cfg?.codigo_municipio || "");
+  const codMun = String((cfg as unknown as { codigo_municipio?: string })?.codigo_municipio || "4118402");
   const cnae = String(cfg?.cnae_principal || "7911-2/00");
   const municipioPrest = `${cfg?.municipio_prestacao || "Paranavaí"}/${cfg?.uf_prestacao || "PR"}`;
   const regime = String(cfg?.regime_tributario || "Normal");
