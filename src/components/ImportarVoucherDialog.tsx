@@ -445,6 +445,18 @@ function ReviewExtracted({
         </>
       )}
 
+      <div>
+        <Label>Descrição / resumo para o cliente</Label>
+        <Textarea
+          rows={4}
+          placeholder="Resumo curto e acolhedor do que o cliente contratou. Aparece no voucher final."
+          value={String(d.description ?? "")}
+          onChange={(e) => patchDetails("description", e.target.value)}
+        />
+      </div>
+
+
+
       <div className="grid grid-cols-3 gap-3">
         <div>
           <Label>Valor total</Label>
