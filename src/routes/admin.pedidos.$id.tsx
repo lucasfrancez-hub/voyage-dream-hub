@@ -4151,11 +4151,14 @@ function PaymentDialog({
                   </div>
                   <div>
                     <Label>Valor por parcela</Label>
-                    <Input type="number" step="0.01" value={form.installment_amount ?? ""}
+                    <Input inputMode="decimal" value={rawInstallment} placeholder="0,00"
                       onChange={(e) => {
                         setInstallmentTouched(true);
-                        setField("installment_amount", e.target.value ? Number(e.target.value) : null);
-                      }} />
+                        setRawInstallment(e.target.value);
+                        const n = parseBRLInput(e.target.value);
+                        setField("installment_amount", (n as OrderPayment["installment_amount"]) ?? null);
+                      }}
+                      onBlur={() => { const n = parseBRLInput(rawInstallment); if (n != null) setRawInstallment(fmtBRLInput(n)); }} />
                   </div>
                 </>
               )}
