@@ -92,6 +92,7 @@ export type OrderHeader = {
   payerDistrict: string | null;
   payerCity: string | null;
   payerState: string | null;
+  personId: string | null;
 };
 
 
