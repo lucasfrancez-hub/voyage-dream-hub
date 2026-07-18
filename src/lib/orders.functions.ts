@@ -924,6 +924,21 @@ export const upsertItemFinancial = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
+    // Sem id explícito: se já existir um financeiro para este item (mesmo sort_order),
+    // atualiza para evitar duplicidade em reimportação de voucher.
+    const existing = await context.supabase
+      .from("order_item_financials")
+      .select("id")
+      .eq("order_item_id", data.order_item_id)
+      .order("sort_order", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const existingId = (existing.data as { id?: string } | null)?.id;
+    if (existingId) {
+      const { error } = await context.supabase.from("order_item_financials").update(payload).eq("id", existingId);
+      if (error) throw new Error(error.message);
+      return { id: existingId };
+    }
     const { data: created, error } = await context.supabase
       .from("order_item_financials")
       .insert(payload)
