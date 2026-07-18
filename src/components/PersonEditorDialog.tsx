@@ -236,11 +236,6 @@ export function PersonEditorDialog({
           <div className="font-display text-sm font-semibold">
             {form.kind === "PJ" ? "Pessoa Jurídica" : "Pessoa Física"}
           </div>
-          <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-red-400/70" />
-            <span className="h-3 w-3 rounded-full bg-yellow-400/70" />
-            <span className="h-3 w-3 rounded-full bg-green-400/70" />
-          </div>
         </div>
 
         {!isNew && q.isLoading ? (
