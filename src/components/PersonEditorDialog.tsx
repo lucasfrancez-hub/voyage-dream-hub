@@ -1069,6 +1069,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
                     : `${c.last4 ? c.last4.slice(0, 4) : "----"}.XXXX.XXXX.${c.last4 ?? "----"}`}
                 </td>
                 <td className="px-3 py-2">{c.expiry ?? "—"}</td>
+                <td className="px-3 py-2 font-mono">{c.security_code_hint ?? "—"}</td>
                 <td className="px-3 py-2">{c.operator ?? c.brand ?? "—"}</td>
                 <td className="px-3 py-2">{c.travel_card_type ?? "—"}</td>
                 <td className="px-3 py-2 text-right flex items-center gap-1 justify-end">
