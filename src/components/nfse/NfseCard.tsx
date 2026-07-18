@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileText, Loader2, RefreshCw, Send, XCircle, Download, ExternalLink } from "lucide-react";
+import { FileText, Loader2, RefreshCw, Send, XCircle, Download, ExternalLink, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  emitirNfse, consultarNfse, cancelarNfse, listNfseByOrder,
+  emitirNfse, consultarNfse, cancelarNfse, listNfseByOrder, deleteNfse,
 } from "@/lib/nfse.functions";
 import { getPerson } from "@/lib/people.functions";
 import type { OrderDetail } from "@/lib/orders.functions";
