@@ -559,12 +559,25 @@ type ReceiptAmounts = {
 
 const receiptAmounts = (d: OrderDetail): ReceiptAmounts => {
   const extrasNoFin = sumExtrasFromItems(d);
-  const financialTotal = d.financials.reduce((sum, f) => sum + Number(f.total || 0), 0) + extrasNoFin;
+  const finByItem = new Map(d.financials.map((f) => [f.order_item_id, f]));
+  // Fallback: itens (aéreos) importados que gravaram valor em details.value
+  // mas não têm linha em order_item_financials ainda.
+  let detailsTotal = 0, detailsTaxes = 0;
+  for (const it of d.items) {
+    if (it.status === "cancelled") continue;
+    if (finByItem.has(it.id)) continue;
+    const det = (it.details ?? {}) as Record<string, unknown>;
+    const v = Number(det.value ?? 0) || 0;
+    const t = Number(det.tax_value ?? 0) || 0;
+    detailsTotal += v;
+    detailsTaxes += t;
+  }
+  const financialTotal = d.financials.reduce((sum, f) => sum + Number(f.total || 0), 0) + extrasNoFin + detailsTotal;
   const orderTotal = Number(d.order.totalPrice ?? 0);
-  // total_price é a fonte oficial inclusive quando o pedido vale zero. O
-  // financeiro só é contingência para dados antigos ou inválidos.
-  const total = fromCents(toCents(Number.isFinite(orderTotal) ? orderTotal : financialTotal));
-  const financialTaxes = d.financials.reduce((sum, f) => sum + Number(f.tax_value || 0), 0);
+  // total_price é a fonte oficial quando maior que o computado; senão usa o
+  // financeiro (inclui fallback dos details).
+  const total = fromCents(toCents(Math.max(Number.isFinite(orderTotal) ? orderTotal : 0, financialTotal)));
+  const financialTaxes = d.financials.reduce((sum, f) => sum + Number(f.tax_value || 0), 0) + detailsTaxes;
   const snapshot = (d.order.packageSnapshot ?? {}) as Record<string, unknown>;
   const snapshotTaxes = Number(snapshot.taxes ?? 0) || 0;
   const taxes = fromCents(toCents(financialTaxes || snapshotTaxes));
@@ -572,11 +585,12 @@ const receiptAmounts = (d: OrderDetail): ReceiptAmounts => {
     d.financials.reduce((sum, f) => sum + Number(f.discount_value || 0), 0),
   ));
 
-  // O total salvo é a fonte final do recibo. A tarifa é reconciliada a partir
+  // O total é a fonte final do recibo. A tarifa é reconciliada a partir
   // dele para que Tarifa + Taxas - Desconto seja sempre exatamente o Total.
   const fare = fromCents(toCents(total - taxes + discount));
   return { fare, taxes, discount, total };
 };
+
 
 const drawPassengerTable = (
   ctx: Ctx,
@@ -672,15 +686,27 @@ const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
 
     // Financeiro somado dos itens do grupo. O total informado na importação
     // é gravado num único item da reserva; aqui somamos para cobrir edições
-    // manuais que distribuíram valores entre trechos.
+    // manuais que distribuíram valores entre trechos. Se não há linha em
+    // order_item_financials (import antigo ou falha ao gravar), caímos pra
+    // details.value / details.tax_value gravados pela extensão.
     let fare = 0, taxes = 0, discount = 0, total = 0;
-    for (const id of itemIds) {
-      const fin = finByItem.get(id);
-      if (!fin) continue;
-      taxes += Number(fin.tax_value || 0);
-      discount += Number(fin.discount_value || 0);
-      total += Number(fin.total || 0);
+    for (const it of groupItems) {
+      const fin = finByItem.get(it.id);
+      if (fin) {
+        taxes += Number(fin.tax_value || 0);
+        discount += Number(fin.discount_value || 0);
+        total += Number(fin.total || 0);
+      } else {
+        const det = (it.details ?? {}) as Record<string, unknown>;
+        const detTotal = Number(det.value ?? 0) || 0;
+        const detTax = Number(det.tax_value ?? 0) || 0;
+        if (detTotal > 0 || detTax > 0) {
+          total += detTotal;
+          taxes += detTax;
+        }
+      }
     }
+
     // Reconciliação: tarifa = total - taxas + desconto (garante que a soma feche).
     fare = fromCents(toCents(total - taxes + discount));
     taxes = fromCents(toCents(taxes));
