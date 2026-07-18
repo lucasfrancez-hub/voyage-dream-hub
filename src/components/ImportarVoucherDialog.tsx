@@ -102,7 +102,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
       }
       for (const it of list) {
         if (it.kind === "other" || it.kind === "hotel") {
-          it.supplier_locator = normalizeServiceLocator(it.supplier_locator);
+          it.supplier_locator = normalizeServiceLocator(it.supplier_locator) ?? undefined;
         }
       }
       setItems(list);
