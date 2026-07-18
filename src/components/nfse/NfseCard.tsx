@@ -283,7 +283,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
             <FileText className="h-4 w-4" /> Nota Fiscal de Serviço (NFS-e)
           </div>
           <div className="text-xs text-muted-foreground mt-0.5">
-            Emissão via Focus NFe · Paranavaí/PR · ISS 4% · Item 9.02
+            Emissão via AtendeNet (IPM) · Paranavaí/PR · ISS 4% · Item 9.02
           </div>
         </div>
         <Button size="sm" onClick={openDialog}>
@@ -336,7 +336,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
               {e.status === "erro" && (
                 <div className="text-red-600 flex items-start gap-1">
                   <ExternalLink className="h-3 w-3 mt-0.5 shrink-0" />
-                  <span>{(e.focus_response as { mensagem?: string } | null)?.mensagem || "Verifique os dados fiscais"}</span>
+                  <span>{(e.focus_response as { mensagem?: string; networkError?: string; bodyPreview?: string } | null)?.mensagem || (e.focus_response as { networkError?: string } | null)?.networkError || (e.focus_response as { bodyPreview?: string } | null)?.bodyPreview?.slice(0, 200) || "Verifique os dados fiscais"}</span>
                 </div>
               )}
             </div>

@@ -2,17 +2,28 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const FOCUS_BASE = "https://api.focusnfe.com.br";
+const ATENDENET_ENDPOINT =
+  "https://nfse-paranavai.atende.net/atende.php?pg=rest&service=WNERestServiceNFSe&cidade=padrao";
 const IBGE_PARANAVAI = "4118402";
 
-function onlyDigits(s: string | null | undefined) {
-  return (s ?? "").replace(/\D/g, "");
+function onlyDigits(s: string | number | null | undefined) {
+  return (s ?? "").toString().replace(/\D/g, "");
 }
 
-function authHeader() {
-  const token = process.env.FOCUS_NFE_TOKEN;
-  if (!token) throw new Error("FOCUS_NFE_TOKEN não configurado");
-  return "Basic " + Buffer.from(`${token}:`).toString("base64");
+function xmlEscape(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function atendenetAuth(): { basic: string; usuario: string } {
+  const usuario = process.env.NFSE_ATENDENET_USUARIO;
+  const senha = process.env.NFSE_ATENDENET_PASSWORD;
+  if (!usuario || !senha) throw new Error("Credenciais AtendeNet não configuradas");
+  return { basic: Buffer.from(`${usuario}:${senha}`).toString("base64"), usuario };
 }
 
 /* ============================== LIST ============================== */
@@ -58,7 +69,7 @@ export const getNfseConfig = createServerFn({ method: "GET" })
     return data;
   });
 
-/* ============================== EMITIR ============================== */
+/* ============================== EMITIR (AtendeNet / IPM 2.0) ============================== */
 const emitirInput = z.object({
   orderId: z.string().uuid(),
   valorServicos: z.number().positive(),
@@ -79,6 +90,86 @@ const emitirInput = z.object({
   }),
 });
 
+function buildAtendenetXml(args: {
+  cfg: Record<string, unknown>;
+  data: z.infer<typeof emitirInput>;
+  reference: string;
+  valorIss: number;
+}): string {
+  const { cfg, data, reference, valorIss } = args;
+  const cpfCnpj = onlyDigits(data.tomador.cpfCnpj);
+  const isPJ = cpfCnpj.length === 14;
+  const end = data.tomador.endereco ?? null;
+  // Data/hora Brasília
+  const nowBr = new Date(Date.now() - 3 * 60 * 60 * 1000 - 5000)
+    .toISOString()
+    .replace("Z", "-03:00");
+
+  const aliquota = Number(cfg.aliquota_iss ?? 4);
+  const itemLc = xmlEscape(cfg.item_lista_servico ?? "");
+  const codMunTrib = xmlEscape(cfg.codigo_tributario_municipio ?? "");
+  const cnae = xmlEscape((cfg as { cnae_principal?: string }).cnae_principal ?? "");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Nfse xmlns="http://www.publica.inf.br" versao="2.00">
+  <Rps id="${xmlEscape(reference)}">
+    <IdentificacaoRps>
+      <Numero>${xmlEscape(reference)}</Numero>
+      <Serie>RPS</Serie>
+      <Tipo>1</Tipo>
+    </IdentificacaoRps>
+    <DataEmissao>${nowBr}</DataEmissao>
+    <NaturezaOperacao>1</NaturezaOperacao>
+    <OptanteSimplesNacional>2</OptanteSimplesNacional>
+    <IncentivadorCultural>2</IncentivadorCultural>
+    <Status>1</Status>
+    <Servico>
+      <Valores>
+        <ValorServicos>${data.valorServicos.toFixed(2)}</ValorServicos>
+        <ValorDeducoes>0.00</ValorDeducoes>
+        <ValorPis>0.00</ValorPis>
+        <ValorCofins>0.00</ValorCofins>
+        <ValorInss>0.00</ValorInss>
+        <ValorIr>0.00</ValorIr>
+        <ValorCsll>0.00</ValorCsll>
+        <IssRetido>2</IssRetido>
+        <ValorIss>${valorIss.toFixed(2)}</ValorIss>
+        <Aliquota>${aliquota.toFixed(2)}</Aliquota>
+        <DescontoIncondicionado>0.00</DescontoIncondicionado>
+        <DescontoCondicionado>0.00</DescontoCondicionado>
+      </Valores>
+      <ItemListaServico>${itemLc}</ItemListaServico>
+      <CodigoCnae>${cnae}</CodigoCnae>
+      <CodigoTributacaoMunicipio>${codMunTrib}</CodigoTributacaoMunicipio>
+      <Discriminacao>${xmlEscape(data.discriminacao)}</Discriminacao>
+      <CodigoMunicipio>${IBGE_PARANAVAI}</CodigoMunicipio>
+    </Servico>
+    <Prestador>
+      <Cnpj>${xmlEscape(onlyDigits(cfg.cnpj as string))}</Cnpj>
+      <InscricaoMunicipal>${xmlEscape(onlyDigits(cfg.inscricao_municipal as string))}</InscricaoMunicipal>
+    </Prestador>
+    <Tomador>
+      <IdentificacaoTomador>
+        <CpfCnpj>
+          ${isPJ ? `<Cnpj>${cpfCnpj}</Cnpj>` : `<Cpf>${cpfCnpj}</Cpf>`}
+        </CpfCnpj>
+      </IdentificacaoTomador>
+      <RazaoSocial>${xmlEscape(data.tomador.razaoSocial)}</RazaoSocial>
+      ${end ? `<Endereco>
+        <Endereco>${xmlEscape(end.logradouro ?? "")}</Endereco>
+        <Numero>${xmlEscape(end.numero ?? "S/N")}</Numero>
+        ${end.complemento ? `<Complemento>${xmlEscape(end.complemento)}</Complemento>` : ""}
+        <Bairro>${xmlEscape(end.bairro ?? "")}</Bairro>
+        <CodigoMunicipio>${xmlEscape(end.codigoMunicipio ?? IBGE_PARANAVAI)}</CodigoMunicipio>
+        <Uf>${xmlEscape(end.uf ?? "PR")}</Uf>
+        <Cep>${xmlEscape(onlyDigits(end.cep ?? ""))}</Cep>
+      </Endereco>` : ""}
+      ${data.tomador.email ? `<Contato><Email>${xmlEscape(data.tomador.email)}</Email></Contato>` : ""}
+    </Tomador>
+  </Rps>
+</Nfse>`;
+}
+
 export const emitirNfse = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof emitirInput>) => emitirInput.parse(d))
@@ -91,46 +182,9 @@ export const emitirNfse = createServerFn({ method: "POST" })
       .from("nfse_config").select("*").limit(1).maybeSingle();
     if (cfgErr || !cfg) throw new Error("Configuração fiscal não encontrada");
 
-    const cpfCnpj = onlyDigits(data.tomador.cpfCnpj);
-    const isPJ = cpfCnpj.length === 14;
     const reference = `viaair-${data.orderId.slice(0, 8)}-${Date.now()}`;
     const valorIss = Number((data.valorServicos * Number(cfg.aliquota_iss) / 100).toFixed(2));
-
-    // Data em horário de Brasília (UTC-3), 5s no passado — evita E0008 (DPS posterior ao processamento).
-    const nowBr = new Date(Date.now() - 3 * 60 * 60 * 1000 - 5000).toISOString().replace("Z", "-03:00");
-    const payload: Record<string, unknown> = {
-      data_emissao: nowBr,
-      prestador: {
-        cnpj: onlyDigits(cfg.cnpj),
-        inscricao_municipal: onlyDigits(cfg.inscricao_municipal),
-        codigo_municipio: IBGE_PARANAVAI,
-      },
-      tomador: {
-        [isPJ ? "cnpj" : "cpf"]: cpfCnpj,
-        razao_social: data.tomador.razaoSocial,
-        email: data.tomador.email || undefined,
-        endereco: data.tomador.endereco ? {
-          logradouro: data.tomador.endereco.logradouro || undefined,
-          numero: data.tomador.endereco.numero || undefined,
-          complemento: data.tomador.endereco.complemento || undefined,
-          bairro: data.tomador.endereco.bairro || undefined,
-          codigo_municipio: data.tomador.endereco.codigoMunicipio || IBGE_PARANAVAI,
-          uf: data.tomador.endereco.uf || "PR",
-          cep: onlyDigits(data.tomador.endereco.cep || "") || undefined,
-        } : undefined,
-      },
-      servico: {
-        aliquota: Number(cfg.aliquota_iss),
-        iss_retido: "false",
-        item_lista_servico: cfg.item_lista_servico,
-        codigo_tributario_nacional: (cfg as { codigo_tributario_nacional?: string | null }).codigo_tributario_nacional || cfg.item_lista_servico,
-        codigo_tributario_municipio: cfg.codigo_tributario_municipio || undefined,
-        discriminacao: data.discriminacao,
-        codigo_municipio: IBGE_PARANAVAI,
-        valor_servicos: data.valorServicos,
-        valor_iss: valorIss,
-      },
-    };
+    const xml = buildAtendenetXml({ cfg: cfg as Record<string, unknown>, data, reference, valorIss });
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -150,28 +204,56 @@ export const emitirNfse = createServerFn({ method: "POST" })
       .select().single();
     if (insErr) throw new Error(insErr.message);
 
-    const resp = await fetch(`${FOCUS_BASE}/v2/nfse?ref=${encodeURIComponent(reference)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: authHeader() },
-      body: JSON.stringify(payload),
-    });
-    const body = await resp.json().catch(() => ({}));
+    // Envia para o AtendeNet (POST multipart/form-data, campo "xml", Basic Auth)
+    const { basic } = atendenetAuth();
+    const form = new FormData();
+    form.append("xml", new Blob([xml], { type: "application/xml" }), `${reference}.xml`);
 
+    let respStatus = 0;
+    let respBody = "";
+    let networkError: string | null = null;
+    try {
+      const resp = await fetch(ATENDENET_ENDPOINT, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${basic}`,
+          Accept: "application/xml, text/xml, application/json;q=0.9, */*;q=0.8",
+        },
+        body: form,
+      });
+      respStatus = resp.status;
+      respBody = await resp.text();
+    } catch (err) {
+      networkError = err instanceof Error ? err.message : String(err);
+    }
+
+    const providerResponse = {
+      provider: "atendenet",
+      endpoint: ATENDENET_ENDPOINT,
+      httpStatus: respStatus,
+      networkError,
+      bodyPreview: respBody.slice(0, 8000),
+      sentXml: xml,
+    };
+
+    const ok = respStatus >= 200 && respStatus < 300 && !networkError;
     await supabaseAdmin.from("nfse_emissoes").update({
       focus_ref: reference,
-      focus_status: String(body?.status ?? resp.status),
-      focus_response: body,
-      status: resp.ok || resp.status === 202 ? "processando" : "erro",
+      focus_status: String(respStatus || "network_error"),
+      focus_response: providerResponse as unknown as never,
+      status: ok ? "processando" : "erro",
     }).eq("id", row.id);
 
-    if (!resp.ok && resp.status !== 202) {
-      throw new Error(body?.mensagem || body?.erros?.[0]?.mensagem || `Erro Focus (${resp.status})`);
+    if (!ok) {
+      const msg = networkError
+        || `Prefeitura respondeu ${respStatus}. ${respBody.slice(0, 300)}`;
+      throw new Error(msg);
     }
 
     return { id: row.id, reference, status: "processando" as const };
   });
 
-/* ============================== CONSULTAR ============================== */
+/* ============================== CONSULTAR (placeholder AtendeNet) ============================== */
 export const consultarNfse = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => d)
@@ -179,37 +261,11 @@ export const consultarNfse = createServerFn({ method: "POST" })
     const { data: row, error } = await context.supabase
       .from("nfse_emissoes").select("*").eq("id", data.id).single();
     if (error || !row) throw new Error("Emissão não encontrada");
-    if (!row.reference) throw new Error("Sem referência Focus");
-
-    const resp = await fetch(`${FOCUS_BASE}/v2/nfse/${encodeURIComponent(row.reference)}`, {
-      headers: { Authorization: authHeader() },
-    });
-    const body = await resp.json().catch(() => ({}));
-
-    const status = body?.status as string | undefined;
-    let newStatus = row.status;
-    if (status === "autorizado") newStatus = "autorizado";
-    else if (status === "cancelado") newStatus = "cancelado";
-    else if (status === "erro_autorizacao" || status === "erro") newStatus = "erro";
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("nfse_emissoes").update({
-      focus_status: status,
-      focus_response: body,
-      status: newStatus,
-      numero_nfse: body?.numero || row.numero_nfse,
-      serie: body?.serie || row.serie,
-      codigo_verificacao: body?.codigo_verificacao || row.codigo_verificacao,
-      chave_acesso: body?.chave_acesso || body?.chave || row.chave_acesso,
-      data_emissao: body?.data_emissao || row.data_emissao,
-      url_pdf: body?.url_danfse || body?.url || row.url_pdf,
-      url_xml: body?.caminho_xml_nota_fiscal ? `${FOCUS_BASE}${body.caminho_xml_nota_fiscal}` : row.url_xml,
-    }).eq("id", row.id);
-
-    return { status: newStatus, focus_status: status, response: body };
+    // TODO: implementar consulta de RPS via AtendeNet (pedidoConsultaNfseRps)
+    return { status: row.status, provider: "atendenet", pending: true };
   });
 
-/* ============================== CANCELAR ============================== */
+/* ============================== CANCELAR (placeholder AtendeNet) ============================== */
 export const cancelarNfse = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; justificativa: string }) => d)
@@ -220,24 +276,8 @@ export const cancelarNfse = createServerFn({ method: "POST" })
 
     const { data: row } = await context.supabase
       .from("nfse_emissoes").select("*").eq("id", data.id).single();
-    if (!row?.reference) throw new Error("Emissão inválida");
+    if (!row) throw new Error("Emissão inválida");
 
-    const resp = await fetch(`${FOCUS_BASE}/v2/nfse/${encodeURIComponent(row.reference)}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json", Authorization: authHeader() },
-      body: JSON.stringify({ justificativa: data.justificativa }),
-    });
-    const body = await resp.json().catch(() => ({}));
-    if (!resp.ok && resp.status !== 202) {
-      throw new Error(body?.mensagem || `Erro ao cancelar (${resp.status})`);
-    }
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("nfse_emissoes").update({
-      status: "cancelando",
-      motivo_cancelamento: data.justificativa,
-      focus_response: body,
-    }).eq("id", row.id);
-
-    return { ok: true };
+    // TODO: implementar cancelamento via AtendeNet (pedidoCancelamentoNfse assinado)
+    throw new Error("Cancelamento via AtendeNet ainda não implementado (assinatura digital pendente).");
   });
