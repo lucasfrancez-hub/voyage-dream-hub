@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ALTER COLUMN email DROP NOT NULL; ALTER TABLE public.orders ALTER COLUMN phone DROP NOT NULL; ALTER TABLE public.orders ALTER COLUMN full_name DROP NOT NULL;
