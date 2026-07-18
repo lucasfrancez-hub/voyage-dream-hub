@@ -23,18 +23,7 @@ export const Route = createFileRoute('/api/public/nfse-atendenet-test')({
   },
 });
 
-async function handle(request: Request): Promise<Response> {
-  const url = new URL(request.url);
-  const token = url.searchParams.get('token') ?? request.headers.get('x-test-token');
-  const expected = process.env.NFSE_TEST_TOKEN;
-
-  if (!expected || token !== expected) {
-    return new Response(JSON.stringify({ error: 'unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
+async function handle(_request: Request): Promise<Response> {
   const usuario = process.env.NFSE_ATENDENET_USUARIO;
   const senha = process.env.NFSE_ATENDENET_PASSWORD;
 
