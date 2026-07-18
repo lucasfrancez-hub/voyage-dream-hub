@@ -128,6 +128,7 @@ function itemSchema(kind: "hotel" | "other") {
     tax_value: { type: "number" },
     currency: { type: "string" },
     supplier_name: { type: "string" },
+    description: { type: "string" },
     policies: { type: "string" },
     cancellation_policy: { type: "string" },
     observations: { type: "array", items: { type: "string" } },
@@ -152,7 +153,7 @@ function itemSchema(kind: "hotel" | "other") {
     time_from: { type: "string" },
     time_to: { type: "string" },
   };
-  return {
+  const singleItem = {
     type: "object",
     additionalProperties: false,
     properties: {
@@ -180,6 +181,14 @@ function itemSchema(kind: "hotel" | "other") {
         },
       },
     },
+  } as const;
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      items: { type: "array", items: singleItem },
+    },
+    required: ["items"],
   } as const;
 }
 
