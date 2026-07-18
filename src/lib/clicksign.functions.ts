@@ -175,12 +175,11 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
       body: JSON.stringify({
         signer: {
           email: data.cliente.email,
-          phone_number: phoneE164,
           name: data.cliente.nome,
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
         has_documentation: true,
-          auths: ["whatsapp"],
+          auths: ["email"],
           liveness_enabled: true, // Prova de vida (selfie dinâmica com movimento)
         },
       }),
