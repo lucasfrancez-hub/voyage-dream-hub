@@ -105,11 +105,13 @@ Regras:
 - quantity: quantidade quando aplicável (ex.: 4 ingressos).
 - date_from/time_from: início do serviço; date_to/time_to: fim (quando houver).
 - address: local do serviço / ponto de encontro / endereço quando existir.
-- policies: TUDO sobre cancelamento, reembolso, no-show, coberturas (para seguros), franquia, limite de idade, restrições, incluído/não incluído. Preserve texto original.
+- policies: (LEGADO — pode omitir se preencher cancellation_policy + observations).
+- cancellation_policy: RESUMO CURTO da política de cancelamento/reembolso/no-show (3–5 frases OU bullets separados por "\n- ").
+- observations: ARRAY de tópicos curtos com TODAS as demais informações relevantes (coberturas de seguro, franquia, limite de idade, restrições, itens inclusos/não inclusos, horários, ponto de encontro, documentos, contatos). Cada item = 1 tópico curto (1 linha, máx ~140 chars). Não omita nenhuma.
 - value: valor total em número. tax_value: taxas incluídas. currency: BRL/USD/EUR.
 - status: "confirmed" (voucher emitido/confirmado), "reserved" (aguardando pgto), "pending" (solicitado).
 - passengers: participantes/beneficiários com nome; kind = adult/child/infant; cpf/document só se explícitos.
-- notes: contatos, telefone de emergência, instruções específicas, horários, códigos adicionais.
+- notes: contatos, telefone de emergência (se houver). NÃO duplique observações.
 - NUNCA invente. Se um campo não estiver no voucher, omita-o do JSON.`;
 
 function itemSchema(kind: "hotel" | "other") {
