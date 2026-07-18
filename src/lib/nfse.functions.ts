@@ -121,6 +121,7 @@ export const emitirNfse = createServerFn({ method: "POST" })
         aliquota: Number(cfg.aliquota_iss),
         iss_retido: "false",
         item_lista_servico: cfg.item_lista_servico,
+        codigo_tributario_nacional: (cfg as { codigo_tributario_nacional?: string | null }).codigo_tributario_nacional || cfg.item_lista_servico,
         codigo_tributario_municipio: cfg.codigo_tributario_municipio || undefined,
         discriminacao: data.discriminacao,
         codigo_municipio: IBGE_PARANAVAI,
