@@ -1124,10 +1124,11 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
                 <td className="px-3 py-2">{c.operator ?? c.brand ?? "—"}</td>
                 <td className="px-3 py-2 text-muted-foreground">{c.nickname ?? "—"}</td>
                 <td className="px-3 py-2 text-right flex items-center gap-1 justify-end">
-                  <button type="button" onClick={() => toggleReveal(c.id)} className="text-muted-foreground hover:text-foreground">
+                  <button type="button" onClick={() => toggleReveal(c.id)} title="Mostrar/ocultar número" className="text-muted-foreground hover:text-foreground">
                     {revealed[c.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
-                  <button type="button" onClick={() => remove(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => openEdit(c)} title="Editar cartão" className="text-muted-foreground hover:text-foreground"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => remove(c.id)} title="Remover" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                 </td>
               </tr>
             ))}
