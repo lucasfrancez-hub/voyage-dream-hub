@@ -693,19 +693,15 @@ const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
     let fare = 0, taxes = 0, discount = 0, total = 0;
     for (const it of groupItems) {
       const fin = finByItem.get(it.id);
-      if (fin) {
-        taxes += Number(fin.tax_value || 0);
-        discount += Number(fin.discount_value || 0);
-        total += Number(fin.total || 0);
-      } else {
-        const det = (it.details ?? {}) as Record<string, unknown>;
-        const detTotal = Number(det.value ?? 0) || 0;
-        const detTax = Number(det.tax_value ?? 0) || 0;
-        if (detTotal > 0 || detTax > 0) {
-          total += detTotal;
-          taxes += detTax;
-        }
-      }
+      const det = (it.details ?? {}) as Record<string, unknown>;
+      const detTotal = Number(det.value ?? 0) || 0;
+      const detTax = Number(det.tax_value ?? 0) || 0;
+      const finTotal = Number(fin?.total ?? 0) || 0;
+      const finTax = Number(fin?.tax_value ?? 0) || 0;
+      const finDisc = Number(fin?.discount_value ?? 0) || 0;
+      total += Math.max(finTotal, detTotal);
+      taxes += Math.max(finTax, detTax);
+      discount += finDisc;
     }
 
     // Reconciliação: tarifa = total - taxas + desconto (garante que a soma feche).
