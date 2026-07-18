@@ -672,15 +672,27 @@ const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
 
     // Financeiro somado dos itens do grupo. O total informado na importação
     // é gravado num único item da reserva; aqui somamos para cobrir edições
-    // manuais que distribuíram valores entre trechos.
+    // manuais que distribuíram valores entre trechos. Se não há linha em
+    // order_item_financials (import antigo ou falha ao gravar), caímos pra
+    // details.value / details.tax_value gravados pela extensão.
     let fare = 0, taxes = 0, discount = 0, total = 0;
-    for (const id of itemIds) {
-      const fin = finByItem.get(id);
-      if (!fin) continue;
-      taxes += Number(fin.tax_value || 0);
-      discount += Number(fin.discount_value || 0);
-      total += Number(fin.total || 0);
+    for (const it of groupItems) {
+      const fin = finByItem.get(it.id);
+      if (fin) {
+        taxes += Number(fin.tax_value || 0);
+        discount += Number(fin.discount_value || 0);
+        total += Number(fin.total || 0);
+      } else {
+        const det = (it.details ?? {}) as Record<string, unknown>;
+        const detTotal = Number(det.value ?? 0) || 0;
+        const detTax = Number(det.tax_value ?? 0) || 0;
+        if (detTotal > 0 || detTax > 0) {
+          total += detTotal;
+          taxes += detTax;
+        }
+      }
     }
+
     // Reconciliação: tarifa = total - taxas + desconto (garante que a soma feche).
     fare = fromCents(toCents(total - taxes + discount));
     taxes = fromCents(toCents(taxes));
