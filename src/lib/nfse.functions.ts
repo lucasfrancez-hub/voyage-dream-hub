@@ -96,8 +96,10 @@ export const emitirNfse = createServerFn({ method: "POST" })
     const reference = `viaair-${data.orderId.slice(0, 8)}-${Date.now()}`;
     const valorIss = Number((data.valorServicos * Number(cfg.aliquota_iss) / 100).toFixed(2));
 
+    // Data em horário de Brasília (UTC-3) — a prefeitura rejeita emissão com timestamp futuro em relação ao processamento.
+    const nowBr = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().replace("Z", "-03:00");
     const payload: Record<string, unknown> = {
-      data_emissao: new Date().toISOString(),
+      data_emissao: nowBr,
       prestador: {
         cnpj: onlyDigits(cfg.cnpj),
         inscricao_municipal: onlyDigits(cfg.inscricao_municipal),
