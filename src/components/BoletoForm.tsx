@@ -342,6 +342,7 @@ function BoletoUpload({
   onClear: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const upload = useServerFn(uploadBoletoDocument);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -353,12 +354,17 @@ function BoletoUpload({
     }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() ?? "bin";
-      const path = `${new Date().getFullYear()}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("boleto-documents")
-        .upload(path, file, { contentType: file.type || undefined, upsert: false });
-      if (error) throw error;
+      const buf = await file.arrayBuffer();
+      let bin = "";
+      const bytes = new Uint8Array(buf);
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
+      }
+      const base64 = btoa(bin);
+      const { path } = await upload({
+        data: { filename: file.name, contentType: file.type || null, base64 },
+      });
       onUpload(path, file.name);
       toast.success("Documento enviado.");
     } catch (err) {
