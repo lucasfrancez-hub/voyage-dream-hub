@@ -29,6 +29,7 @@ import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
 import type { OrderDetail, OrderItem, OrderPassenger } from "./orders.functions";
 import { type HotelMapData } from "./voucher-map.functions";
 import { translateText } from "./translate.functions";
+import { computeAutoTitle } from "./auto-title";
 
 // --- Traduções auxiliares para o voucher em inglês ---
 const translateGuestsPtToEn = (input: string): string => {
@@ -227,6 +228,7 @@ type Ctx = {
   fontBold: PDFFont;
   lang: VoucherLang;
   order: OrderDetail["order"];
+  items: OrderDetail["items"];
   logo?: PDFImage;
   pages: PDFPage[];
   emojiCache?: Map<string, PDFImage | null>;
@@ -637,8 +639,20 @@ const drawHeader = (ctx: Ctx) => {
   const order = ctx.order;
   const top = A4.h - MARGIN;
 
-  // Título da viagem
-  const tripTitle = String(order.tripTitle ?? "").trim().toUpperCase()
+  // Título da viagem — usa o manual; se vazio, calcula a partir dos itens; senão, fallback genérico.
+  const manualTitle = String(order.tripTitle ?? "").trim();
+  const autoFromItems = manualTitle
+    ? ""
+    : (computeAutoTitle(
+        (ctx.items ?? []).map((i) => ({
+          kind: i.kind,
+          title: i.title,
+          status: i.status,
+          supplier_locator: i.supplier_locator,
+          details: (i.details ?? {}) as Record<string, unknown>,
+        }))
+      ) ?? "");
+  const tripTitle = (manualTitle || autoFromItems).toUpperCase()
     || (ctx.lang === "pt" ? "PACOTE DE VIAGEM" : "TRAVEL PACKAGE");
 
   // Logo box dimensions (posicionada depois, após computar o bloco de contatos)
@@ -2137,7 +2151,7 @@ export async function generateVoucher(
   const ctx: Ctx = {
     pdf, page: firstPage, y: A4.h - MARGIN,
     font, fontBold, lang,
-    order: detail.order, logo,
+    order: detail.order, items: detail.items, logo,
     pages: [firstPage],
   };
 
