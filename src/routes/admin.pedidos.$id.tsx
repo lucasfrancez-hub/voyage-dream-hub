@@ -1014,7 +1014,8 @@ function PassengerRow({
                 <InlineText
                   value={passenger.passport_number ?? ""}
                   placeholder="nº passaporte"
-                  className="text-xs font-mono w-[150px]"
+                  className="text-xs tabular-nums w-[150px]"
+
                   onCommit={(v) => (v || null) !== passenger.passport_number && onPatch({ passport_number: v || null })}
                 />
                 <InlineText
@@ -1036,7 +1037,7 @@ function PassengerRow({
               <InlineText
                 value={passenger.cpf ?? ""}
                 placeholder="CPF"
-                className="text-xs font-mono w-[150px]"
+                className="text-xs tabular-nums w-[150px]"
                 onCommit={(v) => (v || null) !== passenger.cpf && onPatch({ cpf: v || null })}
               />
             )}
@@ -1044,7 +1045,7 @@ function PassengerRow({
         </div>
       </td>
       <td className="px-3 py-3">
-        <InlineText value={effectiveTicket ?? ""} placeholder="+ bilhete" className="text-xs font-mono"
+        <InlineText value={effectiveTicket ?? ""} placeholder="Adicionar bilhete" className="text-xs tabular-nums"
           onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
       </td>
       <td className="px-3 py-3 text-right">
