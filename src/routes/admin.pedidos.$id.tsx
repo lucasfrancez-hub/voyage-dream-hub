@@ -53,6 +53,9 @@ import { Slider } from "@/components/ui/slider";
 
 import { type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
 import { generateReceiptAndContract, generateReceiptOnly, generateReceiptContractAndAuthorization, generateOrderAuthorization, openBlobInNewTab } from "@/lib/contract-pdf";
+import { getCommissionDefault } from "@/lib/commission-defaults";
+import { CommissionDefaultsDialog } from "@/components/CommissionDefaultsDialog";
+
 import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
 import { getSignatureStatus } from "@/lib/clicksign.functions";
