@@ -1291,22 +1291,8 @@ function ItemsTab({
                 } });
               }
 
-              // Propaga bilhete/localizador para outros aéreos do pedido que não pertencem a este grupo
-              const groupIds = new Set<string>([mainId, ...((payload.siblings ?? []).map((s) => s.id).filter((x): x is string => !!x))]);
-              const otherFlights = items.filter((i) => i.kind === "flight" && !groupIds.has(i.id) && i.status !== "cancelled");
-              for (const fi of otherFlights) {
-                const fd = { ...((fi.details ?? {}) as Record<string, unknown>), ticket_number: newTicket };
-                await upsert({ data: {
-                  id: fi.id,
-                  order_id: orderId,
-                  kind: "flight",
-                  title: fi.title,
-                  supplier_locator: newLoc,
-                  details: fd as Json,
-                  sort_order: fi.sort_order,
-                  status: statusFor(),
-                } });
-              }
+              // Localizador e bilhete pertencem somente a esta reserva. Nunca
+              // propagar para outros cartões aéreos do mesmo pedido.
             }
 
             await recalculateTotal({ data: { id: orderId } });
@@ -1474,7 +1460,9 @@ type FlightGroup = { key: string; locator: string | null; items: OrderItem[] };
 function groupFlightItems(items: OrderItem[]): FlightGroup[] {
   const map = new Map<string, FlightGroup>();
   for (const it of items) {
-    const key = it.supplier_locator?.trim() || "__no_locator__";
+    const details = (it.details ?? {}) as Record<string, unknown>;
+    const importGroupId = String(details.import_group_id ?? "").trim();
+    const key = importGroupId || it.supplier_locator?.trim() || "__no_locator__";
     if (!map.has(key)) map.set(key, { key, locator: it.supplier_locator?.trim() || null, items: [] });
     map.get(key)!.items.push(it);
   }
