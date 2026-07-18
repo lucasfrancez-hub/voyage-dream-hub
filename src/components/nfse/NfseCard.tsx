@@ -136,6 +136,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   const emitFn = useServerFn(emitirNfse);
   const consultFn = useServerFn(consultarNfse);
   const cancelFn = useServerFn(cancelarNfse);
+  const getPersonFn = useServerFn(getPerson);
 
   const key = ["nfse", order.id] as const;
   const { data: emissoes = [], isLoading } = useQuery({
@@ -146,26 +147,72 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
         ? 8000 : false,
   });
 
+  const personId = order.personId ?? null;
+  const { data: personData } = useQuery({
+    queryKey: ["nfse-person", personId],
+    queryFn: () => getPersonFn({ data: { id: personId! } }),
+    enabled: !!personId,
+    staleTime: 60_000,
+  });
+
   const [open, setOpen] = useState(false);
   const defaultDisc = buildAutoDescricao(detail);
   const [form, setForm] = useState({
-    razaoSocial: order.payerFullName || order.fullName || "",
-    cpfCnpj: order.payerCpf || order.cpf || "",
-    email: order.payerEmail || order.email || "",
+    razaoSocial: "",
+    cpfCnpj: "",
+    email: "",
+    phone: "",
     valor: String(order.totalPrice ?? 0),
     discriminacao: defaultDisc,
+    cep: "",
+    logradouro: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    uf: "",
   });
 
-  const openDialog = () => {
-    setForm({
-      razaoSocial: order.payerFullName || order.fullName || "",
-      cpfCnpj: order.payerCpf || order.cpf || "",
-      email: order.payerEmail || order.email || "",
+  const buildInitialForm = () => {
+    const p = personData?.person as Record<string, unknown> | undefined;
+    const pStr = (k: string) => (p ? String(p[k] ?? "") : "");
+    const primaryPhone = personData?.phones?.find((x) => x.is_primary)?.number
+      ?? personData?.phones?.[0]?.number ?? "";
+    const primaryEmail = personData?.emails?.find((x) => x.is_primary)?.address
+      ?? personData?.emails?.[0]?.address ?? "";
+
+    const pf = pStr("cpf");
+    const pj = pStr("cnpj");
+    const doc = pj || pf || order.payerCpf || order.cpf || "";
+    const nome = pStr("legal_name") || pStr("name") || order.payerFullName || order.fullName || "";
+
+    return {
+      razaoSocial: nome,
+      cpfCnpj: doc,
+      email: primaryEmail || pStr("email") || order.payerEmail || order.email || "",
+      phone: primaryPhone || pStr("mobile_phone") || pStr("phone") || order.payerPhone || "",
       valor: String(order.totalPrice ?? 0),
       discriminacao: defaultDisc,
-    });
+      cep: pStr("zip") || order.payerZip || "",
+      logradouro: pStr("address") || order.payerAddress || "",
+      numero: pStr("number") || order.payerNumber || "",
+      complemento: pStr("complement") || "",
+      bairro: pStr("district") || order.payerDistrict || "",
+      cidade: pStr("city") || order.payerCity || "",
+      uf: pStr("state") || order.payerState || "",
+    };
+  };
+
+  const openDialog = () => {
+    setForm(buildInitialForm());
     setOpen(true);
   };
+
+  // Se a pessoa carregar depois de abrir, repopula
+  useEffect(() => {
+    if (open && personData) setForm(buildInitialForm());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [personData]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -177,7 +224,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
     window.addEventListener("nfse:open-emit", handler as EventListener);
     return () => window.removeEventListener("nfse:open-emit", handler as EventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order.id]);
+  }, [order.id, personData]);
 
   const emitMut = useMutation({
     mutationFn: async () => {
@@ -196,12 +243,12 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
             cpfCnpj: doc,
             email: form.email.trim() || null,
             endereco: {
-              logradouro: order.payerAddress ?? null,
-              numero: order.payerNumber ?? null,
-              complemento: null,
-              bairro: order.payerDistrict ?? null,
-              uf: order.payerState ?? null,
-              cep: order.payerZip ?? null,
+              logradouro: form.logradouro.trim() || null,
+              numero: form.numero.trim() || null,
+              complemento: form.complemento.trim() || null,
+              bairro: form.bairro.trim() || null,
+              uf: (form.uf.trim() || null)?.toUpperCase() ?? null,
+              cep: form.cep.replace(/\D/g, "") || null,
             },
           },
         },
@@ -214,6 +261,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
+
 
   const consultMut = useMutation({
     mutationFn: (id: string) => consultFn({ data: { id } }),
