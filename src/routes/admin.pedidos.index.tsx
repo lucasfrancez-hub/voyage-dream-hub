@@ -307,20 +307,15 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
                 >
                   <div className="flex items-start justify-between gap-3 pr-8">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-sm font-semibold">{displayOrderNumber}</span>
-                        {o.airline_locator && (
-                          <span className="font-mono text-[10px] text-muted-foreground">LOC {o.airline_locator}</span>
-                        )}
-                      </div>
-                      <div className="mt-1 font-medium text-sm truncate">{o.full_name}</div>
+                      <div className="text-sm font-bold tabular-nums tracking-tight">{displayOrderNumber}</div>
+                      <div className="mt-1 font-semibold text-sm truncate">{o.full_name}</div>
                       {scope === "third_party" && (
                         <div className="text-[10px] font-semibold text-brand-orange truncate">
                           {agencyByUser?.[o.owner_user_id ?? ""] ?? "Agência parceira"}
                         </div>
                       )}
-                      <div className="text-xs text-muted-foreground truncate">{o.email}</div>
-                      <div className="text-xs text-muted-foreground">{o.phone}</div>
+                      <div className="text-[11px] text-muted-foreground truncate mt-0.5">{o.email}</div>
+                      <div className="text-[11px] text-muted-foreground tabular-nums">{o.phone}</div>
 
                       {(snap.title || snap.reference) && (
                         <div className="mt-1 text-xs truncate">{snap.title ?? snap.reference}</div>
@@ -330,15 +325,14 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-semibold text-sm">{formatBRL(Number(o.total_price))}</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                      <div className="font-bold text-sm tabular-nums">{formatBRL(Number(o.total_price))}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
                         {new Date(o.created_at).toLocaleDateString("pt-BR")}
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>{pm.label}</span>
-                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>{st.label}</span>
+                  <div className="mt-2">
+                    <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
                   </div>
                 </Link>
                 {showDeleted ? (
