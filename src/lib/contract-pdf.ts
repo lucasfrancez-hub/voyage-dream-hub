@@ -560,30 +560,31 @@ type ReceiptAmounts = {
 const receiptAmounts = (d: OrderDetail): ReceiptAmounts => {
   const extrasNoFin = sumExtrasFromItems(d);
   const finByItem = new Map(d.financials.map((f) => [f.order_item_id, f]));
-  // Fallback: itens (aéreos) importados que gravaram valor em details.value
-  // mas não têm linha em order_item_financials ainda.
-  let detailsTotal = 0, detailsTaxes = 0;
+  // Para cada item usamos o MAIOR entre o financeiro salvo e o valor gravado
+  // em details (pela extensão / edição manual). Isso resolve o caso em que a
+  // linha de order_item_financials existe mas está zerada — antes o fallback
+  // era ignorado e o "Resumo Financeiro" saía R$ 0,00.
+  let itemsTotal = 0, itemsTaxes = 0, itemsDiscount = 0;
   for (const it of d.items) {
     if (it.status === "cancelled") continue;
-    if (finByItem.has(it.id)) continue;
     const det = (it.details ?? {}) as Record<string, unknown>;
-    const v = Number(det.value ?? 0) || 0;
-    const t = Number(det.tax_value ?? 0) || 0;
-    detailsTotal += v;
-    detailsTaxes += t;
+    const detTotal = Number(det.value ?? 0) || 0;
+    const detTax = Number(det.tax_value ?? 0) || 0;
+    const fin = finByItem.get(it.id);
+    const finTotal = Number(fin?.total ?? 0) || 0;
+    const finTax = Number(fin?.tax_value ?? 0) || 0;
+    const finDisc = Number(fin?.discount_value ?? 0) || 0;
+    itemsTotal += Math.max(finTotal, detTotal);
+    itemsTaxes += Math.max(finTax, detTax);
+    itemsDiscount += finDisc;
   }
-  const financialTotal = d.financials.reduce((sum, f) => sum + Number(f.total || 0), 0) + extrasNoFin + detailsTotal;
+  const financialTotal = itemsTotal + extrasNoFin;
   const orderTotal = Number(d.order.totalPrice ?? 0);
-  // total_price é a fonte oficial quando maior que o computado; senão usa o
-  // financeiro (inclui fallback dos details).
   const total = fromCents(toCents(Math.max(Number.isFinite(orderTotal) ? orderTotal : 0, financialTotal)));
-  const financialTaxes = d.financials.reduce((sum, f) => sum + Number(f.tax_value || 0), 0) + detailsTaxes;
   const snapshot = (d.order.packageSnapshot ?? {}) as Record<string, unknown>;
   const snapshotTaxes = Number(snapshot.taxes ?? 0) || 0;
-  const taxes = fromCents(toCents(financialTaxes || snapshotTaxes));
-  const discount = fromCents(toCents(
-    d.financials.reduce((sum, f) => sum + Number(f.discount_value || 0), 0),
-  ));
+  const taxes = fromCents(toCents(itemsTaxes || snapshotTaxes));
+  const discount = fromCents(toCents(itemsDiscount));
 
   // O total é a fonte final do recibo. A tarifa é reconciliada a partir
   // dele para que Tarifa + Taxas - Desconto seja sempre exatamente o Total.
