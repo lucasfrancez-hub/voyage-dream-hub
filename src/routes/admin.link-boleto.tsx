@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { FileText, Copy, ExternalLink, MessageCircle, Vault } from "lucide-react";
+import { FileText, Copy, ExternalLink, MessageCircle, Vault, Info } from "lucide-react";
 import { toast } from "sonner";
 import { paymentBoletoLinkUrl, whatsappUrl } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
 import { saveCofreEntry } from "@/lib/cofre-storage";
+import { CollapsibleSection, EssentialGroup } from "@/components/LinkFormSection";
+
 
 export const Route = createFileRoute("/admin/link-boleto")({
   validateSearch: (s: Record<string, unknown>) => s as Record<string, string | undefined>,
