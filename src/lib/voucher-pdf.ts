@@ -637,8 +637,20 @@ const drawHeader = (ctx: Ctx) => {
   const order = ctx.order;
   const top = A4.h - MARGIN;
 
-  // Título da viagem
-  const tripTitle = String(order.tripTitle ?? "").trim().toUpperCase()
+  // Título da viagem — usa o manual; se vazio, calcula a partir dos itens; senão, fallback genérico.
+  const manualTitle = String(order.tripTitle ?? "").trim();
+  const autoFromItems = manualTitle
+    ? ""
+    : (computeAutoTitle(
+        (order.items ?? []).map((i) => ({
+          kind: i.kind,
+          title: i.title,
+          status: i.status,
+          supplier_locator: i.supplier_locator,
+          details: (i.details ?? {}) as Record<string, unknown>,
+        }))
+      ) ?? "");
+  const tripTitle = (manualTitle || autoFromItems).toUpperCase()
     || (ctx.lang === "pt" ? "PACOTE DE VIAGEM" : "TRAVEL PACKAGE");
 
   // Logo box dimensions (posicionada depois, após computar o bloco de contatos)
