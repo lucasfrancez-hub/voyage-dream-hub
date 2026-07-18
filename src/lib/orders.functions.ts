@@ -195,6 +195,7 @@ export type OrderHeader = {
   adults: number;
   children: number;
   totalPrice: number;
+  expectedTotal: number | null;
   paymentMethod: string;
   notes: string | null;
   travelReason: string | null;
