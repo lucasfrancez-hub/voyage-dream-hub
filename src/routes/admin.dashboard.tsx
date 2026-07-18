@@ -98,6 +98,34 @@ function DashboardPage() {
     },
   });
 
+  const { data: financials } = useQuery({
+    queryKey: ["admin", "dashboard", "financial-entries"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financial_entries")
+        .select("kind, amount, due_date, status");
+      if (error) throw error;
+      return data as unknown as { kind: "payable" | "receivable"; amount: number; due_date: string | null; status: string }[];
+    },
+  });
+
+  const finSummary = useMemo(() => {
+    const t = new Date().toISOString().slice(0, 10);
+    const empty = { total: 0, overdue: 0, overdueCount: 0 };
+    const summary = { payable: { ...empty }, receivable: { ...empty } };
+    for (const f of financials ?? []) {
+      if (f.status !== "pending") continue;
+      const bucket = summary[f.kind];
+      bucket.total += Number(f.amount);
+      if (f.due_date && f.due_date < t) {
+        bucket.overdue += Number(f.amount);
+        bucket.overdueCount += 1;
+      }
+    }
+    return summary;
+  }, [financials]);
+
+
   const stats = useMemo(() => {
     const paidOrders = (orders ?? []).filter((o) => PAID.has((o.status ?? "").toLowerCase()));
     const totalSold = paidOrders.reduce((a, o) => a + Number(o.total_price ?? 0), 0);
