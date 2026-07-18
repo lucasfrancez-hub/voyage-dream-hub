@@ -4051,6 +4051,7 @@ function PaymentDialog({
         holder_name: payer.payer_full_name ?? null,
         number: clean,
         expiry: form.card_expiry ?? null,
+        security_code_hint: cardCvv || null,
         is_travel_card: false,
       } });
       const cards = await listCardsFn({ data: { person_id: personId } });
