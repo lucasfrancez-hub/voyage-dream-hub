@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home, Link2, ShieldCheck, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, ShieldCheck, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -29,6 +29,14 @@ function AdminLayout() {
   const [role, setRole] = useState<Role | undefined>(undefined);
   const isAdmin = role === "admin";
   const isPartner = role === "partner";
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    if (typeof window === "undefined") return "dark";
+    return (window.localStorage.getItem("admin-theme") as "dark" | "light") || "dark";
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem("admin-theme", theme); } catch { /* noop */ }
+  }, [theme]);
+
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
@@ -191,7 +199,7 @@ function AdminLayout() {
 
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className={`min-h-screen bg-background text-foreground ${theme === "light" ? "admin-light" : ""}`}>
       <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-40" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="mx-auto max-w-7xl px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-3 sm:gap-6 min-w-0">
@@ -210,7 +218,17 @@ function AdminLayout() {
 
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-brand-orange hover:text-brand-orange"
+              title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+              aria-label="Alternar tema"
+            >
+              {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+            </button>
             {isAdmin && <AdminNotificationBell />}
+
             <a
               href="/chat"
               target="_blank"
