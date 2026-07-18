@@ -33,7 +33,7 @@ import {
   getOrderDetail, upsertPassenger, deletePassenger,
   upsertOrderItem, deleteOrderItem, setOrderItemStatus, setOrderStatus, updateOrderMeta,
   upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice, recalculateOrderTotal,
-  upsertOrderPayment, deleteOrderPayment, updateOrderPayer,
+  upsertOrderPayment, deleteOrderPayment, updateOrderPayer, revealOrderPaymentCardNumber,
   appendOrderLogEntry, deleteOrderLogEntry,
   linkPassengerToItem, unlinkPassengerFromItem, getMySellerInfo, deleteAllOrderPassengers,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
@@ -3718,6 +3718,7 @@ function PaymentDialog({
   const listCardsFn = useServerFn(listPersonCards);
   const addCardFn = useServerFn(addPersonCard);
   const revealCardFn = useServerFn(revealPersonCardNumber);
+  const revealPaymentCardFn = useServerFn(revealOrderPaymentCardNumber);
   const [personSearch, setPersonSearch] = useState("");
   const [personResults, setPersonResults] = useState<Array<{ id: string; name: string; cpf: string | null }>>([]);
   const [showPersonResults, setShowPersonResults] = useState(false);
@@ -3774,6 +3775,32 @@ function PaymentDialog({
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial, open, order.id]);
+
+  // Ao editar um pagamento existente com cartão, decifra o número completo
+  // e preenche o campo, no mesmo formato mascarado (com espaços a cada 4 dígitos).
+  useEffect(() => {
+    if (!open || !initial?.id || !initial?.card_last4) {
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await revealPaymentCardFn({ data: { id: initial.id! } });
+        if (cancelled) return;
+        const raw = (res?.number ?? "").replace(/\D/g, "");
+        if (!raw) return;
+        const isAmex = (initial.card_brand ?? "").toLowerCase().includes("amex");
+        const formatted = isAmex
+          ? raw.replace(/(\d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{6})(\d)/, "$1 $2")
+          : raw.replace(/(\d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{4})(\d)/, "$1 $2").replace(/(\d{4} \d{4} \d{4})(\d)/, "$1 $2");
+        setCardFullNumber(formatted);
+      } catch {
+        // silencioso — mantém placeholder caso não consiga decifrar
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial?.id, open]);
 
   const method = form.method ?? "pix";
   const showCard = method === "credit_card" || method === "debit_card";
