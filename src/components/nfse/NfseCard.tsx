@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileText, Loader2, RefreshCw, Send, XCircle, Download, ExternalLink, Trash2 } from "lucide-react";
+import { FileText, Loader2, RefreshCw, Send, XCircle, Download, ExternalLink, Trash2, FileCode2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import {
 } from "@/lib/nfse.functions";
 import { getPerson } from "@/lib/people.functions";
 import type { OrderDetail } from "@/lib/orders.functions";
+import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -121,6 +122,7 @@ function statusBadge(s: string) {
   const map: Record<string, { label: string; cls: string }> = {
     processando: { label: "Processando", cls: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
     autorizado: { label: "Autorizado", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
+    emitida: { label: "Autorizada", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
     cancelando: { label: "Cancelando", cls: "bg-orange-500/15 text-orange-700 border-orange-500/30" },
     cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground" },
     erro: { label: "Erro", cls: "bg-red-500/15 text-red-700 border-red-500/30" },
@@ -316,14 +318,19 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
                     onClick={() => consultMut.mutate(e.id)}>
                     <RefreshCw className="h-3.5 w-3.5" />
                   </Button>
-                  {e.url_pdf && (
-                    <Button size="sm" variant="ghost" className="h-7 px-2" asChild>
-                      <a href={e.url_pdf} target="_blank" rel="noreferrer">
+                  {(e.status === "autorizado" || e.status === "emitida") && (
+                    <>
+                      <Button size="sm" variant="ghost" className="h-7 px-2" title="Baixar PDF da NFS-e"
+                        onClick={() => downloadNfsePdf(e)}>
                         <Download className="h-3.5 w-3.5" />
-                      </a>
-                    </Button>
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 px-2" title="Baixar XML da NFS-e"
+                        onClick={() => { try { downloadNfseXml(e); } catch (err) { toast.error(err instanceof Error ? err.message : "XML indisponível"); } }}>
+                        <FileCode2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
                   )}
-                  {e.status === "autorizado" && (
+                  {(e.status === "autorizado" || e.status === "emitida") && (
                     <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600"
                       onClick={() => {
                         const j = window.prompt("Justificativa do cancelamento (mín. 15 caracteres):");
