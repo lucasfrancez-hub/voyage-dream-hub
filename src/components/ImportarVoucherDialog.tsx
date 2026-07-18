@@ -589,6 +589,8 @@ function ReviewExtracted({
         </div>
 
       </DialogFooter>
+      <CommissionDefaultsDialog open={defaultsOpen} onOpenChange={setDefaultsOpen} />
     </div>
+
   );
 }
