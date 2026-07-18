@@ -1162,6 +1162,7 @@ export const createOrder = createServerFn({ method: "POST" })
       cpf: nn(data.cpf),
       payment_method: data.payment_method,
       total_price: data.total_price ?? 0,
+      expected_total: data.expected_total ?? null,
       adults: data.adults ?? 1,
       children: data.children ?? 0,
       notes: nn(data.notes),
