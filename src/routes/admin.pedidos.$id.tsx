@@ -4164,12 +4164,18 @@ function PaymentDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => onSave({
-            ...form,
-            method: form.method ?? "pix",
-            amount: Number(form.amount ?? 0),
-            card_full_number: cardFullNumber.replace(/\D/g, "") || null,
-          } as Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null }, payer)}>Salvar</Button>
+          <Button onClick={() => {
+            // Normaliza strings vazias -> null (evita "invalid input syntax for type date")
+            const cleanPayer = Object.fromEntries(
+              Object.entries(payer).map(([k, v]) => [k, v === "" ? null : v]),
+            ) as PayerPatch;
+            onSave({
+              ...form,
+              method: form.method ?? "pix",
+              amount: Number(form.amount ?? 0),
+              card_full_number: cardFullNumber.replace(/\D/g, "") || null,
+            } as Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null }, cleanPayer);
+          }}>Salvar</Button>
 
 
         </DialogFooter>
