@@ -96,6 +96,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
   const saveItem = useServerFn(upsertOrderItem);
   const savePax = useServerFn(upsertPassenger);
   const updateMeta = useServerFn(updateOrderMeta);
+  const linkImport = useServerFn(setImportLinks);
 
   useEffect(() => {
     if (!open) return;
