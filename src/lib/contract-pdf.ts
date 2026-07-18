@@ -645,14 +645,18 @@ const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
   // aparecerem na mesma ordem do pedido.
   const sortedFlights = [...flights].sort((a, b) => a.sort_order - b.sort_order);
 
+  const keyOf = (f: (typeof sortedFlights)[number]) => {
+    const det = (f.details ?? {}) as Record<string, unknown>;
+    const importGroupId = String(det.import_group_id ?? "").trim();
+    const carrierLocator = String(det.carrier_locator ?? "").trim();
+    return importGroupId || carrierLocator || (f.supplier_locator ?? "").trim() || `__item_${f.id}`;
+  };
+
   for (const f of sortedFlights) {
-    const key = (f.supplier_locator ?? "").trim() || `__item_${f.id}`;
+    const key = keyOf(f);
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
-    const groupItems = sortedFlights.filter((x) => {
-      const k = (x.supplier_locator ?? "").trim() || `__item_${x.id}`;
-      return k === key;
-    });
+    const groupItems = sortedFlights.filter((x) => keyOf(x) === key);
     const itemIds = groupItems.map((x) => x.id);
 
     // Passageiros da reserva: união dos vinculados a qualquer item do grupo.
@@ -666,7 +670,9 @@ const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
       .sort((a, b) => a.sort_order - b.sort_order);
     if (passengers.length === 0) continue;
 
-    // Financeiro somado dos itens do grupo (mesmo localizador soma ida+volta).
+    // Financeiro somado dos itens do grupo. O total informado na importação
+    // é gravado num único item da reserva; aqui somamos para cobrir edições
+    // manuais que distribuíram valores entre trechos.
     let fare = 0, taxes = 0, discount = 0, total = 0;
     for (const id of itemIds) {
       const fin = finByItem.get(id);
@@ -683,13 +689,15 @@ const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
     const first = groupItems[0];
     const det = (first.details ?? {}) as Record<string, unknown>;
     const airline = (det.airline as string) ?? "";
-    const locator = (first.supplier_locator ?? "").trim();
+    const carrierLocator = String(det.carrier_locator ?? "").trim();
+    const locator = carrierLocator || (first.supplier_locator ?? "").trim();
     const label = locator
       ? `Passageiros — ${airline ? airline + " " : ""}Loc. ${locator}`
       : `Passageiros — ${airline || first.title}`;
 
     groups.push({ label, itemIds, passengers, fare, taxes, discount });
   }
+
 
   // Se conseguimos agrupar por reserva com valores próprios, usa uma tabela
   // por reserva. Senão, cai no comportamento antigo: uma única tabela com o
