@@ -7,7 +7,7 @@ import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDia
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
+import { statusLabel } from "@/lib/order-labels";
 import { createOrder, backfillAutoTitles } from "@/lib/orders.functions";
 import { searchPeople, listPersonCards } from "@/lib/people.functions";
 import { Button } from "@/components/ui/button";
