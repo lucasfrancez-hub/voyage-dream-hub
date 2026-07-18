@@ -5167,6 +5167,8 @@ type EditOrderPatch = {
   email?: string | null;
   phone?: string | null;
   cpf?: string | null;
+  cnpj?: string | null;
+  person_id?: string | null;
   birth_date?: string | null;
   adults?: number | null;
   children?: number | null;
@@ -5181,28 +5183,71 @@ function EditOrderDialog({
   order: OrderHeader;
   onSave: (patch: EditOrderPatch) => void;
 }) {
+  const searchPeopleFn = useServerFn(searchPeople);
+  const initialDoc = order.cnpj ?? order.cpf ?? "";
   const [form, setForm] = useState({
     full_name: order.fullName ?? "",
     email: order.email ?? "",
     phone: order.phone ?? "",
-    cpf: order.cpf ?? "",
+    doc: initialDoc,
+    person_id: order.personId ?? null as string | null,
     birth_date: order.birthDate ?? "",
     adults: order.adults ?? 1,
     children: order.children ?? 0,
     expected_total: order.expectedTotal ?? 0,
   });
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Array<{ id: string; name: string; cpf: string | null; cnpj: string | null; email: string | null; phone: string | null; mobile_phone: string | null; birth_date: string | null }>>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [searching, setSearching] = useState(false);
+
   useEffect(() => {
     if (open) setForm({
       full_name: order.fullName ?? "",
       email: order.email ?? "",
       phone: order.phone ?? "",
-      cpf: order.cpf ?? "",
+      doc: order.cnpj ?? order.cpf ?? "",
+      person_id: order.personId ?? null,
       birth_date: order.birthDate ?? "",
       adults: order.adults ?? 1,
       children: order.children ?? 0,
       expected_total: order.expectedTotal ?? 0,
     });
   }, [open, order]);
+
+  useEffect(() => {
+    if (!open) return;
+    const q = query.trim();
+    if (q.length < 2) { setResults([]); return; }
+    let cancelled = false;
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const rows = await searchPeopleFn({ data: { q } });
+        if (!cancelled) setResults(rows);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [query, open, searchPeopleFn]);
+
+  const docDigits = form.doc.replace(/\D+/g, "");
+  const isPJ = docDigits.length > 11;
+
+  function pickPerson(p: typeof results[number]) {
+    setForm((f) => ({
+      ...f,
+      person_id: p.id,
+      full_name: p.name ?? f.full_name,
+      email: p.email ?? f.email,
+      phone: p.mobile_phone ?? p.phone ?? f.phone,
+      doc: p.cnpj ?? p.cpf ?? f.doc,
+      birth_date: p.birth_date ?? f.birth_date,
+    }));
+    setShowResults(false);
+    setQuery("");
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -5211,16 +5256,63 @@ function EditOrderDialog({
           <DialogTitle>Editar pedido</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
+          {/* Busca de pessoa cadastrada */}
+          <div className="relative">
+            <Label>Buscar pessoa cadastrada (PF ou PJ)</Label>
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-8"
+                placeholder="Nome, CPF, CNPJ ou e-mail…"
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setShowResults(true); }}
+                onFocus={() => setShowResults(true)}
+              />
+            </div>
+            {form.person_id && (
+              <p className="mt-1 text-[11px] text-primary">
+                ✓ Vinculado a pessoa cadastrada · <button type="button" className="underline" onClick={() => setForm({ ...form, person_id: null })}>desvincular</button>
+              </p>
+            )}
+            {showResults && query.trim().length >= 2 && (
+              <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover/70 backdrop-blur-3xl backdrop-saturate-150 shadow-lg max-h-64 overflow-y-auto">
+                {searching && <div className="p-2 text-xs text-muted-foreground">Buscando…</div>}
+                {!searching && results.length === 0 && <div className="p-2 text-xs text-muted-foreground">Nenhuma pessoa encontrada.</div>}
+                {results.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => pickPerson(p)}
+                    className="w-full text-left px-3 py-2 hover:bg-accent flex items-center justify-between gap-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{p.name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        {p.cnpj ? `CNPJ ${p.cnpj}` : p.cpf ? `CPF ${p.cpf}` : ""}{(p.cnpj || p.cpf) && (p.email || p.phone) ? " · " : ""}{p.email ?? p.phone ?? ""}
+                      </div>
+                    </div>
+                    <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded ${p.cnpj ? "bg-blue-500/15 text-blue-400" : "bg-emerald-500/15 text-emerald-400"}`}>
+                      {p.cnpj ? "PJ" : "PF"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Nome completo</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
-            <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
+            <div><Label>{isPJ ? "Razão social" : "Nome completo"}</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div>
+              <Label>{isPJ ? "CNPJ" : "CPF"} <span className="text-[10px] text-muted-foreground">(auto)</span></Label>
+              <Input value={form.doc} onChange={(e) => setForm({ ...form, doc: e.target.value })} placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>E-mail</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
             <div><Label>Telefone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div><Label>Nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+            <div><Label>{isPJ ? "Fundação" : "Nascimento"}</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
             <div><Label>Adultos</Label><Input type="number" min={0} value={form.adults} onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })} /></div>
             <div><Label>Crianças</Label><Input type="number" min={0} value={form.children} onChange={(e) => setForm({ ...form, children: Number(e.target.value) })} /></div>
           </div>
@@ -5233,11 +5325,16 @@ function EditOrderDialog({
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => {
+            const doc = form.doc.trim();
+            const digits = doc.replace(/\D+/g, "");
+            const asPJ = digits.length > 11;
             onSave({
               full_name: form.full_name.trim() || null,
               email: form.email.trim() || null,
               phone: form.phone.trim() || null,
-              cpf: form.cpf.trim() || null,
+              cpf: asPJ ? null : (doc || null),
+              cnpj: asPJ ? (doc || null) : null,
+              person_id: form.person_id,
               birth_date: form.birth_date || null,
               adults: Number(form.adults) || 0,
               children: Number(form.children) || 0,
@@ -5249,4 +5346,5 @@ function EditOrderDialog({
     </Dialog>
   );
 }
+
 
