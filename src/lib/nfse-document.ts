@@ -32,6 +32,7 @@ export type NfseDocumentData = {
   discriminacao: string;
   tomador: unknown;
   focus_response?: unknown;
+  order_id?: string | null;
 };
 
 const money = (v: unknown) =>
