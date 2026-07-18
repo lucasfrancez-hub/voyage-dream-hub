@@ -436,9 +436,45 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
           </table>
         </div>
       </div>
+
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir pedido {deleteTarget?.label}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="delete-reason">Motivo da exclusão</Label>
+            <Textarea
+              id="delete-reason"
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder="Ex.: pedido de teste, duplicado, cancelado pelo cliente…"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={!deleteReason.trim() || softDelete.isPending}
+              onClick={() => {
+                if (!deleteTarget) return;
+                softDelete.mutate(
+                  { id: deleteTarget.id, reason: deleteReason.trim() },
+                  { onSuccess: () => setDeleteTarget(null) },
+                );
+              }}
+            >
+              {softDelete.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const navigate = useNavigate();
