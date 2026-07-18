@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
-  Save, Trash2, Loader2, Plus, CreditCard, Eye, EyeOff, User, Building2,
+  Save, Trash2, Loader2, Plus, CreditCard, Eye, EyeOff, User, Building2, Pencil,
   ShoppingBag, Wallet, ExternalLink, Check, X as XIcon, Tag as TagIcon, Paperclip,
   Download, Upload, FileText, ClipboardList, Calculator,
 } from "lucide-react";
