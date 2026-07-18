@@ -1075,7 +1075,9 @@ export type Database = {
       people: {
         Row: {
           address: string | null
+          birth_certificate: string | null
           birth_date: string | null
+          birth_place: string | null
           business_phone: string | null
           charge_boleto_fee: boolean
           city: string | null
@@ -1095,8 +1097,10 @@ export type Database = {
           is_foreign: boolean
           kind: string
           legal_name: string | null
+          marital_status: string | null
           mobile_phone: string | null
           monde_id: string | null
+          mother_name: string | null
           municipal_registration: string | null
           name: string
           notes: string | null
@@ -1105,6 +1109,8 @@ export type Database = {
           passport_number: string | null
           phone: string | null
           rg: string | null
+          rg_issued_at: string | null
+          rg_issuer: string | null
           seller_name: string | null
           state: string | null
           state_registration: string | null
@@ -1114,7 +1120,9 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          birth_certificate?: string | null
           birth_date?: string | null
+          birth_place?: string | null
           business_phone?: string | null
           charge_boleto_fee?: boolean
           city?: string | null
@@ -1134,8 +1142,10 @@ export type Database = {
           is_foreign?: boolean
           kind: string
           legal_name?: string | null
+          marital_status?: string | null
           mobile_phone?: string | null
           monde_id?: string | null
+          mother_name?: string | null
           municipal_registration?: string | null
           name: string
           notes?: string | null
@@ -1144,6 +1154,8 @@ export type Database = {
           passport_number?: string | null
           phone?: string | null
           rg?: string | null
+          rg_issued_at?: string | null
+          rg_issuer?: string | null
           seller_name?: string | null
           state?: string | null
           state_registration?: string | null
@@ -1153,7 +1165,9 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          birth_certificate?: string | null
           birth_date?: string | null
+          birth_place?: string | null
           business_phone?: string | null
           charge_boleto_fee?: boolean
           city?: string | null
@@ -1173,8 +1187,10 @@ export type Database = {
           is_foreign?: boolean
           kind?: string
           legal_name?: string | null
+          marital_status?: string | null
           mobile_phone?: string | null
           monde_id?: string | null
+          mother_name?: string | null
           municipal_registration?: string | null
           name?: string
           notes?: string | null
@@ -1183,6 +1199,8 @@ export type Database = {
           passport_number?: string | null
           phone?: string | null
           rg?: string | null
+          rg_issued_at?: string | null
+          rg_issuer?: string | null
           seller_name?: string | null
           state?: string | null
           state_registration?: string | null
@@ -1191,6 +1209,50 @@ export type Database = {
           zip?: string | null
         }
         Relationships: []
+      }
+      people_attachments: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          mime_type: string | null
+          person_id: string
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string | null
+          uploaded_by_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          mime_type?: string | null
+          person_id: string
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          mime_type?: string | null
+          person_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_attachments_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       people_cards: {
         Row: {
@@ -1203,7 +1265,10 @@ export type Database = {
           last4: string | null
           nickname: string | null
           number_ciphertext: string
+          operator: string | null
           person_id: string
+          security_code_hint: string | null
+          travel_card_type: string | null
           updated_at: string
         }
         Insert: {
@@ -1216,7 +1281,10 @@ export type Database = {
           last4?: string | null
           nickname?: string | null
           number_ciphertext: string
+          operator?: string | null
           person_id: string
+          security_code_hint?: string | null
+          travel_card_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -1229,12 +1297,173 @@ export type Database = {
           last4?: string | null
           nickname?: string | null
           number_ciphertext?: string
+          operator?: string | null
           person_id?: string
+          security_code_hint?: string | null
+          travel_card_type?: string | null
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "people_cards_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people_custom_fields: {
+        Row: {
+          created_at: string
+          field_key: string
+          field_value: string | null
+          id: string
+          person_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          field_key: string
+          field_value?: string | null
+          id?: string
+          person_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          field_key?: string
+          field_value?: string | null
+          id?: string
+          person_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_custom_fields_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people_emails: {
+        Row: {
+          address: string
+          created_at: string
+          id: string
+          is_primary: boolean
+          kind: string
+          notes: string | null
+          person_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          kind?: string
+          notes?: string | null
+          person_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          kind?: string
+          notes?: string | null
+          person_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_emails_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people_phones: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          kind: string
+          notes: string | null
+          number: string
+          person_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          kind?: string
+          notes?: string | null
+          number: string
+          person_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          kind?: string
+          notes?: string | null
+          number?: string
+          person_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_phones_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people_tags: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          label: string
+          person_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          person_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_tags_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"

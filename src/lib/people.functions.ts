@@ -49,6 +49,12 @@ export type PersonRow = {
   notes: string | null;
   seller_name: string | null;
   charge_boleto_fee: boolean;
+  marital_status: string | null;
+  birth_place: string | null;
+  rg_issuer: string | null;
+  rg_issued_at: string | null;
+  birth_certificate: string | null;
+  mother_name: string | null;
   monde_id: string | null;
   created_by: string | null;
   created_by_name: string | null;
@@ -62,11 +68,60 @@ export type PersonCardRow = {
   nickname: string | null;
   holder_name: string | null;
   brand: string | null;
+  operator: string | null;
+  travel_card_type: string | null;
+  security_code_hint: string | null;
   last4: string | null;
   expiry: string | null;
   is_travel_card: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type PersonPhone = {
+  id: string;
+  person_id: string;
+  kind: string;
+  number: string;
+  is_primary: boolean;
+  notes: string | null;
+  sort_order: number;
+};
+
+export type PersonEmail = {
+  id: string;
+  person_id: string;
+  kind: string;
+  address: string;
+  is_primary: boolean;
+  notes: string | null;
+  sort_order: number;
+};
+
+export type PersonTag = {
+  id: string;
+  person_id: string;
+  label: string;
+  color: string | null;
+};
+
+export type PersonAttachment = {
+  id: string;
+  person_id: string;
+  description: string;
+  mime_type: string | null;
+  storage_path: string;
+  size_bytes: number | null;
+  uploaded_by_name: string | null;
+  created_at: string;
+};
+
+export type PersonCustomField = {
+  id: string;
+  person_id: string;
+  field_key: string;
+  field_value: string | null;
+  sort_order: number;
 };
 
 const personSchema = z.object({
@@ -101,6 +156,12 @@ const personSchema = z.object({
   notes: z.string().trim().max(4000).nullish(),
   seller_name: z.string().trim().max(120).nullish(),
   charge_boleto_fee: z.boolean().default(false),
+  marital_status: z.string().trim().max(30).nullish(),
+  birth_place: z.string().trim().max(120).nullish(),
+  rg_issuer: z.string().trim().max(60).nullish(),
+  rg_issued_at: z.string().trim().max(10).nullish(),
+  birth_certificate: z.string().trim().max(120).nullish(),
+  mother_name: z.string().trim().max(200).nullish(),
 });
 
 function emptyToNull<T extends Record<string, unknown>>(obj: T): T {
@@ -166,7 +227,7 @@ export const listPersonCards = createServerFn({ method: "POST" })
     await ensureInternal(context);
     const { data: cards, error } = await context.supabase
       .from("people_cards")
-      .select("id, person_id, nickname, holder_name, brand, last4, expiry, is_travel_card, created_at, updated_at")
+      .select("id, person_id, nickname, holder_name, brand, operator, travel_card_type, security_code_hint, last4, expiry, is_travel_card, created_at, updated_at")
       .eq("person_id", data.person_id)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -188,13 +249,39 @@ export const getPerson = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!person) throw new Error("Pessoa não encontrada");
-    const { data: cards, error: cErr } = await context.supabase
-      .from("people_cards")
-      .select("id, person_id, nickname, holder_name, brand, last4, expiry, is_travel_card, created_at, updated_at")
-      .eq("person_id", data.id)
-      .order("created_at", { ascending: false });
-    if (cErr) throw new Error(cErr.message);
-    return { person: person as PersonRow, cards: (cards ?? []) as PersonCardRow[] };
+
+    const [cardsRes, phonesRes, emailsRes, tagsRes, attachRes, customRes] = await Promise.all([
+      context.supabase.from("people_cards")
+        .select("id, person_id, nickname, holder_name, brand, operator, travel_card_type, security_code_hint, last4, expiry, is_travel_card, created_at, updated_at")
+        .eq("person_id", data.id).order("created_at", { ascending: false }),
+      context.supabase.from("people_phones")
+        .select("id, person_id, kind, number, is_primary, notes, sort_order")
+        .eq("person_id", data.id).order("sort_order", { ascending: true }),
+      context.supabase.from("people_emails")
+        .select("id, person_id, kind, address, is_primary, notes, sort_order")
+        .eq("person_id", data.id).order("sort_order", { ascending: true }),
+      context.supabase.from("people_tags")
+        .select("id, person_id, label, color")
+        .eq("person_id", data.id).order("label", { ascending: true }),
+      context.supabase.from("people_attachments")
+        .select("id, person_id, description, mime_type, storage_path, size_bytes, uploaded_by_name, created_at")
+        .eq("person_id", data.id).order("created_at", { ascending: false }),
+      context.supabase.from("people_custom_fields")
+        .select("id, person_id, field_key, field_value, sort_order")
+        .eq("person_id", data.id).order("sort_order", { ascending: true }),
+    ]);
+    for (const r of [cardsRes, phonesRes, emailsRes, tagsRes, attachRes, customRes]) {
+      if (r.error) throw new Error(r.error.message);
+    }
+    return {
+      person: person as PersonRow,
+      cards: (cardsRes.data ?? []) as PersonCardRow[],
+      phones: (phonesRes.data ?? []) as PersonPhone[],
+      emails: (emailsRes.data ?? []) as PersonEmail[],
+      tags: (tagsRes.data ?? []) as PersonTag[],
+      attachments: (attachRes.data ?? []) as PersonAttachment[],
+      custom_fields: (customRes.data ?? []) as PersonCustomField[],
+    };
   });
 
 export const upsertPerson = createServerFn({ method: "POST" })
@@ -204,7 +291,6 @@ export const upsertPerson = createServerFn({ method: "POST" })
     await ensureInternal(context);
     const payload: any = emptyToNull(data);
     if (!payload.id) {
-      // resolve created_by info
       const { data: prof } = await context.supabase
         .from("profiles")
         .select("full_name")
@@ -262,6 +348,9 @@ export const addPersonCard = createServerFn({ method: "POST" })
         holder_name: z.string().trim().max(200).nullish(),
         number: z.string().trim().min(12).max(25),
         expiry: z.string().trim().max(7).nullish(),
+        operator: z.string().trim().max(40).nullish(),
+        travel_card_type: z.string().trim().max(10).nullish(),
+        security_code_hint: z.string().trim().max(6).nullish(),
         is_travel_card: z.boolean().default(false),
       })
       .parse(input),
@@ -279,9 +368,12 @@ export const addPersonCard = createServerFn({ method: "POST" })
       nickname: data.nickname || null,
       holder_name: data.holder_name || null,
       brand,
+      operator: data.operator || brand || null,
+      travel_card_type: data.travel_card_type || null,
+      security_code_hint: data.security_code_hint || null,
       last4,
       expiry: data.expiry || null,
-      is_travel_card: data.is_travel_card,
+      is_travel_card: data.is_travel_card || !!data.travel_card_type,
       number_ciphertext,
     });
     if (error) throw new Error(error.message);
@@ -321,6 +413,212 @@ export const revealPersonCardNumber = createServerFn({ method: "POST" })
     return { number: decryptCardNumber((row as any).number_ciphertext) };
   });
 
+/* ---------------- Phones ---------------- */
+
+export const savePersonPhone = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      id: z.string().uuid().optional(),
+      person_id: z.string().uuid(),
+      kind: z.string().trim().max(30).default("personal"),
+      number: z.string().trim().min(3).max(30),
+      is_primary: z.boolean().default(false),
+      notes: z.string().trim().max(200).nullish(),
+      sort_order: z.number().int().default(0),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const payload: any = { ...data, notes: data.notes || null };
+    const { error } = await context.supabase.from("people_phones").upsert(payload);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deletePersonPhone = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { error } = await context.supabase.from("people_phones").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/* ---------------- Emails ---------------- */
+
+export const savePersonEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      id: z.string().uuid().optional(),
+      person_id: z.string().uuid(),
+      kind: z.string().trim().max(30).default("personal"),
+      address: z.string().trim().email("E-mail inválido").max(200),
+      is_primary: z.boolean().default(false),
+      notes: z.string().trim().max(200).nullish(),
+      sort_order: z.number().int().default(0),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const payload: any = { ...data, notes: data.notes || null };
+    const { error } = await context.supabase.from("people_emails").upsert(payload);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deletePersonEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { error } = await context.supabase.from("people_emails").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/* ---------------- Tags ---------------- */
+
+export const savePersonTag = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      id: z.string().uuid().optional(),
+      person_id: z.string().uuid(),
+      label: z.string().trim().min(1).max(60),
+      color: z.string().trim().max(20).nullish(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { error } = await context.supabase.from("people_tags").upsert({
+      ...data, color: data.color || null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deletePersonTag = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { error } = await context.supabase.from("people_tags").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/* ---------------- Custom fields ---------------- */
+
+export const savePersonCustomField = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      id: z.string().uuid().optional(),
+      person_id: z.string().uuid(),
+      field_key: z.string().trim().min(1).max(80),
+      field_value: z.string().trim().max(1000).nullish(),
+      sort_order: z.number().int().default(0),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { error } = await context.supabase.from("people_custom_fields").upsert({
+      ...data, field_value: data.field_value || null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deletePersonCustomField = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { error } = await context.supabase.from("people_custom_fields").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/* ---------------- Attachments ---------------- */
+
+export const addPersonAttachment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      person_id: z.string().uuid(),
+      description: z.string().trim().min(1).max(200),
+      mime_type: z.string().trim().max(80).nullish(),
+      size_bytes: z.number().int().nullish(),
+      data_base64: z.string().min(1),
+      filename: z.string().trim().max(200),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const buf = Buffer.from(data.data_base64, "base64");
+    const safe = data.filename.replace(/[^\w.\-]+/g, "_");
+    const path = `${data.person_id}/${Date.now()}_${safe}`;
+    const up = await supabaseAdmin.storage
+      .from("people-attachments")
+      .upload(path, buf, {
+        contentType: data.mime_type || "application/octet-stream",
+        upsert: false,
+      });
+    if (up.error) throw new Error(up.error.message);
+    const { data: prof } = await context.supabase.from("profiles").select("full_name").eq("id", context.userId).maybeSingle();
+    const { error } = await context.supabase.from("people_attachments").insert({
+      person_id: data.person_id,
+      description: data.description,
+      mime_type: data.mime_type || null,
+      storage_path: path,
+      size_bytes: data.size_bytes ?? buf.byteLength,
+      uploaded_by: context.userId,
+      uploaded_by_name: (prof?.full_name as string | null) ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deletePersonAttachment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { data: row } = await context.supabase.from("people_attachments").select("storage_path").eq("id", data.id).maybeSingle();
+    if (row?.storage_path) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.storage.from("people-attachments").remove([row.storage_path as string]);
+    }
+    const { error } = await context.supabase.from("people_attachments").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const getPersonAttachmentUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { data: row, error } = await context.supabase
+      .from("people_attachments")
+      .select("storage_path")
+      .eq("id", data.id).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Anexo não encontrado");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const signed = await supabaseAdmin.storage
+      .from("people-attachments")
+      .createSignedUrl(row.storage_path as string, 300);
+    if (signed.error) throw new Error(signed.error.message);
+    return { url: signed.data.signedUrl };
+  });
+
+/* ---------------- Sales / financials ---------------- */
+
 export type PersonSaleRow = {
   id: string;
   order_number: string | null;
@@ -329,6 +627,7 @@ export type PersonSaleRow = {
   status: string | null;
   total_price: number | null;
   created_at: string;
+  going_date: string | null;
   paid: number;
   pending: number;
 };
@@ -339,6 +638,10 @@ export type PersonFinancialSummary = {
   total_paid: number;
   total_pending: number;
   last_order_at: string | null;
+  first_sale_at: string | null;
+  last_sale_at: string | null;
+  last_departure_at: string | null;
+  last_return_at: string | null;
 };
 
 export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
@@ -350,7 +653,7 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
     await ensureInternal(context);
     const { data: orders, error } = await context.supabase
       .from("orders")
-      .select("id, order_number, trip_title, supplier_name, status, total_price, created_at")
+      .select("id, order_number, trip_title, supplier_name, status, total_price, created_at, going_date, return_date")
       .eq("person_id", data.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
@@ -382,12 +685,16 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
       status: o.status,
       total_price: o.total_price != null ? Number(o.total_price) : null,
       created_at: o.created_at,
+      going_date: o.going_date ?? null,
       paid: paidMap[o.id] ?? 0,
       pending: pendMap[o.id] ?? 0,
     }));
     const total_gross = sales.reduce((s, r) => s + (r.total_price ?? 0), 0);
     const total_paid = sales.reduce((s, r) => s + r.paid, 0);
     const total_pending = sales.reduce((s, r) => s + r.pending, 0);
+    const sortedByCreated = [...sales].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const departures = list.map((o) => o.going_date).filter(Boolean).sort() as string[];
+    const returns = list.map((o) => o.return_date).filter(Boolean).sort() as string[];
     return {
       sales,
       summary: {
@@ -396,6 +703,10 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
         total_paid,
         total_pending,
         last_order_at: sales[0]?.created_at ?? null,
+        first_sale_at: sortedByCreated[0]?.created_at ?? null,
+        last_sale_at: sortedByCreated[sortedByCreated.length - 1]?.created_at ?? null,
+        last_departure_at: departures[departures.length - 1] ?? null,
+        last_return_at: returns[returns.length - 1] ?? null,
       },
     };
   });
