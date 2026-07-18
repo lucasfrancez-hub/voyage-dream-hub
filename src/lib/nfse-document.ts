@@ -153,9 +153,12 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const vBase = data.base_calculo != null ? n(data.base_calculo) : vServ - vDed;
   const aliq = n(data.aliquota_iss);
   const vIss = n(data.valor_iss);
+  const vIssRet = n(data.valor_iss_retido);
   const vIr = n(data.valor_ir), vInss = n(data.valor_inss), vCsll = n(data.valor_csll);
   const vCof = n(data.valor_cofins), vPis = n(data.valor_pis), vOut = n(data.outras_retencoes);
-  const totalRet = vIss + vIr + vInss + vCsll + vCof + vPis + vOut;
+  // ISS só entra no total de retenções quando é retido na fonte (ISSRF).
+  // Sem retenção, valor líquido = valor dos serviços (menos descontos).
+  const totalRet = vIssRet + vIr + vInss + vCsll + vCof + vPis + vOut;
   const vLiq = data.valor_liquido != null ? n(data.valor_liquido) : Math.max(vServ - vDed - totalRet, 0);
   const dIncond = n(data.desconto_incondicional), dCond = n(data.desconto_condicional);
   const vCred = n(data.credito_tributario);
