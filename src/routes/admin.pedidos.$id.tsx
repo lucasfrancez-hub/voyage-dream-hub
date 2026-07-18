@@ -3750,6 +3750,9 @@ function PaymentDialog({
     setCardFullNumber("");
     setInstallmentTouched(!isNew);
     setSelectedItemIds(initial?.order_item_ids ?? []);
+    const initAmount = initial?.amount ?? order.totalPrice ?? 0;
+    setRawAmount(fmtBRLInput(initAmount));
+    setRawInstallment(initial?.installment_amount != null ? fmtBRLInput(initial.installment_amount) : "");
     // Pré-preenche dados do pagador a partir do pedido, com fallback nos dados do cliente principal.
     setPayer({
       payer_full_name: order.payerFullName ?? order.fullName ?? "",
