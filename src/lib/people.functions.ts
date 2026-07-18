@@ -696,35 +696,49 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
     const cpfDigits = String(person?.cpf ?? "").replace(/\D+/g, "");
     const emailNorm = String(person?.email ?? "").trim().toLowerCase();
 
-    const filters: string[] = [`person_id.eq.${data.id}`];
+    const cpfCandidates = new Set<string>();
     if (cpfDigits) {
-      // orders.cpf / payer_cpf podem estar armazenados apenas em dígitos ou
-      // formatados (ex: "518.482.430-77"). Casamos por "contém dígitos" via
-      // regex removendo não-dígitos — como PostgREST não faz isso, aplicamos
-      // ilike com wildcards que casam com ambas as formas para CPF de 11 dígitos.
-      const d = cpfDigits;
-      const formatted = d.length === 11 ? `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}` : null;
-      for (const col of ["cpf", "payer_cpf"] as const) {
-        filters.push(`${col}.eq.${d}`);
-        if (formatted) filters.push(`${col}.eq.${formatted}`);
-        if (person?.cpf && person.cpf !== d && person.cpf !== formatted) filters.push(`${col}.eq.${person.cpf}`);
+      cpfCandidates.add(cpfDigits);
+      cpfCandidates.add(String(person.cpf ?? ""));
+      if (cpfDigits.length === 11) {
+        cpfCandidates.add(`${cpfDigits.slice(0,3)}.${cpfDigits.slice(3,6)}.${cpfDigits.slice(6,9)}-${cpfDigits.slice(9)}`);
       }
     }
-    if (emailNorm) {
-      filters.push(`email.ilike.${emailNorm}`);
-      filters.push(`payer_email.ilike.${emailNorm}`);
-    }
 
-    const { data: orders, error } = await supabaseAdmin
+    // Lemos os campos mínimos e normalizamos no servidor. Assim CPF com
+    // pontos, traços, espaços ou somente números sempre produz o mesmo vínculo.
+    const { data: candidateOrders, error } = await supabaseAdmin
       .from("orders")
-      .select("id, order_number, trip_title, supplier_name, status, total_price, created_at, going_date, return_date")
-      .or(filters.join(","))
+      .select("id, order_number, trip_title, supplier_name, status, total_price, created_at, going_date, return_date, person_id, cpf, payer_cpf, email, payer_email")
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
-      .limit(500);
+      .limit(2000);
     if (error) throw new Error(error.message);
 
-    const list = (orders ?? []) as any[];
+    const normalizeCpf = (value: unknown) => String(value ?? "").replace(/\D+/g, "");
+    const normalizeEmail = (value: unknown) => String(value ?? "").trim().toLowerCase();
+    const directlyMatched = (candidateOrders ?? []).filter((order: any) =>
+      order.person_id === data.id
+      || (cpfDigits && (normalizeCpf(order.cpf) === cpfDigits || normalizeCpf(order.payer_cpf) === cpfDigits))
+      || (emailNorm && (normalizeEmail(order.email) === emailNorm || normalizeEmail(order.payer_email) === emailNorm))
+    );
+
+    // Também considera a pessoa como passageira, mesmo quando outra pessoa é
+    // a pagadora/dona do pedido.
+    let passengerOrderIds: string[] = [];
+    if (cpfCandidates.size > 0) {
+      const { data: passengerLinks, error: passengerError } = await supabaseAdmin
+        .from("order_passengers")
+        .select("order_id, cpf")
+        .in("cpf", [...cpfCandidates].filter(Boolean));
+      if (passengerError) throw new Error(passengerError.message);
+      passengerOrderIds = (passengerLinks ?? [])
+        .filter((row: any) => normalizeCpf(row.cpf) === cpfDigits)
+        .map((row: any) => row.order_id);
+    }
+
+    const matchedIds = new Set([...directlyMatched.map((order: any) => order.id), ...passengerOrderIds]);
+    const list = (candidateOrders ?? []).filter((order: any) => matchedIds.has(order.id));
     const ids = list.map((o) => o.id);
     let payments: any[] = [];
     if (ids.length > 0) {
