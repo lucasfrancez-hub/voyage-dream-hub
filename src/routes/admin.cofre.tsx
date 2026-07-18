@@ -294,7 +294,7 @@ function CofrePage() {
         </div>
         <div className="flex flex-wrap justify-between items-end gap-3">
           <div className="min-w-0">
-            <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight italic uppercase">
+            <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight uppercase">
               Links de Pagamento
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
