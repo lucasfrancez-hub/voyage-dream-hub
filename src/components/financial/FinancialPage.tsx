@@ -364,20 +364,19 @@ function EntryDialog({
   const [form, setForm] = useState<Partial<Entry>>({});
   const [saving, setSaving] = useState(false);
 
-  // Reset when opening
-  useState(() => {}); // placeholder
-  const initialized = useMemo(() => {
-    if (!open) return null;
-    return editing ?? {
-      kind, status: "pending" as const, amount: 0, description: "",
-      due_date: today(),
-    };
+  useEffect(() => {
+    if (!open) return;
+    setForm(
+      editing ?? {
+        kind,
+        status: "pending",
+        amount: 0,
+        description: "",
+        due_date: today(),
+      },
+    );
   }, [open, editing, kind]);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useMemo(() => {
-    if (initialized) setForm(initialized);
-  }, [initialized]);
 
   const save = async () => {
     if (!form.description || !form.amount) {
