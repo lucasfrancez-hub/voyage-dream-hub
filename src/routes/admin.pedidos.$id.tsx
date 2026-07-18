@@ -3821,7 +3821,7 @@ function FinanceDialog({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => onSave(form)}>Salvar</Button>
+          <Button onClick={() => onSave(form, { otherTitle })}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
       <CommissionDefaultsDialog
