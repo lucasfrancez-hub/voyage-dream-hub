@@ -387,6 +387,7 @@ export type Database = {
           ambiente: string
           cnpj: string
           codigo_tributario_municipio: string | null
+          codigo_tributario_nacional: string | null
           created_at: string
           descricao_padrao: string | null
           id: string
@@ -404,6 +405,7 @@ export type Database = {
           ambiente?: string
           cnpj: string
           codigo_tributario_municipio?: string | null
+          codigo_tributario_nacional?: string | null
           created_at?: string
           descricao_padrao?: string | null
           id?: string
@@ -421,6 +423,7 @@ export type Database = {
           ambiente?: string
           cnpj?: string
           codigo_tributario_municipio?: string | null
+          codigo_tributario_nacional?: string | null
           created_at?: string
           descricao_padrao?: string | null
           id?: string
