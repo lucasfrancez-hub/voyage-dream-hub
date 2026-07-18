@@ -709,7 +709,7 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
     // pontos, traços, espaços ou somente números sempre produz o mesmo vínculo.
     const { data: candidateOrders, error } = await supabaseAdmin
       .from("orders")
-      .select("id, order_number, trip_title, supplier_name, status, total_price, created_at, going_date, return_date, person_id, cpf, payer_cpf, email, payer_email")
+      .select("id, order_number, trip_title, supplier_name, status, total_price, created_at, package_snapshot, person_id, cpf, payer_cpf, email, payer_email")
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(2000);
@@ -764,7 +764,7 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
       status: o.status,
       total_price: o.total_price != null ? Number(o.total_price) : null,
       created_at: o.created_at,
-      going_date: o.going_date ?? null,
+      going_date: typeof o.package_snapshot?.going_date === "string" ? o.package_snapshot.going_date : null,
       paid: paidMap[o.id] ?? 0,
       pending: pendMap[o.id] ?? 0,
     }));
@@ -772,8 +772,8 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
     const total_paid = sales.reduce((s, r) => s + r.paid, 0);
     const total_pending = sales.reduce((s, r) => s + r.pending, 0);
     const sortedByCreated = [...sales].sort((a, b) => a.created_at.localeCompare(b.created_at));
-    const departures = list.map((o) => o.going_date).filter(Boolean).sort() as string[];
-    const returns = list.map((o) => o.return_date).filter(Boolean).sort() as string[];
+    const departures = list.map((o) => o.package_snapshot?.going_date).filter((v): v is string => typeof v === "string").sort();
+    const returns = list.map((o) => o.package_snapshot?.return_date).filter((v): v is string => typeof v === "string").sort();
     return {
       sales,
       summary: {
