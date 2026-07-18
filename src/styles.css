@@ -31,9 +31,9 @@
   --color-brand-orange: var(--brand-orange);
   --color-brand-orange-light: var(--brand-orange-light);
   --color-brand-blue: var(--brand-blue);
-  --font-display: "Urbanist", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Epilogue", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Epilogue", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Inter", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 :root {
