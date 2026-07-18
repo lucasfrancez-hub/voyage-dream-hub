@@ -96,24 +96,28 @@ Regras:
 - NUNCA invente. Se um campo não estiver no voucher, omita-o do JSON.`;
 
 const SERVICE_PROMPT = `Você extrai vouchers de SERVIÇOS de viagem (traslados, passeios, ingressos, seguros, aluguel de carro, transfers, atividades).
-Devolve JSON estruturado com TODOS os dados úteis, incluindo políticas.
 
-Regras:
+MUITO IMPORTANTE — MÚLTIPLOS SERVIÇOS: um único voucher/PDF frequentemente contém VÁRIOS serviços distintos (ex.: 5 passeios em cidades diferentes, ou traslado + tour + ingresso). Retorne UM item POR SERVIÇO. Nunca colapse serviços diferentes em um só item. Cada localizador/reserva/tour distinto = 1 item separado no array \`items\`.
+
+Devolve JSON estruturado com TODOS os dados úteis por item, incluindo políticas.
+
+Regras (por item):
 - Datas em YYYY-MM-DD; horas em HH:MM (24h) quando houver.
-- title: nome descritivo do serviço (ex.: "Traslado GRU → Hotel", "City Tour Paris", "Ingresso Disney 3 dias", "Seguro Viagem Assist Card 30 dias").
-- category: categoria curta ("Traslado", "Passeio", "Ingresso", "Seguro", "Aluguel de carro", "Atividade").
-- supplier_name: fornecedor/operador emissor do voucher.
-- supplier_locator: código da reserva no fornecedor.
-- quantity: quantidade quando aplicável (ex.: 4 ingressos).
+- title: nome descritivo curto e claro do serviço (ex.: "Excursão a Lucerna", "Traslado GRU → Hotel", "Ingresso Disney 3 dias"). NÃO inclua códigos internos, "COMBO", "General - Adultos - es, en" nem faixa etária no título.
+- category: categoria curta ("Passeio", "Traslado", "Ingresso", "Seguro", "Aluguel de carro", "Atividade").
+- supplier_name: fornecedor/operador (ex.: "CIVITATIS TOURS", "Assist Card").
+- supplier_locator: código da reserva DAQUELE serviço específico.
+- quantity: quantidade quando aplicável.
 - date_from/time_from: início do serviço; date_to/time_to: fim (quando houver).
-- address: local do serviço / ponto de encontro / endereço quando existir.
+- address: ponto de encontro / endereço quando existir.
+- description: RESUMO CURTO E BONITINHO para o cliente entender o que ele contratou (2–4 frases, em português claro, tom acolhedor). Foque no que a pessoa VAI FAZER — não copie parágrafos gigantes nem repita política de cancelamento. Ex.: "Passeio de dia inteiro saindo de Zurique para Lucerna. Inclui transporte de ida e volta e guia acompanhante em espanhol e inglês. Em Lucerna você tem cerca de 6 horas livres para explorar a cidade por conta própria."
 - policies: (LEGADO — pode omitir se preencher cancellation_policy + observations).
 - cancellation_policy: RESUMO CURTO da política de cancelamento/reembolso/no-show (3–5 frases OU bullets separados por "\n- ").
-- observations: ARRAY de tópicos curtos com TODAS as demais informações relevantes (coberturas de seguro, franquia, limite de idade, restrições, itens inclusos/não inclusos, horários, ponto de encontro, documentos, contatos). Cada item = 1 tópico curto (1 linha, máx ~140 chars). Não omita nenhuma.
-- value: valor total em número. tax_value: taxas incluídas. currency: BRL/USD/EUR.
+- observations: ARRAY de tópicos curtos com TODAS as demais informações relevantes DESTE serviço (itens inclusos/não inclusos, ponto de encontro, horário de apresentação, idiomas do guia, documentos, contatos). Cada item = 1 tópico curto (1 linha, máx ~140 chars). Não omita nenhuma.
+- value/tax_value/currency: se o voucher trouxer valor DAQUELE serviço específico. Se o valor for único e geral, deixe apenas no primeiro item ou omita nos demais.
 - status: "confirmed" (voucher emitido/confirmado), "reserved" (aguardando pgto), "pending" (solicitado).
-- passengers: participantes/beneficiários com nome; kind = adult/child/infant; cpf/document só se explícitos.
-- notes: contatos, telefone de emergência (se houver). NÃO duplique observações.
+- passengers: participantes/beneficiários DAQUELE serviço; kind = adult/child/infant.
+- notes: contatos, telefone de emergência (se houver). NÃO duplique observações nem a description.
 - NUNCA invente. Se um campo não estiver no voucher, omita-o do JSON.`;
 
 function itemSchema(kind: "hotel" | "other") {
