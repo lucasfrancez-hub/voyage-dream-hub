@@ -3719,6 +3719,7 @@ function PaymentDialog({
     });
     setCardFullNumber("");
     setInstallmentTouched(!isNew);
+    setSelectedItemIds(initial?.order_item_ids ?? []);
     // Pré-preenche dados do pagador a partir do pedido, com fallback nos dados do cliente principal.
     setPayer({
       payer_full_name: order.payerFullName ?? order.fullName ?? "",
