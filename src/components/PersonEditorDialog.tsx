@@ -427,7 +427,23 @@ function DetalhesTab({
               <div className="text-sm font-mono">{person?.code ?? "—"}</div>
             </FieldRow>
             <FieldRow label="Nome:" required>
-              <input value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} />
+              <div className="flex items-center gap-2">
+                <input value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} />
+                {!isPJ && (
+                  <button
+                    type="button"
+                    onClick={() => set("is_foreign", !form.is_foreign)}
+                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs whitespace-nowrap transition ${
+                      form.is_foreign
+                        ? "bg-brand-orange/15 border-brand-orange/40 text-brand-orange"
+                        : "border-border text-muted-foreground hover:bg-muted/50"
+                    }`}
+                    title="Marcar como estrangeiro (oculta CPF/RG)"
+                  >
+                    🌐 Estrangeiro
+                  </button>
+                )}
+              </div>
             </FieldRow>
             {isPJ && (
               <FieldRow label="Razão Social:">
