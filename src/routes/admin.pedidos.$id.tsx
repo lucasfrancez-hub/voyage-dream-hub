@@ -35,7 +35,7 @@ import {
   upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice, recalculateOrderTotal,
   upsertOrderPayment, deleteOrderPayment, updateOrderPayer,
   appendOrderLogEntry, deleteOrderLogEntry,
-  linkPassengerToItem, unlinkPassengerFromItem, getMySellerInfo,
+  linkPassengerToItem, unlinkPassengerFromItem, getMySellerInfo, deleteAllOrderPassengers,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
