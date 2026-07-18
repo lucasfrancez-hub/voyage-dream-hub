@@ -506,9 +506,10 @@ export const syncSignatureFromClickSign = createServerFn({ method: "POST" })
 // =============================================================================
 
 export const getEmbeddedClickSignEndpoint = createServerFn({ method: "GET" }).handler(async () => {
-  const cfg = getClickSignConfig();
+  const cfg = getClickSignConfig({ preferSandbox: true });
   return { endpoint: cfg.endpoint, env: cfg.env };
 });
+
 
 export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
   .inputValidator((input: {
