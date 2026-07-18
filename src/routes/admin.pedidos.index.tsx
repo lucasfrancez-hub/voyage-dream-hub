@@ -20,9 +20,17 @@ import { confirmThen } from "@/lib/confirm";
 
 
 export const Route = createFileRoute("/admin/pedidos/")({
-  component: () => <AdminOrders scope="mine" />,
+  validateSearch: (s: Record<string, unknown>) => ({
+    status: (typeof s.status === "string" ? s.status : "all") as StatusFilter,
+  }),
+  component: RouteComponent,
   head: () => ({ meta: [{ title: "Pedidos — Admin" }] }),
 });
+
+function RouteComponent() {
+  const { status } = Route.useSearch();
+  return <AdminOrders scope="mine" initialStatus={status} />;
+}
 
 
 const STATUS_FILTERS = [
@@ -41,8 +49,8 @@ function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
 }
 
-export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_party"; initialStatus?: StatusFilter }) {
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus ?? "all");
   const [search, setSearch] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
