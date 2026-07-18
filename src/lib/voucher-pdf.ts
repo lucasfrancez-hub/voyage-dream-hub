@@ -29,6 +29,7 @@ import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
 import type { OrderDetail, OrderItem, OrderPassenger } from "./orders.functions";
 import { type HotelMapData } from "./voucher-map.functions";
 import { translateText } from "./translate.functions";
+import { computeAutoTitle } from "./auto-title";
 
 // --- Traduções auxiliares para o voucher em inglês ---
 const translateGuestsPtToEn = (input: string): string => {
