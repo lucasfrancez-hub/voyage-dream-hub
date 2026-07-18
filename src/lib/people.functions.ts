@@ -291,6 +291,34 @@ export const upsertPerson = createServerFn({ method: "POST" })
     await ensureInternal(context);
     const payload: any = emptyToNull(data);
     if (!payload.id) {
+      // Evita duplicar: tenta localizar cadastro existente por CPF, CNPJ ou e-mail
+      // antes de inserir. Assim, ao salvar cartão a partir do pedido, associamos
+      // ao mesmo cadastro do pagador.
+      const cpfDigits = payload.cpf ? String(payload.cpf).replace(/\D+/g, "") : "";
+      const cnpjDigits = payload.cnpj ? String(payload.cnpj).replace(/\D+/g, "") : "";
+      const emailNorm = payload.email ? String(payload.email).trim().toLowerCase() : "";
+      const ors: string[] = [];
+      if (cpfDigits) {
+        ors.push(`cpf.eq.${cpfDigits}`);
+        if (cpfDigits.length === 11) {
+          ors.push(`cpf.eq.${cpfDigits.slice(0,3)}.${cpfDigits.slice(3,6)}.${cpfDigits.slice(6,9)}-${cpfDigits.slice(9)}`);
+        }
+      }
+      if (cnpjDigits) ors.push(`cnpj.eq.${cnpjDigits}`);
+      if (emailNorm) ors.push(`email.ilike.${emailNorm}`);
+      if (ors.length) {
+        const { data: existing } = await context.supabase
+          .from("people")
+          .select("id")
+          .or(ors.join(","))
+          .limit(1)
+          .maybeSingle();
+        if (existing?.id) {
+          payload.id = existing.id;
+        }
+      }
+    }
+    if (!payload.id) {
       const { data: prof } = await context.supabase
         .from("profiles")
         .select("full_name")
