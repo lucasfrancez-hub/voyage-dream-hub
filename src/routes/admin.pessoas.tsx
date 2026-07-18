@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
-import { Users, Plus, Search, User, Building2, Mail, Phone, Loader2 } from "lucide-react";
-import { listPeople, type PersonRow } from "@/lib/people.functions";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Users, Plus, Search, User, Building2, Mail, Phone, Loader2, Trash2 } from "lucide-react";
+import { listPeople, deletePerson, type PersonRow } from "@/lib/people.functions";
+import { confirm } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/pessoas")({
   component: PeoplePage,
@@ -12,7 +14,19 @@ export const Route = createFileRoute("/admin/pessoas")({
 
 function PeoplePage() {
   const list = useServerFn(listPeople);
+  const del = useServerFn(deletePerson);
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: ["admin-people"], queryFn: () => list() });
+
+  const delMut = useMutation({
+    mutationFn: async (id: string) => del({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Pessoa excluída");
+      qc.invalidateQueries({ queryKey: ["admin-people"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao excluir"),
+  });
+
 
   const [term, setTerm] = useState("");
   const [kind, setKind] = useState<"all" | "PF" | "PJ">("all");
@@ -110,11 +124,11 @@ function PeoplePage() {
         ) : (
           <ul className="divide-y divide-border">
             {filtered.map((p) => (
-              <li key={p.id}>
+              <li key={p.id} className="relative group">
                 <Link
                   to="/admin/pessoas/$id"
                   params={{ id: p.id }}
-                  className="grid grid-cols-[auto_1fr_auto] gap-4 items-center px-5 py-3 hover:bg-muted/30 transition"
+                  className="grid grid-cols-[auto_1fr_auto_auto] gap-4 items-center px-5 py-3 hover:bg-muted/30 transition"
                 >
                   <div className="h-10 w-10 rounded-full bg-brand-orange/10 text-brand-orange flex items-center justify-center">
                     {p.kind === "PJ" ? <Building2 className="h-5 w-5" /> : <User className="h-5 w-5" />}
@@ -142,10 +156,30 @@ function PeoplePage() {
                   <div className="text-xs text-muted-foreground">
                     {new Date(p.updated_at).toLocaleDateString("pt-BR")}
                   </div>
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const ok = await confirm({
+                        title: "Excluir pessoa?",
+                        description: `Tem certeza que deseja excluir "${p.name}"? Esta ação não pode ser desfeita.`,
+                        confirmText: "Excluir",
+                        destructive: true,
+                      });
+                      if (ok) delMut.mutate(p.id);
+                    }}
+                    disabled={delMut.isPending}
+                    className="inline-flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                    title="Excluir"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </Link>
               </li>
             ))}
           </ul>
+
         )}
       </div>
     </div>
