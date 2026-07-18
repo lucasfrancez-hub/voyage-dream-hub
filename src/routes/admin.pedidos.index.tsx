@@ -276,7 +276,7 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
             const snap = (o.package_snapshot ?? {}) as {
               order_number?: string; title?: string; destination?: string; reference?: string;
             };
-            const pm = paymentMethodLabel(o.payment_method);
+            const pm = paymentMethodLabel(paymentsByOrder?.[o.id] ?? o.payment_method);
             const st = statusLabel(o.status);
             const displayOrderNumber =
               ((o as { order_number?: string | null }).order_number ?? snap.order_number ?? shortId(o.id));
