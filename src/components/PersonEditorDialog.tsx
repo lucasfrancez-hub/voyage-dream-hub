@@ -510,6 +510,18 @@ function DetalhesTab({
             </div>
           </>
         )}
+        {isPJ && (
+          <div className="grid grid-cols-2 gap-3">
+            <MiniField label="CNPJ:">
+              <input value={form.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} className={cls} />
+            </MiniField>
+            <MiniField label="Inscrição Estadual:">
+              <input value={form.state_registration ?? ""} onChange={(e) => set("state_registration", e.target.value)} className={cls} />
+            </MiniField>
+          </div>
+        )}
+
+
 
         <div className={`grid ${isPJ ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
           <MiniField label="Telefone:">
