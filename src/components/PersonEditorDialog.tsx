@@ -525,7 +525,7 @@ function DetalhesTab({
                 </FieldRow>
                 <div className="grid grid-cols-2 gap-3">
                   <MiniField label="CNPJ:">
-                    <input value={form.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} className={cls} />
+                    <input value={form.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} onBlur={(e) => onCnpjBlur(e.target.value)} placeholder="00.000.000/0000-00" className={cls} />
                   </MiniField>
                   <MiniField label="Inscrição Estadual:">
                     <input value={form.state_registration ?? ""} onChange={(e) => set("state_registration", e.target.value)} className={cls} />
