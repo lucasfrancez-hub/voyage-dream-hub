@@ -364,6 +364,25 @@ function EntryDialog({
   const [form, setForm] = useState<Partial<Entry>>({});
   const [saving, setSaving] = useState(false);
 
+  const { data: peopleOptions } = useQuery({
+    queryKey: ["financial-people-options"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("people")
+        .select("id, name, cpf, cnpj")
+        .order("name", { ascending: true })
+        .limit(2000);
+      if (error) throw error;
+      return (data ?? []).map((p: { id: string; name: string; cpf: string | null; cnpj: string | null }) => ({
+        id: p.id,
+        name: p.name,
+        document: p.cnpj ?? p.cpf ?? null,
+      }));
+    },
+    enabled: open,
+  });
+
+
   useEffect(() => {
     if (!open) return;
     setForm(
