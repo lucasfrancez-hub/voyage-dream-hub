@@ -641,6 +641,7 @@ export type Database = {
           payer_state: string | null
           payer_zip: string | null
           payment_method: string
+          person_id: string | null
           phone: string
           quote_config: Json | null
           seller_email: string | null
@@ -688,6 +689,7 @@ export type Database = {
           payer_state?: string | null
           payer_zip?: string | null
           payment_method: string
+          person_id?: string | null
           phone: string
           quote_config?: Json | null
           seller_email?: string | null
@@ -735,6 +737,7 @@ export type Database = {
           payer_state?: string | null
           payer_zip?: string | null
           payment_method?: string
+          person_id?: string | null
           phone?: string
           quote_config?: Json | null
           seller_email?: string | null
@@ -755,6 +758,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
