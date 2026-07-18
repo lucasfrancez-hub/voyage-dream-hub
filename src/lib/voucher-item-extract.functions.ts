@@ -34,6 +34,8 @@ export type ExtractedHotelItem = {
     nights?: number;
     guests?: string;
     policies?: string;
+    cancellation_policy?: string;
+    observations?: string[];
     value?: number;
     tax_value?: number;
     currency?: string;
@@ -58,6 +60,8 @@ export type ExtractedServiceItem = {
     time_to?: string;
     address?: string;
     policies?: string;
+    cancellation_policy?: string;
+    observations?: string[];
     value?: number;
     tax_value?: number;
     currency?: string;
@@ -80,11 +84,13 @@ Regras:
 - hotel_name: nome do hotel. hotel_stars: 1..5 se informado. address: endereço completo com cidade/estado/país.
 - room: tipo/descrição do quarto. board: regime (café, meia pensão, all inclusive, apenas hospedagem).
 - nights: número de diárias. guests: descrição textual dos hóspedes (ex.: "2 adultos + 1 criança").
-- policies: TUDO sobre cancelamento, reembolso, no-show, taxas de resort, taxas locais, política de crianças, política de pet, check-in/check-out horários, depósito, etc. Preserve o texto original.
+- policies: (LEGADO — pode omitir se preencher cancellation_policy + observations).
+- cancellation_policy: RESUMO CURTO da política de cancelamento/reembolso/no-show em português claro, com no máximo 3–5 frases OU bullets separados por "\n- ". Não copie parágrafos gigantes do voucher; sintetize prazos e valores (ex.: "Cancelamento gratuito até 48h antes; após, cobra-se 1 diária. No-show: 100% da estadia.").
+- observations: ARRAY de tópicos curtos com TODAS as demais informações relevantes do voucher (taxa de resort/city tax, horários de check-in/out, política de crianças, política de pet, café, wi-fi, estacionamento, depósito na chegada, documentos exigidos, itens inclusos/não inclusos, contatos, instruções especiais). CADA item do array = 1 tópico curto (1 linha, máx ~140 caracteres). NÃO agrupe várias em um só. Não omita nenhuma observação existente no voucher.
 - value: valor total pago em número. tax_value: taxas incluídas no total. currency: BRL/USD/EUR.
 - status: "confirmed" se o voucher confirma emissão; "reserved" se aguardando pagamento; "pending" se apenas pedido.
 - passengers: lista de hóspedes com nome completo; kind = "adult"/"child"/"infant"; cpf/document só se explícitos.
-- notes: qualquer observação relevante (horários, contatos, instruções).
+- notes: contatos e telefones de emergência (se houver). NÃO duplique observações.
 - NUNCA invente. Se um campo não estiver no voucher, omita-o do JSON.`;
 
 const SERVICE_PROMPT = `Você extrai vouchers de SERVIÇOS de viagem (traslados, passeios, ingressos, seguros, aluguel de carro, transfers, atividades).
@@ -99,11 +105,13 @@ Regras:
 - quantity: quantidade quando aplicável (ex.: 4 ingressos).
 - date_from/time_from: início do serviço; date_to/time_to: fim (quando houver).
 - address: local do serviço / ponto de encontro / endereço quando existir.
-- policies: TUDO sobre cancelamento, reembolso, no-show, coberturas (para seguros), franquia, limite de idade, restrições, incluído/não incluído. Preserve texto original.
+- policies: (LEGADO — pode omitir se preencher cancellation_policy + observations).
+- cancellation_policy: RESUMO CURTO da política de cancelamento/reembolso/no-show (3–5 frases OU bullets separados por "\n- ").
+- observations: ARRAY de tópicos curtos com TODAS as demais informações relevantes (coberturas de seguro, franquia, limite de idade, restrições, itens inclusos/não inclusos, horários, ponto de encontro, documentos, contatos). Cada item = 1 tópico curto (1 linha, máx ~140 chars). Não omita nenhuma.
 - value: valor total em número. tax_value: taxas incluídas. currency: BRL/USD/EUR.
 - status: "confirmed" (voucher emitido/confirmado), "reserved" (aguardando pgto), "pending" (solicitado).
 - passengers: participantes/beneficiários com nome; kind = adult/child/infant; cpf/document só se explícitos.
-- notes: contatos, telefone de emergência, instruções específicas, horários, códigos adicionais.
+- notes: contatos, telefone de emergência (se houver). NÃO duplique observações.
 - NUNCA invente. Se um campo não estiver no voucher, omita-o do JSON.`;
 
 function itemSchema(kind: "hotel" | "other") {
@@ -113,6 +121,8 @@ function itemSchema(kind: "hotel" | "other") {
     currency: { type: "string" },
     supplier_name: { type: "string" },
     policies: { type: "string" },
+    cancellation_policy: { type: "string" },
+    observations: { type: "array", items: { type: "string" } },
     address: { type: "string" },
     notes: { type: "string" },
   };
