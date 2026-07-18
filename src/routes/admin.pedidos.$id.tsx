@@ -3721,6 +3721,23 @@ function PaymentDialog({
   const [savedCards, setSavedCards] = useState<PersonCardRow[]>([]);
   const [savingPerson, setSavingPerson] = useState(false);
   const [savingCard, setSavingCard] = useState(false);
+  const [rawAmount, setRawAmount] = useState<string>("");
+  const [rawInstallment, setRawInstallment] = useState<string>("");
+  // Helpers de moeda BR: exibe "16.220,19" e aceita colar nesse mesmo formato.
+  const fmtBRLInput = (n?: number | null): string => {
+    if (n == null || !Number.isFinite(Number(n))) return "";
+    return Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  const parseBRLInput = (s: string): number | null => {
+    if (!s) return null;
+    const t = String(s).trim();
+    if (!t) return null;
+    const hasComma = t.includes(",");
+    const hasDot = t.includes(".");
+    const norm = hasComma && hasDot ? t.replace(/\./g, "").replace(",", ".") : hasComma ? t.replace(",", ".") : t;
+    const n = Number(norm.replace(/[^\d.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  };
   useMemo(() => {
     const isNew = !initial;
     setForm(initial ?? {
