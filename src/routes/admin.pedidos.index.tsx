@@ -407,6 +407,52 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
           <DialogTitle>Cadastrar pedido manual</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
+          <div className="relative">
+            <Label>Buscar cliente salvo</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={personQuery}
+                onChange={(e) => { setPersonQuery(e.target.value); setShowResults(true); }}
+                onFocus={() => setShowResults(true)}
+                placeholder="Nome, e-mail ou CPF/CNPJ…"
+                className="pl-9"
+              />
+            </div>
+            {showResults && debouncedQ.length >= 2 && (
+              <div className="absolute z-20 mt-1 w-full max-h-64 overflow-auto rounded-lg border border-border bg-popover shadow-lg">
+                {isFetching && <div className="px-3 py-2 text-xs text-muted-foreground">Buscando…</div>}
+                {!isFetching && (people?.length ?? 0) === 0 && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">Nenhum cliente encontrado.</div>
+                )}
+                {(people ?? []).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setForm((f) => ({
+                        ...f,
+                        full_name: p.name ?? f.full_name,
+                        email: p.email ?? f.email,
+                        phone: p.mobile_phone ?? p.phone ?? f.phone,
+                        cpf: p.cpf ?? p.cnpj ?? f.cpf,
+                      }));
+                      setPersonQuery(p.name ?? "");
+                      setShowResults(false);
+                      toast.success(`Cliente "${p.name}" carregado`);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted/60 border-b border-border/40 last:border-b-0"
+                  >
+                    <div className="font-medium truncate">{p.name}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {[p.cpf ?? p.cnpj, p.email, p.mobile_phone ?? p.phone].filter(Boolean).join(" · ") || "—"}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
             <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
