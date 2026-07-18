@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, Copy, ExternalLink, MessageCircle, Vault, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Link2, Copy, ExternalLink, MessageCircle, Vault, AlertTriangle, ShieldCheck, User, FileText, Wallet, Plane, ImageIcon, ArrowRight, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { paymentLinkUrl, whatsappUrl, splitInstallments } from "@/lib/checkout-config";
 import { formatBRL } from "@/lib/format";
 import { saveCofreEntry, deleteCofreEntry, popEditEntry } from "@/lib/cofre-storage";
-import { CollapsibleSection, EssentialGroup } from "@/components/LinkFormSection";
+import { CollapsibleSection, EssentialGroup, CyberField as Field, cyberInput as cls } from "@/components/LinkFormSection";
+
 
 
 export const Route = createFileRoute("/admin/link-pagamento")({
