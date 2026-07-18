@@ -1994,8 +1994,11 @@ const drawServiceSection = async (ctx: Ctx, item: OrderItem) => {
   const timeFrom = String(d.time_from ?? "").trim();
   const dateTo = String(d.date_to ?? "").trim();
   const timeTo = String(d.time_to ?? "").trim();
+  const rawDescription = String(d.description ?? "").trim();
+  const description = rawDescription ? (ctx.lang === "en" ? await translateNotesToEnglish(rawDescription) : rawDescription) : "";
   const rawNotes = String(d.notes ?? "").trim();
-  const notes = rawNotes ? (ctx.lang === "en" ? await translateNotesToEnglish(rawNotes) : rawNotes) : "";
+  const notesTranslated = rawNotes ? (ctx.lang === "en" ? await translateNotesToEnglish(rawNotes) : rawNotes) : "";
+  const notes = [description, notesTranslated].filter(Boolean).join("\n\n");
 
 
   const dep = [dateFrom ? fmtDateBR(dateFrom) : "", timeFrom].filter(Boolean).join(" ");
