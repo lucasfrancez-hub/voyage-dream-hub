@@ -457,28 +457,139 @@ function PersonEditPage() {
           </Section>
         )}
 
-        {tab === "financeiros" && (
-          <Section title="Cartões de Crédito">
-            {isNew ? (
-              <p className="text-sm text-muted-foreground">
-                Salve o cadastro primeiro para adicionar cartões.
-              </p>
+        {tab === "contato" && (
+          <Section title="Contato">
+            <Row>
+              <Field label="E-mail" full>
+                <input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} className={cls} />
+              </Field>
+              <Field label="Website">
+                <input value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} className={cls} />
+              </Field>
+            </Row>
+            <Row>
+              <Field label="Telefone">
+                <input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={cls} />
+              </Field>
+              <Field label="Celular">
+                <input value={form.mobile_phone ?? ""} onChange={(e) => set("mobile_phone", e.target.value)} className={cls} />
+              </Field>
+              <Field label="Telefone comercial">
+                <input value={form.business_phone ?? ""} onChange={(e) => set("business_phone", e.target.value)} className={cls} />
+              </Field>
+            </Row>
+          </Section>
+        )}
+
+        {tab === "adicionais" && (
+          <Section title="Dados Adicionais">
+            <Row>
+              <Field label="Vendedor responsável">
+                <input value={form.seller_name ?? ""} onChange={(e) => set("seller_name", e.target.value)} className={cls} />
+              </Field>
+              <label className="flex items-end gap-2 text-sm text-muted-foreground pb-2">
+                <input
+                  type="checkbox"
+                  checked={form.charge_boleto_fee}
+                  onChange={(e) => set("charge_boleto_fee", e.target.checked)}
+                />
+                Cobrar taxa de boleto
+              </label>
+            </Row>
+            <div className="text-xs text-muted-foreground">
+              Campos adicionais importados do Monde aparecerão aqui após a integração da API.
+            </div>
+          </Section>
+        )}
+
+        {tab === "vendas" && !isNew && (
+          <Section title="Vendas vinculadas">
+            {salesQ.isLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+              </div>
+            ) : (salesQ.data?.sales.length ?? 0) === 0 ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <ShoppingBag className="h-4 w-4" /> Nenhum pedido vinculado a esta pessoa.
+              </div>
             ) : (
-              <CardsSection
-                personId={id}
-                cards={cards}
-                onAdd={async (payload) => {
-                  await addCardFn({ data: { ...payload, person_id: id } });
-                  qc.invalidateQueries({ queryKey: ["admin-people", id] });
-                }}
-                onDelete={async (cardId) => {
-                  await delCardFn({ data: { id: cardId } });
-                  qc.invalidateQueries({ queryKey: ["admin-people", id] });
-                }}
-                onReveal={async (cardId) => (await revealFn({ data: { id: cardId } })).number}
-              />
+              <div className="overflow-x-auto rounded-xl border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Pedido</th>
+                      <th className="px-3 py-2 text-left">Título</th>
+                      <th className="px-3 py-2 text-left">Fornecedor</th>
+                      <th className="px-3 py-2 text-left">Status</th>
+                      <th className="px-3 py-2 text-right">Total</th>
+                      <th className="px-3 py-2 text-right">Pago</th>
+                      <th className="px-3 py-2 text-right">Pendente</th>
+                      <th className="px-3 py-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {salesQ.data!.sales.map((s) => (
+                      <tr key={s.id} className="border-t border-border">
+                        <td className="px-3 py-2 font-mono text-xs">#{s.order_number ?? "—"}</td>
+                        <td className="px-3 py-2">{s.trip_title ?? "—"}</td>
+                        <td className="px-3 py-2">{s.supplier_name ?? "—"}</td>
+                        <td className="px-3 py-2 text-xs">{s.status ?? "—"}</td>
+                        <td className="px-3 py-2 text-right">{fmtBRL(s.total_price ?? 0)}</td>
+                        <td className="px-3 py-2 text-right text-emerald-600">{fmtBRL(s.paid)}</td>
+                        <td className="px-3 py-2 text-right text-amber-600">{fmtBRL(s.pending)}</td>
+                        <td className="px-3 py-2 text-right">
+                          <Link
+                            to="/admin/pedidos/$id"
+                            params={{ id: s.id }}
+                            className="inline-flex items-center gap-1 text-brand-orange hover:underline text-xs"
+                          >
+                            Abrir <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </Section>
+        )}
+
+        {tab === "financeiros" && (
+          <div className="space-y-6">
+            {!isNew && (
+              <Section title="Resumo financeiro">
+                {salesQ.isLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+                  </div>
+                ) : (
+                  <FinancialSummaryView summary={salesQ.data?.summary} />
+                )}
+              </Section>
+            )}
+            <Section title="Cartões de Crédito">
+              {isNew ? (
+                <p className="text-sm text-muted-foreground">
+                  Salve o cadastro primeiro para adicionar cartões.
+                </p>
+              ) : (
+                <CardsSection
+                  personId={id}
+                  cards={cards}
+                  onAdd={async (payload) => {
+                    await addCardFn({ data: { ...payload, person_id: id } });
+                    qc.invalidateQueries({ queryKey: ["admin-people", id] });
+                  }}
+                  onDelete={async (cardId) => {
+                    await delCardFn({ data: { id: cardId } });
+                    qc.invalidateQueries({ queryKey: ["admin-people", id] });
+                  }}
+                  onReveal={async (cardId) => (await revealFn({ data: { id: cardId } })).number}
+                />
+              )}
+            </Section>
+          </div>
         )}
 
         {tab === "obs" && (
