@@ -136,6 +136,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   const emitFn = useServerFn(emitirNfse);
   const consultFn = useServerFn(consultarNfse);
   const cancelFn = useServerFn(cancelarNfse);
+  const deleteFn = useServerFn(deleteNfse);
   const getPersonFn = useServerFn(getPerson);
 
   const key = ["nfse", order.id] as const;
