@@ -225,6 +225,18 @@ function NotasFiscaisPage() {
                             <XCircle className="h-3.5 w-3.5" />
                           </Button>
                         )}
+                        {(r.status === "erro" || r.status === "cancelado") && (
+                          <Button size="sm" variant="ghost" className="h-8 px-2 text-red-600"
+                            disabled={deleteMut.isPending}
+                            title="Excluir emissão"
+                            onClick={() => {
+                              if (window.confirm("Excluir esta emissão? Esta ação não pode ser desfeita.")) {
+                                deleteMut.mutate(r.id);
+                              }
+                            }}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );
