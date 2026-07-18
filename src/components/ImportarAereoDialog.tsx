@@ -276,8 +276,6 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               ...(checkinUrl ? { airline_checkin_url: checkinUrl } : {}),
             },
           } });
-          newItemIds.push(itemId);
-          // acumula fora do loop
           allNewItemIds.push(itemId);
         }
       }
