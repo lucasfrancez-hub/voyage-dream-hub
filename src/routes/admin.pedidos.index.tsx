@@ -31,9 +31,11 @@ const STATUS_FILTERS = [
   { value: "paid", label: "Finalizado" },
   { value: "rejected", label: "Rejeitado" },
   { value: "cancelled", label: "Cancelado" },
+  { value: "deleted", label: "Excluídos" },
 ] as const;
 
 type StatusFilter = (typeof STATUS_FILTERS)[number]["value"];
+
 
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
