@@ -1123,6 +1123,7 @@ export type CreateOrderInput = {
   cpf?: string | null;
   payment_method: string;
   total_price?: number;
+  expected_total?: number | null;
   adults?: number;
   children?: number;
   notes?: string | null;
