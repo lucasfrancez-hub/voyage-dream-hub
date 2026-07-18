@@ -1088,9 +1088,11 @@ function ItemsTab({
   const unlinkFn = useServerFn(unlinkPassengerFromItem);
   const [editing, setEditing] = useState<OrderItem | null>(null);
   const [open, setOpen] = useState(false);
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(() => new Set());
 
   const allPax = passengers ?? [];
   const linksMap = itemPassengers ?? {};
+  const visibleItems = items.filter((item) => !pendingDeleteIds.has(item.id));
 
   const paxForItem = (itemId: string): OrderPassenger[] => {
     const ids = linksMap[itemId] ?? [];
@@ -1137,16 +1139,42 @@ function ItemsTab({
       await del({ data: { id: iid } });
       return recalculateTotal({ data: { id: orderId } });
     },
-    onMutate: (iid: string) => {
+    onMutate: async (iid: string) => {
+      await qc.cancelQueries({ queryKey: ["admin", "orderDetail", orderId] });
       qc.setQueryData<OrderDetail>(["admin", "orderDetail", orderId], (d) => d ? ({
         ...d,
         items: d.items.filter((i) => i.id !== iid),
         financials: d.financials.filter((f) => f.order_item_id !== iid),
       }) : d);
     },
-    onSuccess: () => { toast.success("Item removido"); onChange(); },
-
+    onSuccess: async (_result, iid) => {
+      toast.success("Item removido");
+      await qc.invalidateQueries({ queryKey: ["admin", "orderDetail", orderId] });
+      setPendingDeleteIds((current) => {
+        const next = new Set(current);
+        next.delete(iid);
+        return next;
+      });
+    },
+    onError: (error, iid) => {
+      setPendingDeleteIds((current) => {
+        const next = new Set(current);
+        next.delete(iid);
+        return next;
+      });
+      toast.error(error instanceof Error ? error.message : "Erro ao excluir item");
+      onChange();
+    },
   });
+  const removeImmediately = (iid: string) => {
+    setPendingDeleteIds((current) => new Set(current).add(iid));
+    remove.mutate(iid);
+  };
+  const removeManyImmediately = (selectedItems: OrderItem[]) => {
+    const ids = selectedItems.map((item) => item.id);
+    setPendingDeleteIds((current) => new Set([...current, ...ids]));
+    ids.forEach((iid) => remove.mutate(iid));
+  };
   const cancel = useMutation({
     mutationFn: async (iid: string) => {
       await setStatus({ data: { id: iid, status: "cancelled" } });
@@ -1202,13 +1230,13 @@ function ItemsTab({
           </Button>
         </div>
       )}
-      {items.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           {isCancelledTab ? "Nenhum item cancelado." : "Nenhum item cadastrado. Clique em Adicionar para começar."}
         </div>
       ) : isCancelledTab ? (
         <div className="space-y-3">
-          {groupFlightItems(items.filter((i) => i.kind === "flight")).map((group) => (
+          {groupFlightItems(visibleItems.filter((i) => i.kind === "flight")).map((group) => (
             <FlightReservationCard
               key={group.key}
               locator={group.locator}
@@ -1217,37 +1245,37 @@ function ItemsTab({
               allPassengers={allPax}
               packageSnapshot={packageSnapshot}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
-              onDelete={(it) => confirmThen("Excluir este voo?", () => remove.mutate(it.id))}
+              onDelete={(it) => confirmThen("Excluir este voo?", () => removeImmediately(it.id))}
               onCancel={(it) => confirmThen("Marcar este voo como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={(it) => reactivate.mutate(it.id)}
-              onDeleteMany={(its) => confirmThen(`Excluir toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => remove.mutate(it.id)))}
+              onDeleteMany={(its) => confirmThen(`Excluir toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => removeManyImmediately(its))}
               onCancelMany={(its) => confirmThen(`Cancelar toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => cancel.mutate(it.id)))}
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
             />
           ))}
-          {items.filter((i) => i.kind === "hotel").map((it) => (
+          {visibleItems.filter((i) => i.kind === "hotel").map((it) => (
             <HotelReservationCard
               key={it.id}
               item={it}
               passengers={paxForItem(it.id)}
               allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
-              onDelete={() => confirmThen("Excluir item?", () => remove.mutate(it.id))}
+              onDelete={() => confirmThen("Excluir item?", () => removeImmediately(it.id))}
               onCancel={() => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={() => reactivate.mutate(it.id)}
               onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
               onUnlink={(pid, iid) => unlinkMut.mutate({ passengerId: pid, itemIds: [iid] })}
             />
           ))}
-          {items.filter((i) => i.kind === "other").map((it) => (
+          {visibleItems.filter((i) => i.kind === "other").map((it) => (
             <ServiceReservationCard
               key={it.id}
               item={it}
               passengers={paxForItem(it.id)}
               allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
-              onDelete={() => confirmThen("Excluir item?", () => remove.mutate(it.id))}
+              onDelete={() => confirmThen("Excluir item?", () => removeImmediately(it.id))}
               onCancel={() => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={() => reactivate.mutate(it.id)}
               onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
@@ -1258,7 +1286,7 @@ function ItemsTab({
         </div>
       ) : kind === "flight" ? (
         <div className="space-y-3">
-          {groupFlightItems(items).map((group) => (
+          {groupFlightItems(visibleItems).map((group) => (
             <FlightReservationCard
               key={group.key}
               locator={group.locator}
@@ -1267,10 +1295,10 @@ function ItemsTab({
               allPassengers={allPax}
               packageSnapshot={packageSnapshot}
               onEdit={(it) => { setEditing(it); setOpen(true); }}
-              onDelete={(it) => confirmThen("Excluir este voo?", () => remove.mutate(it.id))}
+              onDelete={(it) => confirmThen("Excluir este voo?", () => removeImmediately(it.id))}
               onCancel={(it) => confirmThen("Marcar este voo como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={(it) => reactivate.mutate(it.id)}
-              onDeleteMany={(its) => confirmThen(`Excluir toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => remove.mutate(it.id)))}
+              onDeleteMany={(its) => confirmThen(`Excluir toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => removeManyImmediately(its))}
               onCancelMany={(its) => confirmThen(`Cancelar toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => cancel.mutate(it.id)))}
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
@@ -1279,14 +1307,14 @@ function ItemsTab({
         </div>
       ) : kind === "hotel" ? (
         <div className="space-y-3">
-          {items.map((it) => (
+          {visibleItems.map((it) => (
             <HotelReservationCard
               key={it.id}
               item={it}
               passengers={paxForItem(it.id)}
               allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
-              onDelete={() => confirmThen("Excluir item?", () => remove.mutate(it.id))}
+              onDelete={() => confirmThen("Excluir item?", () => removeImmediately(it.id))}
               onCancel={() => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={() => reactivate.mutate(it.id)}
               onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
@@ -1296,14 +1324,14 @@ function ItemsTab({
         </div>
       ) : (
         <div className="space-y-3">
-          {items.map((it) => (
+          {visibleItems.map((it) => (
             <ServiceReservationCard
               key={it.id}
               item={it}
               passengers={paxForItem(it.id)}
               allPassengers={allPax}
               onEdit={() => { setEditing(it); setOpen(true); }}
-              onDelete={() => confirmThen("Excluir item?", () => remove.mutate(it.id))}
+              onDelete={() => confirmThen("Excluir item?", () => removeImmediately(it.id))}
               onCancel={() => confirmThen("Marcar como cancelado?", () => cancel.mutate(it.id))}
               onReactivate={() => reactivate.mutate(it.id)}
               onLink={(pid, iid) => linkMut.mutate({ passengerId: pid, itemIds: [iid] })}
