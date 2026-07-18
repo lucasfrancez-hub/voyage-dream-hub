@@ -614,7 +614,7 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
                       setShowResults(false);
                       toast.success(`Cliente "${p.name}" carregado`);
                       try {
-                        const cards = await listPersonCards({ data: { person_id: p.id } });
+                        const cards = await listCards({ data: { person_id: p.id } });
                         if (cards && cards.length > 0) {
                           const c = cards[0];
                           setSavedCardInfo(`${cards.length} cartão(ões) salvo(s) — ${c.brand ?? ""} •••• ${c.last4 ?? ""}`);
