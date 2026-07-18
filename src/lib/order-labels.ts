@@ -37,15 +37,19 @@ export function statusLabel(status: string | null | undefined): {
 } {
   const s = (status || "pending").toLowerCase();
   const map: Record<string, { label: string; className: string }> = {
-    pending: { label: "Pendente", className: "bg-yellow-500/15 text-yellow-500" },
-    paid: { label: "Finalizado", className: "bg-green-500/15 text-green-500" },
-    approved: { label: "Finalizado", className: "bg-green-500/15 text-green-500" },
-    rejected: { label: "Rejeitado", className: "bg-red-500/15 text-red-500" },
-    cancelled: { label: "Cancelado", className: "bg-red-500/15 text-red-500" },
-    canceled: { label: "Cancelado", className: "bg-red-500/15 text-red-500" },
+    pending:             { label: "Pendente",             className: "bg-amber-500/15 text-amber-400 border border-amber-500/30" },
+    reserved:            { label: "Reservado",            className: "bg-sky-500/15 text-sky-400 border border-sky-500/30" },
+    confirmed:           { label: "Confirmado",           className: "bg-blue-500/15 text-blue-400 border border-blue-500/30" },
+    awaiting_signature:  { label: "Aguardando assinatura", className: "bg-brand-orange/15 text-brand-orange border border-brand-orange/40" },
+    paid:                { label: "Finalizado",           className: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" },
+    approved:            { label: "Finalizado",           className: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" },
+    rejected:            { label: "Rejeitado",            className: "bg-red-500/15 text-red-400 border border-red-500/30" },
+    cancelled:           { label: "Cancelado",            className: "bg-red-500/15 text-red-400 border border-red-500/30" },
+    canceled:            { label: "Cancelado",            className: "bg-red-500/15 text-red-400 border border-red-500/30" },
   };
-  return map[s] ?? { label: s, className: "bg-muted text-muted-foreground" };
+  return map[s] ?? { label: s, className: "bg-muted text-muted-foreground border border-border" };
 }
+
 
 // Status por ITEM (aéreo/hospedagem/outros): fluxo solicitado → reservado → confirmado.
 export const ITEM_STATUSES = [
