@@ -10,6 +10,10 @@ import { toast } from "sonner";
 import { extractItemVoucher, type ExtractedItemVoucher } from "@/lib/voucher-item-extract.functions";
 import { upsertOrderItem, upsertPassenger, upsertItemFinancial, updateOrderMeta, getFirstFinancialForItem, setImportLinks } from "@/lib/orders.functions";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
+import { getCommissionDefault } from "@/lib/commission-defaults";
+import { CommissionDefaultsDialog } from "@/components/CommissionDefaultsDialog";
+import { Percent } from "lucide-react";
+
 
 type Props = {
   orderId: string;
@@ -63,6 +67,8 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
   const [items, setItems] = useState<ExtractedItemVoucher[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+
+
 
   const extract = useServerFn(extractItemVoucher);
   const saveItem = useServerFn(upsertOrderItem);
@@ -174,7 +180,8 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
       const existing = await findFin({ data: { order_item_id: saved.id } });
       const pct = existing?.id
         ? Number(existing.commission_pct ?? 0)
-        : (extracted.kind === "hotel" ? 12 : 0);
+        : getCommissionDefault(extracted.kind === "hotel" ? "hotel" : "service");
+
       const commission = Number((value * (pct / 100)).toFixed(2));
       await saveFin({ data: {
         ...(existing?.id ? { id: existing.id } : {}),
@@ -347,6 +354,8 @@ function ReviewExtracted({
 }) {
   const isHotel = value.kind === "hotel";
   const d = (value.details ?? {}) as Record<string, unknown>;
+  const [defaultsOpen, setDefaultsOpen] = useState(false);
+
 
   function patch(next: Partial<ExtractedItemVoucher>) {
     onChange({ ...value, ...next } as ExtractedItemVoucher);
@@ -568,12 +577,20 @@ function ReviewExtracted({
         </div>
       )}
 
-      <DialogFooter>
-        <Button variant="ghost" onClick={onCancel}>Voltar</Button>
-        <Button onClick={onConfirm} className="gap-2">
-          Confirmar e salvar <ChevronRight className="h-4 w-4" />
+      <DialogFooter className="sm:justify-between gap-2">
+        <Button variant="ghost" size="sm" onClick={() => setDefaultsOpen(true)} className="gap-2 text-muted-foreground">
+          <Percent className="h-3.5 w-3.5" /> Padrões de comissão
         </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={onCancel}>Voltar</Button>
+          <Button onClick={onConfirm} className="gap-2">
+            Confirmar e salvar <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
       </DialogFooter>
+      <CommissionDefaultsDialog open={defaultsOpen} onOpenChange={setDefaultsOpen} />
     </div>
+
   );
 }
