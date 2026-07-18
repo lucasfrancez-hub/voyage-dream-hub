@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
+import { supabase } from "@/integrations/supabase/client";
 
 type Num = number | string | null | undefined;
 export type NfseDocumentData = {
