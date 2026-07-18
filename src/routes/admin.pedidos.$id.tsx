@@ -2434,11 +2434,11 @@ function ItemDialog({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Valor total (R$)</Label>
-                <Input type="number" step="0.01" min="0" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="0,00" />
+                <Input inputMode="decimal" value={String(details.value ?? "")} onChange={(e) => setField("value", e.target.value)} placeholder="11.406,30" />
               </div>
               <div>
                 <Label>Taxas inclusas (R$)</Label>
-                <Input type="number" step="0.01" min="0" value={String(details.tax_value ?? "")} onChange={(e) => setField("tax_value", e.target.value)} placeholder="0,00" />
+                <Input inputMode="decimal" value={String(details.tax_value ?? "")} onChange={(e) => setField("tax_value", e.target.value)} placeholder="0,00" />
                 <p className="mt-1 text-[10px] text-muted-foreground">As taxas já fazem parte do valor total.</p>
               </div>
             </div>
@@ -2602,7 +2602,14 @@ function ItemDialog({
               const cd: Record<string, unknown> = {};
               for (const [k, v] of Object.entries(raw)) {
                 if (v === "" || v === undefined || v === null) continue;
-                cd[k] = numFields.has(k) ? Number(v) : v;
+                if (numFields.has(k)) {
+                  const raw = String(v).trim().replace(/\s/g, "").replace(/^R\$/i, "");
+                  const normalized = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+                  const parsed = Number(normalized);
+                  if (Number.isFinite(parsed)) cd[k] = parsed;
+                } else {
+                  cd[k] = v;
+                }
               }
               return cd;
             };
