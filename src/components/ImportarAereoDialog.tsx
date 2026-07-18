@@ -238,7 +238,6 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
             lastName: holderLastName,
             originIata: blockOrigin,
           });
-          const newItemIds: string[] = [];
           const { id: itemId } = await saveItem({ data: {
             order_id: orderId,
             kind: "flight",
