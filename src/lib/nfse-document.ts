@@ -249,13 +249,13 @@ body{margin:0;background:#eef1f5;color:var(--texto);font-family:Arial,Helvetica,
     <div class="bloco">
       <div class="titulo-bloco">Tomador de serviço</div>
       <div class="conteudo">
-        <div class="razao">${esc((tomador.razao_social || tomador.nome || "-") as string)}</div>
+        <div class="razao">${esc((tomador.razaoSocial || tomador.razao_social || tomador.nome || "-") as string)}</div>
         <div class="campos-3">
-          <div class="campo"><div class="rotulo">CPF/CNPJ</div><div class="valor">${esc(fmtCpfCnpj((tomador.cnpj || tomador.cpf || "") as string))}</div></div>
-          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${esc((tomador.inscricao_municipal as string) || "–")}</div></div>
+          <div class="campo"><div class="rotulo">CPF/CNPJ</div><div class="valor">${esc(fmtCpfCnpj((tomador.cpfCnpj || tomador.cnpj || tomador.cpf || "") as string))}</div></div>
+          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${esc((tomador.inscricaoMunicipal || tomador.inscricao_municipal) as string || "–")}</div></div>
           <div class="campo"><div class="rotulo">E-mail</div><div class="valor">${esc((tomador.email as string) || "–")}</div></div>
         </div>
-        <div class="endereco">${esc(end.logradouro || "")}${end.numero ? ", " + esc(end.numero) : ""}${end.bairro ? " – " + esc(end.bairro) : ""}<br/>${esc(end.municipio || "")}/${esc(end.uf || "")}${end.cep ? " – CEP " + esc(fmtCep(end.cep)) : ""}</div>
+        <div class="endereco">${esc(end.logradouro || "")}${end.numero ? ", " + esc(end.numero) : ""}${end.complemento ? " – " + esc(end.complemento) : ""}${end.bairro ? " – " + esc(end.bairro) : ""}<br/>${esc(end.cidade || end.municipio || "")}${end.uf ? "/" + esc(end.uf) : ""}${end.cep ? " – CEP " + esc(fmtCep(end.cep)) : ""}</div>
         <div class="contatos"><div>${esc((tomador.telefone as string) || "")}</div><div>Brasil</div></div>
       </div>
     </div>
