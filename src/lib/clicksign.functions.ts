@@ -180,7 +180,7 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
         has_documentation: true,
-          auths: ["api"],
+          auths: ["whatsapp"],
           liveness_enabled: true, // Prova de vida (selfie dinâmica com movimento)
         },
       }),
