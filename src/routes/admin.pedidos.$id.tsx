@@ -154,6 +154,7 @@ function OrderDetailPage() {
   const [openCommission, setOpenCommission] = useState(false);
   const [openLog, setOpenLog] = useState<null | "notes_log" | "travel_reason_log">(null);
   const [openQuote, setOpenQuote] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
 
   const setOrderStatusFn = useServerFn(setOrderStatus);
   const updateOrderMetaFn = useServerFn(updateOrderMeta);
