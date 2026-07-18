@@ -504,6 +504,7 @@ export const upsertOrderItem = createServerFn({ method: "POST" })
     if (data.id) {
       const { error } = await context.supabase.from("order_items").update(payload).eq("id", data.id);
       if (error) throw new Error(error.message);
+      await applyAutoTitle(context, data.order_id);
       return { id: data.id };
     }
     const { data: created, error } = await context.supabase
@@ -512,6 +513,7 @@ export const upsertOrderItem = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    await applyAutoTitle(context, data.order_id);
     return { id: created.id };
   });
 
