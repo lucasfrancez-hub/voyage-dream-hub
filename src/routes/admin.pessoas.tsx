@@ -44,11 +44,11 @@ function PeoplePage() {
 
   function openEditor(id: string | null) {
     setEditingId(id);
-    navigate({ search: (s) => ({ ...s, edit: id ?? undefined }), replace: true });
+    navigate({ search: (s: any) => ({ ...s, edit: id ?? undefined }), replace: true });
   }
   function closeEditor() {
     setEditingId(null);
-    navigate({ search: (s) => ({ ...s, edit: undefined }), replace: true });
+    navigate({ search: (s: any) => ({ ...s, edit: undefined }), replace: true });
   }
 
   const filtered = useMemo(() => {
