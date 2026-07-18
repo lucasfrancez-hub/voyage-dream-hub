@@ -817,6 +817,7 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
       paid_at: data.paid_at ?? null,
       added_by_name: data.added_by_name ?? null,
       notes: data.notes ?? null,
+      order_item_ids: (data.order_item_ids && data.order_item_ids.length > 0) ? data.order_item_ids : null,
     };
     // Cifra o número completo do cartão se enviado
     const raw = (data.card_full_number ?? "").replace(/\D/g, "");
