@@ -126,7 +126,7 @@ kind = "other" (SERVIÇOS): traslados, passeios, ingressos, seguros, aluguel de 
 
 POLÍTICAS E OBSERVAÇÕES (em CADA item):
 - details.cancellation_policy: RESUMO CURTO da política de cancelamento/reembolso/no-show DAQUELE item (3–5 frases OU bullets separados por "\\n- ").
-- details.observations: ARRAY de tópicos curtos (1 linha, ~140 chars) com TODAS as demais informações do item (taxas obrigatórias, horários, políticas de crianças/pet, café, wi-fi, franquia de bagagem, ponto de encontro, coberturas de seguro, etc). Cada item do array = 1 tópico. Não agrupe.
+- details.observations: ARRAY completo de tópicos com TODAS as demais informações DAQUELE item — nunca resuma nem descarte bullets. Para HOSPEDAGEM inclua Check-in instructions, Special check-in instructions, Know before you go, Mandatory fees, Optional fees, Overview do quarto (configuração, internet, entretenimento, alimentação, repouso, banheiro, praticidades, conforto, acessibilidade, sustentabilidade, importante), Other Fees, avisos "To The Passenger"/"Dear Client". Para SERVIÇO inclua itens inclusos/não inclusos, ponto de encontro, horário de apresentação, idiomas, documentos, restrições. Cada item do array = 1 tópico (1 linha, até ~220 chars). Preserve o texto original quando útil.
 - details.notes: apenas contatos/telefones de emergência se houver. Não duplique observações.
 
 title (em cada item): descritivo curto humano (ex.: "Aéreo LATAM GRU→MIA", "Hospedagem — Hotel Pestana Rio", "Traslado GRU → Hotel").
