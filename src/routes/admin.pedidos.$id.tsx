@@ -29,6 +29,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 
 import { formatBRL } from "@/lib/format";
+import { computeAutoTitle } from "@/lib/auto-title";
 import { paymentMethodLabel, statusLabel, itemStatusBadge } from "@/lib/order-labels";
 import {
   getOrderDetail, upsertPassenger, deletePassenger,
@@ -381,9 +382,20 @@ function OrderDetailPage() {
               </Label>
               {(() => {
                 const snap = (order.packageSnapshot ?? {}) as { title?: unknown; auto_title?: unknown; manual?: unknown };
-                const autoTitle = (snap.auto_title === true || snap.manual !== true) && typeof snap.title === "string" && snap.title.trim()
-                  ? String(snap.title).trim()
-                  : "";
+                const snapTitle = typeof snap.title === "string" && snap.title.trim() ? String(snap.title).trim() : "";
+                const computed = computeAutoTitle(
+                  detail.items.map((i) => ({
+                    kind: i.kind,
+                    title: i.title,
+                    status: i.status,
+                    supplier_locator: i.supplier_locator,
+                    details: (i.details ?? {}) as Record<string, unknown>,
+                  }))
+                );
+                // Prioridade: título manual do snap > computado a partir dos itens > título do snap (fallback)
+                const autoTitle = snap.manual === true && snapTitle
+                  ? snapTitle
+                  : (computed || snapTitle);
                 const shown = order.tripTitle ?? autoTitle ?? "";
                 const isAuto = !order.tripTitle && !!autoTitle;
                 return (
@@ -403,7 +415,7 @@ function OrderDetailPage() {
                       }}
                     />
                     {isAuto && (
-                      <p className="mt-1 text-[10px] text-muted-foreground">Sugestão automática — edite para personalizar.</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">Sugestão automática a partir dos itens do pedido — edite para personalizar.</p>
                     )}
                   </>
                 );
