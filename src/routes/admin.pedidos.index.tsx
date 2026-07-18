@@ -492,7 +492,17 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
     supplier_name: "",
     airline_locator: "",
     notes: "",
+    person_id: "" as string,
+    birth_date: "",
+    rg: "",
+    zip: "",
+    address: "",
+    number: "",
+    district: "",
+    city: "",
+    state: "",
   });
+  const [savedCardInfo, setSavedCardInfo] = useState<string | null>(null);
   const [personQuery, setPersonQuery] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [showResults, setShowResults] = useState(false);
