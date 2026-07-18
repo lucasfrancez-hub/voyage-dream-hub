@@ -2114,11 +2114,32 @@ export async function generateVoucher(
     if (dir === "return") groups.get(key)!.returning.push(it);
     else groups.get(key)!.outbound.push(it);
   }
+  // Passageiros usados em algum voo (para não duplicar no fallback).
+  const usedPassengerIds = new Set<string>();
+  const passengerById = new Map<string, OrderPassenger>();
+  for (const p of detail.passengers) passengerById.set(p.id, p);
+
   for (const key of groupOrder) {
     const g = groups.get(key)!;
     await drawAereoSection(ctx, g.outbound, g.returning);
+    // Passageiros vinculados a QUALQUER item deste grupo (via order_item_passengers).
+    const paxIds = new Set<string>();
+    for (const it of [...g.outbound, ...g.returning]) {
+      const ids = detail.itemPassengers[it.id] ?? [];
+      for (const pid of ids) paxIds.add(pid);
+    }
+    const groupPassengers = detail.passengers.filter((p) => paxIds.has(p.id));
+    if (groupPassengers.length > 0) {
+      drawPassengersSection(ctx, groupPassengers);
+      for (const p of groupPassengers) usedPassengerIds.add(p.id);
+    }
   }
-  drawPassengersSection(ctx, detail.passengers);
+
+  // Fallback: passageiros do pedido não ligados a nenhum voo (ex.: só hotel/serviço)
+  const remainingPassengers = detail.passengers.filter((p) => !usedPassengerIds.has(p.id));
+  if (remainingPassengers.length > 0 && groupOrder.length === 0) {
+    drawPassengersSection(ctx, remainingPassengers);
+  }
 
 
   // Monta string de hóspedes a partir dos passageiros (ex.: "2 adultos, 1 criança, 1 bebê")
