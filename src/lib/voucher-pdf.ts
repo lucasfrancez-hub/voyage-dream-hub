@@ -227,6 +227,7 @@ type Ctx = {
   fontBold: PDFFont;
   lang: VoucherLang;
   order: OrderDetail["order"];
+  items: OrderDetail["items"];
   logo?: PDFImage;
   pages: PDFPage[];
   emojiCache?: Map<string, PDFImage | null>;
