@@ -195,6 +195,7 @@ export type OrderHeader = {
   adults: number;
   children: number;
   totalPrice: number;
+  expectedTotal: number | null;
   paymentMethod: string;
   notes: string | null;
   travelReason: string | null;
@@ -414,6 +415,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         adults: order.adults,
         children: order.children,
         totalPrice: Number(order.total_price),
+        expectedTotal: (order as { expected_total?: number | string | null }).expected_total != null ? Number((order as { expected_total?: number | string | null }).expected_total) : null,
         paymentMethod: order.payment_method,
         notes: order.notes,
         travelReason: (order as { travel_reason?: string | null }).travel_reason ?? null,
@@ -656,6 +658,14 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
     airline_locator?: string | null;
     supplier_order_number?: string | null;
     supplier_name?: string | null;
+    full_name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    cpf?: string | null;
+    birth_date?: string | null;
+    adults?: number | null;
+    children?: number | null;
+    expected_total?: number | null;
   }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
@@ -663,10 +673,14 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
       const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
       if (!isPartner) throw new Error("Forbidden");
     }
-    const patch: Record<string, string | null> = {};
-    const keys = ["notes", "travel_reason", "coupon", "trip_title", "seller_name", "seller_email", "seller_phone", "supplier_logo_url", "airline_locator", "supplier_order_number", "supplier_name"] as const;
-    for (const k of keys) {
+    const patch: Record<string, string | number | null> = {};
+    const strKeys = ["notes", "travel_reason", "coupon", "trip_title", "seller_name", "seller_email", "seller_phone", "supplier_logo_url", "airline_locator", "supplier_order_number", "supplier_name", "full_name", "email", "phone", "cpf", "birth_date"] as const;
+    for (const k of strKeys) {
       const v = (data as Record<string, string | null | undefined>)[k];
+      if (v !== undefined) patch[k] = v;
+    }
+    for (const k of ["adults", "children", "expected_total"] as const) {
+      const v = (data as unknown as Record<string, number | null | undefined>)[k];
       if (v !== undefined) patch[k] = v;
     }
     if (Object.keys(patch).length === 0) return { ok: true };
@@ -1109,6 +1123,7 @@ export type CreateOrderInput = {
   cpf?: string | null;
   payment_method: string;
   total_price?: number;
+  expected_total?: number | null;
   adults?: number;
   children?: number;
   notes?: string | null;
@@ -1147,6 +1162,7 @@ export const createOrder = createServerFn({ method: "POST" })
       cpf: nn(data.cpf),
       payment_method: data.payment_method,
       total_price: data.total_price ?? 0,
+      expected_total: data.expected_total ?? null,
       adults: data.adults ?? 1,
       children: data.children ?? 0,
       notes: nn(data.notes),

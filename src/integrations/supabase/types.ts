@@ -620,6 +620,7 @@ export type Database = {
           deleted_by: string | null
           deleted_reason: string | null
           email: string
+          expected_total: number | null
           full_name: string
           id: string
           notes: string | null
@@ -668,6 +669,7 @@ export type Database = {
           deleted_by?: string | null
           deleted_reason?: string | null
           email: string
+          expected_total?: number | null
           full_name: string
           id?: string
           notes?: string | null
@@ -716,6 +718,7 @@ export type Database = {
           deleted_by?: string | null
           deleted_reason?: string | null
           email?: string
+          expected_total?: number | null
           full_name?: string
           id?: string
           notes?: string | null

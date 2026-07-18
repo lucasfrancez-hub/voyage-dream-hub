@@ -154,6 +154,7 @@ function OrderDetailPage() {
   const [openCommission, setOpenCommission] = useState(false);
   const [openLog, setOpenLog] = useState<null | "notes_log" | "travel_reason_log">(null);
   const [openQuote, setOpenQuote] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
 
   const setOrderStatusFn = useServerFn(setOrderStatus);
   const updateOrderMetaFn = useServerFn(updateOrderMeta);
@@ -185,6 +186,14 @@ function OrderDetailPage() {
       seller_email?: string | null;
       seller_phone?: string | null;
       supplier_logo_url?: string | null;
+      full_name?: string | null;
+      email?: string | null;
+      phone?: string | null;
+      cpf?: string | null;
+      birth_date?: string | null;
+      adults?: number | null;
+      children?: number | null;
+      expected_total?: number | null;
     }) =>
       updateOrderMetaFn({ data: { id: (data as OrderDetail | undefined)?.order.id ?? "", ...patch } }),
     onSuccess: () => { invalidate(); },
@@ -318,6 +327,19 @@ function OrderDetailPage() {
           <div className="text-left sm:text-right">
             <div className="text-xs text-muted-foreground">Total</div>
             <div className="text-xl sm:text-2xl font-display font-bold text-brand-orange">{formatBRL(order.totalPrice)}</div>
+            {order.expectedTotal != null && order.expectedTotal > 0 && (() => {
+              const diff = order.totalPrice - order.expectedTotal;
+              const within = diff <= 0;
+              return (
+                <div className="mt-1 text-[11px] flex sm:justify-end items-center gap-1">
+                  <span className="text-muted-foreground">Previsto:</span>
+                  <span className="font-medium">{formatBRL(order.expectedTotal)}</span>
+                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${within ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
+                    {within ? "dentro" : `+${formatBRL(diff)}`}
+                  </span>
+                </div>
+              );
+            })()}
             <div className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>
               {pm.label}
             </div>
@@ -488,6 +510,8 @@ function OrderDetailPage() {
                   <Button size="sm" variant="outline"><MoreHorizontal className="h-3.5 w-3.5 mr-1" /> Ações</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setOpenEdit(true)}><Pencil className="h-3.5 w-3.5 mr-2" /> Editar pedido</DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => confirmThen("Confirmar o pedido e todos os itens?", () => orderStatusMut.mutate("confirmed"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Confirmar</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => confirmThen("Marcar o pedido como finalizado?", () => orderStatusMut.mutate("paid"))}><CheckCircle2 className="h-3.5 w-3.5 mr-2 text-green-500" /> Finalizado</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => confirmThen("Cancelar o pedido e todos os itens?", () => orderStatusMut.mutate("cancelled"))}><Ban className="h-3.5 w-3.5 mr-2 text-amber-500" /> Cancelar</DropdownMenuItem>
@@ -630,6 +654,13 @@ function OrderDetailPage() {
         orderId={order.id}
         orderNumber={order.orderNumber}
         customerPhone={order.phone}
+      />
+
+      <EditOrderDialog
+        open={openEdit}
+        onOpenChange={setOpenEdit}
+        order={order}
+        onSave={(patch) => { metaMut.mutate(patch); setOpenEdit(false); }}
       />
     </div>
 
@@ -4954,5 +4985,91 @@ function OrderLogDialog({
   );
 }
 
+type EditOrderPatch = {
+  full_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  cpf?: string | null;
+  birth_date?: string | null;
+  adults?: number | null;
+  children?: number | null;
+  expected_total?: number | null;
+};
 
+function EditOrderDialog({
+  open, onOpenChange, order, onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  order: OrderHeader;
+  onSave: (patch: EditOrderPatch) => void;
+}) {
+  const [form, setForm] = useState({
+    full_name: order.fullName ?? "",
+    email: order.email ?? "",
+    phone: order.phone ?? "",
+    cpf: order.cpf ?? "",
+    birth_date: order.birthDate ?? "",
+    adults: order.adults ?? 1,
+    children: order.children ?? 0,
+    expected_total: order.expectedTotal ?? 0,
+  });
+  useEffect(() => {
+    if (open) setForm({
+      full_name: order.fullName ?? "",
+      email: order.email ?? "",
+      phone: order.phone ?? "",
+      cpf: order.cpf ?? "",
+      birth_date: order.birthDate ?? "",
+      adults: order.adults ?? 1,
+      children: order.children ?? 0,
+      expected_total: order.expectedTotal ?? 0,
+    });
+  }, [open, order]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar pedido</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Nome completo</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>E-mail</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+            <div><Label>Telefone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label>Nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+            <div><Label>Adultos</Label><Input type="number" min={0} value={form.adults} onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })} /></div>
+            <div><Label>Crianças</Label><Input type="number" min={0} value={form.children} onChange={(e) => setForm({ ...form, children: Number(e.target.value) })} /></div>
+          </div>
+          <div>
+            <Label>Orçamento previsto (R$)</Label>
+            <Input type="number" step="0.01" value={form.expected_total} onChange={(e) => setForm({ ...form, expected_total: Number(e.target.value) })} />
+            <p className="mt-1 text-[11px] text-muted-foreground">Aparece ao lado do Total para você comparar com o orçamento do cliente.</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => {
+            onSave({
+              full_name: form.full_name.trim() || null,
+              email: form.email.trim() || null,
+              phone: form.phone.trim() || null,
+              cpf: form.cpf.trim() || null,
+              birth_date: form.birth_date || null,
+              adults: Number(form.adults) || 0,
+              children: Number(form.children) || 0,
+              expected_total: Number(form.expected_total) || null,
+            });
+          }}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
