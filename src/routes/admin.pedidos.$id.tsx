@@ -396,18 +396,28 @@ function OrderDetailPage() {
                 const autoTitle = snap.manual === true && snapTitle
                   ? snapTitle
                   : (computed || snapTitle);
-                const shown = order.tripTitle ?? autoTitle ?? "";
+                const shown = (order.tripTitle ?? autoTitle ?? "").toUpperCase();
                 const isAuto = !order.tripTitle && !!autoTitle;
                 return (
                   <>
                     <Input
                       key={shown}
                       defaultValue={shown}
-                      placeholder="Ex: Pacote para São Paulo"
-                      className="h-10 text-sm bg-muted/30 border-border/60 focus-visible:border-brand-orange/50 focus-visible:ring-brand-orange/40"
+                      placeholder="EX: PACOTE PARA SÃO PAULO"
+                      className="h-10 text-sm bg-muted/30 border-border/60 focus-visible:border-brand-orange/50 focus-visible:ring-brand-orange/40 uppercase"
+                      onChange={(e) => {
+                        const el = e.currentTarget;
+                        const pos = el.selectionStart;
+                        const up = el.value.toUpperCase();
+                        if (el.value !== up) {
+                          el.value = up;
+                          if (pos !== null) el.setSelectionRange(pos, pos);
+                        }
+                      }}
                       onBlur={(e) => {
-                        const v = e.target.value.trim();
-                        if ((v || null) !== (order.tripTitle ?? null) && v !== (isAuto ? autoTitle : "")) {
+                        const v = e.target.value.trim().toUpperCase();
+                        const autoUp = (autoTitle ?? "").toUpperCase();
+                        if ((v || null) !== (order.tripTitle ?? null) && v !== (isAuto ? autoUp : "")) {
                           metaMut.mutate({ trip_title: v || null });
                         } else if (!v && order.tripTitle) {
                           metaMut.mutate({ trip_title: null });
