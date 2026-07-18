@@ -276,6 +276,12 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: () => { toast.success("Emissão excluída"); qc.invalidateQueries({ queryKey: key }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
   return (
     <div id="nfse-card" className="rounded-xl border border-border p-4">
       <div className="flex items-start justify-between gap-3">
