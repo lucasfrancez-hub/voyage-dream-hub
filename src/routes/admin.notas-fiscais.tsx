@@ -65,6 +65,11 @@ function NotasFiscaisPage() {
     onSuccess: () => { toast.success("Cancelamento solicitado"); qc.invalidateQueries({ queryKey: key }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: () => { toast.success("Emissão excluída"); qc.invalidateQueries({ queryKey: key }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
 
   const counts = useMemo(() => {
     const c = { todas: rows.length, autorizado: 0, processando: 0, erro: 0, cancelado: 0 };
