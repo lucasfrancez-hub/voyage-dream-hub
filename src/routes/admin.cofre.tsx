@@ -279,63 +279,65 @@ function CofrePage() {
   const countBoleto = items.filter((i) => i.linkKind === "boleto").length;
 
   return (
-    <div className="mx-auto max-w-5xl px-3 sm:px-6 py-6 sm:py-10">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <div className="flex items-center gap-2 text-brand-orange text-xs uppercase tracking-widest">
-            <Vault className="h-4 w-4" /> Cofre Via Air
-          </div>
-          <h1 className="mt-1 font-display text-3xl font-bold">
-            Links de pagamento
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Reúne os links avulsos gerados neste navegador e os pedidos de
-            pacotes prontos vindos do banco.
-          </p>
+    <div className="mx-auto max-w-5xl px-3 sm:px-6 py-6 sm:py-10 space-y-8">
+      {/* Command Center Header */}
+      <div className="flex flex-col gap-1 border-l-4 border-brand-orange pl-6 py-1">
+        <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] text-brand-orange uppercase font-mono">
+          <Vault className="h-4 w-4" /> Cofre VIA AIR
         </div>
-        <button
-          type="button"
-          onClick={refresh}
-          className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
-        >
-          <RefreshCw className="h-3.5 w-3.5" /> Atualizar
-        </button>
+        <div className="flex flex-wrap justify-between items-end gap-3">
+          <div className="min-w-0">
+            <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight italic uppercase">
+              Links de Pagamento
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Reúne os links avulsos gerados neste navegador e os pedidos de pacotes prontos vindos do banco.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={refresh}
+            className="flex items-center gap-2 bg-muted/40 hover:bg-muted px-4 py-2 rounded border border-border text-xs font-bold uppercase tracking-widest transition-all"
+          >
+            <RefreshCw className="h-4 w-4" /> Atualizar
+          </button>
+        </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <TabBtn active={tab === "all"} onClick={() => setTab("all")}>
-          Todos ({items.length})
-        </TabBtn>
-        <TabBtn active={tab === "card"} onClick={() => setTab("card")}>
-          <CreditCard className="h-3.5 w-3.5" /> Link de pagamento ({countCard})
-        </TabBtn>
-        <TabBtn active={tab === "boleto"} onClick={() => setTab("boleto")}>
-          <FileText className="h-3.5 w-3.5" /> Link de boleto ({countBoleto})
-        </TabBtn>
-      </div>
-
-      <div className="mt-4 relative">
-        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por cliente, descrição, e-mail, telefone…"
-          className="w-full rounded-xl border border-border bg-background pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
-        />
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-muted/20 p-2 rounded-xl border border-border/60 backdrop-blur">
+        <div className="flex flex-wrap gap-1 bg-background/60 p-1 rounded-lg border border-border/60">
+          <TabPill active={tab === "all"} onClick={() => setTab("all")}>
+            TODOS ({items.length})
+          </TabPill>
+          <TabPill active={tab === "card"} onClick={() => setTab("card")}>
+            <CreditCard className="h-3.5 w-3.5" /> LINK ({countCard})
+          </TabPill>
+          <TabPill active={tab === "boleto"} onClick={() => setTab("boleto")}>
+            <FileText className="h-3.5 w-3.5" /> BOLETO ({countBoleto})
+          </TabPill>
+        </div>
+        <div className="relative flex-1 md:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="BUSCAR POR CLIENTE, DESCRIÇÃO, E-MAIL, TELEFONE..."
+            className="w-full bg-background/60 border border-border rounded-lg py-2.5 pl-10 pr-4 text-xs font-medium tracking-wide focus:outline-none focus:border-brand-orange/50 transition-all placeholder:text-muted-foreground/60"
+          />
+        </div>
       </div>
 
       {ordersQuery.isError && (
-        <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
           Não foi possível carregar os pedidos do banco.
         </div>
       )}
 
-      <div className="mt-6 space-y-3">
+      <div className="space-y-4">
         {filtered.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
-            {ordersQuery.isLoading
-              ? "Carregando…"
-              : "Nenhum item para exibir."}
+            {ordersQuery.isLoading ? "Carregando…" : "Nenhum item para exibir."}
           </div>
         )}
 
@@ -349,254 +351,254 @@ function CofrePage() {
             ? `https://wa.me/${e.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(whatsMessage)}`
             : whatsappUrl(whatsMessage);
 
+          const isPedido = !!e.order;
+          const canFinalize = isPedido && e.status !== "paid";
+          const canReject = isPedido && e.status !== "rejected";
+          const hasSignature = !!e.order?.cardCapture?.authorization?.signature_data_url;
+
           return (
-            <div key={e.id} className="rounded-2xl border border-border bg-card p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
+            <div
+              key={e.id}
+              className="group relative bg-card border border-border/60 rounded-2xl overflow-hidden hover:border-brand-orange/30 transition-all duration-300 shadow-sm hover:shadow-lg hover:shadow-brand-orange/5"
+            >
+              <div className="flex flex-col lg:flex-row">
+                {/* Main content */}
+                <div className="flex-1 p-5 sm:p-6 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
                     <Badge kind={e.kind} />
                     {e.status && <StatusBadge status={e.status} />}
-                    <span className="text-muted-foreground">
-                      {new Date(e.createdAt).toLocaleString("pt-BR")}
+                    <span className="ml-auto text-[10px] font-medium text-muted-foreground uppercase tracking-tight font-mono">
+                      {new Date(e.createdAt).toLocaleString("pt-BR")} • {e.meta}
                     </span>
-                    <span className="text-muted-foreground">· {e.meta}</span>
                   </div>
+
                   {e.orderNumber && (
-                    <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-mono font-semibold text-foreground">
+                    <div className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-mono font-semibold text-foreground">
                       <Hash className="h-3 w-3 text-muted-foreground" />
                       Pedido {e.orderNumber}
                     </div>
                   )}
-                  <div className="mt-1 font-semibold truncate">{e.description}</div>
-                  <div className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">{e.customer}</span>
-                    {e.customerPhone ? ` · ${e.customerPhone}` : ""}
-                    {e.email ? ` · ${e.email}` : ""}
+
+                  <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
+                    <div className="min-w-0 space-y-1 flex-1">
+                      <h3 className="text-lg sm:text-xl font-bold text-foreground uppercase tracking-tight truncate">
+                        {e.description}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span className="font-bold text-foreground uppercase">{e.customer}</span>
+                        {e.customerPhone && (
+                          <>
+                            <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
+                            <span className="font-mono">{e.customerPhone}</span>
+                          </>
+                        )}
+                        {e.email && (
+                          <>
+                            <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
+                            <span className="italic lowercase">{e.email}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className="text-xl sm:text-2xl font-black text-brand-orange tabular-nums tracking-tighter">
+                        {formatBRL(e.total)}
+                      </div>
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                        {parcelaLabel}
+                        {e.paymentMethod && ` • ${paymentMethodLabel(e.paymentMethod).label}`}
+                      </div>
+                    </div>
                   </div>
-                  {(e.adults != null || e.children != null || e.paymentMethod) && (
-                    <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-2">
-                      <span>
-                        {e.adults ?? 0} adulto(s)
-                        {(e.children ?? 0) > 0 ? ` · ${e.children} criança(s)` : ""}
-                      </span>
-                      {e.paymentMethod && (
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${paymentMethodLabel(e.paymentMethod).className}`}
-                        >
-                          {paymentMethodLabel(e.paymentMethod).label}
-                        </span>
-                      )}
+
+                  {(e.adults != null || e.children != null) && (
+                    <div className="mb-3 text-xs text-muted-foreground">
+                      {e.adults ?? 0} adulto(s)
+                      {(e.children ?? 0) > 0 ? ` · ${e.children} criança(s)` : ""}
                     </div>
                   )}
+
                   {e.notes && (
-                    <div className="text-xs text-muted-foreground mt-1 italic">
-                      "{e.notes}"
-                    </div>
+                    <div className="mb-3 text-xs text-muted-foreground italic">"{e.notes}"</div>
                   )}
+
                   {(e.supplier || e.locator || e.route || e.travelDate || e.passengers) && (
-                    <div className="mt-2 grid gap-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
+                    <div className="mb-3 grid gap-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
                       {e.supplier && (
-                        <div>
-                          <span className="text-muted-foreground">Fornecedor: </span>
-                          <span className="font-medium text-foreground">{e.supplier}</span>
-                        </div>
+                        <div><span className="text-muted-foreground">Fornecedor: </span><span className="font-medium text-foreground">{e.supplier}</span></div>
                       )}
                       {e.locator && (
-                        <div>
-                          <span className="text-muted-foreground">Localizador: </span>
-                          <span className="font-mono font-semibold text-foreground">{e.locator}</span>
-                        </div>
+                        <div><span className="text-muted-foreground">Localizador: </span><span className="font-mono font-semibold text-foreground">{e.locator}</span></div>
                       )}
                       {e.route && (
-                        <div>
-                          <span className="text-muted-foreground">Rota: </span>
-                          <span className="whitespace-pre-line text-foreground">{e.route}</span>
-                        </div>
+                        <div><span className="text-muted-foreground">Rota: </span><span className="whitespace-pre-line text-foreground">{e.route}</span></div>
                       )}
                       {e.travelDate && (
-                        <div>
-                          <span className="text-muted-foreground">Data: </span>
-                          <span className="text-foreground">{e.travelDate}</span>
-                        </div>
+                        <div><span className="text-muted-foreground">Data: </span><span className="text-foreground">{e.travelDate}</span></div>
                       )}
                       {e.passengers && (
-                        <div>
-                          <span className="text-muted-foreground">Passageiros: </span>
-                          <span className="whitespace-pre-line text-foreground">{e.passengers}</span>
-                        </div>
+                        <div><span className="text-muted-foreground">Passageiros: </span><span className="whitespace-pre-line text-foreground">{e.passengers}</span></div>
                       )}
                     </div>
                   )}
-                </div>
-                <div className="text-right">
-                  <div className="text-xl font-display font-bold text-brand-orange">
-                    {formatBRL(e.total)}
+
+                  {/* Technical URL row */}
+                  <div className="flex items-center gap-3 bg-background/60 p-3 rounded-lg border border-border/60">
+                    <div className="p-1.5 bg-muted rounded shrink-0">
+                      <Link2 className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <span className="flex-1 text-[10px] text-muted-foreground font-mono truncate">{e.url}</span>
                   </div>
-                  <div className="text-xs text-muted-foreground">{parcelaLabel}</div>
                 </div>
-              </div>
 
-              <div className="mt-3 rounded-lg bg-background border border-border px-3 py-2 font-mono text-xs break-all">
-                {e.url}
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(e.url);
-                    toast.success("Link copiado");
-                  }}
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-3.5 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 transition"
-                >
-                  <Copy className="h-3.5 w-3.5" /> Copiar
-                </button>
-                <a
-                  href={e.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" /> Abrir cofre
-                </a>
-                <a
-                  href={waHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
-                >
-                  <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                </a>
-                {e.order && (
+                {/* Action rail */}
+                <div className="bg-background/40 lg:w-52 p-4 flex flex-col gap-2 border-t lg:border-t-0 lg:border-l border-border/60">
                   <button
                     type="button"
-                    onClick={() => setDetailsItem(e)}
-                    className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
-                  >
-                    <FileText className="h-3.5 w-3.5" /> Ver dados
-                  </button>
-                )}
-                {e.order && e.orderId && e.kind === "pedido" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      router.navigate({ to: "/admin/pedidos" as never })
-                    }
-                    className="inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs hover:border-brand-orange transition"
-                  >
-                    <Package className="h-3.5 w-3.5" /> Ver pedido
-                  </button>
-                )}
-                {e.order?.cardCapture?.authorization?.signature_data_url && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-
-                      try {
-                        const ord = e.order!;
-                        const rawAuth = ord.cardCapture!.authorization as unknown as AuthorizationData;
-                        const signedAt = rawAuth.signed_at ?? ord.createdAt;
-                        const validUntil =
-                          rawAuth.valid_until ??
-                          new Date(new Date(signedAt).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
-                        const enriched: AuthorizationData = {
-                          ...rawAuth,
-                          holder_name: rawAuth.holder_name ?? ord.fullName,
-                          holder_cpf: rawAuth.holder_cpf ?? ord.cpf ?? undefined,
-                          holder_email: rawAuth.holder_email ?? ord.email,
-                          holder_phone: rawAuth.holder_phone ?? ord.phone,
-                          holder_birth_date: rawAuth.holder_birth_date ?? ord.birthDate ?? undefined,
-                          description: rawAuth.description ?? ord.linkDescription ?? e.description,
-                          reference: rawAuth.reference ?? ord.linkReference ?? null,
-                          order_number: rawAuth.order_number ?? ord.orderNumber ?? null,
-
-                          supplier: rawAuth.supplier ?? "—",
-                          representative:
-                            rawAuth.representative ??
-                            "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
-                          installments: rawAuth.installments ?? e.installments,
-                          amount: rawAuth.amount ?? ord.totalPrice,
-                          signed_at: signedAt,
-                          valid_until: validUntil,
-                        };
-                        await generateAuthorizationPDF({
-                          orderId: e.orderId!,
-                          createdAt: ord.createdAt,
-                          authorization: enriched,
-                          liveness: (ord.cardCapture!.liveness ?? null) as unknown as LivenessData | null,
-                        });
-
-                      } catch (err) {
-                        toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
-                      }
+                    onClick={() => {
+                      navigator.clipboard.writeText(e.url);
+                      toast.success("Link copiado");
                     }}
-                    className="inline-flex items-center gap-2 rounded-full border border-blue-500/40 text-blue-500 px-3.5 py-2 text-xs hover:bg-blue-500/10 transition"
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-brand-orange text-white rounded text-xs font-bold uppercase tracking-widest hover:bg-brand-orange/90 transition-all"
                   >
-                    <FileSignature className="h-3.5 w-3.5" /> Ver autorização de débito
+                    <Copy className="w-4 h-4" /> Copiar Link
                   </button>
-                )}
+                  <a
+                    href={waHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-emerald-500/15 text-emerald-500 rounded text-xs font-bold uppercase tracking-widest border border-emerald-500/20 hover:bg-emerald-500/25 transition-all"
+                  >
+                    <MessageCircle className="w-4 h-4" /> WhatsApp
+                  </a>
+                  <a
+                    href={e.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-muted/60 text-foreground rounded text-xs font-bold uppercase tracking-widest border border-border hover:bg-muted transition-all"
+                  >
+                    <ExternalLink className="w-4 h-4" /> Abrir cofre
+                  </a>
 
+                  {canFinalize && (
+                    <button
+                      type="button"
+                      onClick={() => onFinalize(e.orderId!)}
+                      className="w-full flex items-center justify-center gap-2 py-2 bg-green-500/10 text-green-500 rounded text-xs font-bold uppercase tracking-widest border border-green-500/20 hover:bg-green-500/20 transition-all"
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> Finalizar
+                    </button>
+                  )}
 
-                {e.order && e.orderId && e.status !== "paid" && (
-                  <button
-                    type="button"
-                    onClick={() => onFinalize(e.orderId!)}
-                    className="inline-flex items-center gap-2 rounded-full border border-green-500/40 text-green-500 px-3.5 py-2 text-xs hover:bg-green-500/10 transition"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
-                  </button>
-                )}
-                {e.order && e.orderId && e.status !== "rejected" && (
-                  <button
-                    type="button"
-                    onClick={() => onReject(e.orderId!, e.notes ?? null)}
-                    className="inline-flex items-center gap-2 rounded-full border border-red-500/40 text-red-500 px-3.5 py-2 text-xs hover:bg-red-500/10 transition"
-                  >
-                    <XCircle className="h-3.5 w-3.5" /> Rejeitar
-                  </button>
-                )}
-                {e.order && e.orderId && (
-                  <button
-                    type="button"
-                    onClick={() => onDeleteOrder(e.orderId!)}
-                    className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" /> Excluir
-                  </button>
-                )}
-                {!e.order && (
-                  <>
+                  <div className="grid grid-cols-4 gap-2 mt-auto pt-2">
+                    {e.order && (
+                      <button
+                        type="button"
+                        onClick={() => setDetailsItem(e)}
+                        title="Ver dados"
+                        className="p-2 flex items-center justify-center bg-muted/60 border border-border rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </button>
+                    )}
+                    {isPedido && (
+                      <button
+                        type="button"
+                        onClick={() => router.navigate({ to: "/admin/pedidos" as never })}
+                        title="Ver pedido"
+                        className="p-2 flex items-center justify-center bg-muted/60 border border-border rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Package className="w-4 h-4" />
+                      </button>
+                    )}
+                    {hasSignature && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const ord = e.order!;
+                            const rawAuth = ord.cardCapture!.authorization as unknown as AuthorizationData;
+                            const signedAt = rawAuth.signed_at ?? ord.createdAt;
+                            const validUntil =
+                              rawAuth.valid_until ??
+                              new Date(new Date(signedAt).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+                            const enriched: AuthorizationData = {
+                              ...rawAuth,
+                              holder_name: rawAuth.holder_name ?? ord.fullName,
+                              holder_cpf: rawAuth.holder_cpf ?? ord.cpf ?? undefined,
+                              holder_email: rawAuth.holder_email ?? ord.email,
+                              holder_phone: rawAuth.holder_phone ?? ord.phone,
+                              holder_birth_date: rawAuth.holder_birth_date ?? ord.birthDate ?? undefined,
+                              description: rawAuth.description ?? ord.linkDescription ?? e.description,
+                              reference: rawAuth.reference ?? ord.linkReference ?? null,
+                              order_number: rawAuth.order_number ?? ord.orderNumber ?? null,
+                              supplier: rawAuth.supplier ?? "—",
+                              representative:
+                                rawAuth.representative ??
+                                "Via Air Agência e Representações Ltda (CNPJ 56.339.877/0001-66)",
+                              installments: rawAuth.installments ?? e.installments,
+                              amount: rawAuth.amount ?? ord.totalPrice,
+                              signed_at: signedAt,
+                              valid_until: validUntil,
+                            };
+                            await generateAuthorizationPDF({
+                              orderId: e.orderId!,
+                              createdAt: ord.createdAt,
+                              authorization: enriched,
+                              liveness: (ord.cardCapture!.liveness ?? null) as unknown as LivenessData | null,
+                            });
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
+                          }
+                        }}
+                        title="Autorização de débito"
+                        className="p-2 flex items-center justify-center bg-blue-500/10 border border-blue-500/20 rounded hover:bg-blue-500/20 text-blue-500 transition-colors"
+                      >
+                        <FileSignature className="w-4 h-4" />
+                      </button>
+                    )}
+                    {!e.order && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const entry = entries.find((x) => x.id === e.id.replace(/^avulso:/, ""));
+                          if (!entry) return toast.error("Entrada não encontrada");
+                          stashEditEntry(entry);
+                          const isSimples = /[?&]simples=1(?:&|$)/.test(entry.url);
+                          router.navigate({
+                            to: isSimples ? "/admin/link-cartao-simples" : "/admin/link-pagamento",
+                          });
+                        }}
+                        title="Editar"
+                        className="p-2 flex items-center justify-center bg-brand-orange/10 border border-brand-orange/30 rounded hover:bg-brand-orange/20 text-brand-orange transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
+                    {canReject && (
+                      <button
+                        type="button"
+                        onClick={() => onReject(e.orderId!, e.notes ?? null)}
+                        title="Rejeitar"
+                        className="p-2 flex items-center justify-center bg-red-500/10 border border-red-500/20 rounded hover:bg-red-500/20 text-red-400 transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => {
-                        const entry = entries.find(
-                          (x) => x.id === e.id.replace(/^avulso:/, ""),
-                        );
-                        if (!entry) {
-                          toast.error("Entrada não encontrada");
-                          return;
-                        }
-                        stashEditEntry(entry);
-                        const isSimples = /[?&]simples=1(?:&|$)/.test(entry.url);
-                        router.navigate({
-                          to: isSimples
-                            ? "/admin/link-cartao-simples"
-                            : "/admin/link-pagamento",
-                        });
+                        if (e.order && e.orderId) onDeleteOrder(e.orderId);
+                        else onDelete(e.id.replace(/^avulso:/, ""));
                       }}
-                      className="inline-flex items-center gap-2 rounded-full border border-brand-orange/40 text-brand-orange px-3.5 py-2 text-xs hover:bg-brand-orange/10 transition"
+                      title="Excluir"
+                      className="p-2 flex items-center justify-center bg-muted/60 border border-border rounded hover:bg-red-500/10 hover:border-red-500/30 text-muted-foreground hover:text-red-500 transition-colors"
                     >
-                      <Pencil className="h-3.5 w-3.5" /> Editar
+                      <Trash2 className="w-4 h-4" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => onDelete(e.id.replace(/^avulso:/, ""))}
-                      className="ml-auto inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" /> Remover
-                    </button>
-                  </>
-                )}
+                  </div>
+                </div>
               </div>
             </div>
           );
@@ -604,12 +606,33 @@ function CofrePage() {
       </div>
 
       {detailsItem && detailsItem.order && (
-        <DetailsModal
-          item={detailsItem}
-          onClose={() => setDetailsItem(null)}
-        />
+        <DetailsModal item={detailsItem} onClose={() => setDetailsItem(null)} />
       )}
     </div>
+  );
+}
+
+function TabPill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all ${
+        active
+          ? "bg-brand-orange text-white shadow-lg shadow-brand-orange/20"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
