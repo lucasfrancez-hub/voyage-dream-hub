@@ -526,6 +526,17 @@ function OrderDetailPage() {
                 <DropdownMenuItem onClick={() => toast.info("Envio de voucher — em breve")}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-9 gap-2 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent("nfse:open-emit", { detail: { orderId: order.id } }));
+              }}
+            >
+              <FileText className="h-4 w-4" /> Emitir NFS-e
+            </Button>
           </div>
 
           {/* Core / primary actions */}

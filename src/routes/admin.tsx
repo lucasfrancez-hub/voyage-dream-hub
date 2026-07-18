@@ -355,6 +355,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
   const active =
     pathname.startsWith("/admin/dashboard") ||
     pathname.startsWith("/admin/pessoas") ||
+    pathname.startsWith("/admin/notas-fiscais") ||
     pathname.startsWith("/admin/contas-");
   return (
     <DropdownMenu>
@@ -388,6 +389,12 @@ function DashboardNav({ pathname }: { pathname: string }) {
           <Link to="/admin/contas-pagar" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Contas a pagar</span>
             <span className="text-xs text-muted-foreground">Fornecedores e despesas</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/notas-fiscais" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Notas fiscais</span>
+            <span className="text-xs text-muted-foreground">NFS-e emitidas, erros e relatórios</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
