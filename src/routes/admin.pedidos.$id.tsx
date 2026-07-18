@@ -3751,6 +3751,7 @@ function PaymentDialog({
   const addCardFn = useServerFn(addPersonCard);
   const revealCardFn = useServerFn(revealPersonCardNumber);
   const revealPaymentCardFn = useServerFn(revealOrderPaymentCardNumber);
+  const updatePayerFn = useServerFn(updateOrderPayer);
   const [personSearch, setPersonSearch] = useState("");
   const [personResults, setPersonResults] = useState<Array<{ id: string; name: string; cpf: string | null }>>([]);
   const [showPersonResults, setShowPersonResults] = useState(false);
@@ -3922,6 +3923,12 @@ function PaymentDialog({
     })();
     return () => { cancelled = true; };
   }, [selectedPersonId, listCardsFn]);
+
+  // Atrela a pessoa selecionada ao pedido para que o cartão/venda apareça no cadastro dela.
+  useEffect(() => {
+    if (!open || !selectedPersonId || !order.id) return;
+    updatePayerFn({ data: { id: order.id, person_id: selectedPersonId } }).catch(() => {});
+  }, [selectedPersonId, open, order.id, updatePayerFn]);
 
   async function handlePickPerson(id: string) {
     try {

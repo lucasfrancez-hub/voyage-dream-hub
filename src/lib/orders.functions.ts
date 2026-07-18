@@ -536,6 +536,7 @@ export const updateOrderPayer = createServerFn({ method: "POST" })
     payer_city?: string | null;
     payer_state?: string | null;
     payer_birth_date?: string | null;
+    person_id?: string | null;
   }) => input)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
@@ -547,7 +548,7 @@ export const updateOrderPayer = createServerFn({ method: "POST" })
     const keys = [
       "payer_full_name", "payer_cpf", "payer_ie_rg", "payer_email", "payer_phone",
       "payer_zip", "payer_address", "payer_number", "payer_district", "payer_city", "payer_state",
-      "payer_birth_date",
+      "payer_birth_date", "person_id",
     ] as const;
     for (const k of keys) {
       const v = (data as Record<string, string | null | undefined>)[k];
