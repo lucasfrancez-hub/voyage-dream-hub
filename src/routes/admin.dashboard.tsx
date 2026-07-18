@@ -414,6 +414,57 @@ function DashboardPage() {
           </div>
         )}
       </div>
+      </div>
+
+      {/* Ranking de clientes */}
+      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-3">
+          <Trophy className="h-4 w-4 text-brand-orange" />
+          <h2 className="font-semibold">Top clientes</h2>
+          <span className="text-xs text-muted-foreground">por valor total vendido</span>
+        </div>
+        {topClients.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            Nenhum cliente pago ainda.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {topClients.map((c, i) => {
+              const medal =
+                i === 0 ? { icon: Crown, cls: "text-yellow-500" } :
+                i === 1 ? { icon: Medal, cls: "text-slate-400" } :
+                i === 2 ? { icon: Medal, cls: "text-amber-700" } :
+                null;
+              const MedalIcon = medal?.icon;
+              return (
+                <Link
+                  key={c.name}
+                  to="/admin/pedidos"
+                  search={{ q: c.name } as never}
+                  className="grid grid-cols-[auto_1fr_auto] gap-4 items-center px-5 py-3 hover:bg-muted/30 transition"
+                >
+                  <div className="flex items-center gap-2 min-w-[48px]">
+                    <div className="text-sm font-bold text-muted-foreground w-6 text-center">{i + 1}</div>
+                    {MedalIcon && <MedalIcon className={`h-4 w-4 ${medal!.cls}`} />}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{c.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {c.count} {c.count === 1 ? "pedido" : "pedidos"}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-emerald-500">{formatBRL(c.total)}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      Ticket médio {formatBRL(c.total / c.count)}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
