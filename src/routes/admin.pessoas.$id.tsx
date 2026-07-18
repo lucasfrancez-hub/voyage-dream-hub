@@ -158,8 +158,11 @@ function PersonEditPage() {
     const base = [
       { id: "detalhes" as const, label: "Detalhes" },
       { id: "endereco" as const, label: "Endereço" },
+      { id: "contato" as const, label: "Contato" },
       { id: "documentos" as const, label: "Documentos" },
-      { id: "financeiros" as const, label: "Dados Financeiros" },
+      { id: "adicionais" as const, label: "Adicionais" },
+      { id: "vendas" as const, label: "Vendas" },
+      { id: "financeiros" as const, label: "Financeiro" },
       { id: "obs" as const, label: "Observações" },
     ];
     return base;
