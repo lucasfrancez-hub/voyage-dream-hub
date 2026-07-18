@@ -112,7 +112,7 @@ function NotasFiscaisPage() {
             <FileText className="h-5 w-5" /> Notas Fiscais de Serviço
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            NFS-e emitidas via Focus NFe · Paranavaí/PR
+            NFS-e emitidas via AtendeNet (IPM) · Paranavaí/PR
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey: key })}>
