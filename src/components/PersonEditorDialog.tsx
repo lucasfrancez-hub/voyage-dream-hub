@@ -1013,7 +1013,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     number: "", security_code_hint: "", exp_month: "", exp_year: "",
-    holder_name: "", operator: "MasterCard", travel_card_type: "",
+    holder_name: "", operator: "MasterCard", nickname: "",
   });
   const [revealed, setRevealed] = useState<Record<string, string>>({});
 
@@ -1029,11 +1029,10 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
         security_code_hint: form.security_code_hint || undefined,
         holder_name: form.holder_name || undefined,
         operator: form.operator || undefined,
-        travel_card_type: form.travel_card_type || undefined,
-        is_travel_card: !!form.travel_card_type,
+        nickname: form.nickname || undefined,
       }});
       qc.invalidateQueries({ queryKey: ["admin-people", personId] });
-      setForm({ number: "", security_code_hint: "", exp_month: "", exp_year: "", holder_name: "", operator: "MasterCard", travel_card_type: "" });
+      setForm({ number: "", security_code_hint: "", exp_month: "", exp_year: "", holder_name: "", operator: "MasterCard", nickname: "" });
       setShowForm(false);
       toast.success("Cartão adicionado");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
