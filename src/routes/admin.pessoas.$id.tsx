@@ -73,6 +73,7 @@ function PersonEditPage() {
 
   const [tab, setTab] = useState<"detalhes" | "endereco" | "documentos" | "financeiros" | "obs">("detalhes");
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [kindChosen, setKindChosen] = useState<boolean>(!isNew);
 
   useEffect(() => {
     if (!isNew && q.data?.person) {
@@ -158,6 +159,46 @@ function PersonEditPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  if (isNew && !kindChosen) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 md:px-6 py-10">
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/admin/pessoas" })}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-brand-orange mb-6"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Voltar
+        </button>
+        <h1 className="font-display text-2xl font-bold mb-1">Novo cadastro</h1>
+        <p className="text-sm text-muted-foreground mb-6">Escolha o tipo de pessoa antes de continuar.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button
+            type="button"
+            onClick={() => { set("kind", "PF"); setKindChosen(true); }}
+            className="rounded-xl border border-border p-6 text-left hover:border-brand-orange hover:bg-brand-orange/5 transition group"
+          >
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-orange/10 text-brand-orange mb-3">
+              <User className="h-5 w-5" />
+            </span>
+            <div className="font-semibold">Pessoa Física</div>
+            <div className="text-xs text-muted-foreground mt-1">CPF, RG, nascimento, passaporte</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => { set("kind", "PJ"); setKindChosen(true); }}
+            className="rounded-xl border border-border p-6 text-left hover:border-brand-orange hover:bg-brand-orange/5 transition group"
+          >
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-orange/10 text-brand-orange mb-3">
+              <Building2 className="h-5 w-5" />
+            </span>
+            <div className="font-semibold">Pessoa Jurídica</div>
+            <div className="text-xs text-muted-foreground mt-1">CNPJ, razão social, inscrições, fundação</div>
+          </button>
+        </div>
       </div>
     );
   }
