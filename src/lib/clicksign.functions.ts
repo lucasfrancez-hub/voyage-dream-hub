@@ -608,7 +608,8 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           skip_email: true,
         },
       }),
-    });
+    }, { preferSandbox: true });
+
     const requestSignatureKey = listResp.list.request_signature_key;
 
     // 4) Persiste registro pendente
