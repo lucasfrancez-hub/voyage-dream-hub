@@ -471,6 +471,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
         payerCity: (order as { payer_city?: string | null }).payer_city ?? null,
         payerState: (order as { payer_state?: string | null }).payer_state ?? null,
         personId: (order as { person_id?: string | null }).person_id ?? null,
+        cnpj: (order as { cnpj?: string | null }).cnpj ?? null,
       },
 
       passengers: (passengers ?? []) as OrderPassenger[],
