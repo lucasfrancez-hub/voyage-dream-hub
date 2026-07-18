@@ -27,14 +27,26 @@ function loadCertFromEnv(): LoadedCert {
 
   const b64 = normalizeBase64(rawB64);
   const buf = Buffer.from(b64, "base64");
-  if (buf.length < 100) {
-    throw new Error(`Certificado inválido: base64 decodificou apenas ${buf.length} bytes (esperado .p12 com vários KB). Verifique se a secret NFSE_CERT_PFX_BASE64 contém o conteúdo completo do arquivo .p12 em base64.`);
+  const header = buf.subarray(0, 4).toString("hex");
+  // .p12 (PKCS#12) sempre começa com 0x30 0x82 (SEQUENCE, long-form length)
+  if (buf.length < 500 || !header.startsWith("3082")) {
+    throw new Error(
+      `Certificado NFSE_CERT_PFX_BASE64 inválido ou truncado: ` +
+      `base64 length=${rawB64.length}, decoded bytes=${buf.length}, header=0x${header}. ` +
+      `Esperado .p12 iniciando com 0x3082 e com vários KB. ` +
+      `Regere a base64 com: base64 -w0 certificado.p12 > cert.b64 e cole o conteúdo COMPLETO na secret.`
+    );
   }
   const binary = buf.toString("binary");
-  const p12 = forge.pkcs12.pkcs12FromAsn1(
-    forge.asn1.fromDer(binary),
-    pwd,
-  );
+  let p12;
+  try {
+    p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(binary), pwd);
+  } catch (e: any) {
+    throw new Error(
+      `Falha ao decodificar .p12 (bytes=${buf.length}, header=0x${header}): ${e?.message || e}. ` +
+      `Verifique se o arquivo não foi truncado no upload da secret e se a senha está correta.`
+    );
+  }
   const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
   let keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0];
   if (!keyBag) keyBag = p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag]?.[0];
