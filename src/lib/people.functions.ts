@@ -663,12 +663,22 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
 
     const filters: string[] = [`person_id.eq.${data.id}`];
     if (cpfDigits) {
-      // orders.payer_cpf pode ter vindo formatado; comparamos por igualdade textual
-      // usando ambos: dígitos crus e valor original.
-      filters.push(`payer_cpf.eq.${cpfDigits}`);
-      if (person?.cpf && person.cpf !== cpfDigits) filters.push(`payer_cpf.eq.${person.cpf}`);
+      // orders.cpf / payer_cpf podem estar armazenados apenas em dígitos ou
+      // formatados (ex: "518.482.430-77"). Casamos por "contém dígitos" via
+      // regex removendo não-dígitos — como PostgREST não faz isso, aplicamos
+      // ilike com wildcards que casam com ambas as formas para CPF de 11 dígitos.
+      const d = cpfDigits;
+      const formatted = d.length === 11 ? `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}` : null;
+      for (const col of ["cpf", "payer_cpf"] as const) {
+        filters.push(`${col}.eq.${d}`);
+        if (formatted) filters.push(`${col}.eq.${formatted}`);
+        if (person?.cpf && person.cpf !== d && person.cpf !== formatted) filters.push(`${col}.eq.${person.cpf}`);
+      }
     }
-    if (emailNorm) filters.push(`payer_email.ilike.${emailNorm}`);
+    if (emailNorm) {
+      filters.push(`email.ilike.${emailNorm}`);
+      filters.push(`payer_email.ilike.${emailNorm}`);
+    }
 
     const { data: orders, error } = await context.supabase
       .from("orders")
