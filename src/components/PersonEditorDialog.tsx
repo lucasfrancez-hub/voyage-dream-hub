@@ -255,6 +255,31 @@ export function PersonEditorDialog({
     } catch { /* ignore */ }
   }
 
+  async function fetchCnpj(cnpj: string) {
+    const d = cnpj.replace(/\D+/g, "");
+    if (d.length !== 14) return;
+    try {
+      const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${d}`);
+      if (!r.ok) return;
+      const j = await r.json();
+      setForm((s) => ({
+        ...s,
+        name: s.name?.trim() ? s.name : (j.nome_fantasia || j.razao_social || s.name),
+        legal_name: j.razao_social || s.legal_name,
+
+        foundation_date: j.data_inicio_atividade || s.foundation_date,
+        zip: j.cep ? String(j.cep).replace(/\D+/g, "").replace(/(\d{5})(\d{3})/, "$1-$2") : s.zip,
+        address: j.logradouro || s.address,
+        number: j.numero || s.number,
+        complement: j.complemento || s.complement,
+        district: j.bairro || s.district,
+        city: j.municipio || s.city,
+        state: j.uf || s.state,
+      }));
+    } catch { /* ignore */ }
+  }
+
+
   const person = q.data?.person;
   const cards = q.data?.cards ?? [];
   const phones = q.data?.phones ?? [];
@@ -369,7 +394,7 @@ export function PersonEditorDialog({
 
             <div className="flex-1 overflow-y-auto px-5 py-5 bg-background/40">
               {tab === "detalhes" && (
-                <DetalhesTab form={form} set={set} person={person} onCepBlur={fetchCep} />
+                <DetalhesTab form={form} set={set} person={person} onCepBlur={fetchCep} onCnpjBlur={fetchCnpj} />
               )}
               {tab === "adicionais" && (
                 <AdicionaisTab form={form} set={set} summary={salesQ.data?.summary} isPF={form.kind === "PF"} />
@@ -447,13 +472,15 @@ export function PersonEditorDialog({
 /* ==================== TABS ==================== */
 
 function DetalhesTab({
-  form, set, person, onCepBlur,
+  form, set, person, onCepBlur, onCnpjBlur,
 }: {
   form: FormState;
   set: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
   person?: PersonRow;
   onCepBlur: (cep: string) => void;
+  onCnpjBlur: (cnpj: string) => void;
 }) {
+
   const isPJ = form.kind === "PJ";
   const age = form.birth_date ? calcAge(form.birth_date) : null;
 
@@ -498,7 +525,7 @@ function DetalhesTab({
                 </FieldRow>
                 <div className="grid grid-cols-2 gap-3">
                   <MiniField label="CNPJ:">
-                    <input value={form.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} className={cls} />
+                    <input value={form.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} onBlur={(e) => onCnpjBlur(e.target.value)} placeholder="00.000.000/0000-00" className={cls} />
                   </MiniField>
                   <MiniField label="Inscrição Estadual:">
                     <input value={form.state_registration ?? ""} onChange={(e) => set("state_registration", e.target.value)} className={cls} />
