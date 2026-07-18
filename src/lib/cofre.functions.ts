@@ -27,9 +27,9 @@ export type CofreOrder = {
   id: string;
   createdAt: string;
   status: string;
-  fullName: string;
-  email: string;
-  phone: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
   cpf: string | null;
   birthDate: string | null;
   adults: number;
