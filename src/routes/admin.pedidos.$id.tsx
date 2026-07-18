@@ -3141,9 +3141,11 @@ function FinanceTab({
   const upsert = useServerFn(upsertItemFinancial);
   const del = useServerFn(deleteItemFinancial);
   const recalculateTotal = useServerFn(recalculateOrderTotal);
+  const createItem = useServerFn(upsertOrderItem);
   const [editing, setEditing] = useState<OrderItemFinancial | null>(null);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+
 
   const save = useMutation({
     mutationFn: async (payload: Parameters<typeof upsert>[0]["data"]) => {
