@@ -118,7 +118,8 @@ Regras (por item):
 - observations: ARRAY completo de tópicos com TODAS as demais informações DESTE serviço — nunca resuma nem descarte. Inclua OBRIGATORIAMENTE, quando aparecerem: itens inclusos/não inclusos (cada um em 1 tópico), ponto de encontro, horário de apresentação, duração, idiomas do guia, documentos exigidos, restrições, política de crianças, franquia de bagagem, taxas obrigatórias, taxas opcionais, contatos, avisos finais. Cada item = 1 tópico (1 linha, até ~220 chars) em português. Preserve o texto original quando útil.
 - value/tax_value/currency: se o voucher trouxer valor DAQUELE serviço específico. Se o valor for único e geral, deixe apenas no primeiro item ou omita nos demais.
 - status: "confirmed" (voucher emitido/confirmado), "reserved" (aguardando pgto), "pending" (solicitado).
-- passengers: participantes/beneficiários DAQUELE serviço; kind = adult/child/infant.
+- passengers (por item): participantes/beneficiários EXPLICITAMENTE nomeados NAQUELE serviço; kind = adult/child/infant. Se o voucher lista os passageiros só UMA vez (no topo, capa ou "Titular/Passageiros"), coloque essa lista no CAMPO SUPERIOR \`passengers\` (fora de items) e NÃO repita em cada item — o sistema propaga automaticamente para todos os serviços.
+- passengers no NÍVEL SUPERIOR do JSON: lista compartilhada de passageiros/hóspedes do documento inteiro. Use SEMPRE que o voucher listar as pessoas de forma única. Sem inventar.
 - notes: contatos, telefone de emergência (se houver). NÃO duplique observações nem a description.
 - NUNCA invente. Se um campo não estiver no voucher, omita-o do JSON.`;
 
