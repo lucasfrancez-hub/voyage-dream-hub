@@ -433,12 +433,36 @@ function ReviewReservation({
   const parseBRL = (value: string): number | undefined => {
     const raw = value.trim().replace(/\s/g, "").replace(/^R\$/i, "");
     if (!raw) return undefined;
-    const normalized = raw.includes(",")
-      ? raw.replace(/\./g, "").replace(",", ".")
-      : raw;
+    // Com vírgula: pontos = milhar, vírgula = decimal.
+    // Só ponto: trata como milhar (ex.: "11.406") — a menos que seja um único
+    // ponto com 1-2 dígitos após (ex.: "11.4" ou "11.40").
+    let normalized: string;
+    if (raw.includes(",")) {
+      normalized = raw.replace(/\./g, "").replace(",", ".");
+    } else if ((raw.match(/\./g)?.length ?? 0) === 1 && /\.\d{1,2}$/.test(raw)) {
+      normalized = raw;
+    } else {
+      normalized = raw.replace(/\./g, "");
+    }
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : undefined;
   };
+  // Mantém o texto exato dos campos monetários; converte para número no
+  // reservation. Sem isso, digitar "11.406,30" perde o ponto entre teclas.
+  const fmtBRLDisplay = (n?: number) =>
+    n == null ? "" : n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const [rawMoney, setRawMoney] = useState<{ base: string; taxes: string; fees: string; total: string }>({
+    base: fmtBRLDisplay(reservation.base_fare),
+    taxes: fmtBRLDisplay(reservation.taxes),
+    fees: fmtBRLDisplay(reservation.fees),
+    total: fmtBRLDisplay(reservation.total_fare),
+  });
+  function onMoney(field: "base" | "taxes" | "fees" | "total", value: string) {
+    setRawMoney((m) => ({ ...m, [field]: value }));
+    const parsed = parseBRL(value);
+    const key = field === "base" ? "base_fare" : field === "total" ? "total_fare" : field;
+    onChange({ ...reservation, [key]: parsed } as ImportedReservation);
+  }
 
   return (
     <div className="space-y-5">
@@ -482,19 +506,19 @@ function ReviewReservation({
           </div>
           <div>
             <Label className="text-xs">Tarifa</Label>
-            <Input inputMode="decimal" value={reservation.base_fare ?? ""} onChange={(e) => onChange({ ...reservation, base_fare: parseBRL(e.target.value) })} placeholder="0,00" />
+            <Input inputMode="decimal" value={rawMoney.base} onChange={(e) => onMoney("base", e.target.value)} placeholder="0,00" />
           </div>
           <div>
             <Label className="text-xs">Taxas (soma)</Label>
-            <Input inputMode="decimal" value={reservation.taxes ?? ""} onChange={(e) => onChange({ ...reservation, taxes: parseBRL(e.target.value) })} placeholder="0,00" />
+            <Input inputMode="decimal" value={rawMoney.taxes} onChange={(e) => onMoney("taxes", e.target.value)} placeholder="0,00" />
           </div>
           <div>
             <Label className="text-xs">Fees</Label>
-            <Input inputMode="decimal" value={reservation.fees ?? ""} onChange={(e) => onChange({ ...reservation, fees: parseBRL(e.target.value) })} placeholder="0,00" />
+            <Input inputMode="decimal" value={rawMoney.fees} onChange={(e) => onMoney("fees", e.target.value)} placeholder="0,00" />
           </div>
           <div>
             <Label className="text-xs">Total</Label>
-            <Input inputMode="decimal" value={reservation.total_fare ?? ""} onChange={(e) => onChange({ ...reservation, total_fare: parseBRL(e.target.value) })} placeholder="11.406,30" />
+            <Input inputMode="decimal" value={rawMoney.total} onChange={(e) => onMoney("total", e.target.value)} placeholder="11.406,30" />
           </div>
         </div>
       </div>
