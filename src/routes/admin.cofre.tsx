@@ -25,6 +25,7 @@ import {
   Hash,
   Pencil,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
