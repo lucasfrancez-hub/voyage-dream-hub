@@ -3924,6 +3924,12 @@ function PaymentDialog({
     return () => { cancelled = true; };
   }, [selectedPersonId, listCardsFn]);
 
+  // Atrela a pessoa selecionada ao pedido para que o cartão/venda apareça no cadastro dela.
+  useEffect(() => {
+    if (!open || !selectedPersonId || !order.id) return;
+    updatePayerFn({ data: { id: order.id, person_id: selectedPersonId } }).catch(() => {});
+  }, [selectedPersonId, open, order.id, updatePayerFn]);
+
   async function handlePickPerson(id: string) {
     try {
       const rows = await searchPeopleFn({ data: { q: personSearch.trim() } });
