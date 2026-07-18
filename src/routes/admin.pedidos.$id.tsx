@@ -3599,11 +3599,18 @@ function PaymentsSection({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const qc = useQueryClient();
   const delMut = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
+    onMutate: (id: string) => {
+      qc.setQueryData<OrderDetail>(["admin", "orderDetail", orderId], (d) => d ? ({
+        ...d, payments: d.payments.filter((p) => p.id !== id),
+      }) : d);
+    },
     onSuccess: () => { toast.success("Pagamento removido"); onChange(); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => { toast.error(e.message); onChange(); },
   });
+
 
   const grandTotal = payments
     .filter((p) => p.status === "paid")
