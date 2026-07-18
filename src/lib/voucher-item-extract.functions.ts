@@ -195,7 +195,7 @@ function itemSchema(kind: "hotel" | "other") {
 export const extractItemVoucher = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => InputSchema.parse(input))
-  .handler(async ({ data, context }): Promise<ExtractedItemVoucher> => {
+  .handler(async ({ data, context }): Promise<ExtractedItemVoucher[]> => {
     const { supabase, userId } = context;
     const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
       _user_id: userId,
@@ -214,7 +214,7 @@ export const extractItemVoucher = createServerFn({ method: "POST" })
     const contentBlocks: unknown[] = [
       {
         type: "text",
-        text: "Extraia TODOS os dados úteis deste voucher em JSON estruturado conforme o schema. Preserve políticas e observações no texto original.",
+        text: "Extraia TODOS os dados úteis deste voucher em JSON estruturado conforme o schema. Se houver múltiplos serviços/hospedagens no mesmo documento, retorne UM item por serviço no array `items`. Nunca colapse serviços diferentes.",
       },
       isImage
         ? { type: "image_url", image_url: { url: dataUrl } }
@@ -232,7 +232,7 @@ export const extractItemVoucher = createServerFn({ method: "POST" })
           type: "function",
           function: {
             name: "return_item_voucher",
-            description: "Retorna dados estruturados do voucher.",
+            description: "Retorna dados estruturados do voucher. Sempre retorne um array `items` com um item por serviço/hospedagem.",
             parameters: itemSchema(data.kind),
           },
         },
@@ -277,5 +277,10 @@ export const extractItemVoucher = createServerFn({ method: "POST" })
       parsed = JSON.parse(match[0]) as Record<string, unknown>;
     }
 
-    return { kind: data.kind, ...parsed } as ExtractedItemVoucher;
+    const rawItems = Array.isArray((parsed as { items?: unknown }).items)
+      ? ((parsed as { items: unknown[] }).items)
+      : [parsed];
+    return rawItems
+      .filter((it): it is Record<string, unknown> => !!it && typeof it === "object")
+      .map((it) => ({ kind: data.kind, ...it }) as ExtractedItemVoucher);
   });
