@@ -33,6 +33,7 @@ export type ExtractedHotelItem = {
     check_out?: string;
     nights?: number;
     guests?: string;
+    description?: string;
     policies?: string;
     cancellation_policy?: string;
     observations?: string[];
@@ -59,6 +60,7 @@ export type ExtractedServiceItem = {
     time_from?: string;
     time_to?: string;
     address?: string;
+    description?: string;
     policies?: string;
     cancellation_policy?: string;
     observations?: string[];
