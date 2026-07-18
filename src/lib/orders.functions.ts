@@ -953,3 +953,72 @@ export const unlinkPassengerFromItem = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Após importar uma reserva, os triggers auto-linkam novos passageiros a todos
+ * os itens existentes e novos itens a todos os passageiros existentes. Esta fn
+ * corrige isso: apaga os links espúrios e mantém somente novos_pax × novos_itens.
+ */
+export const setImportLinks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { order_id: string; item_ids: string[]; passenger_ids: string[] }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
+    if (data.item_ids.length === 0 || data.passenger_ids.length === 0) return { ok: true };
+
+    // 1) Zera links dos novos itens (remove novos_itens × pax_antigos criados pelo trigger)
+    await context.supabase
+      .from("order_item_passengers")
+      .delete()
+      .in("order_item_id", data.item_ids);
+
+    // 2) Remove links dos novos pax para itens antigos (criados pelo trigger).
+    const { data: strayLinks } = await context.supabase
+      .from("order_item_passengers")
+      .select("id, order_item_id, passenger_id")
+      .eq("order_id", data.order_id)
+      .in("passenger_id", data.passenger_ids);
+    const strayIds = (strayLinks ?? [])
+      .filter((l) => !data.item_ids.includes(l.order_item_id))
+      .map((l) => l.id);
+    if (strayIds.length > 0) {
+      await context.supabase.from("order_item_passengers").delete().in("id", strayIds);
+    }
+
+    // 3) Insere novos_pax × novos_itens
+    const rows = data.item_ids.flatMap((iid) =>
+      data.passenger_ids.map((pid) => ({
+        order_id: data.order_id,
+        order_item_id: iid,
+        passenger_id: pid,
+      })),
+    );
+    const { error: insErr } = await context.supabase
+      .from("order_item_passengers")
+      .upsert(rows, { onConflict: "order_item_id,passenger_id", ignoreDuplicates: true });
+    if (insErr) throw new Error(insErr.message);
+
+    return { ok: true };
+  });
+
+export const deleteAllOrderPassengers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { order_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
+    const { error } = await context.supabase
+      .from("order_passengers")
+      .delete()
+      .eq("order_id", data.order_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
