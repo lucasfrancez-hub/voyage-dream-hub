@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
+import { supabase } from "@/integrations/supabase/client";
 
 type Num = number | string | null | undefined;
 export type NfseDocumentData = {
@@ -153,6 +154,16 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const margin = 28;
   const contentW = A4.width - margin * 2;
   const ctx: Ctx = { page, regular, bold, margin, contentW };
+
+  // Puxa códigos fiscais da configuração
+  const { data: cfg } = await supabase.from("nfse_config")
+    .select("item_lista_servico, ipm_codigo_servico, ipm_codigo_atividade, codigo_tributario_municipio, codigo_tributario_nacional, municipio_prestacao, uf_prestacao, cnae_principal")
+    .limit(1).maybeSingle();
+  const codServico = String(cfg?.ipm_codigo_servico || cfg?.ipm_codigo_atividade || "-");
+  const codTribMun = String(cfg?.codigo_tributario_municipio || cfg?.ipm_codigo_servico || "-");
+  const codTribNac = String(cfg?.codigo_tributario_nacional || cfg?.item_lista_servico || "-");
+  const cnae = String(cfg?.cnae_principal || "-");
+  const municipioPrest = `${cfg?.municipio_prestacao || "Paranavaí"}/${cfg?.uf_prestacao || "PR"}`;
 
   const numero = data.numero_nfse || responseValue(data, "numero_nfse") || "-";
   const serie = data.serie || responseValue(data, "serie_nfse") || "1";
@@ -310,11 +321,13 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   page.drawLine({ start: { x: margin + g1, y: y }, end: { x: margin + g1, y: y - discH }, thickness: 0.5, color: linha });
   page.drawLine({ start: { x: margin + g1 + g2, y: y }, end: { x: margin + g1 + g2, y: y - discH }, thickness: 0.5, color: linha });
 
-  // Col 1: Serviço / Município / Cód. tributação
+  // Col 1: Código serviço / Município / Cód. tributação municipal e nacional / CNAE
   const col1x = margin + 14;
-  labelValue(ctx, col1x, y - 16, "Serviço", "90202", 10);
-  labelValue(ctx, col1x, y - 50, "Município da prestação", "Paranavaí/PR", 10);
-  labelValue(ctx, col1x, y - 84, "Cód. tributação", "7749", 10);
+  labelValue(ctx, col1x, y - 14, "Cód. serviço", codServico, 10);
+  labelValue(ctx, col1x, y - 40, "Município prestação", municipioPrest, 9.5);
+  labelValue(ctx, col1x, y - 66, "Cód. trib. municipal", codTribMun, 9.5);
+  labelValue(ctx, col1x, y - 90, "Cód. trib. nacional", codTribNac, 9.5);
+  labelValue(ctx, col1x, y - 108, "CNAE", cnae, 8.5);
 
   // Col 2: Descrição + IDA/VOLTA
   const col2x = margin + g1 + 14;
