@@ -279,7 +279,7 @@ function ReviewExtracted({
                   const next: Record<string, unknown> = { ...d };
                   next.hotel_name = h.name;
                   if (h.tripadvisor_url) next.tripadvisor_url = h.tripadvisor_url;
-                  if (h.photos?.length) next.hotel_photos = h.photos;
+                  if (h.photos?.length) next.tripadvisor_photos = h.photos;
                   onChange({ ...value, details: next } as ExtractedItemVoucher);
                 }}
                 initialMode={String(d.hotel_name ?? "").trim() ? "manual" : null}
