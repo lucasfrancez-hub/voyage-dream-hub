@@ -418,30 +418,95 @@ function DetalhesTab({
   const age = form.birth_date ? calcAge(form.birth_date) : null;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-6">
-      <div className="space-y-3">
-        <FieldRow label="Código:">
-          <div className="text-sm font-mono">{person?.code ?? "—"}</div>
-        </FieldRow>
-        <FieldRow label={isPJ ? "Nome:" : "Nome:"} required>
-          <input value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} />
-        </FieldRow>
-        {isPJ && (
-          <FieldRow label="Razão Social:">
-            <input value={form.legal_name ?? ""} onChange={(e) => set("legal_name", e.target.value)} className={cls} />
-          </FieldRow>
-        )}
+    <div className="space-y-6">
+      {/* ============ DADOS PESSOAIS ============ */}
+      <Section title="Dados pessoais">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-6">
+          <div className="space-y-3">
+            <FieldRow label="Código:">
+              <div className="text-sm font-mono">{person?.code ?? "—"}</div>
+            </FieldRow>
+            <FieldRow label="Nome:" required>
+              <input value={form.name} onChange={(e) => set("name", e.target.value)} className={cls} />
+            </FieldRow>
+            {isPJ && (
+              <FieldRow label="Razão Social:">
+                <input value={form.legal_name ?? ""} onChange={(e) => set("legal_name", e.target.value)} className={cls} />
+              </FieldRow>
+            )}
+
+            {isPJ ? (
+              <>
+                <FieldRow label="Fundação:">
+                  <input type="date" value={form.foundation_date ?? ""} onChange={(e) => set("foundation_date", e.target.value)} className={cls + " max-w-[200px]"} />
+                </FieldRow>
+                <div className="grid grid-cols-2 gap-3">
+                  <MiniField label="CNPJ:">
+                    <input value={form.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} className={cls} />
+                  </MiniField>
+                  <MiniField label="Inscrição Estadual:">
+                    <input value={form.state_registration ?? ""} onChange={(e) => set("state_registration", e.target.value)} className={cls} />
+                  </MiniField>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-end">
+                  <MiniField label="Nascimento:">
+                    <input type="date" value={form.birth_date ?? ""} onChange={(e) => set("birth_date", e.target.value)} className={cls} />
+                  </MiniField>
+                  <div className="text-sm text-muted-foreground pb-2.5">{age != null ? `${age} anos` : ""}</div>
+                  <MiniField label="Sexo:">
+                    <select value={form.gender ?? ""} onChange={(e) => set("gender", e.target.value || null)} className={cls}>
+                      <option value="">—</option>
+                      <option value="M">Masculino</option>
+                      <option value="F">Feminino</option>
+                      <option value="O">Outro</option>
+                    </select>
+                  </MiniField>
+                </div>
+                {!form.is_foreign && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <MiniField label="CPF:">
+                      <input value={form.cpf ?? ""} onChange={(e) => set("cpf", e.target.value)} className={cls} />
+                    </MiniField>
+                    <MiniField label="RG:">
+                      <input value={form.rg ?? ""} onChange={(e) => set("rg", e.target.value)} className={cls} />
+                    </MiniField>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <MiniField label="Passaporte Nº:">
+                    <input value={form.passport_number ?? ""} onChange={(e) => set("passport_number", e.target.value)} className={cls} />
+                  </MiniField>
+                  <MiniField label="Validade Passaporte:">
+                    <input type="date" value={form.passport_expiration ?? ""} onChange={(e) => set("passport_expiration", e.target.value)} className={cls} />
+                  </MiniField>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Foto/Logotipo placeholder */}
+          <div className="hidden lg:block">
+            <div className="rounded-xl border border-dashed border-border h-[180px] flex items-center justify-center text-sm text-muted-foreground bg-muted/20">
+              {isPJ ? "Logotipo" : "Foto"}
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ============ ENDEREÇO ============ */}
+      <Section title="Endereço">
         <div className="grid grid-cols-[140px_1fr_120px] gap-3">
           <MiniField label="CEP:">
-            <div className="flex gap-1">
-              <input
-                value={form.zip ?? ""}
-                onChange={(e) => set("zip", e.target.value)}
-                onBlur={(e) => onCepBlur(e.target.value)}
-                className={cls}
-                placeholder="00000-000"
-              />
-            </div>
+            <input
+              value={form.zip ?? ""}
+              onChange={(e) => set("zip", e.target.value)}
+              onBlur={(e) => onCepBlur(e.target.value)}
+              className={cls}
+              placeholder="00000-000"
+            />
           </MiniField>
           <MiniField label="Endereço:">
             <input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} className={cls} />
@@ -467,75 +532,10 @@ function DetalhesTab({
             Estrangeiro
           </label>
         </div>
-        {isPJ ? (
-          <FieldRow label="Nascimento (Fundação):">
-            <input type="date" value={form.foundation_date ?? ""} onChange={(e) => set("foundation_date", e.target.value)} className={cls + " max-w-[200px]"} />
-          </FieldRow>
-        ) : form.is_foreign ? (
-          // Estrangeiro: só passaporte e nascimento
-          <>
-            <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
-              <MiniField label="Nascimento:">
-                <input type="date" value={form.birth_date ?? ""} onChange={(e) => set("birth_date", e.target.value)} className={cls} />
-              </MiniField>
-              <div className="text-sm text-muted-foreground pb-2.5">{age != null ? `${age} anos` : ""}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <MiniField label="Passaporte Nº:">
-                <input value={form.passport_number ?? ""} onChange={(e) => set("passport_number", e.target.value)} className={cls} />
-              </MiniField>
-              <MiniField label="Validade Passaporte:">
-                <input type="date" value={form.passport_expiration ?? ""} onChange={(e) => set("passport_expiration", e.target.value)} className={cls} />
-              </MiniField>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-end">
-              <MiniField label="Nascimento:">
-                <input type="date" value={form.birth_date ?? ""} onChange={(e) => set("birth_date", e.target.value)} className={cls} />
-              </MiniField>
-              <div className="text-sm text-muted-foreground pb-2.5">{age != null ? `${age} anos` : ""}</div>
-              <MiniField label="Sexo:">
-                <select value={form.gender ?? ""} onChange={(e) => set("gender", e.target.value || null)} className={cls}>
-                  <option value="">—</option>
-                  <option value="M">Masculino</option>
-                  <option value="F">Feminino</option>
-                  <option value="O">Outro</option>
-                </select>
-              </MiniField>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <MiniField label="CPF:">
-                <input value={form.cpf ?? ""} onChange={(e) => set("cpf", e.target.value)} className={cls} />
-              </MiniField>
-              <MiniField label="RG:">
-                <input value={form.rg ?? ""} onChange={(e) => set("rg", e.target.value)} className={cls} />
-              </MiniField>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <MiniField label="Passaporte Nº:">
-                <input value={form.passport_number ?? ""} onChange={(e) => set("passport_number", e.target.value)} className={cls} />
-              </MiniField>
-              <MiniField label="Validade Passaporte:">
-                <input type="date" value={form.passport_expiration ?? ""} onChange={(e) => set("passport_expiration", e.target.value)} className={cls} />
-              </MiniField>
-            </div>
-          </>
-        )}
-        {isPJ && (
-          <div className="grid grid-cols-2 gap-3">
-            <MiniField label="CNPJ:">
-              <input value={form.cnpj ?? ""} onChange={(e) => set("cnpj", e.target.value)} className={cls} />
-            </MiniField>
-            <MiniField label="Inscrição Estadual:">
-              <input value={form.state_registration ?? ""} onChange={(e) => set("state_registration", e.target.value)} className={cls} />
-            </MiniField>
-          </div>
-        )}
+      </Section>
 
-
-
+      {/* ============ CONTATO ============ */}
+      <Section title="Dados de contato">
         <div className={`grid ${isPJ ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
           <MiniField label="Telefone:">
             <input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={cls} />
@@ -557,29 +557,11 @@ function DetalhesTab({
             <input value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} className={cls} />
           </FieldRow>
         )}
-        <FieldRow label="Observações:">
-          <textarea rows={5} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} className={cls} />
-        </FieldRow>
-        <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
-          <MiniField label="Vendedor:">
-            <input value={form.seller_name ?? ""} onChange={(e) => set("seller_name", e.target.value)} className={cls} />
-          </MiniField>
-          <label className="flex items-center gap-2 text-sm pb-2.5 whitespace-nowrap">
-            <input type="checkbox" checked={form.charge_boleto_fee} onChange={(e) => set("charge_boleto_fee", e.target.checked)} />
-            Cobrar taxa de boleto
-          </label>
-        </div>
-      </div>
-
-      {/* Foto/Logotipo placeholder */}
-      <div className="hidden lg:block">
-        <div className="rounded-xl border border-dashed border-border h-[180px] flex items-center justify-center text-sm text-muted-foreground bg-muted/20">
-          {isPJ ? "Logotipo" : "Foto"}
-        </div>
-      </div>
+      </Section>
     </div>
   );
 }
+
 
 function AdicionaisTab({
   form, set, summary, isPF,
