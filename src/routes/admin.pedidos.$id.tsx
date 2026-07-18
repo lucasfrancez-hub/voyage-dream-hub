@@ -7,7 +7,7 @@ import { detectBrand } from "@/components/CardForm";
 import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
-  Package, Percent, Mail, Printer, CheckCircle2, MoreHorizontal, Signature,
+  Package, Percent, Mail, Printer, CheckCircle2, Signature,
   Vault, ExternalLink, X, UserPlus, Star, Backpack, Briefcase, Luggage,
   Phone, CreditCard,
 } from "lucide-react";
