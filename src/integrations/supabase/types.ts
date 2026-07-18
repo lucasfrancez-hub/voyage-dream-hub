@@ -538,6 +538,7 @@ export type Database = {
           method: string
           notes: string | null
           order_id: string
+          order_item_ids: string[] | null
           paid_at: string | null
           proposal_number: string | null
           provider: string | null
@@ -563,6 +564,7 @@ export type Database = {
           method: string
           notes?: string | null
           order_id: string
+          order_item_ids?: string[] | null
           paid_at?: string | null
           proposal_number?: string | null
           provider?: string | null
@@ -588,6 +590,7 @@ export type Database = {
           method?: string
           notes?: string | null
           order_id?: string
+          order_item_ids?: string[] | null
           paid_at?: string | null
           proposal_number?: string | null
           provider?: string | null

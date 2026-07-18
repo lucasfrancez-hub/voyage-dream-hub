@@ -116,6 +116,7 @@ export type OrderPayment = {
 
   added_by_name: string | null;
   notes: string | null;
+  order_item_ids: string[] | null;
   created_at: string;
 };
 
@@ -262,6 +263,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       paid_at: p.paid_at,
       added_by_name: p.added_by_name,
       notes: p.notes,
+      order_item_ids: (p as { order_item_ids?: string[] | null }).order_item_ids ?? null,
       created_at: p.created_at,
     }));
 
@@ -815,6 +817,7 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
       paid_at: data.paid_at ?? null,
       added_by_name: data.added_by_name ?? null,
       notes: data.notes ?? null,
+      order_item_ids: (data.order_item_ids && data.order_item_ids.length > 0) ? data.order_item_ids : null,
     };
     // Cifra o número completo do cartão se enviado
     const raw = (data.card_full_number ?? "").replace(/\D/g, "");

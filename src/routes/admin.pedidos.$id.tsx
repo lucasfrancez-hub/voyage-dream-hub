@@ -3641,6 +3641,9 @@ function PaymentsSection({
         onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
         initial={editing}
         order={order}
+        items={items}
+        itemPassengers={detail.itemPassengers}
+        passengers={detail.passengers}
         defaultProvider={defaultProvider}
         onSave={async (data, payer) => {
           try {
@@ -3674,19 +3677,23 @@ type PayerPatch = {
 };
 
 function PaymentDialog({
-  open, onOpenChange, initial, order, defaultProvider, onSave,
+  open, onOpenChange, initial, order, items, itemPassengers, passengers, defaultProvider, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: OrderPayment | null;
   order: OrderHeader;
+  items: OrderItem[];
+  itemPassengers: Record<string, string[]>;
+  passengers: OrderPassenger[];
   defaultProvider?: string;
-  onSave: (data: Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null }, payer: PayerPatch) => void;
+  onSave: (data: Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null; order_item_ids?: string[] | null }, payer: PayerPatch) => void;
 }) {
   const [form, setForm] = useState<Partial<OrderPayment>>({});
   const [payer, setPayer] = useState<PayerPatch>({});
   const [cardFullNumber, setCardFullNumber] = useState<string>("");
   const [installmentTouched, setInstallmentTouched] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
   // Busca/salvamento de pessoas e cartões
   const searchPeopleFn = useServerFn(searchPeople);
@@ -3712,6 +3719,7 @@ function PaymentDialog({
     });
     setCardFullNumber("");
     setInstallmentTouched(!isNew);
+    setSelectedItemIds(initial?.order_item_ids ?? []);
     // Pré-preenche dados do pagador a partir do pedido, com fallback nos dados do cliente principal.
     setPayer({
       payer_full_name: order.payerFullName ?? order.fullName ?? "",
@@ -3959,6 +3967,50 @@ function PaymentDialog({
 
 
 
+  // Opções de "reservas" (grupos de aéreo + hotel/serviços) que este pagamento cobre.
+  // Se nenhuma for marcada, o pagamento cobre o pedido inteiro (comportamento antigo).
+  const reservationOptions = useMemo(() => {
+    const opts: Array<{ id: string; label: string; sub: string | null; itemIds: string[] }> = [];
+    const flightItems = items.filter((i) => i.kind === "flight");
+    for (const g of groupFlightItems(flightItems)) {
+      const first = g.items[0];
+      const d = (first?.details ?? {}) as Record<string, unknown>;
+      const airline = String(d.airline ?? "").trim();
+      const route = g.items
+        .map((it) => {
+          const dd = (it.details ?? {}) as Record<string, unknown>;
+          return `${String(dd.from_iata ?? "").trim()}→${String(dd.to_iata ?? "").trim()}`;
+        })
+        .filter((s) => s !== "→")
+        .join(" · ");
+      const label = `✈ ${airline || "Aéreo"} — ${g.locator ?? "sem localizador"}`;
+      opts.push({ id: `flight:${g.key}`, label, sub: route || null, itemIds: g.items.map((i) => i.id) });
+    }
+    for (const it of items.filter((i) => i.kind !== "flight")) {
+      const icon = it.kind === "hotel" ? "🏨" : "🎫";
+      opts.push({ id: `item:${it.id}`, label: `${icon} ${it.title}`, sub: it.supplier_locator ?? null, itemIds: [it.id] });
+    }
+    return opts;
+  }, [items]);
+
+  const toggleReservation = (itemIds: string[]) => {
+    setSelectedItemIds((prev) => {
+      const set = new Set(prev);
+      const allIn = itemIds.every((id) => set.has(id));
+      if (allIn) itemIds.forEach((id) => set.delete(id));
+      else itemIds.forEach((id) => set.add(id));
+      return Array.from(set);
+    });
+  };
+
+  // Passageiros que ficarão vinculados a este pagamento (para preview).
+  const coveredPassengerNames = useMemo(() => {
+    if (selectedItemIds.length === 0) return null; // pedido inteiro
+    const ids = new Set<string>();
+    for (const iid of selectedItemIds) for (const pid of (itemPassengers[iid] ?? [])) ids.add(pid);
+    return passengers.filter((p) => ids.has(p.id)).map((p) => p.full_name);
+  }, [selectedItemIds, itemPassengers, passengers]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -3971,6 +4023,44 @@ function PaymentDialog({
             <TabsTrigger value="pagador">Dados do pagador</TabsTrigger>
           </TabsList>
           <TabsContent value="pagamento" className="flex-1 min-h-0 overflow-y-auto pr-1">
+            {reservationOptions.length > 0 && (
+              <div className="mb-3 rounded-md border bg-muted/40 p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label className="text-xs uppercase tracking-wider">Reservas cobertas por este pagamento</Label>
+                  {selectedItemIds.length > 0 && (
+                    <button type="button" className="text-[11px] text-brand-orange hover:underline" onClick={() => setSelectedItemIds([])}>
+                      Limpar (cobrir pedido inteiro)
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  {reservationOptions.map((opt) => {
+                    const checked = opt.itemIds.every((id) => selectedItemIds.includes(id));
+                    return (
+                      <label key={opt.id} className="flex items-start gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 accent-brand-orange"
+                          checked={checked}
+                          onChange={() => toggleReservation(opt.itemIds)}
+                        />
+                        <span className="flex-1">
+                          <span className="font-medium">{opt.label}</span>
+                          {opt.sub && <span className="text-muted-foreground"> — {opt.sub}</span>}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="mt-2 text-[11px] text-muted-foreground">
+                  {selectedItemIds.length === 0
+                    ? "Nenhuma marcada: a autorização de débito lista todos os passageiros do pedido."
+                    : coveredPassengerNames && coveredPassengerNames.length > 0
+                      ? `Passageiros na autorização: ${coveredPassengerNames.join(", ")}`
+                      : "Nenhum passageiro vinculado às reservas marcadas."}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <Label>Forma de pagamento</Label>
@@ -4238,7 +4328,8 @@ function PaymentDialog({
               method: form.method ?? "pix",
               amount: Number(form.amount ?? 0),
               card_full_number: cardFullNumber.replace(/\D/g, "") || null,
-            } as Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null }, cleanPayer);
+              order_item_ids: selectedItemIds.length > 0 ? selectedItemIds : null,
+            } as Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null; order_item_ids?: string[] | null }, cleanPayer);
           }}>Salvar</Button>
 
 

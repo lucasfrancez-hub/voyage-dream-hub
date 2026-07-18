@@ -1,0 +1,1 @@
+ALTER TABLE public.order_payments ADD COLUMN IF NOT EXISTS order_item_ids uuid[] NULL;
