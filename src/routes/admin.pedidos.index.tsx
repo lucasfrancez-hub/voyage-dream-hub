@@ -124,11 +124,12 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
 
   const q = search.trim().toLowerCase();
   const filtered = (orders ?? []).filter((o) => {
-    if (statusFilter !== "all") {
+    if (statusFilter !== "all" && statusFilter !== "deleted") {
       const s = (o.status ?? "").toLowerCase();
       if (statusFilter === "paid" && s !== "paid" && s !== "approved") return false;
       if (statusFilter !== "paid" && s !== statusFilter) return false;
     }
+
     if (!q) return true;
     const snap = (o.package_snapshot ?? {}) as { order_number?: string; title?: string };
     const orderNumberCol = (o as { order_number?: string | null }).order_number ?? "";
