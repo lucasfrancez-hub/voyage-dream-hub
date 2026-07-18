@@ -448,8 +448,19 @@ function EntryDialog({
             </div>
             <div>
               <Label>{kind === "payable" ? "Fornecedor" : "Cliente"}</Label>
-              <Input value={form.counterparty ?? ""} onChange={(e) => setForm({ ...form, counterparty: e.target.value })} />
+              <Input
+                list="financial-people-list"
+                value={form.counterparty ?? ""}
+                onChange={(e) => setForm({ ...form, counterparty: e.target.value })}
+                placeholder="Digite para buscar cadastrados..."
+              />
+              <datalist id="financial-people-list">
+                {(peopleOptions ?? []).map((p) => (
+                  <option key={p.id} value={p.name}>{p.document ?? ""}</option>
+                ))}
+              </datalist>
             </div>
+
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
