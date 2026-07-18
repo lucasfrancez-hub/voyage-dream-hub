@@ -1780,28 +1780,39 @@ const drawHotelSection = async (
 
   cy = Math.min(infoY - 18, qrY - 26) - notesGap;
 
-  // Política do hotel (notes)
-  if (notes) {
-    const boxTop = cy;
+  // Política de cancelamento + Observações (dois blocos empilhados, em tópicos)
+  const drawBulletBox = (title: string, items: string[][], topY: number): number => {
+    if (!items.length) return topY;
     const padX = 14;
     const padTop = 22;
     const padBot = 14;
-    const boxH = padTop + notesLines.length * 13 + padBot;
-    const boxY = boxTop - boxH;
+    const linesCount = items.reduce((acc, it) => acc + it.length, 0);
+    const gapsBetween = (items.length - 1) * 4;
+    const boxH = padTop + linesCount * 12 + gapsBetween + padBot;
+    const boxY = topY - boxH;
     drawRoundedRect(ctx.page, innerX, boxY, innerW, boxH, COLOR_NAVY_SOFT, 6);
-    drawIcon(ctx.page, "info", innerX + padX, boxTop - 16, 10, COLOR_NAVY);
-    ctx.page.drawText(sanitize(t.politicaHotel), {
-      x: innerX + padX + 14, y: boxTop - 14, size: 8, font: ctx.fontBold, color: COLOR_NAVY,
+    drawIcon(ctx.page, "info", innerX + padX, topY - 16, 10, COLOR_NAVY);
+    ctx.page.drawText(sanitize(title), {
+      x: innerX + padX + 14, y: topY - 14, size: 8, font: ctx.fontBold, color: COLOR_NAVY,
     });
-    let ny = boxTop - padTop - 9;
-    for (const ln of notesLines) {
-      ctx.page.drawText(sanitize(ln), {
-        x: innerX + padX, y: ny, size: 9, font: ctx.font, color: COLOR_TEXT,
+    let ny = topY - padTop - 9;
+    for (const bulletLines of items) {
+      // bullet marker na primeira linha
+      ctx.page.drawText("•", {
+        x: innerX + padX, y: ny, size: 9, font: ctx.fontBold, color: COLOR_NAVY,
       });
-      ny -= 13;
+      bulletLines.forEach((ln, idx) => {
+        ctx.page.drawText(sanitize(ln), {
+          x: innerX + padX + bulletIndent, y: ny - idx * 12, size: 9, font: ctx.font, color: COLOR_TEXT,
+        });
+      });
+      ny -= bulletLines.length * 12 + 4;
     }
-    cy = boxY - 6;
-  }
+    return boxY - 6;
+  };
+
+  if (hasCancel) cy = drawBulletBox(t.politicaCancelamento, cancelItems, cy);
+  if (hasObs) cy = drawBulletBox(t.observacoes, obsItems, cy - (hasCancel ? 4 : 0));
 
 
   closeSectionCard(ctx, top, cy);
