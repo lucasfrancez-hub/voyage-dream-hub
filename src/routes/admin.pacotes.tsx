@@ -277,7 +277,6 @@ function AdminPackages() {
                 <div className="text-[10px] text-muted-foreground mt-0.5">
                   Total {p.base_occupancy || 1} pax
                 </div>
-                </div>
               </div>
 
               {/* Status + Actions */}
