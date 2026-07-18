@@ -54,6 +54,7 @@ import { type AuthorizationData, type LivenessData } from "@/lib/authorization-p
 import { generateReceiptAndContract, generateReceiptOnly, generateReceiptContractAndAuthorization, generateOrderAuthorization, openBlobInNewTab } from "@/lib/contract-pdf";
 import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
+import { getSignatureStatus } from "@/lib/clicksign.functions";
 import type { Json } from "@/integrations/supabase/types";
 import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
 import { QuoteDialog } from "@/components/QuoteDialog";
@@ -212,12 +213,43 @@ function OrderDetailPage() {
   const detail = data as OrderDetail;
   const { order } = detail;
   const pm = paymentMethodLabel(order.paymentMethod);
-  const st = statusLabel(order.status);
 
   const hotelItems = detail.items.filter((i) => i.kind === "hotel" && i.status !== "cancelled");
   const flightItems = detail.items.filter((i) => i.kind === "flight" && i.status !== "cancelled");
   const serviceItems = detail.items.filter((i) => i.kind === "other" && i.status !== "cancelled");
   const cancelledItems = detail.items.filter((i) => i.status === "cancelled");
+
+  // Status da assinatura ClickSign (dedupe com o ClickSignCard via mesma queryKey)
+  const sigStatusFn = useServerFn(getSignatureStatus);
+  const { data: sigData } = useQuery({
+    queryKey: ["clicksign", "status", order.id] as const,
+    queryFn: () => sigStatusFn({ data: { pedidoId: order.id } }),
+    refetchInterval: (q) => (q.state.data?.assinatura?.status === "running" ? 15000 : false),
+  });
+
+  // Deriva o status "visível" no cabeçalho a partir de itens + assinatura.
+  // Regras: manual (cancelled/rejected) vence; assinado → Finalizado;
+  // enviado e não assinado → Aguardando assinatura; todos itens confirmados → Confirmado.
+  const activeItems = detail.items.filter((i) => i.status !== "cancelled");
+  const allConfirmed = activeItems.length > 0 && activeItems.every((i) => i.status === "confirmed");
+  const anyReserved = activeItems.some((i) => i.status === "reserved" || i.status === "confirmed");
+  const sigStatus = sigData?.assinatura?.status ?? null;
+
+  const manual = (order.status || "").toLowerCase();
+  const derivedStatus: string =
+    manual === "cancelled" || manual === "canceled" || manual === "rejected"
+      ? manual
+      : sigStatus === "closed"
+        ? "paid"
+        : (sigStatus === "running" || sigStatus === "draft")
+          ? "awaiting_signature"
+          : allConfirmed
+            ? "confirmed"
+            : anyReserved
+              ? "reserved"
+              : manual || "pending";
+
+  const st = statusLabel(derivedStatus);
 
 
 
