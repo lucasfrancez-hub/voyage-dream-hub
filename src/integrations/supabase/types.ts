@@ -616,6 +616,9 @@ export type Database = {
           coupon: string | null
           cpf: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           email: string
           full_name: string
           id: string
@@ -660,6 +663,9 @@ export type Database = {
           coupon?: string | null
           cpf?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           email: string
           full_name: string
           id?: string
@@ -704,6 +710,9 @@ export type Database = {
           coupon?: string | null
           cpf?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           email?: string
           full_name?: string
           id?: string

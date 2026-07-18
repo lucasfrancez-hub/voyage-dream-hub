@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Search, ExternalLink, Loader2, Plus, Cloud } from "lucide-react";
+import { Search, ExternalLink, Loader2, Plus, Cloud, Trash2, RotateCcw } from "lucide-react";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { confirmThen } from "@/lib/confirm";
+
 
 export const Route = createFileRoute("/admin/pedidos/")({
   component: () => <AdminOrders scope="mine" />,
@@ -29,9 +31,11 @@ const STATUS_FILTERS = [
   { value: "paid", label: "Finalizado" },
   { value: "rejected", label: "Rejeitado" },
   { value: "cancelled", label: "Cancelado" },
+  { value: "deleted", label: "Excluídos" },
 ] as const;
 
 type StatusFilter = (typeof STATUS_FILTERS)[number]["value"];
+
 
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
@@ -46,22 +50,61 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
+  const qc = useQueryClient();
+  const showDeleted = statusFilter === "deleted";
+
   const { data: orders, isLoading } = useQuery({
     enabled: currentUserId !== null,
-    queryKey: ["admin", "orders", "list", scope, currentUserId],
+    queryKey: ["admin", "orders", "list", scope, currentUserId, showDeleted],
     queryFn: async () => {
       let q = supabase
         .from("orders")
-        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator, owner_user_id")
+        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator, owner_user_id, deleted_at, deleted_reason")
         .order("created_at", { ascending: false })
         .limit(500);
       if (scope === "mine") q = q.eq("owner_user_id", currentUserId!);
       else q = q.neq("owner_user_id", currentUserId!);
+      if (showDeleted) q = q.not("deleted_at", "is", null);
+      else q = q.is("deleted_at", null);
       const { data, error } = await q;
       if (error) throw error;
       return data;
     },
   });
+
+  const softDelete = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ deleted_at: new Date().toISOString(), deleted_reason: reason, deleted_by: currentUserId })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pedido excluído");
+      qc.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao excluir"),
+  });
+
+  const restore = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ deleted_at: null, deleted_reason: null, deleted_by: null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pedido restaurado");
+      qc.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao restaurar"),
+  });
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+
 
   // Nomes das agências parceiras (para "Pedidos de terceiro")
   const { data: agencyByUser } = useQuery({
@@ -81,11 +124,12 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
 
   const q = search.trim().toLowerCase();
   const filtered = (orders ?? []).filter((o) => {
-    if (statusFilter !== "all") {
+    if (statusFilter !== "all" && statusFilter !== "deleted") {
       const s = (o.status ?? "").toLowerCase();
       if (statusFilter === "paid" && s !== "paid" && s !== "approved") return false;
       if (statusFilter !== "paid" && s !== statusFilter) return false;
     }
+
     if (!q) return true;
     const snap = (o.package_snapshot ?? {}) as { order_number?: string; title?: string };
     const orderNumberCol = (o as { order_number?: string | null }).order_number ?? "";
@@ -212,46 +256,70 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
             const displayOrderNumber =
               ((o as { order_number?: string | null }).order_number ?? snap.order_number ?? shortId(o.id));
             return (
-              <Link
-                key={o.id}
-                to="/admin/pedidos/$id"
-                params={{ id: o.id }}
-                className="block px-4 py-3 active:bg-muted/40 transition"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-sm font-semibold">{displayOrderNumber}</span>
-                      {o.airline_locator && (
-                        <span className="font-mono text-[10px] text-muted-foreground">LOC {o.airline_locator}</span>
+              <div key={o.id} className="relative">
+                <Link
+                  to="/admin/pedidos/$id"
+                  params={{ id: o.id }}
+                  className="block px-4 py-3 active:bg-muted/40 transition"
+                >
+                  <div className="flex items-start justify-between gap-3 pr-8">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-sm font-semibold">{displayOrderNumber}</span>
+                        {o.airline_locator && (
+                          <span className="font-mono text-[10px] text-muted-foreground">LOC {o.airline_locator}</span>
+                        )}
+                      </div>
+                      <div className="mt-1 font-medium text-sm truncate">{o.full_name}</div>
+                      {scope === "third_party" && (
+                        <div className="text-[10px] font-semibold text-brand-orange truncate">
+                          {agencyByUser?.[o.owner_user_id ?? ""] ?? "Agência parceira"}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground truncate">{o.email}</div>
+                      <div className="text-xs text-muted-foreground">{o.phone}</div>
+
+                      {(snap.title || snap.reference) && (
+                        <div className="mt-1 text-xs truncate">{snap.title ?? snap.reference}</div>
+                      )}
+                      {showDeleted && o.deleted_reason && (
+                        <div className="mt-1 text-[11px] text-destructive truncate">Motivo: {o.deleted_reason}</div>
                       )}
                     </div>
-                    <div className="mt-1 font-medium text-sm truncate">{o.full_name}</div>
-                    {scope === "third_party" && (
-                      <div className="text-[10px] font-semibold text-brand-orange truncate">
-                        {agencyByUser?.[o.owner_user_id ?? ""] ?? "Agência parceira"}
+                    <div className="text-right shrink-0">
+                      <div className="font-semibold text-sm">{formatBRL(Number(o.total_price))}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        {new Date(o.created_at).toLocaleDateString("pt-BR")}
                       </div>
-                    )}
-                    <div className="text-xs text-muted-foreground truncate">{o.email}</div>
-                    <div className="text-xs text-muted-foreground">{o.phone}</div>
-
-                    {(snap.title || snap.reference) && (
-                      <div className="mt-1 text-xs truncate">{snap.title ?? snap.reference}</div>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="font-semibold text-sm">{formatBRL(Number(o.total_price))}</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                      {new Date(o.created_at).toLocaleDateString("pt-BR")}
                     </div>
                   </div>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>{pm.label}</span>
-                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>{st.label}</span>
-                </div>
-              </Link>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${pm.className}`}>{pm.label}</span>
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.className}`}>{st.label}</span>
+                  </div>
+                </Link>
+                {showDeleted ? (
+                  <button
+                    type="button"
+                    aria-label="Restaurar pedido"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); confirmThen("Restaurar este pedido?", () => restore.mutate(o.id)); }}
+                    className="absolute top-3 right-3 rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="Excluir pedido"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
+                    className="absolute top-3 right-3 rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             );
+
           })}
         </div>
 
@@ -330,14 +398,37 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
                       {new Date(o.created_at).toLocaleString("pt-BR")}
                     </td>
                     <td className="py-3 px-3 align-top text-right">
-                      <Link
-                        to="/admin/pedidos/$id"
-                        params={{ id: o.id }}
-                        className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs hover:border-brand-orange hover:text-brand-orange transition"
-                      >
-                        <ExternalLink className="h-3 w-3" /> Abrir
-                      </Link>
+                      <div className="inline-flex items-center gap-1">
+                        <Link
+                          to="/admin/pedidos/$id"
+                          params={{ id: o.id }}
+                          className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs hover:border-brand-orange hover:text-brand-orange transition"
+                        >
+                          <ExternalLink className="h-3 w-3" /> Abrir
+                        </Link>
+                        {showDeleted ? (
+                          <button
+                            type="button"
+                            aria-label="Restaurar"
+                            title={o.deleted_reason ? `Motivo: ${o.deleted_reason}` : "Restaurar"}
+                            onClick={() => confirmThen("Restaurar este pedido?", () => restore.mutate(o.id))}
+                            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label="Excluir"
+                            onClick={() => { setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
+                            className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
+
                   </tr>
                 );
               })}
@@ -345,9 +436,45 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
           </table>
         </div>
       </div>
+
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir pedido {deleteTarget?.label}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="delete-reason">Motivo da exclusão</Label>
+            <Textarea
+              id="delete-reason"
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder="Ex.: pedido de teste, duplicado, cancelado pelo cliente…"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={!deleteReason.trim() || softDelete.isPending}
+              onClick={() => {
+                if (!deleteTarget) return;
+                softDelete.mutate(
+                  { id: deleteTarget.id, reason: deleteReason.trim() },
+                  { onSuccess: () => setDeleteTarget(null) },
+                );
+              }}
+            >
+              {softDelete.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const navigate = useNavigate();
