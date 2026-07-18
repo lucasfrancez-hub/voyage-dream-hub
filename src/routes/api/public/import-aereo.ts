@@ -271,6 +271,23 @@ export const Route = createFileRoute("/api/public/import-aereo")({
         try {
           if (["skyteam", "frt", "visualturismo", "infotera"].includes(airline) && hasStructuredData) {
             const direct = normalizeDirectStructuredData(body.structured_data);
+            // Híbrido: usa iframe pra dados estruturados, mas relê VALORES pelas
+            // capturas de tela — os portais mostram tarifa/taxas/TU/total numa
+            // tabela que fica fora do iframe e o texto perde os totais reais.
+            if (screenshots.length > 0) {
+              try {
+                const values = await extractValuesFromScreenshots(screenshots);
+                if (values) {
+                  if (values.currency) direct.currency = values.currency;
+                  if (values.base_fare != null) direct.base_fare = values.base_fare;
+                  if (values.taxes != null) direct.taxes = values.taxes;
+                  if (values.fees != null) direct.fees = values.fees;
+                  if (values.total_fare != null) direct.total_fare = values.total_fare;
+                }
+              } catch (e) {
+                console.warn("[import-aereo] vision values fallback", (e as Error).message);
+              }
+            }
             const parsed = normalizeAirlineFields(direct);
             await supabaseAdmin.from("flight_import_staging").update({
               status: "ready", parsed: parsed as never, error: null,
@@ -381,6 +398,82 @@ function json(payload: unknown, status = 200) {
     headers: { "content-type": "application/json", ...CORS_HEADERS },
   });
 }
+
+// Vision-only: lê APENAS os valores (moeda/tarifa/taxas/TU/fees/total) das
+// capturas. Usado no fluxo consolidador onde o iframe traz os dados
+// estruturados mas os totais monetários ficam fora dele.
+async function extractValuesFromScreenshots(
+  screenshots: string[],
+): Promise<{ currency?: string; base_fare?: number; taxes?: number; fees?: number; total_fare?: number } | null> {
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) return null;
+  const prompt = `Nas capturas de tela abaixo há uma tabela de VALORES da reserva.
+Extraia SOMENTE os totais finais da reserva inteira (a linha de "Total" no rodapé
+da tabela, que consolida todos os passageiros). Retorne:
+- currency (BRL/USD/EUR — "R$" = BRL)
+- base_fare (soma das Tarifas de todos os passageiros)
+- taxes (soma de Taxas / Tx Emb. / TU / Taxas Inclusas)
+- fees (soma de outras Fees, se houver)
+- total_fare (Total geral da reserva)
+Valores sempre em número (sem "R$", vírgula → ponto). Se um campo não aparecer, omita.`;
+  const aiBody = {
+    model: "google/gemini-2.5-flash",
+    messages: [
+      { role: "user", content: [
+        { type: "text", text: prompt },
+        ...screenshots.map((url) => ({ type: "image_url" as const, image_url: { url } })),
+      ] },
+    ],
+    tools: [{
+      type: "function",
+      function: {
+        name: "return_values",
+        description: "Devolve os totais monetários da reserva.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            currency: { type: "string" },
+            base_fare: { type: "number" },
+            taxes: { type: "number" },
+            fees: { type: "number" },
+            total_fare: { type: "number" },
+          },
+        },
+      },
+    }],
+    tool_choice: { type: "function", function: { name: "return_values" } },
+  };
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
+    body: JSON.stringify(aiBody),
+  });
+  if (!res.ok) return null;
+  const jr = await res.json() as {
+    choices?: Array<{ message?: { tool_calls?: Array<{ function?: { arguments?: string } }>; content?: string } }>;
+  };
+  const args = jr.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments
+    ?? jr.choices?.[0]?.message?.content ?? "{}";
+  try {
+    const parsed = JSON.parse(args) as Record<string, unknown>;
+    const num = (v: unknown) => {
+      const n = typeof v === "number" ? v : parseFloat(String(v ?? "").replace(",", "."));
+      return Number.isFinite(n) && n >= 0 ? n : undefined;
+    };
+    const cur = String(parsed.currency ?? "").trim().toUpperCase();
+    return {
+      currency: /^[A-Z]{3}$/.test(cur) ? cur : undefined,
+      base_fare: num(parsed.base_fare),
+      taxes: num(parsed.taxes),
+      fees: num(parsed.fees),
+      total_fare: num(parsed.total_fare),
+    };
+  } catch {
+    return null;
+  }
+}
+
 
 function normalizeDirectStructuredData(input: unknown): Record<string, unknown> {
   const source = input && typeof input === "object" ? input as Record<string, unknown> : {};
