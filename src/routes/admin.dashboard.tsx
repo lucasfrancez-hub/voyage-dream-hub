@@ -37,7 +37,7 @@ type ItemRow = {
   details: Record<string, unknown> | null;
 };
 
-const PAID = new Set(["paid", "approved"]);
+const PAID = new Set(["paid", "approved", "confirmed", "awaiting_signature", "completed"]);
 const RANGES = [7, 30, 60, 90] as const;
 type Range = (typeof RANGES)[number];
 
