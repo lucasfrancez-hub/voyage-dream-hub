@@ -60,6 +60,8 @@ export type ExtractedServiceItem = {
     time_to?: string;
     address?: string;
     policies?: string;
+    cancellation_policy?: string;
+    observations?: string[];
     value?: number;
     tax_value?: number;
     currency?: string;
