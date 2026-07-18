@@ -354,6 +354,8 @@ function ReviewExtracted({
 }) {
   const isHotel = value.kind === "hotel";
   const d = (value.details ?? {}) as Record<string, unknown>;
+  const [defaultsOpen, setDefaultsOpen] = useState(false);
+
 
   function patch(next: Partial<ExtractedItemVoucher>) {
     onChange({ ...value, ...next } as ExtractedItemVoucher);
