@@ -3597,6 +3597,8 @@ function FinanceDialog({
   onSave: (p: Partial<OrderItemFinancial>, extra?: { otherTitle?: string }) => void;
 }) {
   const [otherTitle, setOtherTitle] = useState("");
+  useEffect(() => { if (!open) setOtherTitle(""); }, [open]);
+
 
   const selectedItemObj = items.find((i) => i.id === selectedItem);
   const selectedKind = selectedItemObj?.kind;
