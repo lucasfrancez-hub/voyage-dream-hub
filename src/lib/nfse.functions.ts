@@ -140,7 +140,11 @@ function buildAtendenetXml(args: {
   const { cfg, data, reference, numeroRps, serieRps, valorIss } = args;
   const cpfCnpj = onlyDigits(data.tomador.cpfCnpj);
   const isPJ = cpfCnpj.length === 14;
-  const end = data.tomador.endereco ?? null;
+  const endRaw = data.tomador.endereco ?? null;
+  const cepDigits = onlyDigits(endRaw?.cep);
+  // AtendeNet exige CEP válido (8 dígitos) quando endereco_informado=S.
+  // Se não tiver CEP válido, marcamos como não informado para evitar erro 00161.
+  const end = endRaw && cepDigits.length === 8 ? endRaw : null;
   const issuedAt = brDateTime();
 
   const aliquota = Number(cfg.aliquota_iss ?? 4);
