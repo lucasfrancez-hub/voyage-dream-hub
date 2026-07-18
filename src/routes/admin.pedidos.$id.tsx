@@ -3718,6 +3718,7 @@ function PaymentDialog({
   const listCardsFn = useServerFn(listPersonCards);
   const addCardFn = useServerFn(addPersonCard);
   const revealCardFn = useServerFn(revealPersonCardNumber);
+  const revealPaymentCardFn = useServerFn(revealOrderPaymentCardNumber);
   const [personSearch, setPersonSearch] = useState("");
   const [personResults, setPersonResults] = useState<Array<{ id: string; name: string; cpf: string | null }>>([]);
   const [showPersonResults, setShowPersonResults] = useState(false);
