@@ -4426,16 +4426,37 @@ function PaymentDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => {
+          <Button onClick={async () => {
             // Normaliza strings vazias -> null (evita "invalid input syntax for type date")
             const cleanPayer = Object.fromEntries(
               Object.entries(payer).map(([k, v]) => [k, v === "" ? null : v]),
             ) as PayerPatch;
+            const cleanCard = cardFullNumber.replace(/\D/g, "");
+            // Se há cartão informado e um pagador vinculado, garante que o
+            // cartão também fique gravado no cadastro da pessoa (aba Cartões).
+            if (cleanCard.length >= 12 && selectedPersonId) {
+              const last4 = cleanCard.slice(-4);
+              const already = savedCards.some((c) => (c.last4 ?? "") === last4);
+              if (!already) {
+                try {
+                  await addCardFn({ data: {
+                    person_id: selectedPersonId,
+                    holder_name: payer.payer_full_name ?? null,
+                    number: cleanCard,
+                    expiry: form.card_expiry ?? null,
+                    is_travel_card: false,
+                  } });
+                } catch (e) {
+                  // Não bloqueia o salvamento do pagamento se a gravação no cadastro falhar
+                  console.warn("Falha ao vincular cartão ao pagador:", e);
+                }
+              }
+            }
             onSave({
               ...form,
               method: form.method ?? "pix",
               amount: Number(form.amount ?? 0),
-              card_full_number: cardFullNumber.replace(/\D/g, "") || null,
+              card_full_number: cleanCard || null,
               order_item_ids: selectedItemIds.length > 0 ? selectedItemIds : null,
             } as Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null; order_item_ids?: string[] | null }, cleanPayer);
           }}>Salvar</Button>
