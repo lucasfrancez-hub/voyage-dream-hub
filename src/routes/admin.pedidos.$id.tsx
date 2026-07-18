@@ -3677,19 +3677,23 @@ type PayerPatch = {
 };
 
 function PaymentDialog({
-  open, onOpenChange, initial, order, defaultProvider, onSave,
+  open, onOpenChange, initial, order, items, itemPassengers, passengers, defaultProvider, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: OrderPayment | null;
   order: OrderHeader;
+  items: OrderItem[];
+  itemPassengers: Record<string, string[]>;
+  passengers: OrderPassenger[];
   defaultProvider?: string;
-  onSave: (data: Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null }, payer: PayerPatch) => void;
+  onSave: (data: Partial<OrderPayment> & { method: string; amount: number; card_full_number?: string | null; order_item_ids?: string[] | null }, payer: PayerPatch) => void;
 }) {
   const [form, setForm] = useState<Partial<OrderPayment>>({});
   const [payer, setPayer] = useState<PayerPatch>({});
   const [cardFullNumber, setCardFullNumber] = useState<string>("");
   const [installmentTouched, setInstallmentTouched] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
   // Busca/salvamento de pessoas e cartões
   const searchPeopleFn = useServerFn(searchPeople);
