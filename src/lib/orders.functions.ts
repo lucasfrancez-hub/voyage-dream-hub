@@ -602,6 +602,7 @@ export const updateOrderMeta = createServerFn({ method: "POST" })
     if (Object.keys(patch).length === 0) return { ok: true };
     const { error } = await context.supabase.from("orders").update(patch as never).eq("id", data.id);
     if (error) throw new Error(error.message);
+    if ("trip_title" in patch) await applyAutoTitle(context, data.id);
     return { ok: true };
   });
 
