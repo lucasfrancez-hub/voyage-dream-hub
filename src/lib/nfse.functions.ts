@@ -29,6 +29,22 @@ export const listNfseByOrder = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+/* ============================== LIST ALL ============================== */
+export const listAllNfse = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { status?: string | null; limit?: number } = {}) => d)
+  .handler(async ({ data, context }) => {
+    let q = context.supabase
+      .from("nfse_emissoes")
+      .select("*, orders(order_number, full_name)")
+      .order("created_at", { ascending: false })
+      .limit(data.limit ?? 200);
+    if (data.status) q = q.eq("status", data.status);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
 /* ============================== CONFIG ============================== */
 export const getNfseConfig = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
