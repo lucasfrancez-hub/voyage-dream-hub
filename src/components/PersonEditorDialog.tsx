@@ -337,31 +337,14 @@ export function PersonEditorDialog({
               {tab === "vendas" && (
                 <VendasTab loading={salesQ.isLoading} sales={salesQ.data?.sales ?? []} onOpen={() => onOpenChange(false)} />
               )}
-              {tab === "marcadores" && (
-                <MarcadoresTab personId={id} isNew={isNew} tags={tags} qc={qc} />
-              )}
               {tab === "financeiros" && (
                 <FinanceirosTab personId={id} isNew={isNew} cards={cards} qc={qc} summary={salesQ.data?.summary} loading={salesQ.isLoading} />
               )}
               {tab === "contatos" && (
                 <ContatosTab personId={id} isNew={isNew} phones={phones} emails={emails} qc={qc} />
               )}
-              {tab === "usuario" && (
-                <UsuarioTab form={form} set={set} person={person} />
-              )}
               {tab === "anexos" && (
                 <AnexosTab personId={id} isNew={isNew} attachments={attachments} qc={qc} />
-              )}
-              {tab === "tarefas" && (
-                <PlaceholderTab icon={<ClipboardList className="h-8 w-8" />} title="Tarefas"
-                  hint="Sincronização de tarefas será liberada junto com a integração da API do Monde." />
-              )}
-              {tab === "orcamentos" && (
-                <PlaceholderTab icon={<Calculator className="h-8 w-8" />} title="Orçamentos"
-                  hint="Orçamentos vinculados aparecerão aqui após a integração." />
-              )}
-              {tab === "custom" && (
-                <CustomFieldsTab personId={id} isNew={isNew} items={customFields} qc={qc} />
               )}
             </div>
 
