@@ -14,6 +14,7 @@ import {
 import {
   emitirNfse, consultarNfse, cancelarNfse, listNfseByOrder,
 } from "@/lib/nfse.functions";
+import { getPerson } from "@/lib/people.functions";
 import type { OrderDetail } from "@/lib/orders.functions";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
