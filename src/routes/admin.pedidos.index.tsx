@@ -398,14 +398,37 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
                       {new Date(o.created_at).toLocaleString("pt-BR")}
                     </td>
                     <td className="py-3 px-3 align-top text-right">
-                      <Link
-                        to="/admin/pedidos/$id"
-                        params={{ id: o.id }}
-                        className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs hover:border-brand-orange hover:text-brand-orange transition"
-                      >
-                        <ExternalLink className="h-3 w-3" /> Abrir
-                      </Link>
+                      <div className="inline-flex items-center gap-1">
+                        <Link
+                          to="/admin/pedidos/$id"
+                          params={{ id: o.id }}
+                          className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs hover:border-brand-orange hover:text-brand-orange transition"
+                        >
+                          <ExternalLink className="h-3 w-3" /> Abrir
+                        </Link>
+                        {showDeleted ? (
+                          <button
+                            type="button"
+                            aria-label="Restaurar"
+                            title={o.deleted_reason ? `Motivo: ${o.deleted_reason}` : "Restaurar"}
+                            onClick={() => confirmThen("Restaurar este pedido?", () => restore.mutate(o.id))}
+                            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label="Excluir"
+                            onClick={() => { setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
+                            className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
+
                   </tr>
                 );
               })}
