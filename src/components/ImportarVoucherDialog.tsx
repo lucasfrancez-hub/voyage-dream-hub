@@ -153,6 +153,10 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
     const taxes = Number(details.tax_value ?? 0) || 0;
     if (saved?.id) {
       const existing = await findFin({ data: { order_item_id: saved.id } });
+      const pct = existing?.id
+        ? Number(existing.commission_pct ?? 0)
+        : (extracted.kind === "hotel" ? 12 : 0);
+      const commission = Number((value * (pct / 100)).toFixed(2));
       await saveFin({ data: {
         ...(existing?.id ? { id: existing.id } : {}),
         order_item_id: saved.id,
@@ -160,6 +164,9 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
         sale_value: value,
         tax_value: taxes,
         total: value + taxes,
+        commission_pct: pct,
+        commission_value: commission,
+        is_commissionable: pct > 0,
         sort_order: 0,
       } });
     }
