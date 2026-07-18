@@ -408,6 +408,46 @@ export const addPersonCard = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const updatePersonCard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        nickname: z.string().trim().max(60).nullish(),
+        holder_name: z.string().trim().max(200).nullish(),
+        number: z.string().trim().max(25).nullish(),
+        expiry: z.string().trim().max(7).nullish(),
+        operator: z.string().trim().max(40).nullish(),
+        security_code_hint: z.string().trim().max(6).nullish(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const patch: Record<string, unknown> = {
+      nickname: data.nickname ?? null,
+      holder_name: data.holder_name ?? null,
+      expiry: data.expiry ?? null,
+      operator: data.operator ?? null,
+      security_code_hint: data.security_code_hint ?? null,
+    };
+    if (data.number && data.number.trim()) {
+      const clean = digits(data.number);
+      if (clean.length < 12) throw new Error("Número de cartão inválido");
+      const { encryptCardNumber } = await import("@/lib/card-crypto.server");
+      patch.number_ciphertext = encryptCardNumber(clean);
+      patch.last4 = clean.slice(-4);
+      patch.brand = detectBrand(clean);
+    }
+    const { error } = await context.supabase
+      .from("people_cards")
+      .update(patch as never)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const deletePersonCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>

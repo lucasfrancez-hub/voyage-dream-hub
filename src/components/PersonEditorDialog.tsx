@@ -3,14 +3,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
-  Save, Trash2, Loader2, Plus, CreditCard, Eye, EyeOff, User, Building2,
+  Save, Trash2, Loader2, Plus, CreditCard, Eye, EyeOff, User, Building2, Pencil,
   ShoppingBag, Wallet, ExternalLink, Check, X as XIcon, Tag as TagIcon, Paperclip,
   Download, Upload, FileText, ClipboardList, Calculator,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPerson, upsertPerson, deletePerson,
-  addPersonCard, deletePersonCard, revealPersonCardNumber,
+  addPersonCard, updatePersonCard, deletePersonCard, revealPersonCardNumber,
   getPersonSalesAndFinancials,
   savePersonPhone, deletePersonPhone,
   savePersonEmail, deletePersonEmail,
@@ -1007,9 +1007,11 @@ function PlaceholderTab({ icon, title, hint }: { icon: React.ReactNode; title: s
 
 function CardsSection({ personId, cards, qc }: { personId: string; cards: PersonCardRow[]; qc: any }) {
   const addFn = useServerFn(addPersonCard);
+  const updFn = useServerFn(updatePersonCard);
   const delFn = useServerFn(deletePersonCard);
   const revealFn = useServerFn(revealPersonCardNumber);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     number: "", security_code_hint: "", exp_month: "", exp_year: "",
@@ -1017,24 +1019,62 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
   });
   const [revealed, setRevealed] = useState<Record<string, string>>({});
 
+  function resetForm() {
+    setForm({ number: "", security_code_hint: "", exp_month: "", exp_year: "", holder_name: "", operator: "MasterCard", nickname: "" });
+    setEditingId(null);
+  }
+
+  async function openEdit(c: PersonCardRow) {
+    const [mm, yy] = (c.expiry ?? "").split("/");
+    let fullNumber = revealed[c.id] ?? "";
+    if (!fullNumber) {
+      try { fullNumber = (await revealFn({ data: { id: c.id } })).number; }
+      catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao carregar cartão"); return; }
+    }
+    setForm({
+      number: fullNumber,
+      security_code_hint: c.security_code_hint ?? "",
+      exp_month: mm ?? "",
+      exp_year: yy ? (yy.length === 2 ? `20${yy}` : yy) : "",
+      holder_name: c.holder_name ?? "",
+      operator: c.operator ?? c.brand ?? "MasterCard",
+      nickname: c.nickname ?? "",
+    });
+    setEditingId(c.id);
+    setShowForm(true);
+  }
+
   async function submit() {
-    if (!form.number.replace(/\D+/g, "")) { toast.error("Informe o número do cartão"); return; }
+    if (!editingId && !form.number.replace(/\D+/g, "")) { toast.error("Informe o número do cartão"); return; }
     setSaving(true);
     try {
       const expiry = form.exp_month && form.exp_year ? `${form.exp_month.padStart(2, "0")}/${form.exp_year.slice(-4)}` : undefined;
-      await addFn({ data: {
-        person_id: personId,
-        number: form.number,
-        expiry,
-        security_code_hint: form.security_code_hint || undefined,
-        holder_name: form.holder_name || undefined,
-        operator: form.operator || undefined,
-        nickname: form.nickname || undefined,
-      }});
+      if (editingId) {
+        await updFn({ data: {
+          id: editingId,
+          number: form.number || undefined,
+          expiry,
+          security_code_hint: form.security_code_hint || undefined,
+          holder_name: form.holder_name || undefined,
+          operator: form.operator || undefined,
+          nickname: form.nickname || undefined,
+        }});
+        toast.success("Cartão atualizado");
+      } else {
+        await addFn({ data: {
+          person_id: personId,
+          number: form.number,
+          expiry,
+          security_code_hint: form.security_code_hint || undefined,
+          holder_name: form.holder_name || undefined,
+          operator: form.operator || undefined,
+          nickname: form.nickname || undefined,
+        }});
+        toast.success("Cartão adicionado");
+      }
       qc.invalidateQueries({ queryKey: ["admin-people", personId] });
-      setForm({ number: "", security_code_hint: "", exp_month: "", exp_year: "", holder_name: "", operator: "MasterCard", nickname: "" });
+      resetForm();
       setShowForm(false);
-      toast.success("Cartão adicionado");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
     finally { setSaving(false); }
   }
@@ -1053,7 +1093,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => setShowForm(true)} className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 text-xs hover:bg-emerald-500/20">
+        <button type="button" onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 text-xs hover:bg-emerald-500/20">
           <Plus className="h-3.5 w-3.5" /> Adicionar
         </button>
       </div>
@@ -1084,10 +1124,11 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
                 <td className="px-3 py-2">{c.operator ?? c.brand ?? "—"}</td>
                 <td className="px-3 py-2 text-muted-foreground">{c.nickname ?? "—"}</td>
                 <td className="px-3 py-2 text-right flex items-center gap-1 justify-end">
-                  <button type="button" onClick={() => toggleReveal(c.id)} className="text-muted-foreground hover:text-foreground">
+                  <button type="button" onClick={() => toggleReveal(c.id)} title="Mostrar/ocultar número" className="text-muted-foreground hover:text-foreground">
                     {revealed[c.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
-                  <button type="button" onClick={() => remove(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => openEdit(c)} title="Editar cartão" className="text-muted-foreground hover:text-foreground"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => remove(c.id)} title="Remover" className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                 </td>
               </tr>
             ))}
@@ -1099,9 +1140,9 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
       </div>
 
       {showForm && (
-        <Dialog open={showForm} onOpenChange={setShowForm}>
+        <Dialog open={showForm} onOpenChange={(o) => { setShowForm(o); if (!o) resetForm(); }}>
           <DialogContent className="max-w-lg">
-            <div className="text-center font-semibold text-sm border-b border-border pb-3">Cartão de Crédito</div>
+            <div className="text-center font-semibold text-sm border-b border-border pb-3">{editingId ? "Editar cartão" : "Cartão de Crédito"}</div>
             <div className="space-y-3 pt-3">
               <MiniField label="Número:">
                 <input value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })} className={cls + " font-mono"} placeholder="0000 0000 0000 0000" />
@@ -1140,7 +1181,7 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
                 ⚠ Por questões de segurança, o número completo é criptografado (AES-256-GCM) e só pode ser revelado sob demanda.
               </div>
               <div className="flex items-center gap-2 justify-end pt-3 border-t border-border">
-                <button type="button" onClick={() => setShowForm(false)} className="rounded-full border border-border px-4 py-1.5 text-xs">Cancelar</button>
+                <button type="button" onClick={() => { setShowForm(false); resetForm(); }} className="rounded-full border border-border px-4 py-1.5 text-xs">Cancelar</button>
                 <button type="button" disabled={saving} onClick={submit} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60">
                   {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} OK
                 </button>
