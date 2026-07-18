@@ -135,7 +135,11 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
       const value = Number(details.value ?? 0) || 0;
       const taxes = Number(details.tax_value ?? 0) || 0;
       if (saved?.id) {
+        // Se já existe um financeiro para este item (reimportação), atualiza
+        // em vez de duplicar. Caso contrário, cria.
+        const existing = await findFin({ data: { order_item_id: saved.id } });
         await saveFin({ data: {
+          ...(existing?.id ? { id: existing.id } : {}),
           order_item_id: saved.id,
           supplier_name: extracted.supplier_name ?? null,
           sale_value: value,
