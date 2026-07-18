@@ -394,9 +394,6 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
                       {snap.destination && (
                         <div className="text-[11px] text-muted-foreground mt-0.5">{snap.destination}</div>
                       )}
-                      {o.supplier_name && (
-                        <div className="text-[10px] text-muted-foreground/70 uppercase font-bold tracking-wider mt-1">{o.supplier_name}</div>
-                      )}
                     </td>
                     <td className="py-5 px-4 align-top">
                       <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
