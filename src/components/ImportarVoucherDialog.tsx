@@ -333,11 +333,11 @@ function ReviewExtracted({
       <div className="grid grid-cols-3 gap-3">
         <div>
           <Label>Valor total</Label>
-          <Input type="number" step="0.01" value={String(d.value ?? "")} onChange={(e) => patchDetails("value", e.target.value ? Number(e.target.value) : "")} />
+          <Input inputMode="decimal" value={String(d.value ?? "")} onChange={(e) => patchDetails("value", parseMoneyInputVoucher(e.target.value))} placeholder="0,00" />
         </div>
         <div>
           <Label>Taxas inclusas</Label>
-          <Input type="number" step="0.01" value={String(d.tax_value ?? "")} onChange={(e) => patchDetails("tax_value", e.target.value ? Number(e.target.value) : "")} />
+          <Input inputMode="decimal" value={String(d.tax_value ?? "")} onChange={(e) => patchDetails("tax_value", parseMoneyInputVoucher(e.target.value))} placeholder="0,00" />
         </div>
         <div>
           <Label>Moeda</Label>
