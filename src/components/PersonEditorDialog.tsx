@@ -66,21 +66,16 @@ const emptyForm: FormState = {
 };
 
 type TabId =
-  | "detalhes" | "adicionais" | "vendas" | "marcadores" | "financeiros"
-  | "contatos" | "usuario" | "anexos" | "tarefas" | "orcamentos" | "custom";
+  | "detalhes" | "adicionais" | "vendas" | "financeiros"
+  | "contatos" | "anexos";
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "detalhes", label: "Detalhes" },
   { id: "adicionais", label: "Dados Adicionais" },
   { id: "vendas", label: "Vendas" },
-  { id: "marcadores", label: "Marcadores" },
   { id: "financeiros", label: "Dados Financeiros" },
   { id: "contatos", label: "Contatos" },
-  { id: "usuario", label: "Usuário" },
   { id: "anexos", label: "Anexos" },
-  { id: "tarefas", label: "Tarefas" },
-  { id: "orcamentos", label: "Orçamentos" },
-  { id: "custom", label: "Campos Personalizados" },
 ];
 
 export function PersonEditorDialog({
