@@ -480,6 +480,7 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
   const navigate = useNavigate();
   const create = useServerFn(createOrder);
   const search = useServerFn(searchPeople);
+  const listCards = useServerFn(listPersonCards);
   const [form, setForm] = useState({
     full_name: "",
     email: "",
