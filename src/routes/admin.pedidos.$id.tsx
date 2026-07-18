@@ -2927,13 +2927,20 @@ function FinanceTab({
     onSuccess: () => { toast.success("Lançamento salvo"); onChange(); setOpen(false); setEditing(null); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
+  const qc = useQueryClient();
   const remove = useMutation({
     mutationFn: async (fid: string) => {
       await del({ data: { id: fid } });
       return recalculateTotal({ data: { id: order.id } });
     },
+    onMutate: (fid: string) => {
+      qc.setQueryData<OrderDetail>(["admin", "orderDetail", order.id], (d) => d ? ({
+        ...d, financials: d.financials.filter((f) => f.id !== fid),
+      }) : d);
+    },
     onSuccess: () => { toast.success("Lançamento removido"); onChange(); },
   });
+
 
   const itemsById = useMemo(() => {
     const m: Record<string, OrderItem> = {};
