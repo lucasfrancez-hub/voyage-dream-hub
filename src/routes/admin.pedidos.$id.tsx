@@ -4053,7 +4053,7 @@ function PaymentDialog({
                         size="sm"
                         variant="outline"
                         onClick={handleSaveCard}
-                        disabled={savingCard || !selectedPersonId || cardFullNumber.replace(/\D/g, "").length < 12}
+                        disabled={savingCard || !(payer.payer_full_name ?? "").trim() || cardFullNumber.replace(/\D/g, "").length < 12}
                       >
                         <Save className="h-3.5 w-3.5 mr-1" />
                         Salvar cartão
