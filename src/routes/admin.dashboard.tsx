@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Loader2, TrendingUp, DollarSign, Receipt, ShoppingBag, Plane, CalendarClock, ExternalLink, CheckCircle2, Clock, BarChart3, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
+import { Loader2, TrendingUp, DollarSign, Receipt, ShoppingBag, Plane, CalendarClock, ExternalLink, CheckCircle2, Clock, BarChart3, ArrowUpRight, ArrowDownRight, AlertCircle, Trophy, Crown, Medal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 
