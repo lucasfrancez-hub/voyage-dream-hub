@@ -1146,8 +1146,8 @@ export const deleteOrderPayment = createServerFn({ method: "POST" })
 // --------- createOrder (cadastro manual) ---------
 export type CreateOrderInput = {
   full_name: string;
-  email: string;
-  phone: string;
+  email?: string | null;
+  phone?: string | null;
   cpf?: string | null;
   cnpj?: string | null;
   payment_method: string;
@@ -1189,8 +1189,8 @@ export const createOrder = createServerFn({ method: "POST" })
     const nn = (v?: string | null) => (v && String(v).trim() !== "" ? v : null);
     const payload: Record<string, unknown> = {
       full_name: data.full_name,
-      email: data.email,
-      phone: data.phone,
+      email: nn(data.email),
+      phone: nn(data.phone),
       cpf: nn(data.cpf),
       cnpj: nn(data.cnpj),
 
