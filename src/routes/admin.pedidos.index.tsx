@@ -49,8 +49,8 @@ function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
 }
 
-export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_party"; initialStatus?: StatusFilter }) {
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus ?? "all");
   const [search, setSearch] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
