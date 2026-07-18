@@ -4985,5 +4985,91 @@ function OrderLogDialog({
   );
 }
 
+type EditOrderPatch = {
+  full_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  cpf?: string | null;
+  birth_date?: string | null;
+  adults?: number | null;
+  children?: number | null;
+  expected_total?: number | null;
+};
 
+function EditOrderDialog({
+  open, onOpenChange, order, onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  order: OrderHeader;
+  onSave: (patch: EditOrderPatch) => void;
+}) {
+  const [form, setForm] = useState({
+    full_name: order.fullName ?? "",
+    email: order.email ?? "",
+    phone: order.phone ?? "",
+    cpf: order.cpf ?? "",
+    birth_date: order.birthDate ?? "",
+    adults: order.adults ?? 1,
+    children: order.children ?? 0,
+    expected_total: order.expectedTotal ?? 0,
+  });
+  useEffect(() => {
+    if (open) setForm({
+      full_name: order.fullName ?? "",
+      email: order.email ?? "",
+      phone: order.phone ?? "",
+      cpf: order.cpf ?? "",
+      birth_date: order.birthDate ?? "",
+      adults: order.adults ?? 1,
+      children: order.children ?? 0,
+      expected_total: order.expectedTotal ?? 0,
+    });
+  }, [open, order]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar pedido</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Nome completo</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>E-mail</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+            <div><Label>Telefone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label>Nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+            <div><Label>Adultos</Label><Input type="number" min={0} value={form.adults} onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })} /></div>
+            <div><Label>Crianças</Label><Input type="number" min={0} value={form.children} onChange={(e) => setForm({ ...form, children: Number(e.target.value) })} /></div>
+          </div>
+          <div>
+            <Label>Orçamento previsto (R$)</Label>
+            <Input type="number" step="0.01" value={form.expected_total} onChange={(e) => setForm({ ...form, expected_total: Number(e.target.value) })} />
+            <p className="mt-1 text-[11px] text-muted-foreground">Aparece ao lado do Total para você comparar com o orçamento do cliente.</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => {
+            onSave({
+              full_name: form.full_name.trim() || null,
+              email: form.email.trim() || null,
+              phone: form.phone.trim() || null,
+              cpf: form.cpf.trim() || null,
+              birth_date: form.birth_date || null,
+              adults: Number(form.adults) || 0,
+              children: Number(form.children) || 0,
+              expected_total: Number(form.expected_total) || null,
+            });
+          }}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
