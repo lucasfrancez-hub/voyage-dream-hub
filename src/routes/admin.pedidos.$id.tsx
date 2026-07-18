@@ -160,7 +160,7 @@ function OrderDetailPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "orderDetail", id] });
 
   const orderStatusMut = useMutation({
-    mutationFn: (status: "confirmed" | "reserved" | "cancelled" | "pending" | "paid") =>
+    mutationFn: (status: "confirmed" | "reserved" | "cancelled" | "pending" | "paid" | "awaiting_signature") =>
       setOrderStatusFn({ data: { id: (data as OrderDetail | undefined)?.order.id ?? "", status } }),
     onSuccess: (_r, status) => {
       toast.success(
@@ -250,6 +250,20 @@ function OrderDetailPage() {
               : manual || "pending";
 
   const st = statusLabel(derivedStatus);
+
+  // Espelha o status derivado no banco para que a listagem de pedidos mostre
+  // o mesmo estado (ex.: "Aguardando assinatura") sem precisar abrir o detalhe.
+  const setStatusSilent = useServerFn(setOrderStatus);
+  useEffect(() => {
+    const current = (order.status || "").toLowerCase();
+    if (!derivedStatus || derivedStatus === current) return;
+    const allowed = ["confirmed", "reserved", "cancelled", "pending", "paid", "awaiting_signature"] as const;
+    if (!(allowed as readonly string[]).includes(derivedStatus)) return;
+    setStatusSilent({ data: { id: order.id, status: derivedStatus as (typeof allowed)[number] } })
+      .then(() => qc.invalidateQueries({ queryKey: ["admin", "orders"] }))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [derivedStatus, order.id]);
 
 
 
