@@ -97,7 +97,7 @@ function NotasFiscaisPage() {
       const o = (r as Row & { orders?: { order_number?: string; full_name?: string } }).orders;
       return (
         (r.numero_nfse ?? "").toLowerCase().includes(s) ||
-        (r.tomador_razao_social ?? "").toLowerCase().includes(s) ||
+        ((r.tomador as { razao_social?: string } | null)?.razao_social ?? "").toLowerCase().includes(s) ||
         (o?.order_number ?? "").toLowerCase().includes(s) ||
         (o?.full_name ?? "").toLowerCase().includes(s)
       );
@@ -181,7 +181,7 @@ function NotasFiscaisPage() {
                           )}
                         </div>
                         <div className="mt-1 text-sm truncate">
-                          {r.tomador_razao_social || o?.full_name || "—"}
+                          {(r.tomador as { razao_social?: string } | null)?.razao_social || o?.full_name || "—"}
                           <span className="text-muted-foreground"> · {brl(Number(r.valor_servicos ?? 0))}</span>
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
