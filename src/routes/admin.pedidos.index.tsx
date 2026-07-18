@@ -50,22 +50,61 @@ export function AdminOrders({ scope }: { scope: "mine" | "third_party" }) {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
+  const qc = useQueryClient();
+  const showDeleted = statusFilter === "deleted";
+
   const { data: orders, isLoading } = useQuery({
     enabled: currentUserId !== null,
-    queryKey: ["admin", "orders", "list", scope, currentUserId],
+    queryKey: ["admin", "orders", "list", scope, currentUserId, showDeleted],
     queryFn: async () => {
       let q = supabase
         .from("orders")
-        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator, owner_user_id")
+        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator, owner_user_id, deleted_at, deleted_reason")
         .order("created_at", { ascending: false })
         .limit(500);
       if (scope === "mine") q = q.eq("owner_user_id", currentUserId!);
       else q = q.neq("owner_user_id", currentUserId!);
+      if (showDeleted) q = q.not("deleted_at", "is", null);
+      else q = q.is("deleted_at", null);
       const { data, error } = await q;
       if (error) throw error;
       return data;
     },
   });
+
+  const softDelete = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ deleted_at: new Date().toISOString(), deleted_reason: reason, deleted_by: currentUserId })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pedido excluído");
+      qc.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao excluir"),
+  });
+
+  const restore = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ deleted_at: null, deleted_reason: null, deleted_by: null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pedido restaurado");
+      qc.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao restaurar"),
+  });
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+
 
   // Nomes das agências parceiras (para "Pedidos de terceiro")
   const { data: agencyByUser } = useQuery({
