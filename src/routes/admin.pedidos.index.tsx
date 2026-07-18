@@ -504,23 +504,18 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
     email: "",
     phone: "",
     cpf: "",
-    payment_method: "credit_card",
+    cnpj: "",
     expected_total: 0,
     adults: 1,
     children: 0,
-    supplier_name: "",
-    airline_locator: "",
-    notes: "",
     person_id: "" as string,
     birth_date: "",
     rg: "",
     zip: "",
     address: "",
     number: "",
-    district: "",
-    city: "",
-    state: "",
   });
+
   const [savedCardInfo, setSavedCardInfo] = useState<string | null>(null);
   const [personQuery, setPersonQuery] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
