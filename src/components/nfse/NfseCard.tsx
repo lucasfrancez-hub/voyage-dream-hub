@@ -18,6 +18,104 @@ import type { OrderDetail } from "@/lib/orders.functions";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const IATA_CITY: Record<string, string> = {
+  GRU: "São Paulo", CGH: "São Paulo", VCP: "Campinas", GIG: "Rio de Janeiro", SDU: "Rio de Janeiro",
+  BSB: "Brasília", CNF: "Belo Horizonte", CWB: "Curitiba", POA: "Porto Alegre", FLN: "Florianópolis",
+  SSA: "Salvador", REC: "Recife", FOR: "Fortaleza", NAT: "Natal", MCZ: "Maceió", BEL: "Belém",
+  MAO: "Manaus", VIX: "Vitória", CGB: "Cuiabá", CGR: "Campo Grande", GYN: "Goiânia",
+  MCO: "Orlando", MIA: "Miami", JFK: "Nova York", EWR: "Nova York", LGA: "Nova York",
+  LAX: "Los Angeles", SFO: "São Francisco", LAS: "Las Vegas",
+  LIS: "Lisboa", OPO: "Porto", MAD: "Madri", BCN: "Barcelona", CDG: "Paris", ORY: "Paris",
+  LHR: "Londres", LGW: "Londres", FCO: "Roma", MXP: "Milão", AMS: "Amsterdã", FRA: "Frankfurt",
+  EZE: "Buenos Aires", AEP: "Buenos Aires", SCL: "Santiago", LIM: "Lima",
+  BOG: "Bogotá", MEX: "Cidade do México", CUN: "Cancún",
+  DXB: "Dubai", DOH: "Doha", IST: "Istambul",
+};
+const cityOf = (iata: string) => IATA_CITY[String(iata || "").toUpperCase().trim()] || String(iata || "").toUpperCase().trim();
+
+function fmtBR(d: string | null | undefined): string | null {
+  if (!d) return null;
+  const s = String(d).slice(0, 10);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}`;
+  return null;
+}
+
+function buildAutoDescricao(detail: OrderDetail): string {
+  const items = detail.items.filter((i) => i.status !== "cancelled");
+  const flights = items.filter((i) => i.kind === "flight");
+  const hotels = items.filter((i) => i.kind === "hotel");
+  const others = items.filter((i) => i.kind !== "flight" && i.kind !== "hotel");
+
+  const parts: string[] = [];
+  if (flights.length) parts.push("Aéreo");
+  if (hotels.length) parts.push("Hotel");
+  if (others.length) parts.push("Serviço");
+  const tipos = parts.join(" + ") || "Serviços de viagem";
+
+  // Destino
+  let destino: string | null = null;
+  if (flights.length) {
+    const segs = flights
+      .map((f) => {
+        const d = (f.details ?? {}) as Record<string, unknown>;
+        return {
+          orig: String(d.origin ?? d.from ?? d.origin_code ?? "").toUpperCase(),
+          dest: String(d.destination ?? d.to ?? d.destination_code ?? "").toUpperCase(),
+          depart: String(d.depart_at ?? d.departure_at ?? d.departure ?? ""),
+        };
+      })
+      .filter((s) => s.orig && s.dest)
+      .sort((a, b) => (a.depart < b.depart ? -1 : 1));
+    if (segs.length) {
+      const first = segs[0].orig;
+      const last = segs[segs.length - 1].dest;
+      if (first === last && segs.length > 1) {
+        const mid = Math.max(0, Math.floor(segs.length / 2) - 1);
+        destino = cityOf(segs[mid]?.dest || segs[0].dest);
+      } else {
+        destino = cityOf(last);
+      }
+    }
+  }
+  if (!destino && hotels.length) {
+    const d = (hotels[0].details ?? {}) as Record<string, unknown>;
+    const c = String(d.city ?? d.cidade ?? d.destination ?? "").trim();
+    if (c) destino = c;
+  }
+
+  // Datas: ida (mais antiga) e volta (mais recente)
+  const dates: string[] = [];
+  flights.forEach((f) => {
+    const d = (f.details ?? {}) as Record<string, unknown>;
+    const v = String(d.depart_at ?? d.departure_at ?? d.departure ?? "");
+    if (v) dates.push(v.slice(0, 10));
+  });
+  hotels.forEach((h) => {
+    const d = (h.details ?? {}) as Record<string, unknown>;
+    const ci = String(d.check_in ?? d.checkin ?? "");
+    const co = String(d.check_out ?? d.checkout ?? "");
+    if (ci) dates.push(ci.slice(0, 10));
+    if (co) dates.push(co.slice(0, 10));
+  });
+  dates.sort();
+  const ida = fmtBR(dates[0]);
+  const volta = fmtBR(dates[dates.length - 1]);
+  const periodo = ida && volta && ida !== volta ? `${ida} a ${volta}` : (ida || "");
+
+  const cabecalho = [tipos, destino, periodo].filter(Boolean).join(" - ");
+
+  const pax = detail.passengers.map((p) => p.full_name.trim()).filter(Boolean);
+  const linhaPax = pax.length
+    ? (pax.length === 1 ? `Passageiro: ${pax[0]}` : `Passageiros:\n- ${pax.join("\n- ")}`)
+    : "";
+
+  return [cabecalho || `Serviços de agenciamento de viagens — pedido #${detail.order.orderNumber}`, linhaPax]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+
 function statusBadge(s: string) {
   const map: Record<string, { label: string; cls: string }> = {
     processando: { label: "Processando", cls: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
@@ -48,7 +146,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   });
 
   const [open, setOpen] = useState(false);
-  const defaultDisc = `Serviços de agenciamento de viagens referente ao pedido #${order.orderNumber}${order.tripTitle ? ` — ${order.tripTitle}` : ""}.`;
+  const defaultDisc = buildAutoDescricao(detail);
   const [form, setForm] = useState({
     razaoSocial: order.payerFullName || order.fullName || "",
     cpfCnpj: order.payerCpf || order.cpf || "",
@@ -223,7 +321,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
             </div>
             <div>
               <Label>Discriminação do serviço</Label>
-              <Textarea rows={4} value={form.discriminacao} onChange={(e) => setForm((f) => ({ ...f, discriminacao: e.target.value }))} />
+              <Textarea rows={8} className="font-mono text-xs" value={form.discriminacao} onChange={(e) => setForm((f) => ({ ...f, discriminacao: e.target.value }))} />
             </div>
             <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
               ISS calculado: <b>{brl(Number(form.valor.replace(",", ".") || 0) * 0.04)}</b> · Item 9.02 · Paranavaí/PR
