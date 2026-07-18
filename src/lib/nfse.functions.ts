@@ -6,7 +6,7 @@ const ATENDENET_ENDPOINT =
   "https://nfse-paranavai.atende.net/atende.php?pg=rest&service=WNERestServiceNFSe&cidade=padrao";
 const IBGE_PARANAVAI = "4118402";
 
-function onlyDigits(s: string | null | numberundefined) {
+function onlyDigits(s: string | number | null | undefined) {
   return (s ?? "").toString().replace(/\D/g, "");
 }
 
