@@ -126,8 +126,17 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const docTomador = pick(t.cpfCnpj, t.cnpj, t.cpf, t.documento, t.document, t.doc);
   const imTomador = pick(t.inscricaoMunicipal, t.inscricao_municipal, t.im);
   const emailTomador = pick(t.email, t.mail, t.e_mail);
-  const telTomador = pick(t.telefone, t.phone, t.celular, t.whatsapp);
+  let telTomador = pick(t.telefone, t.phone, t.celular, t.whatsapp);
   const paisTomador = pick(t.pais, end.pais, "Brasil");
+
+  // Fallback: buscar telefone/e-mail do pedido quando não estiverem no tomador salvo
+  let emailTomadorFinal = emailTomador;
+  if ((!telTomador || !emailTomadorFinal) && data.order_id) {
+    const { data: ord } = await supabase.from("orders")
+      .select("phone,email").eq("id", data.order_id).maybeSingle();
+    if (!telTomador) telTomador = pick(ord?.phone);
+    if (!emailTomadorFinal) emailTomadorFinal = pick(ord?.email);
+  }
 
   const disc = parseDiscriminacao(data.discriminacao);
 
