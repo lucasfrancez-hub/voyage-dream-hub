@@ -29,6 +29,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 
 import { formatBRL } from "@/lib/format";
+import { computeAutoTitle } from "@/lib/auto-title";
 import { paymentMethodLabel, statusLabel, itemStatusBadge } from "@/lib/order-labels";
 import {
   getOrderDetail, upsertPassenger, deletePassenger,
