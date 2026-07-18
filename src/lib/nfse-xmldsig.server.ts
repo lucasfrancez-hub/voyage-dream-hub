@@ -5,6 +5,23 @@ import { SignedXml } from "xml-crypto";
 type LoadedCert = { privateKeyPem: string; certBase64: string };
 let cached: LoadedCert | null = null;
 
+function parsePkcs12(buf: Buffer, password: string): forge.pkcs12.Pkcs12Pfx {
+  const binary = buf.toString("binary");
+  const asn1 = (forge.asn1.fromDer as unknown as (
+    bytes: string,
+    options: { strict: boolean; parseAllBytes: boolean; decodeBitStrings: boolean },
+  ) => forge.asn1.Asn1)(binary, {
+    strict: false,
+    parseAllBytes: true,
+    decodeBitStrings: true,
+  });
+
+  // O certificado da VIA AIR usa BER com comprimentos indefinidos (30 80).
+  // O segundo argumento precisa ser false; passar a senha nessa posição ativa
+  // implicitamente o modo DER estrito do node-forge.
+  return forge.pkcs12.pkcs12FromAsn1(asn1, false, password);
+}
+
 function normalizeBase64(raw: string): string {
   let s = raw.trim();
   // remove eventual prefixo data URI
@@ -36,19 +53,13 @@ function loadCertFromEnv(): LoadedCert {
       `Esperado .p12 iniciando com 0x30 e com vários KB.`
     );
   }
-  const binary = buf.toString("binary");
   let p12;
   try {
-    // strict=false + parseAllBytes=false para aceitar BER com comprimento indefinido (0x3080),
-    // comum em .p12 gerados no Windows/OpenSSL.
-    const asn1 = (forge.asn1.fromDer as any)(binary, { strict: false, parseAllBytes: false });
-    p12 = forge.pkcs12.pkcs12FromAsn1(asn1, pwd);
+    p12 = parsePkcs12(buf, pwd);
   } catch (e: any) {
     throw new Error(
       `Falha ao decodificar .p12 (bytes=${buf.length}, header=0x${header}): ${e?.message || e}. ` +
-      `Se a senha estiver correta, reexporte o certificado como PKCS#12 (.pfx) padrão: ` +
-      `openssl pkcs12 -in original.p12 -nodes -out tmp.pem -passin pass:SENHA && ` +
-      `openssl pkcs12 -export -in tmp.pem -out novo.p12 -passout pass:SENHA`
+      `O arquivo configurado precisa ser a cópia Base64 integral do certificado A1 original.`
     );
   }
   const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
@@ -97,8 +108,7 @@ export function getCertInfo(): { subject: string; issuer: string; notAfter: stri
   const rawB64 = process.env.NFSE_CERT_PFX_BASE64;
   const pwd = process.env.NFSE_CERT_PASSWORD;
   if (!rawB64 || !pwd) throw new Error("Certificado não configurado");
-  const binary = Buffer.from(normalizeBase64(rawB64), "base64").toString("binary");
-  const p12 = forge.pkcs12.pkcs12FromAsn1((forge.asn1.fromDer as any)(binary, { strict: false, parseAllBytes: false }), pwd);
+  const p12 = parsePkcs12(Buffer.from(normalizeBase64(rawB64), "base64"), pwd);
   const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag]?.[0];
   if (!certBag?.cert) throw new Error("Certificado ausente no .p12");
   return {
