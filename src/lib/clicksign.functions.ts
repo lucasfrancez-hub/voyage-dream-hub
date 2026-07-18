@@ -3,13 +3,14 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // Config sandbox vs produção.
-// - Se CLICKSIGN_SANDBOX_API_TOKEN estiver setado e CLICKSIGN_ENV != "production", usa sandbox
-// - Caso contrário, usa produção com CLICKSIGN_API_TOKEN
-function getClickSignConfig(): { token: string; baseUrl: string; endpoint: string; env: "sandbox" | "production" } {
+// - Fluxo de pedidos (createSignatureRequest, cancel, resend, sync): SEMPRE produção.
+// - Fluxo embedded (/pagar): usa sandbox se CLICKSIGN_SANDBOX_API_TOKEN estiver setado
+//   e CLICKSIGN_ENV != "production"; caso contrário produção.
+function getClickSignConfig(opts: { preferSandbox?: boolean } = {}): { token: string; baseUrl: string; endpoint: string; env: "sandbox" | "production" } {
   const sandboxToken = process.env.CLICKSIGN_SANDBOX_API_TOKEN;
   const prodToken = process.env.CLICKSIGN_API_TOKEN;
   const forceProd = process.env.CLICKSIGN_ENV === "production";
-  const useSandbox = !!sandboxToken && !forceProd;
+  const useSandbox = !!opts.preferSandbox && !!sandboxToken && !forceProd;
   if (useSandbox) {
     return {
       token: sandboxToken!,
@@ -34,10 +35,11 @@ function agenciaConfig() {
   return { email, nome };
 }
 
-async function csFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-  const cfg = getClickSignConfig();
+async function csFetch<T = unknown>(path: string, init: RequestInit = {}, opts: { preferSandbox?: boolean } = {}): Promise<T> {
+  const cfg = getClickSignConfig(opts);
   const sep = path.includes("?") ? "&" : "?";
   const url = `${cfg.baseUrl}${path}${sep}access_token=${encodeURIComponent(cfg.token)}`;
+
 
   // Retry transitório: 502/503/504 (Gateway Time-out) + falhas de rede.
   // Backoff: 500ms, 1500ms, 3500ms. Total: até 3 tentativas extras.
