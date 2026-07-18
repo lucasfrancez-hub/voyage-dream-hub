@@ -619,6 +619,16 @@ function PassengersSection({
           <Button size="sm" variant="outline" onClick={openNew}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
           </Button>
+          {passengers.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-destructive hover:text-destructive"
+              onClick={() => confirmThen(`Excluir todos os ${passengers.length} passageiros?`, () => removeAll.mutate())}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir todos
+            </Button>
+          )}
         </div>
       </div>
       {passengers.length === 0 ? (
