@@ -1007,9 +1007,11 @@ function PlaceholderTab({ icon, title, hint }: { icon: React.ReactNode; title: s
 
 function CardsSection({ personId, cards, qc }: { personId: string; cards: PersonCardRow[]; qc: any }) {
   const addFn = useServerFn(addPersonCard);
+  const updFn = useServerFn(updatePersonCard);
   const delFn = useServerFn(deletePersonCard);
   const revealFn = useServerFn(revealPersonCardNumber);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     number: "", security_code_hint: "", exp_month: "", exp_year: "",
@@ -1017,24 +1019,62 @@ function CardsSection({ personId, cards, qc }: { personId: string; cards: Person
   });
   const [revealed, setRevealed] = useState<Record<string, string>>({});
 
+  function resetForm() {
+    setForm({ number: "", security_code_hint: "", exp_month: "", exp_year: "", holder_name: "", operator: "MasterCard", nickname: "" });
+    setEditingId(null);
+  }
+
+  async function openEdit(c: PersonCardRow) {
+    const [mm, yy] = (c.expiry ?? "").split("/");
+    let fullNumber = revealed[c.id] ?? "";
+    if (!fullNumber) {
+      try { fullNumber = (await revealFn({ data: { id: c.id } })).number; }
+      catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao carregar cartão"); return; }
+    }
+    setForm({
+      number: fullNumber,
+      security_code_hint: c.security_code_hint ?? "",
+      exp_month: mm ?? "",
+      exp_year: yy ? (yy.length === 2 ? `20${yy}` : yy) : "",
+      holder_name: c.holder_name ?? "",
+      operator: c.operator ?? c.brand ?? "MasterCard",
+      nickname: c.nickname ?? "",
+    });
+    setEditingId(c.id);
+    setShowForm(true);
+  }
+
   async function submit() {
-    if (!form.number.replace(/\D+/g, "")) { toast.error("Informe o número do cartão"); return; }
+    if (!editingId && !form.number.replace(/\D+/g, "")) { toast.error("Informe o número do cartão"); return; }
     setSaving(true);
     try {
       const expiry = form.exp_month && form.exp_year ? `${form.exp_month.padStart(2, "0")}/${form.exp_year.slice(-4)}` : undefined;
-      await addFn({ data: {
-        person_id: personId,
-        number: form.number,
-        expiry,
-        security_code_hint: form.security_code_hint || undefined,
-        holder_name: form.holder_name || undefined,
-        operator: form.operator || undefined,
-        nickname: form.nickname || undefined,
-      }});
+      if (editingId) {
+        await updFn({ data: {
+          id: editingId,
+          number: form.number || undefined,
+          expiry,
+          security_code_hint: form.security_code_hint || undefined,
+          holder_name: form.holder_name || undefined,
+          operator: form.operator || undefined,
+          nickname: form.nickname || undefined,
+        }});
+        toast.success("Cartão atualizado");
+      } else {
+        await addFn({ data: {
+          person_id: personId,
+          number: form.number,
+          expiry,
+          security_code_hint: form.security_code_hint || undefined,
+          holder_name: form.holder_name || undefined,
+          operator: form.operator || undefined,
+          nickname: form.nickname || undefined,
+        }});
+        toast.success("Cartão adicionado");
+      }
       qc.invalidateQueries({ queryKey: ["admin-people", personId] });
-      setForm({ number: "", security_code_hint: "", exp_month: "", exp_year: "", holder_name: "", operator: "MasterCard", nickname: "" });
+      resetForm();
       setShowForm(false);
-      toast.success("Cartão adicionado");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
     finally { setSaving(false); }
   }
