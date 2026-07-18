@@ -414,7 +414,8 @@ function DashboardPage() {
           </div>
         )}
       </div>
-      </div>
+
+
 
       {/* Ranking de clientes */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
