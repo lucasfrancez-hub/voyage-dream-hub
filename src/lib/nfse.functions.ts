@@ -298,13 +298,18 @@ export const emitirNfse = createServerFn({ method: "POST" })
     const numeroNfse = responseTag(respBody, "numero_nfse");
     const codigoVerificacao = responseTag(respBody, "cod_verificador_autenticidade");
     const urlNfse = responseTag(respBody, "link_nfse");
-    const providerRejected = Boolean(
+    const situacaoCodigo = responseTag(respBody, "situacao_codigo_nfse");
+    // AtendeNet retorna "00001 - Sucesso" quando a nota é emitida com êxito.
+    const providerSuccess = /^0*1\b|^0*1\s*-\s*Sucesso/i.test(providerMessage || "")
+      || (!!numeroNfse && (situacaoCodigo === "1" || situacaoCodigo === ""));
+    const providerRejected = !providerSuccess && Boolean(
       providerMessage
       || /XSD\s+Error|<erro\b|<erros\b|inv[aá]lid|rejeitad/i.test(respBody),
     );
     const httpOk = respStatus >= 200 && respStatus < 300 && !networkError;
     const ok = httpOk && !providerRejected;
     const finalStatus = ok ? (numeroNfse ? "emitida" : "processando") : "erro";
+
     await supabaseAdmin.from("nfse_emissoes").update({
       focus_ref: reference,
       focus_status: String(respStatus || "network_error"),
