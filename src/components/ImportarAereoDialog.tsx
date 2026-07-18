@@ -10,7 +10,7 @@ import {
   createImportToken, getImportStaging, consumeImportStaging,
   type ImportedReservation, type ImportedFlightSegment, type ImportedPassenger,
 } from "@/lib/flight-import.functions";
-import { upsertOrderItem, upsertPassenger, updateOrderMeta } from "@/lib/orders.functions";
+import { upsertOrderItem, upsertPassenger, updateOrderMeta, setImportLinks } from "@/lib/orders.functions";
 import { buildAirlineCheckinUrl } from "@/lib/airline-checkin";
 
 type Props = {
@@ -96,6 +96,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
   const saveItem = useServerFn(upsertOrderItem);
   const savePax = useServerFn(upsertPassenger);
   const updateMeta = useServerFn(updateOrderMeta);
+  const linkImport = useServerFn(setImportLinks);
 
   useEffect(() => {
     if (!open) return;
@@ -180,10 +181,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
   async function confirmar() {
     if (!reservation || !token) return;
     try {
+      const newPassengerIds: string[] = [];
       for (let i = 0; i < reservation.passengers.length; i++) {
         const p = reservation.passengers[i]!;
         const kindMap: Record<string, "ADT" | "CHD" | "INF"> = { adult: "ADT", child: "CHD", infant: "INF" };
-        await savePax({ data: {
+        const { id: paxId } = await savePax({ data: {
           order_id: orderId,
           full_name: p.full_name,
           passenger_type: kindMap[p.kind ?? "adult"] ?? "ADT",
@@ -195,9 +197,11 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
           doc_type: p.doc_type ?? (p.cpf ? "cpf" : p.passport_number ? "passport" : "cpf"),
           sort_order: i,
         } });
+        newPassengerIds.push(paxId);
       }
       let sort = 0;
       let firstItem = true;
+      const allNewItemIds: string[] = [];
       // Se qualquer passageiro veio com bilhete emitido, a reserva inteira
       // é considerada Emitida (confirmed). Sem bilhete, fica Reservada.
       const anyTicket = reservation.passengers.some((p) => (p.ticket_number ?? "").trim().length > 0);
@@ -234,7 +238,7 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
             lastName: holderLastName,
             originIata: blockOrigin,
           });
-          await saveItem({ data: {
+          const { id: itemId } = await saveItem({ data: {
             order_id: orderId,
             kind: "flight",
             status: itemStatus,
@@ -272,9 +276,20 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               ...(checkinUrl ? { airline_checkin_url: checkinUrl } : {}),
             },
           } });
+          allNewItemIds.push(itemId);
         }
       }
       await consume({ data: { token } });
+
+      // Vincula somente os passageiros importados aos novos itens (sobrescreve
+      // links criados automaticamente por trigger).
+      if (allNewItemIds.length && newPassengerIds.length) {
+        await linkImport({ data: {
+          order_id: orderId,
+          item_ids: allNewItemIds,
+          passenger_ids: newPassengerIds,
+        } });
+      }
 
       // Localizador principal do pedido = localizador da cia (sempre sobrescreve)
       const mainLocator = reservation.locator?.trim() ?? "";

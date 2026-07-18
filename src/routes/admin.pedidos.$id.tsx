@@ -35,7 +35,7 @@ import {
   upsertItemFinancial, deleteItemFinancial, updateOrderTotalPrice, recalculateOrderTotal,
   upsertOrderPayment, deleteOrderPayment, updateOrderPayer,
   appendOrderLogEntry, deleteOrderLogEntry,
-  linkPassengerToItem, unlinkPassengerFromItem, getMySellerInfo,
+  linkPassengerToItem, unlinkPassengerFromItem, getMySellerInfo, deleteAllOrderPassengers,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
@@ -581,6 +581,7 @@ function PassengersSection({
   const upsert = useServerFn(upsertPassenger);
   const upsertItem = useServerFn(upsertOrderItem);
   const del = useServerFn(deletePassenger);
+  const delAll = useServerFn(deleteAllOrderPassengers);
   const [editing, setEditing] = useState<OrderPassenger | null>(null);
   const [open, setOpen] = useState(false);
   const [mondeOpen, setMondeOpen] = useState(false);
@@ -594,6 +595,11 @@ function PassengersSection({
   const remove = useMutation({
     mutationFn: async (pid: string) => del({ data: { id: pid } }),
     onSuccess: () => { toast.success("Passageiro removido"); onChange(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+  const removeAll = useMutation({
+    mutationFn: async () => delAll({ data: { order_id: orderId } }),
+    onSuccess: () => { toast.success("Passageiros removidos"); onChange(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
@@ -613,6 +619,16 @@ function PassengersSection({
           <Button size="sm" variant="outline" onClick={openNew}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
           </Button>
+          {passengers.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-destructive hover:text-destructive"
+              onClick={() => confirmThen(`Excluir todos os ${passengers.length} passageiros?`, () => removeAll.mutate())}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir todos
+            </Button>
+          )}
         </div>
       </div>
       {passengers.length === 0 ? (
