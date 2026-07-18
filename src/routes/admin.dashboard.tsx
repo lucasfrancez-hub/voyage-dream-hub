@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Loader2, TrendingUp, DollarSign, Receipt, ShoppingBag, Plane, CalendarClock, ExternalLink, CheckCircle2, Clock, BarChart3 } from "lucide-react";
+import { Loader2, TrendingUp, DollarSign, Receipt, ShoppingBag, Plane, CalendarClock, ExternalLink, CheckCircle2, Clock, BarChart3, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 
@@ -97,6 +97,34 @@ function DashboardPage() {
       return data as unknown as ItemRow[];
     },
   });
+
+  const { data: financials } = useQuery({
+    queryKey: ["admin", "dashboard", "financial-entries"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financial_entries")
+        .select("kind, amount, due_date, status");
+      if (error) throw error;
+      return data as unknown as { kind: "payable" | "receivable"; amount: number; due_date: string | null; status: string }[];
+    },
+  });
+
+  const finSummary = useMemo(() => {
+    const t = new Date().toISOString().slice(0, 10);
+    const empty = { total: 0, overdue: 0, overdueCount: 0 };
+    const summary = { payable: { ...empty }, receivable: { ...empty } };
+    for (const f of financials ?? []) {
+      if (f.status !== "pending") continue;
+      const bucket = summary[f.kind];
+      bucket.total += Number(f.amount);
+      if (f.due_date && f.due_date < t) {
+        bucket.overdue += Number(f.amount);
+        bucket.overdueCount += 1;
+      }
+    }
+    return summary;
+  }, [financials]);
+
 
   const stats = useMemo(() => {
     const paidOrders = (orders ?? []).filter((o) => PAID.has((o.status ?? "").toLowerCase()));
@@ -259,6 +287,43 @@ function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Financeiro: a pagar / a receber */}
+      <div className="grid gap-3 md:grid-cols-2">
+        <Link to="/admin/contas-receber" className="rounded-2xl border border-border bg-card p-5 hover:border-emerald-500/40 transition group">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <ArrowDownRight className="h-3.5 w-3.5 text-emerald-500" /> Contas a receber
+            </div>
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-emerald-500">{formatBRL(finSummary.receivable.total)}</div>
+          <div className="text-[11px] text-muted-foreground">Pendente</div>
+          {finSummary.receivable.overdueCount > 0 && (
+            <div className="mt-2 inline-flex items-center gap-1 text-xs text-red-500">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {formatBRL(finSummary.receivable.overdue)} vencido ({finSummary.receivable.overdueCount})
+            </div>
+          )}
+        </Link>
+        <Link to="/admin/contas-pagar" className="rounded-2xl border border-border bg-card p-5 hover:border-red-500/40 transition group">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <ArrowUpRight className="h-3.5 w-3.5 text-red-500" /> Contas a pagar
+            </div>
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-red-500">{formatBRL(finSummary.payable.total)}</div>
+          <div className="text-[11px] text-muted-foreground">Pendente</div>
+          {finSummary.payable.overdueCount > 0 && (
+            <div className="mt-2 inline-flex items-center gap-1 text-xs text-red-500">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {formatBRL(finSummary.payable.overdue)} vencido ({finSummary.payable.overdueCount})
+            </div>
+          )}
+        </Link>
+      </div>
+
 
       {/* Próximas viagens */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden">

@@ -46,6 +46,8 @@ import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
+import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
@@ -252,6 +254,16 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminContasReceberRoute = AdminContasReceberRouteImport.update({
+  id: '/contas-receber',
+  path: '/contas-receber',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContasPagarRoute = AdminContasPagarRouteImport.update({
+  id: '/contas-pagar',
+  path: '/contas-pagar',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCofreRoute = AdminCofreRouteImport.update({
   id: '/cofre',
   path: '/cofre',
@@ -375,6 +387,8 @@ export interface FileRoutesByFullPath {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/contas-pagar': typeof AdminContasPagarRoute
+  '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
@@ -433,6 +447,8 @@ export interface FileRoutesByTo {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/contas-pagar': typeof AdminContasPagarRoute
+  '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
@@ -493,6 +509,8 @@ export interface FileRoutesById {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/contas-pagar': typeof AdminContasPagarRoute
+  '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
@@ -554,6 +572,8 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/admin/cofre'
+    | '/admin/contas-pagar'
+    | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
@@ -612,6 +632,8 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/admin/cofre'
+    | '/admin/contas-pagar'
+    | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
@@ -671,6 +693,8 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/admin/cofre'
+    | '/admin/contas-pagar'
+    | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
@@ -1009,6 +1033,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDashboardRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/contas-receber': {
+      id: '/admin/contas-receber'
+      path: '/contas-receber'
+      fullPath: '/admin/contas-receber'
+      preLoaderRoute: typeof AdminContasReceberRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/contas-pagar': {
+      id: '/admin/contas-pagar'
+      path: '/contas-pagar'
+      fullPath: '/admin/contas-pagar'
+      preLoaderRoute: typeof AdminContasPagarRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cofre': {
       id: '/admin/cofre'
       path: '/cofre'
@@ -1166,6 +1204,8 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminCofreRoute: typeof AdminCofreRoute
+  AdminContasPagarRoute: typeof AdminContasPagarRoute
+  AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
@@ -1182,6 +1222,8 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCofreRoute: AdminCofreRoute,
+  AdminContasPagarRoute: AdminContasPagarRoute,
+  AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
