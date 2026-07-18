@@ -381,6 +381,149 @@ export type Database = {
           },
         ]
       }
+      nfse_config: {
+        Row: {
+          aliquota_iss: number
+          ambiente: string
+          cnpj: string
+          codigo_tributario_municipio: string | null
+          created_at: string
+          descricao_padrao: string | null
+          id: string
+          inscricao_municipal: string
+          iss_retido: boolean
+          item_lista_servico: string
+          municipio_prestacao: string
+          razao_social: string
+          regime_tributario: string
+          uf_prestacao: string
+          updated_at: string
+        }
+        Insert: {
+          aliquota_iss?: number
+          ambiente?: string
+          cnpj: string
+          codigo_tributario_municipio?: string | null
+          created_at?: string
+          descricao_padrao?: string | null
+          id?: string
+          inscricao_municipal: string
+          iss_retido?: boolean
+          item_lista_servico?: string
+          municipio_prestacao?: string
+          razao_social?: string
+          regime_tributario?: string
+          uf_prestacao?: string
+          updated_at?: string
+        }
+        Update: {
+          aliquota_iss?: number
+          ambiente?: string
+          cnpj?: string
+          codigo_tributario_municipio?: string | null
+          created_at?: string
+          descricao_padrao?: string | null
+          id?: string
+          inscricao_municipal?: string
+          iss_retido?: boolean
+          item_lista_servico?: string
+          municipio_prestacao?: string
+          razao_social?: string
+          regime_tributario?: string
+          uf_prestacao?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nfse_emissoes: {
+        Row: {
+          aliquota_iss: number | null
+          cancelada_em: string | null
+          chave_acesso: string | null
+          codigo_verificacao: string | null
+          created_at: string
+          created_by: string | null
+          data_emissao: string | null
+          discriminacao: string
+          focus_ref: string | null
+          focus_response: Json | null
+          focus_status: string | null
+          id: string
+          motivo_cancelamento: string | null
+          numero_nfse: string | null
+          order_id: string | null
+          reference: string
+          serie: string | null
+          status: string
+          tomador: Json
+          updated_at: string
+          url_pdf: string | null
+          url_xml: string | null
+          valor_iss: number | null
+          valor_servicos: number
+        }
+        Insert: {
+          aliquota_iss?: number | null
+          cancelada_em?: string | null
+          chave_acesso?: string | null
+          codigo_verificacao?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_emissao?: string | null
+          discriminacao: string
+          focus_ref?: string | null
+          focus_response?: Json | null
+          focus_status?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          numero_nfse?: string | null
+          order_id?: string | null
+          reference: string
+          serie?: string | null
+          status?: string
+          tomador: Json
+          updated_at?: string
+          url_pdf?: string | null
+          url_xml?: string | null
+          valor_iss?: number | null
+          valor_servicos: number
+        }
+        Update: {
+          aliquota_iss?: number | null
+          cancelada_em?: string | null
+          chave_acesso?: string | null
+          codigo_verificacao?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_emissao?: string | null
+          discriminacao?: string
+          focus_ref?: string | null
+          focus_response?: Json | null
+          focus_status?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          numero_nfse?: string | null
+          order_id?: string | null
+          reference?: string
+          serie?: string | null
+          status?: string
+          tomador?: Json
+          updated_at?: string
+          url_pdf?: string | null
+          url_xml?: string | null
+          valor_iss?: number | null
+          valor_servicos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfse_emissoes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_item_financials: {
         Row: {
           commission_pct: number
