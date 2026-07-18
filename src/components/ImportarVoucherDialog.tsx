@@ -174,7 +174,8 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
       const existing = await findFin({ data: { order_item_id: saved.id } });
       const pct = existing?.id
         ? Number(existing.commission_pct ?? 0)
-        : (extracted.kind === "hotel" ? 12 : 0);
+        : getCommissionDefault(extracted.kind === "hotel" ? "hotel" : "service");
+
       const commission = Number((value * (pct / 100)).toFixed(2));
       await saveFin({ data: {
         ...(existing?.id ? { id: existing.id } : {}),

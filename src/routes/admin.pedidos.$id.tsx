@@ -3125,8 +3125,9 @@ function FinanceTab({
   //   Total da venda só sobe se comissão > 12% (delta acima do padrão).
   // - Manual (sem pacote): total = tarifa + taxas + comissão (soma normal).
   const packageFareNet = Math.max(0, packageFare - packageTaxes);
-  const PACKAGE_DEFAULT_PCT = 12;
+  const PACKAGE_DEFAULT_PCT = getCommissionDefault("package");
   const packageDefaultCommission = Number((packageFareNet * (PACKAGE_DEFAULT_PCT / 100)).toFixed(2));
+
 
   // Gera linhas planejadas para itens que ainda não têm financeiro salvo
   const extraItemRows = useMemo(() => {
@@ -3500,10 +3501,13 @@ function FinanceTab({
   );
 }
 
-function defaultCommissionPct(_kind: OrderItem["kind"] | undefined, _isPackage: boolean): number {
-  // Padrão único: 12% para pacote pronto e para todos os itens avulsos.
-  return 12;
+function defaultCommissionPct(kind: OrderItem["kind"] | undefined, isPackage: boolean): number {
+  if (isPackage) return getCommissionDefault("package");
+  if (kind === "hotel") return getCommissionDefault("hotel");
+  if (kind === "flight") return getCommissionDefault("flight");
+  return getCommissionDefault("service");
 }
+
 
 
 function FinanceDialog({
@@ -4756,7 +4760,7 @@ function CommissionAdjustDialog({
     !(snap as { manual?: boolean }).manual &&
     !["payment_link", "payment_link_simple"].includes(String((snap as { kind?: string }).kind ?? "")) &&
     Number((snap as { price_per_person?: number }).price_per_person ?? 0) > 0;
-  const PKG_DEFAULT_PCT = 12;
+  const PKG_DEFAULT_PCT = getCommissionDefault("package");
 
   const [sale, setSale] = useState(0);
   const [tax, setTax] = useState(0);
