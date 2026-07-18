@@ -74,9 +74,16 @@ function PersonEditPage() {
     enabled: !isNew,
   });
 
-  const [tab, setTab] = useState<"detalhes" | "endereco" | "documentos" | "financeiros" | "obs">("detalhes");
+  const [tab, setTab] = useState<"detalhes" | "endereco" | "contato" | "documentos" | "adicionais" | "vendas" | "financeiros" | "obs">("detalhes");
   const [form, setForm] = useState<FormState>(emptyForm);
   const [kindChosen, setKindChosen] = useState<boolean>(!isNew);
+
+  const salesFn = useServerFn(getPersonSalesAndFinancials);
+  const salesQ = useQuery({
+    queryKey: ["admin-people", id, "sales"],
+    queryFn: () => salesFn({ data: { id } }),
+    enabled: !isNew && (tab === "vendas" || tab === "financeiros"),
+  });
 
   useEffect(() => {
     if (!isNew && q.data?.person) {
