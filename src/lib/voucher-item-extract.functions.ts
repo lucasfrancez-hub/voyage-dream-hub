@@ -298,7 +298,22 @@ export const extractItemVoucher = createServerFn({ method: "POST" })
     const rawItems = Array.isArray((parsed as { items?: unknown }).items)
       ? ((parsed as { items: unknown[] }).items)
       : [parsed];
+    const topPax = Array.isArray((parsed as { passengers?: unknown }).passengers)
+      ? ((parsed as { passengers: unknown[] }).passengers).filter(
+          (p): p is Record<string, unknown> => !!p && typeof p === "object",
+        )
+      : [];
     return rawItems
       .filter((it): it is Record<string, unknown> => !!it && typeof it === "object")
-      .map((it) => ({ kind: data.kind, ...it }) as ExtractedItemVoucher);
+      .map((it) => {
+        const merged = { kind: data.kind, ...it } as ExtractedItemVoucher;
+        const own = Array.isArray((it as { passengers?: unknown }).passengers)
+          ? ((it as { passengers: unknown[] }).passengers)
+          : [];
+        if (own.length === 0 && topPax.length > 0) {
+          (merged as { passengers?: unknown }).passengers = topPax;
+        }
+        return merged;
+      });
   });
+
