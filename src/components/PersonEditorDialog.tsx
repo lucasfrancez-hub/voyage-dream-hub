@@ -515,35 +515,54 @@ function DetalhesTab({
       {/* ============ ENDEREÇO ============ */}
       <Section title="Endereço">
         <div className="grid grid-cols-[140px_1fr_120px] gap-3">
-          <MiniField label="CEP:">
+          <MiniField label={form.is_foreign ? "ZIP code:" : "CEP:"}>
             <input
               value={form.zip ?? ""}
               onChange={(e) => set("zip", e.target.value)}
-              onBlur={(e) => onCepBlur(e.target.value)}
+              onBlur={(e) => { if (!form.is_foreign) onCepBlur(e.target.value); }}
               className={cls}
-              placeholder="00000-000"
+              placeholder={form.is_foreign ? "ZIP / Postal code" : "00000-000"}
             />
           </MiniField>
-          <MiniField label="Endereço:">
+          <MiniField label={form.is_foreign ? "Address:" : "Endereço:"}>
             <input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} className={cls} />
           </MiniField>
-          <MiniField label="Número:">
+          <MiniField label={form.is_foreign ? "Number:" : "Número:"}>
             <input value={form.number ?? ""} onChange={(e) => set("number", e.target.value)} className={cls} />
           </MiniField>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <MiniField label="Complemento:">
+          <MiniField label={form.is_foreign ? "Complement:" : "Complemento:"}>
             <input value={form.complement ?? ""} onChange={(e) => set("complement", e.target.value)} className={cls} />
           </MiniField>
-          <MiniField label="Bairro:">
+          <MiniField label={form.is_foreign ? "District:" : "Bairro:"}>
             <input value={form.district ?? ""} onChange={(e) => set("district", e.target.value)} className={cls} />
           </MiniField>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <MiniField label="Cidade:">
+        <div className="grid grid-cols-3 gap-3">
+          <MiniField label={form.is_foreign ? "City:" : "Cidade:"}>
             <input value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} className={cls} />
           </MiniField>
+          <MiniField label={form.is_foreign ? "State / Province:" : "Estado (UF):"}>
+            <input
+              value={form.state ?? ""}
+              onChange={(e) => set("state", e.target.value)}
+              className={cls}
+              placeholder={form.is_foreign ? "State / Province" : "Ex.: SP"}
+            />
+          </MiniField>
+          {form.is_foreign && (
+            <MiniField label="Country:">
+              <input
+                value={form.country ?? ""}
+                onChange={(e) => set("country", e.target.value)}
+                className={cls}
+                placeholder="Country"
+              />
+            </MiniField>
+          )}
         </div>
+
       </Section>
 
       {/* ============ CONTATO ============ */}
