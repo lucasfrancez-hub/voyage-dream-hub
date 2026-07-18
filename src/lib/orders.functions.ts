@@ -81,27 +81,49 @@ async function buildAutoTitle(context: { supabase: unknown }, orderId: string): 
     return a.idx - b.idx;
   });
 
-  const parts: string[] = [];
+  // Determina o destino principal da viagem
+  let flightDestCity: string | null = null;
   if (allSegs.length) {
     const firstOrig = allSegs[0].orig;
     const lastDest = allSegs[allSegs.length - 1].dest;
     if (firstOrig === lastDest && allSegs.length > 1) {
-      // Ida e volta: ponto de virada = destino do segmento no meio da jornada.
-      // Ex.: MGF→GRU, GRU→BEL, BEL→GRU, GRU→MGF → virada = BEL (segmento 2, cnt=4).
       const mid = Math.max(0, Math.floor(allSegs.length / 2) - 1);
-      const turnaround = allSegs[mid]?.dest || allSegs[0].dest;
-      parts.push(`Aéreo ${cityOf(firstOrig)} ⇄ ${cityOf(turnaround)}`);
+      flightDestCity = cityOf(allSegs[mid]?.dest || allSegs[0].dest);
     } else {
-      parts.push(`Aéreo ${cityOf(firstOrig)} → ${cityOf(lastDest)}`);
+      flightDestCity = cityOf(lastDest);
     }
-  } else if (flights.length) {
-    parts.push(`Aéreo${flights.length > 1 ? ` (${flights.length})` : ""}`);
   }
-  if (hotels.length) parts.push(hotels[0].title ? `Hospedagem ${hotels[0].title}` : "Hospedagem");
-  if (others.length) parts.push(others[0].title || "Serviços");
-  return parts.join(" + ").slice(0, 140) || null;
 
+  const hotelCity = (() => {
+    if (!hotels.length) return null;
+    const d = (hotels[0].details ?? {}) as Record<string, unknown>;
+    const c = String(d.city ?? d.cidade ?? d.destination ?? "").trim();
+    return c || null;
+  })();
+
+  const kinds = new Set(list.map((i) => i.kind));
+  const hasFlight = kinds.has("flight");
+  const hasHotel = kinds.has("hotel");
+  const hasOther = [...kinds].some((k) => k !== "flight" && k !== "hotel");
+  const typesCount = (hasFlight ? 1 : 0) + (hasHotel ? 1 : 0) + (hasOther ? 1 : 0);
+
+  const destino = flightDestCity || hotelCity || (others[0]?.title ?? null);
+
+  if (typesCount >= 2) {
+    return (destino ? `Pacote para ${destino}` : "Pacote de viagem").slice(0, 140);
+  }
+  if (hasFlight) {
+    return (destino ? `Passagem aérea para ${destino}` : "Passagem aérea").slice(0, 140);
+  }
+  if (hasHotel) {
+    return (destino ? `Hospedagem em ${destino}` : (hotels[0].title ? `Hospedagem ${hotels[0].title}` : "Hospedagem")).slice(0, 140);
+  }
+  if (hasOther) {
+    return (others[0].title || "Serviços").slice(0, 140);
+  }
+  return null;
 }
+
 
 async function applyAutoTitle(context: { supabase: unknown }, orderId: string): Promise<void> {
   try {
