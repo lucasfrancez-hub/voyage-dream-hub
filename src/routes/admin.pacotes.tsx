@@ -279,243 +279,330 @@ function AdminPackages() {
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="w-full max-w-3xl max-h-[92vh] rounded-2xl bg-card border border-border flex flex-col overflow-hidden">
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card px-6 py-4">
-              <h2 className="text-xl font-semibold">
-                {editing.id ? "Editar pacote" : "Novo pacote"}
-              </h2>
-              <button
-                onClick={() => setEditing(null)}
-                aria-label="Fechar"
-                className="rounded-full p-1.5 hover:bg-muted transition text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              <div className="grid sm:grid-cols-2 gap-3">
-              <FormField label="Slug (URL) *">
-                <input
-                  className={inp}
-                  value={editing.slug ?? ""}
-                  onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
-                  placeholder="jalapao-abril-2027"
-                />
-              </FormField>
-              <FormField label="Ordem">
-                <input
-                  type="number"
-                  className={inp}
-                  value={editing.sort_order ?? 0}
-                  onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })}
-                />
-              </FormField>
-              <FormField label="Título *" wide>
-                <input
-                  className={inp}
-                  value={editing.title ?? ""}
-                  onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                />
-              </FormField>
-              <FormField label="Destino *">
-                <input
-                  className={inp}
-                  value={editing.destination ?? ""}
-                  onChange={(e) => setEditing({ ...editing, destination: e.target.value })}
-                />
-              </FormField>
-              <FormField label="Origem">
-                <input
-                  className={inp}
-                  value={editing.origin ?? ""}
-                  onChange={(e) => setEditing({ ...editing, origin: e.target.value })}
-                />
-              </FormField>
-              <FormField label="Data ida">
-                <input
-                  type="date"
-                  className={inp}
-                  value={editing.going_date ?? ""}
-                  onChange={(e) => setEditing({ ...editing, going_date: e.target.value })}
-                />
-              </FormField>
-              <FormField label="Data volta">
-                <input
-                  type="date"
-                  className={inp}
-                  value={editing.return_date ?? ""}
-                  onChange={(e) => setEditing({ ...editing, return_date: e.target.value })}
-                />
-              </FormField>
-              <FormField label="Noites">
-                <input
-                  type="number"
-                  className={inp}
-                  value={editing.nights ?? 0}
-                  onChange={(e) => setEditing({ ...editing, nights: Number(e.target.value) })}
-                />
-              </FormField>
-              <FormField label="Preço por pessoa *">
-                <input
-                  type="number"
-                  step="0.01"
-                  className={inp}
-                  value={editing.price_per_person ?? 0}
-                  onChange={(e) => setEditing({ ...editing, price_per_person: Number(e.target.value) })}
-                />
-              </FormField>
-              <FormField label="Valor das taxas inclusas (informativo)">
-                <input
-                  type="number"
-                  step="0.01"
-                  className={inp}
-                  value={editing.taxes ?? 0}
-                  onChange={(e) => setEditing({ ...editing, taxes: Number(e.target.value) })}
-                />
-              </FormField>
-              <FormField label="Hotel">
-                <HotelAutocomplete
-                  value={editing.hotel_name ?? ""}
-                  onChangeText={(v) => setEditing({ ...editing, hotel_name: v })}
-                  onSelect={(h) => {
-                    setEditing((prev) => ({
-                      ...(prev ?? {}),
-                      hotel_name: h.name,
-                      hotel_stars: h.rating != null ? Math.round(h.rating) : (prev?.hotel_stars ?? 3),
-                      image_url: (prev?.image_url && prev.image_url.length > 0) ? prev.image_url : (h.photos[0] ?? prev?.image_url ?? ""),
-                      tripadvisor_location_id: String(h.location_id),
-                      tripadvisor_url: h.tripadvisor_url ?? null,
-                      tripadvisor_address: h.address ?? null,
-                      tripadvisor_photos: (h.photos && h.photos.length > 0) ? h.photos : null,
-                    }));
-                  }}
-                />
-              </FormField>
-              <FormField label="Estrelas (1-5)">
-                <input
-                  type="number"
-                  min={1}
-                  max={5}
-                  className={inp}
-                  value={editing.hotel_stars ?? 3}
-                  onChange={(e) => setEditing({ ...editing, hotel_stars: Number(e.target.value) })}
-                />
-              </FormField>
-              <FormField label="Regime de alimentação">
-                <select
-                  className={inp}
-                  value={editing.meal_plan ?? ""}
-                  onChange={(e) => setEditing({ ...editing, meal_plan: e.target.value })}
-                >
-                  <option value="">— Não informado —</option>
-                  <option value="Sem refeição">Sem refeição</option>
-                  <option value="Café da manhã">Café da manhã</option>
-                  <option value="Meia pensão">Meia pensão (café + 1 refeição)</option>
-                  <option value="Pensão completa">Pensão completa (café + almoço + jantar)</option>
-                  <option value="All inclusive">All inclusive</option>
-                </select>
-              </FormField>
-              <FormField label="Ocupação base (adultos)">
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  className={inp}
-                  value={editing.base_occupancy ?? 2}
-                  onChange={(e) => setEditing({ ...editing, base_occupancy: Number(e.target.value) })}
-                />
-              </FormField>
-              <FormField label="URL da imagem" wide>
-                <input
-                  className={inp}
-                  value={editing.image_url ?? ""}
-                  onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
-                  placeholder="https://…"
-                />
-              </FormField>
-              <FormField label="Resumo curto" wide>
-                <textarea
-                  className={`${inp} min-h-[70px]`}
-                  value={editing.summary ?? ""}
-                  onChange={(e) => setEditing({ ...editing, summary: e.target.value })}
-                />
-              </FormField>
-              <FormField label="Roteiro (uma linha por dia)" wide>
-                <textarea
-                  className={`${inp} min-h-[120px]`}
-                  value={editing.itinerary ?? ""}
-                  onChange={(e) => setEditing({ ...editing, itinerary: e.target.value })}
-                />
-              </FormField>
-              <FormField label="O que inclui (um por linha)" wide>
-                <textarea
-                  className={`${inp} min-h-[100px]`}
-                  value={
-                    Array.isArray(editing.includes)
-                      ? editing.includes.join("\n")
-                      : ((editing.includes as unknown as string) ?? "")
-                  }
-                  onChange={(e) => setEditing({ ...editing, includes: e.target.value as unknown as string[] })}
-                />
-              </FormField>
-
-              <FlightFieldset
-                title="Voo de ida"
-                value={editing.outbound_flight ?? null}
-                onChange={(f) => setEditing({ ...editing, outbound_flight: f })}
-              />
-              <FlightFieldset
-                title="Voo de volta"
-                value={editing.return_flight ?? null}
-                onChange={(f) => setEditing({ ...editing, return_flight: f })}
-              />
-
-              <FormField label="Fornecedor (interno — não aparece pro cliente)" wide>
-                <input
-                  className={inp}
-                  value={editing.supplier_name ?? ""}
-                  onChange={(e) => setEditing({ ...editing, supplier_name: e.target.value })}
-                  placeholder="Ex: CVC, Nascimento, Flytour…"
-                />
-              </FormField>
-
-
-              <FormField label="Ativo" wide>
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={editing.is_active ?? true}
-                    onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
-                  />
-                  <span className="text-sm">Mostrar no site</span>
-                </label>
-              </FormField>
-              </div>
-            </div>
-
-            <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-border bg-card px-6 py-4">
-              <button
-                onClick={() => setEditing(null)}
-                className="rounded-full border border-border px-4 py-2 text-sm"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={save}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Salvar
-              </button>
-            </div>
-          </div>
-        </div>
+        <PackageEditorModal
+          editing={editing}
+          setEditing={setEditing}
+          saving={saving}
+          save={save}
+        />
       )}
     </div>
   );
 }
+
+type PackageEditorModalProps = {
+  editing: Partial<PackageRow>;
+  setEditing: (v: Partial<PackageRow> | null) => void;
+  saving: boolean;
+  save: () => void;
+};
+
+type TabId = "about" | "dates" | "hotel" | "flights" | "extras";
+
+function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditorModalProps) {
+  const [tab, setTab] = useState<TabId>("about");
+
+  const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
+    { id: "about", label: "Sobre o pacote", icon: <span className="text-base">ℹ</span> },
+    { id: "dates", label: "Datas e Preços", icon: <span className="text-base">📅</span> },
+    { id: "hotel", label: "Hospedagem", icon: <span className="text-base">🏨</span> },
+    { id: "flights", label: "Aéreos", icon: <span className="text-base">✈</span> },
+    { id: "extras", label: "Extras e Inclusos", icon: <span className="text-base">📝</span> },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+      <div className="w-full max-w-5xl max-h-[92vh] rounded-2xl bg-card border border-border flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4 border-b border-border px-6 sm:px-8 py-5 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-1.5 h-8 bg-brand-orange rounded-full" />
+            <h2 className="text-xl sm:text-2xl font-display font-bold">
+              {editing.id ? "Editar pacote" : "Novo pacote"}
+            </h2>
+          </div>
+          <button
+            onClick={() => setEditing(null)}
+            aria-label="Fechar"
+            className="rounded-lg p-2 hover:bg-muted transition text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
+          {/* Sidebar */}
+          <aside className="w-full sm:w-64 bg-muted/20 border-b sm:border-b-0 sm:border-r border-border p-3 sm:p-4 flex sm:flex-col gap-1 shrink-0 overflow-x-auto sm:overflow-x-visible">
+            {tabs.map((t) => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                    active
+                      ? "bg-brand-orange/10 text-brand-orange border border-brand-orange/20"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
+                  }`}
+                >
+                  <span className="opacity-80">{t.icon}</span>
+                  {t.label}
+                </button>
+              );
+            })}
+          </aside>
+
+          {/* Content */}
+          <main className="flex-1 overflow-y-auto px-6 sm:px-8 py-6">
+            {tab === "about" && (
+              <div className="grid sm:grid-cols-2 gap-3">
+                <FormField label="Título *" wide>
+                  <input
+                    className={inp}
+                    value={editing.title ?? ""}
+                    onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+                    placeholder="Ex: Jalapão Místico"
+                  />
+                </FormField>
+                <FormField label="Slug (URL) *">
+                  <input
+                    className={inp}
+                    value={editing.slug ?? ""}
+                    onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
+                    placeholder="jalapao-abril-2027"
+                  />
+                </FormField>
+                <FormField label="Ordem de exibição">
+                  <input
+                    type="number"
+                    className={inp}
+                    value={editing.sort_order ?? 0}
+                    onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })}
+                  />
+                </FormField>
+                <FormField label="Destino *">
+                  <input
+                    className={inp}
+                    value={editing.destination ?? ""}
+                    onChange={(e) => setEditing({ ...editing, destination: e.target.value })}
+                  />
+                </FormField>
+                <FormField label="Origem">
+                  <input
+                    className={inp}
+                    value={editing.origin ?? ""}
+                    onChange={(e) => setEditing({ ...editing, origin: e.target.value })}
+                  />
+                </FormField>
+                <FormField label="URL da imagem de capa" wide>
+                  <input
+                    className={inp}
+                    value={editing.image_url ?? ""}
+                    onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
+                    placeholder="https://…"
+                  />
+                </FormField>
+                <FormField label="Resumo curto" wide>
+                  <textarea
+                    className={`${inp} min-h-[70px]`}
+                    value={editing.summary ?? ""}
+                    onChange={(e) => setEditing({ ...editing, summary: e.target.value })}
+                  />
+                </FormField>
+                <FormField label="Fornecedor (interno)" wide>
+                  <input
+                    className={inp}
+                    value={editing.supplier_name ?? ""}
+                    onChange={(e) => setEditing({ ...editing, supplier_name: e.target.value })}
+                    placeholder="Ex: CVC, Nascimento, Flytour…"
+                  />
+                </FormField>
+                <div className="sm:col-span-2 rounded-xl border border-border bg-muted/20 p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-medium">Ativo no site</div>
+                    <div className="text-xs text-muted-foreground">Se desativado, não aparece na listagem pública.</div>
+                  </div>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editing.is_active ?? true}
+                      onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
+                    />
+                    <span className="text-sm">Mostrar</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {tab === "dates" && (
+              <div className="grid sm:grid-cols-2 gap-3">
+                <FormField label="Data ida">
+                  <input
+                    type="date"
+                    className={inp}
+                    value={editing.going_date ?? ""}
+                    onChange={(e) => setEditing({ ...editing, going_date: e.target.value })}
+                  />
+                </FormField>
+                <FormField label="Data volta">
+                  <input
+                    type="date"
+                    className={inp}
+                    value={editing.return_date ?? ""}
+                    onChange={(e) => setEditing({ ...editing, return_date: e.target.value })}
+                  />
+                </FormField>
+                <FormField label="Noites">
+                  <input
+                    type="number"
+                    className={inp}
+                    value={editing.nights ?? 0}
+                    onChange={(e) => setEditing({ ...editing, nights: Number(e.target.value) })}
+                  />
+                </FormField>
+                <FormField label="Ocupação base (adultos)">
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    className={inp}
+                    value={editing.base_occupancy ?? 2}
+                    onChange={(e) => setEditing({ ...editing, base_occupancy: Number(e.target.value) })}
+                  />
+                </FormField>
+                <FormField label="Preço por pessoa *">
+                  <input
+                    type="number"
+                    step="0.01"
+                    className={inp}
+                    value={editing.price_per_person ?? 0}
+                    onChange={(e) => setEditing({ ...editing, price_per_person: Number(e.target.value) })}
+                  />
+                </FormField>
+                <FormField label="Valor das taxas inclusas (informativo)">
+                  <input
+                    type="number"
+                    step="0.01"
+                    className={inp}
+                    value={editing.taxes ?? 0}
+                    onChange={(e) => setEditing({ ...editing, taxes: Number(e.target.value) })}
+                  />
+                </FormField>
+              </div>
+            )}
+
+            {tab === "hotel" && (
+              <div className="grid sm:grid-cols-2 gap-3">
+                <FormField label="Hotel" wide>
+                  <HotelAutocomplete
+                    value={editing.hotel_name ?? ""}
+                    onChangeText={(v) => setEditing({ ...editing, hotel_name: v })}
+                    onSelect={(h) => {
+                      setEditing({
+                        ...editing,
+                        hotel_name: h.name,
+                        hotel_stars: h.rating != null ? Math.round(h.rating) : (editing.hotel_stars ?? 3),
+                        image_url: (editing.image_url && editing.image_url.length > 0) ? editing.image_url : (h.photos[0] ?? editing.image_url ?? ""),
+                        tripadvisor_location_id: String(h.location_id),
+                        tripadvisor_url: h.tripadvisor_url ?? null,
+                        tripadvisor_address: h.address ?? null,
+                        tripadvisor_photos: (h.photos && h.photos.length > 0) ? h.photos : null,
+                      });
+                    }}
+                  />
+                </FormField>
+                <FormField label="Estrelas (1-5)">
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    className={inp}
+                    value={editing.hotel_stars ?? 3}
+                    onChange={(e) => setEditing({ ...editing, hotel_stars: Number(e.target.value) })}
+                  />
+                </FormField>
+                <FormField label="Regime de alimentação">
+                  <select
+                    className={inp}
+                    value={editing.meal_plan ?? ""}
+                    onChange={(e) => setEditing({ ...editing, meal_plan: e.target.value })}
+                  >
+                    <option value="">— Não informado —</option>
+                    <option value="Sem refeição">Sem refeição</option>
+                    <option value="Café da manhã">Café da manhã</option>
+                    <option value="Meia pensão">Meia pensão (café + 1 refeição)</option>
+                    <option value="Pensão completa">Pensão completa (café + almoço + jantar)</option>
+                    <option value="All inclusive">All inclusive</option>
+                  </select>
+                </FormField>
+              </div>
+            )}
+
+            {tab === "flights" && (
+              <div className="grid grid-cols-1 gap-4">
+                <FlightFieldset
+                  title="Voo de ida"
+                  value={editing.outbound_flight ?? null}
+                  onChange={(f) => setEditing({ ...editing, outbound_flight: f })}
+                />
+                <FlightFieldset
+                  title="Voo de volta"
+                  value={editing.return_flight ?? null}
+                  onChange={(f) => setEditing({ ...editing, return_flight: f })}
+                />
+              </div>
+            )}
+
+            {tab === "extras" && (
+              <div className="grid grid-cols-1 gap-3">
+                <FormField label="Roteiro (uma linha por dia)" wide>
+                  <textarea
+                    className={`${inp} min-h-[140px]`}
+                    value={editing.itinerary ?? ""}
+                    onChange={(e) => setEditing({ ...editing, itinerary: e.target.value })}
+                  />
+                </FormField>
+                <FormField label="O que inclui (um por linha)" wide>
+                  <textarea
+                    className={`${inp} min-h-[140px]`}
+                    value={
+                      Array.isArray(editing.includes)
+                        ? editing.includes.join("\n")
+                        : ((editing.includes as unknown as string) ?? "")
+                    }
+                    onChange={(e) => setEditing({ ...editing, includes: e.target.value as unknown as string[] })}
+                  />
+                </FormField>
+              </div>
+            )}
+          </main>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/20 px-6 sm:px-8 py-4 shrink-0">
+          <p className="text-xs text-muted-foreground hidden sm:block">* Campos obrigatórios</p>
+          <div className="flex gap-2 ml-auto">
+            <button
+              onClick={() => setEditing(null)}
+              className="rounded-full border border-border px-4 py-2 text-sm hover:bg-muted"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={save}
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Salvar pacote
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 const inp =
   "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/40";
