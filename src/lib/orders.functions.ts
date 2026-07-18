@@ -263,6 +263,7 @@ export const getOrderDetail = createServerFn({ method: "GET" })
       paid_at: p.paid_at,
       added_by_name: p.added_by_name,
       notes: p.notes,
+      order_item_ids: (p as { order_item_ids?: string[] | null }).order_item_ids ?? null,
       created_at: p.created_at,
     }));
 
