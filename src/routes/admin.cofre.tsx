@@ -658,7 +658,7 @@ function TabPill({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all ${
+      className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all ${
         active
           ? "bg-brand-orange text-white shadow-lg shadow-brand-orange/20"
           : "text-muted-foreground hover:text-foreground"
