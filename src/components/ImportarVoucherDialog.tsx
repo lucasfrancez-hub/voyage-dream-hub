@@ -129,16 +129,17 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
         }
       }
 
-      // Financeiro do item (valor + taxas)
-      const value = Number(details.value ?? 0);
-      const taxes = Number(details.tax_value ?? 0);
-      if (saved?.id && (value > 0 || taxes > 0)) {
+      // Financeiro do item (valor + taxas) — sempre espelha no financeiro
+      // para hotel/serviço, mesmo com valor zerado, para o usuário editar depois.
+      const value = Number(details.value ?? 0) || 0;
+      const taxes = Number(details.tax_value ?? 0) || 0;
+      if (saved?.id) {
         await saveFin({ data: {
           order_item_id: saved.id,
           supplier_name: extracted.supplier_name ?? null,
           sale_value: value,
           tax_value: taxes,
-          total: value,
+          total: value + taxes,
           sort_order: 0,
         } });
       }
