@@ -591,7 +591,8 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
           handwritten_enabled: false, // sem assinatura manuscrita
         },
       }),
-    });
+    }, { preferSandbox: true });
+
 
     // 3) Vincula signer ao documento — sem enviar notificações (widget)
     type ListResp = { list: { request_signature_key: string } };
