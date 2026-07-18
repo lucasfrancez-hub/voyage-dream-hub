@@ -1309,14 +1309,17 @@ const aggregateBaggage = (items: OrderItem[]) =>
   items.reduce(
     (acc, it) => {
       const dd = (it.details ?? {}) as Record<string, unknown>;
+      // Bolsa/mochila e bagagem de mão são padrão em toda passagem — só ficam
+      // de fora se o usuário desmarcar explicitamente (=== false).
       return {
-        personal: acc.personal || !!dd.personal_item,
-        carry: acc.carry || !!dd.carry_on,
+        personal: acc.personal || dd.personal_item !== false,
+        carry: acc.carry || dd.carry_on !== false,
         checked: acc.checked || !!dd.checked_bag,
       };
     },
     { personal: false, carry: false, checked: false },
   );
+
 
 // Escolhe o localizador exibido no voucher aéreo.
 // Para LATAM (IATA "LA" ou número do voo iniciando por "LA"), preferimos o
