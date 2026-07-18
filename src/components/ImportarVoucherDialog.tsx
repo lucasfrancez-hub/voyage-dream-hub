@@ -117,7 +117,7 @@ export function ImportarVoucherDialog({ orderId, kind, onImported, trigger }: Pr
     const status: "confirmed" | "reserved" | "pending" = extracted.status ?? (extracted.supplier_locator ? "confirmed" : "reserved");
     const title = extracted.title?.trim() ||
       (extracted.kind === "hotel"
-        ? `Hospedagem — ${String(details.hotel_name ?? "")}`.trim()
+        ? String(details.hotel_name ?? "").trim() || "Hospedagem"
         : "Serviço");
     const saved = await saveItem({ data: {
       order_id: orderId,
