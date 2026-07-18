@@ -113,6 +113,11 @@ export function ImportarMultiDialog({ orderId, onImported, trigger }: Props) {
         setPhase("idle");
         return;
       }
+      for (const it of r.items) {
+        if (it.kind === "other" || it.kind === "hotel") {
+          it.supplier_locator = normalizeServiceLocator(it.supplier_locator);
+        }
+      }
       setResult(r);
       const initSel: Record<number, boolean> = {};
       r.items.forEach((_, i) => (initSel[i] = true));
