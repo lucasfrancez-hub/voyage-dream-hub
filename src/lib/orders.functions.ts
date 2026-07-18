@@ -855,6 +855,28 @@ export const upsertOrderPayment = createServerFn({ method: "POST" })
     return { id: created.id };
   });
 
+export const revealOrderPaymentCardNumber = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) {
+      const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
+    const { data: row, error } = await context.supabase
+      .from("order_payments")
+      .select("card_number_enc")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const enc = (row as any)?.card_number_enc as string | null | undefined;
+    if (!enc) return { number: null as string | null };
+    const { decryptCardNumber } = await import("./card-crypto.server");
+    return { number: decryptCardNumber(enc) };
+  });
+
 export const deleteOrderPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => input)
