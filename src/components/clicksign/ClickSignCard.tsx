@@ -236,6 +236,25 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
               <Send className="h-3.5 w-3.5 mr-1.5" /> Reenviar
             </Button>
           )}
+
+          {assinatura && (assinatura.status === "refused" || assinatura.status === "canceled" || assinatura.status === "draft") && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-red-600 hover:text-red-700"
+              disabled={deleteMut.isPending}
+              title="Excluir este envio"
+              onClick={() => confirmThen(
+                "Excluir esta assinatura? Esta ação não pode ser desfeita.",
+                () => deleteMut.mutate(assinatura.id),
+              )}
+            >
+              {deleteMut.isPending
+                ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                : <Trash2 className="h-3.5 w-3.5 mr-1.5" />}
+              Excluir
+            </Button>
+          )}
         </div>
       </div>
 
