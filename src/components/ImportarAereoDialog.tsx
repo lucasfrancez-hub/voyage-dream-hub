@@ -506,19 +506,19 @@ function ReviewReservation({
           </div>
           <div>
             <Label className="text-xs">Tarifa</Label>
-            <Input inputMode="decimal" value={reservation.base_fare ?? ""} onChange={(e) => onChange({ ...reservation, base_fare: parseBRL(e.target.value) })} placeholder="0,00" />
+            <Input inputMode="decimal" value={rawMoney.base} onChange={(e) => onMoney("base", e.target.value)} placeholder="0,00" />
           </div>
           <div>
             <Label className="text-xs">Taxas (soma)</Label>
-            <Input inputMode="decimal" value={reservation.taxes ?? ""} onChange={(e) => onChange({ ...reservation, taxes: parseBRL(e.target.value) })} placeholder="0,00" />
+            <Input inputMode="decimal" value={rawMoney.taxes} onChange={(e) => onMoney("taxes", e.target.value)} placeholder="0,00" />
           </div>
           <div>
             <Label className="text-xs">Fees</Label>
-            <Input inputMode="decimal" value={reservation.fees ?? ""} onChange={(e) => onChange({ ...reservation, fees: parseBRL(e.target.value) })} placeholder="0,00" />
+            <Input inputMode="decimal" value={rawMoney.fees} onChange={(e) => onMoney("fees", e.target.value)} placeholder="0,00" />
           </div>
           <div>
             <Label className="text-xs">Total</Label>
-            <Input inputMode="decimal" value={reservation.total_fare ?? ""} onChange={(e) => onChange({ ...reservation, total_fare: parseBRL(e.target.value) })} placeholder="11.406,30" />
+            <Input inputMode="decimal" value={rawMoney.total} onChange={(e) => onMoney("total", e.target.value)} placeholder="11.406,30" />
           </div>
         </div>
       </div>
