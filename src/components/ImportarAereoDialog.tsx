@@ -237,7 +237,8 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
             lastName: holderLastName,
             originIata: blockOrigin,
           });
-          await saveItem({ data: {
+          const newItemIds: string[] = [];
+          const { id: itemId } = await saveItem({ data: {
             order_id: orderId,
             kind: "flight",
             status: itemStatus,
@@ -275,9 +276,22 @@ export function ImportarAereoDialog({ orderId, onImported, trigger }: Props) {
               ...(checkinUrl ? { airline_checkin_url: checkinUrl } : {}),
             },
           } });
+          newItemIds.push(itemId);
+          // acumula fora do loop
+          allNewItemIds.push(itemId);
         }
       }
       await consume({ data: { token } });
+
+      // Vincula somente os passageiros importados aos novos itens (sobrescreve
+      // links criados automaticamente por trigger).
+      if (allNewItemIds.length && newPassengerIds.length) {
+        await linkImport({ data: {
+          order_id: orderId,
+          item_ids: allNewItemIds,
+          passenger_ids: newPassengerIds,
+        } });
+      }
 
       // Localizador principal do pedido = localizador da cia (sempre sobrescreve)
       const mainLocator = reservation.locator?.trim() ?? "";
