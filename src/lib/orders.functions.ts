@@ -905,6 +905,20 @@ export type CreateOrderInput = {
   notes?: string | null;
   supplier_name?: string | null;
   airline_locator?: string | null;
+  person_id?: string | null;
+  birth_date?: string | null;
+  payer_full_name?: string | null;
+  payer_cpf?: string | null;
+  payer_ie_rg?: string | null;
+  payer_email?: string | null;
+  payer_phone?: string | null;
+  payer_birth_date?: string | null;
+  payer_zip?: string | null;
+  payer_address?: string | null;
+  payer_number?: string | null;
+  payer_district?: string | null;
+  payer_city?: string | null;
+  payer_state?: string | null;
 };
 
 export const createOrder = createServerFn({ method: "POST" })
@@ -916,24 +930,39 @@ export const createOrder = createServerFn({ method: "POST" })
       const { data: isPartner } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "partner" });
       if (!isPartner) throw new Error("Forbidden");
     }
-    const payload = {
+    const nn = (v?: string | null) => (v && String(v).trim() !== "" ? v : null);
+    const payload: Record<string, unknown> = {
       full_name: data.full_name,
       email: data.email,
       phone: data.phone,
-      cpf: data.cpf ?? null,
+      cpf: nn(data.cpf),
       payment_method: data.payment_method,
       total_price: data.total_price ?? 0,
       adults: data.adults ?? 1,
       children: data.children ?? 0,
-      notes: data.notes ?? null,
-      supplier_name: data.supplier_name ?? null,
-      airline_locator: data.airline_locator ?? null,
+      notes: nn(data.notes),
+      supplier_name: nn(data.supplier_name),
+      airline_locator: nn(data.airline_locator),
+      person_id: nn(data.person_id),
+      birth_date: nn(data.birth_date),
+      payer_full_name: nn(data.payer_full_name),
+      payer_cpf: nn(data.payer_cpf),
+      payer_ie_rg: nn(data.payer_ie_rg),
+      payer_email: nn(data.payer_email),
+      payer_phone: nn(data.payer_phone),
+      payer_birth_date: nn(data.payer_birth_date),
+      payer_zip: nn(data.payer_zip),
+      payer_address: nn(data.payer_address),
+      payer_number: nn(data.payer_number),
+      payer_district: nn(data.payer_district),
+      payer_city: nn(data.payer_city),
+      payer_state: nn(data.payer_state),
       status: "pending",
       package_snapshot: { manual: true, title: "Pedido manual" },
     };
     const { data: created, error } = await context.supabase
       .from("orders")
-      .insert(payload)
+      .insert(payload as never)
       .select("id, order_number")
       .single();
     if (error) throw new Error(error.message);

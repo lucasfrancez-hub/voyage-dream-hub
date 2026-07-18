@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
 import { createOrder } from "@/lib/orders.functions";
-import { searchPeople } from "@/lib/people.functions";
+import { searchPeople, listPersonCards } from "@/lib/people.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -480,6 +480,7 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
   const navigate = useNavigate();
   const create = useServerFn(createOrder);
   const search = useServerFn(searchPeople);
+  const listCards = useServerFn(listPersonCards);
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -492,7 +493,17 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
     supplier_name: "",
     airline_locator: "",
     notes: "",
+    person_id: "" as string,
+    birth_date: "",
+    rg: "",
+    zip: "",
+    address: "",
+    number: "",
+    district: "",
+    city: "",
+    state: "",
   });
+  const [savedCardInfo, setSavedCardInfo] = useState<string | null>(null);
   const [personQuery, setPersonQuery] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [showResults, setShowResults] = useState(false);
@@ -510,7 +521,33 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
 
 
   const mut = useMutation({
-    mutationFn: async () => create({ data: { ...form } }),
+    mutationFn: async () => create({ data: {
+      full_name: form.full_name,
+      email: form.email,
+      phone: form.phone,
+      cpf: form.cpf,
+      payment_method: form.payment_method,
+      total_price: form.total_price,
+      adults: form.adults,
+      children: form.children,
+      supplier_name: form.supplier_name,
+      airline_locator: form.airline_locator,
+      notes: form.notes,
+      person_id: form.person_id || null,
+      birth_date: form.birth_date || null,
+      payer_full_name: form.full_name || null,
+      payer_cpf: form.cpf || null,
+      payer_ie_rg: form.rg || null,
+      payer_email: form.email || null,
+      payer_phone: form.phone || null,
+      payer_birth_date: form.birth_date || null,
+      payer_zip: form.zip || null,
+      payer_address: form.address || null,
+      payer_number: form.number || null,
+      payer_district: form.district || null,
+      payer_city: form.city || null,
+      payer_state: form.state || null,
+    } }),
     onSuccess: (r) => {
       toast.success(`Pedido ${r.order_number} criado`);
       onOpenChange(false);
@@ -556,17 +593,35 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setForm((f) => ({
                         ...f,
+                        person_id: p.id,
                         full_name: p.name ?? f.full_name,
                         email: p.email ?? f.email,
                         phone: p.mobile_phone ?? p.phone ?? f.phone,
                         cpf: p.cpf ?? p.cnpj ?? f.cpf,
+                        birth_date: p.birth_date ?? f.birth_date,
+                        rg: p.rg ?? f.rg,
+                        zip: p.zip ?? f.zip,
+                        address: p.address ?? f.address,
+                        number: p.number ?? f.number,
+                        district: p.district ?? f.district,
+                        city: p.city ?? f.city,
+                        state: p.state ?? f.state,
                       }));
                       setPersonQuery(p.name ?? "");
                       setShowResults(false);
                       toast.success(`Cliente "${p.name}" carregado`);
+                      try {
+                        const cards = await listCards({ data: { person_id: p.id } });
+                        if (cards && cards.length > 0) {
+                          const c = cards[0];
+                          setSavedCardInfo(`${cards.length} cartão(ões) salvo(s) — ${c.brand ?? ""} •••• ${c.last4 ?? ""}`);
+                        } else {
+                          setSavedCardInfo(null);
+                        }
+                      } catch { setSavedCardInfo(null); }
                     }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-muted/60 border-b border-border/40 last:border-b-0"
                   >
@@ -578,11 +633,28 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
                 ))}
               </div>
             )}
+            {savedCardInfo && (
+              <p className="mt-1 text-[11px] text-primary">💳 {savedCardInfo} — será sugerido no pagamento</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
             <div><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label>Nascimento</Label><Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+            <div><Label>RG</Label><Input value={form.rg} onChange={(e) => setForm({ ...form, rg: e.target.value })} /></div>
+            <div><Label>CEP</Label><Input value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2"><Label>Endereço</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+            <div><Label>Número</Label><Input value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label>Bairro</Label><Input value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} /></div>
+            <div><Label>Cidade</Label><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
+            <div><Label>UF</Label><Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value.toUpperCase() })} maxLength={2} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
