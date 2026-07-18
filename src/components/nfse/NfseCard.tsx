@@ -14,6 +14,7 @@ import {
 import {
   emitirNfse, consultarNfse, cancelarNfse, listNfseByOrder,
 } from "@/lib/nfse.functions";
+import { getPerson } from "@/lib/people.functions";
 import type { OrderDetail } from "@/lib/orders.functions";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -135,6 +136,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   const emitFn = useServerFn(emitirNfse);
   const consultFn = useServerFn(consultarNfse);
   const cancelFn = useServerFn(cancelarNfse);
+  const getPersonFn = useServerFn(getPerson);
 
   const key = ["nfse", order.id] as const;
   const { data: emissoes = [], isLoading } = useQuery({
@@ -145,26 +147,72 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
         ? 8000 : false,
   });
 
+  const personId = order.personId ?? null;
+  const { data: personData } = useQuery({
+    queryKey: ["nfse-person", personId],
+    queryFn: () => getPersonFn({ data: { id: personId! } }),
+    enabled: !!personId,
+    staleTime: 60_000,
+  });
+
   const [open, setOpen] = useState(false);
   const defaultDisc = buildAutoDescricao(detail);
   const [form, setForm] = useState({
-    razaoSocial: order.payerFullName || order.fullName || "",
-    cpfCnpj: order.payerCpf || order.cpf || "",
-    email: order.payerEmail || order.email || "",
+    razaoSocial: "",
+    cpfCnpj: "",
+    email: "",
+    phone: "",
     valor: String(order.totalPrice ?? 0),
     discriminacao: defaultDisc,
+    cep: "",
+    logradouro: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    uf: "",
   });
 
-  const openDialog = () => {
-    setForm({
-      razaoSocial: order.payerFullName || order.fullName || "",
-      cpfCnpj: order.payerCpf || order.cpf || "",
-      email: order.payerEmail || order.email || "",
+  const buildInitialForm = () => {
+    const p = personData?.person as Record<string, unknown> | undefined;
+    const pStr = (k: string) => (p ? String(p[k] ?? "") : "");
+    const primaryPhone = personData?.phones?.find((x) => x.is_primary)?.number
+      ?? personData?.phones?.[0]?.number ?? "";
+    const primaryEmail = personData?.emails?.find((x) => x.is_primary)?.address
+      ?? personData?.emails?.[0]?.address ?? "";
+
+    const pf = pStr("cpf");
+    const pj = pStr("cnpj");
+    const doc = pj || pf || order.payerCpf || order.cpf || "";
+    const nome = pStr("legal_name") || pStr("name") || order.payerFullName || order.fullName || "";
+
+    return {
+      razaoSocial: nome,
+      cpfCnpj: doc,
+      email: primaryEmail || pStr("email") || order.payerEmail || order.email || "",
+      phone: primaryPhone || pStr("mobile_phone") || pStr("phone") || order.payerPhone || "",
       valor: String(order.totalPrice ?? 0),
       discriminacao: defaultDisc,
-    });
+      cep: pStr("zip") || order.payerZip || "",
+      logradouro: pStr("address") || order.payerAddress || "",
+      numero: pStr("number") || order.payerNumber || "",
+      complemento: pStr("complement") || "",
+      bairro: pStr("district") || order.payerDistrict || "",
+      cidade: pStr("city") || order.payerCity || "",
+      uf: pStr("state") || order.payerState || "",
+    };
+  };
+
+  const openDialog = () => {
+    setForm(buildInitialForm());
     setOpen(true);
   };
+
+  // Se a pessoa carregar depois de abrir, repopula
+  useEffect(() => {
+    if (open && personData) setForm(buildInitialForm());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [personData]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -176,7 +224,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
     window.addEventListener("nfse:open-emit", handler as EventListener);
     return () => window.removeEventListener("nfse:open-emit", handler as EventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order.id]);
+  }, [order.id, personData]);
 
   const emitMut = useMutation({
     mutationFn: async () => {
@@ -195,12 +243,12 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
             cpfCnpj: doc,
             email: form.email.trim() || null,
             endereco: {
-              logradouro: order.payerAddress ?? null,
-              numero: order.payerNumber ?? null,
-              complemento: null,
-              bairro: order.payerDistrict ?? null,
-              uf: order.payerState ?? null,
-              cep: order.payerZip ?? null,
+              logradouro: form.logradouro.trim() || null,
+              numero: form.numero.trim() || null,
+              complemento: form.complemento.trim() || null,
+              bairro: form.bairro.trim() || null,
+              uf: (form.uf.trim() || null)?.toUpperCase() ?? null,
+              cep: form.cep.replace(/\D/g, "") || null,
             },
           },
         },
@@ -213,6 +261,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
+
 
   const consultMut = useMutation({
     mutationFn: (id: string) => consultFn({ data: { id } }),
@@ -296,35 +345,86 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Emitir NFS-e</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Nome / Razão social do tomador</Label>
-              <Input value={form.razaoSocial} onChange={(e) => setForm((f) => ({ ...f, razaoSocial: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tomador</div>
               <div>
-                <Label>CPF ou CNPJ</Label>
-                <Input value={form.cpfCnpj} onChange={(e) => setForm((f) => ({ ...f, cpfCnpj: e.target.value }))} />
+                <Label>Nome / Razão social</Label>
+                <Input value={form.razaoSocial} onChange={(e) => setForm((f) => ({ ...f, razaoSocial: e.target.value }))} />
               </div>
-              <div>
-                <Label>Valor dos serviços (R$)</Label>
-                <Input value={form.valor} onChange={(e) => setForm((f) => ({ ...f, valor: e.target.value }))} />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>CPF ou CNPJ</Label>
+                  <Input value={form.cpfCnpj} onChange={(e) => setForm((f) => ({ ...f, cpfCnpj: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Valor dos serviços (R$)</Label>
+                  <Input value={form.valor} onChange={(e) => setForm((f) => ({ ...f, valor: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>E-mail (opcional)</Label>
+                  <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Telefone (opcional)</Label>
+                  <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+                </div>
               </div>
             </div>
-            <div>
-              <Label>E-mail (opcional)</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+
+            <div className="space-y-3">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Endereço</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>CEP</Label>
+                  <Input value={form.cep} onChange={(e) => setForm((f) => ({ ...f, cep: e.target.value }))} />
+                </div>
+                <div className="col-span-2">
+                  <Label>Logradouro</Label>
+                  <Input value={form.logradouro} onChange={(e) => setForm((f) => ({ ...f, logradouro: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Número</Label>
+                  <Input value={form.numero} onChange={(e) => setForm((f) => ({ ...f, numero: e.target.value }))} />
+                </div>
+                <div className="col-span-2">
+                  <Label>Complemento</Label>
+                  <Input value={form.complemento} onChange={(e) => setForm((f) => ({ ...f, complemento: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Bairro</Label>
+                  <Input value={form.bairro} onChange={(e) => setForm((f) => ({ ...f, bairro: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Cidade</Label>
+                  <Input value={form.cidade} onChange={(e) => setForm((f) => ({ ...f, cidade: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>UF</Label>
+                  <Input maxLength={2} value={form.uf} onChange={(e) => setForm((f) => ({ ...f, uf: e.target.value.toUpperCase() }))} />
+                </div>
+              </div>
             </div>
+
             <div>
               <Label>Discriminação do serviço</Label>
               <Textarea rows={8} className="font-mono text-xs" value={form.discriminacao} onChange={(e) => setForm((f) => ({ ...f, discriminacao: e.target.value }))} />
             </div>
             <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
               ISS calculado: <b>{brl(Number(form.valor.replace(",", ".") || 0) * 0.04)}</b> · Item 9.02 · Paranavaí/PR
+              {personId && personData && (
+                <span className="ml-2 text-emerald-600">· Dados do tomador carregados do cadastro</span>
+              )}
             </div>
           </div>
           <DialogFooter>
