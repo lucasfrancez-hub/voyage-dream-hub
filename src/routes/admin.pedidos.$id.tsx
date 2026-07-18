@@ -530,8 +530,8 @@ function OrderDetailPage() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground" title="Mais ações">
-                  <MoreHorizontal className="h-4 w-4" />
+                <Button size="sm" variant="outline" className="h-9 gap-2" title="Ajustes do pedido">
+                  <Percent className="h-4 w-4" /> Ajustes
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
