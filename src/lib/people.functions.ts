@@ -320,3 +320,82 @@ export const revealPersonCardNumber = createServerFn({ method: "POST" })
     const { decryptCardNumber } = await import("@/lib/card-crypto.server");
     return { number: decryptCardNumber((row as any).number_ciphertext) };
   });
+
+export type PersonSaleRow = {
+  id: string;
+  order_number: string | null;
+  trip_title: string | null;
+  supplier_name: string | null;
+  status: string | null;
+  total_price: number | null;
+  created_at: string;
+  paid: number;
+  pending: number;
+};
+
+export type PersonFinancialSummary = {
+  orders_count: number;
+  total_gross: number;
+  total_paid: number;
+  total_pending: number;
+  last_order_at: string | null;
+};
+
+export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ sales: PersonSaleRow[]; summary: PersonFinancialSummary }> => {
+    await ensureInternal(context);
+    const { data: orders, error } = await context.supabase
+      .from("orders")
+      .select("id, order_number, trip_title, supplier_name, status, total_price, created_at")
+      .eq("person_id", data.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) throw new Error(error.message);
+    const list = (orders ?? []) as any[];
+    const ids = list.map((o) => o.id);
+    let payments: any[] = [];
+    if (ids.length > 0) {
+      const { data: pays, error: pErr } = await context.supabase
+        .from("order_payments")
+        .select("order_id, amount, status")
+        .in("order_id", ids);
+      if (pErr) throw new Error(pErr.message);
+      payments = pays ?? [];
+    }
+    const paidMap: Record<string, number> = {};
+    const pendMap: Record<string, number> = {};
+    for (const p of payments) {
+      const amt = Number(p.amount) || 0;
+      if (String(p.status).toLowerCase() === "paid") paidMap[p.order_id] = (paidMap[p.order_id] ?? 0) + amt;
+      else pendMap[p.order_id] = (pendMap[p.order_id] ?? 0) + amt;
+    }
+    const sales: PersonSaleRow[] = list.map((o) => ({
+      id: o.id,
+      order_number: o.order_number,
+      trip_title: o.trip_title,
+      supplier_name: o.supplier_name,
+      status: o.status,
+      total_price: o.total_price != null ? Number(o.total_price) : null,
+      created_at: o.created_at,
+      paid: paidMap[o.id] ?? 0,
+      pending: pendMap[o.id] ?? 0,
+    }));
+    const total_gross = sales.reduce((s, r) => s + (r.total_price ?? 0), 0);
+    const total_paid = sales.reduce((s, r) => s + r.paid, 0);
+    const total_pending = sales.reduce((s, r) => s + r.pending, 0);
+    return {
+      sales,
+      summary: {
+        orders_count: sales.length,
+        total_gross,
+        total_paid,
+        total_pending,
+        last_order_at: sales[0]?.created_at ?? null,
+      },
+    };
+  });
