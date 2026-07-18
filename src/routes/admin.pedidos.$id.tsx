@@ -3451,33 +3451,41 @@ function FinanceDialog({
   });
 
   useMemo(() => {
-    const basePct = initial?.commission_pct ?? defaultCommissionPct(selectedKind, isPackage);
+    const fallbackPct = defaultCommissionPct(selectedKind, isPackage);
+    const rawPct = Number(initial?.commission_pct ?? fallbackPct);
+    const commissionable = initial?.is_commissionable ?? true;
+    // Se está comissionável mas veio 0%, aplica o padrão (12%) pra usuário ajustar depois.
+    const basePct = commissionable && rawPct <= 0 ? fallbackPct : rawPct;
     const sale = initial?.sale_value ?? defaultSale;
     const tax = initial?.tax_value ?? defaultTax;
     const disc = initial?.discount_value ?? 0;
-    const commissionable = initial?.is_commissionable ?? true;
     const effectivePct = commissionable ? basePct : 0;
     setForm({
       supplier_name: initial?.supplier_name ?? defaultSupplier,
       sale_value: sale,
       tax_value: tax,
       discount_value: disc,
-      commission_value: initial?.commission_value ?? Number((sale * (effectivePct / 100)).toFixed(2)),
+      commission_value: Number((Math.max(0, sale) * (effectivePct / 100)).toFixed(2)),
       commission_pct: basePct,
       is_commissionable: commissionable,
       rav_value: initial?.rav_value ?? 0,
       exchange_rate: initial?.exchange_rate ?? 1,
       due_date: initial?.due_date ?? "",
-      total: initial?.total ?? Number((sale + tax - disc + (initial?.rav_value ?? 0)).toFixed(2)),
+      total: initial?.total ?? 0,
       notes: initial?.notes ?? "",
     });
-  }, [initial, selectedKind, isPackage, defaultSale, defaultTax, defaultSupplier]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial, selectedItem]);
 
 
   // Total (venda) = tarifa + taxas − desconto + RAV. RAV é receita adicional
   // cobrada do cliente, então soma no total do item e no total da venda.
   const recalc = (patch: Partial<typeof form>) => {
     const next = { ...form, ...patch };
+    // Ao ligar "comissionável" com pct zerado, cai no padrão (12%) pra evitar 0% surpresa.
+    if (patch.is_commissionable === true && (!next.commission_pct || Number(next.commission_pct) <= 0)) {
+      next.commission_pct = defaultCommissionPct(selectedKind, isPackage);
+    }
     const sale = Number(next.sale_value) || 0;
     const tax = Number(next.tax_value) || 0;
     const disc = Number(next.discount_value) || 0;
@@ -3489,6 +3497,7 @@ function FinanceDialog({
     next.total = Number((sale + tax - disc + rav).toFixed(2));
     setForm(next);
   };
+
 
   const base = Math.max(0, Number(form.sale_value) || 0);
 
