@@ -27,9 +27,9 @@ export type CofreOrder = {
   id: string;
   createdAt: string;
   status: string;
-  fullName: string | null;
-  email: string | null;
-  phone: string | null;
+  fullName: string;
+  email: string;
+  phone: string;
   cpf: string | null;
   birthDate: string | null;
   adults: number;
@@ -78,9 +78,9 @@ export const listCofreOrders = createServerFn({ method: "GET" })
         id: o.id,
         createdAt: o.created_at,
         status: o.status,
-        fullName: o.full_name,
-        email: o.email,
-        phone: o.phone,
+        fullName: o.full_name ?? "",
+        email: o.email ?? "",
+        phone: o.phone ?? "",
         cpf: o.cpf ?? null,
         birthDate: o.birth_date ?? null,
         adults: o.adults,
