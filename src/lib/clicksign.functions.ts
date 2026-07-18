@@ -543,6 +543,7 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
     const deadlineAt = new Date();
     deadlineAt.setDate(deadlineAt.getDate() + 7);
     const docResp = await csFetch<DocResp>("/documents", {
+
       method: "POST",
       body: JSON.stringify({
         document: {
