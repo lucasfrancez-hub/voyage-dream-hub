@@ -364,8 +364,8 @@ export const cancelarNfse = createServerFn({ method: "POST" })
       .from("nfse_emissoes")
       .update({
         status: "cancelado",
-        cancelamento_motivo: data.justificativa ?? null,
-        cancelado_em: new Date().toISOString(),
+        motivo_cancelamento: data.justificativa ?? null,
+        cancelada_em: new Date().toISOString(),
       } as never)
       .eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
