@@ -155,6 +155,12 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao sincronizar"),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: async (assinaturaId: string) => deleteFn({ data: { assinaturaId } }),
+    onSuccess: () => { toast.success("Assinatura excluída"); invalidate(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao excluir"),
+  });
+
   const assinatura = data?.assinatura;
   const signers = data?.signers ?? [];
 
