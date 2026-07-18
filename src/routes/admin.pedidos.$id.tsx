@@ -645,9 +645,13 @@ function PassengersSection({
   const upsertItem = useServerFn(upsertOrderItem);
   const del = useServerFn(deletePassenger);
   const delAll = useServerFn(deleteAllOrderPassengers);
+  const qc = useQueryClient();
   const [editing, setEditing] = useState<OrderPassenger | null>(null);
   const [open, setOpen] = useState(false);
   const [mondeOpen, setMondeOpen] = useState(false);
+
+  const patchDetail = (fn: (d: OrderDetail) => OrderDetail) =>
+    qc.setQueryData<OrderDetail>(["admin", "orderDetail", orderId], (d) => (d ? fn(d) : d));
 
   const save = useMutation({
     mutationFn: async (p: Partial<OrderPassenger> & { order_id: string; full_name: string }) =>
@@ -657,14 +661,19 @@ function PassengersSection({
   });
   const remove = useMutation({
     mutationFn: async (pid: string) => del({ data: { id: pid } }),
+    onMutate: (pid: string) => {
+      patchDetail((d) => ({ ...d, passengers: d.passengers.filter((p) => p.id !== pid) }));
+    },
     onSuccess: () => { toast.success("Passageiro removido"); onChange(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+    onError: (e) => { toast.error(e instanceof Error ? e.message : "Erro"); onChange(); },
   });
   const removeAll = useMutation({
     mutationFn: async () => delAll({ data: { order_id: orderId } }),
+    onMutate: () => { patchDetail((d) => ({ ...d, passengers: [] })); },
     onSuccess: () => { toast.success("Passageiros removidos"); onChange(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+    onError: (e) => { toast.error(e instanceof Error ? e.message : "Erro"); onChange(); },
   });
+
 
   function openNew() { setEditing(null); setOpen(true); }
   function openEdit(p: OrderPassenger) { setEditing(p); setOpen(true); }
