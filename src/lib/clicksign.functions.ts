@@ -175,12 +175,11 @@ export const createSignatureRequest = createServerFn({ method: "POST" })
       body: JSON.stringify({
         signer: {
           email: data.cliente.email,
-          phone_number: phoneE164,
           name: data.cliente.nome,
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
         has_documentation: true,
-          auths: ["whatsapp"],
+          auths: ["email"],
           liveness_enabled: true, // Prova de vida (selfie dinâmica com movimento)
         },
       }),
@@ -563,17 +562,16 @@ export const createEmbeddedAuthorization = createServerFn({ method: "POST" })
       body: JSON.stringify({
         signer: {
           email: data.cliente.email,
-          phone_number: phoneE164,
           name: data.cliente.nome,
           documentation: cpfDigits,
           birthday: data.cliente.nascimento,
         has_documentation: true,
-          auths: ["whatsapp"],
+          auths: ["email"],
           // Fluxo no widget:
           // 1) Confirmação dos dados (nome completo + CPF + data de nascimento) — automático porque has_documentation=true + birthday
           // 2) Prova de vida (liveness — selfie dinâmica)
           // 3) Foto do documento oficial (RG/CNH)
-          // Token de autenticação é enviado por WhatsApp (auths: ["whatsapp"]) — liveness não é permitido com auths=api
+          // Token de autenticação enviado por e-mail (auths: ["email"]) — liveness não é permitido com auths=api
           liveness_enabled: true,
           official_document_enabled: true,
           selfie_enabled: false, // usar liveness, não selfie estática

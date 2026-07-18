@@ -560,30 +560,31 @@ type ReceiptAmounts = {
 const receiptAmounts = (d: OrderDetail): ReceiptAmounts => {
   const extrasNoFin = sumExtrasFromItems(d);
   const finByItem = new Map(d.financials.map((f) => [f.order_item_id, f]));
-  // Fallback: itens (aéreos) importados que gravaram valor em details.value
-  // mas não têm linha em order_item_financials ainda.
-  let detailsTotal = 0, detailsTaxes = 0;
+  // Para cada item usamos o MAIOR entre o financeiro salvo e o valor gravado
+  // em details (pela extensão / edição manual). Isso resolve o caso em que a
+  // linha de order_item_financials existe mas está zerada — antes o fallback
+  // era ignorado e o "Resumo Financeiro" saía R$ 0,00.
+  let itemsTotal = 0, itemsTaxes = 0, itemsDiscount = 0;
   for (const it of d.items) {
     if (it.status === "cancelled") continue;
-    if (finByItem.has(it.id)) continue;
     const det = (it.details ?? {}) as Record<string, unknown>;
-    const v = Number(det.value ?? 0) || 0;
-    const t = Number(det.tax_value ?? 0) || 0;
-    detailsTotal += v;
-    detailsTaxes += t;
+    const detTotal = Number(det.value ?? 0) || 0;
+    const detTax = Number(det.tax_value ?? 0) || 0;
+    const fin = finByItem.get(it.id);
+    const finTotal = Number(fin?.total ?? 0) || 0;
+    const finTax = Number(fin?.tax_value ?? 0) || 0;
+    const finDisc = Number(fin?.discount_value ?? 0) || 0;
+    itemsTotal += Math.max(finTotal, detTotal);
+    itemsTaxes += Math.max(finTax, detTax);
+    itemsDiscount += finDisc;
   }
-  const financialTotal = d.financials.reduce((sum, f) => sum + Number(f.total || 0), 0) + extrasNoFin + detailsTotal;
+  const financialTotal = itemsTotal + extrasNoFin;
   const orderTotal = Number(d.order.totalPrice ?? 0);
-  // total_price é a fonte oficial quando maior que o computado; senão usa o
-  // financeiro (inclui fallback dos details).
   const total = fromCents(toCents(Math.max(Number.isFinite(orderTotal) ? orderTotal : 0, financialTotal)));
-  const financialTaxes = d.financials.reduce((sum, f) => sum + Number(f.tax_value || 0), 0) + detailsTaxes;
   const snapshot = (d.order.packageSnapshot ?? {}) as Record<string, unknown>;
   const snapshotTaxes = Number(snapshot.taxes ?? 0) || 0;
-  const taxes = fromCents(toCents(financialTaxes || snapshotTaxes));
-  const discount = fromCents(toCents(
-    d.financials.reduce((sum, f) => sum + Number(f.discount_value || 0), 0),
-  ));
+  const taxes = fromCents(toCents(itemsTaxes || snapshotTaxes));
+  const discount = fromCents(toCents(itemsDiscount));
 
   // O total é a fonte final do recibo. A tarifa é reconciliada a partir
   // dele para que Tarifa + Taxas - Desconto seja sempre exatamente o Total.
@@ -692,19 +693,15 @@ const drawPassengers = (ctx: Ctx, d: OrderDetail) => {
     let fare = 0, taxes = 0, discount = 0, total = 0;
     for (const it of groupItems) {
       const fin = finByItem.get(it.id);
-      if (fin) {
-        taxes += Number(fin.tax_value || 0);
-        discount += Number(fin.discount_value || 0);
-        total += Number(fin.total || 0);
-      } else {
-        const det = (it.details ?? {}) as Record<string, unknown>;
-        const detTotal = Number(det.value ?? 0) || 0;
-        const detTax = Number(det.tax_value ?? 0) || 0;
-        if (detTotal > 0 || detTax > 0) {
-          total += detTotal;
-          taxes += detTax;
-        }
-      }
+      const det = (it.details ?? {}) as Record<string, unknown>;
+      const detTotal = Number(det.value ?? 0) || 0;
+      const detTax = Number(det.tax_value ?? 0) || 0;
+      const finTotal = Number(fin?.total ?? 0) || 0;
+      const finTax = Number(fin?.tax_value ?? 0) || 0;
+      const finDisc = Number(fin?.discount_value ?? 0) || 0;
+      total += Math.max(finTotal, detTotal);
+      taxes += Math.max(finTax, detTax);
+      discount += finDisc;
     }
 
     // Reconciliação: tarifa = total - taxas + desconto (garante que a soma feche).
@@ -770,50 +767,61 @@ const drawFlights = (ctx: Ctx, d: OrderDetail) => {
 
   sectionTitle(ctx, "Passagem Aérea");
 
-  // Cia + localizador (agrupa por localizador)
-  const byLoc = new Map<string, OrderItem[]>();
-  for (const f of flights) {
-    const key = f.supplier_locator ?? "";
-    const arr = byLoc.get(key) ?? [];
-    arr.push(f);
-    byLoc.set(key, arr);
-  }
+  // Chave de agrupamento por reserva — mesma lógica de drawPassengers:
+  // import_group_id → carrier_locator → supplier_locator → fallback por item.
+  const keyOf = (f: OrderItem) => {
+    const det = (f.details ?? {}) as Record<string, unknown>;
+    const importGroupId = String(det.import_group_id ?? "").trim();
+    const carrierLocator = String(det.carrier_locator ?? "").trim();
+    return importGroupId || carrierLocator || (f.supplier_locator ?? "").trim() || `__item_${f.id}`;
+  };
 
-  const cols1: Col[] = [
-    { header: "Cia Aérea", width: 200 },
-    { header: "Localizador", width: CONTENT_W - 200 },
-  ];
-  drawTableHeader(ctx, cols1);
-  for (const [loc, arr] of byLoc) {
-    const first = arr[0];
+  const sortedFlights = [...flights].sort((a, b) => a.sort_order - b.sort_order);
+  const seenKeys = new Set<string>();
+
+  for (const f of sortedFlights) {
+    const key = keyOf(f);
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    const groupItems = sortedFlights.filter((x) => keyOf(x) === key);
+    const first = groupItems[0];
     const det = (first.details ?? {}) as Record<string, unknown>;
     const airline = (det.airline as string) ?? "";
-    drawTableRow(ctx, cols1, [airline, loc || "—"]);
-  }
-  ctx.y -= 6;
+    const carrierLocator = String(det.carrier_locator ?? "").trim();
+    const locator = carrierLocator || (first.supplier_locator ?? "").trim();
 
-  // Voos (segmentos)
-  const cols2: Col[] = [
-    { header: "Cia", width: 38, align: "center" },
-    { header: "Voo", width: 54, align: "center" },
-    { header: "Trecho", width: 315 },
-    { header: "Saída / Chegada", width: CONTENT_W - 38 - 54 - 315, align: "center" },
-  ];
-  drawTableHeader(ctx, cols2);
-  for (const f of flights) {
-    const rows = collectFlightRows(f);
-    for (const r of rows) {
-      const from = [r.fromIata, r.fromCity].filter(Boolean).join(" ");
-      const to = [r.toIata, r.toCity].filter(Boolean).join(" ");
-      drawTableRow(ctx, cols2, [
-        r.airlineCode,
-        r.flightNum,
-        `${from || "—"}\n${to || "—"}`,
-        `${fmtDateTime(r.depart) || "—"}\n${fmtDateTime(r.arrive) || "—"}`,
-      ]);
+    // Cabeçalho da reserva: Cia Aérea + Localizador
+    const cols1: Col[] = [
+      { header: "Cia Aérea", width: 200 },
+      { header: "Localizador", width: CONTENT_W - 200 },
+    ];
+    drawTableHeader(ctx, cols1);
+    drawTableRow(ctx, cols1, [airline, locator || "—"]);
+    ctx.y -= 4;
+
+    // Segmentos da reserva
+    const cols2: Col[] = [
+      { header: "Cia", width: 38, align: "center" },
+      { header: "Voo", width: 54, align: "center" },
+      { header: "Trecho", width: 315 },
+      { header: "Saída / Chegada", width: CONTENT_W - 38 - 54 - 315, align: "center" },
+    ];
+    drawTableHeader(ctx, cols2);
+    for (const it of groupItems) {
+      const rows = collectFlightRows(it);
+      for (const r of rows) {
+        const from = [r.fromIata, r.fromCity].filter(Boolean).join(" ");
+        const to = [r.toIata, r.toCity].filter(Boolean).join(" ");
+        drawTableRow(ctx, cols2, [
+          r.airlineCode,
+          r.flightNum,
+          `${from || "—"}\n${to || "—"}`,
+          `${fmtDateTime(r.depart) || "—"}\n${fmtDateTime(r.arrive) || "—"}`,
+        ]);
+      }
     }
+    ctx.y -= 8;
   }
-  ctx.y -= 4;
 };
 
 
@@ -1144,6 +1152,7 @@ function buildAuthorizationFromOrder(detail: OrderDetail, payment?: OrderPayment
   // Se o pagamento aponta reservas específicas (order_item_ids), a autorização
   // lista apenas os passageiros vinculados a essas reservas — não todos do pedido.
   let passengers = detail.passengers;
+  let scopedLocators: string[] = [];
   const scopedItemIds = payment?.order_item_ids ?? null;
   if (scopedItemIds && scopedItemIds.length > 0) {
     const paxIds = new Set<string>();
@@ -1152,6 +1161,18 @@ function buildAuthorizationFromOrder(detail: OrderDetail, payment?: OrderPayment
     }
     const filtered = detail.passengers.filter((p) => paxIds.has(p.id));
     if (filtered.length > 0) passengers = filtered;
+
+    // Localizadores das reservas vinculadas ao pagamento — vão pra autorização.
+    const locSet = new Set<string>();
+    const scopedIdSet = new Set(scopedItemIds);
+    for (const it of detail.items) {
+      if (!scopedIdSet.has(it.id)) continue;
+      if (it.kind !== "flight") continue;
+      const det = (it.details ?? {}) as Record<string, unknown>;
+      const loc = String(det.carrier_locator ?? "").trim() || (it.supplier_locator ?? "").trim();
+      if (loc) locSet.add(loc);
+    }
+    scopedLocators = [...locSet];
   }
   const snap = (order.packageSnapshot ?? {}) as {
     card_capture?: {
@@ -1231,7 +1252,7 @@ function buildAuthorizationFromOrder(detail: OrderDetail, payment?: OrderPayment
       ? `Pedido ${order.orderNumber} — ${ccPayment.description}`
       : `Pedido ${order.orderNumber}`,
     order_number: order.orderNumber,
-    trip_locator: snap?.locator ?? order.airlineLocator ?? null,
+    trip_locator: (scopedLocators.length > 0 ? scopedLocators.join(", ") : null) ?? snap?.locator ?? order.airlineLocator ?? null,
     trip_route: snap?.route ?? null,
     trip_date: snap?.travel_date ?? null,
     trip_passengers: paxNames ?? null,
