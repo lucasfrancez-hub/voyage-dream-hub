@@ -67,7 +67,7 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
     queryFn: async () => {
       let q = supabase
         .from("orders")
-        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, supplier_name, supplier_order_number, airline_locator, owner_user_id, deleted_at, deleted_reason")
+        .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, package_id, supplier_name, supplier_order_number, airline_locator, owner_user_id, deleted_at, deleted_reason")
         .order("created_at", { ascending: false })
         .limit(500);
       if (scope === "mine") q = q.eq("owner_user_id", currentUserId!);
