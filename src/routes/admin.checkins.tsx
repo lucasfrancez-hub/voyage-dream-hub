@@ -169,10 +169,11 @@ function CheckinsPage() {
                 size="sm"
                 variant={r.status === "success" ? "outline" : "default"}
                 disabled={isBusy}
-                onClick={() => handleRun(r.id)}
+                onClick={() => handleRun(r.id, r.status === "success")}
+                title={r.status === "success" ? "Apaga o PDF atual e roda o check-in de novo" : ""}
               >
                 {isBusy ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
-                {r.status === "success" ? "Refazer" : "Fazer check-in"}
+                {r.status === "success" ? "Regerar cartão" : "Fazer check-in"}
               </Button>
             </Card>
           );
