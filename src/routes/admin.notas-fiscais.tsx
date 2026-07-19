@@ -15,6 +15,7 @@ import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { NfseDetailsDialog } from "@/components/nfse/NfseDetailsDialog";
 import { confirmThen } from "@/lib/confirm";
+import { prestadorShortLabel } from "@/lib/nfse-labels";
 
 export const Route = createFileRoute("/admin/notas-fiscais")({
   head: () => ({ meta: [{ title: "Notas Fiscais — VIA AIR" }] }),
@@ -109,7 +110,7 @@ function NotasFiscaisPage() {
 
   const getPrestadorName = (r: Row): string => {
     const p = (r as Row & { prestador?: { nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
-    return (p?.nome_fantasia || p?.razao_social || "").trim();
+    return prestadorShortLabel(p);
   };
 
   const { data: configs = [] } = useQuery({
@@ -120,7 +121,7 @@ function NotasFiscaisPage() {
   const prestadores = useMemo(() => {
     const set = new Set<string>();
     for (const c of configs) {
-      const n = (c.nome_fantasia || c.razao_social || "").trim();
+      const n = prestadorShortLabel(c);
       if (n) set.add(n);
     }
     for (const r of rows) {

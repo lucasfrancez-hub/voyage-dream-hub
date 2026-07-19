@@ -20,6 +20,7 @@ import type { OrderDetail } from "@/lib/orders.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { confirm, confirmThen } from "@/lib/confirm";
+import { prestadorShortLabel } from "@/lib/nfse-labels";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -409,7 +410,7 @@ export function NfseCard({
               {prestadores.map((p, i) => (
                 <span key={p.id} className="inline-flex items-center gap-1">
                   <span className={`px-1.5 py-0.5 rounded-md border ${p.padrao ? "bg-brand-orange/10 text-brand-orange border-brand-orange/20" : "bg-muted text-foreground/80 border-border"} font-medium`}>
-                    {p.nome_fantasia || p.razao_social}
+                    {prestadorShortLabel(p)}
                   </span>
                   {i < prestadores.length - 1 && <span>·</span>}
                 </span>
@@ -428,7 +429,7 @@ export function NfseCard({
         <div className="mt-3 space-y-2">
           {emissoes.map((e) => {
             const prest = (e as { prestador?: { nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
-            const prestNome = prest?.nome_fantasia || prest?.razao_social || null;
+            const prestNome = prest ? prestadorShortLabel(prest) : null;
             return (
             <div key={e.id} className="rounded-lg bg-muted/40 px-3 py-2 text-xs space-y-1.5">
               <div className="flex items-center justify-between gap-2">
@@ -524,7 +525,7 @@ export function NfseCard({
                         value={p.id}
                         className="data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground data-[state=checked]:bg-primary/15 data-[state=checked]:text-foreground"
                       >
-                        <span className="font-medium">{p.nome_fantasia || p.razao_social}</span>
+                        <span className="font-medium">{prestadorShortLabel(p)}</span>
                         <span className="ml-2 text-xs opacity-80">
                           CNPJ {p.cnpj} · {p.municipio_prestacao}/{p.uf_prestacao}
                           {p.padrao ? " · padrão" : ""}
