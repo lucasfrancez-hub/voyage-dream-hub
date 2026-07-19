@@ -525,6 +525,9 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     };
   };
 
+  // Dispensa o modal de materiais perigosos ANTES de descobrir abinhas —
+  // o overlay costuma cobrir os tabs também.
+  await dismissHazmatGate();
   const tabLabels = await discoverTabs();
   step('abinhas de trecho detectadas: ' + JSON.stringify(tabLabels).slice(0, 400));
 
