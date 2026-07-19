@@ -1517,8 +1517,16 @@ function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-muted/20">
+              <tr
+                key={r.id}
+                className="hover:bg-muted/20 cursor-pointer"
+                onClick={() => openDetails(r.id)}
+                title="Ver detalhes da NFS-e"
+              >
                 <td className="px-3 py-2 font-mono">
+                  {loadingId === r.id ? (
+                    <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
+                  ) : null}
                   {r.numero_nfse ? `#${r.numero_nfse}` : `RPS ${r.numero_rps ?? "—"}`}
                   <span className="text-muted-foreground text-xs ml-1">/ {r.serie ?? "1"}</span>
                 </td>
@@ -1528,7 +1536,7 @@ function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null
                     {r.status}
                   </span>
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   {r.order_id ? (
                     <Link
                       to="/admin/pedidos/$id"
