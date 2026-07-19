@@ -152,7 +152,7 @@ export const runCheckin = createServerFn({ method: "POST" })
       const msg = err?.message ?? String(err);
       console.error("[checkin] LATAM automation failed", {
         checkinId: checkin.id,
-        error: msg.slice(0, 1_500),
+        error: msg.slice(0, 5_000),
       });
 
       const isNavigationBlock = /ERR_HTTP2_PROTOCOL_ERROR|ERR_QUIC_PROTOCOL_ERROR|ERR_CONNECTION_RESET/i.test(msg);
