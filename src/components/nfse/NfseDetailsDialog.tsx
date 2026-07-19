@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "@tanstack/react-router";
@@ -13,9 +16,13 @@ import {
   Clock,
   AlertTriangle,
   Copy,
+  Ban,
 } from "lucide-react";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
+import { cancelarNfse } from "@/lib/nfse.functions";
+import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { toast } from "sonner";
+
 
 type AnyRec = Record<string, unknown>;
 
