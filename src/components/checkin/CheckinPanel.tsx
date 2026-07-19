@@ -121,12 +121,23 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
     }
 
     const result: ReservationGroup[] = [];
-    for (const [key, segs] of bucket) {
-      segs.sort((a, b) => {
+    for (const [key, segsAll] of bucket) {
+      segsAll.sort((a, b) => {
         const da = new Date(a.item.details?.departure_at || 0).getTime();
         const db = new Date(b.item.details?.departure_at || 0).getTime();
         return da - db;
       });
+
+      // Dentro da reserva, oculta trechos que ainda não entraram no prazo de
+      // check-in (48h) — a menos que já tenham um check-in iniciado/feito.
+      const segs = segsAll.filter((s) => {
+        if (s.checkin) return true;
+        const dep = new Date(s.item.details?.departure_at || 0).getTime();
+        if (!Number.isFinite(dep) || dep <= 0) return false;
+        return dep - now <= WINDOW_MS && dep - now > -6 * 60 * 60 * 1000;
+      });
+      if (segs.length === 0) continue;
+
       const deps = segs
         .map((s) => new Date(s.item.details?.departure_at || 0).getTime())
         .filter((n) => Number.isFinite(n) && n > 0);
@@ -137,8 +148,6 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
       const withinWindow =
         lastDep != null && lastDep - now <= WINDOW_MS && lastDep - now > -6 * 60 * 60 * 1000;
 
-      // Só mostra se dentro da janela do último trecho, ou se algum check-in
-      // já foi iniciado (para acompanhar status/PDF).
       if (!anyStarted && !withinWindow) continue;
 
       result.push({
@@ -266,6 +275,21 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                               <Download className="h-3.5 w-3.5 mr-1" />PDF
                             </Button>
                           </a>
+                        )}
+                        {checkin?.id && checkin?.status === "success" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7"
+                            disabled={resendMut.isPending}
+                            onClick={() => resendMut.mutate(checkin.id)}
+                            title="Reenviar este cartão pelo WhatsApp"
+                          >
+                            {resendMut.isPending
+                              ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              : <Send className="h-3.5 w-3.5 mr-1" />}
+                            Enviar
+                          </Button>
                         )}
                       </div>
                     </div>
