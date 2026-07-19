@@ -418,7 +418,10 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
   // o PDF correspondente e devolvemos todos.
   const finalUrlLower = page.url().toLowerCase();
   const pageLooksLikeBoardingPass = done || finalUrlLower.includes('boarding') || finalUrlLower.includes('cartao') || finalUrlLower.includes('cartão');
-  if (!pageLooksLikeBoardingPass) {
+  // Se temos orderId (LA...) + sobrenome, ainda podemos capturar via URL
+  // canônica /br/pt/cartao-de-embarque, mesmo sem chegar visualmente à tela.
+  const canCaptureByUrl = /^LA[A-Z0-9]{6,}$/i.test(loc) && Boolean(sur);
+  if (!pageLooksLikeBoardingPass && !canCaptureByUrl) {
     const snapshot = await visiblePageState().catch(() => ({ a: [], f: [], b: [], h: [] }));
     throw new Error('Fluxo LATAM terminou antes do cartão. Estado: ' + JSON.stringify({
       finalUrl: page.url(),
@@ -680,48 +683,146 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
   // Dispensa o modal de materiais perigosos ANTES de descobrir abinhas —
   // o overlay costuma cobrir os tabs também.
   await dismissHazmatGate();
-  const tabLabels = await discoverTabs();
-  step('abinhas de trecho detectadas: ' + JSON.stringify(tabLabels).slice(0, 400));
 
   const collected: LatamBoardingPass[] = [];
 
-  if (tabLabels.length >= 2) {
-    for (let idx = 0; idx < tabLabels.length; idx++) {
-      const label = tabLabels[idx];
-      step('capturando trecho ' + (idx + 1) + '/' + tabLabels.length + ' — ' + label);
-      // Localiza e clica na abinha correspondente pelo texto
-      const tabHandle = await findByText([label], ['[role="tab"]', 'button', 'a', '[role="button"]']);
-      if (tabHandle) {
-        await tabHandle.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
-        await tabHandle.click().catch(async () => tabHandle.evaluate((el) => el.click()));
+  // ==== Captura canônica por URL ====
+  // A LATAM tem uma URL determinística por trecho+passageiro:
+  //   /br/pt/cartao-de-embarque?orderId=LA...&lastName=x&segmentIndex=N&itineraryId=1&tripPassengerId=ADT_M
+  // Como não existe um PDF servido pelo backend, precisamos imprimir a tela
+  // navegando diretamente em cada combinação. Isso funciona mesmo quando as
+  // abinhas de trecho não aparecem no DOM (ex.: check-in individual).
+  const currentUrl = new URL(page.url());
+  const orderIdFromUrl = currentUrl.searchParams.get('orderId') || '';
+  const lastNameFromUrl = currentUrl.searchParams.get('lastName') || '';
+  const orderId = orderIdFromUrl || (/^LA[A-Z0-9]{6,}$/i.test(loc) ? loc : '');
+  const lastNameParam = (lastNameFromUrl || sur).toLowerCase();
+  const passengerIdFromUrl = currentUrl.searchParams.get('tripPassengerId') || '';
+  const itineraryIdFromUrl = currentUrl.searchParams.get('itineraryId') || '1';
+
+  if (orderId && lastNameParam) {
+    // Descobre os tripPassengerId disponíveis lendo o próprio DOM/URL atual.
+    // Se não conseguir descobrir, cai para ADT_1.
+    const passengerIds: string[] = await page.evaluate(() => {
+      const ids = new Set<string>();
+      const rx = /tripPassengerId=([A-Z0-9_]+)/gi;
+      const scan = (s: string) => { let m; while ((m = rx.exec(s || ''))) ids.add(m[1]); };
+      scan(document.documentElement.outerHTML);
+      for (const a of Array.from(document.querySelectorAll('a[href]'))) scan((a as HTMLAnchorElement).href);
+      return Array.from(ids);
+    }).catch(() => [] as string[]);
+    if (passengerIdFromUrl) passengerIds.unshift(passengerIdFromUrl);
+    const uniquePassengers = Array.from(new Set(passengerIds.length ? passengerIds : ['ADT_1']));
+    step('passageiros detectados: ' + JSON.stringify(uniquePassengers));
+
+    const buildBpUrl = (segmentIndex: number, tripPassengerId: string) =>
+      'https://www.latamairlines.com/br/pt/cartao-de-embarque?orderId=' + encodeURIComponent(orderId) +
+      '&lastName=' + encodeURIComponent(lastNameParam) +
+      '&segmentIndex=' + segmentIndex +
+      '&itineraryId=' + encodeURIComponent(itineraryIdFromUrl) +
+      '&tripPassengerId=' + encodeURIComponent(tripPassengerId);
+
+    for (const passengerId of uniquePassengers) {
+      // Itera segmentIndex até 5 (mais que suficiente para reservas reais).
+      // Para em dois "vazios" consecutivos (garante que reservas de 1 trecho
+      // não fiquem tentando várias vezes).
+      let emptyStreak = 0;
+      for (let segmentIndex = 0; segmentIndex < 6; segmentIndex++) {
+        const url = buildBpUrl(segmentIndex, passengerId);
+        step('BP URL trecho=' + segmentIndex + ' passageiro=' + passengerId);
+        try {
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25_000 });
+        } catch (e) {
+          step('falha ao abrir BP: ' + (e && e.message));
+          emptyStreak++;
+          if (emptyStreak >= 2) break;
+          continue;
+        }
         await sleep(2500);
-      }
-      try {
-        const { bytes, contentType: ct } = await captureCurrentPdf();
-        const seg = parseSegment(label);
-        collected.push({
-          label,
-          flightNumber: seg.flightNumber,
-          fromIata: seg.fromIata,
-          toIata: seg.toIata,
-          base64: bytesToBase64(bytes),
-          contentType: ct,
-        });
-      } catch (e) {
-        step('falha ao capturar trecho ' + label + ': ' + (e && e.message));
+        await dismissHazmatGate();
+
+        // Detecta se a URL realmente renderizou um BP (tem texto/portão/barcode)
+        const hasBp = await page.evaluate(() => {
+          const t = ((document.body?.innerText) || '').toLowerCase();
+          const looksLike = /cart[aã]o de embarque|boarding pass|portão|portao/.test(t);
+          const barcode = !!document.querySelector('svg[class*="barcode" i], img[alt*="barcode" i], img[src*="barcode" i], canvas');
+          const err = /n[aã]o (?:foi|conseguimos)|indispon[ií]vel|erro|problema/.test(t) && !looksLike;
+          return looksLike && !err ? true : (barcode && !err);
+        }).catch(() => false);
+
+        if (!hasBp) {
+          step('trecho ' + segmentIndex + ' sem BP renderizado, avançando');
+          emptyStreak++;
+          if (emptyStreak >= 2) break;
+          continue;
+        }
+        emptyStreak = 0;
+
+        try {
+          const { bytes, contentType: ct } = await captureCurrentPdf();
+          const routeAndFlight = await page.evaluate(() => {
+            const t = ((document.body?.innerText) || '').replace(/\s+/g, ' ');
+            const route = t.match(/\b([A-Z]{3})\s*(?:→|->|–|—|-|>)\s*([A-Z]{3})\b/);
+            const flight = t.match(/\b((?:LA|JJ)\s?\d{2,4})\b/);
+            return { fromIata: route?.[1], toIata: route?.[2], flightNumber: flight?.[1]?.replace(/\s+/g, '') };
+          }).catch(() => ({}) as any);
+          const label = (routeAndFlight.fromIata && routeAndFlight.toIata)
+            ? (routeAndFlight.fromIata + ' → ' + routeAndFlight.toIata + (routeAndFlight.flightNumber ? ' · ' + routeAndFlight.flightNumber : '') + ' · ' + passengerId)
+            : ('Trecho ' + (segmentIndex + 1) + ' · ' + passengerId);
+          collected.push({
+            label,
+            flightNumber: routeAndFlight.flightNumber,
+            fromIata: routeAndFlight.fromIata,
+            toIata: routeAndFlight.toIata,
+            base64: bytesToBase64(bytes),
+            contentType: ct,
+          });
+          step('trecho capturado: ' + label);
+        } catch (e) {
+          step('falha na captura do trecho ' + segmentIndex + ': ' + (e && e.message));
+        }
       }
     }
   }
 
-  // Sem abinhas ou nenhuma captura → cai para captura única
+  // Fallback: sem orderId ou nada capturado — usa fluxo antigo por abinhas.
   if (collected.length === 0) {
-    step('captura única (sem abinhas de trecho)');
-    const { bytes, contentType: ct } = await captureCurrentPdf();
-    collected.push({
-      label: 'Cartão de embarque',
-      base64: bytesToBase64(bytes),
-      contentType: ct,
-    });
+    const tabLabels = await discoverTabs();
+    step('fallback abinhas: ' + JSON.stringify(tabLabels).slice(0, 400));
+    if (tabLabels.length >= 2) {
+      for (let idx = 0; idx < tabLabels.length; idx++) {
+        const label = tabLabels[idx];
+        const tabHandle = await findByText([label], ['[role="tab"]', 'button', 'a', '[role="button"]']);
+        if (tabHandle) {
+          await tabHandle.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+          await tabHandle.click().catch(async () => tabHandle.evaluate((el) => el.click()));
+          await sleep(2500);
+        }
+        try {
+          const { bytes, contentType: ct } = await captureCurrentPdf();
+          const seg = parseSegment(label);
+          collected.push({
+            label,
+            flightNumber: seg.flightNumber,
+            fromIata: seg.fromIata,
+            toIata: seg.toIata,
+            base64: bytesToBase64(bytes),
+            contentType: ct,
+          });
+        } catch (e) {
+          step('falha ao capturar trecho ' + label + ': ' + (e && e.message));
+        }
+      }
+    }
+    if (collected.length === 0) {
+      step('captura única (último recurso)');
+      const { bytes, contentType: ct } = await captureCurrentPdf();
+      collected.push({
+        label: 'Cartão de embarque',
+        base64: bytesToBase64(bytes),
+        contentType: ct,
+      });
+    }
   }
 
   return {
