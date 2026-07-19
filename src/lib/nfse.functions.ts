@@ -99,10 +99,25 @@ export const getNfseConfig = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("nfse_config")
       .select("*")
+      .eq("ativo", true)
+      .order("padrao", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
+  });
+
+export const listNfseConfigs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("nfse_config")
+      .select("id, cnpj, razao_social, nome_fantasia, inscricao_municipal, item_lista_servico, aliquota_iss, municipio_prestacao, uf_prestacao, padrao, ativo")
+      .eq("ativo", true)
+      .order("padrao", { ascending: false })
+      .order("razao_social", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
   });
 
 /* ============================== EMITIR (AtendeNet / IPM 2.0) ============================== */
