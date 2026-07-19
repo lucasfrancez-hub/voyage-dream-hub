@@ -132,7 +132,11 @@ function statusBadge(s: string) {
   return <Badge variant="outline" className={x.cls}>{x.label}</Badge>;
 }
 
-type PersonBundle = Awaited<ReturnType<typeof getPerson>> | undefined | null;
+type PersonBundle = {
+  person?: Record<string, unknown> | null;
+  phones?: Array<{ number?: string | null; is_primary?: boolean | null }> | null;
+  emails?: Array<{ address?: string | null; is_primary?: boolean | null }> | null;
+} | null | undefined;
 
 export function buildInitialNfseForm(detail: OrderDetail, personData: PersonBundle) {
   const { order } = detail;
