@@ -99,7 +99,7 @@ export default async function ({ page, context }) {
   const sur = String(surname || '').trim();
   if (!loc || !sur) throw new Error('locator e surname obrigatórios');
 
-  step('open latam check-in page');
+  step('open latam check-in status page (direct URL)');
   const gotoWithRetry = async (url) => {
     const attempts = [
       { waitUntil: 'domcontentloaded', timeout: 45_000 },
@@ -119,8 +119,14 @@ export default async function ({ page, context }) {
     }
     throw lastErr;
   };
-  await gotoWithRetry('https://www.latamairlines.com/br/pt/check-in');
-  await sleep(2500);
+
+  // Estratégia: navegar direto para /check-in/status?orderId=...&lastName=...
+  // A LATAM aceita LA957... (nº de compra) OU 6 letras (código de reserva) no orderId.
+  // Isso pula o formulário inicial e cai direto na página da reserva.
+  const statusUrl = 'https://www.latamairlines.com/br/pt/check-in/status?orderId='
+    + encodeURIComponent(loc) + '&lastName=' + encodeURIComponent(sur.toLowerCase());
+  await gotoWithRetry(statusUrl);
+  await sleep(3500);
 
   // Cookies / OneTrust
   const okCookies = await page.$('#onetrust-accept-btn-handler');
@@ -129,99 +135,37 @@ export default async function ({ page, context }) {
     const aceitar = await findByText(['aceitar','aceito']);
     if (aceitar) { await aceitar.click().catch(() => {}); await sleep(500); }
   }
-
-  // Aguarda inputs aparecerem (LATAM carrega o formulário via JS)
-  await page.waitForSelector('input', { timeout: 45_000 }).catch(() => {});
   await sleep(1500);
+  step('after direct nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
 
-  // Se houver abas ("Código de reserva" / "Número do bilhete"), garante a de código
-  const tabCodigo = await findByText(['código de reserva','codigo de reserva','código da reserva','localizador'], ['button','a','div','span','li']);
-  if (tabCodigo) { await tabCodigo.click().catch(() => {}); await sleep(800); }
-
-  // Enumera inputs visíveis e escolhe localizador + sobrenome por heurística ampla
-  step('enumerate inputs');
-  const inputsInfo = await page.evaluate(() => {
-    const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
-    const findLabel = (el) => {
-      const id = el.getAttribute('id');
-      if (id) {
-        const lbl = document.querySelector('label[for="' + id + '"]');
-        if (lbl) return lbl.innerText || lbl.textContent || '';
-      }
-      const parentLbl = el.closest('label');
-      if (parentLbl) return parentLbl.innerText || parentLbl.textContent || '';
-      const wrap = el.closest('div,section,form');
-      if (wrap) return (wrap.innerText || '').slice(0, 200);
-      return '';
-    };
-    return Array.from(document.querySelectorAll('input')).map((el, i) => {
-      const r = el.getBoundingClientRect();
-      return {
-        i,
-        type: (el.getAttribute('type') || 'text').toLowerCase(),
-        name: el.getAttribute('name') || '',
-        id: el.getAttribute('id') || '',
-        placeholder: el.getAttribute('placeholder') || '',
-        aria: el.getAttribute('aria-label') || '',
-        label: norm(findLabel(el)),
-        visible: r.width > 0 && r.height > 0 && !el.disabled && !el.readOnly,
-      };
-    });
-  });
-  step('inputs: ' + JSON.stringify(inputsInfo).slice(0, 800));
-
-  const isTextish = (t) => !t || ['text','search','tel','email',''].includes(t);
-  const scoreLocator = (info) => {
-    const hay = (info.name + ' ' + info.id + ' ' + info.placeholder + ' ' + info.aria + ' ' + info.label).toLowerCase();
-    let s = 0;
-    if (/localizador|reserva|pnr|compra|bilhete|ticket|booking|record/.test(hay)) s += 10;
-    if (/sobrenome|apellido|last.?name|surname|apelido/.test(hay)) s -= 20;
-    return s;
-  };
-  const scoreSurname = (info) => {
-    const hay = (info.name + ' ' + info.id + ' ' + info.placeholder + ' ' + info.aria + ' ' + info.label).toLowerCase();
-    let s = 0;
-    if (/sobrenome|apellido|last.?name|surname|apelido/.test(hay)) s += 10;
-    if (/localizador|reserva|pnr|compra|bilhete|ticket/.test(hay)) s -= 20;
-    return s;
-  };
-  const visibleText = inputsInfo.filter((x) => x.visible && isTextish(x.type));
-  let locIdx = -1, surIdx = -1, bestLoc = 0, bestSur = 0;
-  for (const info of visibleText) {
-    const sl = scoreLocator(info); if (sl > bestLoc) { bestLoc = sl; locIdx = info.i; }
-    const ss = scoreSurname(info); if (ss > bestSur) { bestSur = ss; surIdx = info.i; }
-  }
-  // Fallback posicional: 1º = localizador, 2º = sobrenome
-  if (locIdx < 0 && visibleText[0]) locIdx = visibleText[0].i;
-  if (surIdx < 0 && visibleText[1]) surIdx = visibleText[1].i;
-  if (locIdx === surIdx && visibleText[1]) surIdx = visibleText[1].i;
-  step('picked locIdx=' + locIdx + ' surIdx=' + surIdx);
-  if (locIdx < 0 || surIdx < 0) throw new Error('Campos de login não encontrados (localizador/sobrenome)');
-
-  const allInputs = await page.$$('input');
-  const locInput = allInputs[locIdx];
-  const surInput = allInputs[surIdx];
-  if (!locInput || !surInput) throw new Error('Handles de input inválidos');
-
-  step('fill locator');
-  await clearAndType(locInput, loc);
-  step('fill surname');
-  await clearAndType(surInput, sur);
-
-  step('submit login');
-  let submit = await page.evaluateHandle(() => {
-    for (const el of Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"]'))) {
-      const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0 && !el.disabled && el.getAttribute('aria-disabled') !== 'true') return el;
+  // Fallback: se caiu no formulário "Procurar sua viagem" (reserva não encontrada
+  // pela URL direta), preenche manualmente uma vez.
+  const stillOnForm = await findByText(['procurar sua viagem','insira os dados']);
+  if (stillOnForm) {
+    step('caiu no formulário — preenchendo manualmente');
+    await page.waitForSelector('input', { timeout: 20_000 }).catch(() => {});
+    const inputs = await page.$$('input');
+    const visibleInputs = [];
+    for (const h of inputs) {
+      const info = await h.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const t = (el.getAttribute('type') || 'text').toLowerCase();
+        return { visible: r.width > 0 && r.height > 0 && !el.disabled && !el.readOnly, textish: ['text','search','tel','email',''].includes(t) };
+      });
+      if (info.visible && info.textish) visibleInputs.push(h);
     }
-    return null;
-  }).then((h) => h.asElement());
-  if (!submit) submit = await findByText(['continuar','buscar','consultar','ver reserva','ver minha reserva'], ['button','a']);
-  if (!submit) throw new Error('Botão de envio não encontrado');
-  await submit.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
-  await submit.click().catch(async () => submit.evaluate((el) => el.click()));
-  await sleep(5000);
-  step('after submit: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
+    if (visibleInputs[0]) await clearAndType(visibleInputs[0], loc);
+    if (visibleInputs[1]) await clearAndType(visibleInputs[1], sur);
+    const submitBtn = await page.evaluateHandle(() => {
+      for (const el of Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"]'))) {
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0 && !el.disabled) return el;
+      }
+      return null;
+    }).then((h) => h.asElement());
+    if (submitBtn) { await submitBtn.click().catch(() => {}); await sleep(5000); }
+    step('after manual submit: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
+  }
 
   // ==== State machine unificado ====
   step('start unified state machine');
