@@ -143,6 +143,11 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
   if (!row) return null;
   const tomador = (row.tomador as AnyRec | null) ?? {};
   const end = (tomador.endereco as AnyRec | null) ?? {};
+  const prestador = (row.prestador as AnyRec | null) ?? {};
+  const prestadorNome =
+    (prestador.nome_fantasia as string | null) ||
+    (prestador.razao_social as string | null) ||
+    "—";
   const order = (row.orders as AnyRec | null) ?? null;
   const status = String(row.status ?? "");
   const isAutorizada = status === "autorizado" || status === "emitida";
