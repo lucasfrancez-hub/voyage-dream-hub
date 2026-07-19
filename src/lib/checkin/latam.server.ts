@@ -86,7 +86,7 @@ export default async function ({ page, context }) {
     };
   });
 
-  page.setDefaultTimeout(60_000);
+  page.setDefaultTimeout(30_000);
   await page.setViewport({ width: 1366, height: 900 });
   // Mantém idioma e navegador coerentes com a saída residencial brasileira.
   // Stealth, proxy e desativação de HTTP/2 precisam ser configurados antes
@@ -101,11 +101,11 @@ export default async function ({ page, context }) {
   const sur = String(surname || '').trim();
   if (!loc || !sur) throw new Error('locator e surname obrigatórios');
 
-  step('open latam check-in status page (direct URL)');
+  step('open LATAM check-in form');
   const gotoWithRetry = async (url) => {
     const attempts = [
-      { waitUntil: 'domcontentloaded', timeout: 30_000 },
-      { waitUntil: 'domcontentloaded', timeout: 30_000 },
+      { waitUntil: 'domcontentloaded', timeout: 25_000 },
+      { waitUntil: 'commit', timeout: 15_000 },
     ];
     let lastErr;
     for (let i = 0; i < attempts.length; i++) {
@@ -129,36 +129,11 @@ export default async function ({ page, context }) {
     throw lastErr;
   };
 
-  // A URL de status é a entrada que a própria LATAM gera depois de localizar
-  // uma compra. O link de "Minhas viagens" pode redirecionar silenciosamente
-  // para o formulário inicial em uma sessão nova; isso não é sucesso e deve
-  // disparar a tentativa pela outra entrada.
-  const statusUrl = 'https://www.latamairlines.com/br/pt/check-in/status?orderId='
-    + encodeURIComponent(loc) + '&lastName=' + encodeURIComponent(sur.toLowerCase());
-  const sourceUrl = (() => {
-    try {
-      const parsed = new URL(String(checkinUrl || ''));
-      return parsed.hostname.endsWith('latamairlines.com') ? parsed.toString() : '';
-    } catch { return ''; }
-  })();
-  const entryUrls = [...new Set([statusUrl, sourceUrl].filter(Boolean))];
-  for (let entryIndex = 0; entryIndex < entryUrls.length; entryIndex++) {
-    step('entry ' + (entryIndex + 1) + ': ' + entryUrls[entryIndex].split('?')[0]);
-    await gotoWithRetry(entryUrls[entryIndex]);
-    await sleep(3500);
-    const entryState = await page.evaluate(() => {
-      const norm = (document.body?.innerText || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      return {
-        hasError: norm.includes('tivemos um problema') || norm.includes('nao foi possivel carregar a informacao'),
-        isLookupForm: norm.includes('procurar sua viagem') || norm.includes('insira os dados'),
-        hasTrip: norm.includes('check-in feito') || norm.includes('check in feito') || norm.includes('cartao de embarque') || norm.includes('fazer check-in'),
-      };
-    }).catch(() => ({ hasError: false, isLookupForm: false, hasTrip: false }));
-    step('entry state: ' + JSON.stringify(entryState));
-    const rejectedEntry = entryState.hasError || (entryState.isLookupForm && !entryState.hasTrip);
-    if (!rejectedEntry || entryIndex === entryUrls.length - 1) break;
-    step('entrada não abriu a reserva; tentando o link alternativo');
-  }
+  // Uma URL interna copiada de uma sessão anterior depende do estado da SPA e
+  // pode cair em "Tivemos um problema". Começar pela busca pública reproduz o
+  // caminho de um passageiro real e cria o estado exigido pela LATAM.
+  await gotoWithRetry('https://www.latamairlines.com/br/pt/check-in');
+  await sleep(2500);
 
   // Cookies / OneTrust
   const okCookies = await page.$('#onetrust-accept-btn-handler');
@@ -167,14 +142,13 @@ export default async function ({ page, context }) {
     const aceitar = await findByText(['aceitar','aceito']);
     if (aceitar) { await aceitar.click().catch(() => {}); await sleep(500); }
   }
-  await sleep(1500);
-  step('after direct nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
+  await sleep(1000);
+  step('after form nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
 
-  // Fallback: se caiu no formulário "Procurar sua viagem" (reserva não encontrada
-  // pela URL direta), preenche manualmente uma vez.
+  // A busca pelo número da compra e sobrenome é o fluxo primário.
   const stillOnForm = await findByText(['procurar sua viagem','insira os dados']);
   if (stillOnForm) {
-    step('caiu no formulário — preenchendo manualmente');
+    step('preenchendo formulário de busca');
     await page.waitForSelector('input', { timeout: 20_000 }).catch(() => {});
     const inputs = await page.$$('input');
     const visibleInputs = [];
@@ -195,7 +169,9 @@ export default async function ({ page, context }) {
       }
       return null;
     }).then((h) => h.asElement());
-    if (submitBtn) { await submitBtn.click().catch(() => {}); await sleep(5000); }
+    if (!submitBtn) throw new Error('Formulário LATAM sem botão de busca disponível');
+    await submitBtn.click().catch(async () => submitBtn.evaluate((el) => el.click()));
+    await sleep(4500);
     step('after manual submit: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
   }
 
@@ -203,7 +179,7 @@ export default async function ({ page, context }) {
   step('start unified state machine');
   let done = false;
   let idle = 0;
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 18; i++) {
     // (1) PDF disponível → sai
     const baixar = (await findByText(['baixar pdf','baixar cartão','baixar cartao'])) || (await page.$('a[download][href*=".pdf" i]'));
     if (baixar) { step('iter ' + i + ': "Baixar PDF" visível'); done = true; break; }
@@ -237,7 +213,7 @@ export default async function ({ page, context }) {
       const openedPage = pagesAfterClick.find((candidate) => !pagesBeforeClick.includes(candidate));
       if (openedPage) {
         page = openedPage;
-        page.setDefaultTimeout(60_000);
+        page.setDefaultTimeout(30_000);
         await page.setViewport({ width: 1366, height: 900 }).catch(() => {});
         await page.bringToFront().catch(() => {});
         await page.waitForNetworkIdle({ idleTime: 750, timeout: 20_000 }).catch(() => {});
@@ -294,7 +270,7 @@ export default async function ({ page, context }) {
 
     step('iter ' + i + ': sem ação, aguardando');
     await sleep(2000); idle++;
-    if (idle > 5) { step('sem progresso, encerrando'); break; }
+    if (idle > 4) { step('sem progresso, encerrando'); break; }
   }
 
   if (!done) step('atenção: loop terminou sem detectar "Baixar PDF"');
@@ -357,7 +333,7 @@ export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCh
     LATAM_SCRIPT,
     { locator: input.locator, surname: input.surname, checkinUrl: input.checkinUrl || "" },
     {
-      timeoutMs: 150_000,
+      timeoutMs: 120_000,
       // A LATAM recusa a conexão HTTP/2 do Chrome de datacenter antes mesmo
       // de carregar o HTML. Forçar HTTP/1.1 resolve a falha de protocolo;
       // stealth + IP residencial BR evitam que o mesmo bloqueio seja aplicado
