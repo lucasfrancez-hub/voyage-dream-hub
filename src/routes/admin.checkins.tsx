@@ -96,6 +96,12 @@ function CheckinsPage() {
               </div>
               <StatusBadge status={r.status} />
               {(r.boarding_pass_path || r.boarding_pass_url) && (
+                <Button size="sm" variant="outline" disabled={sendingId === r.id} onClick={() => handleResend(r.id)}>
+                  {sendingId === r.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+                  Enviar cartão de embarque
+                </Button>
+              )}
+              {(r.boarding_pass_path || r.boarding_pass_url) && (
                 <a href={`https://pedidos.viaair.tur.br/api/public/doc/${r.id}`} target="_blank" rel="noreferrer">
                   <Button size="sm" variant="outline"><Download className="h-3.5 w-3.5 mr-1" />PDF</Button>
                 </a>
