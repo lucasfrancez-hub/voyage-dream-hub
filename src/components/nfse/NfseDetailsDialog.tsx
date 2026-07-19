@@ -213,7 +213,7 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
             </TabsTrigger>
           </TabsList>
 
-          <div className="overflow-y-auto px-6 py-4 space-y-4">
+          <div className="overflow-y-auto px-6 py-4 space-y-4 h-[60vh]">
             <TabsContent value="resumo" className="mt-0 space-y-4">
               <Card title="Identificação">
                 <Field label="Número NFS-e" value={row.numero_nfse ?? "—"} mono />
