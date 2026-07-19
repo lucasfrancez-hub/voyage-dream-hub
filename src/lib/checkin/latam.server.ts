@@ -406,7 +406,82 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     return candidates.map((c) => c.text);
   }).catch(() => []);
 
+  // Antes de qualquer captura: dispensa o modal de materiais perigosos
+  // ("Entendi") — enquanto ele está aberto, a página de cartão fica coberta
+  // pelo aviso e o page.pdf() imprime o texto do aviso em vez do BP.
+  const dismissHazmatGate = async () => {
+    for (let i = 0; i < 3; i++) {
+      const btn = await findByText(
+        ['entendi', 'entendido', 'ok, entendi', 'aceitar', 'estou de acordo', 'concordo'],
+        ['button', '[role="button"]', 'a'],
+      );
+      if (!btn) return;
+      step('dispensando aviso de materiais perigosos');
+      await btn.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+      await btn.click().catch(async () => btn.evaluate((el) => el.click()));
+      await sleep(1500);
+    }
+  };
+
+  // Depois do "Entendi", clica em "Baixar PDF" (quando existe como botão que
+  // abre nova aba/download) e captura a resposta em vez de imprimir a tela.
+  const tryDownloadPdfButton = async () => {
+    const btn = await findByText(
+      ['baixar pdf', 'baixar cartão', 'baixar cartao', 'download pdf', 'baixar bp'],
+      ['button', '[role="button"]', 'a'],
+    );
+    if (!btn) return null;
+    step('clicando em "Baixar PDF"');
+    let downloaded: { bytes: Uint8Array; contentType: string } | null = null;
+    const respPromise = page.waitForResponse(
+      (r) => {
+        const ct = (r.headers()['content-type'] || '').toLowerCase();
+        return r.status() === 200 && (ct.includes('pdf') || r.url().toLowerCase().includes('.pdf'));
+      },
+      { timeout: 12_000 },
+    ).catch(() => null);
+    const popupPromise = page.browser().waitForTarget(
+      (t) => t.opener() === page.target(),
+      { timeout: 12_000 },
+    ).catch(() => null);
+    await btn.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+    await btn.click().catch(async () => btn.evaluate((el) => el.click()));
+    const resp = await respPromise;
+    if (resp) {
+      try {
+        const buf = new Uint8Array(await resp.buffer());
+        downloaded = { bytes: buf, contentType: resp.headers()['content-type'] || 'application/pdf' };
+      } catch (e) { step('resposta pdf sem buffer: ' + (e && e.message)); }
+    }
+    if (!downloaded) {
+      const popup = await popupPromise;
+      if (popup) {
+        const popupPage = await popup.page().catch(() => null);
+        if (popupPage) {
+          try {
+            await popupPage.waitForFunction(() => document.readyState === 'complete', { timeout: 8_000 }).catch(() => {});
+            const url = popupPage.url();
+            if (url.toLowerCase().includes('.pdf')) {
+              const cookies = await popupPage.cookies();
+              const cookieHeader = cookies.map((c) => c.name + '=' + c.value).join('; ');
+              const r = await fetch(url, { headers: { cookie: cookieHeader, referer: page.url() } });
+              if (r.ok) {
+                const buf = new Uint8Array(await r.arrayBuffer());
+                downloaded = { bytes: buf, contentType: r.headers.get('content-type') || 'application/pdf' };
+              }
+            }
+          } catch (e) { step('popup pdf falhou: ' + (e && e.message)); }
+          await popupPage.close().catch(() => {});
+        }
+      }
+    }
+    return downloaded;
+  };
+
   const captureCurrentPdf = async () => {
+    await dismissHazmatGate();
+    const downloaded = await tryDownloadPdfButton();
+    if (downloaded) return { bytes: downloaded.bytes, contentType: downloaded.contentType };
     // Tenta o link direto de PDF primeiro (mais fiel ao layout oficial)
     const pdfAnchor = await page.$('a[href*=".pdf" i]') || await findByText(['baixar pdf','baixar cartão','baixar cartao'], ['a']);
     if (pdfAnchor) {
