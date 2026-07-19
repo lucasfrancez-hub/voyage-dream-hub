@@ -1561,6 +1561,11 @@ function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null
       <div className="text-[11px] text-muted-foreground text-center">
         Vínculo automático pelo CPF / CNPJ deste cadastro.
       </div>
+
+      <NfseDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} row={detailsRow} />
+    </div>
+  );
+}
     </div>
   );
 }
