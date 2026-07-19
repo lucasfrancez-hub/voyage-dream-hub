@@ -59,9 +59,7 @@ import { CommissionDefaultsDialog } from "@/components/CommissionDefaultsDialog"
 
 import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
-import { NfseCard, buildInitialNfseForm, buildEmitirNfsePayload } from "@/components/nfse/NfseCard";
-import { emitirNfse } from "@/lib/nfse.functions";
-import { getPerson } from "@/lib/people.functions";
+import { NfseCard } from "@/components/nfse/NfseCard";
 import { getSignatureStatus } from "@/lib/clicksign.functions";
 import type { Json } from "@/integrations/supabase/types";
 import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
@@ -166,9 +164,6 @@ function OrderDetailPage() {
 
   const setOrderStatusFn = useServerFn(setOrderStatus);
   const updateOrderMetaFn = useServerFn(updateOrderMeta);
-  const emitNfseFn = useServerFn(emitirNfse);
-  const getPersonFn = useServerFn(getPerson);
-  const [emittingNfse, setEmittingNfse] = useState(false);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "orderDetail", id] });
 
@@ -536,28 +531,11 @@ function OrderDetailPage() {
               size="sm"
               variant="ghost"
               className="h-9 gap-2 text-muted-foreground hover:text-foreground"
-              disabled={emittingNfse}
-              onClick={async () => {
-                if (emittingNfse) return;
-                setEmittingNfse(true);
-                try {
-                  const personId = order.personId ?? null;
-                  const personData = personId
-                    ? await getPersonFn({ data: { id: personId } }).catch(() => null)
-                    : null;
-                  const form = buildInitialNfseForm(detail, personData);
-                  const payload = buildEmitirNfsePayload(detail, form);
-                  await emitNfseFn({ data: payload });
-                  toast.success("NFS-e enviada para processamento");
-                  qc.invalidateQueries({ queryKey: ["nfse", order.id] });
-                } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Erro ao emitir NFS-e");
-                } finally {
-                  setEmittingNfse(false);
-                }
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent("nfse:open-emit", { detail: { orderId: order.id } }));
               }}
             >
-              <FileText className="h-4 w-4" /> {emittingNfse ? "Emitindo..." : "Emitir NFS-e"}
+              <FileText className="h-4 w-4" /> Emitir NFS-e
             </Button>
 
           </div>
@@ -811,6 +789,8 @@ function OrderDetailPage() {
         order={order}
         onSave={(patch) => { metaMut.mutate(patch); setOpenEdit(false); }}
       />
+
+      <NfseCard detail={detail} dialogOnly listenForOpen />
     </div>
 
   );

@@ -200,7 +200,15 @@ export function buildEmitirNfsePayload(
   };
 }
 
-export function NfseCard({ detail }: { detail: OrderDetail }) {
+export function NfseCard({
+  detail,
+  dialogOnly = false,
+  listenForOpen = false,
+}: {
+  detail: OrderDetail;
+  dialogOnly?: boolean;
+  listenForOpen?: boolean;
+}) {
   const { order } = detail;
   const qc = useQueryClient();
   const listFn = useServerFn(listNfseByOrder);
@@ -288,16 +296,16 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   }, [personData]);
 
   useEffect(() => {
+    if (!listenForOpen) return;
     const handler = (e: Event) => {
       const ce = e as CustomEvent<{ orderId?: string }>;
       if (ce.detail?.orderId && ce.detail.orderId !== order.id) return;
       openDialog();
-      document.getElementById("nfse-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
     window.addEventListener("nfse:open-emit", handler as EventListener);
     return () => window.removeEventListener("nfse:open-emit", handler as EventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order.id, personData]);
+  }, [order.id, personData, listenForOpen]);
 
   const emitMut = useMutation({
     mutationFn: async () => {
@@ -357,7 +365,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   });
 
   return (
-    <div id="nfse-card" className="rounded-xl border border-border p-4">
+    <div id={dialogOnly ? undefined : "nfse-card"} className={dialogOnly ? "hidden" : "rounded-xl border border-border p-4"}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-medium text-sm flex items-center gap-2">
