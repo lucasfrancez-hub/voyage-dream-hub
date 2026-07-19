@@ -210,8 +210,10 @@ export const runCheckin = createServerFn({ method: "POST" })
       const isIncompleteFlow = /Fluxo LATAM terminou antes do cartão/i.test(msg);
       const isProviderTimeout = /Browserless HTTP 408|Request has timed out|AbortError/i.test(msg);
       const isLatamBlock = /Tivemo.? um problema|não foi po.?ível carregar|nao foi possivel carregar/i.test(msg);
-      const friendlyError = isNavigationBlock || isProviderTimeout || isLatamBlock
-        ? "A LATAM recusou temporariamente a conexão automática. O check-in ficou pendente e poderá ser tentado novamente."
+      const friendlyError = isLatamBlock
+        ? "A LATAM bloqueou o acesso automatizado desta reserva. Use “Abrir na LATAM” para baixar o cartão de embarque."
+        : isNavigationBlock || isProviderTimeout
+          ? "A conexão automática com a LATAM não respondeu. Use “Abrir na LATAM” ou tente novamente mais tarde."
         : isIncompleteFlow
           ? "A LATAM abriu a reserva, mas ainda não disponibilizou o cartão de embarque para download."
           : "Não foi possível concluir o check-in automático agora. Tente novamente em alguns minutos.";
