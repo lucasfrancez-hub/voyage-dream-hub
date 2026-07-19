@@ -126,7 +126,9 @@ function PacotesList() {
     <div className="min-h-screen bg-background text-foreground">
       <TopBar backHref="https://viaair.tur.br" backLabel="Voltar ao site" />
 
+      <main>
       <section className="mx-auto max-w-7xl px-6 py-12 md:py-16">
+
         <div className="max-w-prose">
           <span className="text-brand-orange text-sm uppercase tracking-widest">
             Pacotes disponíveis
