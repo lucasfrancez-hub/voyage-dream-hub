@@ -237,8 +237,13 @@ export const emitirNfse = createServerFn({ method: "POST" })
       .rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin.data) throw new Error("Apenas administradores podem emitir NFS-e");
 
-    const { data: cfg, error: cfgErr } = await context.supabase
-      .from("nfse_config").select("*").limit(1).maybeSingle();
+    let cfgQuery = context.supabase.from("nfse_config").select("*").eq("ativo", true);
+    if (data.prestadorId) {
+      cfgQuery = cfgQuery.eq("id", data.prestadorId);
+    } else {
+      cfgQuery = cfgQuery.order("padrao", { ascending: false });
+    }
+    const { data: cfg, error: cfgErr } = await cfgQuery.limit(1).maybeSingle();
     if (cfgErr || !cfg) throw new Error("Configuração fiscal não encontrada");
 
     const reference = `viaair-${data.orderId.slice(0, 8)}-${Date.now()}`;
