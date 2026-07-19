@@ -64,7 +64,7 @@ import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/publi
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
-import { Route as ApiPublicBoardingPassIdRouteImport } from './routes/api/public/boarding-pass.$id'
+import { Route as ApiPublicDocIdRouteImport } from './routes/api/public/doc.$id'
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
@@ -353,9 +353,9 @@ const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
   path: '/$slug/checkout',
   getParentRoute: () => PacotesRoute,
 } as any)
-const ApiPublicBoardingPassIdRoute = ApiPublicBoardingPassIdRouteImport.update({
-  id: '/api/public/boarding-pass/$id',
-  path: '/api/public/boarding-pass/$id',
+const ApiPublicDocIdRoute = ApiPublicDocIdRouteImport.update({
+  id: '/api/public/doc/$id',
+  path: '/api/public/doc/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicHooksCheckFlightChangesRoute =
@@ -467,7 +467,7 @@ export interface FileRoutesByFullPath {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
-  '/api/public/boarding-pass/$id': typeof ApiPublicBoardingPassIdRoute
+  '/api/public/doc/$id': typeof ApiPublicDocIdRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -533,7 +533,7 @@ export interface FileRoutesByTo {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
-  '/api/public/boarding-pass/$id': typeof ApiPublicBoardingPassIdRoute
+  '/api/public/doc/$id': typeof ApiPublicDocIdRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -601,7 +601,7 @@ export interface FileRoutesById {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
-  '/api/public/boarding-pass/$id': typeof ApiPublicBoardingPassIdRoute
+  '/api/public/doc/$id': typeof ApiPublicDocIdRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -670,7 +670,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
-    | '/api/public/boarding-pass/$id'
+    | '/api/public/doc/$id'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -736,7 +736,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos'
     | '/pacotes/$slug'
-    | '/api/public/boarding-pass/$id'
+    | '/api/public/doc/$id'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -803,7 +803,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
-    | '/api/public/boarding-pass/$id'
+    | '/api/public/doc/$id'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -838,7 +838,7 @@ export interface RootRouteChildren {
   ApiPublicNfseAtendenetTestRoute: typeof ApiPublicNfseAtendenetTestRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
-  ApiPublicBoardingPassIdRoute: typeof ApiPublicBoardingPassIdRoute
+  ApiPublicDocIdRoute: typeof ApiPublicDocIdRoute
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -1237,11 +1237,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
       parentRoute: typeof PacotesRoute
     }
-    '/api/public/boarding-pass/$id': {
-      id: '/api/public/boarding-pass/$id'
-      path: '/api/public/boarding-pass/$id'
-      fullPath: '/api/public/boarding-pass/$id'
-      preLoaderRoute: typeof ApiPublicBoardingPassIdRouteImport
+    '/api/public/doc/$id': {
+      id: '/api/public/doc/$id'
+      path: '/api/public/doc/$id'
+      fullPath: '/api/public/doc/$id'
+      preLoaderRoute: typeof ApiPublicDocIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/check-flight-changes': {
@@ -1434,7 +1434,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicNfseAtendenetTestRoute: ApiPublicNfseAtendenetTestRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
-  ApiPublicBoardingPassIdRoute: ApiPublicBoardingPassIdRoute,
+  ApiPublicDocIdRoute: ApiPublicDocIdRoute,
   ApiPublicHooksCheckFlightChangesRoute: ApiPublicHooksCheckFlightChangesRoute,
   ApiPublicHooksCloseInactiveProtocolsRoute:
     ApiPublicHooksCloseInactiveProtocolsRoute,
