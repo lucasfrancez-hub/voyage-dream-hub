@@ -123,8 +123,8 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
     const result: ReservationGroup[] = [];
     for (const [key, segsAll] of bucket) {
       segsAll.sort((a, b) => {
-        const da = new Date(a.item.details?.departure_at || 0).getTime();
-        const db = new Date(b.item.details?.departure_at || 0).getTime();
+        const da = new Date(a.item.details?.depart_at ?? item.details?.departure_at || 0).getTime();
+        const db = new Date(b.item.details?.depart_at ?? item.details?.departure_at || 0).getTime();
         return da - db;
       });
 
@@ -132,14 +132,14 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
       // check-in (48h) — a menos que já tenham um check-in iniciado/feito.
       const segs = segsAll.filter((s) => {
         if (s.checkin) return true;
-        const dep = new Date(s.item.details?.departure_at || 0).getTime();
+        const dep = new Date(s.item.details?.depart_at ?? item.details?.departure_at || 0).getTime();
         if (!Number.isFinite(dep) || dep <= 0) return false;
         return dep - now <= WINDOW_MS && dep - now > -6 * 60 * 60 * 1000;
       });
       if (segs.length === 0) continue;
 
       const deps = segs
-        .map((s) => new Date(s.item.details?.departure_at || 0).getTime())
+        .map((s) => new Date(s.item.details?.depart_at ?? item.details?.departure_at || 0).getTime())
         .filter((n) => Number.isFinite(n) && n > 0);
       const firstDep = deps.length ? Math.min(...deps) : null;
       const lastDep = deps.length ? Math.max(...deps) : null;
@@ -253,7 +253,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
 
               <div className="space-y-1">
                 {group.segments.map(({ item, checkin }) => {
-                  const dep = item.details?.departure_at ? new Date(item.details.departure_at) : null;
+                  const dep = item.details?.depart_at ?? item.details?.departure_at ? new Date(item.details.departure_at) : null;
                   return (
                     <div
                       key={item.id}
