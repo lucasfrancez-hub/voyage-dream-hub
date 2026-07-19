@@ -205,14 +205,28 @@ function NotasFiscaisPage() {
               );
             })}
           </div>
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-10 h-10 bg-background/60 border-border rounded-xl focus-visible:ring-brand-orange/50"
-              placeholder="Buscar por número, pedido ou tomador…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex items-center gap-3 flex-1 max-w-xl">
+            <Select value={prestadorFilter} onValueChange={setPrestadorFilter}>
+              <SelectTrigger className="h-10 w-[200px] bg-background/60 border-border rounded-xl">
+                <Building2 className="h-4 w-4 text-muted-foreground mr-1" />
+                <SelectValue placeholder="Prestador" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os prestadores</SelectItem>
+                {prestadores.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-10 h-10 bg-background/60 border-border rounded-xl focus-visible:ring-brand-orange/50"
+                placeholder="Buscar por número, pedido ou tomador…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
