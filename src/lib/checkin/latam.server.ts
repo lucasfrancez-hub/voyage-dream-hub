@@ -242,6 +242,10 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
       'abrir cartao',
       'abrir cartões',
       'abrir cartoes',
+      'cartão de embarque',
+      'cartao de embarque',
+      'cartões de embarque',
+      'cartoes de embarque',
     ], ['button','a','[role="button"]']);
     if (verCartao) {
       step('iter ' + i + ': "Ver cartão(ões) de embarque"');
