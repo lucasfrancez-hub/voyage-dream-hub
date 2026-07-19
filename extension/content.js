@@ -759,7 +759,7 @@
       : window.scrollTo({ top: y, behavior: "instant" });
     const viewH = container ? container.clientHeight : window.innerHeight;
     const totalH = container ? container.scrollHeight : document.documentElement.scrollHeight;
-    if (viewH < 100) return shots;
+    if (viewH < 100) return { shots, errors };
     const step = Math.floor(viewH * 0.85);
     const originalScroll = getScroll();
 
