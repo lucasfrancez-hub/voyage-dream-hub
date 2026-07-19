@@ -253,7 +253,8 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
 
               <div className="space-y-1">
                 {group.segments.map(({ item, checkin }) => {
-                  const dep = item.details?.depart_at ?? item.details?.departure_at ? new Date(item.details.departure_at) : null;
+                  const depIso = item.details?.depart_at ?? item.details?.departure_at ?? null;
+                  const dep = depIso ? new Date(depIso) : null;
                   return (
                     <div
                       key={item.id}
