@@ -82,7 +82,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     await page.keyboard.press('Backspace').catch(() => {});
     await handle.type(text, { delay: 40 });
     await page.keyboard.press('Tab').catch(() => {});
-    await sleep(350);
+    await sleep(250);
   };
   const visiblePageState = async () => page.evaluate(() => {
     const visible = (el) => {
@@ -148,10 +148,10 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
   const alreadyOpenedByStealth = Boolean(context.pageReady) && page.url().includes('latamairlines.com');
   if (!alreadyOpenedByStealth) {
     await gotoWithRetry('https://www.latamairlines.com/br/pt/check-in');
-    await sleep(2500);
+    await sleep(1250);
   } else {
     step('continuando na mesma sessão stealth desbloqueada');
-    await sleep(1200);
+    await sleep(600);
   }
 
   // Cookies / OneTrust
@@ -167,10 +167,10 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
   if (okCookies) {
     await okCookies.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
     await okCookies.click().catch(async () => okCookies.evaluate((el) => el.click()));
-    await sleep(1000);
+    await sleep(500);
     step('aviso de cookies fechado');
   }
-  await sleep(500);
+  await sleep(250);
   step('after form nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
 
   // Dentro da sessão stealth já aquecida, a URL da própria reserva evita a
@@ -185,7 +185,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
   if (directReservationUrl) {
     step('abrindo reserva diretamente na mesma sessão desbloqueada');
     await gotoWithRetry(directReservationUrl);
-    await sleep(4500);
+    await sleep(2250);
     // A LATAM às vezes serve apenas o shell da SPA quando entramos direto na
     // URL da reserva (o snapshot só mostra a nav do topo). Espera a hidratação
     // ou força um reload com networkidle antes de desistir.
@@ -201,13 +201,13 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     for (let hi = 0; !hydrated && hi < 3; hi++) {
       step('shell da SPA sem conteúdo (tentativa ' + (hi + 1) + '): aguardando hidratação');
       await page.waitForNetworkIdle({ idleTime: 1000, timeout: 15_000 }).catch(() => {});
-      await sleep(2500);
+      await sleep(1250);
       hydrated = await isHydrated();
       if (!hydrated && hi === 1) {
         step('forçando reload com networkidle para forçar re-hidratação');
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
         await page.waitForNetworkIdle({ idleTime: 1000, timeout: 20_000 }).catch(() => {});
-        await sleep(2500);
+        await sleep(1250);
       }
     }
     step('after direct reservation nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
@@ -237,7 +237,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     if (!submitBtn) throw new Error('Formulário LATAM sem botão de busca disponível');
     await submitBtn.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
     await submitBtn.click().catch(async () => submitBtn.evaluate((el) => el.click()));
-    await sleep(4500);
+    await sleep(2250);
     step('after manual submit: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
 
     // Se a busca pública falhar, ainda preservamos a sessão e tentamos a rota
@@ -246,7 +246,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     if (searchFailed && directReservationUrl) {
       step('busca pública falhou; retomando pela URL direta da reserva');
       await gotoWithRetry(directReservationUrl);
-      await sleep(4500);
+      await sleep(2250);
       step('after direct recovery: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
     }
   }
@@ -266,7 +266,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     const isBoardingPage = url.includes('boarding') || url.includes('cartao') || url.includes('cartão');
     if (isBoardingPage) {
       step('iter ' + i + ': página de cartão detectada, aguardando botão');
-      await sleep(2000); idle++; if (idle > 5) break; continue;
+      await sleep(1000); idle++; if (idle > 5) break; continue;
     }
 
     // (3) "Ver cartão(ões) de embarque" — restrito a button/a para não pegar badges
@@ -289,7 +289,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
       const pagesBeforeClick = await page.browser().pages();
       await verCartao.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
       await verCartao.click().catch(async () => verCartao.evaluate((el) => el.click()));
-      await sleep(4000);
+      await sleep(2000);
       const pagesAfterClick = await page.browser().pages();
       const openedPage = pagesAfterClick.find((candidate) =>
         !pagesBeforeClick.includes(candidate) && candidate.url().includes('latamairlines.com')
@@ -348,7 +348,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
         step('iter ' + i + ': abrindo detalhes do trecho elegível (ignora voos realizados)');
         await eligibleRow.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
         await eligibleRow.click().catch(async () => eligibleRow.evaluate((el) => el.click()));
-        await sleep(3000);
+        await sleep(1500);
         flightDetailsOpened = true;
         idle = 0;
         continue;
@@ -357,20 +357,20 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
 
     // (4) "Fazer check-in"
     const fazerCheckin = await findByText(['fazer check-in','fazer checkin','iniciar check-in'], ['button','a','[role="button"]']);
-    if (fazerCheckin) { step('iter ' + i + ': "Fazer check-in"'); await fazerCheckin.click().catch(() => {}); await sleep(2500); idle = 0; continue; }
+    if (fazerCheckin) { step('iter ' + i + ': "Fazer check-in"'); await fazerCheckin.click().catch(() => {}); await sleep(1250); idle = 0; continue; }
 
     // (5) Elementos perigosos → "Entendi"
     const entendi = await findByText(['entendi','entendido'], ['button','[role="button"]']);
-    if (entendi) { step('iter ' + i + ': Entendi'); await entendi.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
+    if (entendi) { step('iter ' + i + ': Entendi'); await entendi.click().catch(() => {}); await sleep(1000); idle = 0; continue; }
 
     // (6) Contato de emergência → "Não quero"
     const naoQuero = await findByText(['não quero entregar','nao quero entregar','não quero informar','nao quero informar','não desejo informar'], ['button','label','[role="button"]']);
     if (naoQuero) {
       step('iter ' + i + ': marcando "não quero"');
       await naoQuero.click().catch(() => {});
-      await sleep(600);
+      await sleep(300);
       const salvar = await findByText(['salvar','continuar'], ['button','[role="button"]']);
-      if (salvar) { await salvar.click().catch(() => {}); await sleep(2500); }
+      if (salvar) { await salvar.click().catch(() => {}); await sleep(1250); }
       idle = 0; continue;
     }
 
@@ -379,33 +379,33 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     if (passAll) {
       step('iter ' + i + ': todos os passageiros');
       await passAll.click().catch(() => {});
-      await sleep(600);
+      await sleep(300);
       const cont = await findByText(['continuar','confirmar'], ['button','[role="button"]']);
-      if (cont) { await cont.click().catch(() => {}); await sleep(2000); }
+      if (cont) { await cont.click().catch(() => {}); await sleep(1000); }
       idle = 0; continue;
     }
 
     // (8) Skip seguro/upgrade/assento
     const skip = await findByText(['agora não','agora nao','não, obrigado','nao, obrigado','pular','manter assento','continuar sem alterar','continuar sem','recusar','dispensar'], ['button','[role="button"]']);
-    if (skip) { step('iter ' + i + ': skip'); await skip.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
+    if (skip) { step('iter ' + i + ': skip'); await skip.click().catch(() => {}); await sleep(1000); idle = 0; continue; }
 
     // (9) Fechar modais
     const closeBtn = await page.$('button[aria-label*="Fechar" i], button[aria-label*="Close" i], button[aria-label*="Cerrar" i]');
-    if (closeBtn) { step('iter ' + i + ': fechar modal'); await closeBtn.click().catch(() => {}); await sleep(1000); idle = 0; continue; }
+    if (closeBtn) { step('iter ' + i + ': fechar modal'); await closeBtn.click().catch(() => {}); await sleep(500); idle = 0; continue; }
 
     // (10) Continuar/Confirmar genérico
     const cont = await findByText(['continuar','confirmar','aceitar'], ['button','[role="button"]']);
-    if (cont) { step('iter ' + i + ': continuar/confirmar'); await cont.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
+    if (cont) { step('iter ' + i + ': continuar/confirmar'); await cont.click().catch(() => {}); await sleep(1000); idle = 0; continue; }
 
     step('iter ' + i + ': sem ação, aguardando');
     // A SPA da LATAM pode demorar 20-30s para renderizar o painel do trecho
     // depois do primeiro paint. Dá mais tempo antes de desistir.
-    await sleep(3500); idle++;
+    await sleep(1750); idle++;
     if (idle === 4) {
       step('sem progresso após 4 ciclos, tentando reload para forçar hidratação');
       await page.reload({ waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
       await page.waitForNetworkIdle({ idleTime: 1000, timeout: 15_000 }).catch(() => {});
-      await sleep(2500);
+      await sleep(1250);
     }
     if (idle > 9) { step('sem progresso, encerrando'); break; }
   }
@@ -489,7 +489,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
           }
         }
       }).catch(() => {});
-      await sleep(300);
+      await sleep(250);
 
       // 2) Procura o botão "Entendi" em vários containers, incluindo dialog,
       //    shadow DOM e iframes.
@@ -530,7 +530,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
         }
         return null;
       }).catch(() => null);
-      if (clickedInMain) { step('dispensando aviso ("' + clickedInMain + '")'); await sleep(1500); continue; }
+      if (clickedInMain) { step('dispensando aviso ("' + clickedInMain + '")'); await sleep(750); continue; }
 
       // 3) Tenta iframes
       let clickedInFrame: string | null = null;
@@ -554,7 +554,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
         } catch (_) {}
         if (clickedInFrame) break;
       }
-      if (clickedInFrame) { step('dispensando aviso em iframe ("' + clickedInFrame + '")'); await sleep(1500); continue; }
+      if (clickedInFrame) { step('dispensando aviso em iframe ("' + clickedInFrame + '")'); await sleep(750); continue; }
 
       // 4) Ainda tem dialog visível mas sem botão detectável? Loga diagnóstico
       //    e tenta Enter/Escape como último recurso, senão sai.
@@ -569,7 +569,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
       if (Array.isArray(dlgDiag) && dlgDiag.length) {
         step('modal visível sem "Entendi" reconhecível: ' + JSON.stringify(dlgDiag).slice(0, 400));
         await page.keyboard.press('Enter').catch(() => {});
-        await sleep(800);
+        await sleep(400);
         continue;
       }
       return; // sem modal visível — sai
@@ -664,7 +664,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
         return hasText || hasBarcode;
       }, { timeout: 15_000 });
     } catch (_) {}
-    await sleep(1500);
+    await sleep(750);
     const bytes = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true });
     return { bytes, contentType: 'application/pdf' };
   };
@@ -738,7 +738,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
           if (emptyStreak >= 2) break;
           continue;
         }
-        await sleep(2500);
+        await sleep(1250);
         await dismissHazmatGate();
 
         // Detecta se a URL realmente renderizou um BP (tem texto/portão/barcode)
@@ -796,7 +796,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
         if (tabHandle) {
           await tabHandle.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
           await tabHandle.click().catch(async () => tabHandle.evaluate((el) => el.click()));
-          await sleep(2500);
+          await sleep(1250);
         }
         try {
           const { bytes, contentType: ct } = await captureCurrentPdf();
