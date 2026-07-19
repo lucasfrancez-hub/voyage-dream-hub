@@ -317,6 +317,44 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
               </div>
             </TabsContent>
 
+            <TabsContent value="prestador" className="mt-0 space-y-4">
+              <Card title="Prestador de Serviço">
+                <Field span={2} label="Razão social" value={prestador.razao_social ?? "—"} />
+                <Field label="Nome fantasia" value={prestador.nome_fantasia ?? "—"} />
+                <Field label="CNPJ" value={fmtDoc(prestador.cnpj)} mono />
+                <Field label="Inscrição municipal" value={prestador.inscricao_municipal ?? "—"} />
+                <Field label="CNAE" value={prestador.cnae_principal ?? "—"} />
+                <Field label="Item lista serviço" value={prestador.item_lista_servico ?? "—"} />
+                <Field label="Alíquota ISS" value={prestador.aliquota_iss != null ? pct(prestador.aliquota_iss) : "—"} />
+                <Field label="Regime especial" value={prestador.regime_especial ?? "—"} />
+                <Field
+                  label="Optante Simples"
+                  value={prestador.optante_simples == null ? "—" : prestador.optante_simples ? "Sim" : "Não"}
+                />
+                <Field label="E-mail" value={prestador.email ?? "—"} />
+                <Field label="Telefone" value={prestador.telefone ?? "—"} />
+              </Card>
+              <Card title="Endereço do Prestador">
+                <Field label="CEP" value={fmtCep(prestador.cep)} mono />
+                <Field
+                  span={2}
+                  label="Logradouro"
+                  value={
+                    [prestador.logradouro, prestador.numero ? `nº ${prestador.numero}` : null, prestador.complemento]
+                      .filter(Boolean)
+                      .join(", ") || "—"
+                  }
+                />
+                <Field label="Bairro" value={prestador.bairro ?? "—"} />
+                <Field
+                  span={2}
+                  label="Município / UF"
+                  value={[prestador.municipio, prestador.uf].filter(Boolean).join(" / ") || "—"}
+                />
+              </Card>
+            </TabsContent>
+
+
             <TabsContent value="tomador" className="mt-0 space-y-4">
               <Card title="Dados do Tomador">
                 <Field
