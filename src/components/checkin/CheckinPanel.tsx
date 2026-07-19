@@ -107,7 +107,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
         {rows.map(({ item, checkin }) => {
           const dep = item.details?.departure_at ? new Date(item.details.departure_at) : null;
           const canRun = dep ? dep.getTime() - Date.now() < 48 * 60 * 60 * 1000 && dep.getTime() > Date.now() : true;
-          const isRunning = runMut.isPending && runMut.variables === item.id;
+          const isRunning = runMut.isPending && runMut.variables?.orderItemId === item.id;
           return (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-background/60 px-3 py-2 text-sm">
               <div className="min-w-0">
