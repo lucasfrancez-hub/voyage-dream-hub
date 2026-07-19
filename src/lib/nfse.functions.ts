@@ -55,10 +55,23 @@ function responseTag(xml: string, tag: string): string | null {
     .trim() || null;
 }
 
-function atendenetAuth(): { basic: string; usuario: string } {
-  const usuario = process.env.NFSE_ATENDENET_USUARIO;
-  const senha = process.env.NFSE_ATENDENET_PASSWORD;
-  if (!usuario || !senha) throw new Error("Credenciais AtendeNet não configuradas");
+function atendenetAuth(cnpj?: string | null): { basic: string; usuario: string } {
+  const digits = (cnpj ?? "").replace(/\D/g, "");
+  let usuario: string | undefined;
+  let senha: string | undefined;
+  let userVar = "NFSE_ATENDENET_USUARIO";
+  let passVar = "NFSE_ATENDENET_PASSWORD";
+  if (digits === "47430791000153") {
+    // LFR TRAVEL SERVICES LTDA
+    userVar = "NFSE_LFR_ATENDENET_USUARIO";
+    passVar = "NFSE_LFR_ATENDENET_PASSWORD";
+    usuario = process.env.NFSE_LFR_ATENDENET_USUARIO;
+    senha = process.env.NFSE_LFR_ATENDENET_PASSWORD;
+  } else {
+    usuario = process.env.NFSE_ATENDENET_USUARIO;
+    senha = process.env.NFSE_ATENDENET_PASSWORD;
+  }
+  if (!usuario || !senha) throw new Error(`Credenciais AtendeNet não configuradas (${userVar}/${passVar})`);
   return { basic: Buffer.from(`${usuario}:${senha}`).toString("base64"), usuario };
 }
 
