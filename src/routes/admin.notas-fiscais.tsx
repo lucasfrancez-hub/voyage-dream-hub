@@ -104,21 +104,37 @@ function NotasFiscaisPage() {
     return { valor, iss };
   }, [rows]);
 
+  const getPrestadorName = (r: Row): string => {
+    const p = (r as Row & { prestador?: { nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
+    return (p?.nome_fantasia || p?.razao_social || "").trim();
+  };
+
+  const prestadores = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows) {
+      const n = getPrestadorName(r);
+      if (n) set.add(n);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return rows.filter((r) => {
       const st = normalizeStatus(r.status);
       if (tab !== "todas" && st !== tab) return false;
+      if (prestadorFilter !== "todos" && getPrestadorName(r) !== prestadorFilter) return false;
       if (!s) return true;
       const o = (r as Row & { orders?: { order_number?: string; full_name?: string } }).orders;
       return (
         (r.numero_nfse ?? "").toLowerCase().includes(s) ||
         ((r.tomador as { razao_social?: string } | null)?.razao_social ?? "").toLowerCase().includes(s) ||
         (o?.order_number ?? "").toLowerCase().includes(s) ||
-        (o?.full_name ?? "").toLowerCase().includes(s)
+        (o?.full_name ?? "").toLowerCase().includes(s) ||
+        getPrestadorName(r).toLowerCase().includes(s)
       );
     });
-  }, [rows, tab, search]);
+  }, [rows, tab, search, prestadorFilter]);
 
   const TABS: Array<{ id: "todas" | StatusKey; label: string; count: number }> = [
     { id: "todas", label: "Todas", count: counts.todas },
