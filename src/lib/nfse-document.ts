@@ -259,8 +259,10 @@ body{color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:10.2px;
 .consulta{background:var(--azul-claro);padding:7px 9px;border-radius:5px;line-height:1.35;font-size:9.4px}
 .consulta strong{display:block;color:var(--azul);font-size:10px;margin-top:4px}
 .qr-rodape{width:68px;height:68px;object-fit:contain;display:block;margin:auto}
-.rodape-legal{display:grid;grid-template-columns:1fr 245px;gap:14px;align-items:end;margin-top:5px;font-size:6.8px;color:#475467}
-.ambiental{text-align:right}
+.rodape-legal{margin-top:5px;font-size:6.8px;color:#475467}
+.rodape-linha{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:2px}
+.ambiental{color:#475467}
+.rodape-sistema{color:#98a2b3;font-style:italic;white-space:nowrap}
 .sem-informacao{color:#98a2b3;font-style:italic}
 .cabecalho,.linha-dupla,.bloco,.valores,.liquido,.informacoes-fiscais,.autenticidade,.rodape-legal{break-inside:avoid;page-break-inside:avoid}
 @media print{html,body{width:210mm;height:297mm;margin:0;padding:0;background:#fff}.pagina{width:210mm;height:297mm;min-height:297mm;margin:0;padding:8mm 8mm 6mm;box-shadow:none;overflow:hidden}*{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}}
