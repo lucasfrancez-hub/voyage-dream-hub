@@ -29,6 +29,15 @@ export default async function ({ page, context }) {
   const log = [];
   const step = (m) => { log.push(new Date().toISOString() + ' — ' + m); };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const bytesToBase64 = (value) => {
+    const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  };
 
   // Helpers (Puppeteer não tem :has-text nem fill)
   const findByText = async (texts, tags = ['button','a','label','span','div']) => {
@@ -273,16 +282,32 @@ export default async function ({ page, context }) {
       try {
         const resp = await fetch(abs, { headers: { cookie: cookieHeader, referer: page.url() } });
         if (resp.ok) {
-          const buf = Buffer.from(await resp.arrayBuffer());
-          pdfBuffer = buf;
+          pdfBuffer = new Uint8Array(await resp.arrayBuffer());
           contentType = resp.headers.get('content-type') || 'application/pdf';
         }
       } catch (e) { step('pdf fetch failed: ' + (e && e.message)); }
     }
   }
 
-  // Fallback: imprimir a página como PDF
+  // Fallback permitido somente quando a navegação realmente chegou ao cartão.
+  // Evita salvar como cartão uma tela intermediária ou de erro da companhia.
   if (!pdfBuffer) {
+    const finalUrl = page.url().toLowerCase();
+    const pageLooksLikeBoardingPass = done || finalUrl.includes('boarding') || finalUrl.includes('cartao') || finalUrl.includes('cartão');
+    if (!pageLooksLikeBoardingPass) {
+      const snapshot = await page.evaluate(() => ({
+        title: document.title,
+        headings: Array.from(document.querySelectorAll('h1,h2,[role="heading"]'))
+          .map((el) => (el.innerText || el.textContent || '').trim())
+          .filter(Boolean)
+          .slice(0, 8),
+      })).catch(() => ({ title: '', headings: [] }));
+      throw new Error('Fluxo LATAM terminou antes do cartão. Estado: ' + JSON.stringify({
+        finalUrl: page.url(),
+        snapshot,
+        log: log.slice(-12),
+      }));
+    }
     step('fallback: page.pdf()');
     pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
     contentType = 'application/pdf';
@@ -290,7 +315,7 @@ export default async function ({ page, context }) {
 
   return {
     data: {
-      boardingPassBase64: Buffer.from(pdfBuffer).toString('base64'),
+      boardingPassBase64: bytesToBase64(pdfBuffer),
       contentType,
       meta: { log, finalUrl: page.url() },
     },
