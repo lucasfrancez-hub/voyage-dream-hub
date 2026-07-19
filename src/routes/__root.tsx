@@ -123,11 +123,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Via Air — Agência de viagens, passagens e pacotes" },
       { property: "og:description", content: "Via Air: passagens aéreas, pacotes, hotéis, cruzeiros e experiências personalizadas com atendimento humano." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://pedidos.viaair.tur.br/" },
+      { property: "og:site_name", content: "Via Air" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Via Air — Agência de viagens, passagens e pacotes" },
       { name: "twitter:description", content: "Via Air: passagens aéreas, pacotes, hotéis, cruzeiros e experiências personalizadas com atendimento humano." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bdd945fa-70cf-4ea9-8b7e-3cabb2fbf6c9/id-preview-6e3baa2e--934759e1-0e4c-4b91-ab07-03e261d1e2af.lovable.app-1783460248741.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bdd945fa-70cf-4ea9-8b7e-3cabb2fbf6c9/id-preview-6e3baa2e--934759e1-0e4c-4b91-ab07-03e261d1e2af.lovable.app-1783460248741.png" },
+
     ],
     links: [
       { rel: "stylesheet", href: appCss },
