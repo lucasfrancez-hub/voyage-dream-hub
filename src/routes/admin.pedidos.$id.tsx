@@ -896,8 +896,8 @@ function PassengersSection({
                 <th className="text-left px-3 py-3 w-[80px]">Tipo</th>
                 <th className="text-left px-3 py-3 w-[140px]">Nascimento</th>
                 <th className="text-left px-3 py-3 min-w-[300px]">Documento</th>
-                <th className="text-left px-3 py-3">Bilhete</th>
-                <th className="text-left px-3 py-3 w-[160px]">WhatsApp</th>
+                <th className="text-left px-3 py-3 w-[140px]">Bilhete</th>
+                <th className="text-left px-3 py-3 w-[180px]">WhatsApp</th>
                 <th className="px-3 py-3 w-16 text-right">Ações</th>
               </tr>
             </thead>
@@ -925,7 +925,8 @@ function PassengersSection({
                       passport_number: patch.passport_number !== undefined ? patch.passport_number : p.passport_number,
                       passport_issue_date: patch.passport_issue_date !== undefined ? patch.passport_issue_date : p.passport_issue_date,
                       passport_expiry_date: patch.passport_expiry_date !== undefined ? patch.passport_expiry_date : p.passport_expiry_date,
-                    });
+                      whatsapp: patch.whatsapp !== undefined ? patch.whatsapp : (p as any).whatsapp,
+                    } as any);
                     // Se alterou o bilhete: atualiza status dos aéreos (confirmado se algum passageiro tem bilhete).
                     if (patch.ticket_number !== undefined) {
                       const anyTicket =
@@ -1098,12 +1099,12 @@ function PassengerRow({
           </div>
         </div>
       </td>
-      <td className="px-3 py-3">
-        <InlineText value={effectiveTicket ?? ""} placeholder="Adicionar bilhete" className="text-xs tabular-nums"
+      <td className="px-3 py-3 w-[140px]">
+        <InlineText value={effectiveTicket ?? ""} placeholder="Adicionar bilhete" className="text-xs tabular-nums w-full"
           onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
       </td>
-      <td className="px-3 py-3 w-[160px]">
-        <InlineText value={(passenger as any).whatsapp ?? ""} placeholder="+55 48 9…" className="text-xs tabular-nums"
+      <td className="px-3 py-3 w-[180px]">
+        <InlineText value={(passenger as any).whatsapp ?? ""} placeholder="+55 48 9…" className="text-xs tabular-nums w-full"
           onCommit={(v) => (v || null) !== ((passenger as any).whatsapp ?? null) && onPatch({ whatsapp: v || null })} />
       </td>
       <td className="px-3 py-3 text-right">
