@@ -143,7 +143,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                   size="sm"
                   variant={checkin?.status === "success" ? "outline" : "default"}
                   disabled={isRunning || !canRun}
-                  onClick={() => runMut.mutate(item.id)}
+                  onClick={() => runMut.mutate({ orderItemId: item.id, regenCheckinId: checkin?.status === "success" ? checkin.id : undefined })}
                   title={!canRun ? "Disponível a partir de 48h antes do voo" : ""}
                 >
                   {isRunning ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
