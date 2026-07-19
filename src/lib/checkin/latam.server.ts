@@ -136,13 +136,22 @@ export default async function ({ page, context }) {
   await sleep(2500);
 
   // Cookies / OneTrust
-  const okCookies = await page.$('#onetrust-accept-btn-handler');
-  if (okCookies) { await okCookies.click().catch(() => {}); await sleep(500); }
-  else {
-    const aceitar = await findByText(['aceitar','aceito']);
-    if (aceitar) { await aceitar.click().catch(() => {}); await sleep(500); }
+  let okCookies = await page.$('#onetrust-accept-btn-handler, button[id*="accept" i]');
+  if (!okCookies) {
+    okCookies = await findByText([
+      'aceite todos os cookies',
+      'aceite todo os cookies',
+      'aceitar todos os cookies',
+      'aceitar todos',
+    ], ['button','[role="button"]']);
   }
-  await sleep(1000);
+  if (okCookies) {
+    await okCookies.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+    await okCookies.click().catch(async () => okCookies.evaluate((el) => el.click()));
+    await sleep(1000);
+    step('aviso de cookies fechado');
+  }
+  await sleep(500);
   step('after form nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
 
   // A busca pelo número da compra e sobrenome é o fluxo primário.
@@ -170,6 +179,7 @@ export default async function ({ page, context }) {
       return null;
     }).then((h) => h.asElement());
     if (!submitBtn) throw new Error('Formulário LATAM sem botão de busca disponível');
+    await submitBtn.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
     await submitBtn.click().catch(async () => submitBtn.evaluate((el) => el.click()));
     await sleep(4500);
     step('after manual submit: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
