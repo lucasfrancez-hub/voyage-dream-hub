@@ -347,6 +347,18 @@ function NotasFiscaisPage() {
           </div>
         )}
       </div>
+
+      <CancelNfseDialog
+        open={!!cancelTarget}
+        onOpenChange={(v) => { if (!v) setCancelTarget(null); }}
+        numero={cancelTarget?.numero_nfse ?? cancelTarget?.numero_rps ?? null}
+        loading={cancelMut.isPending}
+        onConfirm={(j) => {
+          if (!cancelTarget) return;
+          const id = cancelTarget.id;
+          cancelMut.mutate({ id, justificativa: j }, { onSettled: () => setCancelTarget(null) });
+        }}
+      />
     </div>
   );
 }
