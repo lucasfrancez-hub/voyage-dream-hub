@@ -59,6 +59,7 @@ function NotasFiscaisPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"todas" | StatusKey>("todas");
   const [search, setSearch] = useState("");
+  const [prestadorFilter, setPrestadorFilter] = useState<string>("todos");
   const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<Row | null>(null);
 
