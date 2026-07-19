@@ -173,7 +173,7 @@ export const regenerateAllBoardingPasses = createServerFn({ method: "POST" })
  */
 export const runCheckin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null }) => data)
+  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null; mode?: "code" | "vision" }) => data)
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
     const { userId } = context as { userId: string };
