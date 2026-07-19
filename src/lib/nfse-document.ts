@@ -31,9 +31,17 @@ export type NfseDocumentData = {
   credito_tributario?: Num;
   discriminacao: string;
   tomador: unknown;
+  prestador?: unknown;
+  prestador_id?: string | null;
   focus_response?: unknown;
   order_id?: string | null;
 };
+
+// Mapa de logo por CNPJ do prestador (somente dígitos). Adicione novos aqui.
+const LOGO_POR_CNPJ: Record<string, string> = {
+  "56339877000166": viaAirLogoAsset.url, // VIA AIR
+};
+
 
 const money = (v: unknown) =>
   Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -100,8 +108,28 @@ const pick = (...vals: unknown[]): string => {
 };
 
 export async function downloadNfsePdf(data: NfseDocumentData) {
-  const { data: cfg } = await supabase.from("nfse_config")
-    .select("*").limit(1).maybeSingle();
+  // Snapshot do prestador salvo na emissão (fonte da verdade retroativa)
+  const psnap = (data.prestador ?? {}) as Record<string, any>;
+  const psnapEnd = (psnap.endereco ?? {}) as Record<string, any>;
+  const cnpjSnap = String(psnap.cnpj || "").replace(/\D/g, "");
+
+  // Config atual do prestador (por id, ou por CNPJ do snapshot, fallback: primeiro)
+  let cfgQuery = supabase.from("nfse_config").select("*").limit(1);
+  if (data.prestador_id) cfgQuery = supabase.from("nfse_config").select("*").eq("id", data.prestador_id).limit(1);
+  else if (cnpjSnap) cfgQuery = supabase.from("nfse_config").select("*").eq("cnpj", cnpjSnap).limit(1);
+  const { data: cfg } = await cfgQuery.maybeSingle();
+
+  const cnpjPrest = String(psnap.cnpj || cfg?.cnpj || "").replace(/\D/g, "");
+  const razaoPrest = String(psnap.razao_social || (cfg as any)?.razao_social || "");
+  const fantasiaPrest = String(psnap.nome_fantasia || (cfg as any)?.nome_fantasia || razaoPrest);
+  const imPrest = String(psnap.inscricao_municipal || cfg?.inscricao_municipal || "");
+  const logradouroPrest = String(psnapEnd.logradouro || (cfg as any)?.logradouro || "");
+  const numeroPrest = String(psnapEnd.numero || (cfg as any)?.numero || "");
+  const bairroPrest = String(psnapEnd.bairro || (cfg as any)?.bairro || "");
+  const cepPrest = String(psnapEnd.cep || (cfg as any)?.cep || "");
+  const emailPrest = String(psnap.email || (cfg as any)?.email || "");
+  const telPrest = String(psnap.telefone || (cfg as any)?.telefone || "");
+  const logoPrest = LOGO_POR_CNPJ[cnpjPrest] || "";
 
   // Distintos — sem fallback cruzado entre campos diferentes
   const codServico = String(cfg?.ipm_codigo_servico || "");
@@ -109,7 +137,7 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const listaServ = String(cfg?.item_lista_servico || cfg?.codigo_tributario_nacional || "");
   const codMun = String((cfg as unknown as { codigo_municipio?: string })?.codigo_municipio || "4118402");
   const cnae = String(cfg?.cnae_principal || "7911-2/00");
-  const municipioPrest = `${cfg?.municipio_prestacao || "Paranavaí"}/${cfg?.uf_prestacao || "PR"}`;
+  const municipioPrest = `${cfg?.municipio_prestacao || psnapEnd.cidade || "Paranavaí"}/${cfg?.uf_prestacao || psnapEnd.uf || "PR"}`;
   const regime = String(cfg?.regime_tributario || "Normal");
 
   const numero = data.numero_nfse || responseValue(data, "numero_nfse") || "-";
@@ -118,6 +146,8 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const rps = responseValue(data, "numero_rps") || "";
   const dateStr = new Date(data.data_emissao || data.created_at).toLocaleDateString("pt-BR");
   const timeStr = new Date(data.data_emissao || data.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+
 
   // Tomador — mapeamento robusto com fallback amplo
   const t = (data.tomador ?? {}) as Record<string, any>;
@@ -164,8 +194,7 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const vCred = n(data.credito_tributario);
   const tFed = n(data.tributos_federais);
 
-  const emailPrest = "lucas@voeair.com";
-  const telPrest = "(44) 99909-3642";
+
 
   const dash = (v: string) => v || '<span class="sem-informacao">–</span>';
 
@@ -179,7 +208,7 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const cepTomador = fmtCep(pick(end.cep, end.zip, end.postal_code));
 
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-<title>NFS-e ${esc(numero)} - VIA AIR</title>
+<title>NFS-e ${esc(numero)} - ${esc(fantasiaPrest || razaoPrest || "Prestador")}</title>
 <style>
 :root{--azul:#063b78;--azul-escuro:#052c59;--azul-claro:#eaf2fb;--laranja:#f27a16;--verde:#1b8f4e;--texto:#111827;--cinza:#667085;--linha:#cfd6df;--fundo:#fff}
 *{box-sizing:border-box}
@@ -270,7 +299,7 @@ body{color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:10.2px;
 <body>
 <div class="pagina">
   <div class="cabecalho">
-    <div class="marca"><img class="logo" src="${esc(viaAirLogoAsset.url)}" alt="VIA AIR"/></div>
+    <div class="marca">${logoPrest ? `<img class="logo" src="${esc(logoPrest)}" alt="${esc(fantasiaPrest || razaoPrest)}"/>` : `<div class="logo" style="display:flex;align-items:center;font-weight:800;color:var(--azul-escuro);font-size:16px;line-height:1.1">${esc(fantasiaPrest || razaoPrest)}</div>`}</div>
     <div class="titulo-nota">
       <div class="linha-1">Nota Fiscal de</div>
       <div class="linha-2">Serviço Eletrônica</div>
@@ -291,13 +320,13 @@ body{color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:10.2px;
     <div class="bloco">
       <div class="titulo-bloco">Prestador de serviço</div>
       <div class="conteudo">
-        <div class="razao">VIA AIR AGÊNCIA &amp; REPRESENTAÇÕES LTDA</div>
+        <div class="razao">${esc(razaoPrest || "-")}</div>
         <div class="campos-3">
-          <div class="campo"><div class="rotulo">CNPJ</div><div class="valor">${esc(fmtCpfCnpj(cfg?.cnpj || "56339877000166"))}</div></div>
-          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${esc(cfg?.inscricao_municipal || "121788")}</div></div>
+          <div class="campo"><div class="rotulo">CNPJ</div><div class="valor">${esc(fmtCpfCnpj(cnpjPrest))}</div></div>
+          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${esc(imPrest)}</div></div>
           <div class="campo"><div class="rotulo">Regime Tributário</div><div class="valor">${esc(regime)}</div></div>
         </div>
-        <div class="endereco">${esc(cfg?.logradouro || "")}${cfg?.numero ? ", " + esc(cfg?.numero) : ""}${cfg?.bairro ? " – " + esc(cfg?.bairro) : ""}<br/>${esc(municipioPrest)}${cfg?.cep ? " – CEP " + esc(fmtCep(cfg?.cep)) : ""}</div>
+        <div class="endereco">${esc(logradouroPrest)}${numeroPrest ? ", " + esc(numeroPrest) : ""}${bairroPrest ? " – " + esc(bairroPrest) : ""}<br/>${esc(municipioPrest)}${cepPrest ? " – CEP " + esc(fmtCep(cepPrest)) : ""}</div>
         <div class="contatos"><div class="email">${esc(emailPrest)}</div><div>${esc(telPrest)}</div></div>
       </div>
     </div>
