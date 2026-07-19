@@ -250,6 +250,29 @@ export const emitirNfse = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const cfgRec = cfg as Record<string, unknown>;
+    const prestadorSnap = {
+      id: cfgRec.id ?? null,
+      nome_fantasia: cfgRec.nome_fantasia ?? null,
+      razao_social: cfgRec.razao_social ?? null,
+      cnpj: cfgRec.cnpj ?? null,
+      inscricao_municipal: cfgRec.inscricao_municipal ?? null,
+      cnae_principal: cfgRec.cnae_principal ?? null,
+      item_lista_servico: cfgRec.item_lista_servico ?? null,
+      aliquota_iss: cfgRec.aliquota_iss ?? null,
+      regime_especial: cfgRec.regime_especial ?? null,
+      optante_simples: cfgRec.optante_simples ?? null,
+      cep: cfgRec.cep ?? null,
+      logradouro: cfgRec.logradouro ?? null,
+      numero: cfgRec.numero ?? null,
+      complemento: cfgRec.complemento ?? null,
+      bairro: cfgRec.bairro ?? null,
+      municipio: cfgRec.municipio ?? null,
+      uf: cfgRec.uf ?? null,
+      email: cfgRec.email ?? null,
+      telefone: cfgRec.telefone ?? null,
+    };
+
     const { data: row, error: insErr } = await supabaseAdmin
       .from("nfse_emissoes")
       .insert({
@@ -263,6 +286,8 @@ export const emitirNfse = createServerFn({ method: "POST" })
         aliquota_iss: Number(cfg.aliquota_iss),
         tomador: data.tomador as unknown as never,
         discriminacao: data.discriminacao,
+        prestador_id: (cfgRec.id as string | null) ?? null,
+        prestador: prestadorSnap as unknown as never,
         created_by: context.userId,
       })
       .select().single();
