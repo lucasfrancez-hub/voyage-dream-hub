@@ -489,7 +489,7 @@ function normalizeDirectStructuredData(input: unknown): Record<string, unknown> 
   const passengers = passengersSource.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
     const row = item as Record<string, unknown>;
-    const fullName = String(row.full_name ?? "").replace(/\s+/g, " ").trim().slice(0, 180);
+    const fullName = reorderPaxName(String(row.full_name ?? "")).slice(0, 180);
     const key = fullName.toLocaleUpperCase("pt-BR");
     if (!fullName || seenPassengers.has(key)) return [];
     seenPassengers.add(key);
