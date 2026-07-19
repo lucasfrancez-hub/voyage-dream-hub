@@ -147,7 +147,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                   title={!canRun ? "Disponível a partir de 48h antes do voo" : ""}
                 >
                   {isRunning ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
-                  {checkin?.status === "success" ? "Refazer" : "Check-in"}
+                  {checkin?.status === "success" ? "Regerar cartão" : "Check-in"}
                 </Button>
               </div>
             </div>
