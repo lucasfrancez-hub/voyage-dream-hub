@@ -139,7 +139,7 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const codMun = String((cfg as unknown as { codigo_municipio?: string })?.codigo_municipio || "4118402");
   const cnae = String(cfg?.cnae_principal || "7911-2/00");
   const municipioPrest = `${cfg?.municipio_prestacao || psnapEnd.cidade || "Paranavaí"}/${cfg?.uf_prestacao || psnapEnd.uf || "PR"}`;
-  const regime = String(cfg?.regime_tributario || "Normal");
+  const regime = String(cfg?.regime_tributario || "Normal").replace(/_/g, " ").toUpperCase();
 
   const numero = data.numero_nfse || responseValue(data, "numero_nfse") || "-";
   const serie = data.serie || responseValue(data, "serie_nfse") || "1";
