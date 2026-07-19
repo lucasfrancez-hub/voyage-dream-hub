@@ -43,7 +43,7 @@ export const listAllCheckins = createServerFn({ method: "GET" })
     const sb = context.supabase as any;
     const { data, error } = await sb
       .from("flight_checkins")
-      .select("*, order:orders(id, order_number, full_name), item:order_items(details)")
+      .select("*, order:orders(id, order_number, full_name), item:order_items(details), passenger:order_passengers(id, full_name)")
       .order("departure_at", { ascending: true, nullsFirst: false })
       .limit(500);
     if (error) throw new Error(error.message);

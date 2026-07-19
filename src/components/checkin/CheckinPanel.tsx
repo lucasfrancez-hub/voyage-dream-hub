@@ -269,8 +269,8 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <StatusBadge status={checkin?.status} />
-                        {checkin?.boarding_pass_url && (
-                          <a href={checkin.boarding_pass_url} target="_blank" rel="noreferrer">
+                        {checkin?.id && (checkin?.boarding_pass_url || checkin?.boarding_pass_path) && (
+                          <a href={`/api/public/doc/${checkin.id}`} target="_blank" rel="noreferrer">
                             <Button size="sm" variant="outline" className="h-7">
                               <Download className="h-3.5 w-3.5 mr-1" />PDF
                             </Button>

@@ -290,11 +290,12 @@ function CheckinRow({
   onRun: (id: string, regenerate?: boolean) => void;
   onResend: (id: string) => void;
 }) {
-  const depIso = r.departure_at ?? r.item?.details?.departure_at ?? null;
+  const depIso = r.departure_at ?? r.item?.details?.departure_at ?? r.scheduled_for ?? null;
   const dep = depIso ? new Date(depIso) : null;
   const isBusy = busyId === r.id;
   const isSending = sendingId === r.id;
   const hasPdf = !!(r.boarding_pass_path || r.boarding_pass_url);
+  const passengerLabel = r.passenger?.full_name || r.pnr_surname || null;
   return (
     <Card className="p-5 bg-card/30 border-border/60 rounded-xl hover:border-brand-orange/40 transition-colors flex flex-wrap items-center justify-between gap-4">
       <div className="flex-1 min-w-[260px]">
@@ -308,7 +309,7 @@ function CheckinRow({
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>{dep ? dep.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Sem horário"}</span>
-          {r.pnr_surname && <span>Passageiro: {r.pnr_surname}</span>}
+          {passengerLabel && <span>Passageiro: {passengerLabel}</span>}
         </div>
         {r.order && (
           <div className="mt-2 text-[11px]">
@@ -333,7 +334,7 @@ function CheckinRow({
           </Button>
         )}
         {hasPdf && (
-          <a href={`https://pedidos.viaair.tur.br/api/public/doc/${r.id}`} target="_blank" rel="noreferrer" title="PDF">
+          <a href={`/api/public/doc/${r.id}`} target="_blank" rel="noreferrer" title="PDF">
             <Button size="sm" variant="ghost" className="h-9 w-9 p-0"><Download className="h-4 w-4" /></Button>
           </a>
         )}
