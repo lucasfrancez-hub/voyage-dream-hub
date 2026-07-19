@@ -95,39 +95,103 @@ export default async function ({ page, context }) {
   await page.waitForLoadState('networkidle', { timeout: 45_000 }).catch(() => {});
   await page.waitForTimeout(2500);
 
-  // Se aparecer uma listagem de voos, clicar em "Ver cartão(ões) de embarque"
-  // ou continuar o fluxo normal.
-  step('list-of-flights step');
-  for (let i = 0; i < 3; i++) {
-    const verCartao = await page.$('button:has-text("Ver cartão"), a:has-text("Ver cartão"), button:has-text("cartões de embarque"), button:has-text("cartão de embarque")');
-    if (verCartao) { step('click "ver cartão"'); await verCartao.click().catch(() => {}); await page.waitForTimeout(2500); break; }
+  // ==== State machine unificado ====
+  // Cobre TODOS os cenários: check-in já feito (vai direto pro cartão), fluxo completo,
+  // múltiplos passos condicionais. Prioriza sempre o "Baixar PDF" — se aparecer, terminou.
+  step('start unified state machine');
+  let done = false;
+  for (let i = 0; i < 40; i++) {
+    // (1) PDF disponível → sai do loop
+    const baixar = await page.$(
+      'a:has-text("Baixar PDF"), button:has-text("Baixar PDF"), ' +
+      'a:has-text("Baixar cartão"), button:has-text("Baixar cartão"), ' +
+      'a[download][href*=".pdf" i]'
+    );
+    if (baixar) { step('iter ' + i + ': "Baixar PDF" visível'); done = true; break; }
+
+    // (2) Título/URL indica que já estamos no cartão de embarque (sem botão Baixar ainda visível)
+    const url = page.url().toLowerCase();
+    const isBoardingPage = url.includes('boarding') || url.includes('cartao') || url.includes('cartão');
+    const heading = await page.$('h1:has-text("Cartão de Embarque"), h1:has-text("Cartão de embarque"), h2:has-text("Cartão de Embarque")');
+    if (isBoardingPage && heading) {
+      step('iter ' + i + ': página de cartão detectada, aguardando botão de download');
+      await page.waitForTimeout(2000);
+      continue;
+    }
+
+    // (3) Lista de voos → "Ver cartão(ões) de embarque"
+    const verCartao = await page.$(
+      'button:has-text("Ver cartão"), a:has-text("Ver cartão"), ' +
+      'button:has-text("cartão de embarque"), a:has-text("cartão de embarque"), ' +
+      'button:has-text("cartões de embarque"), a:has-text("cartões de embarque")'
+    );
+    if (verCartao) { step('iter ' + i + ': clicando "Ver cartão"'); await verCartao.click().catch(() => {}); await page.waitForTimeout(2500); continue; }
+
+    // (4) Lista de voos → "Fazer check-in"
     const fazerCheckin = await page.$('button:has-text("Fazer check-in"), a:has-text("Fazer check-in")');
-    if (fazerCheckin) { step('click "fazer check-in"'); await fazerCheckin.click().catch(() => {}); await page.waitForTimeout(2500); break; }
-    await page.waitForTimeout(1000);
-  }
-  await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
+    if (fazerCheckin) { step('iter ' + i + ': clicando "Fazer check-in"'); await fazerCheckin.click().catch(() => {}); await page.waitForTimeout(2500); continue; }
 
-  // Loop de telas condicionais (elementos perigosos, contato de emergência, seguro, upgrade, etc)
-  for (let i = 0; i < 20; i++) {
-    step('flow iteration ' + i + ' — url=' + page.url());
-
-    // Se o link/botão "Baixar PDF" apareceu, terminou.
-    const baixar = await page.$('a:has-text("Baixar PDF"), button:has-text("Baixar PDF"), a:has-text("Baixar cartão"), button:has-text("Baixar cartão")');
-    if (baixar) { step('boarding pass download visible'); break; }
-
-    // Tela "Transporte de elementos perigosos" → clicar "Entendi"
+    // (5) Elementos perigosos → "Entendi"
     const entendi = await page.$('button:has-text("Entendi"), button:has-text("Entendido")');
-    if (entendi) { step('click Entendi (dangerous items)'); await entendi.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
+    if (entendi) { step('iter ' + i + ': clicando Entendi (bagagem)'); await entendi.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
 
-    // Tela "Contato de emergência" → marcar checkbox de "Não quero" e Salvar
-    const naoQueroLabel = await page.$('label:has-text("Não quero entregar"), label:has-text("Não quero informar")');
+    // (6) Contato de emergência → marcar "Não quero" + Salvar
+    const naoQueroLabel = await page.$(
+      'label:has-text("Não quero entregar"), label:has-text("Não quero informar"), ' +
+      'label:has-text("Não desejo informar")'
+    );
     if (naoQueroLabel) {
-      step('mark "não quero entregar contato de emergência"');
+      step('iter ' + i + ': marcando "Não quero entregar contato de emergência"');
       await naoQueroLabel.click().catch(() => {});
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(600);
       const salvar = await page.$('button:has-text("Salvar"), button:has-text("Continuar")');
       if (salvar) { await salvar.click().catch(() => {}); await page.waitForTimeout(2500); }
       continue;
+    }
+
+    // (7) Seleção de passageiros (checkbox de todos) → marcar todos
+    const passSelectAll = await page.$('input[type="checkbox"][id*="all" i], label:has-text("Todos os passageiros")');
+    if (passSelectAll) {
+      step('iter ' + i + ': marcando todos os passageiros');
+      await passSelectAll.click().catch(() => {});
+      await page.waitForTimeout(600);
+      const cont = await page.$('button:has-text("Continuar"), button:has-text("Confirmar")');
+      if (cont) { await cont.click().catch(() => {}); await page.waitForTimeout(2000); }
+      continue;
+    }
+
+    // (8) Seguro / upgrade / assento pago / bagagem extra → pular
+    const skip = await page.$(
+      'button:has-text("Agora não"), a:has-text("Agora não"), ' +
+      'button:has-text("Não, obrigado"), a:has-text("Não, obrigado"), ' +
+      'button:has-text("Pular"), a:has-text("Pular"), ' +
+      'button:has-text("Manter assento"), button:has-text("Continuar sem alterar"), ' +
+      'button:has-text("Continuar sem"), a:has-text("Continuar sem"), ' +
+      'button:has-text("Recusar"), a:has-text("Recusar"), ' +
+      'button:has-text("Dispensar"), a:has-text("Dispensar")'
+    );
+    if (skip) { step('iter ' + i + ': skip (seguro/upgrade)'); await skip.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
+
+    // (9) Fechar modais eventuais
+    const closeBtn = await page.$('button[aria-label*="Fechar" i], button[aria-label*="Close" i], button[aria-label*="Cerrar" i]');
+    if (closeBtn) { step('iter ' + i + ': fechando modal'); await closeBtn.click().catch(() => {}); await page.waitForTimeout(1000); continue; }
+
+    // (10) Continuar/Confirmar/Aceitar genérico
+    const cont = await page.$(
+      'button:has-text("Continuar"), button:has-text("Confirmar"), button:has-text("Aceitar"), ' +
+      'a:has-text("Continuar"), a:has-text("Confirmar")'
+    );
+    if (cont) { step('iter ' + i + ': clicando Continuar/Confirmar'); await cont.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
+
+    step('iter ' + i + ': nenhuma ação conhecida, aguardando 2s');
+    await page.waitForTimeout(2000);
+    // Se após 3 iterações sem ação nada aconteceu, sai
+    if (i > 5) { step('sem progresso, encerrando loop'); break; }
+  }
+
+  if (!done) step('atenção: loop terminou sem detectar botão de download');
+
+
     }
 
     // Fallback: checkbox de "Não quero entregar"
