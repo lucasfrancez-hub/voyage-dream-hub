@@ -30,7 +30,7 @@ export default async function ({ page, context }) {
   const step = (m) => { log.push(new Date().toISOString() + ' — ' + m); };
 
   page.setDefaultTimeout(45_000);
-  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.setViewport({ width: 1366, height: 900 });
 
   const loc = String(locator || '').trim().toUpperCase();
   const sur = String(surname || '').trim();
