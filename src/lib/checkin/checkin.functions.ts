@@ -150,7 +150,22 @@ export const runCheckin = createServerFn({ method: "POST" })
       return { ok: true, id: checkin.id, url };
     } catch (err: any) {
       const msg = err?.message ?? String(err);
-      await sb.from("flight_checkins").update({ status: "failed", error: msg.slice(0, 500) }).eq("id", checkin.id);
-      throw new Error(msg);
+      console.error("[checkin] LATAM automation failed", {
+        checkinId: checkin.id,
+        error: msg.slice(0, 1_500),
+      });
+
+      const isNavigationBlock = /ERR_HTTP2_PROTOCOL_ERROR|ERR_QUIC_PROTOCOL_ERROR|ERR_CONNECTION_RESET/i.test(msg);
+      const friendlyError = isNavigationBlock
+        ? "A LATAM recusou temporariamente a conexão automática. O check-in ficou pendente e poderá ser tentado novamente."
+        : "Não foi possível concluir o check-in automático agora. Tente novamente em alguns minutos.";
+
+      await sb.from("flight_checkins")
+        .update({ status: "failed", error: friendlyError })
+        .eq("id", checkin.id);
+
+      // Falhas de fornecedores externos são retornadas como resultado tipado.
+      // Não lançar aqui evita o overlay/blank screen do runtime no painel.
+      return { ok: false, id: checkin.id, error: friendlyError };
     }
   });

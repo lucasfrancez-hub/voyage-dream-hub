@@ -57,8 +57,10 @@ export default async function ({ page, context }) {
 
   page.setDefaultTimeout(60_000);
   await page.setViewport({ width: 1366, height: 900 });
-  // LATAM's edge rejects headless-looking clients over HTTP/2; a real UA + headers avoids ERR_HTTP2_PROTOCOL_ERROR
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+  // Mantém idioma e navegador coerentes com a saída residencial brasileira.
+  // Stealth, proxy e desativação de HTTP/2 precisam ser configurados antes
+  // da criação da página e por isso ficam nas launch options abaixo.
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36');
   await page.setExtraHTTPHeaders({
     'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
     'Upgrade-Insecure-Requests': '1',
@@ -259,7 +261,26 @@ export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCh
   const res = await runBrowserlessFunction<LatamCheckinResult>(
     LATAM_SCRIPT,
     { locator: input.locator, surname: input.surname },
-    { timeoutMs: 180_000 },
+    {
+      timeoutMs: 180_000,
+      // A LATAM recusa a conexão HTTP/2 do Chrome de datacenter antes mesmo
+      // de carregar o HTML. Forçar HTTP/1.1 resolve a falha de protocolo;
+      // stealth + IP residencial BR evitam que o mesmo bloqueio seja aplicado
+      // pela impressão de rede/TLS.
+      launch: {
+        headless: false,
+        stealth: true,
+        args: [
+          "--disable-http2",
+          "--disable-quic",
+          "--lang=pt-BR",
+          "--window-size=1366,900",
+        ],
+      },
+      proxy: "residential",
+      proxyCountry: "br",
+      proxySticky: true,
+    },
   );
   if (!res.data?.boardingPassBase64) {
     throw new Error("Browserless não devolveu PDF");

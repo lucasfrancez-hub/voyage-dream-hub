@@ -40,7 +40,12 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
 
   const runMut = useMutation({
     mutationFn: (orderItemId: string) => run({ data: { orderItemId } }),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (!result.ok) {
+        toast.error(result.error);
+        qc.invalidateQueries({ queryKey: ["flight-checkins", orderId] });
+        return;
+      }
       toast.success("Check-in feito! Cartão de embarque enviado.");
       qc.invalidateQueries({ queryKey: ["flight-checkins", orderId] });
     },
