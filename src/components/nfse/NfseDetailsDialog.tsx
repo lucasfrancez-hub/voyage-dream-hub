@@ -230,9 +230,12 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
 
         {/* Tabs */}
         <Tabs defaultValue="resumo" className="flex flex-col overflow-hidden">
-          <TabsList className="mx-6 mt-4 grid w-auto grid-cols-4 self-start">
+          <TabsList className="mx-6 mt-4 grid w-auto grid-cols-5 self-start">
             <TabsTrigger value="resumo" className="gap-2">
               <FileText className="h-3.5 w-3.5" /> Resumo
+            </TabsTrigger>
+            <TabsTrigger value="prestador" className="gap-2">
+              <Building2 className="h-3.5 w-3.5" /> Prestador
             </TabsTrigger>
             <TabsTrigger value="tomador" className="gap-2">
               <User className="h-3.5 w-3.5" /> Tomador
