@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "@tanstack/react-router";
@@ -13,9 +16,13 @@ import {
   Clock,
   AlertTriangle,
   Copy,
+  Ban,
 } from "lucide-react";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
+import { cancelarNfse } from "@/lib/nfse.functions";
+import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { toast } from "sonner";
+
 
 type AnyRec = Record<string, unknown>;
 
@@ -139,10 +146,26 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
   const status = String(row.status ?? "");
   const isAutorizada = status === "autorizado" || status === "emitida";
 
+  const qc = useQueryClient();
+  const cancelFn = useServerFn(cancelarNfse);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const cancelMut = useMutation({
+    mutationFn: (justificativa: string) =>
+      cancelFn({ data: { id: String(row.id), justificativa } }),
+    onSuccess: () => {
+      toast.success("NFS-e cancelada");
+      qc.invalidateQueries();
+      setCancelOpen(false);
+      onOpenChange(false);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao cancelar"),
+  });
+
   const valor = Number(row.valor_servicos ?? 0);
   const ded = Number(row.valor_deducoes ?? 0);
   const base = Number(row.base_calculo ?? valor - ded);
   const iss = Number(row.valor_iss ?? 0);
+
   const issRet = Number(row.valor_iss_retido ?? 0);
   const liquido = Number(row.valor_liquido ?? valor - issRet);
   const desc = String(row.discriminacao ?? "");
@@ -363,6 +386,12 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
         {isAutorizada && (
           <div className="flex gap-2 justify-end px-6 py-4 border-t border-border bg-card/40">
             <button
+              onClick={() => setCancelOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-card border border-rose-500/40 text-rose-500 rounded-lg text-sm font-medium hover:bg-rose-500/10 transition"
+            >
+              <Ban className="h-4 w-4" /> Cancelar NFS-e
+            </button>
+            <button
               onClick={() => {
                 try {
                   downloadNfseXml(row as never);
@@ -383,6 +412,14 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
           </div>
         )}
       </DialogContent>
+      <CancelNfseDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        numero={(row.numero_nfse as string | number | null) ?? (row.numero_rps as string | number | null) ?? null}
+        loading={cancelMut.isPending}
+        onConfirm={(j) => cancelMut.mutate(j)}
+      />
     </Dialog>
   );
 }
+
