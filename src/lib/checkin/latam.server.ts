@@ -59,10 +59,31 @@ export default async function ({ page, context }) {
     }, tags, arr).then((h) => h.asElement());
   };
   const clearAndType = async (handle, text) => {
+    await handle.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
     await handle.click({ clickCount: 3 }).catch(() => {});
     await page.keyboard.press('Backspace').catch(() => {});
     await handle.type(text, { delay: 40 });
+    await handle.evaluate((el) => {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      el.blur();
+    }).catch(() => {});
   };
+  const visiblePageState = async () => page.evaluate(() => {
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      return r.width > 0 && r.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+    const text = (el) => (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ');
+    return {
+      title: document.title,
+      headings: Array.from(document.querySelectorAll('h1,h2,[role="heading"]')).filter(visible).map(text).filter(Boolean).slice(0, 8),
+      buttons: Array.from(document.querySelectorAll('button,[role="button"]')).filter(visible).map((el) => ({ text: text(el), disabled: Boolean(el.disabled) || el.getAttribute('aria-disabled') === 'true' })).filter((x) => x.text).slice(0, 12),
+      alerts: Array.from(document.querySelectorAll('[role="alert"],[aria-live],.error,[class*="error" i]')).filter(visible).map(text).filter(Boolean).slice(0, 8),
+      fields: Array.from(document.querySelectorAll('input')).filter(visible).map((el) => ({ name: el.name || '', id: el.id || '', filled: Boolean(el.value), invalid: el.getAttribute('aria-invalid') || '', validation: el.validationMessage || '' })).slice(0, 8),
+    };
+  });
 
   page.setDefaultTimeout(60_000);
   await page.setViewport({ width: 1366, height: 900 });
@@ -189,12 +210,19 @@ export default async function ({ page, context }) {
   await clearAndType(surInput, sur);
 
   step('submit login');
-  let submit = await page.$('button[type="submit"]');
-  if (!submit) submit = await findByText(['continuar','buscar','consultar','ver reserva','ver minha reserva']);
+  let submit = await page.evaluateHandle(() => {
+    for (const el of Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"]'))) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0 && !el.disabled && el.getAttribute('aria-disabled') !== 'true') return el;
+    }
+    return null;
+  }).then((h) => h.asElement());
+  if (!submit) submit = await findByText(['continuar','buscar','consultar','ver reserva','ver minha reserva'], ['button','a']);
   if (!submit) throw new Error('Botão de envio não encontrado');
-  await submit.click();
-  await page.waitForNetworkIdle({ idleTime: 800, timeout: 45_000 }).catch(() => {});
-  await sleep(2500);
+  await submit.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+  await submit.click().catch(async () => submit.evaluate((el) => el.click()));
+  await sleep(5000);
+  step('after submit: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
 
   // ==== State machine unificado ====
   step('start unified state machine');
@@ -295,13 +323,7 @@ export default async function ({ page, context }) {
     const finalUrl = page.url().toLowerCase();
     const pageLooksLikeBoardingPass = done || finalUrl.includes('boarding') || finalUrl.includes('cartao') || finalUrl.includes('cartão');
     if (!pageLooksLikeBoardingPass) {
-      const snapshot = await page.evaluate(() => ({
-        title: document.title,
-        headings: Array.from(document.querySelectorAll('h1,h2,[role="heading"]'))
-          .map((el) => (el.innerText || el.textContent || '').trim())
-          .filter(Boolean)
-          .slice(0, 8),
-      })).catch(() => ({ title: '', headings: [] }));
+      const snapshot = await visiblePageState().catch(() => ({ title: '', headings: [], buttons: [], alerts: [], fields: [] }));
       throw new Error('Fluxo LATAM terminou antes do cartão. Estado: ' + JSON.stringify({
         finalUrl: page.url(),
         snapshot,
