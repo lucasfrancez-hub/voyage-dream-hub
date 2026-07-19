@@ -68,6 +68,80 @@ export const resendBoardingPass = createServerFn({ method: "POST" })
   });
 
 /**
+ * Apaga o PDF atual do storage e roda o check-in de novo (para regenerar
+ * cartões que ficaram em branco ou desatualizados).
+ */
+export const regenerateBoardingPass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { checkinId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    const { userId } = context as { userId: string };
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isStaff } = await sb.rpc("has_role", { _user_id: userId, _role: "user" });
+    if (!isAdmin && !isStaff) throw new Error("Sem permissão");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: ci } = await supabaseAdmin
+      .from("flight_checkins")
+      .select("id, boarding_pass_path")
+      .eq("id", data.checkinId)
+      .maybeSingle();
+    if (!ci) throw new Error("Check-in não encontrado");
+    if (ci.boarding_pass_path) {
+      await supabaseAdmin.storage.from("boarding-passes").remove([ci.boarding_pass_path]);
+    }
+    await supabaseAdmin
+      .from("flight_checkins")
+      .update({
+        status: "pending",
+        boarding_pass_path: null,
+        boarding_pass_url: null,
+        delivered_wa_at: null,
+        last_error: null,
+      })
+      .eq("id", data.checkinId);
+    // dispara nova execução na hora
+    const { runCheckinCore } = await import("./checkin-core.server");
+    return await runCheckinCore(data.checkinId);
+  });
+
+/**
+ * Marca todos os check-ins com status success como pendentes e apaga
+ * seus PDFs — útil para reprocessar em lote depois de um fix no robô.
+ */
+export const regenerateAllBoardingPasses = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = context.supabase as any;
+    const { userId } = context as { userId: string };
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Sem permissão");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows } = await supabaseAdmin
+      .from("flight_checkins")
+      .select("id, boarding_pass_path")
+      .eq("status", "success");
+    const paths = (rows ?? []).map((r: any) => r.boarding_pass_path).filter(Boolean);
+    if (paths.length) {
+      await supabaseAdmin.storage.from("boarding-passes").remove(paths);
+    }
+    const ids = (rows ?? []).map((r: any) => r.id);
+    if (ids.length) {
+      await supabaseAdmin
+        .from("flight_checkins")
+        .update({
+          status: "pending",
+          boarding_pass_path: null,
+          boarding_pass_url: null,
+          delivered_wa_at: null,
+          last_error: null,
+        })
+        .in("id", ids);
+    }
+    return { count: ids.length };
+  });
+
+/**
  * Roda o check-in agora (LATAM apenas por enquanto).
  * Aceita `checkinId` (para retry) OU `orderItemId` (cria/atualiza registro).
  */
