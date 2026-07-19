@@ -573,20 +573,23 @@ function CheckinsOverview() {
       const last30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const { data, error } = await supabase
         .from("flight_checkins")
-        .select("id, status, departure_at, scheduled_for, completed_at, flight_number, locator, error")
-        .or(`departure_at.gte.${last30.toISOString()},completed_at.gte.${last30.toISOString()}`)
-        .order("departure_at", { ascending: true })
+        .select("id, status, departure_at, scheduled_for, completed_at, flight_number, locator, error, item:order_items(details)")
+        .order("departure_at", { ascending: true, nullsFirst: false })
         .limit(500);
       if (error) throw error;
-      const rows = (data ?? []) as CheckinRow[];
+      const raw = (data ?? []) as any[];
+      const rows: CheckinRow[] = raw.map((r) => ({
+        ...r,
+        departure_at: r.departure_at ?? r.item?.details?.depart_at ?? r.item?.details?.departure_at ?? r.scheduled_for ?? null,
+      }));
       const upcoming = rows
         .filter((r) => {
           const d = toDate(r.departure_at);
           return d && d.getTime() >= now.getTime() && d.getTime() <= in7.getTime() && r.status !== "done";
         })
         .sort((a, b) => (toDate(a.departure_at)?.getTime() ?? 0) - (toDate(b.departure_at)?.getTime() ?? 0));
-      const done = rows.filter((r) => r.status === "done" || !!r.completed_at);
-      const failed = rows.filter((r) => r.status === "failed" || (!!r.error && r.status !== "done"));
+      const done = rows.filter((r) => r.status === "done" || r.status === "success" || !!r.completed_at);
+      const failed = rows.filter((r) => r.status === "failed" || (!!r.error && r.status !== "done" && r.status !== "success"));
       const running = rows.filter((r) => r.status === "running" || r.status === "processing");
       return { rows, upcoming, done, failed, running };
     },
