@@ -58,6 +58,21 @@ function daysUntil(d: Date) {
 
 function DashboardPage() {
   const [range, setRange] = useState<Range>(7);
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["admin", "dashboard", "is-admin"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return false;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", u.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data: orders, isLoading: lo } = useQuery({
     queryKey: ["admin", "dashboard", "orders"],
