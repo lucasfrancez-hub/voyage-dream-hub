@@ -192,37 +192,6 @@ export default async function ({ page, context }) {
   if (!done) step('atenção: loop terminou sem detectar botão de download');
 
 
-    }
-
-    // Fallback: checkbox de "Não quero entregar"
-    const naoQueroCbx = await page.$('input[type="checkbox"][id*="emergency" i], input[type="checkbox"][name*="emergency" i], input[type="checkbox"][id*="skip" i]');
-    if (naoQueroCbx) {
-      step('check emergency-skip checkbox');
-      await naoQueroCbx.check().catch(() => {});
-      const salvar = await page.$('button:has-text("Salvar")');
-      if (salvar) { await salvar.click().catch(() => {}); await page.waitForTimeout(2500); }
-      continue;
-    }
-
-    // Seguro / upgrade / seleção de assento → pular
-    const skip = await page.$(
-      'button:has-text("Agora não"), button:has-text("Não, obrigado"), button:has-text("Pular"), ' +
-      'button:has-text("Manter assento"), button:has-text("Continuar sem alterar"), ' +
-      'a:has-text("Agora não"), a:has-text("Pular"), a:has-text("Continuar sem")'
-    );
-    if (skip) { step('click skip'); await skip.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
-
-    // Fechar modais eventuais (X)
-    const closeBtn = await page.$('button[aria-label*="Fechar" i], button[aria-label*="Close" i]');
-    if (closeBtn) { step('close modal'); await closeBtn.click().catch(() => {}); await page.waitForTimeout(1000); continue; }
-
-    // Continuar genérico
-    const cont = await page.$('button:has-text("Continuar"), button:has-text("Confirmar"), button:has-text("Aceitar")');
-    if (cont) { step('click Continuar/Confirmar'); await cont.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
-
-    step('no known button, breaking');
-    break;
-  }
 
   // Baixar PDF — pode ser (a) link direto, (b) download event, (c) fallback: page.pdf()
   let pdfBuffer = null;
