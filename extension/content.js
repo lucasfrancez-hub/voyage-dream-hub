@@ -796,7 +796,7 @@
       return;
     }
     importInProgress = true;
-    showToast(isConsolidator ? "Lendo iframe e enviando pra Via Air…" : "Capturando tela e enviando pra Via Air…");
+    showToast("Lendo iframe e capturando tela pra Via Air…");
     try {
       if (isConsolidator) {
         latestStructuredReservation = null;
@@ -806,9 +806,15 @@
       }
       const structuredData = isConsolidator ? (extractStructuredReservation(document) || latestStructuredReservation) : null;
       const rawText = structuredData ? JSON.stringify(structuredData) : collectPageText();
-      // Híbrido: sempre captura tela — a IA usa as imagens pra ler VALORES
-      // (tarifa, taxas, TU, total, moeda) que o portal exibe fora do iframe.
+      // Híbrido OBRIGATÓRIO: sempre captura tela (janela + modal interno) — a
+      // IA usa as imagens pra ler VALORES (tarifa, taxas, TU, total, moeda)
+      // que o portal exibe fora do iframe da reserva.
       const screenshots = await captureFullPage();
+      if (screenshots.length === 0) {
+        showToast("Não consegui capturar a tela. Verifique as permissões da extensão.", "err");
+        return;
+      }
+      showToast(`📸 ${screenshots.length} captura(s) tirada(s). Enviando pra Via Air…`);
       if ((!structuredData && rawText.length < 200) && screenshots.length === 0) {
         showToast("Página ainda não carregou os dados da reserva. Aguarde e tente de novo.", "err");
         return;
