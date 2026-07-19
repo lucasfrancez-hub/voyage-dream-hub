@@ -386,6 +386,12 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
         {isAutorizada && (
           <div className="flex gap-2 justify-end px-6 py-4 border-t border-border bg-card/40">
             <button
+              onClick={() => setCancelOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-card border border-rose-500/40 text-rose-500 rounded-lg text-sm font-medium hover:bg-rose-500/10 transition"
+            >
+              <Ban className="h-4 w-4" /> Cancelar NFS-e
+            </button>
+            <button
               onClick={() => {
                 try {
                   downloadNfseXml(row as never);
@@ -406,6 +412,14 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
           </div>
         )}
       </DialogContent>
+      <CancelNfseDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        numero={(row.numero_nfse as string | number | null) ?? (row.numero_rps as string | number | null) ?? null}
+        loading={cancelMut.isPending}
+        onConfirm={(j) => cancelMut.mutate(j)}
+      />
     </Dialog>
   );
 }
+
