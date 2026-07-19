@@ -21,6 +21,7 @@ interface BrowserlessRunOptions {
   proxy?: "residential" | "datacenter";
   proxyCountry?: string;
   proxySticky?: boolean;
+  blockConsentModals?: boolean;
 }
 
 /**
@@ -36,6 +37,7 @@ export async function runBrowserlessFunction<T = unknown>(
     proxy,
     proxyCountry,
     proxySticky,
+    blockConsentModals,
   }: BrowserlessRunOptions = {},
 ): Promise<BrowserlessRunResult<T>> {
   const token = process.env.BROWSERLESS_TOKEN;
@@ -43,9 +45,11 @@ export async function runBrowserlessFunction<T = unknown>(
 
   const params = new URLSearchParams({ token, timeout: String(timeoutMs) });
   if (launch) params.set("launch", JSON.stringify(launch));
+  if (launch?.stealth != null) params.set("stealth", String(launch.stealth));
   if (proxy) params.set("proxy", proxy);
   if (proxyCountry) params.set("proxyCountry", proxyCountry);
   if (proxySticky != null) params.set("proxySticky", String(proxySticky));
+  if (blockConsentModals != null) params.set("blockConsentModals", String(blockConsentModals));
   const url = `${BROWSERLESS_BASE}/function?${params.toString()}`;
 
   const controller = new AbortController();

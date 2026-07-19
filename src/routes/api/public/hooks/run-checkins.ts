@@ -40,7 +40,10 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
           if (isNaN(depMs)) continue;
           if (depMs < Date.now() + 60 * 60 * 1000) continue; // já passou de 1h antes
           if (depMs > Date.now() + 48 * 60 * 60 * 1000) continue;
-          const locator = (it as any).supplier_locator || details.locator;
+          const checkinUrl = String(details.airline_checkin_url || "");
+          let orderIdFromUrl = "";
+          try { orderIdFromUrl = new URL(checkinUrl).searchParams.get("orderId")?.trim().toUpperCase() || ""; } catch { /* URL ausente */ }
+          const locator = orderIdFromUrl || details.purchase_order || details.order_id || (it as any).supplier_locator || details.locator;
           if (!locator) continue;
           candidates.push({ id: (it as any).id, order_id: (it as any).order_id, locator: String(locator).toUpperCase(), details });
         }
@@ -94,7 +97,7 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
         // 2) Roda os agendados um por um (sequencial pra não estourar Browserless)
         const { data: scheduled } = await supabaseAdmin
           .from("flight_checkins")
-          .select("id, locator, pnr_surname, order_id, attempts")
+          .select("id, locator, pnr_surname, order_id, order_item_id, attempts")
           .in("status", ["scheduled", "failed"])
           .lt("attempts", 3)
           .order("scheduled_for", { ascending: true })
@@ -112,7 +115,8 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
               error: null,
             }).eq("id", ci.id);
 
-            const result = await runLatamCheckin({ locator: ci.locator, surname: ci.pnr_surname });
+            const { data: sourceItem } = await supabaseAdmin.from("order_items").select("details").eq("id", ci.order_item_id).maybeSingle();
+            const result = await runLatamCheckin({ locator: ci.locator, surname: ci.pnr_surname, checkinUrl: String((sourceItem as any)?.details?.airline_checkin_url || "") });
             const path = `${ci.order_id}/${ci.id}.pdf`;
             const pdfBytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
             const up = await supabaseAdmin.storage.from("boarding-passes")
