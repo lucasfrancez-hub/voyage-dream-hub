@@ -471,7 +471,8 @@ export function NfseCard({
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
