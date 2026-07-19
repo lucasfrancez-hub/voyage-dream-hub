@@ -1,74 +1,78 @@
 
-# Robô de Check-in Automático — Fase 1 (LATAM)
+# Robô LATAM — modo A/B: Código vs Visão IA
 
-## Arquitetura
+Objetivo: rodar os dois robôs lado a lado dentro do painel de check-in pra ver qual finaliza o cartão mais rápido e com mais confiança.
+
+## O que muda pra você (UI)
+
+Em cada linha de check-in (aba **Check-in** do pedido e página `/admin/checkins`):
+
+- **Dois botões separados** onde hoje só tem "Fazer check-in":
+  - `⚙️ Rodar (código)` — robô atual, seletores de HTML
+  - `👁 Rodar (Visão IA)` — robô novo, print + Gemini decide onde clicar
+- **Badge do modo usado** na linha: `Código` (cinza) ou `Visão IA` (roxo)
+- **Tempo de execução** e **custo estimado** (só na Visão) aparecem depois que roda
+- Uma nova mini-tabela no topo de `/admin/checkins`: **Comparativo A/B** com contagem de sucessos, falhas e tempo médio de cada modo dos últimos 30 dias
+
+Nada do que já funciona é removido — o robô "código" continua idêntico. Cron automático continua usando o modo código (mais barato).
+
+## Como o robô de Visão IA funciona
+
+Ciclo por passo (Playwright/Browserless + Gemini 3.5 Flash Vision):
 
 ```text
-[Pedido com voo LATAM]
-        │
-        ├── Cron (a cada 10 min) ──► detecta voos entre agora e +48h sem check-in
-        │
-        └── Botão "Fazer check-in agora" no pedido
-                │
-                ▼
-        runCheckin(order_item_id)
-                │
-                ▼
-        Browserless (Chrome na nuvem)
-        → abre latam.com/check-in
-        → digita localizador + sobrenome
-        → recusa contato de emergência
-        → baixa PDF do cartão de embarque
-                │
-                ▼
-        Salva em Storage `boarding-passes/`
-                │
-                ├──► WhatsApp: envia PDF pro cliente
-                └──► E-mail: template `cartao-embarque` com link
+[screenshot da tela]
+     │
+     ▼
+[Gemini Vision + prompt do passo atual]
+"Aqui está a tela da LATAM. Preciso clicar no campo
+ 'Código da reserva'. Devolva JSON: {x, y, action, text?}"
+     │
+     ▼
+[page.mouse.move → click → keyboard.type]
+     │
+     ▼
+[aguarda 1s → próximo passo]
 ```
 
-## O que será criado
+Passos roteirizados (o mesmo fluxo que o robô código faz hoje):
+1. Aceitar cookies (se aparecer)
+2. Digitar código de reserva
+3. Digitar sobrenome
+4. Clicar "Continuar"
+5. Escolher trecho elegível (ignora "Voo realizado")
+6. Clicar "Fazer check-in"
+7. Recusar contato de emergência → Salvar
+8. Dispensar aviso "Entendi" (elementos perigosos)
+9. Clicar "Baixar PDF" e capturar
 
-**1. Banco de dados**
-- Tabela `flight_checkins`: `order_item_id`, `passenger_id`, `cia` (LATAM/GOL/AZUL), `status` (pending/scheduled/running/success/failed), `attempts`, `boarding_pass_url`, `boarding_pass_path`, `error`, `scheduled_for`, `completed_at`, `locator`, `flight_number`, `pnr_surname`
-- Storage bucket `boarding-passes` (privado, com policy pro dono do pedido ler)
+Se algum passo não encontrar o elemento em 3 tentativas → falha registrada com screenshot pra debug.
 
-**2. Backend**
-- `src/lib/checkin/browserless.server.ts` — cliente HTTP pro Browserless (endpoint `/function`)
-- `src/lib/checkin/latam.server.ts` — script Playwright serializado que faz o fluxo LATAM
-- `src/lib/checkin/checkin.functions.ts` — `runCheckin`, `scheduleCheckin`, `listCheckins` (server functions autenticadas)
-- `src/routes/api/public/hooks/run-checkins.ts` — cron: detecta voos LATAM entre agora e +48h, agenda e roda os pendentes (verifica `apikey` header)
-- Cron `pg_cron` a cada 10 min
+## Backend
 
-**3. UI**
-- Botão **✈️ Check-in automático** em cada `order_item` do tipo voo
-- Aba/painel mostrando status do check-in (agendado / sucesso / erro + botão "tentar de novo")
-- Ícone de status na lista de itens do pedido
+**Migração:**
+- `flight_checkins.mode` (`'code' | 'vision'`, default `'code'`)
+- `flight_checkins.run_duration_ms` (int)
+- `flight_checkins.vision_cost_cents` (int, null pro modo código)
 
-**4. Entrega**
-- Template de e-mail `cartao-embarque` com link do PDF
-- Envio WhatsApp via `sendWhatsappDocument` (já existe em `send-internal.server.ts`)
+**Arquivos novos:**
+- `src/lib/checkin/latam-vision.server.ts` — robô novo (screenshot → Gemini → mouse)
+- `src/lib/checkin/vision-decide.server.ts` — chamada ao Lovable AI Gateway (Gemini 3.5 Flash Vision), com prompt e parser JSON
+- `runCheckinVision` em `checkin.functions.ts` — mirror do `runCheckin`, chama o robô novo e salva `mode='vision'`
+- `listCheckinModeStats` — retorna o comparativo pra dashboard
 
-## Regras de negócio LATAM
+**Nenhum arquivo do robô atual é alterado.** Cron `run-checkins.ts` continua chamando `runCheckin` (modo código).
 
-- Janela: check-in abre **48h antes** da decolagem, fecha **1h antes**
-- Login: **localizador + sobrenome do 1º passageiro**
-- Só recusar "contato de emergência" — sem assento pago, sem bagagem extra
-- 1 tentativa automática, retry em caso de falha (máx 3 tentativas com backoff)
-- Se der erro persistente: notifica no chat interno e mantém botão manual
+## Custos e tempo esperados
 
-## Fora do escopo desta fase
-- GOL e AZUL (fase 2, quando LATAM estiver estável)
-- Seleção de assento
-- Alertas de check-in não realizado 6h antes
+| Modo | Tempo médio | Custo por check-in | Quebra se LATAM mudar HTML? |
+|------|-------------|--------------------|-----------------------------|
+| Código | 40-50s (após corte de sleeps) | R$ 0,00 (só Browserless) | Sim |
+| Visão IA | 60-90s | ~R$ 0,05 (6-9 chamadas Gemini) | Não |
 
-## Detalhes técnicos
+## Fora de escopo desta fase
+- Modo híbrido automático (fallback código → visão)
+- Trocar o cron pra usar visão
+- Debug UI mostrando cada screenshot que a IA analisou (fica só nos logs por enquanto)
 
-- Browserless: usa endpoint HTTP `/function?token=$BROWSERLESS_TOKEN` (Chrome remoto — funciona no Worker sem precisar de Playwright local)
-- Todo o script LATAM roda dentro do Chrome do Browserless; nosso Worker só recebe o PDF em base64
-- PDF salvo em Storage → gera signed URL de 30 dias pro cliente
-- Idempotência: `unique(order_item_id, passenger_id)` em `flight_checkins`
-
-## Passo seguinte
-
-Testamos com 1 pedido LATAM real. Se funcionar limpo, ativo GOL/AZUL na fase 2 (mesma arquitetura, só troca o script de dentro do Browserless).
+Vou salvar cada tentativa da Visão com um `debug_log` (array de passos + coordenadas retornadas) na coluna `error` quando falhar, pra você conseguir ver o que a IA "enxergou" errado.
