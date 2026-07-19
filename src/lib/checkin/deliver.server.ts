@@ -21,7 +21,7 @@ export async function deliverBoardingPass(checkinId: string): Promise<void> {
 
   // URL pública servida pelo próprio domínio (evita ad-blockers em links do storage).
   const base = process.env.SITE_URL || "https://pedidos.viaair.tur.br";
-  const url = `${base}/api/public/boarding-pass/${ci.id}`;
+  const url = `${base}/api/public/doc/${ci.id}`;
   const flightNum = ci.flight_number ?? "";
 
   // Descobre os passageiros do check-in.
