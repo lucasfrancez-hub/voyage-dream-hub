@@ -68,7 +68,7 @@ function CheckinsPage() {
     const done: any[] = [];
     const failed: any[] = [];
     for (const r of rows) {
-      const dep = r.departure_at ? new Date(r.departure_at).getTime() : null;
+      const dep = r.departure_at ? new Date(r.departure_at).getTime() : r.item?.details?.departure_at ? new Date(r.item.details.departure_at).getTime() : null;
       if (r.status === "success") done.push(r);
       else if (r.status === "running") running.push(r);
       else if (r.status === "failed") failed.push(r);
