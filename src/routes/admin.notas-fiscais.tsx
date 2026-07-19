@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse } from "@/lib/nfse.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
+import { NfseDetailsDialog } from "@/components/nfse/NfseDetailsDialog";
 
 export const Route = createFileRoute("/admin/notas-fiscais")({
   head: () => ({ meta: [{ title: "Notas Fiscais — VIA AIR" }] }),
@@ -58,6 +59,7 @@ function NotasFiscaisPage() {
   const [tab, setTab] = useState<"todas" | StatusKey>("todas");
   const [search, setSearch] = useState("");
   const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
+  const [detailsTarget, setDetailsTarget] = useState<Row | null>(null);
 
   const key = ["nfse", "all"] as const;
   const { data: rows = [], isLoading } = useQuery({
@@ -220,7 +222,8 @@ function NotasFiscaisPage() {
               return (
                 <div
                   key={r.id}
-                  className={`p-5 flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6 hover:bg-accent/20 transition-colors group ${
+                  onClick={() => setDetailsTarget(r)}
+                  className={`p-5 flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6 hover:bg-accent/20 transition-colors group cursor-pointer ${
                     isCancelled ? "opacity-60" : ""
                   }`}
                 >
@@ -239,6 +242,7 @@ function NotasFiscaisPage() {
                         <Link
                           to="/admin/pedidos/$id"
                           params={{ id: r.order_id }}
+                          onClick={(e) => e.stopPropagation()}
                           className={`text-xs font-medium px-2 py-0.5 rounded transition-colors ${
                             isCancelled
                               ? "text-muted-foreground bg-muted"
@@ -274,7 +278,7 @@ function NotasFiscaisPage() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-1 lg:pl-4 flex-wrap">
+                  <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 lg:pl-4 flex-wrap">
                     <IconBtn
                       title="Sincronizar"
                       onClick={() => consultMut.mutate(r.id)}
@@ -358,6 +362,12 @@ function NotasFiscaisPage() {
           const id = cancelTarget.id;
           cancelMut.mutate({ id, justificativa: j }, { onSettled: () => setCancelTarget(null) });
         }}
+      />
+
+      <NfseDetailsDialog
+        open={!!detailsTarget}
+        onOpenChange={(v) => { if (!v) setDetailsTarget(null); }}
+        row={detailsTarget as unknown as Record<string, unknown> | null}
       />
     </div>
   );
