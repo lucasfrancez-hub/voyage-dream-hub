@@ -281,7 +281,7 @@ body{color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:10.2px;
         <span class="status">Emitida</span>
         <div class="meta-emissao"><small>Data/Hora da emissão</small><strong>${esc(dateStr)} ${esc(timeStr)}</strong></div>
       </div>
-      <div>${qrPng ? `<img class="qr-topo" src="${qrPng}" alt="QR"/>` : ""}</div>
+      <div>${qrPng && qrUrl ? `<a href="${esc(qrUrl)}" target="_blank" rel="noopener noreferrer"><img class="qr-topo" src="${qrPng}" alt="QR"/></a>` : qrPng ? `<img class="qr-topo" src="${qrPng}" alt="QR"/>` : ""}</div>
     </div>
   </div>
 
