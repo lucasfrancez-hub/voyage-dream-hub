@@ -742,18 +742,17 @@
     return best;
   }
 
-  async function captureFullPage() {
-    // captureVisibleTab tem quota ~2/s → 600ms entre shots.
+  async function captureScrollTarget(container) {
+    // captureVisibleTab tem quota ~2/s → 650ms entre shots.
     const shots = [];
-    const maxShots = 10;
-    const container = findScrollContainer();
-
+    const maxShots = 8;
     const getScroll = () => container ? container.scrollTop : window.scrollY;
     const setScroll = (y) => container
       ? (container.scrollTop = y)
       : window.scrollTo({ top: y, behavior: "instant" });
     const viewH = container ? container.clientHeight : window.innerHeight;
     const totalH = container ? container.scrollHeight : document.documentElement.scrollHeight;
+    if (viewH < 100) return shots;
     const step = Math.floor(viewH * 0.85);
     const originalScroll = getScroll();
 
@@ -763,15 +762,33 @@
     for (let i = 0; i < maxShots; i++) {
       const shot = await captureViewport();
       if (shot) shots.push(shot);
-      const nextY = getScroll() + step;
       const maxY = totalH - viewH;
       if (getScroll() >= maxY - 5) break;
-      setScroll(nextY);
+      setScroll(getScroll() + step);
       await sleep(650);
     }
     setScroll(originalScroll);
     return shots;
   }
+
+  async function captureFullPage() {
+    // SEMPRE captura tela — a IA usa as imagens pra ler VALORES (tarifa, taxas,
+    // TU, total, moeda) que costumam ficar num painel fora do iframe/modal.
+    // Faz dois passes quando existe scroll interno (modal do consolidador):
+    //   1) rola a janela inteira do topo até o fim (pega header/rodapé/painéis)
+    //   2) rola o container interno (pega o corpo da reserva)
+    const all = [];
+    const outer = await captureScrollTarget(null);
+    all.push(...outer);
+    const container = findScrollContainer();
+    if (container) {
+      const inner = await captureScrollTarget(container);
+      all.push(...inner);
+    }
+    // Limita a 10 imagens pra não estourar o payload/tokens da IA.
+    return all.slice(0, 10);
+  }
+
 
   async function sendImport(ctx) {
     if (importInProgress) {
@@ -779,7 +796,7 @@
       return;
     }
     importInProgress = true;
-    showToast(isConsolidator ? "Lendo iframe e enviando pra Via Air…" : "Capturando tela e enviando pra Via Air…");
+    showToast("Lendo iframe e capturando tela pra Via Air…");
     try {
       if (isConsolidator) {
         latestStructuredReservation = null;
@@ -789,9 +806,15 @@
       }
       const structuredData = isConsolidator ? (extractStructuredReservation(document) || latestStructuredReservation) : null;
       const rawText = structuredData ? JSON.stringify(structuredData) : collectPageText();
-      // Híbrido: sempre captura tela — a IA usa as imagens pra ler VALORES
-      // (tarifa, taxas, TU, total, moeda) que o portal exibe fora do iframe.
+      // Híbrido OBRIGATÓRIO: sempre captura tela (janela + modal interno) — a
+      // IA usa as imagens pra ler VALORES (tarifa, taxas, TU, total, moeda)
+      // que o portal exibe fora do iframe da reserva.
       const screenshots = await captureFullPage();
+      if (screenshots.length === 0) {
+        showToast("Não consegui capturar a tela. Verifique as permissões da extensão.", "err");
+        return;
+      }
+      showToast(`📸 ${screenshots.length} captura(s) tirada(s). Enviando pra Via Air…`);
       if ((!structuredData && rawText.length < 200) && screenshots.length === 0) {
         showToast("Página ainda não carregou os dados da reserva. Aguarde e tente de novo.", "err");
         return;
