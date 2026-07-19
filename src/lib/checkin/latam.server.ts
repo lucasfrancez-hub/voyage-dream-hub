@@ -82,7 +82,7 @@ export default async function ({ page, context }) {
         return;
       } catch (e) {
         lastErr = e;
-        step(`goto retry ${i + 1} after error: ${(e && e.message) || e}`);
+        step('goto retry ' + (i + 1) + ' after error: ' + ((e && e.message) || e));
         await sleep(2000 + i * 1500);
       }
     }
