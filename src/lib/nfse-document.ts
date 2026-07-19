@@ -148,12 +148,6 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const timeStr = new Date(data.data_emissao || data.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
 
-  const numero = data.numero_nfse || responseValue(data, "numero_nfse") || "-";
-  const serie = data.serie || responseValue(data, "serie_nfse") || "1";
-  const verification = data.codigo_verificacao || responseValue(data, "cod_verificador_autenticidade") || "";
-  const rps = responseValue(data, "numero_rps") || "";
-  const dateStr = new Date(data.data_emissao || data.created_at).toLocaleDateString("pt-BR");
-  const timeStr = new Date(data.data_emissao || data.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   // Tomador — mapeamento robusto com fallback amplo
   const t = (data.tomador ?? {}) as Record<string, any>;
