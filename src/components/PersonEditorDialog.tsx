@@ -1566,6 +1566,3 @@ function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null
     </div>
   );
 }
-    </div>
-  );
-}
