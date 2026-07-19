@@ -102,12 +102,12 @@ function loadCertFromEnv(cnpj?: string | null): LoadedCert {
 }
 
 /** Assina a raiz <nfse id="nota"> e insere Signature antes de </nfse>. */
-export async function signNfseXml(xml: string): Promise<string> {
+export async function signNfseXml(xml: string, prestadorCnpj?: string | null): Promise<string> {
   if (!/<nfse\s[^>]*id="nota"[^>]*>/i.test(xml)) {
     throw new Error('Elemento <nfse id="nota"> não encontrado para assinatura');
   }
 
-  const { privateKeyPem, certBase64 } = loadCertFromEnv();
+  const { privateKeyPem, certBase64 } = loadCertFromEnv(prestadorCnpj);
   const certPem = `-----BEGIN CERTIFICATE-----\n${certBase64.match(/.{1,64}/g)?.join("\n") ?? certBase64}\n-----END CERTIFICATE-----`;
   const signer = new SignedXml({ privateKey: privateKeyPem, publicCert: certPem });
   signer.canonicalizationAlgorithm = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315";
