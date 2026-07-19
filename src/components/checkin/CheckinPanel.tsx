@@ -32,6 +32,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   const qc = useQueryClient();
   const list = useServerFn(listCheckins);
   const run = useServerFn(runCheckin);
+  const resend = useServerFn(resendBoardingPass);
 
   const { data: checkins = [] } = useQuery({
     queryKey: ["flight-checkins", orderId],
@@ -50,6 +51,31 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
       qc.invalidateQueries({ queryKey: ["flight-checkins", orderId] });
     },
     onError: (e: any) => toast.error(`Falha no check-in: ${e?.message ?? "erro"}`),
+  });
+
+  const resendMut = useMutation({
+    mutationFn: (checkinId: string) => resend({ data: { checkinId } }),
+    onSuccess: (res) => {
+      const r = (res as any).report as {
+        attempted: number; delivered: number;
+        skippedNoPhone: Array<{ name: string }>; failed: Array<{ name: string; error: string }>;
+        usedOrderFallback: boolean;
+      } | undefined;
+      if (!r || r.delivered === 0) {
+        const noPhone = r?.skippedNoPhone.map((p) => p.name).join(", ");
+        const failed = r?.failed.map((p) => `${p.name}: ${p.error}`).join(" · ");
+        toast.error(
+          noPhone
+            ? `Nenhum passageiro tem WhatsApp cadastrado (${noPhone}). Adicione o número em "Passageiros".`
+            : failed || "Envio falhou",
+        );
+        return;
+      }
+      toast.success(
+        `Cartão enviado (${r.delivered}/${r.attempted + r.skippedNoPhone.length})${r.usedOrderFallback ? " · usou telefone do pedido" : ""}`,
+      );
+    },
+    onError: (e: any) => toast.error(`Falha ao enviar: ${e?.message ?? "erro"}`),
   });
 
   // Só mostra voos LATAM
