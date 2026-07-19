@@ -229,10 +229,10 @@ function CheckinsPage() {
         )}
 
         <Section
-          title="Próximos check-ins (fora da janela de 7 dias)"
+          title="Próximos check-ins (dentro de 7 dias)"
           subtitle="Voos futuros identificados nos pedidos. O robô inicia automaticamente 48h antes."
-          empty="Nenhum voo futuro identificado."
-          items={upcoming}
+          empty="Nenhum voo nos próximos 7 dias."
+          items={upcoming7d}
           render={(u) => <UpcomingRow u={u} />}
         />
       </div>
