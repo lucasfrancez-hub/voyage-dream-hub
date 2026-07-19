@@ -88,19 +88,24 @@ function CheckinsPage() {
     });
   }, [upcoming]);
 
-  async function handleRun(id: string, regenerate = false) {
+  async function handleRun(id: string, regenerate = false, mode: "code" | "vision" = "code") {
     setBusyId(id);
     try {
       if (regenerate) {
         await regen({ data: { checkinId: id } });
       }
-      const result = await run({ data: { checkinId: id } });
+      const result = await run({ data: { checkinId: id, mode } });
       if (!result.ok) {
         toast.error(result.error);
         await q.refetch();
         return;
       }
-      toast.success(regenerate ? "Cartão regerado e enviado" : "Check-in concluído");
+      const modeLabel = mode === "vision" ? "Visão IA" : "Código";
+      toast.success(
+        regenerate
+          ? `Cartão regerado (${modeLabel}) e enviado`
+          : `Check-in (${modeLabel}) concluído`,
+      );
       q.refetch();
     } catch (e: any) {
       toast.error(e?.message ?? "Falhou");
