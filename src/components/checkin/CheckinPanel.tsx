@@ -5,7 +5,13 @@ import { Loader2, Plane, CheckCircle2, XCircle, Clock, RefreshCw, Download, Send
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { listCheckins, runCheckin, detectAirline, resendBoardingPass, regenerateBoardingPass } from "@/lib/checkin/checkin.functions";
+import {
+  listCheckins,
+  runCheckinGroup,
+  detectAirline,
+  resendBoardingPass,
+  regenerateBoardingPass,
+} from "@/lib/checkin/checkin.functions";
 
 type FlightItem = {
   id: string;
@@ -24,14 +30,25 @@ interface CheckinPanelProps {
   flightItems: FlightItem[];
 }
 
+type Segment = { item: FlightItem; checkin: any | null };
+type ReservationGroup = {
+  key: string;
+  locator: string | null;
+  segments: Segment[];
+  firstDep: number | null;
+  lastDep: number | null;
+};
+
 /**
- * Painel de check-in automático (LATAM).
- * Mostra status por voo e botão de check-in manual.
+ * Painel de check-in automático (LATAM) — agrupado por reserva.
+ * Uma reserva com conexões vira um card único com todos os trechos.
+ * O botão só habilita quando o ÚLTIMO trecho já entrou na janela de 48h,
+ * porque só nesse momento a LATAM disponibiliza todos os cartões juntos.
  */
 export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   const qc = useQueryClient();
   const list = useServerFn(listCheckins);
-  const run = useServerFn(runCheckin);
+  const runGroup = useServerFn(runCheckinGroup);
   const resend = useServerFn(resendBoardingPass);
   const regen = useServerFn(regenerateBoardingPass);
 
@@ -41,20 +58,21 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   });
 
   const runMut = useMutation({
-    mutationFn: async (args: { orderItemId: string; regenCheckinId?: string }) => {
-      if (args.regenCheckinId) {
-        await regen({ data: { checkinId: args.regenCheckinId } });
+    mutationFn: async (args: { orderItemIds: string[]; regenCheckinIds?: string[] }) => {
+      for (const id of args.regenCheckinIds ?? []) {
+        await regen({ data: { checkinId: id } });
       }
-      return run({ data: { orderItemId: args.orderItemId } });
+      return runGroup({ data: { orderItemIds: args.orderItemIds } });
     },
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
+      qc.invalidateQueries({ queryKey: ["flight-checkins", orderId] });
       if (!result.ok) {
-        toast.error(result.error);
-        qc.invalidateQueries({ queryKey: ["flight-checkins", orderId] });
+        toast.error(result.error || "Falha no check-in");
         return;
       }
-      toast.success("Check-in feito! Cartão de embarque enviado.");
-      qc.invalidateQueries({ queryKey: ["flight-checkins", orderId] });
+      const okCount = (result.results ?? []).filter((r: any) => r.ok).length;
+      const total = (result.results ?? []).length;
+      toast.success(`Check-in concluído (${okCount}/${total} cartões).`);
     },
     onError: (e: any) => toast.error(`Falha no check-in: ${e?.message ?? "erro"}`),
   });
@@ -84,29 +102,59 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
     onError: (e: any) => toast.error(`Falha ao enviar: ${e?.message ?? "erro"}`),
   });
 
-  // Só mostra voos LATAM que estejam dentro da janela de check-in (até 48h antes da partida)
-  // ou que já tenham um check-in registrado (para acompanhar status/PDF).
-  const rows = useMemo(() => {
+  // Agrupa voos LATAM da mesma reserva (mesmo supplier_locator). Segmentos
+  // sem locator caem em grupos individuais (fallback pelo próprio id).
+  const groups = useMemo<ReservationGroup[]>(() => {
     const now = Date.now();
     const WINDOW_MS = 48 * 60 * 60 * 1000;
-    return flightItems
-      .filter((it) => detectAirline({ airline: it.details?.airline, flight_number: it.details?.flight_number }) === "LATAM")
-      .map((it) => {
-        const ci = (checkins as any[]).find((c) => c.order_item_id === it.id);
-        return { item: it, checkin: ci };
-      })
-      .filter(({ item, checkin }) => {
-        if (checkin) return true; // já iniciado — sempre mostra
-        const depRaw = item.details?.departure_at;
-        if (!depRaw) return false; // sem horário e sem check-in: não dá pra saber a janela
-        const depMs = new Date(depRaw).getTime();
-        if (!Number.isFinite(depMs)) return false;
-        const delta = depMs - now;
-        return delta > 0 && delta <= WINDOW_MS;
+
+    const latamItems = flightItems.filter(
+      (it) => detectAirline({ airline: it.details?.airline, flight_number: it.details?.flight_number }) === "LATAM",
+    );
+
+    const bucket = new Map<string, Segment[]>();
+    for (const it of latamItems) {
+      const ci = (checkins as any[]).find((c) => c.order_item_id === it.id) ?? null;
+      const key = (it.supplier_locator || "").trim().toUpperCase() || `__solo:${it.id}`;
+      if (!bucket.has(key)) bucket.set(key, []);
+      bucket.get(key)!.push({ item: it, checkin: ci });
+    }
+
+    const result: ReservationGroup[] = [];
+    for (const [key, segs] of bucket) {
+      segs.sort((a, b) => {
+        const da = new Date(a.item.details?.departure_at || 0).getTime();
+        const db = new Date(b.item.details?.departure_at || 0).getTime();
+        return da - db;
       });
+      const deps = segs
+        .map((s) => new Date(s.item.details?.departure_at || 0).getTime())
+        .filter((n) => Number.isFinite(n) && n > 0);
+      const firstDep = deps.length ? Math.min(...deps) : null;
+      const lastDep = deps.length ? Math.max(...deps) : null;
+
+      const anyStarted = segs.some((s) => s.checkin);
+      const withinWindow =
+        lastDep != null && lastDep - now <= WINDOW_MS && lastDep - now > -6 * 60 * 60 * 1000;
+
+      // Só mostra se dentro da janela do último trecho, ou se algum check-in
+      // já foi iniciado (para acompanhar status/PDF).
+      if (!anyStarted && !withinWindow) continue;
+
+      result.push({
+        key,
+        locator: key.startsWith("__solo:") ? null : key,
+        segments: segs,
+        firstDep,
+        lastDep,
+      });
+    }
+    // Ordena por horário do primeiro trecho de cada reserva
+    result.sort((a, b) => (a.firstDep ?? 0) - (b.firstDep ?? 0));
+    return result;
   }, [flightItems, checkins]);
 
-  if (rows.length === 0) return null;
+  if (groups.length === 0) return null;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
@@ -115,59 +163,121 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
         <h3 className="text-sm font-semibold">Check-in automático LATAM</h3>
         <Badge variant="outline" className="text-[10px]">Beta</Badge>
       </div>
-      <div className="space-y-2">
-        {rows.map(({ item, checkin }) => {
-          const dep = item.details?.departure_at ? new Date(item.details.departure_at) : null;
-          const canRun = dep ? dep.getTime() - Date.now() < 48 * 60 * 60 * 1000 && dep.getTime() > Date.now() : true;
-          const isRunning = runMut.isPending && runMut.variables?.orderItemId === item.id;
+      <div className="space-y-3">
+        {groups.map((group) => {
+          const now = Date.now();
+          const WINDOW_MS = 48 * 60 * 60 * 1000;
+          const lastDep = group.lastDep;
+          const canRun = lastDep != null
+            ? lastDep - now <= WINDOW_MS && lastDep - now > 0
+            : false;
+          const allSuccess = group.segments.every((s) => s.checkin?.status === "success");
+          const anyRunning = group.segments.some((s) => s.checkin?.status === "running");
+          const orderItemIds = group.segments.map((s) => s.item.id);
+          const regenIds = group.segments
+            .filter((s) => s.checkin?.status === "success")
+            .map((s) => s.checkin.id as string);
+          const isRunning = runMut.isPending &&
+            JSON.stringify(runMut.variables?.orderItemIds ?? []) === JSON.stringify(orderItemIds);
+
           return (
-            <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-background/60 px-3 py-2 text-sm">
-              <div className="min-w-0">
-                <div className="font-medium truncate">
-                  {item.details?.flight_number ?? "Voo"} — {item.details?.from_iata}→{item.details?.to_iata}
+            <div key={group.key} className="rounded-lg border border-border/50 bg-background/60 p-3">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">
+                    Reserva {group.locator ?? "—"}
+                    {group.segments.length > 1 && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        · {group.segments.length} trechos
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {lastDep
+                      ? `Último trecho: ${new Date(lastDep).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
+                      : "Sem horário"}
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {dep ? dep.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Sem horário"} · Loc: {item.supplier_locator || "—"}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <StatusBadge status={checkin?.status} />
-                {checkin?.boarding_pass_url && (
-                  <a href={checkin.boarding_pass_url} target="_blank" rel="noreferrer">
-                    <Button size="sm" variant="outline"><Download className="h-3.5 w-3.5 mr-1" />PDF</Button>
-                  </a>
-                )}
-                {checkin?.status === "success" && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {allSuccess && group.segments.some((s) => s.checkin?.id) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={resendMut.isPending}
+                      onClick={() => {
+                        // Reenvia o cartão do primeiro trecho — a entrega já
+                        // agrupa todos os PDFs no WhatsApp do passageiro.
+                        const firstCi = group.segments.find((s) => s.checkin?.id)?.checkin?.id;
+                        if (firstCi) resendMut.mutate(firstCi);
+                      }}
+                      title="Reenviar cartões pelo WhatsApp dos passageiros"
+                    >
+                      {resendMut.isPending
+                        ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        : <Send className="h-3.5 w-3.5 mr-1" />}
+                      Enviar cartão
+                    </Button>
+                  )}
                   <Button
                     size="sm"
-                    variant="outline"
-                    disabled={resendMut.isPending && resendMut.variables === checkin.id}
-                    onClick={() => resendMut.mutate(checkin.id)}
-                    title="Reenviar cartão pelo WhatsApp dos passageiros"
+                    variant={allSuccess ? "outline" : "default"}
+                    disabled={isRunning || anyRunning || (!canRun && !allSuccess)}
+                    onClick={() =>
+                      runMut.mutate({
+                        orderItemIds,
+                        regenCheckinIds: allSuccess ? regenIds : undefined,
+                      })
+                    }
+                    title={
+                      !canRun && !allSuccess
+                        ? "Disponível a partir de 48h antes do último trecho"
+                        : ""
+                    }
                   >
-                    {resendMut.isPending && resendMut.variables === checkin.id
+                    {isRunning
                       ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      : <Send className="h-3.5 w-3.5 mr-1" />}
-                    Enviar cartão
+                      : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                    {allSuccess ? "Regerar cartões" : "Check-in"}
                   </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant={checkin?.status === "success" ? "outline" : "default"}
-                  disabled={isRunning || !canRun}
-                  onClick={() => runMut.mutate({ orderItemId: item.id, regenCheckinId: checkin?.status === "success" ? checkin.id : undefined })}
-                  title={!canRun ? "Disponível a partir de 48h antes do voo" : ""}
-                >
-                  {isRunning ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
-                  {checkin?.status === "success" ? "Regerar cartão" : "Check-in"}
-                </Button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                {group.segments.map(({ item, checkin }) => {
+                  const dep = item.details?.departure_at ? new Date(item.details.departure_at) : null;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between gap-3 rounded-md bg-background/40 px-3 py-2 text-xs"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">
+                          {item.details?.flight_number ?? "Voo"} — {item.details?.from_iata}→{item.details?.to_iata}
+                        </div>
+                        <div className="text-muted-foreground">
+                          {dep ? dep.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Sem horário"}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <StatusBadge status={checkin?.status} />
+                        {checkin?.boarding_pass_url && (
+                          <a href={checkin.boarding_pass_url} target="_blank" rel="noreferrer">
+                            <Button size="sm" variant="outline" className="h-7">
+                              <Download className="h-3.5 w-3.5 mr-1" />PDF
+                            </Button>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
         })}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        O robô roda automaticamente entre 48h e 1h antes do voo e envia o cartão de embarque por WhatsApp e e-mail. Contato de emergência é sempre recusado.
+        O robô roda automaticamente entre 48h e 1h antes do último trecho e envia todos os cartões da reserva por WhatsApp. Contato de emergência é sempre recusado.
       </p>
     </div>
   );

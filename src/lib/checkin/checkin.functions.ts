@@ -311,15 +311,185 @@ export const runCheckin = createServerFn({ method: "POST" })
         .update({ status: "failed", error: friendlyError })
         .eq("id", checkin.id);
 
-      // Falhas de fornecedores externos são retornadas como resultado tipado.
-      // Não lançar aqui evita o overlay/blank screen do runtime no painel.
-      // Sempre monta a URL de check-in status (não "minhas viagens"), usando
-      // o orderId LA... e o sobrenome do primeiro passageiro.
       const surnameForUrl = (checkin.pnr_surname || "").toString().trim().toLowerCase();
       const orderIdForUrl = (checkin.locator || "").toString().trim().toUpperCase();
       const checkinStatusUrl = orderIdForUrl && surnameForUrl
         ? `https://www.latamairlines.com/br/pt/check-in/status?orderId=${encodeURIComponent(orderIdForUrl)}&lastName=${encodeURIComponent(surnameForUrl)}`
         : (airlineCheckinUrl || null);
       return { ok: false, id: checkin.id, error: friendlyError, manualUrl: checkinStatusUrl } as const;
+    }
+  });
+
+/**
+ * Roda o check-in para todos os trechos de uma mesma reserva (mesmo PNR).
+ * Executa o robô uma única vez e distribui os PDFs de cada abinha entre os
+ * order_items correspondentes (matching por número do voo → fallback por ordem).
+ */
+export const runCheckinGroup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderItemIds: string[] }) => data)
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    const { userId } = context as { userId: string };
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isStaff } = await sb.rpc("has_role", { _user_id: userId, _role: "user" });
+    if (!isAdmin && !isStaff) throw new Error("Sem permissão");
+
+    const ids = Array.from(new Set((data.orderItemIds || []).filter(Boolean)));
+    if (ids.length === 0) throw new Error("orderItemIds obrigatório");
+
+    const itemsRes = await sb.from("order_items")
+      .select("id, order_id, kind, details, supplier_locator")
+      .in("id", ids);
+    const items = (itemsRes.data ?? []) as any[];
+    if (items.length === 0) throw new Error("Itens não encontrados");
+    if (items.some((it) => it.kind !== "flight")) throw new Error("Todos os itens precisam ser aéreos");
+
+    const orderId = items[0].order_id;
+    if (items.some((it) => it.order_id !== orderId)) throw new Error("Itens devem ser do mesmo pedido");
+
+    const airline = detectAirline({ airline: items[0].details?.airline, flight_number: items[0].details?.flight_number });
+    if (airline !== "LATAM") throw new Error("Fase 1 só suporta LATAM");
+
+    // Extrai localizador e URL de check-in a partir de qualquer item
+    let checkinUrl = "";
+    let latamOrderId = "";
+    for (const it of items) {
+      const u = String(it.details?.airline_checkin_url || "").trim();
+      if (u && !checkinUrl) checkinUrl = u;
+      try {
+        const oid = new URL(u).searchParams.get("orderId")?.trim().toUpperCase() || "";
+        if (oid && !latamOrderId) latamOrderId = oid;
+      } catch { /* ignore */ }
+    }
+    const locator = (
+      latamOrderId ||
+      items[0].details?.purchase_order ||
+      items[0].details?.order_id ||
+      items[0].supplier_locator ||
+      items[0].details?.locator ||
+      ""
+    ).toString().trim().toUpperCase();
+    if (!locator) throw new Error("Localizador ausente");
+
+    const paxRes = await sb.from("order_passengers").select("id, full_name").eq("order_id", orderId).order("sort_order", { ascending: true }).limit(1);
+    const firstPax = (paxRes.data as any[])?.[0];
+    const surname = firstPax?.full_name?.split(/\s+/).slice(-1)[0] ?? "";
+    if (!surname) throw new Error("Sobrenome do passageiro não encontrado");
+
+    // Ordena itens por horário de partida (para fallback por índice)
+    items.sort((a, b) => {
+      const da = new Date(a.details?.departure_at || 0).getTime();
+      const db = new Date(b.details?.departure_at || 0).getTime();
+      return da - db;
+    });
+
+    // Upsert um check-in por item, marca running
+    const checkins: any[] = [];
+    for (const it of items) {
+      const up = await sb.from("flight_checkins").upsert({
+        order_id: orderId,
+        order_item_id: it.id,
+        passenger_id: firstPax?.id ?? null,
+        cia: airline,
+        locator,
+        pnr_surname: surname,
+        flight_number: it.details?.flight_number ?? null,
+        departure_at: it.details?.departure_at ?? null,
+        status: "running",
+      }, { onConflict: "order_item_id,passenger_id" }).select("*").single();
+      checkins.push(up.data);
+    }
+
+    try {
+      const { runLatamCheckin } = await import("./latam.server");
+      const result = await runLatamCheckin({ locator, surname, checkinUrl });
+      const passes = result.boardingPasses && result.boardingPasses.length
+        ? result.boardingPasses
+        : [{ label: "Cartão", base64: result.boardingPassBase64, contentType: result.contentType }];
+
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const normalize = (v?: string | null) => (v || "").toString().toUpperCase().replace(/\s+/g, "");
+
+      const unassigned = [...passes];
+      const assignments: Array<{ ci: any; pass: any }> = [];
+
+      // 1ª tentativa: casa por número de voo
+      for (const ci of checkins) {
+        const fn = normalize(ci.flight_number);
+        if (!fn) continue;
+        const idx = unassigned.findIndex((p) => normalize(p.flightNumber) === fn);
+        if (idx >= 0) {
+          assignments.push({ ci, pass: unassigned[idx] });
+          unassigned.splice(idx, 1);
+        }
+      }
+      // 2ª tentativa: casa por rota IATA
+      for (const ci of checkins.filter((c) => !assignments.find((a) => a.ci.id === c.id))) {
+        const from = normalize(ci.from_iata || items.find((it) => it.id === ci.order_item_id)?.details?.from_iata);
+        const to = normalize(ci.to_iata || items.find((it) => it.id === ci.order_item_id)?.details?.to_iata);
+        if (!from || !to) continue;
+        const idx = unassigned.findIndex((p) => normalize(p.fromIata) === from && normalize(p.toIata) === to);
+        if (idx >= 0) {
+          assignments.push({ ci, pass: unassigned[idx] });
+          unassigned.splice(idx, 1);
+        }
+      }
+      // 3ª: por ordem
+      for (const ci of checkins.filter((c) => !assignments.find((a) => a.ci.id === c.id))) {
+        if (unassigned.length === 0) break;
+        assignments.push({ ci, pass: unassigned.shift() });
+      }
+
+      const results: Array<{ id: string; ok: boolean; url?: string | null; error?: string }> = [];
+      for (const { ci, pass } of assignments) {
+        const path = `${orderId}/${ci.id}.pdf`;
+        const pdfBytes = Uint8Array.from(atob(pass.base64), (c) => c.charCodeAt(0));
+        const up = await supabaseAdmin.storage.from("boarding-passes")
+          .upload(path, pdfBytes, { contentType: pass.contentType || "application/pdf", upsert: true });
+        if (up.error) {
+          await sb.from("flight_checkins").update({ status: "failed", error: `Storage: ${up.error.message}` }).eq("id", ci.id);
+          results.push({ id: ci.id, ok: false, error: up.error.message });
+          continue;
+        }
+        const signed = await supabaseAdmin.storage.from("boarding-passes").createSignedUrl(path, 60 * 60 * 24 * 30);
+        const url = signed.data?.signedUrl ?? null;
+        await sb.from("flight_checkins").update({
+          status: "success",
+          boarding_pass_path: path,
+          boarding_pass_url: url,
+          completed_at: new Date().toISOString(),
+        }).eq("id", ci.id);
+        try {
+          const { deliverBoardingPass } = await import("./deliver.server");
+          await deliverBoardingPass(ci.id);
+        } catch (e) {
+          console.error("[checkin] delivery failed", e);
+        }
+        results.push({ id: ci.id, ok: true, url });
+      }
+
+      // Check-ins sem PDF correspondente ficam pendentes
+      const assignedIds = new Set(assignments.map((a) => a.ci.id));
+      for (const ci of checkins.filter((c) => !assignedIds.has(c.id))) {
+        await sb.from("flight_checkins").update({
+          status: "failed",
+          error: "Nenhum cartão de embarque correspondente foi devolvido pela LATAM para este trecho.",
+        }).eq("id", ci.id);
+        results.push({ id: ci.id, ok: false, error: "sem cartão correspondente" });
+      }
+
+      return { ok: true, results } as const;
+    } catch (err: any) {
+      const msg = err?.message ?? String(err);
+      console.error("[checkin] group automation failed", { error: msg.slice(0, 5_000) });
+      const friendlyError = "O check-in não terminou nesta sessão. O robô fará uma nova tentativa automática.";
+      for (const ci of checkins) {
+        await sb.from("flight_checkins").update({ status: "failed", error: friendlyError }).eq("id", ci.id);
+      }
+      const manualUrl = locator && surname
+        ? `https://www.latamairlines.com/br/pt/check-in/status?orderId=${encodeURIComponent(locator)}&lastName=${encodeURIComponent(surname.toLowerCase())}`
+        : (checkinUrl || null);
+      return { ok: false, error: friendlyError, manualUrl } as const;
     }
   });
