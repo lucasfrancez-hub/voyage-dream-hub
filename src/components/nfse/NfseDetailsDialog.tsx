@@ -28,12 +28,18 @@ const fmtCep = (v: unknown) => {
   return n.length === 8 ? n.replace(/(\d{5})(\d{3})/, "$1-$2") : String(v ?? "—");
 };
 
-function Row({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
+function Row({ label, value, mono }: { label: string; value: unknown; mono?: boolean }) {
+  const isNode =
+    value != null && (typeof value === "string" || typeof value === "number" ||
+      (typeof value === "object" && "$$typeof" in (value as object)));
+  const rendered = value == null || value === ""
+    ? "—"
+    : isNode ? (value as React.ReactNode) : String(value);
   return (
     <div className="flex flex-col gap-0.5 py-1.5">
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
       <span className={`text-sm text-foreground ${mono ? "font-mono" : ""} break-words`}>
-        {value ?? "—"}
+        {rendered}
       </span>
     </div>
   );
