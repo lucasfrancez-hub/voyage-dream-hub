@@ -20,6 +20,7 @@ type FlightItem = {
     airline?: string | null;
     flight_number?: string | null;
     departure_at?: string | null;
+    depart_at?: string | null;
     from_iata?: string | null;
     to_iata?: string | null;
   } | null;
