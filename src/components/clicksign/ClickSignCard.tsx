@@ -2,16 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Signature, CheckCircle2, XCircle, Send, RotateCcw, Download, RefreshCw, Trash2 } from "lucide-react";
+import {
+  Loader2, Signature, CheckCircle2, XCircle, Send, RotateCcw, Download,
+  RefreshCw, Trash2, Clock, Mail, ShieldCheck, FileSignature,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  createSignatureRequest, getSignatureStatus, cancelSignatureRequest, resendSignerEmail, syncSignatureFromClickSign, deleteSignatureRequest,
+  createSignatureRequest, getSignatureStatus, cancelSignatureRequest,
+  resendSignerEmail, syncSignatureFromClickSign, deleteSignatureRequest,
 } from "@/lib/clicksign.functions";
 import { confirmThen } from "@/lib/confirm";
 
@@ -28,17 +31,18 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-function statusBadge(status: string) {
-  const map: Record<string, { label: string; className: string }> = {
-    draft: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
-    running: { label: "Aguardando assinatura", className: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
-    closed: { label: "Assinado", className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
-    refused: { label: "Recusado", className: "bg-red-500/15 text-red-700 border-red-500/30" },
-    canceled: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
-  };
-  const s = map[status] ?? map.draft;
-  return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
-}
+type StatusKey = "draft" | "running" | "closed" | "refused" | "canceled" | "none";
+
+const STATUS_META: Record<StatusKey, {
+  label: string; badge: string; bar: string; sub: string;
+}> = {
+  none:     { label: "Não enviado",  badge: "bg-muted text-muted-foreground border-border",             bar: "bg-muted-foreground/40", sub: "Envie o contrato para o cliente assinar" },
+  draft:    { label: "Rascunho",     badge: "bg-slate-500/10 text-slate-400 border-slate-500/20",       bar: "bg-slate-500",           sub: "Rascunho salvo — ainda não enviado" },
+  running:  { label: "Aguardando",   badge: "bg-amber-500/10 text-amber-500 border-amber-500/20",       bar: "bg-amber-500",           sub: "Aguardando assinatura do cliente e/ou agência" },
+  closed:   { label: "Assinado",     badge: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", bar: "bg-emerald-500",         sub: "Contrato assinado por todas as partes" },
+  refused:  { label: "Recusado",     badge: "bg-rose-500/10 text-rose-500 border-rose-500/20",          bar: "bg-rose-500",            sub: "Um signatário recusou o documento" },
+  canceled: { label: "Cancelado",    badge: "bg-slate-500/10 text-slate-400 border-slate-500/20",       bar: "bg-slate-500",           sub: "Envio cancelado" },
+};
 
 export function ClickSignCard({ detail }: { detail: OrderDetail }) {
   const { order } = detail;
@@ -71,7 +75,6 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
     nascimento: order.birthDate ?? "",
     telefone: order.phone ?? "",
   });
-  // Reinicializa form quando abre
   const openSendDialog = (withAuthorization = isCreditCard) => {
     setForm({
       nome: order.fullName ?? "",
@@ -84,7 +87,6 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
     setOpenDialog(true);
   };
 
-  // Atalho externo (ex.: botão "Ações → Acionar contrato Clicksign")
   useEffect(() => {
     const handler = (e: Event) => {
       const ce = e as CustomEvent<{ orderId?: string; withAuth?: boolean }>;
@@ -148,10 +150,7 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
 
   const syncMut = useMutation({
     mutationFn: async (assinaturaId: string) => syncFn({ data: { assinaturaId } }),
-    onSuccess: (r) => {
-      toast.success(`Sincronizado (ClickSign: ${r.clicksignStatus})`);
-      invalidate();
-    },
+    onSuccess: (r) => { toast.success(`Sincronizado (ClickSign: ${r.clicksignStatus})`); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao sincronizar"),
   });
 
@@ -164,151 +163,238 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
   const assinatura = data?.assinatura;
   const signers = data?.signers ?? [];
 
+  const statusKey: StatusKey = (assinatura?.status as StatusKey) ?? "none";
+  const meta = STATUS_META[statusKey];
+
   const hasActive = useMemo(
     () => assinatura && ["draft", "running"].includes(assinatura.status),
     [assinatura],
   );
 
+  const signedCount = signers.filter((s) => s.status === "signed").length;
+  const totalSigners = signers.length;
+
   return (
-    <div id="clicksign-card" className="rounded-xl border border-border p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="font-medium text-sm flex items-center gap-2">
-            <Signature className="h-4 w-4" /> Assinatura Digital (ClickSign)
-            {assinatura && statusBadge(assinatura.status)}
+    <div
+      id="clicksign-card"
+      className="relative overflow-hidden rounded-2xl border border-border bg-card/40"
+    >
+      {/* Left accent bar */}
+      <div className={`absolute top-0 left-0 w-1 h-full ${meta.bar}`} />
+
+      {/* Header */}
+      <div className="p-5 border-b border-border/60 flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="p-2 rounded-xl bg-background/60 border border-border shrink-0">
+            <Signature className="h-5 w-5 text-brand-orange" />
           </div>
-          <div className="text-xs text-muted-foreground mt-0.5">
-            {!assinatura && "Envia o contrato + recibo direto para o cliente assinar (por e-mail e WhatsApp) com selfie dinâmica (prova de vida) + foto do documento."}
-            {assinatura?.status === "running" && "Aguardando assinatura do cliente e/ou da agência."}
-            {assinatura?.status === "closed" && `Assinado em ${assinatura.updated_at ? new Date(assinatura.updated_at).toLocaleString("pt-BR") : ""}.`}
-            {assinatura?.status === "refused" && "O documento foi recusado por um signatário."}
-            {assinatura?.status === "canceled" && "Envio cancelado."}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-sm font-bold tracking-tight">Assinatura Digital</h4>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                ClickSign
+              </span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${meta.badge}`}>
+                {meta.label}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+              {meta.sub}
+              {assinatura?.status === "closed" && assinatura.updated_at && (
+                <> · {new Date(assinatura.updated_at).toLocaleString("pt-BR")}</>
+              )}
+            </p>
           </div>
         </div>
 
-        <div className="flex gap-2 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
 
           {assinatura && (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={syncMut.isPending}
+            <button
+              type="button"
+              title="Sincronizar status na ClickSign"
               onClick={() => syncMut.mutate(assinatura.id)}
-              title="Buscar status atual na ClickSign e baixar PDF se assinado"
+              disabled={syncMut.isPending}
+              className="p-2 rounded-lg text-muted-foreground hover:text-emerald-400 hover:bg-emerald-400/10 transition disabled:opacity-50"
             >
-              {syncMut.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              )}
-              Sincronizar
-            </Button>
-          )}
-
-          {!hasActive && assinatura?.status !== "closed" && (
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={() => openSendDialog(false)}>
-                <Send className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato
-              </Button>
-              <Button size="sm" onClick={() => openSendDialog(true)}>
-                <Send className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato + Autorização
-              </Button>
-            </div>
+              {syncMut.isPending
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <RefreshCw className="h-4 w-4" />}
+            </button>
           )}
 
           {assinatura?.status === "closed" && assinatura.signed_pdf_url && (
-            <Button size="sm" asChild>
-              <a href={assinatura.signed_pdf_url} target="_blank" rel="noreferrer">
-                <Download className="h-3.5 w-3.5 mr-1.5" /> Baixar PDF assinado
-              </a>
-            </Button>
+            <a
+              href={assinatura.signed_pdf_url}
+              target="_blank"
+              rel="noreferrer"
+              title="Baixar PDF assinado"
+              className="p-2 rounded-lg text-muted-foreground hover:text-brand-orange hover:bg-brand-orange/10 transition"
+            >
+              <Download className="h-4 w-4" />
+            </a>
           )}
 
-          {assinatura?.status === "refused" && (
-            <Button size="sm" variant="outline" onClick={() => openSendDialog(isCreditCard)}>
-              <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Enviar novamente
-            </Button>
-          )}
-
-          {assinatura?.status === "canceled" && (
-            <Button size="sm" onClick={() => openSendDialog(isCreditCard)}>
-              <Send className="h-3.5 w-3.5 mr-1.5" /> Reenviar
-            </Button>
-          )}
-
-          {assinatura && (assinatura.status === "refused" || assinatura.status === "canceled" || assinatura.status === "draft") && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-red-600 hover:text-red-700"
-              disabled={deleteMut.isPending}
+          {assinatura && ["refused", "canceled", "draft"].includes(assinatura.status) && (
+            <button
+              type="button"
               title="Excluir este envio"
+              disabled={deleteMut.isPending}
               onClick={() => confirmThen(
                 "Excluir esta assinatura? Esta ação não pode ser desfeita.",
                 () => deleteMut.mutate(assinatura.id),
               )}
+              className="p-2 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition disabled:opacity-50"
             >
               {deleteMut.isPending
-                ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                : <Trash2 className="h-3.5 w-3.5 mr-1.5" />}
-              Excluir
-            </Button>
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <Trash2 className="h-4 w-4" />}
+            </button>
           )}
         </div>
       </div>
 
-      {signers.length > 0 && (
-        <div className="mt-3 space-y-1.5">
-          {signers.map((s) => (
-            <div key={s.id} className="flex items-center justify-between text-xs rounded-lg bg-muted/40 px-3 py-2">
-              <div className="min-w-0">
-                <div className="font-medium truncate">
-                  {s.nome}{" "}
-                  <span className="text-muted-foreground font-normal">
-                    ({s.papel === "cliente" ? "Cliente" : s.papel === "agencia" ? "Agência" : "Testemunha"})
-                  </span>
-                </div>
-                <div className="text-muted-foreground truncate">{s.email}</div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {s.status === "signed" && (
-                  <span className="flex items-center gap-1 text-emerald-600">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Assinou
-                  </span>
-                )}
-                {s.status === "refused" && (
-                  <span className="flex items-center gap-1 text-red-600">
-                    <XCircle className="h-3.5 w-3.5" /> Recusou
-                  </span>
-                )}
-                {s.status === "pending" && hasActive && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-xs"
-                    disabled={resendMut.isPending}
-                    onClick={() => resendMut.mutate(s.id)}
-                  >
-                    Reenviar e-mail
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
+      {/* Mini KPI strip */}
+      {(assinatura || totalSigners > 0) && (
+        <div className="grid grid-cols-3 divide-x divide-border/60 border-b border-border/60 bg-background/30">
+          <MiniStat
+            icon={<FileSignature className="h-3.5 w-3.5" />}
+            label="Signatários"
+            value={String(totalSigners)}
+          />
+          <MiniStat
+            icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+            label="Assinaram"
+            value={`${signedCount}/${totalSigners || 0}`}
+            tone={signedCount > 0 ? "emerald" : "default"}
+          />
+          <MiniStat
+            icon={<Clock className="h-3.5 w-3.5" />}
+            label="Atualizado"
+            value={assinatura?.updated_at
+              ? new Date(assinatura.updated_at).toLocaleDateString("pt-BR")
+              : "—"}
+          />
+        </div>
+      )}
 
-          {hasActive && assinatura && (
-            <div className="pt-1">
+      {/* Primary action row */}
+      {!hasActive && assinatura?.status !== "closed" && (
+        <div className="p-5 border-b border-border/60 bg-gradient-to-br from-transparent to-brand-orange/[0.03]">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldCheck className="h-3.5 w-3.5 text-brand-orange" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Enviar para assinatura
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => openSendDialog(false)}
+              className="border-border hover:border-brand-orange hover:text-brand-orange"
+            >
+              <Send className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => openSendDialog(true)}
+              className="bg-brand-orange hover:bg-brand-orange/90 text-white shadow-lg shadow-brand-orange/20"
+            >
+              <Send className="h-3.5 w-3.5 mr-1.5" /> + Autorização de débito
+            </Button>
+            {assinatura?.status === "refused" && (
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-xs text-red-600 hover:text-red-700"
-                disabled={cancelMut.isPending}
-                onClick={() => confirmThen("Cancelar o envio deste documento na ClickSign?", () => cancelMut.mutate(assinatura.id))}
+                onClick={() => openSendDialog(isCreditCard)}
+                className="text-muted-foreground"
+              >
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reenviar
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
+      {/* Signers */}
+      {signers.length > 0 && (
+        <div className="p-5">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Signatários
+          </div>
+          <div className="space-y-2">
+            {signers.map((s) => {
+              const isSigned = s.status === "signed";
+              const isRefused = s.status === "refused";
+              const initials = (s.nome || "?").split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
+              return (
+                <div
+                  key={s.id}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-background/40 p-3"
+                >
+                  <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    isSigned
+                      ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
+                      : isRefused
+                        ? "bg-rose-500/15 text-rose-500 border border-rose-500/30"
+                        : "bg-brand-orange/10 text-brand-orange border border-brand-orange/20"
+                  }`}>
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold truncate">{s.nome}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                        {s.papel === "cliente" ? "Cliente" : s.papel === "agencia" ? "Agência" : "Testemunha"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate flex items-center gap-1.5 mt-0.5">
+                      <Mail className="h-3 w-3" /> {s.email}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {isSigned && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-500 px-2 py-1 rounded-lg bg-emerald-500/10">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Assinou
+                      </span>
+                    )}
+                    {isRefused && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-500 px-2 py-1 rounded-lg bg-rose-500/10">
+                        <XCircle className="h-3.5 w-3.5" /> Recusou
+                      </span>
+                    )}
+                    {s.status === "pending" && hasActive && (
+                      <button
+                        type="button"
+                        title="Reenviar e-mail"
+                        onClick={() => resendMut.mutate(s.id)}
+                        disabled={resendMut.isPending}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-brand-orange px-2 py-1 rounded-lg hover:bg-brand-orange/10 transition disabled:opacity-50"
+                      >
+                        <Mail className="h-3.5 w-3.5" /> Reenviar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {hasActive && assinatura && (
+            <div className="pt-3 mt-3 border-t border-border/60 flex justify-end">
+              <button
+                type="button"
+                disabled={cancelMut.isPending}
+                onClick={() => confirmThen(
+                  "Cancelar o envio deste documento na ClickSign?",
+                  () => cancelMut.mutate(assinatura.id),
+                )}
+                className="text-xs text-muted-foreground hover:text-rose-500 transition"
               >
                 Cancelar envio
-              </Button>
+              </button>
             </div>
           )}
         </div>
@@ -338,27 +424,52 @@ export function ClickSignCard({ detail }: { detail: OrderDetail }) {
                 <Input type="date" value={form.nascimento} onChange={(e) => setForm((f) => ({ ...f, nascimento: e.target.value }))} />
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs">
-              <b>{includeAuth ? "Recibo + Contrato + Autorização de débito" : "Recibo + Contrato"}</b>
-              <span className="block text-muted-foreground mt-0.5">
+            <div className="rounded-xl border border-brand-orange/30 bg-brand-orange/5 p-3 text-xs">
+              <b className="text-brand-orange">
+                {includeAuth ? "Recibo + Contrato + Autorização de débito" : "Recibo + Contrato"}
+              </b>
+              <span className="block text-muted-foreground mt-1">
                 {includeAuth
                   ? "A autorização será incluída no mesmo PDF enviado para assinatura."
                   : "Somente o recibo e o contrato serão enviados para assinatura."}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Autenticação: link enviado por <b>e-mail e WhatsApp</b>. Na assinatura, o cliente faz <b>selfie dinâmica</b> (prova de vida) e envia a <b>foto do documento oficial</b> (RG/CNH). A ClickSign confere CPF e data de nascimento. A agência assina em seguida.
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancelar</Button>
-            <Button onClick={() => createMut.mutate()} disabled={createMut.isPending}>
+            <Button
+              onClick={() => createMut.mutate()}
+              disabled={createMut.isPending}
+              className="bg-brand-orange hover:bg-brand-orange/90 text-white"
+            >
               {createMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Enviar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function MiniStat({
+  icon, label, value, tone = "default",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  tone?: "default" | "emerald";
+}) {
+  const valueCls = tone === "emerald" ? "text-emerald-500" : "text-foreground";
+  return (
+    <div className="p-3 flex flex-col gap-1">
+      <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase tracking-wider font-semibold">
+        {icon} {label}
+      </div>
+      <div className={`text-sm font-bold ${valueCls}`}>{value}</div>
     </div>
   );
 }
