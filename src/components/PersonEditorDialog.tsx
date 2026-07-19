@@ -25,6 +25,8 @@ import {
 } from "@/lib/people.functions";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { confirm } from "@/lib/confirm";
+import { NfseDetailsDialog } from "@/components/nfse/NfseDetailsDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 type FormState = Omit<PersonRow, "id" | "code" | "created_at" | "updated_at" | "created_by" | "created_by_name" | "monde_id">;
 
