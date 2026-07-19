@@ -923,6 +923,7 @@ export type Database = {
           sort_order: number
           ticket_number: string | null
           updated_at: string
+          whatsapp: string | null
         }
         Insert: {
           birth_date?: string | null
@@ -940,6 +941,7 @@ export type Database = {
           sort_order?: number
           ticket_number?: string | null
           updated_at?: string
+          whatsapp?: string | null
         }
         Update: {
           birth_date?: string | null
@@ -957,6 +959,7 @@ export type Database = {
           sort_order?: number
           ticket_number?: string | null
           updated_at?: string
+          whatsapp?: string | null
         }
         Relationships: [
           {

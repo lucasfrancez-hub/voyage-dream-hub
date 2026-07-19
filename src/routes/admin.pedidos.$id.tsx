@@ -897,6 +897,7 @@ function PassengersSection({
                 <th className="text-left px-3 py-3 w-[140px]">Nascimento</th>
                 <th className="text-left px-3 py-3 min-w-[300px]">Documento</th>
                 <th className="text-left px-3 py-3">Bilhete</th>
+                <th className="text-left px-3 py-3 w-[160px]">WhatsApp</th>
                 <th className="px-3 py-3 w-16 text-right">Ações</th>
               </tr>
             </thead>
@@ -1007,7 +1008,7 @@ function PassengersSection({
 type PassengerPatch = Partial<Pick<OrderPassenger,
   "full_name" | "passenger_type" | "birth_date" | "cpf" | "ticket_number"
   | "doc_type" | "passport_number" | "passport_issue_date" | "passport_expiry_date"
->>;
+>> & { whatsapp?: string | null };
 
 function PassengerRow({
   passenger, onPatch, onDelete, fallbackTicket,
@@ -1100,6 +1101,10 @@ function PassengerRow({
       <td className="px-3 py-3">
         <InlineText value={effectiveTicket ?? ""} placeholder="Adicionar bilhete" className="text-xs tabular-nums"
           onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
+      </td>
+      <td className="px-3 py-3 w-[160px]">
+        <InlineText value={(passenger as any).whatsapp ?? ""} placeholder="+55 48 9…" className="text-xs tabular-nums"
+          onCommit={(v) => (v || null) !== ((passenger as any).whatsapp ?? null) && onPatch({ whatsapp: v || null })} />
       </td>
       <td className="px-3 py-3 text-right">
         <Button size="sm" variant="ghost" onClick={onDelete} className="opacity-0 group-hover:opacity-100 transition h-8 w-8 p-0">
