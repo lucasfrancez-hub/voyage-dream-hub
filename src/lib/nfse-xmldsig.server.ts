@@ -3,7 +3,27 @@ import forge from "node-forge";
 import { SignedXml } from "xml-crypto";
 
 type LoadedCert = { privateKeyPem: string; certBase64: string };
-let cached: LoadedCert | null = null;
+const cache = new Map<string, LoadedCert>();
+
+/** Resolve variáveis de ambiente do certificado por CNPJ do prestador. */
+function certEnvFor(cnpj?: string | null): { b64Var: string; pwdVar: string; rawB64?: string; pwd?: string } {
+  const digits = (cnpj ?? "").replace(/\D/g, "");
+  // LFR TRAVEL SERVICES LTDA
+  if (digits === "47430791000153") {
+    return {
+      b64Var: "NFSE_LFR_CERT_PFX_BASE64",
+      pwdVar: "NFSE_LFR_CERT_PASSWORD",
+      rawB64: process.env.NFSE_LFR_CERT_PFX_BASE64,
+      pwd: process.env.NFSE_LFR_CERT_PASSWORD,
+    };
+  }
+  return {
+    b64Var: "NFSE_CERT_PFX_BASE64",
+    pwdVar: "NFSE_CERT_PASSWORD",
+    rawB64: process.env.NFSE_CERT_PFX_BASE64,
+    pwd: process.env.NFSE_CERT_PASSWORD,
+  };
+}
 
 function parsePkcs12(buf: Buffer, password: string): forge.pkcs12.Pkcs12Pfx {
   const binary = buf.toString("binary");
