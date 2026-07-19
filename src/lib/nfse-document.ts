@@ -40,6 +40,7 @@ export type NfseDocumentData = {
 // Mapa de logo por CNPJ do prestador (somente dígitos). Adicione novos aqui.
 const LOGO_POR_CNPJ: Record<string, string> = {
   "56339877000166": viaAirLogoAsset.url, // VIA AIR
+  "47430791000153": viaAirLogoAsset.url, // LRF TRAVEL (mesma logo)
 };
 
 
