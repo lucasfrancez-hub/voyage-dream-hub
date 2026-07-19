@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2 } from "lucide-react";
-import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse } from "@/lib/nfse.functions";
+import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse, listNfseConfigs } from "@/lib/nfse.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { NfseDetailsDialog } from "@/components/nfse/NfseDetailsDialog";
@@ -58,6 +58,7 @@ function NotasFiscaisPage() {
   const consultFn = useServerFn(consultarNfse);
   const cancelFn = useServerFn(cancelarNfse);
   const deleteFn = useServerFn(deleteNfse);
+  const listConfigsFn = useServerFn(listNfseConfigs);
   const qc = useQueryClient();
   const [tab, setTab] = useState<"todas" | StatusKey>("todas");
   const [search, setSearch] = useState("");
@@ -111,14 +112,23 @@ function NotasFiscaisPage() {
     return (p?.nome_fantasia || p?.razao_social || "").trim();
   };
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ["nfse", "configs"],
+    queryFn: () => listConfigsFn({ data: undefined as never }),
+  });
+
   const prestadores = useMemo(() => {
     const set = new Set<string>();
+    for (const c of configs) {
+      const n = (c.nome_fantasia || c.razao_social || "").trim();
+      if (n) set.add(n);
+    }
     for (const r of rows) {
       const n = getPrestadorName(r);
       if (n) set.add(n);
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [rows]);
+  }, [configs, rows]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
