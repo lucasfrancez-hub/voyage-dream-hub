@@ -5,7 +5,7 @@ import { Loader2, Plane, CheckCircle2, XCircle, Clock, RefreshCw, Download, Send
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { listCheckins, runCheckin, detectAirline, resendBoardingPass } from "@/lib/checkin/checkin.functions";
+import { listCheckins, runCheckin, detectAirline, resendBoardingPass, regenerateBoardingPass } from "@/lib/checkin/checkin.functions";
 
 type FlightItem = {
   id: string;
