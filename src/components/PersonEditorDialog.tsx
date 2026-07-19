@@ -1428,6 +1428,28 @@ function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null
     queryFn: () => list({ data: { id: personId! } }),
     enabled: !isNew && !!personId,
   });
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsRow, setDetailsRow] = useState<Record<string, unknown> | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const openDetails = async (id: string) => {
+    setLoadingId(id);
+    try {
+      const { data, error } = await supabase
+        .from("nfse_emissoes")
+        .select("*, orders(order_number)")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Nota não encontrada");
+      setDetailsRow(data as Record<string, unknown>);
+      setDetailsOpen(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao abrir");
+    } finally {
+      setLoadingId(null);
+    }
+  };
 
   if (isNew) {
     return <div className="text-sm text-muted-foreground">Salve o cadastro para ver as notas fiscais vinculadas.</div>;
