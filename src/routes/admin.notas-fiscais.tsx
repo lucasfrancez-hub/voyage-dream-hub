@@ -15,6 +15,7 @@ import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { NfseDetailsDialog } from "@/components/nfse/NfseDetailsDialog";
 import { confirmThen } from "@/lib/confirm";
+import { prestadorShortLabel } from "@/lib/nfse-labels";
 
 export const Route = createFileRoute("/admin/notas-fiscais")({
   head: () => ({ meta: [{ title: "Notas Fiscais — VIA AIR" }] }),
