@@ -1623,14 +1623,18 @@ const drawHotelSection = async (
   }
 
 
-  // Uma única foto (a primeira do TripAdvisor, se houver)
-  let photoUrl = "";
+  // Fotos do TripAdvisor — tenta em ordem até uma carregar (URLs individuais expiram no CDN)
+  const photoCandidates: string[] = [];
   try {
     if (typeof d.tripadvisor_photos_json === "string" && d.tripadvisor_photos_json) {
       const parsed = JSON.parse(d.tripadvisor_photos_json as string);
-      if (Array.isArray(parsed) && typeof parsed[0] === "string") photoUrl = parsed[0];
-    } else if (Array.isArray(d.tripadvisor_photos) && typeof (d.tripadvisor_photos as unknown[])[0] === "string") {
-      photoUrl = String((d.tripadvisor_photos as unknown[])[0]);
+      if (Array.isArray(parsed)) {
+        for (const p of parsed) if (typeof p === "string" && p) photoCandidates.push(p);
+      }
+    } else if (Array.isArray(d.tripadvisor_photos)) {
+      for (const p of d.tripadvisor_photos as unknown[]) {
+        if (typeof p === "string" && p) photoCandidates.push(p);
+      }
     }
   } catch { /* ignore */ }
 
@@ -1640,7 +1644,12 @@ const drawHotelSection = async (
   const photoW = 130;
   const photoH = 92;
   const gapPhoto = 14;
-  const photo = photoUrl ? await embedRemotePhoto(ctx.pdf, photoUrl) : null;
+  let photo: PDFImage | null = null;
+  for (const url of photoCandidates) {
+    photo = await embedRemotePhoto(ctx.pdf, url);
+    if (photo) break;
+  }
+
   const midX = innerX + (photo ? photoW + gapPhoto : 0);
   const midW = innerW - (photo ? photoW + gapPhoto : 0) - qrSize - 24;
 
