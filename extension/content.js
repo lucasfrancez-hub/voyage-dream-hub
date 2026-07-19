@@ -742,18 +742,17 @@
     return best;
   }
 
-  async function captureFullPage() {
-    // captureVisibleTab tem quota ~2/s → 600ms entre shots.
+  async function captureScrollTarget(container) {
+    // captureVisibleTab tem quota ~2/s → 650ms entre shots.
     const shots = [];
-    const maxShots = 10;
-    const container = findScrollContainer();
-
+    const maxShots = 8;
     const getScroll = () => container ? container.scrollTop : window.scrollY;
     const setScroll = (y) => container
       ? (container.scrollTop = y)
       : window.scrollTo({ top: y, behavior: "instant" });
     const viewH = container ? container.clientHeight : window.innerHeight;
     const totalH = container ? container.scrollHeight : document.documentElement.scrollHeight;
+    if (viewH < 100) return shots;
     const step = Math.floor(viewH * 0.85);
     const originalScroll = getScroll();
 
@@ -763,15 +762,33 @@
     for (let i = 0; i < maxShots; i++) {
       const shot = await captureViewport();
       if (shot) shots.push(shot);
-      const nextY = getScroll() + step;
       const maxY = totalH - viewH;
       if (getScroll() >= maxY - 5) break;
-      setScroll(nextY);
+      setScroll(getScroll() + step);
       await sleep(650);
     }
     setScroll(originalScroll);
     return shots;
   }
+
+  async function captureFullPage() {
+    // SEMPRE captura tela — a IA usa as imagens pra ler VALORES (tarifa, taxas,
+    // TU, total, moeda) que costumam ficar num painel fora do iframe/modal.
+    // Faz dois passes quando existe scroll interno (modal do consolidador):
+    //   1) rola a janela inteira do topo até o fim (pega header/rodapé/painéis)
+    //   2) rola o container interno (pega o corpo da reserva)
+    const all = [];
+    const outer = await captureScrollTarget(null);
+    all.push(...outer);
+    const container = findScrollContainer();
+    if (container) {
+      const inner = await captureScrollTarget(container);
+      all.push(...inner);
+    }
+    // Limita a 10 imagens pra não estourar o payload/tokens da IA.
+    return all.slice(0, 10);
+  }
+
 
   async function sendImport(ctx) {
     if (importInProgress) {
