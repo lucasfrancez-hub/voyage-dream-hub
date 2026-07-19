@@ -375,7 +375,6 @@ export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCh
       proxy: "residential",
       proxyCountry: "br",
       proxySticky: true,
-      blockConsentModals: true,
     },
   );
   if (!res.data?.boardingPassBase64) {
