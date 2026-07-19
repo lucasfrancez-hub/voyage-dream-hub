@@ -272,7 +272,7 @@ function PacotesList() {
             </div>
           )}
 
-          {filteredPackages.map((p) => (
+          {filteredPackages.map((p, idx) => (
             <Link
               key={p.id}
               to="/pacotes/$slug"
