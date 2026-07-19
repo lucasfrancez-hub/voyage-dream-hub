@@ -63,8 +63,8 @@ export const resendBoardingPass = createServerFn({ method: "POST" })
     const { data: isStaff } = await sb.rpc("has_role", { _user_id: userId, _role: "user" });
     if (!isAdmin && !isStaff) throw new Error("Sem permissão");
     const { deliverBoardingPass } = await import("./deliver.server");
-    await deliverBoardingPass(data.checkinId);
-    return { ok: true } as const;
+    const report = await deliverBoardingPass(data.checkinId);
+    return { ok: true, report } as const;
   });
 
 /**
