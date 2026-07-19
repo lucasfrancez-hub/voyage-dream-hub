@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listAllCheckins, runCheckin, resendBoardingPass } from "@/lib/checkin/checkin.functions";
+import { listAllCheckins, runCheckin, resendBoardingPass, regenerateBoardingPass, regenerateAllBoardingPasses } from "@/lib/checkin/checkin.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
