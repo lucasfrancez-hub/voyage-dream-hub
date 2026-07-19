@@ -281,7 +281,8 @@ function CheckinRow({
   onRun: (id: string, regenerate?: boolean) => void;
   onResend: (id: string) => void;
 }) {
-  const dep = r.departure_at ? new Date(r.departure_at) : null;
+  const depIso = r.departure_at ?? r.item?.details?.departure_at ?? null;
+  const dep = depIso ? new Date(depIso) : null;
   const isBusy = busyId === r.id;
   return (
     <Card className="p-3 flex flex-wrap items-center gap-3">
