@@ -830,10 +830,6 @@
       }
       const structuredData = isConsolidator ? (extractStructuredReservation(document) || latestStructuredReservation) : null;
       const rawText = structuredData ? JSON.stringify(structuredData) : collectPageText();
-      // Híbrido OBRIGATÓRIO: sempre captura tela (janela + modal interno) — a
-      // IA usa as imagens pra ler VALORES (tarifa, taxas, TU, total, moeda)
-      // que o portal exibe fora do iframe da reserva.
-      const captureResult = await captureFullPage();
       const screenshots = captureResult.screenshots;
       if (screenshots.length === 0) {
         const detail = captureResult.errors[0];
