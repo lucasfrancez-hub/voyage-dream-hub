@@ -525,7 +525,7 @@ export function NfseCard({
                         value={p.id}
                         className="data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground data-[state=checked]:bg-primary/15 data-[state=checked]:text-foreground"
                       >
-                        <span className="font-medium">{p.nome_fantasia || p.razao_social}</span>
+                        <span className="font-medium">{prestadorShortLabel(p)}</span>
                         <span className="ml-2 text-xs opacity-80">
                           CNPJ {p.cnpj} · {p.municipio_prestacao}/{p.uf_prestacao}
                           {p.padrao ? " · padrão" : ""}
