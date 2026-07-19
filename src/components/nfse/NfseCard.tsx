@@ -20,7 +20,7 @@ import type { OrderDetail } from "@/lib/orders.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { confirm, confirmThen } from "@/lib/confirm";
-import { prestadorShortLabel } from "@/lib/nfse-labels";
+import { prestadorShortLabel, prestadorBadgeClass } from "@/lib/nfse-labels";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
