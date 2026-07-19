@@ -418,7 +418,10 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
   // o PDF correspondente e devolvemos todos.
   const finalUrlLower = page.url().toLowerCase();
   const pageLooksLikeBoardingPass = done || finalUrlLower.includes('boarding') || finalUrlLower.includes('cartao') || finalUrlLower.includes('cartão');
-  if (!pageLooksLikeBoardingPass) {
+  // Se temos orderId (LA...) + sobrenome, ainda podemos capturar via URL
+  // canônica /br/pt/cartao-de-embarque, mesmo sem chegar visualmente à tela.
+  const canCaptureByUrl = /^LA[A-Z0-9]{6,}$/i.test(loc) && Boolean(sur);
+  if (!pageLooksLikeBoardingPass && !canCaptureByUrl) {
     const snapshot = await visiblePageState().catch(() => ({ a: [], f: [], b: [], h: [] }));
     throw new Error('Fluxo LATAM terminou antes do cartão. Estado: ' + JSON.stringify({
       finalUrl: page.url(),
