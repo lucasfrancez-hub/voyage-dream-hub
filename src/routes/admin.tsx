@@ -356,6 +356,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
     pathname.startsWith("/admin/dashboard") ||
     pathname.startsWith("/admin/pessoas") ||
     pathname.startsWith("/admin/notas-fiscais") ||
+    pathname.startsWith("/admin/checkins") ||
     pathname.startsWith("/admin/contas-");
   return (
     <DropdownMenu>
