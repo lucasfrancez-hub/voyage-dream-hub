@@ -77,11 +77,10 @@ export default async function ({ page, context }) {
     };
     const text = (el) => (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ');
     return {
-      title: document.title,
-      headings: Array.from(document.querySelectorAll('h1,h2,[role="heading"]')).filter(visible).map(text).filter(Boolean).slice(0, 8),
-      buttons: Array.from(document.querySelectorAll('button,[role="button"]')).filter(visible).map((el) => ({ text: text(el), disabled: Boolean(el.disabled) || el.getAttribute('aria-disabled') === 'true' })).filter((x) => x.text).slice(0, 12),
-      alerts: Array.from(document.querySelectorAll('[role="alert"],[aria-live],.error,[class*="error" i]')).filter(visible).map(text).filter(Boolean).slice(0, 8),
-      fields: Array.from(document.querySelectorAll('input')).filter(visible).map((el) => ({ name: el.name || '', id: el.id || '', filled: Boolean(el.value), invalid: el.getAttribute('aria-invalid') || '', validation: el.validationMessage || '' })).slice(0, 8),
+      a: Array.from(document.querySelectorAll('[role="alert"],[aria-live],.error,[class*="error" i]')).filter(visible).map(text).filter(Boolean).slice(0, 4),
+      f: Array.from(document.querySelectorAll('input')).filter(visible).map((el, i) => ({ i, n: el.name || el.id || '', ok: Boolean(el.value), inv: el.getAttribute('aria-invalid') || '', val: el.validationMessage || '' })).slice(0, 6),
+      b: Array.from(document.querySelectorAll('button,[role="button"]')).filter(visible).map((el) => ({ t: text(el), d: Boolean(el.disabled) || el.getAttribute('aria-disabled') === 'true' })).filter((x) => x.t).slice(0, 8),
+      h: Array.from(document.querySelectorAll('h1,h2,[role="heading"]')).filter(visible).map(text).filter(Boolean).slice(0, 4),
     };
   });
 
@@ -323,7 +322,7 @@ export default async function ({ page, context }) {
     const finalUrl = page.url().toLowerCase();
     const pageLooksLikeBoardingPass = done || finalUrl.includes('boarding') || finalUrl.includes('cartao') || finalUrl.includes('cartão');
     if (!pageLooksLikeBoardingPass) {
-      const snapshot = await visiblePageState().catch(() => ({ title: '', headings: [], buttons: [], alerts: [], fields: [] }));
+      const snapshot = await visiblePageState().catch(() => ({ a: [], f: [], b: [], h: [] }));
       throw new Error('Fluxo LATAM terminou antes do cartão. Estado: ' + JSON.stringify({
         finalUrl: page.url(),
         snapshot,
