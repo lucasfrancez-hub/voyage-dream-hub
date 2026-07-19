@@ -59,6 +59,7 @@ function NotasFiscaisPage() {
   const [tab, setTab] = useState<"todas" | StatusKey>("todas");
   const [search, setSearch] = useState("");
   const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
+  const [detailsTarget, setDetailsTarget] = useState<Row | null>(null);
 
   const key = ["nfse", "all"] as const;
   const { data: rows = [], isLoading } = useQuery({
