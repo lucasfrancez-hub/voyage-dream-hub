@@ -79,7 +79,23 @@ export const runCheckin = createServerFn({ method: "POST" })
       if (!item || item.kind !== "flight") throw new Error("Item não é um voo");
       const airline = detectAirline({ airline: item.details?.airline, flight_number: item.details?.flight_number });
       if (airline !== "LATAM") throw new Error("Fase 1 só suporta LATAM");
-      const locator = (item.supplier_locator || item.details?.locator || "").toString().trim().toUpperCase();
+      const checkinUrl = (item.details?.airline_checkin_url || "").toString();
+      let orderIdFromUrl = "";
+      try {
+        orderIdFromUrl = new URL(checkinUrl).searchParams.get("orderId")?.trim().toUpperCase() || "";
+      } catch {
+        orderIdFromUrl = checkinUrl.match(/[?&]orderId=([^&#]+)/i)?.[1]
+          ? decodeURIComponent(checkinUrl.match(/[?&]orderId=([^&#]+)/i)![1]).trim().toUpperCase()
+          : "";
+      }
+      const locator = (
+        orderIdFromUrl ||
+        item.details?.purchase_order ||
+        item.details?.order_id ||
+        item.supplier_locator ||
+        item.details?.locator ||
+        ""
+      ).toString().trim().toUpperCase();
       if (!locator) throw new Error("Localizador ausente no voo");
 
       // Pega sobrenome do 1º passageiro do pedido
@@ -108,6 +124,38 @@ export const runCheckin = createServerFn({ method: "POST" })
       checkin = up.data;
     } else {
       throw new Error("checkinId ou orderItemId obrigatório");
+    }
+
+    // Reservas LATAM podem guardar o PNR de 6 letras em `locator`, enquanto
+    // o check-in automático exige o nº de compra LA957... presente no link
+    // importado da companhia. Recalcula também nos retries já existentes.
+    if (checkin.order_item_id) {
+      const itemResult = await sb
+        .from("order_items")
+        .select("details, supplier_locator")
+        .eq("id", checkin.order_item_id)
+        .maybeSingle();
+      const item = itemResult.data as any;
+      const checkinUrl = (item?.details?.airline_checkin_url || "").toString();
+      let latamOrderId = "";
+      try {
+        latamOrderId = new URL(checkinUrl).searchParams.get("orderId")?.trim().toUpperCase() || "";
+      } catch {
+        const match = checkinUrl.match(/[?&]orderId=([^&#]+)/i);
+        latamOrderId = match?.[1] ? decodeURIComponent(match[1]).trim().toUpperCase() : "";
+      }
+      const resolvedLocator = (
+        latamOrderId ||
+        item?.details?.purchase_order ||
+        item?.details?.order_id ||
+        checkin.locator ||
+        item?.supplier_locator ||
+        ""
+      ).toString().trim().toUpperCase();
+      if (resolvedLocator && resolvedLocator !== checkin.locator) {
+        await sb.from("flight_checkins").update({ locator: resolvedLocator }).eq("id", checkin.id);
+        checkin = { ...checkin, locator: resolvedLocator };
+      }
     }
 
     // Marca running

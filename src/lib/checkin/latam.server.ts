@@ -102,9 +102,8 @@ export default async function ({ page, context }) {
   step('open latam check-in status page (direct URL)');
   const gotoWithRetry = async (url) => {
     const attempts = [
-      { waitUntil: 'domcontentloaded', timeout: 45_000 },
-      { waitUntil: 'load', timeout: 60_000 },
-      { waitUntil: 'domcontentloaded', timeout: 60_000 },
+      { waitUntil: 'domcontentloaded', timeout: 30_000 },
+      { waitUntil: 'domcontentloaded', timeout: 30_000 },
     ];
     let lastErr;
     for (let i = 0; i < attempts.length; i++) {
@@ -114,6 +113,14 @@ export default async function ({ page, context }) {
       } catch (e) {
         lastErr = e;
         step('goto retry ' + (i + 1) + ' after error: ' + ((e && e.message) || e));
+        // A LATAM mantém recursos de telemetria abertos e às vezes o evento
+        // DOMContentLoaded não conclui, embora a aplicação já esteja visível.
+        const usable = await page.evaluate(() => Boolean(document.body?.innerText?.trim())).catch(() => false);
+        if (usable && page.url().includes('latamairlines.com')) {
+          await page.evaluate(() => window.stop()).catch(() => {});
+          step('continuando com a página LATAM já renderizada após timeout parcial');
+          return;
+        }
         await sleep(2000 + i * 1500);
       }
     }
@@ -185,15 +192,37 @@ export default async function ({ page, context }) {
     }
 
     // (3) "Ver cartão(ões) de embarque" — restrito a button/a para não pegar badges
-    const verCartao = await findByText(['ver cartão','ver cartao','ver cartões','ver cartoes'], ['button','a']);
+    const verCartao = await findByText([
+      'ver cartão',
+      'ver cartao',
+      'ver cartões',
+      'ver cartoes',
+      'abrir cartão',
+      'abrir cartao',
+      'abrir cartões',
+      'abrir cartoes',
+    ], ['button','a','[role="button"]']);
     if (verCartao) {
       step('iter ' + i + ': "Ver cartão(ões) de embarque"');
+      const pagesBeforeClick = await page.browser().pages();
       await verCartao.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
       await verCartao.click().catch(async () => verCartao.evaluate((el) => el.click()));
       await sleep(4000);
+      const pagesAfterClick = await page.browser().pages();
+      const openedPage = pagesAfterClick.find((candidate) => !pagesBeforeClick.includes(candidate));
+      if (openedPage) {
+        page = openedPage;
+        page.setDefaultTimeout(60_000);
+        await page.setViewport({ width: 1366, height: 900 }).catch(() => {});
+        await page.bringToFront().catch(() => {});
+        await page.waitForNetworkIdle({ idleTime: 750, timeout: 20_000 }).catch(() => {});
+        step('iter ' + i + ': cartão aberto em nova aba: ' + page.url());
+      } else {
+        step('iter ' + i + ': cartão aberto na aba atual: ' + page.url());
+      }
       done = true; // já entramos na tela do cartão
       idle = 0;
-      continue;
+      break;
     }
 
     // (4) "Fazer check-in"
@@ -303,7 +332,7 @@ export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCh
     LATAM_SCRIPT,
     { locator: input.locator, surname: input.surname },
     {
-      timeoutMs: 180_000,
+      timeoutMs: 240_000,
       // A LATAM recusa a conexão HTTP/2 do Chrome de datacenter antes mesmo
       // de carregar o HTML. Forçar HTTP/1.1 resolve a falha de protocolo;
       // stealth + IP residencial BR evitam que o mesmo bloqueio seja aplicado
