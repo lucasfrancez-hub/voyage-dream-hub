@@ -56,19 +56,21 @@ function normalizeBase64(raw: string): string {
   return s;
 }
 
-function loadCertFromEnv(): LoadedCert {
-  if (cached) return cached;
-  const rawB64 = process.env.NFSE_CERT_PFX_BASE64;
-  const pwd = process.env.NFSE_CERT_PASSWORD;
-  if (!rawB64 || !pwd) throw new Error("Certificado NFS-e não configurado");
+function loadCertFromEnv(cnpj?: string | null): LoadedCert {
+  const env = certEnvFor(cnpj);
+  const cacheKey = env.b64Var;
+  const hit = cache.get(cacheKey);
+  if (hit) return hit;
+  const rawB64 = env.rawB64;
+  const pwd = env.pwd;
+  if (!rawB64 || !pwd) throw new Error(`Certificado NFS-e não configurado (${env.b64Var}/${env.pwdVar})`);
 
   const b64 = normalizeBase64(rawB64);
   const buf = Buffer.from(b64, "base64");
   const header = buf.subarray(0, 4).toString("hex");
-  // .p12 (PKCS#12) começa com SEQUENCE: 0x3082 (DER long-form) OU 0x3080 (BER indefinite)
   if (buf.length < 500 || !header.startsWith("30")) {
     throw new Error(
-      `Certificado NFSE_CERT_PFX_BASE64 inválido ou truncado: ` +
+      `Certificado ${env.b64Var} inválido ou truncado: ` +
       `base64 length=${rawB64.length}, decoded bytes=${buf.length}, header=0x${header}. ` +
       `Esperado .p12 iniciando com 0x30 e com vários KB.`
     );
@@ -90,12 +92,13 @@ function loadCertFromEnv(): LoadedCert {
   const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag]?.[0];
   if (!certBag?.cert) throw new Error("Certificado público não encontrado no certificado A1");
 
-  cached = {
+  const loaded: LoadedCert = {
     privateKeyPem: forge.pki.privateKeyToPem(keyBag.key as forge.pki.rsa.PrivateKey),
     certBase64: forge.pki.certificateToPem(certBag.cert)
       .replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\s+/g, ""),
   };
-  return cached;
+  cache.set(cacheKey, loaded);
+  return loaded;
 }
 
 /** Assina a raiz <nfse id="nota"> e insere Signature antes de </nfse>. */
