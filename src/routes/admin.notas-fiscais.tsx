@@ -319,9 +319,15 @@ function NotasFiscaisPage() {
                         hover="rose"
                         disabled={deleteMut.isPending}
                         onClick={() => {
-                          if (window.confirm("Excluir esta emissão? Esta ação não pode ser desfeita.")) {
-                            deleteMut.mutate(r.id);
-                          }
+                          confirmThen(
+                            {
+                              title: "Excluir emissão",
+                              description: "Excluir esta emissão? Esta ação não pode ser desfeita.",
+                              confirmText: "Excluir",
+                              destructive: true,
+                            },
+                            () => deleteMut.mutate(r.id),
+                          );
                         }}
                       >
                         <Trash2 className="h-4 w-4" />
