@@ -409,7 +409,7 @@ export function NfseCard({
               {prestadores.map((p, i) => (
                 <span key={p.id} className="inline-flex items-center gap-1">
                   <span className={`px-1.5 py-0.5 rounded-md border ${p.padrao ? "bg-brand-orange/10 text-brand-orange border-brand-orange/20" : "bg-muted text-foreground/80 border-border"} font-medium`}>
-                    {p.nome_fantasia || p.razao_social}
+                    {prestadorShortLabel(p)}
                   </span>
                   {i < prestadores.length - 1 && <span>·</span>}
                 </span>
