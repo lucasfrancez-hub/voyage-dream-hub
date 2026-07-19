@@ -55,7 +55,13 @@ function CheckinsPage() {
   }
 
   async function handleRegenAll() {
-    if (!window.confirm) {} // no-op: usar confirm in-app se disponível
+    const ok = await confirm({
+      title: "Regerar todos os cartões?",
+      description:
+        "Vai apagar os PDFs atuais e rodar o check-in de novo para todos os voos com status Concluído. Útil quando os cartões saíram em branco.",
+      confirmLabel: "Regerar todos",
+    });
+    if (!ok) return;
     setBulkBusy(true);
     try {
       const res = await regenAll();
