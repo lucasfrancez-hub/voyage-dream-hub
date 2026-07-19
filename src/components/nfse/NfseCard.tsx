@@ -428,7 +428,7 @@ export function NfseCard({
       {emissoes.length > 0 && (
         <div className="mt-3 space-y-2">
           {emissoes.map((e) => {
-            const prest = (e as { prestador?: { nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
+            const prest = (e as { prestador?: { cnpj?: string | null; nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
             const prestNome = prest ? prestadorShortLabel(prest) : null;
             return (
             <div key={e.id} className="rounded-lg bg-muted/40 px-3 py-2 text-xs space-y-1.5">
@@ -438,7 +438,7 @@ export function NfseCard({
                   {e.numero_nfse && <span className="font-medium">Nº {e.numero_nfse}</span>}
                   <span className="text-muted-foreground truncate">{brl(Number(e.valor_servicos))}</span>
                   {prestNome && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-brand-orange/10 text-brand-orange border border-brand-orange/20 text-[10px] font-medium">
+                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] font-medium ${prestadorBadgeClass(prest)}`}>
                       {prestNome}
                     </span>
                   )}
