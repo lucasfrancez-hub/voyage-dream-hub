@@ -58,6 +58,21 @@ function daysUntil(d: Date) {
 
 function DashboardPage() {
   const [range, setRange] = useState<Range>(7);
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["admin", "dashboard", "is-admin"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return false;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", u.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data: orders, isLoading: lo } = useQuery({
     queryKey: ["admin", "dashboard", "orders"],
@@ -253,9 +268,11 @@ function DashboardPage() {
 
 
       {/* KPIs */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+      <div className={`grid gap-3 grid-cols-2 ${isAdmin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
         <Kpi icon={DollarSign} label="Total vendido" value={formatBRL(stats.totalSold)} hint={`${stats.count} pedidos pagos`} accent="text-emerald-500" />
-        <Kpi icon={TrendingUp} label="Lucro / comissão" value={formatBRL(stats.commission)} hint="Somatório do financeiro" accent="text-brand-orange" />
+        {isAdmin && (
+          <Kpi icon={TrendingUp} label="Lucro / comissão" value={formatBRL(stats.commission)} hint="Somatório do financeiro" accent="text-brand-orange" />
+        )}
         <Kpi icon={Receipt} label="Ticket médio" value={formatBRL(stats.avgTicket)} hint="Pagos" />
         <Link to="/admin/pedidos" search={{ status: "pending" }} className="block rounded-2xl transition hover:opacity-90">
           <Kpi icon={ShoppingBag} label="Pendentes" value={String(stats.pending)} hint="Ver aguardando pagamento →" />
@@ -272,10 +289,12 @@ function DashboardPage() {
               <div className="text-2xl font-semibold">{formatBRL(stats.monthTotal)}</div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-[11px] text-muted-foreground">Comissão</div>
-                <div className="text-lg font-semibold text-brand-orange">{formatBRL(stats.monthCommission)}</div>
-              </div>
+              {isAdmin && (
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Comissão</div>
+                  <div className="text-lg font-semibold text-brand-orange">{formatBRL(stats.monthCommission)}</div>
+                </div>
+              )}
               <div>
                 <div className="text-[11px] text-muted-foreground">Pedidos</div>
                 <div className="text-lg font-semibold">{stats.monthCount}</div>
@@ -309,41 +328,43 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* Financeiro: a pagar / a receber */}
-      <div className="grid gap-3 md:grid-cols-2">
-        <Link to="/admin/contas-receber" className="rounded-2xl border border-border bg-card p-5 hover:border-emerald-500/40 transition group">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-              <ArrowDownRight className="h-3.5 w-3.5 text-emerald-500" /> Contas a receber
+      {/* Financeiro: a pagar / a receber (admin) */}
+      {isAdmin && (
+        <div className="grid gap-3 md:grid-cols-2">
+          <Link to="/admin/contas-receber" className="rounded-2xl border border-border bg-card p-5 hover:border-emerald-500/40 transition group">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <ArrowDownRight className="h-3.5 w-3.5 text-emerald-500" /> Contas a receber
+              </div>
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
             </div>
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
-          </div>
-          <div className="mt-2 text-2xl font-bold text-emerald-500">{formatBRL(finSummary.receivable.total)}</div>
-          <div className="text-[11px] text-muted-foreground">Pendente</div>
-          {finSummary.receivable.overdueCount > 0 && (
-            <div className="mt-2 inline-flex items-center gap-1 text-xs text-red-500">
-              <AlertCircle className="h-3.5 w-3.5" />
-              {formatBRL(finSummary.receivable.overdue)} vencido ({finSummary.receivable.overdueCount})
+            <div className="mt-2 text-2xl font-bold text-emerald-500">{formatBRL(finSummary.receivable.total)}</div>
+            <div className="text-[11px] text-muted-foreground">Pendente</div>
+            {finSummary.receivable.overdueCount > 0 && (
+              <div className="mt-2 inline-flex items-center gap-1 text-xs text-red-500">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {formatBRL(finSummary.receivable.overdue)} vencido ({finSummary.receivable.overdueCount})
+              </div>
+            )}
+          </Link>
+          <Link to="/admin/contas-pagar" className="rounded-2xl border border-border bg-card p-5 hover:border-red-500/40 transition group">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <ArrowUpRight className="h-3.5 w-3.5 text-red-500" /> Contas a pagar
+              </div>
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
             </div>
-          )}
-        </Link>
-        <Link to="/admin/contas-pagar" className="rounded-2xl border border-border bg-card p-5 hover:border-red-500/40 transition group">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-              <ArrowUpRight className="h-3.5 w-3.5 text-red-500" /> Contas a pagar
-            </div>
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
-          </div>
-          <div className="mt-2 text-2xl font-bold text-red-500">{formatBRL(finSummary.payable.total)}</div>
-          <div className="text-[11px] text-muted-foreground">Pendente</div>
-          {finSummary.payable.overdueCount > 0 && (
-            <div className="mt-2 inline-flex items-center gap-1 text-xs text-red-500">
-              <AlertCircle className="h-3.5 w-3.5" />
-              {formatBRL(finSummary.payable.overdue)} vencido ({finSummary.payable.overdueCount})
-            </div>
-          )}
-        </Link>
-      </div>
+            <div className="mt-2 text-2xl font-bold text-red-500">{formatBRL(finSummary.payable.total)}</div>
+            <div className="text-[11px] text-muted-foreground">Pendente</div>
+            {finSummary.payable.overdueCount > 0 && (
+              <div className="mt-2 inline-flex items-center gap-1 text-xs text-red-500">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {formatBRL(finSummary.payable.overdue)} vencido ({finSummary.payable.overdueCount})
+              </div>
+            )}
+          </Link>
+        </div>
+      )}
 
 
       {/* Próximas viagens */}
