@@ -59,13 +59,13 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   });
 
   const runMut = useMutation({
-    mutationFn: async (args: { orderItemIds: string[]; regenCheckinIds?: string[] }) => {
+    mutationFn: async (args: { orderItemIds: string[]; regenCheckinIds?: string[]; mode: "code" | "vision" }) => {
       for (const id of args.regenCheckinIds ?? []) {
         await regen({ data: { checkinId: id } });
       }
-      return runGroup({ data: { orderItemIds: args.orderItemIds } });
+      return runGroup({ data: { orderItemIds: args.orderItemIds, mode: args.mode } });
     },
-    onSuccess: (result: any) => {
+    onSuccess: (result: any, vars) => {
       qc.invalidateQueries({ queryKey: ["flight-checkins", orderId] });
       if (!result.ok) {
         toast.error(result.error || "Falha no check-in");
@@ -73,7 +73,8 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
       }
       const okCount = (result.results ?? []).filter((r: any) => r.ok).length;
       const total = (result.results ?? []).length;
-      toast.success(`Check-in concluído (${okCount}/${total} cartões).`);
+      const modeLabel = vars.mode === "vision" ? "Visão IA" : "Código";
+      toast.success(`Check-in (${modeLabel}) concluído — ${okCount}/${total} cartões.`);
     },
     onError: (e: any) => toast.error(`Falha no check-in: ${e?.message ?? "erro"}`),
   });
