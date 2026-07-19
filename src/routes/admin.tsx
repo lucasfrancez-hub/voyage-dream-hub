@@ -393,6 +393,12 @@ function DashboardNav({ pathname }: { pathname: string }) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
+          <Link to="/admin/checkins" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Check-ins</span>
+            <span className="text-xs text-muted-foreground">Cartões de embarque automáticos (LATAM)</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link to="/admin/notas-fiscais" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Notas fiscais</span>
             <span className="text-xs text-muted-foreground">NFS-e emitidas, erros e relatórios</span>
