@@ -482,6 +482,23 @@ Todos os valores como número puro (sem "R$", vírgula → ponto). Se o valor ex
 }
 
 
+// Reformata nome de passageiro no padrão GDS "SOBRENOME/NOME MEIO [TÍTULO]"
+// para "NOME MEIO SOBRENOME" (sem barra, ordem natural). Remove títulos
+// comuns (MR, MRS, MS, MSTR, CHD, INF, SR, SRA) e colapsa espaços.
+function reorderPaxName(raw: string): string {
+  const cleaned = String(raw || "").replace(/\s+/g, " ").trim();
+  if (!cleaned) return "";
+  if (!cleaned.includes("/")) return cleaned;
+  const [surnamePart, ...rest] = cleaned.split("/");
+  const givenPart = rest.join(" ").trim();
+  const surname = surnamePart.replace(/\s+/g, " ").trim();
+  const titles = /\b(MR|MRS|MS|MSTR|MISS|CHD|INF|INFT|SR|SRA|SRTA|DR|DRA)\b\.?$/i;
+  let given = givenPart;
+  while (titles.test(given)) given = given.replace(titles, "").trim();
+  const combined = `${given} ${surname}`.replace(/\s+/g, " ").trim();
+  return combined || cleaned.replace(/\//g, " ").replace(/\s+/g, " ").trim();
+}
+
 function normalizeDirectStructuredData(input: unknown): Record<string, unknown> {
   const source = input && typeof input === "object" ? input as Record<string, unknown> : {};
   const passengersSource = Array.isArray(source.passengers) ? source.passengers : [];
