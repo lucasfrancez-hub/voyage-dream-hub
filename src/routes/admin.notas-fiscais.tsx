@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse } from "@/lib/nfse.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
+import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 
 export const Route = createFileRoute("/admin/notas-fiscais")({
   head: () => ({ meta: [{ title: "Notas Fiscais — VIA AIR" }] }),
@@ -56,6 +57,7 @@ function NotasFiscaisPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"todas" | StatusKey>("todas");
   const [search, setSearch] = useState("");
+  const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
 
   const key = ["nfse", "all"] as const;
   const { data: rows = [], isLoading } = useQuery({
@@ -299,11 +301,7 @@ function NotasFiscaisPage() {
                         <IconBtn
                           title="Cancelar NFS-e"
                           hover="rose"
-                          onClick={() => {
-                            const j = window.prompt("Justificativa do cancelamento (mín. 15 caracteres):");
-                            if (j && j.trim().length >= 15) cancelMut.mutate({ id: r.id, justificativa: j.trim() });
-                            else if (j !== null) toast.error("Justificativa muito curta");
-                          }}
+                          onClick={() => setCancelTarget(r)}
                         >
                           <XCircle className="h-4 w-4" />
                         </IconBtn>
@@ -349,6 +347,18 @@ function NotasFiscaisPage() {
           </div>
         )}
       </div>
+
+      <CancelNfseDialog
+        open={!!cancelTarget}
+        onOpenChange={(v) => { if (!v) setCancelTarget(null); }}
+        numero={cancelTarget?.numero_nfse ?? cancelTarget?.numero_rps ?? null}
+        loading={cancelMut.isPending}
+        onConfirm={(j) => {
+          if (!cancelTarget) return;
+          const id = cancelTarget.id;
+          cancelMut.mutate({ id, justificativa: j }, { onSettled: () => setCancelTarget(null) });
+        }}
+      />
     </div>
   );
 }

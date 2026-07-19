@@ -17,6 +17,7 @@ import {
 import { getPerson } from "@/lib/people.functions";
 import type { OrderDetail } from "@/lib/orders.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
+import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -159,6 +160,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   });
 
   const [open, setOpen] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; numero: string | number | null } | null>(null);
   const defaultDisc = buildAutoDescricao(detail);
   const [form, setForm] = useState({
     razaoSocial: "",
@@ -334,11 +336,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
                   )}
                   {(e.status === "autorizado" || e.status === "emitida") && (
                     <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600"
-                      onClick={() => {
-                        const j = window.prompt("Justificativa do cancelamento (mín. 15 caracteres):");
-                        if (j && j.trim().length >= 15) cancelMut.mutate({ id: e.id, justificativa: j.trim() });
-                        else if (j !== null) toast.error("Justificativa muito curta");
-                      }}>
+                      onClick={() => setCancelTarget({ id: e.id, numero: e.numero_nfse ?? null })}>
                       <XCircle className="h-3.5 w-3.5" />
                     </Button>
                   )}
@@ -464,6 +462,18 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CancelNfseDialog
+        open={!!cancelTarget}
+        onOpenChange={(v) => { if (!v) setCancelTarget(null); }}
+        numero={cancelTarget?.numero ?? null}
+        loading={cancelMut.isPending}
+        onConfirm={(j) => {
+          if (!cancelTarget) return;
+          const id = cancelTarget.id;
+          cancelMut.mutate({ id, justificativa: j }, { onSettled: () => setCancelTarget(null) });
+        }}
+      />
     </div>
   );
 }
