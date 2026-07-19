@@ -201,6 +201,9 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
                   <span>Emissão: {fmtDT(row.data_emissao ?? row.created_at)}</span>
                   <span>Série {String(row.serie ?? "1")}</span>
                   <span>RPS {String(row.numero_rps ?? "—")}</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Building2 className="h-3 w-3" /> {prestadorNome}
+                  </span>
                   {!!order?.order_number && (
                     <Link
                       to="/admin/pedidos/$id"
