@@ -329,7 +329,7 @@ export const emitirNfse = createServerFn({ method: "POST" })
 
 
     // Envia para o AtendeNet (POST multipart/form-data, campo "xml", Basic Auth)
-    const { basic } = atendenetAuth();
+    const { basic } = atendenetAuth((cfg as { cnpj?: string }).cnpj);
     const form = new FormData();
     form.append("xml", new Blob([xml], { type: "application/xml" }), `${reference}.xml`);
 
