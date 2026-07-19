@@ -32,21 +32,38 @@ function CheckinsPage() {
 
   const rows = (q.data ?? []) as Array<any>;
 
-  async function handleRun(id: string) {
+  async function handleRun(id: string, regenerate = false) {
     setBusyId(id);
     try {
+      if (regenerate) {
+        await regen({ data: { checkinId: id } });
+      }
       const result = await run({ data: { checkinId: id } });
       if (!result.ok) {
         toast.error(result.error);
         await q.refetch();
         return;
       }
-      toast.success("Check-in concluído");
+      toast.success(regenerate ? "Cartão regerado e enviado" : "Check-in concluído");
       q.refetch();
     } catch (e: any) {
       toast.error(e?.message ?? "Falhou");
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function handleRegenAll() {
+    if (!window.confirm) {} // no-op: usar confirm in-app se disponível
+    setBulkBusy(true);
+    try {
+      const res = await regenAll();
+      toast.success(`${(res as any).count ?? 0} cartões marcados para regerar. O robô vai processar em segundos.`);
+      q.refetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falhou");
+    } finally {
+      setBulkBusy(false);
     }
   }
 
