@@ -62,14 +62,14 @@ export default async function ({ page, context }) {
   };
   const clearAndType = async (handle, text) => {
     await handle.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
-    await handle.click({ clickCount: 3 }).catch(() => {});
+    await handle.click().catch(() => {});
+    await page.keyboard.down('Control').catch(() => {});
+    await page.keyboard.press('KeyA').catch(() => {});
+    await page.keyboard.up('Control').catch(() => {});
     await page.keyboard.press('Backspace').catch(() => {});
     await handle.type(text, { delay: 40 });
-    await handle.evaluate((el) => {
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-      el.blur();
-    }).catch(() => {});
+    await page.keyboard.press('Tab').catch(() => {});
+    await sleep(350);
   };
   const visiblePageState = async () => page.evaluate(() => {
     const visible = (el) => {
@@ -86,7 +86,7 @@ export default async function ({ page, context }) {
     };
   });
 
-  page.setDefaultTimeout(60_000);
+  page.setDefaultTimeout(30_000);
   await page.setViewport({ width: 1366, height: 900 });
   // Mantém idioma e navegador coerentes com a saída residencial brasileira.
   // Stealth, proxy e desativação de HTTP/2 precisam ser configurados antes
@@ -101,11 +101,11 @@ export default async function ({ page, context }) {
   const sur = String(surname || '').trim();
   if (!loc || !sur) throw new Error('locator e surname obrigatórios');
 
-  step('open latam check-in status page (direct URL)');
+  step('open LATAM check-in form');
   const gotoWithRetry = async (url) => {
     const attempts = [
-      { waitUntil: 'domcontentloaded', timeout: 30_000 },
-      { waitUntil: 'domcontentloaded', timeout: 30_000 },
+      { waitUntil: 'domcontentloaded', timeout: 25_000 },
+      { waitUntil: 'commit', timeout: 15_000 },
     ];
     let lastErr;
     for (let i = 0; i < attempts.length; i++) {
@@ -129,57 +129,44 @@ export default async function ({ page, context }) {
     throw lastErr;
   };
 
-  // Usa primeiro o link original salvo no pedido. A LATAM altera os caminhos
-  // internos e a URL reconstruída pode cair numa tela genérica de erro.
-  const statusUrl = 'https://www.latamairlines.com/br/pt/check-in/status?orderId='
-    + encodeURIComponent(loc) + '&lastName=' + encodeURIComponent(sur.toLowerCase());
-  const sourceUrl = (() => {
-    try {
-      const parsed = new URL(String(checkinUrl || ''));
-      return parsed.hostname.endsWith('latamairlines.com') ? parsed.toString() : '';
-    } catch { return ''; }
-  })();
-  const entryUrls = [...new Set([sourceUrl, statusUrl].filter(Boolean))];
-  for (let entryIndex = 0; entryIndex < entryUrls.length; entryIndex++) {
-    step('entry ' + (entryIndex + 1) + ': ' + entryUrls[entryIndex].split('?')[0]);
-    await gotoWithRetry(entryUrls[entryIndex]);
-    await sleep(3500);
-    const pageHasLatamError = await page.evaluate(() => {
-      const norm = (document.body?.innerText || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      return norm.includes('tivemos um problema') || norm.includes('nao foi possivel carregar a informacao');
-    }).catch(() => false);
-    if (!pageHasLatamError || entryIndex === entryUrls.length - 1) break;
-    step('entrada rejeitada pela LATAM; tentando o link alternativo');
-  }
+  // Uma URL interna copiada de uma sessão anterior depende do estado da SPA e
+  // pode cair em "Tivemos um problema". Começar pela busca pública reproduz o
+  // caminho de um passageiro real e cria o estado exigido pela LATAM.
+  await gotoWithRetry('https://www.latamairlines.com/br/pt/check-in');
+  await sleep(2500);
 
   // Cookies / OneTrust
-  const okCookies = await page.$('#onetrust-accept-btn-handler');
-  if (okCookies) { await okCookies.click().catch(() => {}); await sleep(500); }
-  else {
-    const aceitar = await findByText(['aceitar','aceito']);
-    if (aceitar) { await aceitar.click().catch(() => {}); await sleep(500); }
+  let okCookies = await page.$('#onetrust-accept-btn-handler, button[id*="accept" i]');
+  if (!okCookies) {
+    okCookies = await findByText([
+      'aceite todos os cookies',
+      'aceite todo os cookies',
+      'aceitar todos os cookies',
+      'aceitar todos',
+    ], ['button','[role="button"]']);
   }
-  await sleep(1500);
-  step('after direct nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
+  if (okCookies) {
+    await okCookies.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+    await okCookies.click().catch(async () => okCookies.evaluate((el) => el.click()));
+    await sleep(1000);
+    step('aviso de cookies fechado');
+  }
+  await sleep(500);
+  step('after form nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
 
-  // Fallback: se caiu no formulário "Procurar sua viagem" (reserva não encontrada
-  // pela URL direta), preenche manualmente uma vez.
+  // A busca pelo número da compra e sobrenome é o fluxo primário.
   const stillOnForm = await findByText(['procurar sua viagem','insira os dados']);
   if (stillOnForm) {
-    step('caiu no formulário — preenchendo manualmente');
+    step('preenchendo formulário de busca');
     await page.waitForSelector('input', { timeout: 20_000 }).catch(() => {});
-    const inputs = await page.$$('input');
-    const visibleInputs = [];
-    for (const h of inputs) {
-      const info = await h.evaluate((el) => {
-        const r = el.getBoundingClientRect();
-        const t = (el.getAttribute('type') || 'text').toLowerCase();
-        return { visible: r.width > 0 && r.height > 0 && !el.disabled && !el.readOnly, textish: ['text','search','tel','email',''].includes(t) };
-      });
-      if (info.visible && info.textish) visibleInputs.push(h);
-    }
-    if (visibleInputs[0]) await clearAndType(visibleInputs[0], loc);
-    if (visibleInputs[1]) await clearAndType(visibleInputs[1], sur);
+    const codeInput = await page.$('input[name="code"], input[id*="code" i]');
+    if (!codeInput) throw new Error('Campo do número da compra não encontrado');
+    await clearAndType(codeInput, loc);
+    // O formulário React recria os campos após o primeiro blur. Consulte o
+    // sobrenome novamente em vez de reutilizar um ElementHandle já substituído.
+    const surnameInput = await page.$('input[name="lastName"], input[id*="lastName" i], input[autocomplete="family-name"]');
+    if (!surnameInput) throw new Error('Campo de sobrenome não encontrado');
+    await clearAndType(surnameInput, sur.toLowerCase());
     const submitBtn = await page.evaluateHandle(() => {
       for (const el of Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"]'))) {
         const r = el.getBoundingClientRect();
@@ -187,7 +174,10 @@ export default async function ({ page, context }) {
       }
       return null;
     }).then((h) => h.asElement());
-    if (submitBtn) { await submitBtn.click().catch(() => {}); await sleep(5000); }
+    if (!submitBtn) throw new Error('Formulário LATAM sem botão de busca disponível');
+    await submitBtn.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+    await submitBtn.click().catch(async () => submitBtn.evaluate((el) => el.click()));
+    await sleep(4500);
     step('after manual submit: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
   }
 
@@ -195,7 +185,7 @@ export default async function ({ page, context }) {
   step('start unified state machine');
   let done = false;
   let idle = 0;
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 18; i++) {
     // (1) PDF disponível → sai
     const baixar = (await findByText(['baixar pdf','baixar cartão','baixar cartao'])) || (await page.$('a[download][href*=".pdf" i]'));
     if (baixar) { step('iter ' + i + ': "Baixar PDF" visível'); done = true; break; }
@@ -229,7 +219,7 @@ export default async function ({ page, context }) {
       const openedPage = pagesAfterClick.find((candidate) => !pagesBeforeClick.includes(candidate));
       if (openedPage) {
         page = openedPage;
-        page.setDefaultTimeout(60_000);
+        page.setDefaultTimeout(30_000);
         await page.setViewport({ width: 1366, height: 900 }).catch(() => {});
         await page.bringToFront().catch(() => {});
         await page.waitForNetworkIdle({ idleTime: 750, timeout: 20_000 }).catch(() => {});
@@ -286,7 +276,7 @@ export default async function ({ page, context }) {
 
     step('iter ' + i + ': sem ação, aguardando');
     await sleep(2000); idle++;
-    if (idle > 5) { step('sem progresso, encerrando'); break; }
+    if (idle > 4) { step('sem progresso, encerrando'); break; }
   }
 
   if (!done) step('atenção: loop terminou sem detectar "Baixar PDF"');
@@ -349,7 +339,7 @@ export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCh
     LATAM_SCRIPT,
     { locator: input.locator, surname: input.surname, checkinUrl: input.checkinUrl || "" },
     {
-      timeoutMs: 150_000,
+      timeoutMs: 120_000,
       // A LATAM recusa a conexão HTTP/2 do Chrome de datacenter antes mesmo
       // de carregar o HTML. Forçar HTTP/1.1 resolve a falha de protocolo;
       // stealth + IP residencial BR evitam que o mesmo bloqueio seja aplicado
@@ -367,7 +357,6 @@ export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCh
       proxy: "residential",
       proxyCountry: "br",
       proxySticky: true,
-      blockConsentModals: true,
     },
   );
   if (!res.data?.boardingPassBase64) {
