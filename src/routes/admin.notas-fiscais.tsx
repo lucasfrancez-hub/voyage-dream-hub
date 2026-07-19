@@ -57,6 +57,7 @@ function NotasFiscaisPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"todas" | StatusKey>("todas");
   const [search, setSearch] = useState("");
+  const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
 
   const key = ["nfse", "all"] as const;
   const { data: rows = [], isLoading } = useQuery({
@@ -300,11 +301,7 @@ function NotasFiscaisPage() {
                         <IconBtn
                           title="Cancelar NFS-e"
                           hover="rose"
-                          onClick={() => {
-                            const j = window.prompt("Justificativa do cancelamento (mín. 15 caracteres):");
-                            if (j && j.trim().length >= 15) cancelMut.mutate({ id: r.id, justificativa: j.trim() });
-                            else if (j !== null) toast.error("Justificativa muito curta");
-                          }}
+                          onClick={() => setCancelTarget(r)}
                         >
                           <XCircle className="h-4 w-4" />
                         </IconBtn>
