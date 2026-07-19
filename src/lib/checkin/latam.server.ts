@@ -256,7 +256,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
   let done = false;
   let idle = 0;
   let flightDetailsOpened = false;
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 28; i++) {
     // (1) PDF disponível → sai
     const baixar = (await findByText(['baixar pdf','baixar cartão','baixar cartao'])) || (await page.$('a[download][href*=".pdf" i]'));
     if (baixar) { step('iter ' + i + ': "Baixar PDF" visível'); done = true; break; }
