@@ -268,9 +268,11 @@ function DashboardPage() {
 
 
       {/* KPIs */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+      <div className={`grid gap-3 grid-cols-2 ${isAdmin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
         <Kpi icon={DollarSign} label="Total vendido" value={formatBRL(stats.totalSold)} hint={`${stats.count} pedidos pagos`} accent="text-emerald-500" />
-        <Kpi icon={TrendingUp} label="Lucro / comissão" value={formatBRL(stats.commission)} hint="Somatório do financeiro" accent="text-brand-orange" />
+        {isAdmin && (
+          <Kpi icon={TrendingUp} label="Lucro / comissão" value={formatBRL(stats.commission)} hint="Somatório do financeiro" accent="text-brand-orange" />
+        )}
         <Kpi icon={Receipt} label="Ticket médio" value={formatBRL(stats.avgTicket)} hint="Pagos" />
         <Link to="/admin/pedidos" search={{ status: "pending" }} className="block rounded-2xl transition hover:opacity-90">
           <Kpi icon={ShoppingBag} label="Pendentes" value={String(stats.pending)} hint="Ver aguardando pagamento →" />
