@@ -385,8 +385,13 @@ export type Database = {
         Row: {
           aliquota_iss: number
           ambiente: string
+          atendenet_password: string | null
+          atendenet_usuario: string | null
+          ativo: boolean
           bairro: string | null
           cep: string | null
+          cert_password: string | null
+          cert_pfx_base64: string | null
           cnae_principal: string | null
           cnpj: string
           codigo_tributario_municipio: string | null
@@ -403,7 +408,9 @@ export type Database = {
           item_lista_servico: string
           logradouro: string | null
           municipio_prestacao: string
+          nome_fantasia: string | null
           numero: string | null
+          padrao: boolean
           provedor: string
           proximo_numero_rps: number
           razao_social: string
@@ -416,8 +423,13 @@ export type Database = {
         Insert: {
           aliquota_iss?: number
           ambiente?: string
+          atendenet_password?: string | null
+          atendenet_usuario?: string | null
+          ativo?: boolean
           bairro?: string | null
           cep?: string | null
+          cert_password?: string | null
+          cert_pfx_base64?: string | null
           cnae_principal?: string | null
           cnpj: string
           codigo_tributario_municipio?: string | null
@@ -434,7 +446,9 @@ export type Database = {
           item_lista_servico?: string
           logradouro?: string | null
           municipio_prestacao?: string
+          nome_fantasia?: string | null
           numero?: string | null
+          padrao?: boolean
           provedor?: string
           proximo_numero_rps?: number
           razao_social?: string
@@ -447,8 +461,13 @@ export type Database = {
         Update: {
           aliquota_iss?: number
           ambiente?: string
+          atendenet_password?: string | null
+          atendenet_usuario?: string | null
+          ativo?: boolean
           bairro?: string | null
           cep?: string | null
+          cert_password?: string | null
+          cert_pfx_base64?: string | null
           cnae_principal?: string | null
           cnpj?: string
           codigo_tributario_municipio?: string | null
@@ -465,7 +484,9 @@ export type Database = {
           item_lista_servico?: string
           logradouro?: string | null
           municipio_prestacao?: string
+          nome_fantasia?: string | null
           numero?: string | null
+          padrao?: boolean
           provedor?: string
           proximo_numero_rps?: number
           razao_social?: string
@@ -500,6 +521,8 @@ export type Database = {
           numero_rps: number | null
           order_id: string | null
           outras_retencoes: number
+          prestador: Json | null
+          prestador_id: string | null
           reference: string
           serie: string | null
           status: string
@@ -543,6 +566,8 @@ export type Database = {
           numero_rps?: number | null
           order_id?: string | null
           outras_retencoes?: number
+          prestador?: Json | null
+          prestador_id?: string | null
           reference: string
           serie?: string | null
           status?: string
@@ -586,6 +611,8 @@ export type Database = {
           numero_rps?: number | null
           order_id?: string | null
           outras_retencoes?: number
+          prestador?: Json | null
+          prestador_id?: string | null
           reference?: string
           serie?: string | null
           status?: string
@@ -613,6 +640,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfse_emissoes_prestador_id_fkey"
+            columns: ["prestador_id"]
+            isOneToOne: false
+            referencedRelation: "nfse_config"
             referencedColumns: ["id"]
           },
         ]
@@ -2169,7 +2203,9 @@ export type Database = {
         }
         Returns: number
       }
-      nfse_next_rps: { Args: never; Returns: number }
+      nfse_next_rps:
+        | { Args: never; Returns: number }
+        | { Args: { _prestador_id?: string }; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
