@@ -6,6 +6,41 @@ const ATENDENET_ENDPOINT =
   "https://nfse-paranavai.atende.net/atende.php?pg=rest&service=WNERestServiceNFSe&cidade=padrao";
 const IBGE_PARANAVAI = "4118402";
 
+function stripAccents(s: string) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+const IBGE_CACHE = new Map<string, Map<string, string>>(); // uf -> (nomeNormalizado -> codigo)
+
+async function resolveIbgeMunicipio(
+  cidade: string | null | undefined,
+  uf: string | null | undefined,
+): Promise<string | null> {
+  const nome = (cidade ?? "").trim();
+  const ufUp = (uf ?? "").trim().toUpperCase();
+  if (!nome || ufUp.length !== 2) return null;
+  const key = stripAccents(nome).toLowerCase().replace(/\s+/g, " ").trim();
+  try {
+    let map = IBGE_CACHE.get(ufUp);
+    if (!map) {
+      const r = await fetch(
+        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${ufUp}/municipios`,
+      );
+      if (!r.ok) return null;
+      const arr = (await r.json()) as Array<{ id: number; nome: string }>;
+      map = new Map();
+      for (const m of arr) {
+        map.set(stripAccents(m.nome).toLowerCase(), String(m.id));
+      }
+      IBGE_CACHE.set(ufUp, map);
+    }
+    return map.get(key) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+
 function onlyDigits(s: string | number | null | undefined) {
   return (s ?? "").toString().replace(/\D/g, "");
 }
@@ -269,14 +304,33 @@ export const emitirNfse = createServerFn({ method: "POST" })
     }
     const serieRps = onlyDigits((cfg as { serie_rps?: string }).serie_rps).slice(0, 2) || "1";
 
+    // Resolve o código IBGE do município do tomador a partir de cidade+UF
+    // (a prefeitura usa esse código; sem ele, cai no fallback Paranavaí).
+    let dataForXml = data;
+    const endAtual = data.tomador.endereco ?? null;
+    if (endAtual && !onlyDigits(endAtual.codigoMunicipio) && endAtual.cidade && endAtual.uf) {
+      const codigo = await resolveIbgeMunicipio(endAtual.cidade, endAtual.uf);
+      if (codigo) {
+        dataForXml = {
+          ...data,
+          tomador: {
+            ...data.tomador,
+            endereco: { ...endAtual, codigoMunicipio: codigo },
+          },
+        };
+      }
+    }
+
     const unsignedXml = buildAtendenetXml({
       cfg: cfg as Record<string, unknown>,
-      data,
+      data: dataForXml,
       reference,
       numeroRps,
       serieRps,
       valorIss,
     });
+
+
 
     // Assinatura digital XMLDSig (enveloped) com o certificado A1 do prestador
     const { signNfseXml } = await import("@/lib/nfse-xmldsig.server");
