@@ -363,6 +363,12 @@ function NotasFiscaisPage() {
           cancelMut.mutate({ id, justificativa: j }, { onSettled: () => setCancelTarget(null) });
         }}
       />
+
+      <NfseDetailsDialog
+        open={!!detailsTarget}
+        onOpenChange={(v) => { if (!v) setDetailsTarget(null); }}
+        row={detailsTarget as unknown as Record<string, unknown> | null}
+      />
     </div>
   );
 }
