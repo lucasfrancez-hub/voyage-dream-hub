@@ -129,8 +129,10 @@ export default async function ({ page, context }) {
     throw lastErr;
   };
 
-  // Usa primeiro o link original salvo no pedido. A LATAM altera os caminhos
-  // internos e a URL reconstruída pode cair numa tela genérica de erro.
+  // A URL de status é a entrada que a própria LATAM gera depois de localizar
+  // uma compra. O link de "Minhas viagens" pode redirecionar silenciosamente
+  // para o formulário inicial em uma sessão nova; isso não é sucesso e deve
+  // disparar a tentativa pela outra entrada.
   const statusUrl = 'https://www.latamairlines.com/br/pt/check-in/status?orderId='
     + encodeURIComponent(loc) + '&lastName=' + encodeURIComponent(sur.toLowerCase());
   const sourceUrl = (() => {
@@ -139,17 +141,23 @@ export default async function ({ page, context }) {
       return parsed.hostname.endsWith('latamairlines.com') ? parsed.toString() : '';
     } catch { return ''; }
   })();
-  const entryUrls = [...new Set([sourceUrl, statusUrl].filter(Boolean))];
+  const entryUrls = [...new Set([statusUrl, sourceUrl].filter(Boolean))];
   for (let entryIndex = 0; entryIndex < entryUrls.length; entryIndex++) {
     step('entry ' + (entryIndex + 1) + ': ' + entryUrls[entryIndex].split('?')[0]);
     await gotoWithRetry(entryUrls[entryIndex]);
     await sleep(3500);
-    const pageHasLatamError = await page.evaluate(() => {
+    const entryState = await page.evaluate(() => {
       const norm = (document.body?.innerText || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      return norm.includes('tivemos um problema') || norm.includes('nao foi possivel carregar a informacao');
-    }).catch(() => false);
-    if (!pageHasLatamError || entryIndex === entryUrls.length - 1) break;
-    step('entrada rejeitada pela LATAM; tentando o link alternativo');
+      return {
+        hasError: norm.includes('tivemos um problema') || norm.includes('nao foi possivel carregar a informacao'),
+        isLookupForm: norm.includes('procurar sua viagem') || norm.includes('insira os dados'),
+        hasTrip: norm.includes('check-in feito') || norm.includes('check in feito') || norm.includes('cartao de embarque') || norm.includes('fazer check-in'),
+      };
+    }).catch(() => ({ hasError: false, isLookupForm: false, hasTrip: false }));
+    step('entry state: ' + JSON.stringify(entryState));
+    const rejectedEntry = entryState.hasError || (entryState.isLookupForm && !entryState.hasTrip);
+    if (!rejectedEntry || entryIndex === entryUrls.length - 1) break;
+    step('entrada não abriu a reserva; tentando o link alternativo');
   }
 
   // Cookies / OneTrust
