@@ -112,14 +112,23 @@ function NotasFiscaisPage() {
     return (p?.nome_fantasia || p?.razao_social || "").trim();
   };
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ["nfse", "configs"],
+    queryFn: () => listConfigsFn({ data: undefined as never }),
+  });
+
   const prestadores = useMemo(() => {
     const set = new Set<string>();
+    for (const c of configs) {
+      const n = (c.nome_fantasia || c.razao_social || "").trim();
+      if (n) set.add(n);
+    }
     for (const r of rows) {
       const n = getPrestadorName(r);
       if (n) set.add(n);
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [rows]);
+  }, [configs, rows]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
