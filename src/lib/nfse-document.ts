@@ -31,9 +31,17 @@ export type NfseDocumentData = {
   credito_tributario?: Num;
   discriminacao: string;
   tomador: unknown;
+  prestador?: unknown;
+  prestador_id?: string | null;
   focus_response?: unknown;
   order_id?: string | null;
 };
+
+// Mapa de logo por CNPJ do prestador (somente dígitos). Adicione novos aqui.
+const LOGO_POR_CNPJ: Record<string, string> = {
+  "56339877000166": viaAirLogoAsset.url, // VIA AIR
+};
+
 
 const money = (v: unknown) =>
   Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
