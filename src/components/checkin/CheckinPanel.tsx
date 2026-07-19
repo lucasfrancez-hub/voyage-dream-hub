@@ -33,6 +33,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   const list = useServerFn(listCheckins);
   const run = useServerFn(runCheckin);
   const resend = useServerFn(resendBoardingPass);
+  const regen = useServerFn(regenerateBoardingPass);
 
   const { data: checkins = [] } = useQuery({
     queryKey: ["flight-checkins", orderId],
@@ -40,7 +41,12 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   });
 
   const runMut = useMutation({
-    mutationFn: (orderItemId: string) => run({ data: { orderItemId } }),
+    mutationFn: async (args: { orderItemId: string; regenCheckinId?: string }) => {
+      if (args.regenCheckinId) {
+        await regen({ data: { checkinId: args.regenCheckinId } });
+      }
+      return run({ data: { orderItemId: args.orderItemId } });
+    },
     onSuccess: (result) => {
       if (!result.ok) {
         toast.error(result.error);
