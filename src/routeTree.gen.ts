@@ -22,6 +22,7 @@ import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
+import { Route as AdminCheckinsRouteImport } from './routes/admin.checkins'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
@@ -137,6 +138,11 @@ const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
   path: '/unsubscribe',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCheckinsRoute = AdminCheckinsRouteImport.update({
+  id: '/checkins',
+  path: '/checkins',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminCofreRoute = AdminCofreRouteImport.update({
   id: '/cofre',
@@ -413,6 +419,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
@@ -477,6 +484,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
@@ -543,6 +551,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
@@ -610,6 +619,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
+    | '/admin/checkins'
     | '/admin/cofre'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
@@ -674,6 +684,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
+    | '/admin/checkins'
     | '/admin/cofre'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
@@ -739,6 +750,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
+    | '/admin/checkins'
     | '/admin/cofre'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
@@ -917,6 +929,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/unsubscribe'
       preLoaderRoute: typeof UnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/checkins': {
+      id: '/admin/checkins'
+      path: '/checkins'
+      fullPath: '/admin/checkins'
+      preLoaderRoute: typeof AdminCheckinsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/cofre': {
       id: '/admin/cofre'
@@ -1284,6 +1303,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminCheckinsRoute: typeof AdminCheckinsRoute
   AdminCofreRoute: typeof AdminCofreRoute
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
@@ -1303,6 +1323,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCheckinsRoute: AdminCheckinsRoute,
   AdminCofreRoute: AdminCofreRoute,
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,

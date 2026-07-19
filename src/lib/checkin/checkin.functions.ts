@@ -34,6 +34,23 @@ export const listCheckins = createServerFn({ method: "GET" })
   });
 
 /**
+ * Lista todos os check-ins (visão global — admin/staff).
+ * Retorna com dados do pedido para exibir na página /admin/checkins.
+ */
+export const listAllCheckins = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = context.supabase as any;
+    const { data, error } = await sb
+      .from("flight_checkins")
+      .select("*, order:orders(id, order_number, full_name)")
+      .order("departure_at", { ascending: true, nullsFirst: false })
+      .limit(500);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+/**
  * Roda o check-in agora (LATAM apenas por enquanto).
  * Aceita `checkinId` (para retry) OU `orderItemId` (cria/atualiza registro).
  */

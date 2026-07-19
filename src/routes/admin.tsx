@@ -356,6 +356,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
     pathname.startsWith("/admin/dashboard") ||
     pathname.startsWith("/admin/pessoas") ||
     pathname.startsWith("/admin/notas-fiscais") ||
+    pathname.startsWith("/admin/checkins") ||
     pathname.startsWith("/admin/contas-");
   return (
     <DropdownMenu>
@@ -389,6 +390,12 @@ function DashboardNav({ pathname }: { pathname: string }) {
           <Link to="/admin/contas-pagar" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Contas a pagar</span>
             <span className="text-xs text-muted-foreground">Fornecedores e despesas</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/checkins" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Check-ins</span>
+            <span className="text-xs text-muted-foreground">Cartões de embarque automáticos (LATAM)</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
