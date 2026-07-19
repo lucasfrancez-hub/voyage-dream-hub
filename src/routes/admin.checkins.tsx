@@ -335,7 +335,7 @@ function CheckinRow({
           </Button>
         )}
         {hasPdf && (
-          <a href={`/api/public/doc/${r.id}`} target="_blank" rel="noreferrer" title="PDF">
+          <a href={`/api/public/bp/${r.id}`} target="_blank" rel="noreferrer" title="PDF">
             <Button size="sm" variant="ghost" className="h-9 w-9 p-0"><Download className="h-4 w-4" /></Button>
           </a>
         )}
