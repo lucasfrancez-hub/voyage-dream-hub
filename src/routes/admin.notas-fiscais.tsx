@@ -287,13 +287,22 @@ function NotasFiscaisPage() {
                         </Link>
                       )}
                     </div>
-                    <div className="mt-1 flex items-center gap-2 flex-wrap">
-                      <span className={`text-sm font-medium truncate ${isCancelled ? "text-muted-foreground" : "text-foreground/90"}`}>
-                        {tomadorName}
-                      </span>
-                      <span className="text-muted-foreground/60">•</span>
-                      <span className="text-xs text-muted-foreground">{fmtDate(r.created_at)}</span>
-                    </div>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    <span className={`text-sm font-medium truncate ${isCancelled ? "text-muted-foreground" : "text-foreground/90"}`}>
+                      {tomadorName}
+                    </span>
+                    <span className="text-muted-foreground/60">•</span>
+                    <span className="text-xs text-muted-foreground">{fmtDate(r.created_at)}</span>
+                    {getPrestadorName(r) && (
+                      <>
+                        <span className="text-muted-foreground/60">•</span>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-brand-orange/10 text-brand-orange border border-brand-orange/20">
+                          <Building2 className="h-3 w-3" />
+                          {getPrestadorName(r)}
+                        </span>
+                      </>
+                    )}
+                  </div>
                     {r.codigo_verificacao && (
                       <p className="mt-1 text-[10px] text-muted-foreground/70 font-mono truncate">
                         Verif: {r.codigo_verificacao}
