@@ -23,6 +23,7 @@ import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { cancelarNfse } from "@/lib/nfse.functions";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { toast } from "sonner";
+import { prestadorShortLabel } from "@/lib/nfse-labels";
 
 
 type AnyRec = Record<string, unknown>;
