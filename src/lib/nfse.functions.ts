@@ -6,6 +6,41 @@ const ATENDENET_ENDPOINT =
   "https://nfse-paranavai.atende.net/atende.php?pg=rest&service=WNERestServiceNFSe&cidade=padrao";
 const IBGE_PARANAVAI = "4118402";
 
+function stripAccents(s: string) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+const IBGE_CACHE = new Map<string, Map<string, string>>(); // uf -> (nomeNormalizado -> codigo)
+
+async function resolveIbgeMunicipio(
+  cidade: string | null | undefined,
+  uf: string | null | undefined,
+): Promise<string | null> {
+  const nome = (cidade ?? "").trim();
+  const ufUp = (uf ?? "").trim().toUpperCase();
+  if (!nome || ufUp.length !== 2) return null;
+  const key = stripAccents(nome).toLowerCase().replace(/\s+/g, " ").trim();
+  try {
+    let map = IBGE_CACHE.get(ufUp);
+    if (!map) {
+      const r = await fetch(
+        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${ufUp}/municipios`,
+      );
+      if (!r.ok) return null;
+      const arr = (await r.json()) as Array<{ id: number; nome: string }>;
+      map = new Map();
+      for (const m of arr) {
+        map.set(stripAccents(m.nome).toLowerCase(), String(m.id));
+      }
+      IBGE_CACHE.set(ufUp, map);
+    }
+    return map.get(key) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+
 function onlyDigits(s: string | number | null | undefined) {
   return (s ?? "").toString().replace(/\D/g, "");
 }
