@@ -419,8 +419,8 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
 
     // Ordena itens por horário de partida (para fallback por índice)
     items.sort((a, b) => {
-      const da = new Date(a.details?.departure_at || 0).getTime();
-      const db = new Date(b.details?.departure_at || 0).getTime();
+      const da = new Date(a.details?.depart_at || a.details?.departure_at || 0).getTime();
+      const db = new Date(b.details?.depart_at || b.details?.departure_at || 0).getTime();
       return da - db;
     });
 
@@ -435,7 +435,7 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
         locator,
         pnr_surname: surname,
         flight_number: it.details?.flight_number ?? null,
-        departure_at: it.details?.departure_at ?? null,
+        departure_at: it.details?.depart_at ?? it.details?.departure_at ?? null,
         status: "running",
       }, { onConflict: "order_item_id,passenger_id" }).select("*").single();
       checkins.push(up.data);
