@@ -356,69 +356,156 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
 
   if (!done) step('atenção: loop terminou sem detectar "Baixar PDF"');
 
-  // Baixar PDF
-  let pdfBuffer = null;
-  let contentType = 'application/pdf';
-
-  step('trying direct pdf link');
-  const pdfAnchor = await page.$('a[href*=".pdf" i]') || await findByText(['baixar pdf','baixar cartão','baixar cartao'], ['a']);
-  if (pdfAnchor) {
-    const href = await pdfAnchor.evaluate((el) => el.getAttribute('href')).catch(() => null);
-    if (href) {
-      const abs = new URL(href, page.url()).toString();
-      step('fetching pdf: ' + abs.slice(0, 120));
-      const cookies = await page.cookies();
-      const cookieHeader = cookies.map((c) => c.name + '=' + c.value).join('; ');
-      try {
-        const resp = await fetch(abs, { headers: { cookie: cookieHeader, referer: page.url() } });
-        if (resp.ok) {
-          pdfBuffer = new Uint8Array(await resp.arrayBuffer());
-          contentType = resp.headers.get('content-type') || 'application/pdf';
-        }
-      } catch (e) { step('pdf fetch failed: ' + (e && e.message)); }
-    }
+  // ==== Coleta multi-trecho ====
+  // Quando a reserva tem conexões, a LATAM apresenta uma abinha por trecho
+  // dentro da tela do cartão de embarque. Percorremos cada abinha, capturamos
+  // o PDF correspondente e devolvemos todos.
+  const finalUrlLower = page.url().toLowerCase();
+  const pageLooksLikeBoardingPass = done || finalUrlLower.includes('boarding') || finalUrlLower.includes('cartao') || finalUrlLower.includes('cartão');
+  if (!pageLooksLikeBoardingPass) {
+    const snapshot = await visiblePageState().catch(() => ({ a: [], f: [], b: [], h: [] }));
+    throw new Error('Fluxo LATAM terminou antes do cartão. Estado: ' + JSON.stringify({
+      finalUrl: page.url(),
+      snapshot,
+      log: log.slice(-12),
+    }));
   }
 
-  // Fallback permitido somente quando a navegação realmente chegou ao cartão.
-  // Evita salvar como cartão uma tela intermediária ou de erro da companhia.
-  if (!pdfBuffer) {
-    const finalUrl = page.url().toLowerCase();
-    const pageLooksLikeBoardingPass = done || finalUrl.includes('boarding') || finalUrl.includes('cartao') || finalUrl.includes('cartão');
-    if (!pageLooksLikeBoardingPass) {
-      const snapshot = await visiblePageState().catch(() => ({ a: [], f: [], b: [], h: [] }));
-      throw new Error('Fluxo LATAM terminou antes do cartão. Estado: ' + JSON.stringify({
-        finalUrl: page.url(),
-        snapshot,
-        log: log.slice(-12),
-      }));
+  // Descobre as abinhas de trecho antes de qualquer captura, porque clicar em
+  // uma abinha pode substituir o DOM das demais.
+  const discoverTabs = async () => page.evaluate(() => {
+    const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+    const looksLikeSegment = (t) => {
+      if (!t) return false;
+      if (/\b[A-Z]{3}\s*(?:→|->|–|—|-|>)\s*[A-Z]{3}\b/.test(t)) return true;
+      if (/\b(LA|JJ)\s?\d{2,4}\b/.test(t)) return true;
+      return false;
+    };
+    const candidates = [];
+    const seen = new Set();
+    const push = (el) => {
+      const r = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      if (r.width <= 0 || r.height <= 0) return;
+      if (style.visibility === 'hidden' || style.display === 'none') return;
+      const t = norm(el.innerText || el.textContent || '');
+      if (!looksLikeSegment(t)) return;
+      const key = t + '|' + Math.round(r.top) + '|' + Math.round(r.left);
+      if (seen.has(key)) return;
+      seen.add(key);
+      candidates.push({ text: t, top: r.top, left: r.left });
+    };
+    const roleTabs = Array.from(document.querySelectorAll('[role="tab"]'));
+    for (const el of roleTabs) push(el);
+    if (candidates.length < 2) {
+      const btns = Array.from(document.querySelectorAll('button, a, [role="button"]'));
+      for (const el of btns) push(el);
     }
-    step('fallback: page.pdf()');
-    // A LATAM esconde o layout do cartão em @media print. Forçamos "screen"
-    // e esperamos o conteúdo real aparecer antes de imprimir para não gerar
-    // um PDF em branco.
-    try { await page.emulateMediaType('screen'); } catch (e) { step('emulateMediaType falhou: ' + (e && e.message)); }
+    // Ordena por posição (esquerda-para-direita, topo-para-baixo)
+    candidates.sort((a, b) => (a.top - b.top) || (a.left - b.left));
+    return candidates.map((c) => c.text);
+  }).catch(() => []);
+
+  const captureCurrentPdf = async () => {
+    // Tenta o link direto de PDF primeiro (mais fiel ao layout oficial)
+    const pdfAnchor = await page.$('a[href*=".pdf" i]') || await findByText(['baixar pdf','baixar cartão','baixar cartao'], ['a']);
+    if (pdfAnchor) {
+      const href = await pdfAnchor.evaluate((el) => el.getAttribute('href')).catch(() => null);
+      if (href) {
+        try {
+          const abs = new URL(href, page.url()).toString();
+          const cookies = await page.cookies();
+          const cookieHeader = cookies.map((c) => c.name + '=' + c.value).join('; ');
+          const resp = await fetch(abs, { headers: { cookie: cookieHeader, referer: page.url() } });
+          if (resp.ok) {
+            const buf = new Uint8Array(await resp.arrayBuffer());
+            return { bytes: buf, contentType: resp.headers.get('content-type') || 'application/pdf' };
+          }
+        } catch (e) { step('pdf fetch failed: ' + (e && e.message)); }
+      }
+    }
+    // Fallback: imprime a tela — força "screen" e espera o conteúdo carregar
+    try { await page.emulateMediaType('screen'); } catch (_) {}
     try {
       await page.waitForFunction(() => {
         const t = (document.body && document.body.innerText || '').toLowerCase();
-        const hasText = t.includes('cartão de embarque') || t.includes('cartao de embarque') || t.includes('boarding pass') || t.includes('embarque') && t.includes('portão');
+        const hasText = t.includes('cartão de embarque') || t.includes('cartao de embarque') || t.includes('boarding pass') || (t.includes('embarque') && t.includes('portão'));
         const hasBarcode = !!document.querySelector('svg[class*="barcode" i], img[alt*="barcode" i], img[src*="barcode" i], canvas');
         return hasText || hasBarcode;
       }, { timeout: 15_000 });
-    } catch (e) { step('espera do conteúdo do cartão falhou: ' + (e && e.message)); }
+    } catch (_) {}
     await sleep(1500);
-    pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true });
-    contentType = 'application/pdf';
+    const bytes = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true });
+    return { bytes, contentType: 'application/pdf' };
+  };
+
+  const parseSegment = (label) => {
+    const t = String(label || '');
+    const route = t.match(/\b([A-Z]{3})\s*(?:→|->|–|—|-|>)\s*([A-Z]{3})\b/);
+    const flight = t.match(/\b((?:LA|JJ)\s?\d{2,4})\b/);
+    return {
+      fromIata: route?.[1],
+      toIata: route?.[2],
+      flightNumber: flight?.[1]?.replace(/\s+/g, ''),
+    };
+  };
+
+  const tabLabels = await discoverTabs();
+  step('abinhas de trecho detectadas: ' + JSON.stringify(tabLabels).slice(0, 400));
+
+  const collected: LatamBoardingPass[] = [];
+
+  if (tabLabels.length >= 2) {
+    for (let idx = 0; idx < tabLabels.length; idx++) {
+      const label = tabLabels[idx];
+      step('capturando trecho ' + (idx + 1) + '/' + tabLabels.length + ' — ' + label);
+      // Localiza e clica na abinha correspondente pelo texto
+      const tabHandle = await findByText([label], ['[role="tab"]', 'button', 'a', '[role="button"]']);
+      if (tabHandle) {
+        await tabHandle.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+        await tabHandle.click().catch(async () => tabHandle.evaluate((el) => el.click()));
+        await sleep(2500);
+      }
+      try {
+        const { bytes, contentType: ct } = await captureCurrentPdf();
+        const seg = parseSegment(label);
+        collected.push({
+          label,
+          flightNumber: seg.flightNumber,
+          fromIata: seg.fromIata,
+          toIata: seg.toIata,
+          base64: bytesToBase64(bytes),
+          contentType: ct,
+        });
+      } catch (e) {
+        step('falha ao capturar trecho ' + label + ': ' + (e && e.message));
+      }
+    }
+  }
+
+  // Sem abinhas ou nenhuma captura → cai para captura única
+  if (collected.length === 0) {
+    step('captura única (sem abinhas de trecho)');
+    const { bytes, contentType: ct } = await captureCurrentPdf();
+    collected.push({
+      label: 'Cartão de embarque',
+      base64: bytesToBase64(bytes),
+      contentType: ct,
+    });
   }
 
   return {
     data: {
-      boardingPassBase64: bytesToBase64(pdfBuffer),
-      contentType,
-      meta: { log, finalUrl: page.url() },
+      // primeiro cartão para compatibilidade com chamadas antigas
+      boardingPassBase64: collected[0].base64,
+      contentType: collected[0].contentType,
+      boardingPasses: collected,
+      meta: { log, finalUrl: page.url(), tabLabels },
     },
     type: 'application/json',
   };
 }
+
 
 const LATAM_SCRIPT = `export default ${runLatamAutomation.toString()}`;
 
