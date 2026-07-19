@@ -9,7 +9,7 @@ import {
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
   Package, Percent, Mail, Printer, CheckCircle2, Signature, Settings,
   Vault, ExternalLink, X, UserPlus, Star, Backpack, Briefcase, Luggage,
-  Phone, CreditCard,
+  Phone, CreditCard, FolderOpen, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -678,7 +678,7 @@ function OrderDetailPage() {
             <TabsTrigger value="flight"><Plane className="h-3.5 w-3.5 mr-1.5" /> Aéreo ({flightItems.length})</TabsTrigger>
             <TabsTrigger value="service"><Package className="h-3.5 w-3.5 mr-1.5" /> Serviços ({serviceItems.length})</TabsTrigger>
             <TabsTrigger value="cancelled"><XCircle className="h-3.5 w-3.5 mr-1.5" /> Cancelados ({cancelledItems.length})</TabsTrigger>
-            <TabsTrigger value="contract"><FileText className="h-3.5 w-3.5 mr-1.5" /> Contrato</TabsTrigger>
+            <TabsTrigger value="contract"><FolderOpen className="h-3.5 w-3.5 mr-1.5" /> Documentos</TabsTrigger>
             <TabsTrigger value="finance"><DollarSign className="h-3.5 w-3.5 mr-1.5" /> Financeiro</TabsTrigger>
           </TabsList>
 
@@ -3061,20 +3061,38 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
 
   return (
     <div className="space-y-5">
-      {/* Hero header */}
-      <div className="rounded-2xl border border-border bg-card/40 p-5 flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-start gap-3 min-w-0">
-          <div className="p-2 rounded-xl bg-background/60 border border-border shrink-0">
-            <FileText className="h-5 w-5 text-brand-orange" />
+      {/* Hero header — visual distinto do restante (gradiente + grid pattern) */}
+      <div className="relative overflow-hidden rounded-2xl border border-brand-orange/30 bg-gradient-to-br from-brand-orange/15 via-brand-orange/5 to-transparent p-6">
+        <div
+          className="absolute inset-0 opacity-[0.07] pointer-events-none"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div className="relative flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="p-3 rounded-2xl bg-brand-orange/20 border border-brand-orange/40 shrink-0 shadow-lg shadow-brand-orange/10">
+              <FolderOpen className="h-6 w-6 text-brand-orange" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-orange/80">Central de documentos</span>
+              </div>
+              <h3 className="text-xl font-bold tracking-tight">Documentos do pedido</h3>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                Emissão, assinatura digital, autorização de débito, notas fiscais e anexos vinculados a este pedido.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-bold tracking-tight">Documentos do pedido</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Recibo, contrato, autorização de débito, assinatura digital, nota fiscal e anexos
-            </p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+            <ShieldCheck className="h-4 w-4 text-brand-orange/70" />
+            <span>Área segura</span>
           </div>
         </div>
       </div>
+
 
       <Tabs defaultValue="contratos">
         <TabsList className="flex w-full flex-nowrap overflow-x-auto h-auto justify-start sm:flex-wrap">
