@@ -3071,99 +3071,114 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
           <div>
             <h3 className="text-lg font-bold tracking-tight">Documentos do pedido</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Recibo, contrato, autorização de débito, assinatura digital e nota fiscal
+              Recibo, contrato, autorização de débito, assinatura digital, nota fiscal e anexos
             </p>
           </div>
         </div>
       </div>
 
-      {/* Geração de PDFs */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
-        <div className="absolute top-0 left-0 w-1 h-full bg-brand-orange" />
-        <div className="p-5">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-brand-orange">PDF</span>
-            <h4 className="text-sm font-bold">Recibo &amp; Contrato</h4>
-          </div>
-          <p className="text-xs text-muted-foreground mb-4 max-w-2xl">
-            Gerado automaticamente com dados do pagador, serviços e forma de pagamento.
-            Use a versão <b>com autorização de débito</b> quando o pagamento for em cartão de crédito.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" className="border-border hover:border-brand-orange hover:text-brand-orange" onClick={async () => {
-              try {
-                const blob = await generateReceiptOnly(detail);
-                openBlobInNewTab(blob, `recibo-${order.orderNumber}.pdf`);
-              } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar recibo"); }
-            }}>
-              <Download className="h-3.5 w-3.5 mr-1.5" /> Só recibo
-            </Button>
-            <Button size="sm" variant="outline" className="border-border hover:border-brand-orange hover:text-brand-orange" onClick={async () => {
-              try {
-                const blob = await generateReceiptAndContract(detail);
-                openBlobInNewTab(blob, `contrato-${order.orderNumber}.pdf`);
-              } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar contrato"); }
-            }}>
-              <Download className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato
-            </Button>
-            <Button size="sm" className="bg-brand-orange hover:bg-brand-orange/90 text-white shadow-lg shadow-brand-orange/20" onClick={async () => {
-              try {
-                const blob = await generateReceiptContractAndAuthorization(detail);
-                openBlobInNewTab(blob, `contrato-completo-${order.orderNumber}.pdf`);
-              } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF"); }
-            }}>
-              <Download className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato + Autorização
-            </Button>
-          </div>
-        </div>
-      </div>
+      <Tabs defaultValue="contratos">
+        <TabsList className="flex w-full flex-nowrap overflow-x-auto h-auto justify-start sm:flex-wrap">
+          <TabsTrigger value="contratos"><FileText className="h-3.5 w-3.5 mr-1.5" /> Contratos</TabsTrigger>
+          <TabsTrigger value="nfse"><FileText className="h-3.5 w-3.5 mr-1.5" /> Notas Fiscais</TabsTrigger>
+          <TabsTrigger value="anexos"><Package className="h-3.5 w-3.5 mr-1.5" /> Anexos</TabsTrigger>
+        </TabsList>
 
-      <ClickSignCard detail={detail} />
-      <NfseCard detail={detail} />
-
-      {/* Autorização de débito */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
-        <div className={`absolute top-0 left-0 w-1 h-full ${hasAuthorization ? "bg-emerald-500" : hasCardData ? "bg-amber-500" : "bg-muted-foreground/40"}`} />
-        <div className="p-5 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="p-2 rounded-xl bg-background/60 border border-border shrink-0">
-              <FileText className="h-5 w-5 text-brand-orange" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="text-sm font-bold">Autorização de débito</h4>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                  hasAuthorization
-                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                    : hasCardData
-                      ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                      : "bg-muted text-muted-foreground border-border"
-                }`}>
-                  {hasAuthorization ? "Assinada" : hasCardData ? "Disponível" : "Indisponível"}
-                </span>
+        <TabsContent value="contratos" className="mt-4 space-y-5">
+          {/* Geração de PDFs */}
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
+            <div className="absolute top-0 left-0 w-1 h-full bg-brand-orange" />
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-orange">PDF</span>
+                <h4 className="text-sm font-bold">Recibo &amp; Contrato</h4>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {hasAuthorization
-                  ? "Gerada com assinatura digital do cliente"
-                  : hasCardData
-                    ? "Disponível para assinatura, com os dados do cartão do pedido"
-                    : "Sem autorização registrada (pedido sem checkout de cartão)"}
+              <p className="text-xs text-muted-foreground mb-4 max-w-2xl">
+                Gerado automaticamente com dados do pagador, serviços e forma de pagamento.
+                Use a versão <b>com autorização de débito</b> quando o pagamento for em cartão de crédito.
               </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" className="border-border hover:border-brand-orange hover:text-brand-orange" onClick={async () => {
+                  try {
+                    const blob = await generateReceiptOnly(detail);
+                    openBlobInNewTab(blob, `recibo-${order.orderNumber}.pdf`);
+                  } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar recibo"); }
+                }}>
+                  <Download className="h-3.5 w-3.5 mr-1.5" /> Só recibo
+                </Button>
+                <Button size="sm" variant="outline" className="border-border hover:border-brand-orange hover:text-brand-orange" onClick={async () => {
+                  try {
+                    const blob = await generateReceiptAndContract(detail);
+                    openBlobInNewTab(blob, `contrato-${order.orderNumber}.pdf`);
+                  } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar contrato"); }
+                }}>
+                  <Download className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato
+                </Button>
+                <Button size="sm" className="bg-brand-orange hover:bg-brand-orange/90 text-white shadow-lg shadow-brand-orange/20" onClick={async () => {
+                  try {
+                    const blob = await generateReceiptContractAndAuthorization(detail);
+                    openBlobInNewTab(blob, `contrato-completo-${order.orderNumber}.pdf`);
+                  } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF"); }
+                }}>
+                  <Download className="h-3.5 w-3.5 mr-1.5" /> Recibo + Contrato + Autorização
+                </Button>
+              </div>
             </div>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!hasAuthorization && !hasCardData}
-            onClick={downloadAuthorization}
-            className="border-border hover:border-brand-orange hover:text-brand-orange"
-          >
-            <Download className="h-3.5 w-3.5 mr-1.5" /> Baixar PDF
-          </Button>
-        </div>
-      </div>
 
-      <OrderDocuments orderId={order.id} canManage />
+          <ClickSignCard detail={detail} />
+
+          {/* Autorização de débito */}
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
+            <div className={`absolute top-0 left-0 w-1 h-full ${hasAuthorization ? "bg-emerald-500" : hasCardData ? "bg-amber-500" : "bg-muted-foreground/40"}`} />
+            <div className="p-5 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="p-2 rounded-xl bg-background/60 border border-border shrink-0">
+                  <FileText className="h-5 w-5 text-brand-orange" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-sm font-bold">Autorização de débito</h4>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                      hasAuthorization
+                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        : hasCardData
+                          ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                          : "bg-muted text-muted-foreground border-border"
+                    }`}>
+                      {hasAuthorization ? "Assinada" : hasCardData ? "Disponível" : "Indisponível"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {hasAuthorization
+                      ? "Gerada com assinatura digital do cliente"
+                      : hasCardData
+                        ? "Disponível para assinatura, com os dados do cartão do pedido"
+                        : "Sem autorização registrada (pedido sem checkout de cartão)"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!hasAuthorization && !hasCardData}
+                onClick={downloadAuthorization}
+                className="border-border hover:border-brand-orange hover:text-brand-orange"
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5" /> Baixar PDF
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="nfse" className="mt-4">
+          <NfseCard detail={detail} />
+        </TabsContent>
+
+        <TabsContent value="anexos" className="mt-4">
+          <OrderDocuments orderId={order.id} canManage />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
