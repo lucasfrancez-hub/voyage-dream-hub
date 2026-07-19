@@ -2203,9 +2203,7 @@ export type Database = {
         }
         Returns: number
       }
-      nfse_next_rps:
-        | { Args: never; Returns: number }
-        | { Args: { _prestador_id?: string }; Returns: number }
+      nfse_next_rps: { Args: { _prestador_id?: string }; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

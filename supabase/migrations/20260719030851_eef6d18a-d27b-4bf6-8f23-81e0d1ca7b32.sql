@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.nfse_next_rps();
