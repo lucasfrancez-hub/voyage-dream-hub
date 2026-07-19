@@ -510,6 +510,29 @@ export function NfseCard({
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-3">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Prestador</div>
+              <div>
+                <Label>Empresa emissora</Label>
+                <Select value={prestadorId} onValueChange={setPrestadorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={prestadores.length ? "Selecione o prestador" : "Nenhum prestador cadastrado"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {prestadores.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <span className="font-medium">{p.nome_fantasia || p.razao_social}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          CNPJ {p.cnpj} · {p.municipio_prestacao}/{p.uf_prestacao}
+                          {p.padrao ? " · padrão" : ""}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-3">
               <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tomador</div>
               <div>
                 <Label>Nome / Razão social</Label>
