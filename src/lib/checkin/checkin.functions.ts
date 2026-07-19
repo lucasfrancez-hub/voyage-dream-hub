@@ -128,12 +128,12 @@ export const regenerateAllBoardingPasses = createServerFn({ method: "POST" })
       await supabaseAdmin
         .from("flight_checkins")
         .update({
-          status: "pending",
-          boarding_pass_path: null,
-          boarding_pass_url: null,
-          delivered_wa_at: null,
-          last_error: null,
-        })
+          status: "pending" as any,
+          boarding_pass_path: null as any,
+          boarding_pass_url: null as any,
+          delivered_wa_at: null as any,
+          last_error: null as any,
+        } as any)
         .in("id", ids);
     }
     return { count: ids.length };
