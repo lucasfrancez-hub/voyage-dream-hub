@@ -411,6 +411,9 @@ export function PersonEditorDialog({
               {tab === "contatos" && (
                 <ContatosTab personId={id} isNew={isNew} phones={phones} emails={emails} qc={qc} />
               )}
+              {tab === "notas_fiscais" && (
+                <NotasFiscaisTab personId={id} isNew={isNew} onClose={() => onOpenChange(false)} />
+              )}
               {tab === "anexos" && (
                 <AnexosTab personId={id} isNew={isNew} attachments={attachments} qc={qc} />
               )}
