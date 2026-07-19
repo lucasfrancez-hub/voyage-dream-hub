@@ -250,6 +250,27 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
 
           <div className="overflow-y-auto px-6 py-4 space-y-4 h-[60vh]">
             <TabsContent value="resumo" className="mt-0 space-y-4">
+              {status === "cancelado" && (
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <XCircle className="h-4 w-4 text-rose-500" />
+                    <span className="text-[11px] uppercase tracking-wider font-semibold text-rose-500">
+                      Nota fiscal cancelada
+                    </span>
+                    {row.cancelada_em ? (
+                      <span className="text-[11px] text-muted-foreground ml-auto">
+                        em {fmtDT(row.cancelada_em)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    Motivo do cancelamento
+                  </div>
+                  <div className="mt-1 text-sm whitespace-pre-wrap">
+                    {String(row.motivo_cancelamento ?? "").trim() || "— (não informado)"}
+                  </div>
+                </div>
+              )}
               <Card title="Identificação">
                 <Field label="Número NFS-e" value={row.numero_nfse ?? "—"} mono />
                 <Field label="Série" value={row.serie ?? "1"} />
