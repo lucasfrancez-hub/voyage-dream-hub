@@ -121,21 +121,14 @@ export const regenerateBoardingPass = createServerFn({ method: "POST" })
     const { data: isStaff } = await sb.rpc("has_role", { _user_id: userId, _role: "user" });
     if (!isAdmin && !isStaff) throw new Error("Sem permissão");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: ci } = await supabaseAdmin
-      .from("flight_checkins")
-      .select("id, boarding_pass_path")
-      .eq("id", data.checkinId)
-      .maybeSingle();
-    if (!ci) throw new Error("Check-in não encontrado");
-    if (ci.boarding_pass_path) {
-      await supabaseAdmin.storage.from("boarding-passes").remove([ci.boarding_pass_path]);
-    }
+    // NÃO apaga o PDF atual: mantém o link `/api/public/bp/{id}` válido
+    // servindo o cartão antigo até o robô capturar um novo. Se a nova
+    // captura der certo, o runner sobrescreve o arquivo; se falhar, o
+    // link continua funcionando com o cartão anterior.
     await supabaseAdmin
       .from("flight_checkins")
       .update({
         status: "pending" as any,
-        boarding_pass_path: null as any,
-        boarding_pass_url: null as any,
         delivered_wa_at: null as any,
         last_error: null as any,
       } as any)
@@ -144,8 +137,9 @@ export const regenerateBoardingPass = createServerFn({ method: "POST" })
   });
 
 /**
- * Marca todos os check-ins com status success como pendentes e apaga
- * seus PDFs — útil para reprocessar em lote depois de um fix no robô.
+ * Marca todos os check-ins com status success como pendentes para
+ * reprocessar em lote. Preserva os PDFs atuais (o link `/api/public/bp/{id}`
+ * continua servindo o cartão antigo até o robô salvar um novo).
  */
 export const regenerateAllBoardingPasses = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -157,20 +151,14 @@ export const regenerateAllBoardingPasses = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows } = await supabaseAdmin
       .from("flight_checkins")
-      .select("id, boarding_pass_path")
+      .select("id")
       .eq("status", "success");
-    const paths = (rows ?? []).map((r: any) => r.boarding_pass_path).filter(Boolean);
-    if (paths.length) {
-      await supabaseAdmin.storage.from("boarding-passes").remove(paths);
-    }
     const ids = (rows ?? []).map((r: any) => r.id);
     if (ids.length) {
       await supabaseAdmin
         .from("flight_checkins")
         .update({
           status: "pending" as any,
-          boarding_pass_path: null as any,
-          boarding_pass_url: null as any,
           delivered_wa_at: null as any,
           last_error: null as any,
         } as any)
