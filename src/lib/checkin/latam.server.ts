@@ -28,6 +28,32 @@ export default async function ({ page, context }) {
   const { locator, surname } = context;
   const log = [];
   const step = (m) => { log.push(new Date().toISOString() + ' — ' + m); };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Helpers (Puppeteer não tem :has-text nem fill)
+  const findByText = async (texts, tags = ['button','a','label','span','div']) => {
+    const arr = Array.isArray(texts) ? texts : [texts];
+    return await page.evaluateHandle((tags, arr) => {
+      const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+      const wants = arr.map(norm);
+      for (const tag of tags) {
+        for (const el of Array.from(document.querySelectorAll(tag))) {
+          const t = norm(el.innerText || el.textContent || '');
+          if (!t) continue;
+          if (wants.some((w) => t.includes(w))) {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) return el;
+          }
+        }
+      }
+      return null;
+    }, tags, arr).then((h) => h.asElement());
+  };
+  const clearAndType = async (handle, text) => {
+    await handle.click({ clickCount: 3 }).catch(() => {});
+    await page.keyboard.press('Backspace').catch(() => {});
+    await handle.type(text, { delay: 40 });
+  };
 
   page.setDefaultTimeout(45_000);
   await page.setViewport({ width: 1366, height: 900 });
@@ -38,17 +64,17 @@ export default async function ({ page, context }) {
 
   step('open latam check-in page');
   await page.goto('https://www.latamairlines.com/br/pt/check-in', { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(2000);
+  await sleep(2500);
 
   // Cookies / OneTrust
-  for (const sel of ['#onetrust-accept-btn-handler', 'button:has-text("Aceitar")', 'button:has-text("Aceito")']) {
-    const b = await page.$(sel);
-    if (b) { await b.click().catch(() => {}); await page.waitForTimeout(500); break; }
+  const okCookies = await page.$('#onetrust-accept-btn-handler');
+  if (okCookies) { await okCookies.click().catch(() => {}); await sleep(500); }
+  else {
+    const aceitar = await findByText(['aceitar','aceito']);
+    if (aceitar) { await aceitar.click().catch(() => {}); await sleep(500); }
   }
 
   step('fill locator');
-  // A LATAM tem 2 abas: "Nº de compra" e "Código de reserva". O input geralmente é o mesmo.
-  // Tentamos vários seletores.
   const locSelectors = [
     'input[name="reservationCode"]',
     'input[name="pnr"]',
@@ -64,9 +90,7 @@ export default async function ({ page, context }) {
     if (locInput) { step('using loc selector: ' + s); break; }
   }
   if (!locInput) throw new Error('Campo de localizador não encontrado');
-  await locInput.click();
-  await locInput.fill('');
-  await locInput.type(loc, { delay: 40 });
+  await clearAndType(locInput, loc);
 
   step('fill surname');
   const surSelectors = [
@@ -83,170 +107,120 @@ export default async function ({ page, context }) {
     if (surInput) { step('using surname selector: ' + s); break; }
   }
   if (!surInput) throw new Error('Campo de sobrenome não encontrado');
-  await surInput.click();
-  await surInput.fill('');
-  await surInput.type(sur, { delay: 40 });
+  await clearAndType(surInput, sur);
 
   step('submit login');
-  const submit = await page.waitForSelector(
-    'button[type="submit"], button:has-text("Continuar"), button:has-text("Buscar"), button:has-text("Consultar")'
-  );
+  let submit = await page.$('button[type="submit"]');
+  if (!submit) submit = await findByText(['continuar','buscar','consultar']);
+  if (!submit) throw new Error('Botão de envio não encontrado');
   await submit.click();
-  await page.waitForLoadState('networkidle', { timeout: 45_000 }).catch(() => {});
-  await page.waitForTimeout(2500);
+  await page.waitForNetworkIdle({ idleTime: 800, timeout: 45_000 }).catch(() => {});
+  await sleep(2500);
 
   // ==== State machine unificado ====
-  // Cobre TODOS os cenários: check-in já feito (vai direto pro cartão), fluxo completo,
-  // múltiplos passos condicionais. Prioriza sempre o "Baixar PDF" — se aparecer, terminou.
   step('start unified state machine');
   let done = false;
+  let idle = 0;
   for (let i = 0; i < 40; i++) {
-    // (1) PDF disponível → sai do loop
-    const baixar = await page.$(
-      'a:has-text("Baixar PDF"), button:has-text("Baixar PDF"), ' +
-      'a:has-text("Baixar cartão"), button:has-text("Baixar cartão"), ' +
-      'a[download][href*=".pdf" i]'
-    );
+    // (1) PDF disponível → sai
+    const baixar = (await findByText(['baixar pdf','baixar cartão','baixar cartao'])) || (await page.$('a[download][href*=".pdf" i]'));
     if (baixar) { step('iter ' + i + ': "Baixar PDF" visível'); done = true; break; }
 
-    // (2) Título/URL indica que já estamos no cartão de embarque (sem botão Baixar ainda visível)
+    // (2) Cartão de embarque detectado por URL/heading
     const url = page.url().toLowerCase();
     const isBoardingPage = url.includes('boarding') || url.includes('cartao') || url.includes('cartão');
-    const heading = await page.$('h1:has-text("Cartão de Embarque"), h1:has-text("Cartão de embarque"), h2:has-text("Cartão de Embarque")');
-    if (isBoardingPage && heading) {
-      step('iter ' + i + ': página de cartão detectada, aguardando botão de download');
-      await page.waitForTimeout(2000);
-      continue;
+    if (isBoardingPage) {
+      step('iter ' + i + ': página de cartão detectada, aguardando botão');
+      await sleep(2000); idle++; if (idle > 5) break; continue;
     }
 
-    // (3) Lista de voos → "Ver cartão(ões) de embarque"
-    const verCartao = await page.$(
-      'button:has-text("Ver cartão"), a:has-text("Ver cartão"), ' +
-      'button:has-text("cartão de embarque"), a:has-text("cartão de embarque"), ' +
-      'button:has-text("cartões de embarque"), a:has-text("cartões de embarque")'
-    );
-    if (verCartao) { step('iter ' + i + ': clicando "Ver cartão"'); await verCartao.click().catch(() => {}); await page.waitForTimeout(2500); continue; }
+    // (3) "Ver cartão(ões) de embarque"
+    const verCartao = await findByText(['ver cartão','ver cartao','cartões de embarque','cartoes de embarque','cartão de embarque']);
+    if (verCartao) { step('iter ' + i + ': "Ver cartão"'); await verCartao.click().catch(() => {}); await sleep(2500); idle = 0; continue; }
 
-    // (4) Lista de voos → "Fazer check-in"
-    const fazerCheckin = await page.$('button:has-text("Fazer check-in"), a:has-text("Fazer check-in")');
-    if (fazerCheckin) { step('iter ' + i + ': clicando "Fazer check-in"'); await fazerCheckin.click().catch(() => {}); await page.waitForTimeout(2500); continue; }
+    // (4) "Fazer check-in"
+    const fazerCheckin = await findByText(['fazer check-in','fazer checkin','iniciar check-in']);
+    if (fazerCheckin) { step('iter ' + i + ': "Fazer check-in"'); await fazerCheckin.click().catch(() => {}); await sleep(2500); idle = 0; continue; }
 
     // (5) Elementos perigosos → "Entendi"
-    const entendi = await page.$('button:has-text("Entendi"), button:has-text("Entendido")');
-    if (entendi) { step('iter ' + i + ': clicando Entendi (bagagem)'); await entendi.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
+    const entendi = await findByText(['entendi','entendido']);
+    if (entendi) { step('iter ' + i + ': Entendi'); await entendi.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
 
-    // (6) Contato de emergência → marcar "Não quero" + Salvar
-    const naoQueroLabel = await page.$(
-      'label:has-text("Não quero entregar"), label:has-text("Não quero informar"), ' +
-      'label:has-text("Não desejo informar")'
-    );
-    if (naoQueroLabel) {
-      step('iter ' + i + ': marcando "Não quero entregar contato de emergência"');
-      await naoQueroLabel.click().catch(() => {});
-      await page.waitForTimeout(600);
-      const salvar = await page.$('button:has-text("Salvar"), button:has-text("Continuar")');
-      if (salvar) { await salvar.click().catch(() => {}); await page.waitForTimeout(2500); }
-      continue;
+    // (6) Contato de emergência → "Não quero"
+    const naoQuero = await findByText(['não quero entregar','nao quero entregar','não quero informar','nao quero informar','não desejo informar']);
+    if (naoQuero) {
+      step('iter ' + i + ': marcando "não quero"');
+      await naoQuero.click().catch(() => {});
+      await sleep(600);
+      const salvar = await findByText(['salvar','continuar']);
+      if (salvar) { await salvar.click().catch(() => {}); await sleep(2500); }
+      idle = 0; continue;
     }
 
-    // (7) Seleção de passageiros (checkbox de todos) → marcar todos
-    const passSelectAll = await page.$('input[type="checkbox"][id*="all" i], label:has-text("Todos os passageiros")');
-    if (passSelectAll) {
-      step('iter ' + i + ': marcando todos os passageiros');
-      await passSelectAll.click().catch(() => {});
-      await page.waitForTimeout(600);
-      const cont = await page.$('button:has-text("Continuar"), button:has-text("Confirmar")');
-      if (cont) { await cont.click().catch(() => {}); await page.waitForTimeout(2000); }
-      continue;
+    // (7) Seleção de todos passageiros
+    const passAll = await page.$('input[type="checkbox"][id*="all" i]') || await findByText(['todos os passageiros']);
+    if (passAll) {
+      step('iter ' + i + ': todos os passageiros');
+      await passAll.click().catch(() => {});
+      await sleep(600);
+      const cont = await findByText(['continuar','confirmar']);
+      if (cont) { await cont.click().catch(() => {}); await sleep(2000); }
+      idle = 0; continue;
     }
 
-    // (8) Seguro / upgrade / assento pago / bagagem extra → pular
-    const skip = await page.$(
-      'button:has-text("Agora não"), a:has-text("Agora não"), ' +
-      'button:has-text("Não, obrigado"), a:has-text("Não, obrigado"), ' +
-      'button:has-text("Pular"), a:has-text("Pular"), ' +
-      'button:has-text("Manter assento"), button:has-text("Continuar sem alterar"), ' +
-      'button:has-text("Continuar sem"), a:has-text("Continuar sem"), ' +
-      'button:has-text("Recusar"), a:has-text("Recusar"), ' +
-      'button:has-text("Dispensar"), a:has-text("Dispensar")'
-    );
-    if (skip) { step('iter ' + i + ': skip (seguro/upgrade)'); await skip.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
+    // (8) Skip seguro/upgrade/assento
+    const skip = await findByText(['agora não','agora nao','não, obrigado','nao, obrigado','pular','manter assento','continuar sem alterar','continuar sem','recusar','dispensar']);
+    if (skip) { step('iter ' + i + ': skip'); await skip.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
 
-    // (9) Fechar modais eventuais
+    // (9) Fechar modais
     const closeBtn = await page.$('button[aria-label*="Fechar" i], button[aria-label*="Close" i], button[aria-label*="Cerrar" i]');
-    if (closeBtn) { step('iter ' + i + ': fechando modal'); await closeBtn.click().catch(() => {}); await page.waitForTimeout(1000); continue; }
+    if (closeBtn) { step('iter ' + i + ': fechar modal'); await closeBtn.click().catch(() => {}); await sleep(1000); idle = 0; continue; }
 
-    // (10) Continuar/Confirmar/Aceitar genérico
-    const cont = await page.$(
-      'button:has-text("Continuar"), button:has-text("Confirmar"), button:has-text("Aceitar"), ' +
-      'a:has-text("Continuar"), a:has-text("Confirmar")'
-    );
-    if (cont) { step('iter ' + i + ': clicando Continuar/Confirmar'); await cont.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
+    // (10) Continuar/Confirmar genérico
+    const cont = await findByText(['continuar','confirmar','aceitar']);
+    if (cont) { step('iter ' + i + ': continuar/confirmar'); await cont.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
 
-    step('iter ' + i + ': nenhuma ação conhecida, aguardando 2s');
-    await page.waitForTimeout(2000);
-    // Se após 3 iterações sem ação nada aconteceu, sai
-    if (i > 5) { step('sem progresso, encerrando loop'); break; }
+    step('iter ' + i + ': sem ação, aguardando');
+    await sleep(2000); idle++;
+    if (idle > 5) { step('sem progresso, encerrando'); break; }
   }
 
-  if (!done) step('atenção: loop terminou sem detectar botão de download');
+  if (!done) step('atenção: loop terminou sem detectar "Baixar PDF"');
 
-
-
-  // Baixar PDF — pode ser (a) link direto, (b) download event, (c) fallback: page.pdf()
+  // Baixar PDF
   let pdfBuffer = null;
   let contentType = 'application/pdf';
 
   step('trying direct pdf link');
-  const pdfAnchor = await page.$('a[href*=".pdf" i], a:has-text("Baixar PDF"), a:has-text("Baixar cartão")');
+  const pdfAnchor = await page.$('a[href*=".pdf" i]') || await findByText(['baixar pdf','baixar cartão','baixar cartao'], ['a']);
   if (pdfAnchor) {
-    const href = await pdfAnchor.getAttribute('href');
+    const href = await pdfAnchor.evaluate((el) => el.getAttribute('href')).catch(() => null);
     if (href) {
       const abs = new URL(href, page.url()).toString();
       step('fetching pdf: ' + abs.slice(0, 120));
-      const cookies = await page.context().cookies();
-      const cookieHeader = cookies.map(c => c.name + '=' + c.value).join('; ');
+      const cookies = await page.cookies();
+      const cookieHeader = cookies.map((c) => c.name + '=' + c.value).join('; ');
       try {
-        const resp = await page.request.get(abs, { headers: { cookie: cookieHeader, referer: page.url() } });
-        if (resp.ok()) {
-          pdfBuffer = await resp.body();
-          contentType = resp.headers()['content-type'] || 'application/pdf';
+        const resp = await fetch(abs, { headers: { cookie: cookieHeader, referer: page.url() } });
+        if (resp.ok) {
+          const buf = Buffer.from(await resp.arrayBuffer());
+          pdfBuffer = buf;
+          contentType = resp.headers.get('content-type') || 'application/pdf';
         }
-      } catch (e) { step('pdf fetch failed: ' + e.message); }
+      } catch (e) { step('pdf fetch failed: ' + (e && e.message)); }
     }
   }
 
-  // Download event (botão que dispara download em vez de link)
+  // Fallback: imprimir a página como PDF
   if (!pdfBuffer) {
-    step('trying download event');
-    const btn = await page.$('button:has-text("Baixar PDF"), button:has-text("Baixar cartão"), a:has-text("Baixar PDF"), a:has-text("Baixar cartão")');
-    if (btn) {
-      try {
-        const [download] = await Promise.all([
-          page.waitForEvent('download', { timeout: 20_000 }),
-          btn.click(),
-        ]);
-        const path = await download.path();
-        if (path) {
-          const fs = await import('fs/promises');
-          pdfBuffer = await fs.readFile(path);
-          contentType = 'application/pdf';
-          step('download captured: ' + download.suggestedFilename());
-        }
-      } catch (e) { step('download event failed: ' + e.message); }
-    }
-  }
-
-  // Fallback: imprimir a página atual como PDF
-  if (!pdfBuffer) {
-    step('fallback: print page as pdf');
+    step('fallback: page.pdf()');
     pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
     contentType = 'application/pdf';
   }
 
   return {
     data: {
-      boardingPassBase64: pdfBuffer.toString('base64'),
+      boardingPassBase64: Buffer.from(pdfBuffer).toString('base64'),
       contentType,
       meta: { log, finalUrl: page.url() },
     },
@@ -254,6 +228,7 @@ export default async function ({ page, context }) {
   };
 }
 `;
+
 
 export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCheckinResult> {
   const res = await runBrowserlessFunction<LatamCheckinResult>(
