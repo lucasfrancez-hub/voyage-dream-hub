@@ -123,6 +123,7 @@ export const listNfseConfigs = createServerFn({ method: "GET" })
 /* ============================== EMITIR (AtendeNet / IPM 2.0) ============================== */
 const emitirInput = z.object({
   orderId: z.string().uuid(),
+  prestadorId: z.string().uuid().optional().nullable(),
   valorServicos: z.number().positive(),
   discriminacao: z.string().min(5),
   tomador: z.object({
