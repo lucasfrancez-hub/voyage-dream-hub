@@ -436,9 +436,15 @@ export function NfseCard({
                       disabled={deleteMut.isPending}
                       title="Excluir emissão"
                       onClick={() => {
-                        if (window.confirm("Excluir esta emissão? Esta ação não pode ser desfeita.")) {
-                          deleteMut.mutate(e.id);
-                        }
+                        confirmThen(
+                          {
+                            title: "Excluir emissão",
+                            description: "Excluir esta emissão? Esta ação não pode ser desfeita.",
+                            confirmText: "Excluir",
+                            destructive: true,
+                          },
+                          () => deleteMut.mutate(e.id),
+                        );
                       }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
