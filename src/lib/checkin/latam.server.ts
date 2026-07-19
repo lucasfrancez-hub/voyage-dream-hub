@@ -8,8 +8,10 @@
  *   5. Marca "Não quero entregar um contato de emergência" e clica "Salvar"
  *   6. Clica "Baixar PDF" e captura o download
  */
+// @ts-nocheck — a função abaixo é serializada com toString() e executada no
+// navegador remoto; seus parâmetros e DOM pertencem àquele runtime.
 
-import { runBrowserlessFunction } from "./browserless.server";
+import { connectBrowserlessStealth, runBrowserlessFunction } from "./browserless.server";
 
 export interface LatamCheckinInput {
   /** LA957... (nº de compra) OU 6 letras (código de reserva) */
@@ -25,8 +27,7 @@ export interface LatamCheckinResult {
   meta?: Record<string, unknown>;
 }
 
-const LATAM_SCRIPT = /* js */ `
-export default async function ({ page, context }) {
+async function runLatamAutomation({ page, context }: { page: any; context: Record<string, unknown> }) {
   const { locator, surname, checkinUrl } = context;
   const log = [];
   const step = (m) => { log.push(new Date().toISOString() + ' — ' + m); };
@@ -132,8 +133,14 @@ export default async function ({ page, context }) {
   // Uma URL interna copiada de uma sessão anterior depende do estado da SPA e
   // pode cair em "Tivemos um problema". Começar pela busca pública reproduz o
   // caminho de um passageiro real e cria o estado exigido pela LATAM.
-  await gotoWithRetry('https://www.latamairlines.com/br/pt/check-in');
-  await sleep(2500);
+  const alreadyOpenedByStealth = Boolean(context.pageReady) && page.url().includes('latamairlines.com');
+  if (!alreadyOpenedByStealth) {
+    await gotoWithRetry('https://www.latamairlines.com/br/pt/check-in');
+    await sleep(2500);
+  } else {
+    step('continuando na mesma sessão stealth desbloqueada');
+    await sleep(1200);
+  }
 
   // Cookies / OneTrust
   let okCookies = await page.$('#onetrust-accept-btn-handler, button[id*="accept" i]');
@@ -153,6 +160,22 @@ export default async function ({ page, context }) {
   }
   await sleep(500);
   step('after form nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
+
+  // Dentro da sessão stealth já aquecida, a URL da própria reserva evita a
+  // busca pública instável da LATAM sem perder cookies, IP ou fingerprint.
+  const providedUrl = String(checkinUrl || '').trim();
+  let directReservationUrl = '';
+  if (/^https:\/\/[^/]*latamairlines\.com\//i.test(providedUrl) && /[?&]orderId=/i.test(providedUrl)) {
+    directReservationUrl = providedUrl;
+  } else if (/^LA[A-Z0-9]{6,}$/i.test(loc)) {
+    directReservationUrl = 'https://www.latamairlines.com/br/pt/check-in/status?orderId=' + encodeURIComponent(loc) + '&lastName=' + encodeURIComponent(sur.toLowerCase());
+  }
+  if (directReservationUrl) {
+    step('abrindo reserva diretamente na mesma sessão desbloqueada');
+    await gotoWithRetry(directReservationUrl);
+    await sleep(4500);
+    step('after direct reservation nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
+  }
 
   // A busca pelo número da compra e sobrenome é o fluxo primário.
   const stillOnForm = await findByText(['procurar sua viagem','insira os dados']);
@@ -179,12 +202,23 @@ export default async function ({ page, context }) {
     await submitBtn.click().catch(async () => submitBtn.evaluate((el) => el.click()));
     await sleep(4500);
     step('after manual submit: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
+
+    // Se a busca pública falhar, ainda preservamos a sessão e tentamos a rota
+    // oficial da reserva antes de considerar o fluxo interrompido.
+    const searchFailed = await findByText(['tivemos um problema','não foi possível carregar','nao foi possivel carregar']);
+    if (searchFailed && directReservationUrl) {
+      step('busca pública falhou; retomando pela URL direta da reserva');
+      await gotoWithRetry(directReservationUrl);
+      await sleep(4500);
+      step('after direct recovery: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
+    }
   }
 
   // ==== State machine unificado ====
   step('start unified state machine');
   let done = false;
   let idle = 0;
+  let flightDetailsOpened = false;
   for (let i = 0; i < 18; i++) {
     // (1) PDF disponível → sai
     const baixar = (await findByText(['baixar pdf','baixar cartão','baixar cartao'])) || (await page.$('a[download][href*=".pdf" i]'));
@@ -216,7 +250,14 @@ export default async function ({ page, context }) {
       await verCartao.click().catch(async () => verCartao.evaluate((el) => el.click()));
       await sleep(4000);
       const pagesAfterClick = await page.browser().pages();
-      const openedPage = pagesAfterClick.find((candidate) => !pagesBeforeClick.includes(candidate));
+      const openedPage = pagesAfterClick.find((candidate) =>
+        !pagesBeforeClick.includes(candidate) && candidate.url().includes('latamairlines.com')
+      );
+      for (const externalPage of pagesAfterClick.filter((candidate) =>
+        !pagesBeforeClick.includes(candidate) && !candidate.url().includes('latamairlines.com')
+      )) {
+        await externalPage.close().catch(() => {});
+      }
       if (openedPage) {
         page = openedPage;
         page.setDefaultTimeout(30_000);
@@ -232,38 +273,56 @@ export default async function ({ page, context }) {
       break;
     }
 
+    // Na página "Minhas viagens", cada trecho é um painel recolhido. O CTA
+    // do cartão só entra no DOM após abrir o voo correspondente.
+    if (!flightDetailsOpened && page.url().includes('/minhas-viagens/')) {
+      const flightRow = await findByText([
+        'segunda-feira', 'terça-feira', 'terca-feira', 'quarta-feira',
+        'quinta-feira', 'sexta-feira', 'sábado', 'sabado', 'domingo',
+      ], ['button','[role="button"]']);
+      if (flightRow) {
+        step('iter ' + i + ': abrindo detalhes do trecho');
+        await flightRow.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+        await flightRow.click().catch(async () => flightRow.evaluate((el) => el.click()));
+        await sleep(3000);
+        flightDetailsOpened = true;
+        idle = 0;
+        continue;
+      }
+    }
+
     // (4) "Fazer check-in"
-    const fazerCheckin = await findByText(['fazer check-in','fazer checkin','iniciar check-in']);
+    const fazerCheckin = await findByText(['fazer check-in','fazer checkin','iniciar check-in'], ['button','a','[role="button"]']);
     if (fazerCheckin) { step('iter ' + i + ': "Fazer check-in"'); await fazerCheckin.click().catch(() => {}); await sleep(2500); idle = 0; continue; }
 
     // (5) Elementos perigosos → "Entendi"
-    const entendi = await findByText(['entendi','entendido']);
+    const entendi = await findByText(['entendi','entendido'], ['button','[role="button"]']);
     if (entendi) { step('iter ' + i + ': Entendi'); await entendi.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
 
     // (6) Contato de emergência → "Não quero"
-    const naoQuero = await findByText(['não quero entregar','nao quero entregar','não quero informar','nao quero informar','não desejo informar']);
+    const naoQuero = await findByText(['não quero entregar','nao quero entregar','não quero informar','nao quero informar','não desejo informar'], ['button','label','[role="button"]']);
     if (naoQuero) {
       step('iter ' + i + ': marcando "não quero"');
       await naoQuero.click().catch(() => {});
       await sleep(600);
-      const salvar = await findByText(['salvar','continuar']);
+      const salvar = await findByText(['salvar','continuar'], ['button','[role="button"]']);
       if (salvar) { await salvar.click().catch(() => {}); await sleep(2500); }
       idle = 0; continue;
     }
 
     // (7) Seleção de todos passageiros
-    const passAll = await page.$('input[type="checkbox"][id*="all" i]') || await findByText(['todos os passageiros']);
+    const passAll = await page.$('input[type="checkbox"][id*="all" i]') || await findByText(['todos os passageiros'], ['label','button','[role="button"]']);
     if (passAll) {
       step('iter ' + i + ': todos os passageiros');
       await passAll.click().catch(() => {});
       await sleep(600);
-      const cont = await findByText(['continuar','confirmar']);
+      const cont = await findByText(['continuar','confirmar'], ['button','[role="button"]']);
       if (cont) { await cont.click().catch(() => {}); await sleep(2000); }
       idle = 0; continue;
     }
 
     // (8) Skip seguro/upgrade/assento
-    const skip = await findByText(['agora não','agora nao','não, obrigado','nao, obrigado','pular','manter assento','continuar sem alterar','continuar sem','recusar','dispensar']);
+    const skip = await findByText(['agora não','agora nao','não, obrigado','nao, obrigado','pular','manter assento','continuar sem alterar','continuar sem','recusar','dispensar'], ['button','[role="button"]']);
     if (skip) { step('iter ' + i + ': skip'); await skip.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
 
     // (9) Fechar modais
@@ -271,7 +330,7 @@ export default async function ({ page, context }) {
     if (closeBtn) { step('iter ' + i + ': fechar modal'); await closeBtn.click().catch(() => {}); await sleep(1000); idle = 0; continue; }
 
     // (10) Continuar/Confirmar genérico
-    const cont = await findByText(['continuar','confirmar','aceitar']);
+    const cont = await findByText(['continuar','confirmar','aceitar'], ['button','[role="button"]']);
     if (cont) { step('iter ' + i + ': continuar/confirmar'); await cont.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
 
     step('iter ' + i + ': sem ação, aguardando');
@@ -331,36 +390,59 @@ export default async function ({ page, context }) {
     type: 'application/json',
   };
 }
-`;
+
+const LATAM_SCRIPT = `export default ${runLatamAutomation.toString()}`;
 
 
 export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCheckinResult> {
-  const res = await runBrowserlessFunction<LatamCheckinResult>(
-    LATAM_SCRIPT,
-    { locator: input.locator, surname: input.surname, checkinUrl: input.checkinUrl || "" },
-    {
+  const context = { locator: input.locator, surname: input.surname, checkinUrl: input.checkinUrl || "" };
+  let stealthError: unknown = null;
+
+  try {
+    const session = await connectBrowserlessStealth('https://www.latamairlines.com/br/pt/check-in');
+    try {
+      const result = await runLatamAutomation({
+        page: session.page,
+        context: { ...context, pageReady: true },
+      }) as { data?: LatamCheckinResult };
+      if (result.data?.boardingPassBase64) return result.data;
+      throw new Error("Browserless stealth não devolveu PDF");
+    } finally {
+      await session.browser.close().catch(() => {});
+    }
+  } catch (error) {
+    stealthError = error;
+    const detail = error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error
+        ? JSON.stringify(error)
+        : String(error);
+    console.warn("[checkin] sessão stealth indisponível; tentando fluxo residencial", {
+      error: detail.slice(0, 1_000),
+    });
+  }
+
+  try {
+    const res = await runBrowserlessFunction<LatamCheckinResult>(LATAM_SCRIPT, context, {
       timeoutMs: 120_000,
-      // A LATAM recusa a conexão HTTP/2 do Chrome de datacenter antes mesmo
-      // de carregar o HTML. Forçar HTTP/1.1 resolve a falha de protocolo;
-      // stealth + IP residencial BR evitam que o mesmo bloqueio seja aplicado
-      // pela impressão de rede/TLS.
       launch: {
         headless: false,
         stealth: true,
-        args: [
-          "--disable-http2",
-          "--disable-quic",
-          "--lang=pt-BR",
-          "--window-size=1366,900",
-        ],
+        args: ["--disable-http2", "--disable-quic", "--lang=pt-BR", "--window-size=1366,900"],
       },
       proxy: "residential",
       proxyCountry: "br",
       proxySticky: true,
-    },
-  );
-  if (!res.data?.boardingPassBase64) {
-    throw new Error("Browserless não devolveu PDF");
+    });
+    if (!res.data?.boardingPassBase64) throw new Error("Browserless não devolveu PDF");
+    return res.data;
+  } catch (fallbackError) {
+    const first = stealthError instanceof Error
+      ? stealthError.message
+      : typeof stealthError === 'object' && stealthError
+        ? JSON.stringify(stealthError)
+        : String(stealthError || "");
+    const second = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+    throw new Error(`Falha stealth: ${first.slice(0, 2_000)} | Falha residencial: ${second.slice(0, 3_000)}`);
   }
-  return res.data;
 }

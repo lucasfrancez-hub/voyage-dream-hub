@@ -99,7 +99,7 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
           .from("flight_checkins")
           .select("id, locator, pnr_surname, order_id, order_item_id, attempts")
           .in("status", ["scheduled", "failed"])
-          .lt("attempts", 3)
+          .lt("attempts", 12)
           .order("scheduled_for", { ascending: true })
           .limit(5);
 
