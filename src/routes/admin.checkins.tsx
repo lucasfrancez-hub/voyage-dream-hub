@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Download, ExternalLink, Loader2, PlaneTakeoff, RefreshCw, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { confirm } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/checkins")({
   head: () => ({ meta: [{ title: "Check-ins — VIA AIR" }] }),
