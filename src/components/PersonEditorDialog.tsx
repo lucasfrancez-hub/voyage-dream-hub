@@ -25,6 +25,8 @@ import {
 } from "@/lib/people.functions";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { confirm } from "@/lib/confirm";
+import { NfseDetailsDialog } from "@/components/nfse/NfseDetailsDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 type FormState = Omit<PersonRow, "id" | "code" | "created_at" | "updated_at" | "created_by" | "created_by_name" | "monde_id">;
 
@@ -1426,6 +1428,28 @@ function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null
     queryFn: () => list({ data: { id: personId! } }),
     enabled: !isNew && !!personId,
   });
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsRow, setDetailsRow] = useState<Record<string, unknown> | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const openDetails = async (id: string) => {
+    setLoadingId(id);
+    try {
+      const { data, error } = await supabase
+        .from("nfse_emissoes")
+        .select("*, orders(order_number)")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Nota não encontrada");
+      setDetailsRow(data as Record<string, unknown>);
+      setDetailsOpen(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao abrir");
+    } finally {
+      setLoadingId(null);
+    }
+  };
 
   if (isNew) {
     return <div className="text-sm text-muted-foreground">Salve o cadastro para ver as notas fiscais vinculadas.</div>;
@@ -1493,8 +1517,16 @@ function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-muted/20">
+              <tr
+                key={r.id}
+                className="hover:bg-muted/20 cursor-pointer"
+                onClick={() => openDetails(r.id)}
+                title="Ver detalhes da NFS-e"
+              >
                 <td className="px-3 py-2 font-mono">
+                  {loadingId === r.id ? (
+                    <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
+                  ) : null}
                   {r.numero_nfse ? `#${r.numero_nfse}` : `RPS ${r.numero_rps ?? "—"}`}
                   <span className="text-muted-foreground text-xs ml-1">/ {r.serie ?? "1"}</span>
                 </td>
@@ -1504,7 +1536,7 @@ function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null
                     {r.status}
                   </span>
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   {r.order_id ? (
                     <Link
                       to="/admin/pedidos/$id"
@@ -1529,6 +1561,8 @@ function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null
       <div className="text-[11px] text-muted-foreground text-center">
         Vínculo automático pelo CPF / CNPJ deste cadastro.
       </div>
+
+      <NfseDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} row={detailsRow} />
     </div>
   );
 }
