@@ -3061,37 +3061,18 @@ function ContractTab({ detail }: { detail: OrderDetail }) {
 
   return (
     <div className="space-y-5">
-      {/* Hero header — visual distinto do restante (gradiente + grid pattern) */}
-      <div className="relative overflow-hidden rounded-2xl border border-brand-orange/30 bg-gradient-to-br from-brand-orange/15 via-brand-orange/5 to-transparent p-6">
-        <div
-          className="absolute inset-0 opacity-[0.07] pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-        <div className="relative flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="p-3 rounded-2xl bg-brand-orange/20 border border-brand-orange/40 shrink-0 shadow-lg shadow-brand-orange/10">
-              <FolderOpen className="h-6 w-6 text-brand-orange" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-orange/80">Central de documentos</span>
-              </div>
-              <h3 className="text-xl font-bold tracking-tight">Documentos do pedido</h3>
-              <p className="text-xs text-muted-foreground mt-1 max-w-xl">
-                Emissão, assinatura digital, autorização de débito, notas fiscais e anexos vinculados a este pedido.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
-            <ShieldCheck className="h-4 w-4 text-brand-orange/70" />
-            <span>Área segura</span>
-          </div>
+      {/* Cabeçalho minimalista */}
+      <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <FolderOpen className="h-4 w-4 text-brand-orange shrink-0" />
+          <h3 className="text-sm font-semibold tracking-tight truncate">Documentos do pedido</h3>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
+          <ShieldCheck className="h-3.5 w-3.5 text-brand-orange/70" />
+          <span>Área segura</span>
         </div>
       </div>
+
 
 
       <Tabs defaultValue="contratos">
