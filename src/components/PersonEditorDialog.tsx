@@ -109,13 +109,14 @@ const emptyForm: FormState = {
 
 type TabId =
   | "detalhes" | "adicionais" | "vendas" | "financeiros"
-  | "contatos" | "anexos";
+  | "notas_fiscais" | "contatos" | "anexos";
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "detalhes", label: "Detalhes" },
   { id: "adicionais", label: "Dados Adicionais" },
   { id: "vendas", label: "Vendas" },
   { id: "financeiros", label: "Dados Financeiros" },
+  { id: "notas_fiscais", label: "Notas Fiscais" },
   { id: "contatos", label: "Contatos" },
   { id: "anexos", label: "Anexos" },
 ];
