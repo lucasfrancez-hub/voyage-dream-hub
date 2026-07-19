@@ -53,8 +53,14 @@ function Field({
   span?: 1 | 2 | 3;
 }) {
   const spanCls = span === 3 ? "md:col-span-3" : span === 2 ? "md:col-span-2" : "";
-  const rendered =
-    value == null || value === "" ? <span className="text-muted-foreground">—</span> : value;
+  const rendered: React.ReactNode =
+    value == null || value === "" ? (
+      <span className="text-muted-foreground">—</span>
+    ) : typeof value === "string" || typeof value === "number" ? (
+      String(value)
+    ) : (
+      (value as React.ReactNode)
+    );
   return (
     <div className={`flex flex-col gap-1 py-2 ${spanCls}`}>
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
