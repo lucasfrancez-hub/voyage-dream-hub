@@ -320,13 +320,13 @@ body{color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:10.2px;
     <div class="bloco">
       <div class="titulo-bloco">Prestador de serviço</div>
       <div class="conteudo">
-        <div class="razao">VIA AIR AGÊNCIA &amp; REPRESENTAÇÕES LTDA</div>
+        <div class="razao">${esc(razaoPrest || "-")}</div>
         <div class="campos-3">
-          <div class="campo"><div class="rotulo">CNPJ</div><div class="valor">${esc(fmtCpfCnpj(cfg?.cnpj || "56339877000166"))}</div></div>
-          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${esc(cfg?.inscricao_municipal || "121788")}</div></div>
+          <div class="campo"><div class="rotulo">CNPJ</div><div class="valor">${esc(fmtCpfCnpj(cnpjPrest))}</div></div>
+          <div class="campo"><div class="rotulo">Inscrição Municipal</div><div class="valor">${esc(imPrest)}</div></div>
           <div class="campo"><div class="rotulo">Regime Tributário</div><div class="valor">${esc(regime)}</div></div>
         </div>
-        <div class="endereco">${esc(cfg?.logradouro || "")}${cfg?.numero ? ", " + esc(cfg?.numero) : ""}${cfg?.bairro ? " – " + esc(cfg?.bairro) : ""}<br/>${esc(municipioPrest)}${cfg?.cep ? " – CEP " + esc(fmtCep(cfg?.cep)) : ""}</div>
+        <div class="endereco">${esc(logradouroPrest)}${numeroPrest ? ", " + esc(numeroPrest) : ""}${bairroPrest ? " – " + esc(bairroPrest) : ""}<br/>${esc(municipioPrest)}${cepPrest ? " – CEP " + esc(fmtCep(cepPrest)) : ""}</div>
         <div class="contatos"><div class="email">${esc(emailPrest)}</div><div>${esc(telPrest)}</div></div>
       </div>
     </div>
