@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plane, CheckCircle2, XCircle, Clock, RefreshCw, Download } from "lucide-react";
+import { Loader2, Plane, CheckCircle2, XCircle, Clock, RefreshCw, Download, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { listCheckins, runCheckin, detectAirline } from "@/lib/checkin/checkin.functions";
+import { listCheckins, runCheckin, detectAirline, resendBoardingPass } from "@/lib/checkin/checkin.functions";
 
 type FlightItem = {
   id: string;
@@ -32,6 +32,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   const qc = useQueryClient();
   const list = useServerFn(listCheckins);
   const run = useServerFn(runCheckin);
+  const resend = useServerFn(resendBoardingPass);
 
   const { data: checkins = [] } = useQuery({
     queryKey: ["flight-checkins", orderId],
@@ -50,6 +51,31 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
       qc.invalidateQueries({ queryKey: ["flight-checkins", orderId] });
     },
     onError: (e: any) => toast.error(`Falha no check-in: ${e?.message ?? "erro"}`),
+  });
+
+  const resendMut = useMutation({
+    mutationFn: (checkinId: string) => resend({ data: { checkinId } }),
+    onSuccess: (res) => {
+      const r = (res as any).report as {
+        attempted: number; delivered: number;
+        skippedNoPhone: Array<{ name: string }>; failed: Array<{ name: string; error: string }>;
+        usedOrderFallback: boolean;
+      } | undefined;
+      if (!r || r.delivered === 0) {
+        const noPhone = r?.skippedNoPhone.map((p) => p.name).join(", ");
+        const failed = r?.failed.map((p) => `${p.name}: ${p.error}`).join(" · ");
+        toast.error(
+          noPhone
+            ? `Nenhum passageiro tem WhatsApp cadastrado (${noPhone}). Adicione o número em "Passageiros".`
+            : failed || "Envio falhou",
+        );
+        return;
+      }
+      toast.success(
+        `Cartão enviado (${r.delivered}/${r.attempted + r.skippedNoPhone.length})${r.usedOrderFallback ? " · usou telefone do pedido" : ""}`,
+      );
+    },
+    onError: (e: any) => toast.error(`Falha ao enviar: ${e?.message ?? "erro"}`),
   });
 
   // Só mostra voos LATAM
@@ -92,6 +118,20 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                   <a href={checkin.boarding_pass_url} target="_blank" rel="noreferrer">
                     <Button size="sm" variant="outline"><Download className="h-3.5 w-3.5 mr-1" />PDF</Button>
                   </a>
+                )}
+                {checkin?.status === "success" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={resendMut.isPending && resendMut.variables === checkin.id}
+                    onClick={() => resendMut.mutate(checkin.id)}
+                    title="Reenviar cartão pelo WhatsApp dos passageiros"
+                  >
+                    {resendMut.isPending && resendMut.variables === checkin.id
+                      ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                      : <Send className="h-3.5 w-3.5 mr-1" />}
+                    Enviar cartão
+                  </Button>
                 )}
                 <Button
                   size="sm"

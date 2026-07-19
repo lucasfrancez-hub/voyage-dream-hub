@@ -50,8 +50,25 @@ function CheckinsPage() {
   async function handleResend(id: string) {
     setSendingId(id);
     try {
-      await resend({ data: { checkinId: id } });
-      toast.success("Cartão de embarque enviado no WhatsApp");
+      const res = await resend({ data: { checkinId: id } });
+      const r = (res as any).report as {
+        attempted: number; delivered: number;
+        skippedNoPhone: Array<{ name: string }>; failed: Array<{ name: string; error: string }>;
+        usedOrderFallback: boolean;
+      } | undefined;
+      if (!r || r.delivered === 0) {
+        const noPhone = r?.skippedNoPhone.map((p) => p.name).join(", ");
+        const failed = r?.failed.map((p) => `${p.name}: ${p.error}`).join(" · ");
+        toast.error(
+          noPhone
+            ? `Nenhum passageiro tem WhatsApp cadastrado (${noPhone}). Adicione o número em "Passageiros".`
+            : failed || "Envio falhou",
+        );
+      } else {
+        toast.success(
+          `Cartão enviado (${r.delivered}/${r.attempted + r.skippedNoPhone.length})${r.usedOrderFallback ? " · usou telefone do pedido" : ""}`,
+        );
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao enviar");
     } finally {
