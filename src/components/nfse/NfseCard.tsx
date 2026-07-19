@@ -403,6 +403,19 @@ export function NfseCard({
           <div className="text-xs text-muted-foreground mt-0.5">
             Emissão via AtendeNet (IPM) · Paranavaí/PR · ISS 4% · Item 9.02
           </div>
+          {prestadores.length > 0 && (
+            <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
+              <span className="uppercase tracking-wider">Prestador{prestadores.length > 1 ? "es" : ""}:</span>
+              {prestadores.map((p, i) => (
+                <span key={p.id} className="inline-flex items-center gap-1">
+                  <span className={`px-1.5 py-0.5 rounded-md border ${p.padrao ? "bg-brand-orange/10 text-brand-orange border-brand-orange/20" : "bg-muted text-foreground/80 border-border"} font-medium`}>
+                    {p.nome_fantasia || p.razao_social}
+                  </span>
+                  {i < prestadores.length - 1 && <span>·</span>}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <Button size="sm" onClick={openDialog}>
           <Send className="h-3.5 w-3.5 mr-1.5" /> Emitir NFS-e
