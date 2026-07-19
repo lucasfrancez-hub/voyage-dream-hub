@@ -285,9 +285,19 @@ export function NfseCard({
   };
 
   const openDialog = () => {
+    const jaAutorizada = (emissoes ?? []).some(
+      (e) => e.status === "autorizado" || e.status === "emitida",
+    );
+    if (jaAutorizada) {
+      const ok = window.confirm(
+        "Esse pedido já tem nota fiscal autorizada. Tem certeza que deseja prosseguir e emitir outra?",
+      );
+      if (!ok) return;
+    }
     setForm(buildInitialForm());
     setOpen(true);
   };
+
 
   // Se a pessoa carregar depois de abrir, repopula
   useEffect(() => {
