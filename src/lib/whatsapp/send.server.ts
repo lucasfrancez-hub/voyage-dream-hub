@@ -6,8 +6,11 @@
 const GRAPH_VERSION = "v21.0";
 
 function normalizePhone(raw: string): string {
-  // Meta espera E.164 sem o "+". "+55 (48) 99999-9999" -> "5548999999999"
-  return raw.replace(/\D/g, "");
+  // Meta espera E.164 sem o "+". Ex.: "+55 (48) 99999-9999" -> "5548999999999".
+  // Se vier só DDD+número (10 ou 11 dígitos), assume Brasil e prefixa 55.
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10 || digits.length === 11) return "55" + digits;
+  return digits;
 }
 
 export async function sendWhatsAppText(to: string, body: string): Promise<{ id: string | null; error?: string }> {
