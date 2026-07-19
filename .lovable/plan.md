@@ -1,92 +1,80 @@
-## O que muda para o cliente
 
-Na página do **link de cartão seguro** (`/pagar`, modo `secureMode`):
+# Robô de check-in automático — LATAM / GOL / AZUL
 
-Antes:
-1. Preenche dados + cartão
-2. Aceita termos
-3. Desenha assinatura no touchpad
-4. Faz verificação facial (liveness) próprio em 5 passos
-5. Clica "Fazer pedido"
+Robô que abre a página oficial "Minhas Viagens" da cia ~48h antes do voo, faz check-in usando localizador + sobrenome, baixa os cartões de embarque em PDF e manda pro passageiro por WhatsApp + e-mail. Sem login de conta — só fluxo público.
 
-Depois:
-1. Preenche dados + cartão
-2. Aceita termos
-3. Clica em **"Assinar autorização com ClickSign"** → abre uma **janela embutida na própria página** (modal, sem redirect)
-4. Dentro do widget faz: selfie dinâmica (prova de vida) + foto do documento + **geolocalização obrigatória** + assinatura ICP-Brasil da ClickSign
-5. Widget confirma → botão "Fazer pedido" desbloqueia
-6. Clica "Fazer pedido" → pedido criado com PDF da autorização **já assinado e com o carimbo/página de certificação da ClickSign** anexado
+## Arquitetura
 
-Fluxo do **admin/pedidos** continua idêntico ao atual (contrato + recibo por e-mail/WhatsApp).
+```text
+pg_cron (a cada 5min)
+    ↓
+/api/public/hooks/checkin-scheduler  (TSS route)
+    ↓ (pega jobs cujo run_at <= now())
+Playwright em Browserless.io  (Chrome headless remoto via WSS)
+    ↓
+Baixa PDFs → sobe pro bucket order-documents/checkin/{order}/{passenger}.pdf
+    ↓
+Camila (WhatsApp) + template transacional "cartao-embarque-disponivel" (e-mail)
+    ↓
+Marca job = done; grava log
+```
 
-## O que muda por baixo
+Playwright roda **no Browserless** (`wss://production-sfo.browserless.io?token=...`), não no Worker. Nosso servidor só conecta via `playwright.chromium.connect()`, executa o roteiro, recebe PDFs e fecha. Zero binário nativo no Cloudflare — só um WebSocket.
 
-### 1. Config do sandbox
-- Aproveitar o novo secret `CLICKSIGN_SANDBOX_API_TOKEN` que você acabou de salvar
-- Ler variável de ambiente `CLICKSIGN_ENV` (default `sandbox` enquanto testamos) para escolher entre sandbox e produção
-- Ajustar o helper `csFetch` em `src/lib/clicksign.functions.ts` pra usar `https://sandbox.clicksign.com/api/v1` + `CLICKSIGN_SANDBOX_API_TOKEN` quando estiver em sandbox
+## Trabalho
 
-### 2. Nova server function
-`createEmbeddedAuthorization` em `src/lib/clicksign.functions.ts`:
-- Recebe: dados do cliente (nome, CPF, email, telefone, nascimento) + PDF da autorização em base64 + snapshot dos dados da autorização
-- Faz na ClickSign:
-  - Cria documento (`/documents`)
-  - Cria signer com `liveness_enabled: true`, `official_document_enabled: true`, `location_required_enabled: true` (geolocalização obrigatória), `handwritten_enabled: false`, `selfie_enabled: true`
-  - Vincula ao documento (`/lists`)
-  - **Não dispara notificações** (o cliente vai assinar direto no widget)
-  - Gera `request_signature_key` (que é retornado pelo `/lists`)
-- Persiste um registro provisório em uma nova tabela (ver item 4) para depois vincular ao pedido quando o "Fazer pedido" for clicado
-- Retorna `{ pendingId, requestSignatureKey, documentKey }`
+### 1. Secret + config
+- Novo secret: `BROWSERLESS_TOKEN` (via `add_secret` — o usuário cria conta em browserless.io, plano ~US$50/mês, cola o token).
+- `src/lib/checkin/browserless.server.ts`: helper `withBrowser(fn)` que abre/fecha conexão e trata timeout.
 
-### 3. Componente `<ClickSignEmbedded />`
-Novo arquivo `src/components/ClickSignEmbedded.tsx`:
-- Carrega dinamicamente o script `https://cdn.clicksign.com/widget.js`
-- Recebe `requestSignatureKey` e callbacks `onSigned`, `onClosed`, `onResized`
-- Monta o widget em um `<div>` dentro de um `Dialog` (shadcn) — janela embutida na página, sem redirect
-- Detecta o evento `signed` do widget e chama `onSigned`
+### 2. Tabela `checkin_jobs` (nova migration)
+Colunas: `id`, `order_id`, `order_item_id` (voo), `passenger_id`, `airline` (LA/G3/AD), `locator`, `last_name`, `origin_iata`, `flight_number`, `depart_at`, `run_at` (quando tentar), `status` (pending/running/done/failed/manual), `attempt_count`, `last_error`, `pdf_path` (storage), `sent_whatsapp_at`, `sent_email_at`, `created_at`, `updated_at`.
+RLS: só admin lê/edita; `service_role` full. Trigger em `order_items` (kind=flight) cria/atualiza job pendente por passageiro quando o voo é salvo/importado com `depart_at`, `locator`, e nome do passageiro. `run_at = depart_at - X` (LA=48h, G3=72h, AD=60h). Se voo alterar/cancelar → cancela jobs futuros.
 
-### 4. Nova tabela `pending_authorization_signatures`
-Antes de o pedido existir, precisamos guardar a assinatura pendente (não dá pra usar `pedido_assinaturas` porque exige `pedido_id`). Colunas:
-- `id`, `clicksign_document_key`, `clicksign_signer_key`, `clicksign_request_signature_key`
-- `status` (`pending` | `signed` | `refused`)
-- `signed_pdf_path` (preenchido pelo webhook quando a ClickSign avisa que assinou)
-- `snapshot` (jsonb com dados da autorização pra reconstruir)
-- `created_at`, `updated_at`
-- RLS: público pode inserir e ler pelo `id` (é fluxo público, sem auth); apenas service_role pode alterar
+### 3. Scrapers por cia (`src/lib/checkin/airlines/`)
+Um arquivo por cia — cada um exporta `runCheckin(page, ctx) → { boardingPassPdf: Buffer, seat?: string, warnings: string[] } | { needsManual: reason }`.
+- `latam.ts`: abre `/minhas-viagens/second-detail?orderId=...&lastname=...` → clica "Fazer check-in" → aceita termos → sem escolha de assento → "Continuar" → baixa PDF em "Cartão de embarque".
+- `gol.ts`: `voegol.com.br/checkin/localizador` → PNR + sobrenome + origem → seleciona todos passageiros → aceita assento sugerido → baixa PDF.
+- `azul.ts`: fluxo equivalente na Azul.
 
-Quando o "Fazer pedido" for enviado com sucesso, o backend copia o PDF assinado do bucket `assinaturas` pro pedido criado e limpa o registro pendente (ou marca como consumido).
+Se aparecer captcha, pedido de senha, cobrança de assento/bagagem, ou qualquer coisa fora do fluxo grátis → retorna `needsManual` com o motivo. Nunca preenche cartão.
 
-### 5. Webhook `/api/public/clicksign-webhook`
-Já existe e trata `auto_close`/`close`. Estender pra:
-- Se o `document_key` for de um `pending_authorization_signatures` (e não de `pedido_assinaturas`), baixar o PDF assinado, salvar em `assinaturas/pending/{id}.pdf` e marcar `status = signed`
+### 4. Runner (`src/lib/checkin/runner.server.ts`)
+`processCheckinJob(jobId)`:
+1. Marca `running`.
+2. Chama scraper da cia.
+3. Se `needsManual` → status `manual`, notifica sino do admin.
+4. Se PDF → sobe pro bucket `order-documents` (path `checkin/{order_id}/{passenger_id}-{flight_number}.pdf`), grava `pdf_path`, `status = done`.
+5. Se erro transitório → incrementa `attempt_count`, reagenda `run_at + 10min` até 5 tentativas.
+6. Se `status = done` e ainda não enviou → dispara WhatsApp (Camila anexa PDF) + e-mail.
 
-### 6. Ajustes em `src/routes/pagar.tsx`
-- Remover `SignaturePad` e `FaceLiveness` do JSX (linhas 571 e 595)
-- Remover a captura de liveness/IP/geo próprios (linhas 160–256) — a ClickSign passa a coletar geolocalização
-- Substituir por um botão "Assinar autorização com ClickSign" que:
-  - Gera o PDF da autorização usando `buildAuthorizationBlob({ pendingSignature: true })` (já existe)
-  - Chama `createEmbeddedAuthorization` → recebe `requestSignatureKey`
-  - Abre modal com `<ClickSignEmbedded />`
-  - Faz polling curto (a cada 3s) do status ou espera o callback `onSigned` do widget + confirma pelo backend
-- Botão "Fazer pedido" só habilita quando `signatureStatus === 'signed'`
-- Ao clicar "Fazer pedido", envia o `pendingId` junto no `orders.insert` (no campo `package_snapshot.card_capture.clicksign`)
-- Trigger no backend (ou uma edge function chamada logo depois) copia o PDF assinado pro pedido
+### 5. Rota cron `src/routes/api/public/hooks/checkin-scheduler.ts`
+`pg_cron` chama a cada 5min. Pega até 5 jobs `pending` com `run_at <= now()`, processa em paralelo (limite pra não estourar sessão Browserless). Verifica `apikey` = anon key.
 
-### 7. Manter fallback
-Se `CLICKSIGN_SANDBOX_API_TOKEN` não estiver configurado ou der erro na ClickSign, mostrar mensagem clara pro cliente e admin — sem cair no fluxo antigo (senão a gente nunca sabe se tá funcionando no sandbox).
+### 6. Envio ao cliente
+- **WhatsApp**: novo tool no `camila-runner` — quando `checkin_jobs` completa, cria mensagem "Seu check-in foi feito automaticamente ✈️ Seguem os cartões de embarque:" + anexo PDF por passageiro.
+- **E-mail**: novo template `cartao-embarque-disponivel.tsx` em `src/lib/email-templates/` + registro em `registry.ts`. Anexa PDFs.
+- Também aparece em **Documentos** do pedido (integra com `OrderDocuments.tsx`).
 
-## Como testar depois de implementado
+### 7. UI no pedido
+- Aba "Check-in automático" dentro do pedido mostrando cada voo × passageiro: status (agendado / feito / falhou / manual), horário previsto, PDF, botão "Tentar agora", botão "Cancelar agendamento", botão "Fazer manual" (marca como resolvido e permite upload do PDF).
+- Sino de notificação quando job vira `manual` ou `failed`.
 
-1. Abrir um link de cartão seguro (ex: `/pagar?desc=...&total=1000&pedido=...&simples=0`)
-2. Preencher dados + cartão + aceitar termos
-3. Clicar "Assinar autorização com ClickSign" → widget abre na tela
-4. Fazer selfie, foto do documento, aprovar geolocalização
-5. Widget fecha automaticamente
-6. Clicar "Fazer pedido"
-7. Verificar no admin que o pedido veio com PDF assinado (com o carimbo ClickSign no fim)
+### 8. Cron
+Migration via `insert` tool: agenda `pg_cron` a cada 5 min chamando `/api/public/hooks/checkin-scheduler` com header `apikey`.
 
-## Fora do escopo
+## Trade-offs importantes que você precisa saber
 
-- Nada muda no fluxo de contrato+recibo dos pedidos do admin (ClickSignCard)
-- Não altera o link simples (`simples=1`) — continua sem exigir assinatura
-- Não altera pacotes prontos, checkout de pacote, boleto, etc.
+- **~US$50/mês do Browserless** + eventual scraping quebrando quando as cias mudam HTML (fase de manutenção contínua — cada cia é uma mini-integração viva).
+- **Sem login = limitado**: se a cia exigir senha da conta pra baixar o PDF (Azul às vezes faz isso), o job vira `manual` e você conclui na mão. Não vejo isso quebrando >20% dos casos hoje, mas é o risco real.
+- **Cias detectam automação**: usamos User-Agent realista + delays humanos, mas se começarem a bloquear IP do Browserless a gente pode precisar migrar pra residential proxy (custo extra).
+- **Assento**: aceita o que a cia oferecer grátis (conforme você escolheu). Se cair em "escolha seu assento" com todos pagos, marca `manual`.
+
+## Escopo desta implementação
+Nacionais: **LATAM (LA), GOL (G3), AZUL (AD)** — sem internacionais. Envio duplo (WhatsApp + e-mail + Documentos). Só check-in básico. Só fluxo público (localizador + sobrenome), sem login de conta.
+
+## Não incluso (fase 2, se quiser depois)
+- Escolha inteligente de assento (janela/corredor).
+- Internacionais (AA, LATAM internacional, Copa, etc.).
+- Rescheduling automático quando cia altera voo.
+- Login com conta do passageiro pra cias que exigem.
