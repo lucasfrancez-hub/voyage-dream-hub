@@ -317,6 +317,13 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                               : <><Code2 className="h-3 w-3 mr-1" />Código</>}
                           </Badge>
                         )}
+                        {checkin?.id && (checkin?.boarding_pass_url || checkin?.boarding_pass_path) && (
+                          <a href={`/api/public/bp/${checkin.id}`} target="_blank" rel="noreferrer">
+                            <Button size="sm" variant="outline" className="h-7">
+                              <Download className="h-3.5 w-3.5 mr-1" />PDF
+                            </Button>
+                          </a>
+                        )}
                         {checkin?.id && checkin?.status === "success" && (
                           <Button
                             size="sm"
