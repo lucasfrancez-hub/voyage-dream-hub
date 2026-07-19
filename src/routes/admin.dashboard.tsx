@@ -289,10 +289,12 @@ function DashboardPage() {
               <div className="text-2xl font-semibold">{formatBRL(stats.monthTotal)}</div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-[11px] text-muted-foreground">Comissão</div>
-                <div className="text-lg font-semibold text-brand-orange">{formatBRL(stats.monthCommission)}</div>
-              </div>
+              {isAdmin && (
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Comissão</div>
+                  <div className="text-lg font-semibold text-brand-orange">{formatBRL(stats.monthCommission)}</div>
+                </div>
+              )}
               <div>
                 <div className="text-[11px] text-muted-foreground">Pedidos</div>
                 <div className="text-lg font-semibold">{stats.monthCount}</div>
