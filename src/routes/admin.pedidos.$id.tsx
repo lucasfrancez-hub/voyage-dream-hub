@@ -59,7 +59,9 @@ import { CommissionDefaultsDialog } from "@/components/CommissionDefaultsDialog"
 
 import { OrderDocuments } from "@/components/OrderDocuments";
 import { ClickSignCard } from "@/components/clicksign/ClickSignCard";
-import { NfseCard } from "@/components/nfse/NfseCard";
+import { NfseCard, buildInitialNfseForm, buildEmitirNfsePayload } from "@/components/nfse/NfseCard";
+import { emitirNfse } from "@/lib/nfse.functions";
+import { getPerson } from "@/lib/people.functions";
 import { getSignatureStatus } from "@/lib/clicksign.functions";
 import type { Json } from "@/integrations/supabase/types";
 import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
