@@ -147,7 +147,7 @@ export const runCheckin = createServerFn({ method: "POST" })
         console.error("[checkin] delivery failed", e);
       }
 
-      return { ok: true, id: checkin.id, url };
+      return { ok: true, id: checkin.id, url } as const;
     } catch (err: any) {
       const msg = err?.message ?? String(err);
       console.error("[checkin] LATAM automation failed", {
@@ -166,6 +166,6 @@ export const runCheckin = createServerFn({ method: "POST" })
 
       // Falhas de fornecedores externos são retornadas como resultado tipado.
       // Não lançar aqui evita o overlay/blank screen do runtime no painel.
-      return { ok: false, id: checkin.id, error: friendlyError };
+      return { ok: false, id: checkin.id, error: friendlyError } as const;
     }
   });
