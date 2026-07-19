@@ -15,6 +15,8 @@ export interface LatamCheckinInput {
   /** LA957... (nº de compra) OU 6 letras (código de reserva) */
   locator: string;
   surname: string;
+  /** Link original importado da reserva LATAM. */
+  checkinUrl?: string;
 }
 
 export interface LatamCheckinResult {
@@ -25,7 +27,7 @@ export interface LatamCheckinResult {
 
 const LATAM_SCRIPT = /* js */ `
 export default async function ({ page, context }) {
-  const { locator, surname } = context;
+  const { locator, surname, checkinUrl } = context;
   const log = [];
   const step = (m) => { log.push(new Date().toISOString() + ' — ' + m); };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -127,13 +129,28 @@ export default async function ({ page, context }) {
     throw lastErr;
   };
 
-  // Estratégia: navegar direto para /check-in/status?orderId=...&lastName=...
-  // A LATAM aceita LA957... (nº de compra) OU 6 letras (código de reserva) no orderId.
-  // Isso pula o formulário inicial e cai direto na página da reserva.
+  // Usa primeiro o link original salvo no pedido. A LATAM altera os caminhos
+  // internos e a URL reconstruída pode cair numa tela genérica de erro.
   const statusUrl = 'https://www.latamairlines.com/br/pt/check-in/status?orderId='
     + encodeURIComponent(loc) + '&lastName=' + encodeURIComponent(sur.toLowerCase());
-  await gotoWithRetry(statusUrl);
-  await sleep(3500);
+  const sourceUrl = (() => {
+    try {
+      const parsed = new URL(String(checkinUrl || ''));
+      return parsed.hostname.endsWith('latamairlines.com') ? parsed.toString() : '';
+    } catch { return ''; }
+  })();
+  const entryUrls = [...new Set([sourceUrl, statusUrl].filter(Boolean))];
+  for (let entryIndex = 0; entryIndex < entryUrls.length; entryIndex++) {
+    step('entry ' + (entryIndex + 1) + ': ' + entryUrls[entryIndex].split('?')[0]);
+    await gotoWithRetry(entryUrls[entryIndex]);
+    await sleep(3500);
+    const pageHasLatamError = await page.evaluate(() => {
+      const norm = (document.body?.innerText || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return norm.includes('tivemos um problema') || norm.includes('nao foi possivel carregar a informacao');
+    }).catch(() => false);
+    if (!pageHasLatamError || entryIndex === entryUrls.length - 1) break;
+    step('entrada rejeitada pela LATAM; tentando o link alternativo');
+  }
 
   // Cookies / OneTrust
   const okCookies = await page.$('#onetrust-accept-btn-handler');
@@ -178,7 +195,7 @@ export default async function ({ page, context }) {
   step('start unified state machine');
   let done = false;
   let idle = 0;
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 24; i++) {
     // (1) PDF disponível → sai
     const baixar = (await findByText(['baixar pdf','baixar cartão','baixar cartao'])) || (await page.$('a[download][href*=".pdf" i]'));
     if (baixar) { step('iter ' + i + ': "Baixar PDF" visível'); done = true; break; }
@@ -330,9 +347,9 @@ export default async function ({ page, context }) {
 export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCheckinResult> {
   const res = await runBrowserlessFunction<LatamCheckinResult>(
     LATAM_SCRIPT,
-    { locator: input.locator, surname: input.surname },
+    { locator: input.locator, surname: input.surname, checkinUrl: input.checkinUrl || "" },
     {
-      timeoutMs: 240_000,
+      timeoutMs: 150_000,
       // A LATAM recusa a conexão HTTP/2 do Chrome de datacenter antes mesmo
       // de carregar o HTML. Forçar HTTP/1.1 resolve a falha de protocolo;
       // stealth + IP residencial BR evitam que o mesmo bloqueio seja aplicado
@@ -350,6 +367,7 @@ export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCh
       proxy: "residential",
       proxyCountry: "br",
       proxySticky: true,
+      blockConsentModals: true,
     },
   );
   if (!res.data?.boardingPassBase64) {

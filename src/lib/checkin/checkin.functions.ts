@@ -43,7 +43,7 @@ export const listAllCheckins = createServerFn({ method: "GET" })
     const sb = context.supabase as any;
     const { data, error } = await sb
       .from("flight_checkins")
-      .select("*, order:orders(id, order_number, full_name)")
+      .select("*, order:orders(id, order_number, full_name), item:order_items(details)")
       .order("departure_at", { ascending: true, nullsFirst: false })
       .limit(500);
     if (error) throw new Error(error.message);
@@ -68,6 +68,7 @@ export const runCheckin = createServerFn({ method: "POST" })
 
     // Carrega ou cria o registro de check-in
     let checkin: any = null;
+    let airlineCheckinUrl = "";
     if (data.checkinId) {
       const r = await sb.from("flight_checkins").select("*").eq("id", data.checkinId).maybeSingle();
       checkin = r.data;
@@ -80,6 +81,7 @@ export const runCheckin = createServerFn({ method: "POST" })
       const airline = detectAirline({ airline: item.details?.airline, flight_number: item.details?.flight_number });
       if (airline !== "LATAM") throw new Error("Fase 1 só suporta LATAM");
       const checkinUrl = (item.details?.airline_checkin_url || "").toString();
+      airlineCheckinUrl = checkinUrl;
       let orderIdFromUrl = "";
       try {
         orderIdFromUrl = new URL(checkinUrl).searchParams.get("orderId")?.trim().toUpperCase() || "";
@@ -137,6 +139,7 @@ export const runCheckin = createServerFn({ method: "POST" })
         .maybeSingle();
       const item = itemResult.data as any;
       const checkinUrl = (item?.details?.airline_checkin_url || "").toString();
+      airlineCheckinUrl = checkinUrl;
       let latamOrderId = "";
       try {
         latamOrderId = new URL(checkinUrl).searchParams.get("orderId")?.trim().toUpperCase() || "";
@@ -165,7 +168,7 @@ export const runCheckin = createServerFn({ method: "POST" })
 
     try {
       const { runLatamCheckin } = await import("./latam.server");
-      const result = await runLatamCheckin({ locator: checkin.locator, surname: checkin.pnr_surname });
+      const result = await runLatamCheckin({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
 
       // Upload no storage
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -205,7 +208,9 @@ export const runCheckin = createServerFn({ method: "POST" })
 
       const isNavigationBlock = /ERR_HTTP2_PROTOCOL_ERROR|ERR_QUIC_PROTOCOL_ERROR|ERR_CONNECTION_RESET/i.test(msg);
       const isIncompleteFlow = /Fluxo LATAM terminou antes do cartão/i.test(msg);
-      const friendlyError = isNavigationBlock
+      const isProviderTimeout = /Browserless HTTP 408|Request has timed out|AbortError/i.test(msg);
+      const isLatamBlock = /Tivemo.? um problema|não foi po.?ível carregar|nao foi possivel carregar/i.test(msg);
+      const friendlyError = isNavigationBlock || isProviderTimeout || isLatamBlock
         ? "A LATAM recusou temporariamente a conexão automática. O check-in ficou pendente e poderá ser tentado novamente."
         : isIncompleteFlow
           ? "A LATAM abriu a reserva, mas ainda não disponibilizou o cartão de embarque para download."
@@ -217,6 +222,6 @@ export const runCheckin = createServerFn({ method: "POST" })
 
       // Falhas de fornecedores externos são retornadas como resultado tipado.
       // Não lançar aqui evita o overlay/blank screen do runtime no painel.
-      return { ok: false, id: checkin.id, error: friendlyError } as const;
+      return { ok: false, id: checkin.id, error: friendlyError, manualUrl: airlineCheckinUrl || null } as const;
     }
   });

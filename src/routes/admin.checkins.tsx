@@ -5,7 +5,7 @@ import { listAllCheckins, runCheckin } from "@/lib/checkin/checkin.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, Loader2, PlaneTakeoff, RefreshCw } from "lucide-react";
+import { Download, ExternalLink, Loader2, PlaneTakeoff, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -84,6 +84,11 @@ function CheckinsPage() {
               {r.boarding_pass_url && (
                 <a href={r.boarding_pass_url} target="_blank" rel="noreferrer">
                   <Button size="sm" variant="outline"><Download className="h-3.5 w-3.5 mr-1" />PDF</Button>
+                </a>
+              )}
+              {r.item?.details?.airline_checkin_url && r.status !== "success" && (
+                <a href={r.item.details.airline_checkin_url} target="_blank" rel="noreferrer">
+                  <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1" />Abrir na LATAM</Button>
                 </a>
               )}
               <Button
