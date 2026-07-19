@@ -893,7 +893,7 @@ export const listPersonNfse = createServerFn({ method: "POST" })
       .from("nfse_emissoes")
       .select(`
         id, order_id, status, numero_nfse, numero_rps, serie, data_emissao,
-        valor_servicos, valor_iss, valor_liquido, codigo_verificacao,
+        valor_servicos, valor_iss, valor_iss_retido, valor_liquido, codigo_verificacao,
         cancelada_em, motivo_cancelamento,
         orders ( order_number )
       `)
