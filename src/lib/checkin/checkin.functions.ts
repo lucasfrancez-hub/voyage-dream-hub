@@ -235,7 +235,7 @@ export const runCheckin = createServerFn({ method: "POST" })
       const surname = firstPax?.full_name?.split(/\s+/).slice(-1)[0] ?? "";
       if (!surname) throw new Error("Sobrenome do passageiro não encontrado");
 
-      const departureAt = item.details?.departure_at || null;
+      const departureAt = item.details?.depart_at || item.details?.departure_at || null;
 
       const up = await sb
         .from("flight_checkins")
