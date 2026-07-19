@@ -328,6 +328,10 @@ function DashboardPage() {
         </div>
       </div>
 
+      {/* Check-ins — resumo */}
+      <CheckinsOverview />
+
+
       {/* Financeiro: a pagar / a receber (admin) */}
       {isAdmin && (
         <div className="grid gap-3 md:grid-cols-2">
