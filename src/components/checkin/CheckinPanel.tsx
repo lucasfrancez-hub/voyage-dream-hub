@@ -276,6 +276,21 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                             </Button>
                           </a>
                         )}
+                        {checkin?.id && checkin?.status === "success" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7"
+                            disabled={resendMut.isPending}
+                            onClick={() => resendMut.mutate(checkin.id)}
+                            title="Reenviar este cartão pelo WhatsApp"
+                          >
+                            {resendMut.isPending
+                              ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              : <Send className="h-3.5 w-3.5 mr-1" />}
+                            Enviar
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );
