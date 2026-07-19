@@ -184,9 +184,17 @@ export default async function ({ page, context }) {
       await sleep(2000); idle++; if (idle > 5) break; continue;
     }
 
-    // (3) "Ver cartão(ões) de embarque"
-    const verCartao = await findByText(['ver cartão','ver cartao','cartões de embarque','cartoes de embarque','cartão de embarque']);
-    if (verCartao) { step('iter ' + i + ': "Ver cartão"'); await verCartao.click().catch(() => {}); await sleep(2500); idle = 0; continue; }
+    // (3) "Ver cartão(ões) de embarque" — restrito a button/a para não pegar badges
+    const verCartao = await findByText(['ver cartão','ver cartao','ver cartões','ver cartoes'], ['button','a']);
+    if (verCartao) {
+      step('iter ' + i + ': "Ver cartão(ões) de embarque"');
+      await verCartao.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+      await verCartao.click().catch(async () => verCartao.evaluate((el) => el.click()));
+      await sleep(4000);
+      done = true; // já entramos na tela do cartão
+      idle = 0;
+      continue;
+    }
 
     // (4) "Fazer check-in"
     const fazerCheckin = await findByText(['fazer check-in','fazer checkin','iniciar check-in']);
