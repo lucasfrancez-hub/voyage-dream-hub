@@ -108,10 +108,9 @@ function NotasFiscaisPage() {
     return { valor, iss };
   }, [rows]);
 
-  const getPrestadorName = (r: Row): string => {
-    const p = (r as Row & { prestador?: { nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
-    return prestadorShortLabel(p);
-  };
+  const getPrestador = (r: Row) =>
+    (r as Row & { prestador?: { cnpj?: string | null; nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador ?? null;
+  const getPrestadorName = (r: Row): string => prestadorShortLabel(getPrestador(r));
 
   const { data: configs = [] } = useQuery({
     queryKey: ["nfse", "configs"],
