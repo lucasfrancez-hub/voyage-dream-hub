@@ -651,6 +651,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
       }
     }
     // Fallback: imprime a tela — força "screen" e espera o conteúdo carregar
+    await dismissHazmatGate();
     try { await page.emulateMediaType('screen'); } catch (_) {}
     try {
       await page.waitForFunction(() => {
