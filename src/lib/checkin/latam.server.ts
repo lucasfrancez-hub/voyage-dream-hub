@@ -29,6 +29,15 @@ export default async function ({ page, context }) {
   const log = [];
   const step = (m) => { log.push(new Date().toISOString() + ' — ' + m); };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const bytesToBase64 = (value) => {
+    const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  };
 
   // Helpers (Puppeteer não tem :has-text nem fill)
   const findByText = async (texts, tags = ['button','a','label','span','div']) => {
@@ -50,10 +59,30 @@ export default async function ({ page, context }) {
     }, tags, arr).then((h) => h.asElement());
   };
   const clearAndType = async (handle, text) => {
+    await handle.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
     await handle.click({ clickCount: 3 }).catch(() => {});
     await page.keyboard.press('Backspace').catch(() => {});
     await handle.type(text, { delay: 40 });
+    await handle.evaluate((el) => {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      el.blur();
+    }).catch(() => {});
   };
+  const visiblePageState = async () => page.evaluate(() => {
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      return r.width > 0 && r.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+    const text = (el) => (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ');
+    return {
+      a: Array.from(document.querySelectorAll('[role="alert"],[aria-live],.error,[class*="error" i]')).filter(visible).map(text).filter(Boolean).slice(0, 4),
+      f: Array.from(document.querySelectorAll('input')).filter(visible).map((el, i) => ({ i, n: el.name || el.id || '', ok: Boolean(el.value), inv: el.getAttribute('aria-invalid') || '', val: el.validationMessage || '' })).slice(0, 6),
+      b: Array.from(document.querySelectorAll('button,[role="button"]')).filter(visible).map((el) => ({ t: text(el), d: Boolean(el.disabled) || el.getAttribute('aria-disabled') === 'true' })).filter((x) => x.t).slice(0, 8),
+      h: Array.from(document.querySelectorAll('h1,h2,[role="heading"]')).filter(visible).map(text).filter(Boolean).slice(0, 4),
+    };
+  });
 
   page.setDefaultTimeout(60_000);
   await page.setViewport({ width: 1366, height: 900 });
@@ -180,12 +209,19 @@ export default async function ({ page, context }) {
   await clearAndType(surInput, sur);
 
   step('submit login');
-  let submit = await page.$('button[type="submit"]');
-  if (!submit) submit = await findByText(['continuar','buscar','consultar','ver reserva','ver minha reserva']);
+  let submit = await page.evaluateHandle(() => {
+    for (const el of Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"]'))) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0 && !el.disabled && el.getAttribute('aria-disabled') !== 'true') return el;
+    }
+    return null;
+  }).then((h) => h.asElement());
+  if (!submit) submit = await findByText(['continuar','buscar','consultar','ver reserva','ver minha reserva'], ['button','a']);
   if (!submit) throw new Error('Botão de envio não encontrado');
-  await submit.click();
-  await page.waitForNetworkIdle({ idleTime: 800, timeout: 45_000 }).catch(() => {});
-  await sleep(2500);
+  await submit.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+  await submit.click().catch(async () => submit.evaluate((el) => el.click()));
+  await sleep(5000);
+  step('after submit: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
 
   // ==== State machine unificado ====
   step('start unified state machine');
@@ -273,16 +309,26 @@ export default async function ({ page, context }) {
       try {
         const resp = await fetch(abs, { headers: { cookie: cookieHeader, referer: page.url() } });
         if (resp.ok) {
-          const buf = Buffer.from(await resp.arrayBuffer());
-          pdfBuffer = buf;
+          pdfBuffer = new Uint8Array(await resp.arrayBuffer());
           contentType = resp.headers.get('content-type') || 'application/pdf';
         }
       } catch (e) { step('pdf fetch failed: ' + (e && e.message)); }
     }
   }
 
-  // Fallback: imprimir a página como PDF
+  // Fallback permitido somente quando a navegação realmente chegou ao cartão.
+  // Evita salvar como cartão uma tela intermediária ou de erro da companhia.
   if (!pdfBuffer) {
+    const finalUrl = page.url().toLowerCase();
+    const pageLooksLikeBoardingPass = done || finalUrl.includes('boarding') || finalUrl.includes('cartao') || finalUrl.includes('cartão');
+    if (!pageLooksLikeBoardingPass) {
+      const snapshot = await visiblePageState().catch(() => ({ a: [], f: [], b: [], h: [] }));
+      throw new Error('Fluxo LATAM terminou antes do cartão. Estado: ' + JSON.stringify({
+        finalUrl: page.url(),
+        snapshot,
+        log: log.slice(-12),
+      }));
+    }
     step('fallback: page.pdf()');
     pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
     contentType = 'application/pdf';
@@ -290,7 +336,7 @@ export default async function ({ page, context }) {
 
   return {
     data: {
-      boardingPassBase64: Buffer.from(pdfBuffer).toString('base64'),
+      boardingPassBase64: bytesToBase64(pdfBuffer),
       contentType,
       meta: { log, finalUrl: page.url() },
     },

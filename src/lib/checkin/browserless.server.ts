@@ -60,7 +60,9 @@ export async function runBrowserlessFunction<T = unknown>(
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`Browserless HTTP ${res.status}: ${text.slice(0, 500)}`);
+      // A função remota inclui no erro um estado sanitizado da página.
+      // Preserve o suficiente para diagnosticar mudanças no fluxo da companhia.
+      throw new Error(`Browserless HTTP ${res.status}: ${text.slice(0, 5_000)}`);
     }
     const json = (await res.json()) as BrowserlessRunResult<T>;
     return json;

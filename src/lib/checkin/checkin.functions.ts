@@ -152,13 +152,16 @@ export const runCheckin = createServerFn({ method: "POST" })
       const msg = err?.message ?? String(err);
       console.error("[checkin] LATAM automation failed", {
         checkinId: checkin.id,
-        error: msg.slice(0, 1_500),
+        error: msg.slice(0, 5_000),
       });
 
       const isNavigationBlock = /ERR_HTTP2_PROTOCOL_ERROR|ERR_QUIC_PROTOCOL_ERROR|ERR_CONNECTION_RESET/i.test(msg);
+      const isIncompleteFlow = /Fluxo LATAM terminou antes do cartão/i.test(msg);
       const friendlyError = isNavigationBlock
         ? "A LATAM recusou temporariamente a conexão automática. O check-in ficou pendente e poderá ser tentado novamente."
-        : "Não foi possível concluir o check-in automático agora. Tente novamente em alguns minutos.";
+        : isIncompleteFlow
+          ? "A LATAM abriu a reserva, mas ainda não disponibilizou o cartão de embarque para download."
+          : "Não foi possível concluir o check-in automático agora. Tente novamente em alguns minutos.";
 
       await sb.from("flight_checkins")
         .update({ status: "failed", error: friendlyError })
