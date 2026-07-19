@@ -168,7 +168,7 @@ function CheckinsPage() {
       {/* Mini dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
         <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Próximos (30d)" value={upcoming.length} tone="muted" />
-        <StatCard icon={<Hourglass className="h-4 w-4" />} label="A realizar (48h)" value={groups.imminent.length} tone="warning" />
+        <StatCard icon={<Hourglass className="h-4 w-4" />} label="A realizar (7d)" value={groups.imminent.length} tone="warning" />
         <StatCard icon={<TimerReset className="h-4 w-4" />} label="Em andamento" value={groups.running.length} tone="info" />
         <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Realizados" value={groups.done.length} tone="success" />
         <StatCard icon={<XCircle className="h-4 w-4" />} label="Falharam" value={groups.failed.length} tone="danger" />
