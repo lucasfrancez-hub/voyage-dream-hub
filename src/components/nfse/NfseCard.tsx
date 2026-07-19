@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  emitirNfse, consultarNfse, cancelarNfse, listNfseByOrder, deleteNfse,
+  emitirNfse, consultarNfse, cancelarNfse, listNfseByOrder, deleteNfse, listNfseConfigs,
 } from "@/lib/nfse.functions";
 import { getPerson } from "@/lib/people.functions";
 import type { OrderDetail } from "@/lib/orders.functions";
