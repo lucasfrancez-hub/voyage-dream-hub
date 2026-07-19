@@ -127,7 +127,7 @@ function NotasFiscaisPage() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
+    <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-8">
       {/* Header */}
       <div className="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
         <div>
