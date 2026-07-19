@@ -847,6 +847,7 @@ export type PersonNfseRow = {
   data_emissao: string | null;
   valor_servicos: number | null;
   valor_iss: number | null;
+  valor_iss_retido: number | null;
   valor_liquido: number | null;
   codigo_verificacao: string | null;
   cancelada_em: string | null;
@@ -892,7 +893,7 @@ export const listPersonNfse = createServerFn({ method: "POST" })
       .from("nfse_emissoes")
       .select(`
         id, order_id, status, numero_nfse, numero_rps, serie, data_emissao,
-        valor_servicos, valor_iss, valor_liquido, codigo_verificacao,
+        valor_servicos, valor_iss, valor_iss_retido, valor_liquido, codigo_verificacao,
         cancelada_em, motivo_cancelamento,
         orders ( order_number )
       `)
@@ -912,7 +913,11 @@ export const listPersonNfse = createServerFn({ method: "POST" })
       data_emissao: r.data_emissao,
       valor_servicos: r.valor_servicos,
       valor_iss: r.valor_iss,
-      valor_liquido: r.valor_liquido,
+      valor_iss_retido: r.valor_iss_retido,
+      valor_liquido:
+        r.status === "cancelado"
+          ? 0
+          : Number(r.valor_servicos ?? 0) - Number(r.valor_iss_retido ?? 0),
       codigo_verificacao: r.codigo_verificacao,
       cancelada_em: r.cancelada_em,
       motivo_cancelamento: r.motivo_cancelamento,
