@@ -22,6 +22,50 @@ export const Route = createFileRoute("/pacotes/$slug/")({
   validateSearch: (s: Record<string, unknown>) => ({
     preview: s.preview === "1" || s.preview === 1 || s.preview === true ? true : undefined,
   }),
+  loader: async ({ params }) => {
+    const { data } = await supabase
+      .from("packages")
+      .select("title,destination,origin,summary,image_url,nights,price_per_person,base_occupancy")
+      .eq("slug", params.slug)
+      .eq("is_active", true)
+      .maybeSingle();
+    return { pkg: data };
+  },
+  head: ({ params, loaderData }) => {
+    const url = `https://pedidos.viaair.tur.br/pacotes/${params.slug}`;
+    const p = loaderData?.pkg;
+    if (!p) {
+      return {
+        meta: [
+          { title: "Pacote — Via Air" },
+          { property: "og:url", content: url },
+          { property: "og:type", content: "product" },
+        ],
+        links: [{ rel: "canonical", href: url }],
+      };
+    }
+    const title = `${p.title} — ${p.destination} | Via Air`;
+    const desc =
+      p.summary?.slice(0, 155) ||
+      `Pacote para ${p.destination}${p.origin ? ` saindo de ${p.origin}` : ""}${p.nights ? `, ${p.nights} noites` : ""}. Reserve com a Via Air.`;
+    const img = p.image_url && /^https?:\/\//i.test(p.image_url) ? p.image_url : undefined;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
+        ...(img ? [{ property: "og:image", content: img }] : []),
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: desc },
+        ...(img ? [{ name: "twitter:image", content: img }] : []),
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: PackageDetails,
   errorComponent: ({ error }) => (
     <div className="min-h-screen flex items-center justify-center p-6 text-center">
@@ -45,6 +89,7 @@ export const Route = createFileRoute("/pacotes/$slug/")({
     </div>
   ),
 });
+
 
 function PackageDetails() {
   const { slug } = Route.useParams();
