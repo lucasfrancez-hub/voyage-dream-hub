@@ -1,0 +1,9 @@
+# VIA AIR
+
+> Agência de viagens VIA AIR — pacotes prontos com aéreo, hospedagem e passeios, com atendimento humano.
+
+A VIA AIR monta e vende pacotes de viagem nacionais e internacionais. O site público exibe o catálogo de pacotes ativos e permite iniciar a reserva com atendimento consultivo.
+
+## Pages
+
+- [Pacotes de viagem](/pacotes): Catálogo de pacotes prontos com aéreo, hospedagem e passeios.
