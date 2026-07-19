@@ -72,7 +72,7 @@ function CheckinsPage() {
       if (r.status === "success") done.push(r);
       else if (r.status === "running") running.push(r);
       else if (r.status === "failed") failed.push(r);
-      else if (dep && dep - now <= 48 * HOUR) imminent.push(r);
+      else if (dep && dep - now <= 7 * 24 * HOUR) imminent.push(r);
       else imminent.push(r); // pending sem horário
     }
     return { imminent, running, done, failed };
