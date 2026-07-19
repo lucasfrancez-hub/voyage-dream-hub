@@ -16,22 +16,22 @@ import {
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/pacotes/")({
-  head: () => ({
-    meta: [
-      { title: "Pacotes de viagem — Via Air" },
-      {
-        name: "description",
-        content:
-          "Pacotes de viagem prontos com aéreo, hospedagem e passeios. Reserve com atendimento humano da Via Air.",
-      },
-      { property: "og:title", content: "Pacotes de viagem — Via Air" },
-      {
-        property: "og:description",
-        content:
-          "Pacotes de viagem prontos com aéreo, hospedagem e passeios. Reserve com atendimento humano da Via Air.",
-      },
-    ],
-  }),
+  head: () => {
+    const url = "https://pedidos.viaair.tur.br/pacotes";
+    const desc =
+      "Pacotes de viagem prontos com aéreo, hospedagem e passeios. Reserve com atendimento humano da Via Air.";
+    return {
+      meta: [
+        { title: "Pacotes de viagem — Via Air" },
+        { name: "description", content: desc },
+        { property: "og:title", content: "Pacotes de viagem — Via Air" },
+        { property: "og:description", content: desc },
+        { property: "og:url", content: url },
+        { property: "og:type", content: "website" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: PacotesList,
 });
 
