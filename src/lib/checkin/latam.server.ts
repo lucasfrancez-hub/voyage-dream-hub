@@ -250,7 +250,14 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
       await verCartao.click().catch(async () => verCartao.evaluate((el) => el.click()));
       await sleep(4000);
       const pagesAfterClick = await page.browser().pages();
-      const openedPage = pagesAfterClick.find((candidate) => !pagesBeforeClick.includes(candidate));
+      const openedPage = pagesAfterClick.find((candidate) =>
+        !pagesBeforeClick.includes(candidate) && candidate.url().includes('latamairlines.com')
+      );
+      for (const externalPage of pagesAfterClick.filter((candidate) =>
+        !pagesBeforeClick.includes(candidate) && !candidate.url().includes('latamairlines.com')
+      )) {
+        await externalPage.close().catch(() => {});
+      }
       if (openedPage) {
         page = openedPage;
         page.setDefaultTimeout(30_000);
@@ -285,37 +292,37 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     }
 
     // (4) "Fazer check-in"
-    const fazerCheckin = await findByText(['fazer check-in','fazer checkin','iniciar check-in']);
+    const fazerCheckin = await findByText(['fazer check-in','fazer checkin','iniciar check-in'], ['button','a','[role="button"]']);
     if (fazerCheckin) { step('iter ' + i + ': "Fazer check-in"'); await fazerCheckin.click().catch(() => {}); await sleep(2500); idle = 0; continue; }
 
     // (5) Elementos perigosos → "Entendi"
-    const entendi = await findByText(['entendi','entendido']);
+    const entendi = await findByText(['entendi','entendido'], ['button','[role="button"]']);
     if (entendi) { step('iter ' + i + ': Entendi'); await entendi.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
 
     // (6) Contato de emergência → "Não quero"
-    const naoQuero = await findByText(['não quero entregar','nao quero entregar','não quero informar','nao quero informar','não desejo informar']);
+    const naoQuero = await findByText(['não quero entregar','nao quero entregar','não quero informar','nao quero informar','não desejo informar'], ['button','label','[role="button"]']);
     if (naoQuero) {
       step('iter ' + i + ': marcando "não quero"');
       await naoQuero.click().catch(() => {});
       await sleep(600);
-      const salvar = await findByText(['salvar','continuar']);
+      const salvar = await findByText(['salvar','continuar'], ['button','[role="button"]']);
       if (salvar) { await salvar.click().catch(() => {}); await sleep(2500); }
       idle = 0; continue;
     }
 
     // (7) Seleção de todos passageiros
-    const passAll = await page.$('input[type="checkbox"][id*="all" i]') || await findByText(['todos os passageiros']);
+    const passAll = await page.$('input[type="checkbox"][id*="all" i]') || await findByText(['todos os passageiros'], ['label','button','[role="button"]']);
     if (passAll) {
       step('iter ' + i + ': todos os passageiros');
       await passAll.click().catch(() => {});
       await sleep(600);
-      const cont = await findByText(['continuar','confirmar']);
+      const cont = await findByText(['continuar','confirmar'], ['button','[role="button"]']);
       if (cont) { await cont.click().catch(() => {}); await sleep(2000); }
       idle = 0; continue;
     }
 
     // (8) Skip seguro/upgrade/assento
-    const skip = await findByText(['agora não','agora nao','não, obrigado','nao, obrigado','pular','manter assento','continuar sem alterar','continuar sem','recusar','dispensar']);
+    const skip = await findByText(['agora não','agora nao','não, obrigado','nao, obrigado','pular','manter assento','continuar sem alterar','continuar sem','recusar','dispensar'], ['button','[role="button"]']);
     if (skip) { step('iter ' + i + ': skip'); await skip.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
 
     // (9) Fechar modais
@@ -323,7 +330,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     if (closeBtn) { step('iter ' + i + ': fechar modal'); await closeBtn.click().catch(() => {}); await sleep(1000); idle = 0; continue; }
 
     // (10) Continuar/Confirmar genérico
-    const cont = await findByText(['continuar','confirmar','aceitar']);
+    const cont = await findByText(['continuar','confirmar','aceitar'], ['button','[role="button"]']);
     if (cont) { step('iter ' + i + ': continuar/confirmar'); await cont.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
 
     step('iter ' + i + ': sem ação, aguardando');
