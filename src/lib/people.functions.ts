@@ -834,3 +834,87 @@ export const getPersonSalesAndFinancials = createServerFn({ method: "POST" })
       },
     };
   });
+
+// -------- NFS-e vinculadas a este cadastro (por CPF/CNPJ do tomador) --------
+export type PersonNfseRow = {
+  id: string;
+  order_id: string | null;
+  order_number: string | null;
+  status: string;
+  numero_nfse: string | null;
+  numero_rps: number | null;
+  serie: string | null;
+  data_emissao: string | null;
+  valor_servicos: number | null;
+  valor_iss: number | null;
+  valor_liquido: number | null;
+  codigo_verificacao: string | null;
+  cancelada_em: string | null;
+  motivo_cancelamento: string | null;
+};
+
+function cpfCnpjCandidates(cpf: string | null, cnpj: string | null): string[] {
+  const out = new Set<string>();
+  const add = (v: string) => { if (v) out.add(v); };
+  const cpfDigits = (cpf || "").replace(/\D+/g, "");
+  const cnpjDigits = (cnpj || "").replace(/\D+/g, "");
+  if (cpfDigits.length === 11) {
+    add(cpfDigits);
+    add(cpfDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4"));
+  }
+  if (cnpjDigits.length === 14) {
+    add(cnpjDigits);
+    add(cnpjDigits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5"));
+  }
+  return [...out];
+}
+
+export const listPersonNfse = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureInternal(context);
+    const { data: person, error: pErr } = await context.supabase
+      .from("people")
+      .select("id, cpf, cnpj")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (pErr) throw new Error(pErr.message);
+    if (!person) return [] as PersonNfseRow[];
+
+    const cands = cpfCnpjCandidates(person.cpf, person.cnpj);
+    if (!cands.length) return [] as PersonNfseRow[];
+
+    // tomador->>cpfCnpj can be stored raw or formatted; filter with .in over candidates.
+    const { data: rows, error } = await context.supabase
+      .from("nfse_emissoes")
+      .select(`
+        id, order_id, status, numero_nfse, numero_rps, serie, data_emissao,
+        valor_servicos, valor_iss, valor_liquido, codigo_verificacao,
+        cancelada_em, motivo_cancelamento,
+        orders ( order_number )
+      `)
+      .in("tomador->>cpfCnpj", cands)
+      .order("data_emissao", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    return (rows ?? []).map((r: any) => ({
+      id: r.id,
+      order_id: r.order_id,
+      order_number: r.orders?.order_number ?? null,
+      status: r.status,
+      numero_nfse: r.numero_nfse,
+      numero_rps: r.numero_rps,
+      serie: r.serie,
+      data_emissao: r.data_emissao,
+      valor_servicos: r.valor_servicos,
+      valor_iss: r.valor_iss,
+      valor_liquido: r.valor_liquido,
+      codigo_verificacao: r.codigo_verificacao,
+      cancelada_em: r.cancelada_em,
+      motivo_cancelamento: r.motivo_cancelamento,
+    })) as PersonNfseRow[];
+  });
