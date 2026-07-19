@@ -285,14 +285,18 @@ export function NfseCard({
     };
   };
 
-  const openDialog = () => {
+  const openDialog = async () => {
     const jaAutorizada = (emissoes ?? []).some(
       (e) => e.status === "autorizado" || e.status === "emitida",
     );
     if (jaAutorizada) {
-      const ok = window.confirm(
-        "Esse pedido já tem nota fiscal autorizada. Tem certeza que deseja prosseguir e emitir outra?",
-      );
+      const ok = await confirm({
+        title: "Já existe NFS-e autorizada",
+        description:
+          "Esse pedido já tem nota fiscal autorizada. Tem certeza que deseja prosseguir e emitir outra?",
+        confirmText: "Emitir mesmo assim",
+        cancelText: "Cancelar",
+      });
       if (!ok) return;
     }
     setForm(buildInitialForm());
