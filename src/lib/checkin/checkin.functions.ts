@@ -519,6 +519,8 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
           boarding_pass_path: path,
           boarding_pass_url: url,
           completed_at: new Date().toISOString(),
+          run_duration_ms: Date.now() - startedAt,
+          vision_cost_cents: visionCostCents,
         }).eq("id", ci.id);
         try {
           const { deliverBoardingPass } = await import("./deliver.server");
