@@ -429,7 +429,7 @@ export function NfseCard({
         <div className="mt-3 space-y-2">
           {emissoes.map((e) => {
             const prest = (e as { prestador?: { nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
-            const prestNome = prest?.nome_fantasia || prest?.razao_social || null;
+            const prestNome = prest ? prestadorShortLabel(prest) : null;
             return (
             <div key={e.id} className="rounded-lg bg-muted/40 px-3 py-2 text-xs space-y-1.5">
               <div className="flex items-center justify-between gap-2">
