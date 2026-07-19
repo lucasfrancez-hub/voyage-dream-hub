@@ -242,6 +242,7 @@ function NotasFiscaisPage() {
                         <Link
                           to="/admin/pedidos/$id"
                           params={{ id: r.order_id }}
+                          onClick={(e) => e.stopPropagation()}
                           className={`text-xs font-medium px-2 py-0.5 rounded transition-colors ${
                             isCancelled
                               ? "text-muted-foreground bg-muted"
