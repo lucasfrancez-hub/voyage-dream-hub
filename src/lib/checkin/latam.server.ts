@@ -101,44 +101,87 @@ export default async function ({ page, context }) {
     if (aceitar) { await aceitar.click().catch(() => {}); await sleep(500); }
   }
 
-  step('fill locator');
-  const locSelectors = [
-    'input[name="reservationCode"]',
-    'input[name="pnr"]',
-    'input[id*="pnr" i]',
-    'input[id*="reservation" i]',
-    'input[placeholder*="localizador" i]',
-    'input[placeholder*="reserva" i]',
-    'input[placeholder*="compra" i]',
-  ];
-  let locInput = null;
-  for (const s of locSelectors) {
-    locInput = await page.$(s);
-    if (locInput) { step('using loc selector: ' + s); break; }
-  }
-  if (!locInput) throw new Error('Campo de localizador não encontrado');
-  await clearAndType(locInput, loc);
+  // Aguarda inputs aparecerem (LATAM carrega o formulário via JS)
+  await page.waitForSelector('input', { timeout: 45_000 }).catch(() => {});
+  await sleep(1500);
 
-  step('fill surname');
-  const surSelectors = [
-    'input[name*="last" i]',
-    'input[name*="surname" i]',
-    'input[id*="last" i]',
-    'input[id*="surname" i]',
-    'input[placeholder*="sobrenome" i]',
-    'input[placeholder*="apellido" i]',
-  ];
-  let surInput = null;
-  for (const s of surSelectors) {
-    surInput = await page.$(s);
-    if (surInput) { step('using surname selector: ' + s); break; }
+  // Se houver abas ("Código de reserva" / "Número do bilhete"), garante a de código
+  const tabCodigo = await findByText(['código de reserva','codigo de reserva','código da reserva','localizador'], ['button','a','div','span','li']);
+  if (tabCodigo) { await tabCodigo.click().catch(() => {}); await sleep(800); }
+
+  // Enumera inputs visíveis e escolhe localizador + sobrenome por heurística ampla
+  step('enumerate inputs');
+  const inputsInfo = await page.evaluate(() => {
+    const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+    const findLabel = (el) => {
+      const id = el.getAttribute('id');
+      if (id) {
+        const lbl = document.querySelector('label[for="' + id + '"]');
+        if (lbl) return lbl.innerText || lbl.textContent || '';
+      }
+      const parentLbl = el.closest('label');
+      if (parentLbl) return parentLbl.innerText || parentLbl.textContent || '';
+      const wrap = el.closest('div,section,form');
+      if (wrap) return (wrap.innerText || '').slice(0, 200);
+      return '';
+    };
+    return Array.from(document.querySelectorAll('input')).map((el, i) => {
+      const r = el.getBoundingClientRect();
+      return {
+        i,
+        type: (el.getAttribute('type') || 'text').toLowerCase(),
+        name: el.getAttribute('name') || '',
+        id: el.getAttribute('id') || '',
+        placeholder: el.getAttribute('placeholder') || '',
+        aria: el.getAttribute('aria-label') || '',
+        label: norm(findLabel(el)),
+        visible: r.width > 0 && r.height > 0 && !el.disabled && !el.readOnly,
+      };
+    });
+  });
+  step('inputs: ' + JSON.stringify(inputsInfo).slice(0, 800));
+
+  const isTextish = (t) => !t || ['text','search','tel','email',''].includes(t);
+  const scoreLocator = (info) => {
+    const hay = (info.name + ' ' + info.id + ' ' + info.placeholder + ' ' + info.aria + ' ' + info.label).toLowerCase();
+    let s = 0;
+    if (/localizador|reserva|pnr|compra|bilhete|ticket|booking|record/.test(hay)) s += 10;
+    if (/sobrenome|apellido|last.?name|surname|apelido/.test(hay)) s -= 20;
+    return s;
+  };
+  const scoreSurname = (info) => {
+    const hay = (info.name + ' ' + info.id + ' ' + info.placeholder + ' ' + info.aria + ' ' + info.label).toLowerCase();
+    let s = 0;
+    if (/sobrenome|apellido|last.?name|surname|apelido/.test(hay)) s += 10;
+    if (/localizador|reserva|pnr|compra|bilhete|ticket/.test(hay)) s -= 20;
+    return s;
+  };
+  const visibleText = inputsInfo.filter((x) => x.visible && isTextish(x.type));
+  let locIdx = -1, surIdx = -1, bestLoc = 0, bestSur = 0;
+  for (const info of visibleText) {
+    const sl = scoreLocator(info); if (sl > bestLoc) { bestLoc = sl; locIdx = info.i; }
+    const ss = scoreSurname(info); if (ss > bestSur) { bestSur = ss; surIdx = info.i; }
   }
-  if (!surInput) throw new Error('Campo de sobrenome não encontrado');
+  // Fallback posicional: 1º = localizador, 2º = sobrenome
+  if (locIdx < 0 && visibleText[0]) locIdx = visibleText[0].i;
+  if (surIdx < 0 && visibleText[1]) surIdx = visibleText[1].i;
+  if (locIdx === surIdx && visibleText[1]) surIdx = visibleText[1].i;
+  step('picked locIdx=' + locIdx + ' surIdx=' + surIdx);
+  if (locIdx < 0 || surIdx < 0) throw new Error('Campos de login não encontrados (localizador/sobrenome)');
+
+  const allInputs = await page.$$('input');
+  const locInput = allInputs[locIdx];
+  const surInput = allInputs[surIdx];
+  if (!locInput || !surInput) throw new Error('Handles de input inválidos');
+
+  step('fill locator');
+  await clearAndType(locInput, loc);
+  step('fill surname');
   await clearAndType(surInput, sur);
 
   step('submit login');
   let submit = await page.$('button[type="submit"]');
-  if (!submit) submit = await findByText(['continuar','buscar','consultar']);
+  if (!submit) submit = await findByText(['continuar','buscar','consultar','ver reserva','ver minha reserva']);
   if (!submit) throw new Error('Botão de envio não encontrado');
   await submit.click();
   await page.waitForNetworkIdle({ idleTime: 800, timeout: 45_000 }).catch(() => {});
