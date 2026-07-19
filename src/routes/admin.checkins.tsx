@@ -188,9 +188,9 @@ function CheckinsPage() {
 
       <div className="space-y-10">
         <Section
-          title="A realizar em breve (dentro de 7 dias)"
-          subtitle="Voos que o robô vai processar automaticamente nos próximos dias."
-          empty="Nenhum check-in na janela dos próximos 7 dias."
+          title="A realizar em breve (dentro de 48h)"
+          subtitle="Voos já dentro do prazo de check-in automático."
+          empty="Nenhum check-in na janela das próximas 48h."
           items={groups.imminent}
           render={(r) => (
             <CheckinRow r={r} busyId={busyId} sendingId={sendingId} onRun={handleRun} onResend={handleResend} />
