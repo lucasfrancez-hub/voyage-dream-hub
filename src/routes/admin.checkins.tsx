@@ -105,9 +105,15 @@ function CheckinsPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-4">
-      <div className="flex items-center gap-2">
-        <PlaneTakeoff className="h-5 w-5 text-brand-orange" />
-        <h1 className="text-xl font-semibold">Check-ins de voo</h1>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <PlaneTakeoff className="h-5 w-5 text-brand-orange" />
+          <h1 className="text-xl font-semibold">Check-ins de voo</h1>
+        </div>
+        <Button size="sm" variant="outline" disabled={bulkBusy} onClick={handleRegenAll}>
+          {bulkBusy ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+          Regerar todos os cartões
+        </Button>
       </div>
       <p className="text-sm text-muted-foreground">
         O robô roda automaticamente entre 48h e 1h antes do voo (LATAM). Você também pode disparar manualmente aqui.
