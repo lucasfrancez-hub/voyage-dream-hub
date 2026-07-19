@@ -715,8 +715,14 @@
   function captureViewport() {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage({ type: "viaair-capture" }, (resp) => {
-        if (!resp || resp.error) resolve(null);
-        else resolve(resp.dataUrl);
+        const runtimeError = chrome.runtime.lastError;
+        if (runtimeError) {
+          resolve({ dataUrl: null, error: runtimeError.message });
+        } else if (!resp || resp.error) {
+          resolve({ dataUrl: null, error: resp?.error || "A extensão não respondeu à captura." });
+        } else {
+          resolve({ dataUrl: resp.dataUrl, error: null });
+        }
       });
     });
   }
@@ -745,6 +751,7 @@
   async function captureScrollTarget(container) {
     // captureVisibleTab tem quota ~2/s → 650ms entre shots.
     const shots = [];
+    const errors = [];
     const maxShots = 8;
     const getScroll = () => container ? container.scrollTop : window.scrollY;
     const setScroll = (y) => container
@@ -752,7 +759,7 @@
       : window.scrollTo({ top: y, behavior: "instant" });
     const viewH = container ? container.clientHeight : window.innerHeight;
     const totalH = container ? container.scrollHeight : document.documentElement.scrollHeight;
-    if (viewH < 100) return shots;
+    if (viewH < 100) return { shots, errors };
     const step = Math.floor(viewH * 0.85);
     const originalScroll = getScroll();
 
@@ -760,15 +767,16 @@
     await sleep(500);
 
     for (let i = 0; i < maxShots; i++) {
-      const shot = await captureViewport();
-      if (shot) shots.push(shot);
+      const capture = await captureViewport();
+      if (capture.dataUrl) shots.push(capture.dataUrl);
+      else if (capture.error) errors.push(capture.error);
       const maxY = totalH - viewH;
       if (getScroll() >= maxY - 5) break;
       setScroll(getScroll() + step);
       await sleep(650);
     }
     setScroll(originalScroll);
-    return shots;
+    return { shots, errors };
   }
 
   async function captureFullPage() {
@@ -778,15 +786,18 @@
     //   1) rola a janela inteira do topo até o fim (pega header/rodapé/painéis)
     //   2) rola o container interno (pega o corpo da reserva)
     const all = [];
+    const errors = [];
     const outer = await captureScrollTarget(null);
-    all.push(...outer);
+    all.push(...outer.shots);
+    errors.push(...outer.errors);
     const container = findScrollContainer();
     if (container) {
       const inner = await captureScrollTarget(container);
-      all.push(...inner);
+      all.push(...inner.shots);
+      errors.push(...inner.errors);
     }
     // Limita a 10 imagens pra não estourar o payload/tokens da IA.
-    return all.slice(0, 10);
+    return { screenshots: all.slice(0, 10), errors };
   }
 
 
@@ -809,9 +820,13 @@
       // Híbrido OBRIGATÓRIO: sempre captura tela (janela + modal interno) — a
       // IA usa as imagens pra ler VALORES (tarifa, taxas, TU, total, moeda)
       // que o portal exibe fora do iframe da reserva.
-      const screenshots = await captureFullPage();
+      const captureResult = await captureFullPage();
+      const screenshots = captureResult.screenshots;
       if (screenshots.length === 0) {
-        showToast("Não consegui capturar a tela. Verifique as permissões da extensão.", "err");
+        const detail = captureResult.errors[0];
+        showToast(detail
+          ? `Não consegui capturar a tela: ${detail}`
+          : "Não consegui capturar a tela. Recarregue a página da reserva e tente novamente.", "err");
         return;
       }
       showToast(`📸 ${screenshots.length} captura(s) tirada(s). Enviando pra Via Air…`);

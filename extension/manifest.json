@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Via Air — Importar reserva aérea",
-  "version": "1.7.15",
+  "version": "1.7.16",
   "description": "Lê reservas aéreas em companhias e consolidadoras e envia os dados para o admin da Via Air.",
   "icons": {
     "48": "icon.png",
@@ -15,6 +15,7 @@
   "permissions": ["storage", "activeTab", "scripting", "tabs"],
   "background": { "service_worker": "background.js" },
   "host_permissions": [
+    "<all_urls>",
     "https://*.latamairlines.com/*",
     "https://*.voegol.com.br/*",
     "https://*.voeazul.com.br/*",
