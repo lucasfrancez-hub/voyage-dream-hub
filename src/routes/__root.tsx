@@ -128,6 +128,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Via Air — Agência de viagens, passagens e pacotes" },
       { name: "twitter:description", content: "Via Air: passagens aéreas, pacotes, hotéis, cruzeiros e experiências personalizadas com atendimento humano." },
+      { name: "google-site-verification", content: "_pcjKMoEJrMBzUL75rH0k8Dy_fMqOnaIZ4D49f4v42I" },
+
 
     ],
     links: [
