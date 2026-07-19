@@ -30,8 +30,8 @@ export const Route = createFileRoute("/sitemap.xml")({
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { data } = await supabaseAdmin
             .from("packages")
-            .select("slug, updated_at, is_published")
-            .eq("is_published", true);
+            .select("slug, updated_at, is_active")
+            .eq("is_active", true);
           for (const row of data ?? []) {
             if (!row.slug) continue;
             entries.push({
