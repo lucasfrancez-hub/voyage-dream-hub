@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Copy,
   Ban,
+  Building2,
 } from "lucide-react";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { cancelarNfse } from "@/lib/nfse.functions";
@@ -142,6 +143,11 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
   if (!row) return null;
   const tomador = (row.tomador as AnyRec | null) ?? {};
   const end = (tomador.endereco as AnyRec | null) ?? {};
+  const prestador = (row.prestador as AnyRec | null) ?? {};
+  const prestadorNome =
+    (prestador.nome_fantasia as string | null) ||
+    (prestador.razao_social as string | null) ||
+    "—";
   const order = (row.orders as AnyRec | null) ?? null;
   const status = String(row.status ?? "");
   const isAutorizada = status === "autorizado" || status === "emitida";
@@ -195,6 +201,9 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
                   <span>Emissão: {fmtDT(row.data_emissao ?? row.created_at)}</span>
                   <span>Série {String(row.serie ?? "1")}</span>
                   <span>RPS {String(row.numero_rps ?? "—")}</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Building2 className="h-3 w-3" /> {prestadorNome}
+                  </span>
                   {!!order?.order_number && (
                     <Link
                       to="/admin/pedidos/$id"
@@ -221,9 +230,12 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
 
         {/* Tabs */}
         <Tabs defaultValue="resumo" className="flex flex-col overflow-hidden">
-          <TabsList className="mx-6 mt-4 grid w-auto grid-cols-4 self-start">
+          <TabsList className="mx-6 mt-4 grid w-auto grid-cols-5 self-start">
             <TabsTrigger value="resumo" className="gap-2">
               <FileText className="h-3.5 w-3.5" /> Resumo
+            </TabsTrigger>
+            <TabsTrigger value="prestador" className="gap-2">
+              <Building2 className="h-3.5 w-3.5" /> Prestador
             </TabsTrigger>
             <TabsTrigger value="tomador" className="gap-2">
               <User className="h-3.5 w-3.5" /> Tomador
@@ -304,6 +316,44 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
                 </div>
               </div>
             </TabsContent>
+
+            <TabsContent value="prestador" className="mt-0 space-y-4">
+              <Card title="Prestador de Serviço">
+                <Field span={2} label="Razão social" value={prestador.razao_social ?? "—"} />
+                <Field label="Nome fantasia" value={prestador.nome_fantasia ?? "—"} />
+                <Field label="CNPJ" value={fmtDoc(prestador.cnpj)} mono />
+                <Field label="Inscrição municipal" value={prestador.inscricao_municipal ?? "—"} />
+                <Field label="CNAE" value={prestador.cnae_principal ?? "—"} />
+                <Field label="Item lista serviço" value={prestador.item_lista_servico ?? "—"} />
+                <Field label="Alíquota ISS" value={prestador.aliquota_iss != null ? pct(prestador.aliquota_iss) : "—"} />
+                <Field label="Regime especial" value={prestador.regime_especial ?? "—"} />
+                <Field
+                  label="Optante Simples"
+                  value={prestador.optante_simples == null ? "—" : prestador.optante_simples ? "Sim" : "Não"}
+                />
+                <Field label="E-mail" value={prestador.email ?? "—"} />
+                <Field label="Telefone" value={prestador.telefone ?? "—"} />
+              </Card>
+              <Card title="Endereço do Prestador">
+                <Field label="CEP" value={fmtCep(prestador.cep)} mono />
+                <Field
+                  span={2}
+                  label="Logradouro"
+                  value={
+                    [prestador.logradouro, prestador.numero ? `nº ${prestador.numero}` : null, prestador.complemento]
+                      .filter(Boolean)
+                      .join(", ") || "—"
+                  }
+                />
+                <Field label="Bairro" value={prestador.bairro ?? "—"} />
+                <Field
+                  span={2}
+                  label="Município / UF"
+                  value={[prestador.municipio, prestador.uf].filter(Boolean).join(" / ") || "—"}
+                />
+              </Card>
+            </TabsContent>
+
 
             <TabsContent value="tomador" className="mt-0 space-y-4">
               <Card title="Dados do Tomador">
