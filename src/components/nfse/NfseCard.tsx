@@ -17,6 +17,7 @@ import {
 import { getPerson } from "@/lib/people.functions";
 import type { OrderDetail } from "@/lib/orders.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
+import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -159,6 +160,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
   });
 
   const [open, setOpen] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; numero: string | number | null } | null>(null);
   const defaultDisc = buildAutoDescricao(detail);
   const [form, setForm] = useState({
     razaoSocial: "",
