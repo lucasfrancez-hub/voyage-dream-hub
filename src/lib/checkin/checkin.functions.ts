@@ -173,7 +173,7 @@ export const regenerateAllBoardingPasses = createServerFn({ method: "POST" })
  */
 export const runCheckin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null }) => data)
+  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null; mode?: "code" | "vision" }) => data)
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
     const { userId } = context as { userId: string };
@@ -278,14 +278,26 @@ export const runCheckin = createServerFn({ method: "POST" })
       }
     }
 
+    const mode: "code" | "vision" = data.mode === "vision" ? "vision" : "code";
+
     // Marca running
     await sb.from("flight_checkins")
-      .update({ status: "running", last_attempt_at: new Date().toISOString(), attempts: (checkin.attempts ?? 0) + 1, error: null })
+      .update({ status: "running", mode, last_attempt_at: new Date().toISOString(), attempts: (checkin.attempts ?? 0) + 1, error: null })
       .eq("id", checkin.id);
 
+    const startedAt = Date.now();
     try {
-      const { runLatamCheckin } = await import("./latam.server");
-      const result = await runLatamCheckin({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
+      let result: any;
+      let visionCostCents: number | null = null;
+      if (mode === "vision") {
+        const { runLatamCheckinVision } = await import("./latam-vision.server");
+        const r = await runLatamCheckinVision({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
+        result = r;
+        visionCostCents = r.meta?.visionCostCents ?? null;
+      } else {
+        const { runLatamCheckin } = await import("./latam.server");
+        result = await runLatamCheckin({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
+      }
 
       // Upload no storage
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -305,6 +317,8 @@ export const runCheckin = createServerFn({ method: "POST" })
         boarding_pass_path: path,
         boarding_pass_url: url,
         completed_at: new Date().toISOString(),
+        run_duration_ms: Date.now() - startedAt,
+        vision_cost_cents: visionCostCents,
       }).eq("id", checkin.id);
 
       // Dispara entrega em background (não bloqueia a resposta)
@@ -315,16 +329,17 @@ export const runCheckin = createServerFn({ method: "POST" })
         console.error("[checkin] delivery failed", e);
       }
 
-      return { ok: true, id: checkin.id, url } as const;
+      return { ok: true, id: checkin.id, url, mode, durationMs: Date.now() - startedAt } as const;
     } catch (err: any) {
       const msg = err?.message ?? String(err);
       console.error("[checkin] LATAM automation failed", {
         checkinId: checkin.id,
+        mode,
         error: msg.slice(0, 5_000),
       });
 
       const isNavigationBlock = /ERR_HTTP2_PROTOCOL_ERROR|ERR_QUIC_PROTOCOL_ERROR|ERR_CONNECTION_RESET/i.test(msg);
-      const isIncompleteFlow = /Fluxo LATAM terminou antes do cartão/i.test(msg);
+      const isIncompleteFlow = /Fluxo LATAM terminou antes do cartão|Robô visão não capturou/i.test(msg);
       const isProviderTimeout = /Browserless HTTP 408|Request has timed out|AbortError/i.test(msg);
       const isLatamBlock = /Tivemo.? um problema|não foi po.?ível carregar|nao foi possivel carregar/i.test(msg);
       const friendlyError = isLatamBlock
@@ -336,7 +351,11 @@ export const runCheckin = createServerFn({ method: "POST" })
           : "O check-in não terminou nesta sessão. O robô fará uma nova tentativa automática.";
 
       await sb.from("flight_checkins")
-        .update({ status: "failed", error: friendlyError })
+        .update({
+          status: "failed",
+          error: friendlyError,
+          run_duration_ms: Date.now() - startedAt,
+        })
         .eq("id", checkin.id);
 
       const surnameForUrl = (checkin.pnr_surname || "").toString().trim().toLowerCase();
@@ -344,7 +363,7 @@ export const runCheckin = createServerFn({ method: "POST" })
       const checkinStatusUrl = orderIdForUrl && surnameForUrl
         ? `https://www.latamairlines.com/br/pt/check-in/status?orderId=${encodeURIComponent(orderIdForUrl)}&lastName=${encodeURIComponent(surnameForUrl)}`
         : (airlineCheckinUrl || null);
-      return { ok: false, id: checkin.id, error: friendlyError, manualUrl: checkinStatusUrl } as const;
+      return { ok: false, id: checkin.id, error: friendlyError, manualUrl: checkinStatusUrl, mode } as const;
     }
   });
 
@@ -355,7 +374,7 @@ export const runCheckin = createServerFn({ method: "POST" })
  */
 export const runCheckinGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { orderItemIds: string[] }) => data)
+  .inputValidator((data: { orderItemIds: string[]; mode?: "code" | "vision" }) => data)
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
     const { userId } = context as { userId: string };
@@ -412,6 +431,8 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
       return da - db;
     });
 
+    const mode: "code" | "vision" = data.mode === "vision" ? "vision" : "code";
+
     // Upsert um check-in por item, marca running
     const checkins: any[] = [];
     for (const it of items) {
@@ -425,13 +446,24 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
         flight_number: it.details?.flight_number ?? null,
         departure_at: it.details?.depart_at ?? it.details?.departure_at ?? null,
         status: "running",
+        mode,
       }, { onConflict: "order_item_id,passenger_id" }).select("*").single();
       checkins.push(up.data);
     }
 
+    const startedAt = Date.now();
     try {
-      const { runLatamCheckin } = await import("./latam.server");
-      const result = await runLatamCheckin({ locator, surname, checkinUrl });
+      let result: any;
+      let visionCostCents: number | null = null;
+      if (mode === "vision") {
+        const { runLatamCheckinVision } = await import("./latam-vision.server");
+        const r = await runLatamCheckinVision({ locator, surname, checkinUrl });
+        result = r;
+        visionCostCents = r.meta?.visionCostCents ?? null;
+      } else {
+        const { runLatamCheckin } = await import("./latam.server");
+        result = await runLatamCheckin({ locator, surname, checkinUrl });
+      }
       const passes = result.boardingPasses && result.boardingPasses.length
         ? result.boardingPasses
         : [{ label: "Cartão", base64: result.boardingPassBase64, contentType: result.contentType }];
@@ -487,6 +519,8 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
           boarding_pass_path: path,
           boarding_pass_url: url,
           completed_at: new Date().toISOString(),
+          run_duration_ms: Date.now() - startedAt,
+          vision_cost_cents: visionCostCents,
         }).eq("id", ci.id);
         try {
           const { deliverBoardingPass } = await import("./deliver.server");

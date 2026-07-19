@@ -341,13 +341,16 @@ export type Database = {
           id: string
           last_attempt_at: string | null
           locator: string
+          mode: string
           order_id: string
           order_item_id: string
           passenger_id: string | null
           pnr_surname: string | null
+          run_duration_ms: number | null
           scheduled_for: string | null
           status: string
           updated_at: string
+          vision_cost_cents: number | null
         }
         Insert: {
           attempts?: number
@@ -364,13 +367,16 @@ export type Database = {
           id?: string
           last_attempt_at?: string | null
           locator: string
+          mode?: string
           order_id: string
           order_item_id: string
           passenger_id?: string | null
           pnr_surname?: string | null
+          run_duration_ms?: number | null
           scheduled_for?: string | null
           status?: string
           updated_at?: string
+          vision_cost_cents?: number | null
         }
         Update: {
           attempts?: number
@@ -387,13 +393,16 @@ export type Database = {
           id?: string
           last_attempt_at?: string | null
           locator?: string
+          mode?: string
           order_id?: string
           order_item_id?: string
           passenger_id?: string | null
           pnr_surname?: string | null
+          run_duration_ms?: number | null
           scheduled_for?: string | null
           status?: string
           updated_at?: string
+          vision_cost_cents?: number | null
         }
         Relationships: [
           {
