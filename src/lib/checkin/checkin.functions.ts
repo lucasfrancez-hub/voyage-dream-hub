@@ -211,12 +211,12 @@ export const runCheckin = createServerFn({ method: "POST" })
       const isProviderTimeout = /Browserless HTTP 408|Request has timed out|AbortError/i.test(msg);
       const isLatamBlock = /Tivemo.? um problema|não foi po.?ível carregar|nao foi possivel carregar/i.test(msg);
       const friendlyError = isLatamBlock
-        ? "A LATAM bloqueou o acesso automatizado desta reserva. Use “Abrir na LATAM” para baixar o cartão de embarque."
+        ? "A LATAM interrompeu esta sessão. O robô fará uma nova tentativa automática."
         : isNavigationBlock || isProviderTimeout
-          ? "A conexão automática com a LATAM não respondeu. Use “Abrir na LATAM” ou tente novamente mais tarde."
+          ? "A conexão com a LATAM não respondeu. O robô fará uma nova tentativa automática."
         : isIncompleteFlow
-          ? "A LATAM abriu a reserva, mas ainda não disponibilizou o cartão de embarque para download."
-          : "Não foi possível concluir o check-in automático agora. Tente novamente em alguns minutos.";
+          ? "A sessão terminou antes do download. O robô fará uma nova tentativa automática."
+          : "O check-in não terminou nesta sessão. O robô fará uma nova tentativa automática.";
 
       await sb.from("flight_checkins")
         .update({ status: "failed", error: friendlyError })
