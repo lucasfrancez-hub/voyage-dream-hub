@@ -8,6 +8,8 @@ import {
   Trash2, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2 } from "lucide-react";
 import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse } from "@/lib/nfse.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
@@ -59,6 +61,7 @@ function NotasFiscaisPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"todas" | StatusKey>("todas");
   const [search, setSearch] = useState("");
+  const [prestadorFilter, setPrestadorFilter] = useState<string>("todos");
   const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<Row | null>(null);
 
@@ -103,21 +106,37 @@ function NotasFiscaisPage() {
     return { valor, iss };
   }, [rows]);
 
+  const getPrestadorName = (r: Row): string => {
+    const p = (r as Row & { prestador?: { nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
+    return (p?.nome_fantasia || p?.razao_social || "").trim();
+  };
+
+  const prestadores = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows) {
+      const n = getPrestadorName(r);
+      if (n) set.add(n);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return rows.filter((r) => {
       const st = normalizeStatus(r.status);
       if (tab !== "todas" && st !== tab) return false;
+      if (prestadorFilter !== "todos" && getPrestadorName(r) !== prestadorFilter) return false;
       if (!s) return true;
       const o = (r as Row & { orders?: { order_number?: string; full_name?: string } }).orders;
       return (
         (r.numero_nfse ?? "").toLowerCase().includes(s) ||
         ((r.tomador as { razao_social?: string } | null)?.razao_social ?? "").toLowerCase().includes(s) ||
         (o?.order_number ?? "").toLowerCase().includes(s) ||
-        (o?.full_name ?? "").toLowerCase().includes(s)
+        (o?.full_name ?? "").toLowerCase().includes(s) ||
+        getPrestadorName(r).toLowerCase().includes(s)
       );
     });
-  }, [rows, tab, search]);
+  }, [rows, tab, search, prestadorFilter]);
 
   const TABS: Array<{ id: "todas" | StatusKey; label: string; count: number }> = [
     { id: "todas", label: "Todas", count: counts.todas },
@@ -186,14 +205,28 @@ function NotasFiscaisPage() {
               );
             })}
           </div>
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-10 h-10 bg-background/60 border-border rounded-xl focus-visible:ring-brand-orange/50"
-              placeholder="Buscar por número, pedido ou tomador…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex items-center gap-3 flex-1 max-w-xl">
+            <Select value={prestadorFilter} onValueChange={setPrestadorFilter}>
+              <SelectTrigger className="h-10 w-[200px] bg-background/60 border-border rounded-xl">
+                <Building2 className="h-4 w-4 text-muted-foreground mr-1" />
+                <SelectValue placeholder="Prestador" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os prestadores</SelectItem>
+                {prestadores.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-10 h-10 bg-background/60 border-border rounded-xl focus-visible:ring-brand-orange/50"
+                placeholder="Buscar por número, pedido ou tomador…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
@@ -254,13 +287,22 @@ function NotasFiscaisPage() {
                         </Link>
                       )}
                     </div>
-                    <div className="mt-1 flex items-center gap-2 flex-wrap">
-                      <span className={`text-sm font-medium truncate ${isCancelled ? "text-muted-foreground" : "text-foreground/90"}`}>
-                        {tomadorName}
-                      </span>
-                      <span className="text-muted-foreground/60">•</span>
-                      <span className="text-xs text-muted-foreground">{fmtDate(r.created_at)}</span>
-                    </div>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    <span className={`text-sm font-medium truncate ${isCancelled ? "text-muted-foreground" : "text-foreground/90"}`}>
+                      {tomadorName}
+                    </span>
+                    <span className="text-muted-foreground/60">•</span>
+                    <span className="text-xs text-muted-foreground">{fmtDate(r.created_at)}</span>
+                    {getPrestadorName(r) && (
+                      <>
+                        <span className="text-muted-foreground/60">•</span>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-brand-orange/10 text-brand-orange border border-brand-orange/20">
+                          <Building2 className="h-3 w-3" />
+                          {getPrestadorName(r)}
+                        </span>
+                      </>
+                    )}
+                  </div>
                     {r.codigo_verificacao && (
                       <p className="mt-1 text-[10px] text-muted-foreground/70 font-mono truncate">
                         Verif: {r.codigo_verificacao}
