@@ -166,6 +166,9 @@ function OrderDetailPage() {
 
   const setOrderStatusFn = useServerFn(setOrderStatus);
   const updateOrderMetaFn = useServerFn(updateOrderMeta);
+  const emitNfseFn = useServerFn(emitirNfse);
+  const getPersonFn = useServerFn(getPerson);
+  const [emittingNfse, setEmittingNfse] = useState(false);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "orderDetail", id] });
 
