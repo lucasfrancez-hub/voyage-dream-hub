@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  emitirNfse, consultarNfse, cancelarNfse, listNfseByOrder, deleteNfse,
+  emitirNfse, consultarNfse, cancelarNfse, listNfseByOrder, deleteNfse, listNfseConfigs,
 } from "@/lib/nfse.functions";
 import { getPerson } from "@/lib/people.functions";
 import type { OrderDetail } from "@/lib/orders.functions";
@@ -218,6 +219,13 @@ export function NfseCard({
   const cancelFn = useServerFn(cancelarNfse);
   const deleteFn = useServerFn(deleteNfse);
   const getPersonFn = useServerFn(getPerson);
+  const listConfigsFn = useServerFn(listNfseConfigs);
+
+  const { data: prestadores = [] } = useQuery({
+    queryKey: ["nfse-configs"],
+    queryFn: () => listConfigsFn(),
+    staleTime: 5 * 60_000,
+  });
 
   const key = ["nfse", order.id] as const;
   const { data: emissoes = [], isLoading } = useQuery({
@@ -237,6 +245,7 @@ export function NfseCard({
   });
 
   const [open, setOpen] = useState(false);
+  const [prestadorId, setPrestadorId] = useState<string>("");
   const [cancelTarget, setCancelTarget] = useState<{ id: string; numero: string | number | null } | null>(null);
   const defaultDisc = buildAutoDescricao(detail);
   const [form, setForm] = useState({
@@ -300,6 +309,10 @@ export function NfseCard({
       if (!ok) return;
     }
     setForm(buildInitialForm());
+    if (!prestadorId && prestadores.length) {
+      const padrao = prestadores.find((p) => p.padrao) ?? prestadores[0];
+      setPrestadorId(padrao.id);
+    }
     setOpen(true);
   };
 
@@ -332,6 +345,7 @@ export function NfseCard({
       return emitFn({
         data: {
           orderId: order.id,
+          prestadorId: prestadorId || null,
           valorServicos: valor,
           discriminacao: form.discriminacao.trim(),
           tomador: {
@@ -389,6 +403,19 @@ export function NfseCard({
           <div className="text-xs text-muted-foreground mt-0.5">
             Emissão via AtendeNet (IPM) · Paranavaí/PR · ISS 4% · Item 9.02
           </div>
+          {prestadores.length > 0 && (
+            <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
+              <span className="uppercase tracking-wider">Prestador{prestadores.length > 1 ? "es" : ""}:</span>
+              {prestadores.map((p, i) => (
+                <span key={p.id} className="inline-flex items-center gap-1">
+                  <span className={`px-1.5 py-0.5 rounded-md border ${p.padrao ? "bg-brand-orange/10 text-brand-orange border-brand-orange/20" : "bg-muted text-foreground/80 border-border"} font-medium`}>
+                    {p.nome_fantasia || p.razao_social}
+                  </span>
+                  {i < prestadores.length - 1 && <span>·</span>}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <Button size="sm" onClick={openDialog}>
           <Send className="h-3.5 w-3.5 mr-1.5" /> Emitir NFS-e
@@ -482,6 +509,29 @@ export function NfseCard({
             <DialogTitle>Emitir NFS-e</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-3">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Prestador</div>
+              <div>
+                <Label>Empresa emissora</Label>
+                <Select value={prestadorId} onValueChange={setPrestadorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={prestadores.length ? "Selecione o prestador" : "Nenhum prestador cadastrado"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {prestadores.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <span className="font-medium">{p.nome_fantasia || p.razao_social}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          CNPJ {p.cnpj} · {p.municipio_prestacao}/{p.uf_prestacao}
+                          {p.padrao ? " · padrão" : ""}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="space-y-3">
               <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tomador</div>
               <div>

@@ -99,15 +99,31 @@ export const getNfseConfig = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("nfse_config")
       .select("*")
+      .eq("ativo", true)
+      .order("padrao", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
   });
 
+export const listNfseConfigs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("nfse_config")
+      .select("id, cnpj, razao_social, nome_fantasia, inscricao_municipal, item_lista_servico, aliquota_iss, municipio_prestacao, uf_prestacao, padrao, ativo")
+      .eq("ativo", true)
+      .order("padrao", { ascending: false })
+      .order("razao_social", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
 /* ============================== EMITIR (AtendeNet / IPM 2.0) ============================== */
 const emitirInput = z.object({
   orderId: z.string().uuid(),
+  prestadorId: z.string().uuid().optional().nullable(),
   valorServicos: z.number().positive(),
   discriminacao: z.string().min(5),
   tomador: z.object({
@@ -221,8 +237,13 @@ export const emitirNfse = createServerFn({ method: "POST" })
       .rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin.data) throw new Error("Apenas administradores podem emitir NFS-e");
 
-    const { data: cfg, error: cfgErr } = await context.supabase
-      .from("nfse_config").select("*").limit(1).maybeSingle();
+    let cfgQuery = context.supabase.from("nfse_config").select("*").eq("ativo", true);
+    if (data.prestadorId) {
+      cfgQuery = cfgQuery.eq("id", data.prestadorId);
+    } else {
+      cfgQuery = cfgQuery.order("padrao", { ascending: false });
+    }
+    const { data: cfg, error: cfgErr } = await cfgQuery.limit(1).maybeSingle();
     if (cfgErr || !cfg) throw new Error("Configuração fiscal não encontrada");
 
     const reference = `viaair-${data.orderId.slice(0, 8)}-${Date.now()}`;
