@@ -18,6 +18,7 @@ import { getPerson } from "@/lib/people.functions";
 import type { OrderDetail } from "@/lib/orders.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
+import { confirm, confirmThen } from "@/lib/confirm";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -284,14 +285,18 @@ export function NfseCard({
     };
   };
 
-  const openDialog = () => {
+  const openDialog = async () => {
     const jaAutorizada = (emissoes ?? []).some(
       (e) => e.status === "autorizado" || e.status === "emitida",
     );
     if (jaAutorizada) {
-      const ok = window.confirm(
-        "Esse pedido já tem nota fiscal autorizada. Tem certeza que deseja prosseguir e emitir outra?",
-      );
+      const ok = await confirm({
+        title: "Já existe NFS-e autorizada",
+        description:
+          "Esse pedido já tem nota fiscal autorizada. Tem certeza que deseja prosseguir e emitir outra?",
+        confirmText: "Emitir mesmo assim",
+        cancelText: "Cancelar",
+      });
       if (!ok) return;
     }
     setForm(buildInitialForm());
@@ -431,9 +436,15 @@ export function NfseCard({
                       disabled={deleteMut.isPending}
                       title="Excluir emissão"
                       onClick={() => {
-                        if (window.confirm("Excluir esta emissão? Esta ação não pode ser desfeita.")) {
-                          deleteMut.mutate(e.id);
-                        }
+                        confirmThen(
+                          {
+                            title: "Excluir emissão",
+                            description: "Excluir esta emissão? Esta ação não pode ser desfeita.",
+                            confirmText: "Excluir",
+                            destructive: true,
+                          },
+                          () => deleteMut.mutate(e.id),
+                        );
                       }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

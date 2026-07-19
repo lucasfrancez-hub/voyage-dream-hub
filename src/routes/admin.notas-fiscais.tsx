@@ -12,6 +12,7 @@ import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse } from "@/lib/nfse
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { NfseDetailsDialog } from "@/components/nfse/NfseDetailsDialog";
+import { confirmThen } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/notas-fiscais")({
   head: () => ({ meta: [{ title: "Notas Fiscais — VIA AIR" }] }),
@@ -318,9 +319,15 @@ function NotasFiscaisPage() {
                         hover="rose"
                         disabled={deleteMut.isPending}
                         onClick={() => {
-                          if (window.confirm("Excluir esta emissão? Esta ação não pode ser desfeita.")) {
-                            deleteMut.mutate(r.id);
-                          }
+                          confirmThen(
+                            {
+                              title: "Excluir emissão",
+                              description: "Excluir esta emissão? Esta ação não pode ser desfeita.",
+                              confirmText: "Excluir",
+                              destructive: true,
+                            },
+                            () => deleteMut.mutate(r.id),
+                          );
                         }}
                       >
                         <Trash2 className="h-4 w-4" />
