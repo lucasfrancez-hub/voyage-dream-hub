@@ -86,51 +86,97 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
   const cleanTools: Record<string, unknown> = { ...tools };
   delete cleanTools._meta;
 
-  try {
-    const result = await generateText({
-      model,
-      system: buildSystemPrompt(conv),
-      messages,
-      tools: cleanTools as never,
-      toolsContext: undefined as never,
-      stopWhen: stepCountIs(10),
-      temperature: 0.6,
-    });
-
-    const text = result.text?.trim();
-    if (!text) {
-      console.warn("[camila] resposta vazia");
-      return;
+  // Executa a geração com timeout explícito + 1 retry curto em caso de cancelamento/timeout.
+  // Motivo: Cloudflare Worker pode cancelar a request longa (HTTP 499) e deixar o cliente sem resposta.
+  const runOnce = async (timeoutMs: number) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await generateText({
+        model,
+        system: buildSystemPrompt(conv),
+        messages,
+        tools: cleanTools as never,
+        toolsContext: undefined as never,
+        stopWhen: stepCountIs(10),
+        temperature: 0.6,
+        abortSignal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
     }
+  };
 
-    // Persiste como saída da Camila
-    const toolCallsSummary = result.steps
-      ?.flatMap((s) => s.toolCalls ?? [])
-      .map((tc) => ({ name: tc.toolName, input: tc.input }));
-
-    await saveMessage({
-      conversation_id: conv.id,
-      direction: "outbound",
-      sender: "camila",
-      content: text,
-      tool_calls: toolCallsSummary && toolCallsSummary.length > 0 ? toolCallsSummary : null,
-    });
-
-    // Envia pra Meta em balões
-    const sent = await sendWhatsAppBubbles(conv.wa_phone, text);
-    const failed = sent.filter((s) => s.error);
-    if (failed.length > 0) {
-      console.error("[camila] falha ao enviar balões:", failed);
+  let result: Awaited<ReturnType<typeof runOnce>> | null = null;
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      result = await runOnce(attempt === 1 ? 25_000 : 20_000);
+      break;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[camila] tentativa ${attempt} falhou:`, msg);
     }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[camila] erro na geração:", msg);
-    // Fallback humano
+  }
+
+  if (!result) {
+    const msg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+    console.error("[camila] erro final na geração:", msg);
+    // Log interno
     await saveMessage({
       conversation_id: conv.id,
       direction: "outbound",
       sender: "system",
       content: `[erro Camila] ${msg}`,
     });
+    // Fallback visível pro cliente pra NUNCA deixar sem resposta
+    const fallback =
+      "Opa, tive um probleminha rápido aqui do meu lado 🙈 Já já retomo com você, tá? Se quiser, pode reenviar sua última mensagem 💛";
+    try {
+      await saveMessage({
+        conversation_id: conv.id,
+        direction: "outbound",
+        sender: "camila",
+        content: fallback,
+      });
+      await sendWhatsAppBubbles(conv.wa_phone, fallback);
+    } catch (sendErr) {
+      console.error("[camila] falha ao enviar fallback:", sendErr);
+    }
+    return;
+  }
+
+  const text = result.text?.trim();
+  if (!text) {
+    console.warn("[camila] resposta vazia — enviando fallback");
+    const fallback =
+      "Deixa eu confirmar uma informação aqui rapidinho e já volto pra te responder direitinho 💛";
+    await saveMessage({
+      conversation_id: conv.id,
+      direction: "outbound",
+      sender: "camila",
+      content: fallback,
+    });
+    await sendWhatsAppBubbles(conv.wa_phone, fallback);
+    return;
+  }
+
+  const toolCallsSummary = result.steps
+    ?.flatMap((s) => s.toolCalls ?? [])
+    .map((tc) => ({ name: tc.toolName, input: tc.input }));
+
+  await saveMessage({
+    conversation_id: conv.id,
+    direction: "outbound",
+    sender: "camila",
+    content: text,
+    tool_calls: toolCallsSummary && toolCallsSummary.length > 0 ? toolCallsSummary : null,
+  });
+
+  const sent = await sendWhatsAppBubbles(conv.wa_phone, text);
+  const failed = sent.filter((s) => s.error);
+  if (failed.length > 0) {
+    console.error("[camila] falha ao enviar balões:", failed);
   }
 }
