@@ -17,9 +17,11 @@ import {
   savePersonTag, deletePersonTag,
   savePersonCustomField, deletePersonCustomField,
   addPersonAttachment, deletePersonAttachment, getPersonAttachmentUrl,
+  listPersonNfse,
   type PersonRow, type PersonCardRow, type PersonKind,
   type PersonFinancialSummary, type PersonPhone, type PersonEmail,
   type PersonTag, type PersonAttachment, type PersonCustomField,
+  type PersonNfseRow,
 } from "@/lib/people.functions";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { confirm } from "@/lib/confirm";
@@ -107,13 +109,14 @@ const emptyForm: FormState = {
 
 type TabId =
   | "detalhes" | "adicionais" | "vendas" | "financeiros"
-  | "contatos" | "anexos";
+  | "notas_fiscais" | "contatos" | "anexos";
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "detalhes", label: "Detalhes" },
   { id: "adicionais", label: "Dados Adicionais" },
   { id: "vendas", label: "Vendas" },
   { id: "financeiros", label: "Dados Financeiros" },
+  { id: "notas_fiscais", label: "Notas Fiscais" },
   { id: "contatos", label: "Contatos" },
   { id: "anexos", label: "Anexos" },
 ];
@@ -408,6 +411,9 @@ export function PersonEditorDialog({
               {tab === "contatos" && (
                 <ContatosTab personId={id} isNew={isNew} phones={phones} emails={emails} qc={qc} />
               )}
+              {tab === "notas_fiscais" && (
+                <NotasFiscaisTab personId={id} isNew={isNew} onClose={() => onOpenChange(false)} />
+              )}
               {tab === "anexos" && (
                 <AnexosTab personId={id} isNew={isNew} attachments={attachments} qc={qc} />
               )}
@@ -585,7 +591,13 @@ function DetalhesTab({
           <MiniField label={form.is_foreign ? "ZIP code:" : "CEP:"}>
             <input
               value={form.zip ?? ""}
-              onChange={(e) => set("zip", e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                set("zip", v);
+                if (!form.is_foreign && v.replace(/\D+/g, "").length === 8) {
+                  onCepBlur(v);
+                }
+              }}
               onBlur={(e) => { if (!form.is_foreign) onCepBlur(e.target.value); }}
               className={cls}
               placeholder={form.is_foreign ? "ZIP / Postal code" : "00000-000"}
@@ -1405,3 +1417,118 @@ function getInitials(name: string | null | undefined): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+
+// ============ NOTAS FISCAIS TAB ============
+function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null; isNew: boolean; onClose: () => void }) {
+  const list = useServerFn(listPersonNfse);
+  const q = useQuery({
+    queryKey: ["person-nfse", personId],
+    queryFn: () => list({ data: { id: personId! } }),
+    enabled: !isNew && !!personId,
+  });
+
+  if (isNew) {
+    return <div className="text-sm text-muted-foreground">Salve o cadastro para ver as notas fiscais vinculadas.</div>;
+  }
+  if (q.isLoading) {
+    return <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando notas fiscais…</div>;
+  }
+  const rows = q.data ?? [];
+  if (!rows.length) {
+    return (
+      <div className="rounded-xl border border-dashed border-border p-8 text-center">
+        <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+        <div className="text-sm font-medium">Nenhuma NFS-e vinculada</div>
+        <div className="text-xs text-muted-foreground mt-1">
+          As notas fiscais aparecem aqui automaticamente quando emitidas com o CPF/CNPJ deste cadastro.
+        </div>
+      </div>
+    );
+  }
+
+  const brl = (n: unknown) =>
+    Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmtDT = (s: unknown) =>
+    s ? new Date(String(s)).toLocaleDateString("pt-BR") : "—";
+  const statusPill = (s: string) => {
+    const st = s.toLowerCase();
+    if (st === "autorizado" || st === "emitida")
+      return "bg-emerald-500/15 text-emerald-500 border-emerald-500/30";
+    if (st === "cancelado") return "bg-rose-500/15 text-rose-500 border-rose-500/30";
+    if (st === "erro" || st === "rejeitada") return "bg-amber-500/15 text-amber-500 border-amber-500/30";
+    return "bg-sky-500/15 text-sky-500 border-sky-500/30";
+  };
+
+  const total = rows.reduce((acc, r) => acc + Number(r.valor_servicos || 0), 0);
+  const autorizadas = rows.filter((r) => r.status === "autorizado" || r.status === "emitida").length;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl border border-border bg-card/40 p-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Total emitidas</div>
+          <div className="text-2xl font-bold mt-1">{rows.length}</div>
+        </div>
+        <div className="rounded-xl border border-border bg-card/40 p-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Autorizadas</div>
+          <div className="text-2xl font-bold mt-1 text-emerald-500">{autorizadas}</div>
+        </div>
+        <div className="rounded-xl border border-border bg-card/40 p-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Valor total</div>
+          <div className="text-2xl font-bold mt-1 text-brand-orange">{brl(total)}</div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border overflow-hidden bg-card/40">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="text-left px-3 py-2 font-semibold">Nº / RPS</th>
+              <th className="text-left px-3 py-2 font-semibold">Emissão</th>
+              <th className="text-left px-3 py-2 font-semibold">Status</th>
+              <th className="text-left px-3 py-2 font-semibold">Pedido</th>
+              <th className="text-right px-3 py-2 font-semibold">Valor</th>
+              <th className="text-right px-3 py-2 font-semibold">Líquido</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((r) => (
+              <tr key={r.id} className="hover:bg-muted/20">
+                <td className="px-3 py-2 font-mono">
+                  {r.numero_nfse ? `#${r.numero_nfse}` : `RPS ${r.numero_rps ?? "—"}`}
+                  <span className="text-muted-foreground text-xs ml-1">/ {r.serie ?? "1"}</span>
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">{fmtDT(r.data_emissao)}</td>
+                <td className="px-3 py-2">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold ${statusPill(r.status)}`}>
+                    {r.status}
+                  </span>
+                </td>
+                <td className="px-3 py-2">
+                  {r.order_id ? (
+                    <Link
+                      to="/admin/pedidos/$id"
+                      params={{ id: r.order_id }}
+                      onClick={onClose}
+                      className="text-brand-orange hover:underline"
+                    >
+                      {r.order_number ? `#${r.order_number}` : "abrir"}
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums">{brl(r.valor_servicos)}</td>
+                <td className="px-3 py-2 text-right tabular-nums font-semibold text-emerald-500">{brl(r.valor_liquido)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="text-[11px] text-muted-foreground text-center">
+        Vínculo automático pelo CPF / CNPJ deste cadastro.
+      </div>
+    </div>
+  );
+}
