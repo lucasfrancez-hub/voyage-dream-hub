@@ -345,6 +345,7 @@ export function NfseCard({
       return emitFn({
         data: {
           orderId: order.id,
+          prestadorId: prestadorId || null,
           valorServicos: valor,
           discriminacao: form.discriminacao.trim(),
           tomador: {
