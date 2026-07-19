@@ -309,6 +309,10 @@ export function NfseCard({
       if (!ok) return;
     }
     setForm(buildInitialForm());
+    if (!prestadorId && prestadores.length) {
+      const padrao = prestadores.find((p) => p.padrao) ?? prestadores[0];
+      setPrestadorId(padrao.id);
+    }
     setOpen(true);
   };
 
