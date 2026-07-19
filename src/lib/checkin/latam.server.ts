@@ -185,7 +185,16 @@ export default async function ({ page, context }) {
     }
 
     // (3) "Ver cartão(ões) de embarque" — restrito a button/a para não pegar badges
-    const verCartao = await findByText(['ver cartão','ver cartao','ver cartões','ver cartoes'], ['button','a']);
+    const verCartao = await findByText([
+      'ver cartão',
+      'ver cartao',
+      'ver cartões',
+      'ver cartoes',
+      'abrir cartão',
+      'abrir cartao',
+      'abrir cartões',
+      'abrir cartoes',
+    ], ['button','a']);
     if (verCartao) {
       step('iter ' + i + ': "Ver cartão(ões) de embarque"');
       await verCartao.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
