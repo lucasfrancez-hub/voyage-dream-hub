@@ -81,8 +81,8 @@ function CheckinsPage() {
                 {r.error && <div className="text-xs text-destructive mt-1">Erro: {r.error}</div>}
               </div>
               <StatusBadge status={r.status} />
-              {r.boarding_pass_url && (
-                <a href={r.boarding_pass_url} target="_blank" rel="noreferrer">
+              {(r.boarding_pass_path || r.boarding_pass_url) && (
+                <a href={`/api/public/boarding-pass/${r.id}`} target="_blank" rel="noreferrer">
                   <Button size="sm" variant="outline"><Download className="h-3.5 w-3.5 mr-1" />PDF</Button>
                 </a>
               )}
