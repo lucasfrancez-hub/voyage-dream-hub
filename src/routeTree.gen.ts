@@ -37,7 +37,6 @@ import { Route as ChatConfigRouteImport } from './routes/chat.config'
 import { Route as ChatBroadcastRouteImport } from './routes/chat.broadcast'
 import { Route as ChatAgentesRouteImport } from './routes/chat.agentes'
 import { Route as ChatAgendaRouteImport } from './routes/chat.agenda'
-import { Route as ApiMultiVoucherExtractRouteImport } from './routes/api/multi-voucher-extract'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
@@ -211,11 +210,6 @@ const ChatAgendaRoute = ChatAgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
   getParentRoute: () => ChatRoute,
-} as any)
-const ApiMultiVoucherExtractRoute = ApiMultiVoucherExtractRouteImport.update({
-  id: '/api/multi-voucher-extract',
-  path: '/api/multi-voucher-extract',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
   id: '/usuarios',
@@ -418,7 +412,6 @@ export interface FileRoutesByFullPath {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
-  '/api/multi-voucher-extract': typeof ApiMultiVoucherExtractRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -481,7 +474,6 @@ export interface FileRoutesByTo {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
-  '/api/multi-voucher-extract': typeof ApiMultiVoucherExtractRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -546,7 +538,6 @@ export interface FileRoutesById {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
-  '/api/multi-voucher-extract': typeof ApiMultiVoucherExtractRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -612,7 +603,6 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
-    | '/api/multi-voucher-extract'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -675,7 +665,6 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
-    | '/api/multi-voucher-extract'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -739,7 +728,6 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
-    | '/api/multi-voucher-extract'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -791,7 +779,6 @@ export interface RootRouteChildren {
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
   TermosDeUsoRoute: typeof TermosDeUsoRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
-  ApiMultiVoucherExtractRoute: typeof ApiMultiVoucherExtractRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
@@ -1008,13 +995,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/chat/agenda'
       preLoaderRoute: typeof ChatAgendaRouteImport
       parentRoute: typeof ChatRoute
-    }
-    '/api/multi-voucher-extract': {
-      id: '/api/multi-voucher-extract'
-      path: '/api/multi-voucher-extract'
-      fullPath: '/api/multi-voucher-extract'
-      preLoaderRoute: typeof ApiMultiVoucherExtractRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/admin/usuarios': {
       id: '/admin/usuarios'
@@ -1362,7 +1342,6 @@ const rootRouteChildren: RootRouteChildren = {
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
   TermosDeUsoRoute: TermosDeUsoRoute,
   UnsubscribeRoute: UnsubscribeRoute,
-  ApiMultiVoucherExtractRoute: ApiMultiVoucherExtractRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
