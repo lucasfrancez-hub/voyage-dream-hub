@@ -222,7 +222,8 @@ function NotasFiscaisPage() {
               return (
                 <div
                   key={r.id}
-                  className={`p-5 flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6 hover:bg-accent/20 transition-colors group ${
+                  onClick={() => setDetailsTarget(r)}
+                  className={`p-5 flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6 hover:bg-accent/20 transition-colors group cursor-pointer ${
                     isCancelled ? "opacity-60" : ""
                   }`}
                 >
