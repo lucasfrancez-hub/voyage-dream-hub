@@ -35,7 +35,7 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
   if (!ci) return report;
 
   const base = process.env.SITE_URL || "https://pedidos.viaair.tur.br";
-  const url = `${base}/api/public/doc/${ci.id}`;
+  const url = `${base}/api/public/bp/${ci.id}`;
   const flightNum = ci.flight_number ?? "";
 
   let passengers: Array<{ id: string; full_name: string | null; whatsapp: string | null }> = [];
