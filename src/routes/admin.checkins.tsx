@@ -30,7 +30,12 @@ function CheckinsPage() {
   async function handleRun(id: string) {
     setBusyId(id);
     try {
-      await run({ data: { checkinId: id } });
+      const result = await run({ data: { checkinId: id } });
+      if (!result.ok) {
+        toast.error(result.error);
+        await q.refetch();
+        return;
+      }
       toast.success("Check-in concluído");
       q.refetch();
     } catch (e: any) {

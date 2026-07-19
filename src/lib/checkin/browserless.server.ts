@@ -1,6 +1,6 @@
 /**
  * Cliente HTTP para Browserless (Chrome remoto).
- * Roda um script Playwright dentro do Chrome deles e devolve o resultado.
+ * Roda um script Puppeteer dentro do Chrome deles e devolve o resultado.
  * Endpoint: /function — https://docs.browserless.io/HTTP-APIs/function
  */
 
@@ -11,6 +11,18 @@ export interface BrowserlessRunResult<T = unknown> {
   type?: string;
 }
 
+interface BrowserlessRunOptions {
+  timeoutMs?: number;
+  launch?: {
+    headless?: boolean;
+    stealth?: boolean;
+    args?: string[];
+  };
+  proxy?: "residential" | "datacenter";
+  proxyCountry?: string;
+  proxySticky?: boolean;
+}
+
 /**
  * Executa uma função JS remota no Chrome do Browserless.
  * O `code` deve exportar `default async ({ page, context }) => { ... return { data: ... } }`.
@@ -18,12 +30,23 @@ export interface BrowserlessRunResult<T = unknown> {
 export async function runBrowserlessFunction<T = unknown>(
   code: string,
   context: Record<string, unknown> = {},
-  { timeoutMs = 120_000 }: { timeoutMs?: number } = {},
+  {
+    timeoutMs = 120_000,
+    launch,
+    proxy,
+    proxyCountry,
+    proxySticky,
+  }: BrowserlessRunOptions = {},
 ): Promise<BrowserlessRunResult<T>> {
   const token = process.env.BROWSERLESS_TOKEN;
   if (!token) throw new Error("BROWSERLESS_TOKEN não configurado");
 
-  const url = `${BROWSERLESS_BASE}/function?token=${encodeURIComponent(token)}&timeout=${timeoutMs}`;
+  const params = new URLSearchParams({ token, timeout: String(timeoutMs) });
+  if (launch) params.set("launch", JSON.stringify(launch));
+  if (proxy) params.set("proxy", proxy);
+  if (proxyCountry) params.set("proxyCountry", proxyCountry);
+  if (proxySticky != null) params.set("proxySticky", String(proxySticky));
+  const url = `${BROWSERLESS_BASE}/function?${params.toString()}`;
 
   const controller = new AbortController();
   const to = setTimeout(() => controller.abort(), timeoutMs + 5_000);
