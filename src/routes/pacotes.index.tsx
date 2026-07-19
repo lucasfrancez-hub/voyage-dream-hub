@@ -284,9 +284,14 @@ function PacotesList() {
                   <img
                     src={p.image_url}
                     alt={p.title}
-                    loading="lazy"
+                    width={800}
+                    height={600}
+                    loading={idx === 0 ? "eager" : "lazy"}
+                    fetchPriority={idx === 0 ? "high" : "auto"}
+                    decoding="async"
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
+
                 ) : (
                   <div className="absolute inset-0 bg-muted" />
                 )}
