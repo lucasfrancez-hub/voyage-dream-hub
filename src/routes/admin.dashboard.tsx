@@ -551,3 +551,119 @@ function WelcomeBanner() {
   );
 }
 
+
+type CheckinRow = {
+  id: string;
+  status: string | null;
+  departure_at: string | null;
+  scheduled_for: string | null;
+  completed_at: string | null;
+  flight_number: string | null;
+  locator: string | null;
+  error: string | null;
+};
+
+function CheckinsOverview() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "dashboard", "checkins"],
+    queryFn: async () => {
+      const now = new Date();
+      const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const last30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const { data, error } = await supabase
+        .from("flight_checkins")
+        .select("id, status, departure_at, scheduled_for, completed_at, flight_number, locator, error")
+        .or(`departure_at.gte.${last30.toISOString()},completed_at.gte.${last30.toISOString()}`)
+        .order("departure_at", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      const rows = (data ?? []) as CheckinRow[];
+      const upcoming = rows
+        .filter((r) => {
+          const d = toDate(r.departure_at);
+          return d && d.getTime() >= now.getTime() && d.getTime() <= in7.getTime() && r.status !== "done";
+        })
+        .sort((a, b) => (toDate(a.departure_at)?.getTime() ?? 0) - (toDate(b.departure_at)?.getTime() ?? 0));
+      const done = rows.filter((r) => r.status === "done" || !!r.completed_at);
+      const failed = rows.filter((r) => r.status === "failed" || (!!r.error && r.status !== "done"));
+      const running = rows.filter((r) => r.status === "running" || r.status === "processing");
+      return { rows, upcoming, done, failed, running };
+    },
+    staleTime: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-5 flex items-center gap-2 text-muted-foreground text-sm">
+        <Loader2 className="h-4 w-4 animate-spin" /> Carregando check-ins…
+      </div>
+    );
+  }
+  const d = data ?? { rows: [], upcoming: [], done: [], failed: [], running: [] };
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Plane className="h-4 w-4 text-brand-orange" />
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Check-ins</div>
+        </div>
+        <Link to="/admin/checkins" className="text-xs text-brand-orange hover:underline flex items-center gap-1">
+          Ver todos <ExternalLink className="h-3 w-3" />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <MiniStat label="Próximos (7d)" value={d.upcoming.length} icon={CalendarClock} accent="text-brand-orange" />
+        <MiniStat label="Em andamento" value={d.running.length} icon={Clock} accent="text-blue-500" />
+        <MiniStat label="Realizados" value={d.done.length} icon={CheckCircle2} accent="text-emerald-500" />
+        <MiniStat label="Falharam" value={d.failed.length} icon={AlertCircle} accent="text-red-500" />
+      </div>
+
+      {d.upcoming.length > 0 ? (
+        <div className="space-y-1.5">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Próximos check-ins</div>
+          {d.upcoming.slice(0, 5).map((r) => {
+            const dt = toDate(r.departure_at);
+            const dLeft = dt ? daysUntil(dt) : null;
+            return (
+              <Link
+                key={r.id}
+                to="/admin/checkins"
+                className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm hover:border-brand-orange/50 hover:bg-muted/30 transition"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Plane className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">
+                      {r.flight_number || "—"} {r.locator ? <span className="text-muted-foreground font-normal">· {r.locator}</span> : null}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {dt ? dt.toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "Sem horário"}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-[11px] text-muted-foreground shrink-0">
+                  {dLeft === 0 ? "Hoje" : dLeft === 1 ? "Amanhã" : dLeft && dLeft > 0 ? `em ${dLeft}d` : ""}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground py-3">Nenhum check-in nos próximos 7 dias.</div>
+      )}
+    </div>
+  );
+}
+
+function MiniStat({ label, value, icon: Icon, accent }: { label: string; value: number; icon: React.ElementType; accent?: string }) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-background/40 p-3">
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+        <Icon className={`h-3.5 w-3.5 ${accent ?? ""}`} /> {label}
+      </div>
+      <div className="text-xl font-semibold mt-1 font-mono">{value}</div>
+    </div>
+  );
+}
