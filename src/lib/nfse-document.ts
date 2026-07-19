@@ -208,7 +208,7 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const cepTomador = fmtCep(pick(end.cep, end.zip, end.postal_code));
 
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-<title>NFS-e ${esc(numero)} - VIA AIR</title>
+<title>NFS-e ${esc(numero)} - ${esc(fantasiaPrest || razaoPrest || "Prestador")}</title>
 <style>
 :root{--azul:#063b78;--azul-escuro:#052c59;--azul-claro:#eaf2fb;--laranja:#f27a16;--verde:#1b8f4e;--texto:#111827;--cinza:#667085;--linha:#cfd6df;--fundo:#fff}
 *{box-sizing:border-box}
