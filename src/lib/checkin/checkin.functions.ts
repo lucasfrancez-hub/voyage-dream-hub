@@ -224,6 +224,13 @@ export const runCheckin = createServerFn({ method: "POST" })
 
       // Falhas de fornecedores externos são retornadas como resultado tipado.
       // Não lançar aqui evita o overlay/blank screen do runtime no painel.
-      return { ok: false, id: checkin.id, error: friendlyError, manualUrl: airlineCheckinUrl || null } as const;
+      // Sempre monta a URL de check-in status (não "minhas viagens"), usando
+      // o orderId LA... e o sobrenome do primeiro passageiro.
+      const surnameForUrl = (checkin.pnr_surname || "").toString().trim().toLowerCase();
+      const orderIdForUrl = (checkin.locator || "").toString().trim().toUpperCase();
+      const checkinStatusUrl = orderIdForUrl && surnameForUrl
+        ? `https://www.latamairlines.com/br/pt/check-in/status?orderId=${encodeURIComponent(orderIdForUrl)}&lastName=${encodeURIComponent(surnameForUrl)}`
+        : (airlineCheckinUrl || null);
+      return { ok: false, id: checkin.id, error: friendlyError, manualUrl: checkinStatusUrl } as const;
     }
   });
