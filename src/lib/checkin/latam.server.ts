@@ -465,19 +465,114 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
   // Antes de qualquer captura: dispensa o modal de materiais perigosos
   // ("Entendi") — enquanto ele está aberto, a página de cartão fica coberta
   // pelo aviso e o page.pdf() imprime o texto do aviso em vez do BP.
+  // Busca no DOM principal, dentro de dialogs, shadow roots e iframes.
   const dismissHazmatGate = async () => {
-    for (let i = 0; i < 3; i++) {
-      const btn = await findByText(
-        ['entendi', 'entendido', 'ok, entendi', 'aceitar', 'estou de acordo', 'concordo'],
-        ['button', '[role="button"]', 'a'],
-      );
-      if (!btn) return;
-      step('dispensando aviso de materiais perigosos');
-      await btn.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
-      await btn.click().catch(async () => btn.evaluate((el) => el.click()));
-      await sleep(1500);
+    for (let i = 0; i < 4; i++) {
+      // 1) Marca qualquer checkbox de aceite dentro de um dialog (alguns
+      //    modais exigem "li e concordo" antes de habilitar o "Entendi").
+      await page.evaluate(() => {
+        const norm = (s: string) => (s || '').toLowerCase();
+        const dialogs = Array.from(document.querySelectorAll('[role="dialog"], dialog, [aria-modal="true"]'));
+        for (const dlg of dialogs) {
+          const cbs = Array.from(dlg.querySelectorAll('input[type="checkbox"]')) as HTMLInputElement[];
+          for (const cb of cbs) {
+            if (!cb.checked) {
+              const lbl = cb.closest('label') || (cb.id && dlg.querySelector(`label[for="${cb.id}"]`));
+              const txt = norm((lbl?.textContent) || '');
+              if (!txt || /(li e|estou ciente|concordo|aceito|entendi|declar)/.test(txt)) {
+                cb.click();
+              }
+            }
+          }
+        }
+      }).catch(() => {});
+      await sleep(300);
+
+      // 2) Procura o botão "Entendi" em vários containers, incluindo dialog,
+      //    shadow DOM e iframes.
+      const clickedInMain = await page.evaluate(() => {
+        const norm = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+        const wants = ['entendi', 'entendido', 'ok, entendi', 'ok entendi', 'ok', 'aceitar', 'estou de acordo', 'concordo', 'declaro', 'ciente', 'confirmar'];
+        const collect = (root: Document | ShadowRoot | Element): Element[] => {
+          const acc: Element[] = [];
+          const walk = (node: Element | ShadowRoot | Document) => {
+            const scope = (node as Element).shadowRoot ?? node;
+            acc.push(...Array.from((scope as any).querySelectorAll?.('button, [role="button"], a') || []));
+            const kids = Array.from((scope as any).querySelectorAll?.('*') || []) as Element[];
+            for (const k of kids) if ((k as any).shadowRoot) walk(k);
+          };
+          walk(root as any);
+          return acc;
+        };
+        // Prioriza botões dentro de dialogs/modais visíveis.
+        const dialogs = Array.from(document.querySelectorAll('[role="dialog"], dialog, [aria-modal="true"]'))
+          .filter((el) => { const r = (el as HTMLElement).getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+        const scopes: (Document | Element)[] = dialogs.length ? dialogs : [document];
+        for (const scope of scopes) {
+          const btns = collect(scope);
+          // pontuação: quanto mais curto o texto, mais provável ser o CTA final
+          const scored = btns
+            .map((el) => ({ el, t: norm((el as HTMLElement).innerText || el.textContent || '') }))
+            .filter(({ el, t }) => {
+              if (!t) return false;
+              const r = (el as HTMLElement).getBoundingClientRect();
+              return r.width > 0 && r.height > 0 && wants.some((w) => t === w || t.includes(w));
+            })
+            .sort((a, b) => a.t.length - b.t.length);
+          if (scored.length) {
+            (scored[0].el as HTMLElement).scrollIntoView({ block: 'center' });
+            (scored[0].el as HTMLElement).click();
+            return scored[0].t;
+          }
+        }
+        return null;
+      }).catch(() => null);
+      if (clickedInMain) { step('dispensando aviso ("' + clickedInMain + '")'); await sleep(1500); continue; }
+
+      // 3) Tenta iframes
+      let clickedInFrame: string | null = null;
+      for (const frame of page.frames()) {
+        if (frame === page.mainFrame()) continue;
+        try {
+          clickedInFrame = await frame.evaluate(() => {
+            const norm = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+            const wants = ['entendi', 'entendido', 'ok, entendi', 'aceitar', 'concordo', 'ciente'];
+            const btns = Array.from(document.querySelectorAll('button, [role="button"], a'));
+            for (const el of btns) {
+              const t = norm((el as HTMLElement).innerText || el.textContent || '');
+              if (!t) continue;
+              if (wants.some((w) => t === w || t.includes(w))) {
+                const r = (el as HTMLElement).getBoundingClientRect();
+                if (r.width > 0 && r.height > 0) { (el as HTMLElement).click(); return t; }
+              }
+            }
+            return null;
+          });
+        } catch (_) {}
+        if (clickedInFrame) break;
+      }
+      if (clickedInFrame) { step('dispensando aviso em iframe ("' + clickedInFrame + '")'); await sleep(1500); continue; }
+
+      // 4) Ainda tem dialog visível mas sem botão detectável? Loga diagnóstico
+      //    e tenta Enter/Escape como último recurso, senão sai.
+      const dlgDiag = await page.evaluate(() => {
+        const dialogs = Array.from(document.querySelectorAll('[role="dialog"], dialog, [aria-modal="true"]'))
+          .filter((el) => { const r = (el as HTMLElement).getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+        return dialogs.map((d) => ({
+          h: ((d.querySelector('h1,h2,[role="heading"]') as HTMLElement)?.innerText || '').slice(0, 80),
+          btns: Array.from(d.querySelectorAll('button, [role="button"], a')).map((b) => (b as HTMLElement).innerText.trim()).filter(Boolean).slice(0, 6),
+        }));
+      }).catch(() => []);
+      if (Array.isArray(dlgDiag) && dlgDiag.length) {
+        step('modal visível sem "Entendi" reconhecível: ' + JSON.stringify(dlgDiag).slice(0, 400));
+        await page.keyboard.press('Enter').catch(() => {});
+        await sleep(800);
+        continue;
+      }
+      return; // sem modal visível — sai
     }
   };
+
 
   // Depois do "Entendi", clica em "Baixar PDF" (quando existe como botão que
   // abre nova aba/download) e captura a resposta em vez de imprimir a tela.
@@ -556,6 +651,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
       }
     }
     // Fallback: imprime a tela — força "screen" e espera o conteúdo carregar
+    await dismissHazmatGate();
     try { await page.emulateMediaType('screen'); } catch (_) {}
     try {
       await page.waitForFunction(() => {
