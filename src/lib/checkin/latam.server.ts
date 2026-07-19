@@ -55,15 +55,40 @@ export default async function ({ page, context }) {
     await handle.type(text, { delay: 40 });
   };
 
-  page.setDefaultTimeout(45_000);
+  page.setDefaultTimeout(60_000);
   await page.setViewport({ width: 1366, height: 900 });
+  // LATAM's edge rejects headless-looking clients over HTTP/2; a real UA + headers avoids ERR_HTTP2_PROTOCOL_ERROR
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+  await page.setExtraHTTPHeaders({
+    'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+    'Upgrade-Insecure-Requests': '1',
+  });
 
   const loc = String(locator || '').trim().toUpperCase();
   const sur = String(surname || '').trim();
   if (!loc || !sur) throw new Error('locator e surname obrigatórios');
 
   step('open latam check-in page');
-  await page.goto('https://www.latamairlines.com/br/pt/check-in', { waitUntil: 'domcontentloaded' });
+  const gotoWithRetry = async (url) => {
+    const attempts = [
+      { waitUntil: 'domcontentloaded', timeout: 45_000 },
+      { waitUntil: 'load', timeout: 60_000 },
+      { waitUntil: 'domcontentloaded', timeout: 60_000 },
+    ];
+    let lastErr;
+    for (let i = 0; i < attempts.length; i++) {
+      try {
+        await page.goto(url, attempts[i]);
+        return;
+      } catch (e) {
+        lastErr = e;
+        step(`goto retry ${i + 1} after error: ${(e && e.message) || e}`);
+        await sleep(2000 + i * 1500);
+      }
+    }
+    throw lastErr;
+  };
+  await gotoWithRetry('https://www.latamairlines.com/br/pt/check-in');
   await sleep(2500);
 
   // Cookies / OneTrust
