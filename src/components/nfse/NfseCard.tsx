@@ -245,6 +245,7 @@ export function NfseCard({
   });
 
   const [open, setOpen] = useState(false);
+  const [prestadorId, setPrestadorId] = useState<string>("");
   const [cancelTarget, setCancelTarget] = useState<{ id: string; numero: string | number | null } | null>(null);
   const defaultDisc = buildAutoDescricao(detail);
   const [form, setForm] = useState({
