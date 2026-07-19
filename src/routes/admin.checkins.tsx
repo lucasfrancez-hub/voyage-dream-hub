@@ -73,11 +73,20 @@ function CheckinsPage() {
       if (r.status === "success") done.push(r);
       else if (r.status === "running") running.push(r);
       else if (r.status === "failed") failed.push(r);
-      else if (dep && dep - now <= 7 * 24 * HOUR) imminent.push(r);
+      else if (dep && dep - now <= 48 * HOUR) imminent.push(r);
       else imminent.push(r); // pending sem horário
     }
     return { imminent, running, done, failed };
   }, [rows]);
+
+  const upcoming7d = useMemo(() => {
+    const now = Date.now();
+    const in7 = now + 7 * 24 * HOUR;
+    return upcoming.filter((u: any) => {
+      const dep = u.departure_at ? new Date(u.departure_at).getTime() : null;
+      return dep && dep >= now && dep <= in7;
+    });
+  }, [upcoming]);
 
   async function handleRun(id: string, regenerate = false) {
     setBusyId(id);
@@ -168,8 +177,8 @@ function CheckinsPage() {
 
       {/* Mini dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
-        <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Próximos (30d)" value={upcoming.length} tone="muted" />
-        <StatCard icon={<Hourglass className="h-4 w-4" />} label="A realizar (7d)" value={groups.imminent.length} tone="warning" />
+        <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Próximos (7d)" value={upcoming7d.length} tone="muted" />
+        <StatCard icon={<Hourglass className="h-4 w-4" />} label="A realizar (48h)" value={groups.imminent.length} tone="warning" />
         <StatCard icon={<TimerReset className="h-4 w-4" />} label="Em andamento" value={groups.running.length} tone="info" />
         <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Realizados" value={groups.done.length} tone="success" />
         <StatCard icon={<XCircle className="h-4 w-4" />} label="Falharam" value={groups.failed.length} tone="danger" />
@@ -179,9 +188,9 @@ function CheckinsPage() {
 
       <div className="space-y-10">
         <Section
-          title="A realizar em breve (dentro de 7 dias)"
-          subtitle="Voos que o robô vai processar automaticamente nos próximos dias."
-          empty="Nenhum check-in na janela dos próximos 7 dias."
+          title="A realizar em breve (dentro de 48h)"
+          subtitle="Voos já dentro do prazo de check-in automático."
+          empty="Nenhum check-in na janela das próximas 48h."
           items={groups.imminent}
           render={(r) => (
             <CheckinRow r={r} busyId={busyId} sendingId={sendingId} onRun={handleRun} onResend={handleResend} />
@@ -220,10 +229,10 @@ function CheckinsPage() {
         )}
 
         <Section
-          title="Próximos check-ins (fora da janela de 7 dias)"
+          title="Próximos check-ins (dentro de 7 dias)"
           subtitle="Voos futuros identificados nos pedidos. O robô inicia automaticamente 48h antes."
-          empty="Nenhum voo futuro identificado."
-          items={upcoming}
+          empty="Nenhum voo nos próximos 7 dias."
+          items={upcoming7d}
           render={(u) => <UpcomingRow u={u} />}
         />
       </div>
