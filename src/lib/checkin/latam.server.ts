@@ -62,14 +62,14 @@ export default async function ({ page, context }) {
   };
   const clearAndType = async (handle, text) => {
     await handle.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
-    await handle.click({ clickCount: 3 }).catch(() => {});
+    await handle.click().catch(() => {});
+    await page.keyboard.down('Control').catch(() => {});
+    await page.keyboard.press('KeyA').catch(() => {});
+    await page.keyboard.up('Control').catch(() => {});
     await page.keyboard.press('Backspace').catch(() => {});
     await handle.type(text, { delay: 40 });
-    await handle.evaluate((el) => {
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-      el.blur();
-    }).catch(() => {});
+    await page.keyboard.press('Tab').catch(() => {});
+    await sleep(350);
   };
   const visiblePageState = async () => page.evaluate(() => {
     const visible = (el) => {
@@ -159,18 +159,14 @@ export default async function ({ page, context }) {
   if (stillOnForm) {
     step('preenchendo formulário de busca');
     await page.waitForSelector('input', { timeout: 20_000 }).catch(() => {});
-    const inputs = await page.$$('input');
-    const visibleInputs = [];
-    for (const h of inputs) {
-      const info = await h.evaluate((el) => {
-        const r = el.getBoundingClientRect();
-        const t = (el.getAttribute('type') || 'text').toLowerCase();
-        return { visible: r.width > 0 && r.height > 0 && !el.disabled && !el.readOnly, textish: ['text','search','tel','email',''].includes(t) };
-      });
-      if (info.visible && info.textish) visibleInputs.push(h);
-    }
-    if (visibleInputs[0]) await clearAndType(visibleInputs[0], loc);
-    if (visibleInputs[1]) await clearAndType(visibleInputs[1], sur);
+    const codeInput = await page.$('input[name="code"], input[id*="code" i]');
+    if (!codeInput) throw new Error('Campo do número da compra não encontrado');
+    await clearAndType(codeInput, loc);
+    // O formulário React recria os campos após o primeiro blur. Consulte o
+    // sobrenome novamente em vez de reutilizar um ElementHandle já substituído.
+    const surnameInput = await page.$('input[name="lastName"], input[id*="lastName" i], input[autocomplete="family-name"]');
+    if (!surnameInput) throw new Error('Campo de sobrenome não encontrado');
+    await clearAndType(surnameInput, sur.toLowerCase());
     const submitBtn = await page.evaluateHandle(() => {
       for (const el of Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"]'))) {
         const r = el.getBoundingClientRect();
