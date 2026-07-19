@@ -17,9 +17,11 @@ import {
   savePersonTag, deletePersonTag,
   savePersonCustomField, deletePersonCustomField,
   addPersonAttachment, deletePersonAttachment, getPersonAttachmentUrl,
+  listPersonNfse,
   type PersonRow, type PersonCardRow, type PersonKind,
   type PersonFinancialSummary, type PersonPhone, type PersonEmail,
   type PersonTag, type PersonAttachment, type PersonCustomField,
+  type PersonNfseRow,
 } from "@/lib/people.functions";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { confirm } from "@/lib/confirm";
