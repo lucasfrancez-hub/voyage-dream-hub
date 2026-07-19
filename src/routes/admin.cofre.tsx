@@ -157,7 +157,13 @@ function CofrePage() {
   }
 
   async function onDeleteOrder(orderId: string) {
-    if (!window.confirm("Excluir este pedido definitivamente?")) return;
+    const { confirm } = await import("@/lib/confirm");
+    if (!(await confirm({
+      title: "Excluir pedido",
+      description: "Excluir este pedido definitivamente?",
+      confirmText: "Excluir",
+      destructive: true,
+    }))) return;
     try {
       await deleteOrder({ data: { id: orderId } });
       toast.success("Pedido excluído");
