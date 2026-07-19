@@ -194,8 +194,7 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const vCred = n(data.credito_tributario);
   const tFed = n(data.tributos_federais);
 
-  const emailPrest = "lucas@voeair.com";
-  const telPrest = "(44) 99909-3642";
+
 
   const dash = (v: string) => v || '<span class="sem-informacao">–</span>';
 
