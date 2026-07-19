@@ -337,8 +337,10 @@ function PacotesList() {
           ))}
         </div>
       </section>
+      </main>
 
       <ContactFooter />
     </div>
+
   );
 }
