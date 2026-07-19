@@ -108,8 +108,28 @@ const pick = (...vals: unknown[]): string => {
 };
 
 export async function downloadNfsePdf(data: NfseDocumentData) {
-  const { data: cfg } = await supabase.from("nfse_config")
-    .select("*").limit(1).maybeSingle();
+  // Snapshot do prestador salvo na emissão (fonte da verdade retroativa)
+  const psnap = (data.prestador ?? {}) as Record<string, any>;
+  const psnapEnd = (psnap.endereco ?? {}) as Record<string, any>;
+  const cnpjSnap = String(psnap.cnpj || "").replace(/\D/g, "");
+
+  // Config atual do prestador (por id, ou por CNPJ do snapshot, fallback: primeiro)
+  let cfgQuery = supabase.from("nfse_config").select("*").limit(1);
+  if (data.prestador_id) cfgQuery = supabase.from("nfse_config").select("*").eq("id", data.prestador_id).limit(1);
+  else if (cnpjSnap) cfgQuery = supabase.from("nfse_config").select("*").eq("cnpj", cnpjSnap).limit(1);
+  const { data: cfg } = await cfgQuery.maybeSingle();
+
+  const cnpjPrest = String(psnap.cnpj || cfg?.cnpj || "").replace(/\D/g, "");
+  const razaoPrest = String(psnap.razao_social || (cfg as any)?.razao_social || "");
+  const fantasiaPrest = String(psnap.nome_fantasia || (cfg as any)?.nome_fantasia || razaoPrest);
+  const imPrest = String(psnap.inscricao_municipal || cfg?.inscricao_municipal || "");
+  const logradouroPrest = String(psnapEnd.logradouro || (cfg as any)?.logradouro || "");
+  const numeroPrest = String(psnapEnd.numero || (cfg as any)?.numero || "");
+  const bairroPrest = String(psnapEnd.bairro || (cfg as any)?.bairro || "");
+  const cepPrest = String(psnapEnd.cep || (cfg as any)?.cep || "");
+  const emailPrest = String(psnap.email || (cfg as any)?.email || "");
+  const telPrest = String(psnap.telefone || (cfg as any)?.telefone || "");
+  const logoPrest = LOGO_POR_CNPJ[cnpjPrest] || "";
 
   // Distintos — sem fallback cruzado entre campos diferentes
   const codServico = String(cfg?.ipm_codigo_servico || "");
@@ -117,8 +137,16 @@ export async function downloadNfsePdf(data: NfseDocumentData) {
   const listaServ = String(cfg?.item_lista_servico || cfg?.codigo_tributario_nacional || "");
   const codMun = String((cfg as unknown as { codigo_municipio?: string })?.codigo_municipio || "4118402");
   const cnae = String(cfg?.cnae_principal || "7911-2/00");
-  const municipioPrest = `${cfg?.municipio_prestacao || "Paranavaí"}/${cfg?.uf_prestacao || "PR"}`;
+  const municipioPrest = `${cfg?.municipio_prestacao || psnapEnd.cidade || "Paranavaí"}/${cfg?.uf_prestacao || psnapEnd.uf || "PR"}`;
   const regime = String(cfg?.regime_tributario || "Normal");
+
+  const numero = data.numero_nfse || responseValue(data, "numero_nfse") || "-";
+  const serie = data.serie || responseValue(data, "serie_nfse") || "1";
+  const verification = data.codigo_verificacao || responseValue(data, "cod_verificador_autenticidade") || "";
+  const rps = responseValue(data, "numero_rps") || "";
+  const dateStr = new Date(data.data_emissao || data.created_at).toLocaleDateString("pt-BR");
+  const timeStr = new Date(data.data_emissao || data.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
 
   const numero = data.numero_nfse || responseValue(data, "numero_nfse") || "-";
   const serie = data.serie || responseValue(data, "serie_nfse") || "1";
