@@ -915,8 +915,8 @@ export const listPersonNfse = createServerFn({ method: "POST" })
       valor_iss: r.valor_iss,
       valor_iss_retido: r.valor_iss_retido,
       valor_liquido:
-        r.valor_liquido && Number(r.valor_liquido) > 0
-          ? r.valor_liquido
+        r.status === "cancelado"
+          ? 0
           : Number(r.valor_servicos ?? 0) - Number(r.valor_iss_retido ?? 0),
       codigo_verificacao: r.codigo_verificacao,
       cancelada_em: r.cancelada_em,
