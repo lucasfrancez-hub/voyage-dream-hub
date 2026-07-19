@@ -591,7 +591,13 @@ function DetalhesTab({
           <MiniField label={form.is_foreign ? "ZIP code:" : "CEP:"}>
             <input
               value={form.zip ?? ""}
-              onChange={(e) => set("zip", e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                set("zip", v);
+                if (!form.is_foreign && v.replace(/\D+/g, "").length === 8) {
+                  onCepBlur(v);
+                }
+              }}
               onBlur={(e) => { if (!form.is_foreign) onCepBlur(e.target.value); }}
               className={cls}
               placeholder={form.is_foreign ? "ZIP / Postal code" : "00000-000"}
