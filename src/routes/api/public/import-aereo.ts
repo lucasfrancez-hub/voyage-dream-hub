@@ -412,16 +412,17 @@ async function extractValuesFromScreenshots(
   if (!apiKey) return null;
   const prompt = `Você recebe capturas de tela de uma página de reserva aérea de um portal consolidador (SkyTeam, FRT, Visual Turismo, Infotera).
 
-Procure a seção "Resumo Financeiro" (ou tabela equivalente no rodapé) que contém colunas como "Tarifa", "Taxas" (também "Tx Emb.", "TU", "Taxas Inclusas") e "Total". Pode haver uma linha por passageiro e uma linha final "Total". Se houver linha "Total" no rodapé, é ela que deve ser retornada. Se só houver linhas por passageiro, some cada coluna.
+Procure a seção "Valores" / "Resumo Financeiro" (tabela com colunas como "Tarifa", "Tx Emb.", "Taxa DU", "TU", "Taxas Inclusas", "Fees", "Total"). A tabela costuma ter uma linha por passageiro e uma linha final de TOTAL destacada (geralmente em fundo amarelo/colorido). SEMPRE use a linha de TOTAL destacada quando existir — NÃO some manualmente as linhas de passageiros nem devolva valores por passageiro. Só some as linhas individuais se não existir linha de total.
 
-Retorne SEMPRE:
+Retorne SEMPRE, usando a linha TOTAL:
 - currency: "BRL" quando o símbolo for "R$", "USD" para "US$/$", "EUR" para "€".
-- base_fare: soma/total da coluna Tarifa.
-- taxes: soma/total das colunas Taxas + Tx Emb. + TU + Taxas Inclusas.
-- fees: soma de outras Fees / DU / Encargos, quando houver (0 se não houver).
-- total_fare: valor da coluna Total (Total geral da reserva).
+- base_fare: valor da coluna "Tarifa" na linha TOTAL.
+- taxes: SOMA de TODAS as colunas de taxas presentes na linha TOTAL (Tx Emb. + Taxa DU + TU + Taxas Inclusas + qualquer outra coluna nomeada como taxa). Se houver só uma coluna de taxa, use-a; se houver várias, some todas.
+- fees: 0 (não separar fees — tudo que for taxa vai em "taxes").
+- total_fare: valor da coluna "Total" na linha TOTAL.
 
 Todos os valores como número puro (sem "R$", vírgula → ponto). Se o valor exibido for realmente "0,00", devolva 0 — NÃO omita. Só omita se a captura estiver ilegível ou a tabela não aparecer em nenhuma imagem.`;
+
   const aiBody = {
     model: "google/gemini-2.5-pro",
     messages: [
