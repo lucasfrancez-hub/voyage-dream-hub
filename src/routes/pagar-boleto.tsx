@@ -194,7 +194,7 @@ function PayBoletoPage() {
               <div className="mb-6 overflow-hidden rounded-2xl border border-border shadow-[var(--shadow-card)]">
                 <img
                   src={img}
-                  alt={desc ?? "Destino"}
+                  alt={desc ?? "Imagem ilustrativa do destino da viagem"}
                   className="h-48 md:h-64 w-full object-cover"
                   onError={(e) => (e.currentTarget.parentElement!.style.display = "none")}
                 />
