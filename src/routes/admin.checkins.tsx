@@ -18,8 +18,11 @@ function CheckinsPage() {
   const load = useServerFn(listAllCheckins);
   const run = useServerFn(runCheckin);
   const resend = useServerFn(resendBoardingPass);
+  const regen = useServerFn(regenerateBoardingPass);
+  const regenAll = useServerFn(regenerateAllBoardingPasses);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const q = useQuery({
     queryKey: ["all-checkins"],
