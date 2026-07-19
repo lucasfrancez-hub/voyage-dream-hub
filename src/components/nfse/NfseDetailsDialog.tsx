@@ -93,7 +93,7 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
               value={row.codigo_verificacao ?? "—"}
               mono
             />
-            {order?.order_number && (
+            {!!order?.order_number && (
               <Row
                 label="Pedido"
                 value={
