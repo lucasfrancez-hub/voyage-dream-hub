@@ -374,7 +374,7 @@ export const runCheckin = createServerFn({ method: "POST" })
  */
 export const runCheckinGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { orderItemIds: string[] }) => data)
+  .inputValidator((data: { orderItemIds: string[]; mode?: "code" | "vision" }) => data)
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
     const { userId } = context as { userId: string };
