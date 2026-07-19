@@ -146,10 +146,26 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
   const status = String(row.status ?? "");
   const isAutorizada = status === "autorizado" || status === "emitida";
 
+  const qc = useQueryClient();
+  const cancelFn = useServerFn(cancelarNfse);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const cancelMut = useMutation({
+    mutationFn: (justificativa: string) =>
+      cancelFn({ data: { id: String(row.id), justificativa } }),
+    onSuccess: () => {
+      toast.success("NFS-e cancelada");
+      qc.invalidateQueries();
+      setCancelOpen(false);
+      onOpenChange(false);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao cancelar"),
+  });
+
   const valor = Number(row.valor_servicos ?? 0);
   const ded = Number(row.valor_deducoes ?? 0);
   const base = Number(row.base_calculo ?? valor - ded);
   const iss = Number(row.valor_iss ?? 0);
+
   const issRet = Number(row.valor_iss_retido ?? 0);
   const liquido = Number(row.valor_liquido ?? valor - issRet);
   const desc = String(row.discriminacao ?? "");
