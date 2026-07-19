@@ -925,7 +925,8 @@ function PassengersSection({
                       passport_number: patch.passport_number !== undefined ? patch.passport_number : p.passport_number,
                       passport_issue_date: patch.passport_issue_date !== undefined ? patch.passport_issue_date : p.passport_issue_date,
                       passport_expiry_date: patch.passport_expiry_date !== undefined ? patch.passport_expiry_date : p.passport_expiry_date,
-                    });
+                      whatsapp: patch.whatsapp !== undefined ? patch.whatsapp : (p as any).whatsapp,
+                    } as any);
                     // Se alterou o bilhete: atualiza status dos aéreos (confirmado se algum passageiro tem bilhete).
                     if (patch.ticket_number !== undefined) {
                       const anyTicket =
