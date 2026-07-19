@@ -336,11 +336,7 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
                   )}
                   {(e.status === "autorizado" || e.status === "emitida") && (
                     <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600"
-                      onClick={() => {
-                        const j = window.prompt("Justificativa do cancelamento (mín. 15 caracteres):");
-                        if (j && j.trim().length >= 15) cancelMut.mutate({ id: e.id, justificativa: j.trim() });
-                        else if (j !== null) toast.error("Justificativa muito curta");
-                      }}>
+                      onClick={() => setCancelTarget({ id: e.id, numero: e.numero_nfse ?? null })}>
                       <XCircle className="h-3.5 w-3.5" />
                     </Button>
                   )}
