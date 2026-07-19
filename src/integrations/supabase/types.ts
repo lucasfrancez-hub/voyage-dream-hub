@@ -325,6 +325,100 @@ export type Database = {
           },
         ]
       }
+      flight_checkins: {
+        Row: {
+          attempts: number
+          boarding_pass_path: string | null
+          boarding_pass_url: string | null
+          cia: string
+          completed_at: string | null
+          created_at: string
+          delivered_email_at: string | null
+          delivered_wa_at: string | null
+          departure_at: string | null
+          error: string | null
+          flight_number: string | null
+          id: string
+          last_attempt_at: string | null
+          locator: string
+          order_id: string
+          order_item_id: string
+          passenger_id: string | null
+          pnr_surname: string | null
+          scheduled_for: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          boarding_pass_path?: string | null
+          boarding_pass_url?: string | null
+          cia: string
+          completed_at?: string | null
+          created_at?: string
+          delivered_email_at?: string | null
+          delivered_wa_at?: string | null
+          departure_at?: string | null
+          error?: string | null
+          flight_number?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          locator: string
+          order_id: string
+          order_item_id: string
+          passenger_id?: string | null
+          pnr_surname?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          boarding_pass_path?: string | null
+          boarding_pass_url?: string | null
+          cia?: string
+          completed_at?: string | null
+          created_at?: string
+          delivered_email_at?: string | null
+          delivered_wa_at?: string | null
+          departure_at?: string | null
+          error?: string | null
+          flight_number?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          locator?: string
+          order_id?: string
+          order_item_id?: string
+          passenger_id?: string | null
+          pnr_surname?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_checkins_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flight_checkins_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flight_checkins_passenger_id_fkey"
+            columns: ["passenger_id"]
+            isOneToOne: false
+            referencedRelation: "order_passengers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flight_import_staging: {
         Row: {
           airline_hint: string | null

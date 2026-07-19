@@ -1,0 +1,139 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+/**
+ * Detecta cia aérea a partir do texto do voo/segmento.
+ */
+export function detectAirline(input: {
+  airline?: string | null;
+  flight_number?: string | null;
+}): "LATAM" | "GOL" | "AZUL" | null {
+  const a = (input.airline || "").toLowerCase();
+  const fn = (input.flight_number || "").toUpperCase().trim();
+  if (a.includes("latam") || fn.startsWith("LA") || fn.startsWith("JJ")) return "LATAM";
+  if (a.includes("gol") || fn.startsWith("G3")) return "GOL";
+  if (a.includes("azul") || fn.startsWith("AD")) return "AZUL";
+  return null;
+}
+
+/**
+ * Lista status dos check-ins de um pedido.
+ */
+export const listCheckins = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    const { data: rows, error } = await sb
+      .from("flight_checkins")
+      .select("*")
+      .eq("order_id", data.orderId)
+      .order("departure_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+/**
+ * Roda o check-in agora (LATAM apenas por enquanto).
+ * Aceita `checkinId` (para retry) OU `orderItemId` (cria/atualiza registro).
+ */
+export const runCheckin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null }) => data)
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    const { userId } = context as { userId: string };
+
+    // Verifica role: apenas admin/staff.
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isStaff } = await sb.rpc("has_role", { _user_id: userId, _role: "user" });
+    if (!isAdmin && !isStaff) throw new Error("Sem permissão");
+
+    // Carrega ou cria o registro de check-in
+    let checkin: any = null;
+    if (data.checkinId) {
+      const r = await sb.from("flight_checkins").select("*").eq("id", data.checkinId).maybeSingle();
+      checkin = r.data;
+      if (!checkin) throw new Error("Check-in não encontrado");
+    } else if (data.orderItemId) {
+      // Busca dados do item
+      const it = await sb.from("order_items").select("id, order_id, kind, details, supplier_locator").eq("id", data.orderItemId).maybeSingle();
+      const item = it.data as any;
+      if (!item || item.kind !== "flight") throw new Error("Item não é um voo");
+      const airline = detectAirline({ airline: item.details?.airline, flight_number: item.details?.flight_number });
+      if (airline !== "LATAM") throw new Error("Fase 1 só suporta LATAM");
+      const locator = (item.supplier_locator || item.details?.locator || "").toString().trim().toUpperCase();
+      if (!locator) throw new Error("Localizador ausente no voo");
+
+      // Pega sobrenome do 1º passageiro do pedido
+      const pax = await sb.from("order_passengers").select("id, full_name").eq("order_id", item.order_id).order("sort_order", { ascending: true }).limit(1);
+      const firstPax = (pax.data as Array<any>)?.[0];
+      const surname = firstPax?.full_name?.split(/\s+/).slice(-1)[0] ?? "";
+      if (!surname) throw new Error("Sobrenome do passageiro não encontrado");
+
+      const departureAt = item.details?.departure_at || null;
+
+      const up = await sb
+        .from("flight_checkins")
+        .upsert({
+          order_id: item.order_id,
+          order_item_id: item.id,
+          passenger_id: firstPax?.id ?? null,
+          cia: airline,
+          locator,
+          pnr_surname: surname,
+          flight_number: item.details?.flight_number ?? null,
+          departure_at: departureAt,
+          status: "running",
+        }, { onConflict: "order_item_id,passenger_id" })
+        .select("*")
+        .single();
+      checkin = up.data;
+    } else {
+      throw new Error("checkinId ou orderItemId obrigatório");
+    }
+
+    // Marca running
+    await sb.from("flight_checkins")
+      .update({ status: "running", last_attempt_at: new Date().toISOString(), attempts: (checkin.attempts ?? 0) + 1, error: null })
+      .eq("id", checkin.id);
+
+    try {
+      const { runLatamCheckin } = await import("./latam.server");
+      const result = await runLatamCheckin({ locator: checkin.locator, surname: checkin.pnr_surname });
+
+      // Upload no storage
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const path = `${checkin.order_id}/${checkin.id}.pdf`;
+      const pdfBytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
+      const up = await supabaseAdmin.storage
+        .from("boarding-passes")
+        .upload(path, pdfBytes, { contentType: result.contentType, upsert: true });
+      if (up.error) throw new Error(`Storage: ${up.error.message}`);
+
+      // Signed URL 30 dias
+      const signed = await supabaseAdmin.storage.from("boarding-passes").createSignedUrl(path, 60 * 60 * 24 * 30);
+      const url = signed.data?.signedUrl ?? null;
+
+      await sb.from("flight_checkins").update({
+        status: "success",
+        boarding_pass_path: path,
+        boarding_pass_url: url,
+        completed_at: new Date().toISOString(),
+      }).eq("id", checkin.id);
+
+      // Dispara entrega em background (não bloqueia a resposta)
+      try {
+        const { deliverBoardingPass } = await import("./deliver.server");
+        await deliverBoardingPass(checkin.id);
+      } catch (e) {
+        console.error("[checkin] delivery failed", e);
+      }
+
+      return { ok: true, id: checkin.id, url };
+    } catch (err: any) {
+      const msg = err?.message ?? String(err);
+      await sb.from("flight_checkins").update({ status: "failed", error: msg.slice(0, 500) }).eq("id", checkin.id);
+      throw new Error(msg);
+    }
+  });
