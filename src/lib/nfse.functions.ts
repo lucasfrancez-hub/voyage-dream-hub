@@ -278,9 +278,9 @@ export const emitirNfse = createServerFn({ method: "POST" })
       valorIss,
     });
 
-    // Assinatura digital XMLDSig (enveloped) com o certificado A1
+    // Assinatura digital XMLDSig (enveloped) com o certificado A1 do prestador
     const { signNfseXml } = await import("@/lib/nfse-xmldsig.server");
-    const xml = await signNfseXml(unsignedXml);
+    const xml = await signNfseXml(unsignedXml, (cfg as { cnpj?: string }).cnpj);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
