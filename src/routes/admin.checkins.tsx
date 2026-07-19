@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listAllCheckins, runCheckin } from "@/lib/checkin/checkin.functions";
+import { listAllCheckins, runCheckin, resendBoardingPass } from "@/lib/checkin/checkin.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, ExternalLink, Loader2, PlaneTakeoff, RefreshCw } from "lucide-react";
+import { Download, ExternalLink, Loader2, PlaneTakeoff, RefreshCw, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -17,7 +17,9 @@ export const Route = createFileRoute("/admin/checkins")({
 function CheckinsPage() {
   const load = useServerFn(listAllCheckins);
   const run = useServerFn(runCheckin);
+  const resend = useServerFn(resendBoardingPass);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ["all-checkins"],
@@ -42,6 +44,18 @@ function CheckinsPage() {
       toast.error(e?.message ?? "Falhou");
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function handleResend(id: string) {
+    setSendingId(id);
+    try {
+      await resend({ data: { checkinId: id } });
+      toast.success("Cartão de embarque enviado no WhatsApp");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao enviar");
+    } finally {
+      setSendingId(null);
     }
   }
 

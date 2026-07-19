@@ -51,6 +51,23 @@ export const listAllCheckins = createServerFn({ method: "GET" })
   });
 
 /**
+ * Reenvia o cartão de embarque para o(s) WhatsApp(s) dos passageiros.
+ */
+export const resendBoardingPass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { checkinId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    const { userId } = context as { userId: string };
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isStaff } = await sb.rpc("has_role", { _user_id: userId, _role: "user" });
+    if (!isAdmin && !isStaff) throw new Error("Sem permissão");
+    const { deliverBoardingPass } = await import("./deliver.server");
+    await deliverBoardingPass(data.checkinId);
+    return { ok: true } as const;
+  });
+
+/**
  * Roda o check-in agora (LATAM apenas por enquanto).
  * Aceita `checkinId` (para retry) OU `orderItemId` (cria/atualiza registro).
  */
