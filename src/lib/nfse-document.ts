@@ -401,8 +401,12 @@ body{color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:10.2px;
 
   <div class="rodape-legal">
     <div>Valor aproximado dos tributos: Federais ${money(tFed)} (0,00%), Municipais ${money(vIss)} (${pct(aliq)}), conforme Lei nº 12.741/2012 e Decreto nº 8.264/2014 — Fonte IBPT.</div>
-    <div class="ambiental">Antes de imprimir, pense em sua responsabilidade com o meio ambiente.</div>
+    <div class="rodape-linha">
+      <span class="ambiental">Antes de imprimir, pense em sua responsabilidade com o meio ambiente.</span>
+      <span class="rodape-sistema">Sistema VIA AIR — Todos os direitos reservados</span>
+    </div>
   </div>
+
 </div>
 <script>
 async function aguardarImagens(){
