@@ -59,7 +59,7 @@ function CheckinsPage() {
       title: "Regerar todos os cartões?",
       description:
         "Vai apagar os PDFs atuais e rodar o check-in de novo para todos os voos com status Concluído. Útil quando os cartões saíram em branco.",
-      confirmLabel: "Regerar todos",
+      confirmText: "Regerar todos",
     });
     if (!ok) return;
     setBulkBusy(true);
