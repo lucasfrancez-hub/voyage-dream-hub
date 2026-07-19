@@ -93,16 +93,14 @@ export const regenerateBoardingPass = createServerFn({ method: "POST" })
     await supabaseAdmin
       .from("flight_checkins")
       .update({
-        status: "pending",
-        boarding_pass_path: null,
-        boarding_pass_url: null,
-        delivered_wa_at: null,
-        last_error: null,
-      })
+        status: "pending" as any,
+        boarding_pass_path: null as any,
+        boarding_pass_url: null as any,
+        delivered_wa_at: null as any,
+        last_error: null as any,
+      } as any)
       .eq("id", data.checkinId);
-    // dispara nova execução na hora
-    const { runCheckinCore } = await import("./checkin-core.server");
-    return await runCheckinCore(data.checkinId);
+    return { ok: true };
   });
 
 /**
