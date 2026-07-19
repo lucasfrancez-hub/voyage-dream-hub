@@ -92,7 +92,7 @@ function CheckinsPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1" />Cartão de embarque</Button>
+                  <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1" />Ver cartão(ões) de embarque</Button>
                 </a>
               )}
               <Button
