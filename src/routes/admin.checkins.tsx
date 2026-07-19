@@ -86,9 +86,13 @@ function CheckinsPage() {
                   <Button size="sm" variant="outline"><Download className="h-3.5 w-3.5 mr-1" />PDF</Button>
                 </a>
               )}
-              {r.item?.details?.airline_checkin_url && r.status !== "success" && (
-                <a href={r.item.details.airline_checkin_url} target="_blank" rel="noreferrer">
-                  <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1" />Abrir na LATAM</Button>
+              {r.status !== "success" && r.locator && r.pnr_surname && (
+                <a
+                  href={`https://www.latamairlines.com/br/pt/check-in/status?orderId=${encodeURIComponent(String(r.locator).toUpperCase())}&lastName=${encodeURIComponent(String(r.pnr_surname).toLowerCase())}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1" />Cartão de embarque</Button>
                 </a>
               )}
               <Button
