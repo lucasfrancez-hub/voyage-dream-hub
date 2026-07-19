@@ -48,7 +48,7 @@ function Field({
   span,
 }: {
   label: string;
-  value: React.ReactNode;
+  value: unknown;
   mono?: boolean;
   span?: 1 | 2 | 3;
 }) {
