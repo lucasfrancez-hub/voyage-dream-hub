@@ -381,7 +381,20 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
       }));
     }
     step('fallback: page.pdf()');
-    pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+    // A LATAM esconde o layout do cartão em @media print. Forçamos "screen"
+    // e esperamos o conteúdo real aparecer antes de imprimir para não gerar
+    // um PDF em branco.
+    try { await page.emulateMediaType('screen'); } catch (e) { step('emulateMediaType falhou: ' + (e && e.message)); }
+    try {
+      await page.waitForFunction(() => {
+        const t = (document.body && document.body.innerText || '').toLowerCase();
+        const hasText = t.includes('cartão de embarque') || t.includes('cartao de embarque') || t.includes('boarding pass') || t.includes('embarque') && t.includes('portão');
+        const hasBarcode = !!document.querySelector('svg[class*="barcode" i], img[alt*="barcode" i], img[src*="barcode" i], canvas');
+        return hasText || hasBarcode;
+      }, { timeout: 15_000 });
+    } catch (e) { step('espera do conteúdo do cartão falhou: ' + (e && e.message)); }
+    await sleep(1500);
+    pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true });
     contentType = 'application/pdf';
   }
 
