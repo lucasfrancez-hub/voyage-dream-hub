@@ -219,6 +219,13 @@ export function NfseCard({
   const cancelFn = useServerFn(cancelarNfse);
   const deleteFn = useServerFn(deleteNfse);
   const getPersonFn = useServerFn(getPerson);
+  const listConfigsFn = useServerFn(listNfseConfigs);
+
+  const { data: prestadores = [] } = useQuery({
+    queryKey: ["nfse-configs"],
+    queryFn: () => listConfigsFn(),
+    staleTime: 5 * 60_000,
+  });
 
   const key = ["nfse", order.id] as const;
   const { data: emissoes = [], isLoading } = useQuery({
