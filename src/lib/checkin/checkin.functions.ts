@@ -60,7 +60,7 @@ export const listUpcomingFlights = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sb = context.supabase as any;
     const nowIso = new Date().toISOString();
-    const in30d = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+    const in30d = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
     const { data: items } = await sb
       .from("order_items")
       .select("id, order_id, details, supplier_locator, order:orders(id, order_number, full_name, deleted_at)")
