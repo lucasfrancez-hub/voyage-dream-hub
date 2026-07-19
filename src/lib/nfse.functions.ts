@@ -306,11 +306,12 @@ export const emitirNfse = createServerFn({ method: "POST" })
 
     // Resolve o código IBGE do município do tomador a partir de cidade+UF
     // (a prefeitura usa esse código; sem ele, cai no fallback Paranavaí).
+    let dataForXml = data;
     const endAtual = data.tomador.endereco ?? null;
     if (endAtual && !onlyDigits(endAtual.codigoMunicipio) && endAtual.cidade && endAtual.uf) {
       const codigo = await resolveIbgeMunicipio(endAtual.cidade, endAtual.uf);
       if (codigo) {
-        data = {
+        dataForXml = {
           ...data,
           tomador: {
             ...data.tomador,
@@ -322,12 +323,13 @@ export const emitirNfse = createServerFn({ method: "POST" })
 
     const unsignedXml = buildAtendenetXml({
       cfg: cfg as Record<string, unknown>,
-      data,
+      data: dataForXml,
       reference,
       numeroRps,
       serieRps,
       valorIss,
     });
+
 
 
     // Assinatura digital XMLDSig (enveloped) com o certificado A1 do prestador
