@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Copy,
   Ban,
+  Building2,
 } from "lucide-react";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { cancelarNfse } from "@/lib/nfse.functions";
