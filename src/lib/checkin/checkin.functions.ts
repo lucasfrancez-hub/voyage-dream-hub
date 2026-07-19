@@ -51,6 +51,47 @@ export const listAllCheckins = createServerFn({ method: "GET" })
   });
 
 /**
+ * Lista voos LATAM futuros dos pedidos que ainda NÃO têm registro em
+ * flight_checkins (ou seja, fora da janela do robô). Serve para mostrar
+ * na mini-dashboard os próximos check-ins a serem realizados.
+ */
+export const listUpcomingFlights = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = context.supabase as any;
+    const nowIso = new Date().toISOString();
+    const in30d = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+    const { data: items } = await sb
+      .from("order_items")
+      .select("id, order_id, details, supplier_locator, order:orders(id, order_number, full_name, deleted_at)")
+      .eq("kind", "flight")
+      .gte("details->>departure_at", nowIso)
+      .lte("details->>departure_at", in30d)
+      .limit(500);
+    const { data: existing } = await sb
+      .from("flight_checkins")
+      .select("order_item_id")
+      .not("order_item_id", "is", null);
+    const done = new Set((existing ?? []).map((r: any) => r.order_item_id));
+    const rows = (items ?? [])
+      .filter((it: any) => !it.order?.deleted_at)
+      .filter((it: any) => !done.has(it.id))
+      .filter((it: any) => detectAirline({ airline: it.details?.airline, flight_number: it.details?.flight_number }) === "LATAM")
+      .map((it: any) => ({
+        id: it.id,
+        order: it.order,
+        cia: "LATAM",
+        locator: it.supplier_locator ?? it.details?.locator ?? null,
+        flight_number: it.details?.flight_number ?? null,
+        departure_at: it.details?.departure_at ?? null,
+        origin: it.details?.origin ?? null,
+        destination: it.details?.destination ?? null,
+      }))
+      .sort((a: any, b: any) => new Date(a.departure_at || 0).getTime() - new Date(b.departure_at || 0).getTime());
+    return rows;
+  });
+
+/**
  * Reenvia o cartão de embarque para o(s) WhatsApp(s) dos passageiros.
  */
 export const resendBoardingPass = createServerFn({ method: "POST" })
