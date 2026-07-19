@@ -218,6 +218,7 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
   step('start unified state machine');
   let done = false;
   let idle = 0;
+  let flightDetailsOpened = false;
   for (let i = 0; i < 18; i++) {
     // (1) PDF disponível → sai
     const baixar = (await findByText(['baixar pdf','baixar cartão','baixar cartao'])) || (await page.$('a[download][href*=".pdf" i]'));
@@ -263,6 +264,24 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
       done = true; // já entramos na tela do cartão
       idle = 0;
       break;
+    }
+
+    // Na página "Minhas viagens", cada trecho é um painel recolhido. O CTA
+    // do cartão só entra no DOM após abrir o voo correspondente.
+    if (!flightDetailsOpened && page.url().includes('/minhas-viagens/')) {
+      const flightRow = await findByText([
+        'segunda-feira', 'terça-feira', 'terca-feira', 'quarta-feira',
+        'quinta-feira', 'sexta-feira', 'sábado', 'sabado', 'domingo',
+      ], ['button','[role="button"]']);
+      if (flightRow) {
+        step('iter ' + i + ': abrindo detalhes do trecho');
+        await flightRow.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+        await flightRow.click().catch(async () => flightRow.evaluate((el) => el.click()));
+        await sleep(3000);
+        flightDetailsOpened = true;
+        idle = 0;
+        continue;
+      }
     }
 
     // (4) "Fazer check-in"
