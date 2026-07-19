@@ -15,8 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   CalendarClock,
   CheckCircle2,
+  Code2,
   Download,
   ExternalLink,
+  Eye,
   Hourglass,
   Loader2,
   PlaneTakeoff,
