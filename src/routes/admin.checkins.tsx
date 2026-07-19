@@ -73,11 +73,20 @@ function CheckinsPage() {
       if (r.status === "success") done.push(r);
       else if (r.status === "running") running.push(r);
       else if (r.status === "failed") failed.push(r);
-      else if (dep && dep - now <= 7 * 24 * HOUR) imminent.push(r);
+      else if (dep && dep - now <= 48 * HOUR) imminent.push(r);
       else imminent.push(r); // pending sem horário
     }
     return { imminent, running, done, failed };
   }, [rows]);
+
+  const upcoming7d = useMemo(() => {
+    const now = Date.now();
+    const in7 = now + 7 * 24 * HOUR;
+    return upcoming.filter((u: any) => {
+      const dep = u.departure_at ? new Date(u.departure_at).getTime() : null;
+      return dep && dep >= now && dep <= in7;
+    });
+  }, [upcoming]);
 
   async function handleRun(id: string, regenerate = false) {
     setBusyId(id);
