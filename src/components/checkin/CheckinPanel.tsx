@@ -5,7 +5,7 @@ import { Loader2, Plane, CheckCircle2, XCircle, Clock, RefreshCw, Download, Send
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { listCheckins, runCheckin, detectAirline, resendBoardingPass } from "@/lib/checkin/checkin.functions";
+import { listCheckins, runCheckin, detectAirline, resendBoardingPass, regenerateBoardingPass } from "@/lib/checkin/checkin.functions";
 
 type FlightItem = {
   id: string;
@@ -33,6 +33,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   const list = useServerFn(listCheckins);
   const run = useServerFn(runCheckin);
   const resend = useServerFn(resendBoardingPass);
+  const regen = useServerFn(regenerateBoardingPass);
 
   const { data: checkins = [] } = useQuery({
     queryKey: ["flight-checkins", orderId],
@@ -40,7 +41,12 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   });
 
   const runMut = useMutation({
-    mutationFn: (orderItemId: string) => run({ data: { orderItemId } }),
+    mutationFn: async (args: { orderItemId: string; regenCheckinId?: string }) => {
+      if (args.regenCheckinId) {
+        await regen({ data: { checkinId: args.regenCheckinId } });
+      }
+      return run({ data: { orderItemId: args.orderItemId } });
+    },
     onSuccess: (result) => {
       if (!result.ok) {
         toast.error(result.error);
@@ -101,7 +107,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
         {rows.map(({ item, checkin }) => {
           const dep = item.details?.departure_at ? new Date(item.details.departure_at) : null;
           const canRun = dep ? dep.getTime() - Date.now() < 48 * 60 * 60 * 1000 && dep.getTime() > Date.now() : true;
-          const isRunning = runMut.isPending && runMut.variables === item.id;
+          const isRunning = runMut.isPending && runMut.variables?.orderItemId === item.id;
           return (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-background/60 px-3 py-2 text-sm">
               <div className="min-w-0">
@@ -137,11 +143,11 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                   size="sm"
                   variant={checkin?.status === "success" ? "outline" : "default"}
                   disabled={isRunning || !canRun}
-                  onClick={() => runMut.mutate(item.id)}
+                  onClick={() => runMut.mutate({ orderItemId: item.id, regenCheckinId: checkin?.status === "success" ? checkin.id : undefined })}
                   title={!canRun ? "Disponível a partir de 48h antes do voo" : ""}
                 >
                   {isRunning ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
-                  {checkin?.status === "success" ? "Refazer" : "Check-in"}
+                  {checkin?.status === "success" ? "Regerar cartão" : "Check-in"}
                 </Button>
               </div>
             </div>

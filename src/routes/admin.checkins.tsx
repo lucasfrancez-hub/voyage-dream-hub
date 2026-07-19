@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listAllCheckins, runCheckin, resendBoardingPass } from "@/lib/checkin/checkin.functions";
+import { listAllCheckins, runCheckin, resendBoardingPass, regenerateBoardingPass, regenerateAllBoardingPasses } from "@/lib/checkin/checkin.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Download, ExternalLink, Loader2, PlaneTakeoff, RefreshCw, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { confirm } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/checkins")({
   head: () => ({ meta: [{ title: "Check-ins — VIA AIR" }] }),
@@ -18,8 +19,11 @@ function CheckinsPage() {
   const load = useServerFn(listAllCheckins);
   const run = useServerFn(runCheckin);
   const resend = useServerFn(resendBoardingPass);
+  const regen = useServerFn(regenerateBoardingPass);
+  const regenAll = useServerFn(regenerateAllBoardingPasses);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const q = useQuery({
     queryKey: ["all-checkins"],
@@ -29,21 +33,44 @@ function CheckinsPage() {
 
   const rows = (q.data ?? []) as Array<any>;
 
-  async function handleRun(id: string) {
+  async function handleRun(id: string, regenerate = false) {
     setBusyId(id);
     try {
+      if (regenerate) {
+        await regen({ data: { checkinId: id } });
+      }
       const result = await run({ data: { checkinId: id } });
       if (!result.ok) {
         toast.error(result.error);
         await q.refetch();
         return;
       }
-      toast.success("Check-in concluído");
+      toast.success(regenerate ? "Cartão regerado e enviado" : "Check-in concluído");
       q.refetch();
     } catch (e: any) {
       toast.error(e?.message ?? "Falhou");
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function handleRegenAll() {
+    const ok = await confirm({
+      title: "Regerar todos os cartões?",
+      description:
+        "Vai apagar os PDFs atuais e rodar o check-in de novo para todos os voos com status Concluído. Útil quando os cartões saíram em branco.",
+      confirmText: "Regerar todos",
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    try {
+      const res = await regenAll();
+      toast.success(`${(res as any).count ?? 0} cartões marcados para regerar. O robô vai processar em segundos.`);
+      q.refetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falhou");
+    } finally {
+      setBulkBusy(false);
     }
   }
 
@@ -78,9 +105,15 @@ function CheckinsPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-4">
-      <div className="flex items-center gap-2">
-        <PlaneTakeoff className="h-5 w-5 text-brand-orange" />
-        <h1 className="text-xl font-semibold">Check-ins de voo</h1>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <PlaneTakeoff className="h-5 w-5 text-brand-orange" />
+          <h1 className="text-xl font-semibold">Check-ins de voo</h1>
+        </div>
+        <Button size="sm" variant="outline" disabled={bulkBusy} onClick={handleRegenAll}>
+          {bulkBusy ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+          Regerar todos os cartões
+        </Button>
       </div>
       <p className="text-sm text-muted-foreground">
         O robô roda automaticamente entre 48h e 1h antes do voo (LATAM). Você também pode disparar manualmente aqui.
@@ -136,10 +169,11 @@ function CheckinsPage() {
                 size="sm"
                 variant={r.status === "success" ? "outline" : "default"}
                 disabled={isBusy}
-                onClick={() => handleRun(r.id)}
+                onClick={() => handleRun(r.id, r.status === "success")}
+                title={r.status === "success" ? "Apaga o PDF atual e roda o check-in de novo" : ""}
               >
                 {isBusy ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
-                {r.status === "success" ? "Refazer" : "Fazer check-in"}
+                {r.status === "success" ? "Regerar cartão" : "Fazer check-in"}
               </Button>
             </Card>
           );
