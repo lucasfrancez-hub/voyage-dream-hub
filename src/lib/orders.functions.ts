@@ -515,6 +515,7 @@ export const upsertPassenger = createServerFn({ method: "POST" })
       passport_number: data.passport_number ?? null,
       passport_issue_date: data.passport_issue_date ?? null,
       passport_expiry_date: data.passport_expiry_date ?? null,
+      whatsapp: (data as any).whatsapp ?? null,
     };
     if (data.id) {
       const { error } = await context.supabase.from("order_passengers").update(payload).eq("id", data.id);
