@@ -847,6 +847,7 @@ export type PersonNfseRow = {
   data_emissao: string | null;
   valor_servicos: number | null;
   valor_iss: number | null;
+  valor_iss_retido: number | null;
   valor_liquido: number | null;
   codigo_verificacao: string | null;
   cancelada_em: string | null;
