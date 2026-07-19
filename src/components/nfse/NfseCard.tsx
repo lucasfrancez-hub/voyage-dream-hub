@@ -462,6 +462,18 @@ export function NfseCard({ detail }: { detail: OrderDetail }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CancelNfseDialog
+        open={!!cancelTarget}
+        onOpenChange={(v) => { if (!v) setCancelTarget(null); }}
+        numero={cancelTarget?.numero ?? null}
+        loading={cancelMut.isPending}
+        onConfirm={(j) => {
+          if (!cancelTarget) return;
+          const id = cancelTarget.id;
+          cancelMut.mutate({ id, justificativa: j }, { onSettled: () => setCancelTarget(null) });
+        }}
+      />
     </div>
   );
 }
