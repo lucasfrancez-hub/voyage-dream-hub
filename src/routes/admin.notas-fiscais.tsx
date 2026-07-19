@@ -278,7 +278,7 @@ function NotasFiscaisPage() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-1 lg:pl-4 flex-wrap">
+                  <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 lg:pl-4 flex-wrap">
                     <IconBtn
                       title="Sincronizar"
                       onClick={() => consultMut.mutate(r.id)}
