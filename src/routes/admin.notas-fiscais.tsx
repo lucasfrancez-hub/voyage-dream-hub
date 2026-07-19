@@ -306,7 +306,7 @@ function NotasFiscaisPage() {
                     {getPrestadorName(r) && (
                       <>
                         <span className="text-muted-foreground/60">•</span>
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-brand-orange/10 text-brand-orange border border-brand-orange/20">
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md border ${prestadorBadgeClass(getPrestador(r))}`}>
                           <Building2 className="h-3 w-3" />
                           {getPrestadorName(r)}
                         </span>
