@@ -267,6 +267,9 @@ function DashboardPage() {
       </div>
 
 
+      {/* Check-ins — resumo */}
+      <CheckinsOverview />
+
       {/* KPIs */}
       <div className={`grid gap-3 grid-cols-2 ${isAdmin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
         <Kpi icon={DollarSign} label="Total vendido" value={formatBRL(stats.totalSold)} hint={`${stats.count} pedidos pagos`} accent="text-emerald-500" />
@@ -328,8 +331,6 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* Check-ins — resumo */}
-      <CheckinsOverview />
 
 
       {/* Financeiro: a pagar / a receber (admin) */}
