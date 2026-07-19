@@ -1459,7 +1459,7 @@ function NotasFiscaisTab({ personId, isNew, onClose }: { personId: string | null
     return "bg-sky-500/15 text-sky-500 border-sky-500/30";
   };
 
-  const total = rows.reduce((acc, r) => acc + Number(r.valor_servicos || 0), 0);
+  const total = rows.reduce((acc, r) => acc + (r.status === "cancelado" ? 0 : Number(r.valor_servicos || 0)), 0);
   const autorizadas = rows.filter((r) => r.status === "autorizado" || r.status === "emitida").length;
 
   return (
