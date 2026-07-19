@@ -114,7 +114,7 @@ function AdminLayout() {
   // Redirect /admin -> destino padrão por role
   useEffect(() => {
     if (pathname !== "/admin") return;
-    if (isAdmin) navigate({ to: "/admin/pacotes" });
+    if (isAdmin) navigate({ to: "/admin/dashboard" });
     else if (isPartner) navigate({ to: "/admin/pedidos" });
   }, [pathname, isAdmin, isPartner, navigate]);
 

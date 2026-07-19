@@ -245,10 +245,12 @@ function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6">
+      <WelcomeBanner />
       <div>
         <h1 className="text-2xl font-display font-bold">Dashboard</h1>
         <p className="text-sm text-muted-foreground">Visão geral do negócio</p>
       </div>
+
 
       {/* KPIs */}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
@@ -486,3 +488,41 @@ function Kpi({
     </div>
   );
 }
+
+function WelcomeBanner() {
+  const [name, setName] = useState<string>("");
+  const [dismissed, setDismissed] = useState(false);
+  useMemo(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data.user;
+      const meta = (u?.user_metadata ?? {}) as Record<string, unknown>;
+      const fn = (meta.full_name as string) || (meta.name as string) || (u?.email ? String(u.email).split("@")[0] : "");
+      setName(fn);
+    });
+    return null;
+  }, []);
+  if (dismissed) return null;
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-brand-orange/30 bg-gradient-to-br from-brand-orange/15 via-brand-orange/5 to-transparent p-5 md:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.2em] text-brand-orange font-semibold mb-1">Bem-vindo à VIA AIR</div>
+          <h2 className="text-xl md:text-2xl font-display font-bold">
+            {greet}{name ? `, ${name}` : ""} 👋
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">Aqui está o resumo do seu dia. Bom trabalho!</p>
+        </div>
+        <button
+          onClick={() => setDismissed(true)}
+          className="text-xs text-muted-foreground hover:text-foreground transition px-2 py-1 rounded-md hover:bg-muted"
+          aria-label="Dispensar"
+        >
+          Dispensar
+        </button>
+      </div>
+    </div>
+  );
+}
+
