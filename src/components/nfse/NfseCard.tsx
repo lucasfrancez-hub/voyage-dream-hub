@@ -132,6 +132,74 @@ function statusBadge(s: string) {
   return <Badge variant="outline" className={x.cls}>{x.label}</Badge>;
 }
 
+type PersonBundle = {
+  person?: Record<string, unknown> | null;
+  phones?: Array<{ number?: string | null; is_primary?: boolean | null }> | null;
+  emails?: Array<{ address?: string | null; is_primary?: boolean | null }> | null;
+} | null | undefined;
+
+export function buildInitialNfseForm(detail: OrderDetail, personData: PersonBundle) {
+  const { order } = detail;
+  const p = personData?.person as Record<string, unknown> | undefined;
+  const pStr = (k: string) => (p ? String(p[k] ?? "") : "");
+  const primaryPhone = personData?.phones?.find((x) => x.is_primary)?.number
+    ?? personData?.phones?.[0]?.number ?? "";
+  const primaryEmail = personData?.emails?.find((x) => x.is_primary)?.address
+    ?? personData?.emails?.[0]?.address ?? "";
+
+  const pf = pStr("cpf");
+  const pj = pStr("cnpj");
+  const doc = pj || pf || order.payerCpf || order.cpf || "";
+  const nome = pStr("legal_name") || pStr("name") || order.payerFullName || order.fullName || "";
+
+  return {
+    razaoSocial: nome,
+    cpfCnpj: doc,
+    email: primaryEmail || pStr("email") || order.payerEmail || order.email || "",
+    phone: primaryPhone || pStr("mobile_phone") || pStr("phone") || order.payerPhone || "",
+    valor: String(order.totalPrice ?? 0),
+    discriminacao: buildAutoDescricao(detail),
+    cep: pStr("zip") || order.payerZip || "",
+    logradouro: pStr("address") || order.payerAddress || "",
+    numero: pStr("number") || order.payerNumber || "",
+    complemento: pStr("complement") || "",
+    bairro: pStr("district") || order.payerDistrict || "",
+    cidade: pStr("city") || order.payerCity || "",
+    uf: pStr("state") || order.payerState || "",
+  };
+}
+
+export function buildEmitirNfsePayload(
+  detail: OrderDetail,
+  form: ReturnType<typeof buildInitialNfseForm>,
+) {
+  const valor = Number(String(form.valor).replace(",", "."));
+  if (!valor || valor <= 0) throw new Error("Valor inválido");
+  if (!form.razaoSocial.trim()) throw new Error("Nome/Razão social é obrigatório");
+  const doc = form.cpfCnpj.replace(/\D/g, "");
+  if (doc.length !== 11 && doc.length !== 14) throw new Error("CPF ou CNPJ inválido");
+  return {
+    orderId: detail.order.id,
+    valorServicos: valor,
+    discriminacao: form.discriminacao.trim(),
+    tomador: {
+      razaoSocial: form.razaoSocial.trim(),
+      cpfCnpj: doc,
+      email: form.email.trim() || null,
+      telefone: form.phone.trim() || null,
+      endereco: {
+        logradouro: form.logradouro.trim() || null,
+        numero: form.numero.trim() || null,
+        complemento: form.complemento.trim() || null,
+        bairro: form.bairro.trim() || null,
+        cidade: form.cidade.trim() || null,
+        uf: (form.uf.trim() || null)?.toUpperCase() ?? null,
+        cep: form.cep.replace(/\D/g, "") || null,
+      },
+    },
+  };
+}
+
 export function NfseCard({ detail }: { detail: OrderDetail }) {
   const { order } = detail;
   const qc = useQueryClient();
