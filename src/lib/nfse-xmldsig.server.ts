@@ -3,7 +3,27 @@ import forge from "node-forge";
 import { SignedXml } from "xml-crypto";
 
 type LoadedCert = { privateKeyPem: string; certBase64: string };
-let cached: LoadedCert | null = null;
+const cache = new Map<string, LoadedCert>();
+
+/** Resolve variáveis de ambiente do certificado por CNPJ do prestador. */
+function certEnvFor(cnpj?: string | null): { b64Var: string; pwdVar: string; rawB64?: string; pwd?: string } {
+  const digits = (cnpj ?? "").replace(/\D/g, "");
+  // LFR TRAVEL SERVICES LTDA
+  if (digits === "47430791000153") {
+    return {
+      b64Var: "NFSE_LFR_CERT_PFX_BASE64",
+      pwdVar: "NFSE_LFR_CERT_PASSWORD",
+      rawB64: process.env.NFSE_LFR_CERT_PFX_BASE64,
+      pwd: process.env.NFSE_LFR_CERT_PASSWORD,
+    };
+  }
+  return {
+    b64Var: "NFSE_CERT_PFX_BASE64",
+    pwdVar: "NFSE_CERT_PASSWORD",
+    rawB64: process.env.NFSE_CERT_PFX_BASE64,
+    pwd: process.env.NFSE_CERT_PASSWORD,
+  };
+}
 
 function parsePkcs12(buf: Buffer, password: string): forge.pkcs12.Pkcs12Pfx {
   const binary = buf.toString("binary");
@@ -36,19 +56,21 @@ function normalizeBase64(raw: string): string {
   return s;
 }
 
-function loadCertFromEnv(): LoadedCert {
-  if (cached) return cached;
-  const rawB64 = process.env.NFSE_CERT_PFX_BASE64;
-  const pwd = process.env.NFSE_CERT_PASSWORD;
-  if (!rawB64 || !pwd) throw new Error("Certificado NFS-e não configurado");
+function loadCertFromEnv(cnpj?: string | null): LoadedCert {
+  const env = certEnvFor(cnpj);
+  const cacheKey = env.b64Var;
+  const hit = cache.get(cacheKey);
+  if (hit) return hit;
+  const rawB64 = env.rawB64;
+  const pwd = env.pwd;
+  if (!rawB64 || !pwd) throw new Error(`Certificado NFS-e não configurado (${env.b64Var}/${env.pwdVar})`);
 
   const b64 = normalizeBase64(rawB64);
   const buf = Buffer.from(b64, "base64");
   const header = buf.subarray(0, 4).toString("hex");
-  // .p12 (PKCS#12) começa com SEQUENCE: 0x3082 (DER long-form) OU 0x3080 (BER indefinite)
   if (buf.length < 500 || !header.startsWith("30")) {
     throw new Error(
-      `Certificado NFSE_CERT_PFX_BASE64 inválido ou truncado: ` +
+      `Certificado ${env.b64Var} inválido ou truncado: ` +
       `base64 length=${rawB64.length}, decoded bytes=${buf.length}, header=0x${header}. ` +
       `Esperado .p12 iniciando com 0x30 e com vários KB.`
     );
@@ -70,21 +92,22 @@ function loadCertFromEnv(): LoadedCert {
   const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag]?.[0];
   if (!certBag?.cert) throw new Error("Certificado público não encontrado no certificado A1");
 
-  cached = {
+  const loaded: LoadedCert = {
     privateKeyPem: forge.pki.privateKeyToPem(keyBag.key as forge.pki.rsa.PrivateKey),
     certBase64: forge.pki.certificateToPem(certBag.cert)
       .replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\s+/g, ""),
   };
-  return cached;
+  cache.set(cacheKey, loaded);
+  return loaded;
 }
 
 /** Assina a raiz <nfse id="nota"> e insere Signature antes de </nfse>. */
-export async function signNfseXml(xml: string): Promise<string> {
+export async function signNfseXml(xml: string, prestadorCnpj?: string | null): Promise<string> {
   if (!/<nfse\s[^>]*id="nota"[^>]*>/i.test(xml)) {
     throw new Error('Elemento <nfse id="nota"> não encontrado para assinatura');
   }
 
-  const { privateKeyPem, certBase64 } = loadCertFromEnv();
+  const { privateKeyPem, certBase64 } = loadCertFromEnv(prestadorCnpj);
   const certPem = `-----BEGIN CERTIFICATE-----\n${certBase64.match(/.{1,64}/g)?.join("\n") ?? certBase64}\n-----END CERTIFICATE-----`;
   const signer = new SignedXml({ privateKey: privateKeyPem, publicCert: certPem });
   signer.canonicalizationAlgorithm = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315";
