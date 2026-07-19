@@ -15,7 +15,7 @@ import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { NfseDetailsDialog } from "@/components/nfse/NfseDetailsDialog";
 import { confirmThen } from "@/lib/confirm";
-import { prestadorShortLabel } from "@/lib/nfse-labels";
+import { prestadorShortLabel, prestadorBadgeClass } from "@/lib/nfse-labels";
 
 export const Route = createFileRoute("/admin/notas-fiscais")({
   head: () => ({ meta: [{ title: "Notas Fiscais — VIA AIR" }] }),
@@ -108,10 +108,9 @@ function NotasFiscaisPage() {
     return { valor, iss };
   }, [rows]);
 
-  const getPrestadorName = (r: Row): string => {
-    const p = (r as Row & { prestador?: { nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
-    return prestadorShortLabel(p);
-  };
+  const getPrestador = (r: Row) =>
+    (r as Row & { prestador?: { cnpj?: string | null; nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador ?? null;
+  const getPrestadorName = (r: Row): string => prestadorShortLabel(getPrestador(r));
 
   const { data: configs = [] } = useQuery({
     queryKey: ["nfse", "configs"],
@@ -307,7 +306,7 @@ function NotasFiscaisPage() {
                     {getPrestadorName(r) && (
                       <>
                         <span className="text-muted-foreground/60">•</span>
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-brand-orange/10 text-brand-orange border border-brand-orange/20">
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md border ${prestadorBadgeClass(getPrestador(r))}`}>
                           <Building2 className="h-3 w-3" />
                           {getPrestadorName(r)}
                         </span>

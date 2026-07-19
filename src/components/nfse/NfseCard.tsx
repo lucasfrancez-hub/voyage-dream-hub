@@ -20,7 +20,7 @@ import type { OrderDetail } from "@/lib/orders.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { confirm, confirmThen } from "@/lib/confirm";
-import { prestadorShortLabel } from "@/lib/nfse-labels";
+import { prestadorShortLabel, prestadorBadgeClass } from "@/lib/nfse-labels";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -409,7 +409,7 @@ export function NfseCard({
               <span className="uppercase tracking-wider">Prestador{prestadores.length > 1 ? "es" : ""}:</span>
               {prestadores.map((p, i) => (
                 <span key={p.id} className="inline-flex items-center gap-1">
-                  <span className={`px-1.5 py-0.5 rounded-md border ${p.padrao ? "bg-brand-orange/10 text-brand-orange border-brand-orange/20" : "bg-muted text-foreground/80 border-border"} font-medium`}>
+                  <span className={`px-1.5 py-0.5 rounded-md border font-medium ${prestadorBadgeClass(p)}`}>
                     {prestadorShortLabel(p)}
                   </span>
                   {i < prestadores.length - 1 && <span>·</span>}
@@ -428,7 +428,7 @@ export function NfseCard({
       {emissoes.length > 0 && (
         <div className="mt-3 space-y-2">
           {emissoes.map((e) => {
-            const prest = (e as { prestador?: { nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
+            const prest = (e as { prestador?: { cnpj?: string | null; nome_fantasia?: string | null; razao_social?: string | null } | null }).prestador;
             const prestNome = prest ? prestadorShortLabel(prest) : null;
             return (
             <div key={e.id} className="rounded-lg bg-muted/40 px-3 py-2 text-xs space-y-1.5">
@@ -438,7 +438,7 @@ export function NfseCard({
                   {e.numero_nfse && <span className="font-medium">Nº {e.numero_nfse}</span>}
                   <span className="text-muted-foreground truncate">{brl(Number(e.valor_servicos))}</span>
                   {prestNome && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-brand-orange/10 text-brand-orange border border-brand-orange/20 text-[10px] font-medium">
+                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] font-medium ${prestadorBadgeClass(prest)}`}>
                       {prestNome}
                     </span>
                   )}
