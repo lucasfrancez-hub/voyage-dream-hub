@@ -1099,12 +1099,12 @@ function PassengerRow({
           </div>
         </div>
       </td>
-      <td className="px-3 py-3">
-        <InlineText value={effectiveTicket ?? ""} placeholder="Adicionar bilhete" className="text-xs tabular-nums"
+      <td className="px-3 py-3 w-[140px]">
+        <InlineText value={effectiveTicket ?? ""} placeholder="Adicionar bilhete" className="text-xs tabular-nums w-full"
           onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
       </td>
-      <td className="px-3 py-3 w-[160px]">
-        <InlineText value={(passenger as any).whatsapp ?? ""} placeholder="+55 48 9…" className="text-xs tabular-nums"
+      <td className="px-3 py-3 w-[180px]">
+        <InlineText value={(passenger as any).whatsapp ?? ""} placeholder="+55 48 9…" className="text-xs tabular-nums w-full"
           onCommit={(v) => (v || null) !== ((passenger as any).whatsapp ?? null) && onPatch({ whatsapp: v || null })} />
       </td>
       <td className="px-3 py-3 text-right">
