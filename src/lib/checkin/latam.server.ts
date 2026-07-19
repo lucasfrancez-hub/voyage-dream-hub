@@ -102,9 +102,8 @@ export default async function ({ page, context }) {
   step('open latam check-in status page (direct URL)');
   const gotoWithRetry = async (url) => {
     const attempts = [
-      { waitUntil: 'domcontentloaded', timeout: 45_000 },
-      { waitUntil: 'load', timeout: 60_000 },
-      { waitUntil: 'domcontentloaded', timeout: 60_000 },
+      { waitUntil: 'domcontentloaded', timeout: 30_000 },
+      { waitUntil: 'domcontentloaded', timeout: 30_000 },
     ];
     let lastErr;
     for (let i = 0; i < attempts.length; i++) {
@@ -114,6 +113,14 @@ export default async function ({ page, context }) {
       } catch (e) {
         lastErr = e;
         step('goto retry ' + (i + 1) + ' after error: ' + ((e && e.message) || e));
+        // A LATAM mantém recursos de telemetria abertos e às vezes o evento
+        // DOMContentLoaded não conclui, embora a aplicação já esteja visível.
+        const usable = await page.evaluate(() => Boolean(document.body?.innerText?.trim())).catch(() => false);
+        if (usable && page.url().includes('latamairlines.com')) {
+          await page.evaluate(() => window.stop()).catch(() => {});
+          step('continuando com a página LATAM já renderizada após timeout parcial');
+          return;
+        }
         await sleep(2000 + i * 1500);
       }
     }
@@ -215,7 +222,7 @@ export default async function ({ page, context }) {
       }
       done = true; // já entramos na tela do cartão
       idle = 0;
-      continue;
+      break;
     }
 
     // (4) "Fazer check-in"
