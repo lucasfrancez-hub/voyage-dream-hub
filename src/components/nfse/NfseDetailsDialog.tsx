@@ -23,6 +23,7 @@ import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { cancelarNfse } from "@/lib/nfse.functions";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { toast } from "sonner";
+import { prestadorShortLabel } from "@/lib/nfse-labels";
 
 
 type AnyRec = Record<string, unknown>;
@@ -144,10 +145,7 @@ export function NfseDetailsDialog({ open, onOpenChange, row }: Props) {
   const tomador = (row.tomador as AnyRec | null) ?? {};
   const end = (tomador.endereco as AnyRec | null) ?? {};
   const prestador = (row.prestador as AnyRec | null) ?? {};
-  const prestadorNome =
-    (prestador.nome_fantasia as string | null) ||
-    (prestador.razao_social as string | null) ||
-    "—";
+  const prestadorNome = prestadorShortLabel(prestador as { cnpj?: string | null; nome_fantasia?: string | null; razao_social?: string | null }) || "—";
   const order = (row.orders as AnyRec | null) ?? null;
   const status = String(row.status ?? "");
   const isAutorizada = status === "autorizado" || status === "emitida";
