@@ -1,17 +1,18 @@
 /**
  * Script de check-in LATAM executado dentro do Chrome do Browserless.
- * Retorna { boardingPassBase64, boardingPassContentType, meta } ou lança erro.
- *
- * Fluxo:
- * 1. Abre a página pública de check-in da LATAM.
- * 2. Digita localizador + sobrenome do 1º passageiro.
- * 3. Aceita termos, avança até a página de contato de emergência e RECUSA.
- * 4. Baixa o PDF de todos os cartões de embarque.
+ * Fluxo real (jul/2026):
+ *   1. Abre https://www.latamairlines.com/br/pt/check-in
+ *   2. Preenche Nº de compra (LA...) OU código de reserva (6 letras) + sobrenome
+ *   3. Se check-in já foi feito → clica "Ver cartão(ões) de embarque"
+ *   4. Aceita "Entendi" na tela de elementos perigosos
+ *   5. Marca "Não quero entregar um contato de emergência" e clica "Salvar"
+ *   6. Clica "Baixar PDF" e captura o download
  */
 
 import { runBrowserlessFunction } from "./browserless.server";
 
 export interface LatamCheckinInput {
+  /** LA957... (nº de compra) OU 6 letras (código de reserva) */
   locator: string;
   surname: string;
 }
@@ -22,8 +23,6 @@ export interface LatamCheckinResult {
   meta?: Record<string, unknown>;
 }
 
-// Script executado no browser remoto (isolado — nada de closures do worker).
-// Este código roda dentro do Chrome do Browserless.
 const LATAM_SCRIPT = /* js */ `
 export default async function ({ page, context }) {
   const { locator, surname } = context;
@@ -33,83 +32,179 @@ export default async function ({ page, context }) {
   page.setDefaultTimeout(45_000);
   await page.setViewportSize({ width: 1366, height: 900 });
 
-  step('open latam check-in');
-  await page.goto('https://www.latamairlines.com/br/pt/checkin', { waitUntil: 'domcontentloaded' });
+  const loc = String(locator || '').trim().toUpperCase();
+  const sur = String(surname || '').trim();
+  if (!loc || !sur) throw new Error('locator e surname obrigatórios');
 
-  // Aceita cookies se aparecer
-  try {
-    const cookieBtn = await page.$('button:has-text("Aceitar")');
-    if (cookieBtn) await cookieBtn.click({ timeout: 3000 });
-  } catch {}
+  step('open latam check-in page');
+  await page.goto('https://www.latamairlines.com/br/pt/check-in', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(2000);
+
+  // Cookies / OneTrust
+  for (const sel of ['#onetrust-accept-btn-handler', 'button:has-text("Aceitar")', 'button:has-text("Aceito")']) {
+    const b = await page.$(sel);
+    if (b) { await b.click().catch(() => {}); await page.waitForTimeout(500); break; }
+  }
 
   step('fill locator');
-  const locInput = await page.waitForSelector('input[name="pnr" i], input[placeholder*="localizador" i], input[id*="pnr" i]', { timeout: 30_000 });
-  await locInput.fill(locator.trim().toUpperCase());
+  // A LATAM tem 2 abas: "Nº de compra" e "Código de reserva". O input geralmente é o mesmo.
+  // Tentamos vários seletores.
+  const locSelectors = [
+    'input[name="reservationCode"]',
+    'input[name="pnr"]',
+    'input[id*="pnr" i]',
+    'input[id*="reservation" i]',
+    'input[placeholder*="localizador" i]',
+    'input[placeholder*="reserva" i]',
+    'input[placeholder*="compra" i]',
+  ];
+  let locInput = null;
+  for (const s of locSelectors) {
+    locInput = await page.$(s);
+    if (locInput) { step('using loc selector: ' + s); break; }
+  }
+  if (!locInput) throw new Error('Campo de localizador não encontrado');
+  await locInput.click();
+  await locInput.fill('');
+  await locInput.type(loc, { delay: 40 });
 
   step('fill surname');
-  const surInput = await page.waitForSelector('input[name*="last" i], input[name*="surname" i], input[placeholder*="sobrenome" i], input[id*="last" i]');
-  await surInput.fill(surname.trim());
+  const surSelectors = [
+    'input[name*="last" i]',
+    'input[name*="surname" i]',
+    'input[id*="last" i]',
+    'input[id*="surname" i]',
+    'input[placeholder*="sobrenome" i]',
+    'input[placeholder*="apellido" i]',
+  ];
+  let surInput = null;
+  for (const s of surSelectors) {
+    surInput = await page.$(s);
+    if (surInput) { step('using surname selector: ' + s); break; }
+  }
+  if (!surInput) throw new Error('Campo de sobrenome não encontrado');
+  await surInput.click();
+  await surInput.fill('');
+  await surInput.type(sur, { delay: 40 });
 
   step('submit login');
-  const submit = await page.waitForSelector('button[type="submit"], button:has-text("Continuar"), button:has-text("Buscar")');
+  const submit = await page.waitForSelector(
+    'button[type="submit"], button:has-text("Continuar"), button:has-text("Buscar"), button:has-text("Consultar")'
+  );
   await submit.click();
-
   await page.waitForLoadState('networkidle', { timeout: 45_000 }).catch(() => {});
+  await page.waitForTimeout(2500);
 
-  // A LATAM tem várias telas condicionais. Vamos avançar clicando em "Continuar/Confirmar/Aceitar"
-  // e recusando em qualquer tela de "contato de emergência" / "assento pago" / "bagagem".
-  for (let i = 0; i < 15; i++) {
-    step('flow iteration ' + i);
-    // Se apareceu o botão de baixar cartão, saímos do loop.
-    const download = await page.$('a:has-text("Baixar cartão"), a:has-text("cartão de embarque"), button:has-text("Baixar")');
-    if (download) { step('boarding pass link visible'); break; }
+  // Se aparecer uma listagem de voos, clicar em "Ver cartão(ões) de embarque"
+  // ou continuar o fluxo normal.
+  step('list-of-flights step');
+  for (let i = 0; i < 3; i++) {
+    const verCartao = await page.$('button:has-text("Ver cartão"), a:has-text("Ver cartão"), button:has-text("cartões de embarque"), button:has-text("cartão de embarque")');
+    if (verCartao) { step('click "ver cartão"'); await verCartao.click().catch(() => {}); await page.waitForTimeout(2500); break; }
+    const fazerCheckin = await page.$('button:has-text("Fazer check-in"), a:has-text("Fazer check-in")');
+    if (fazerCheckin) { step('click "fazer check-in"'); await fazerCheckin.click().catch(() => {}); await page.waitForTimeout(2500); break; }
+    await page.waitForTimeout(1000);
+  }
+  await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
 
-    // Recusa contato de emergência
-    const skipEmergency = await page.$(
-      'button:has-text("Agora não"), button:has-text("Continuar sem"), button:has-text("Não, obrigado"), button:has-text("Pular")'
+  // Loop de telas condicionais (elementos perigosos, contato de emergência, seguro, upgrade, etc)
+  for (let i = 0; i < 20; i++) {
+    step('flow iteration ' + i + ' — url=' + page.url());
+
+    // Se o link/botão "Baixar PDF" apareceu, terminou.
+    const baixar = await page.$('a:has-text("Baixar PDF"), button:has-text("Baixar PDF"), a:has-text("Baixar cartão"), button:has-text("Baixar cartão")');
+    if (baixar) { step('boarding pass download visible'); break; }
+
+    // Tela "Transporte de elementos perigosos" → clicar "Entendi"
+    const entendi = await page.$('button:has-text("Entendi"), button:has-text("Entendido")');
+    if (entendi) { step('click Entendi (dangerous items)'); await entendi.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
+
+    // Tela "Contato de emergência" → marcar checkbox de "Não quero" e Salvar
+    const naoQueroLabel = await page.$('label:has-text("Não quero entregar"), label:has-text("Não quero informar")');
+    if (naoQueroLabel) {
+      step('mark "não quero entregar contato de emergência"');
+      await naoQueroLabel.click().catch(() => {});
+      await page.waitForTimeout(500);
+      const salvar = await page.$('button:has-text("Salvar"), button:has-text("Continuar")');
+      if (salvar) { await salvar.click().catch(() => {}); await page.waitForTimeout(2500); }
+      continue;
+    }
+
+    // Fallback: checkbox de "Não quero entregar"
+    const naoQueroCbx = await page.$('input[type="checkbox"][id*="emergency" i], input[type="checkbox"][name*="emergency" i], input[type="checkbox"][id*="skip" i]');
+    if (naoQueroCbx) {
+      step('check emergency-skip checkbox');
+      await naoQueroCbx.check().catch(() => {});
+      const salvar = await page.$('button:has-text("Salvar")');
+      if (salvar) { await salvar.click().catch(() => {}); await page.waitForTimeout(2500); }
+      continue;
+    }
+
+    // Seguro / upgrade / seleção de assento → pular
+    const skip = await page.$(
+      'button:has-text("Agora não"), button:has-text("Não, obrigado"), button:has-text("Pular"), ' +
+      'button:has-text("Manter assento"), button:has-text("Continuar sem alterar"), ' +
+      'a:has-text("Agora não"), a:has-text("Pular"), a:has-text("Continuar sem")'
     );
-    if (skipEmergency) { await skipEmergency.click().catch(() => {}); await page.waitForTimeout(1500); continue; }
+    if (skip) { step('click skip'); await skip.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
 
-    // Recusa assento pago
-    const skipSeat = await page.$('button:has-text("Manter assento"), button:has-text("Continuar sem alterar")');
-    if (skipSeat) { await skipSeat.click().catch(() => {}); await page.waitForTimeout(1500); continue; }
+    // Fechar modais eventuais (X)
+    const closeBtn = await page.$('button[aria-label*="Fechar" i], button[aria-label*="Close" i]');
+    if (closeBtn) { step('close modal'); await closeBtn.click().catch(() => {}); await page.waitForTimeout(1000); continue; }
 
-    // Aceita termos genéricos
-    const acceptTerms = await page.$('input[type="checkbox"][name*="term" i], input[type="checkbox"][id*="term" i]');
-    if (acceptTerms) { await acceptTerms.check().catch(() => {}); }
+    // Continuar genérico
+    const cont = await page.$('button:has-text("Continuar"), button:has-text("Confirmar"), button:has-text("Aceitar")');
+    if (cont) { step('click Continuar/Confirmar'); await cont.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
 
-    // Clica em Continuar/Confirmar
-    const next = await page.$('button:has-text("Continuar"), button:has-text("Confirmar"), button:has-text("Aceitar")');
-    if (next) { await next.click().catch(() => {}); await page.waitForTimeout(2000); continue; }
-
-    // Nenhum botão conhecido — quebra
     step('no known button, breaking');
     break;
   }
 
-  step('try to download boarding pass');
-  // Tenta capturar o PDF.
-  // Opção A: link direto pro PDF (mais comum na LATAM)
-  const pdfLink = await page.$('a[href*=".pdf"], a:has-text("PDF"), a:has-text("Baixar cartão")');
+  // Baixar PDF — pode ser (a) link direto, (b) download event, (c) fallback: page.pdf()
   let pdfBuffer = null;
   let contentType = 'application/pdf';
 
-  if (pdfLink) {
-    const href = await pdfLink.getAttribute('href');
+  step('trying direct pdf link');
+  const pdfAnchor = await page.$('a[href*=".pdf" i], a:has-text("Baixar PDF"), a:has-text("Baixar cartão")');
+  if (pdfAnchor) {
+    const href = await pdfAnchor.getAttribute('href');
     if (href) {
       const abs = new URL(href, page.url()).toString();
-      step('fetching pdf: ' + abs.slice(0, 100));
+      step('fetching pdf: ' + abs.slice(0, 120));
       const cookies = await page.context().cookies();
       const cookieHeader = cookies.map(c => c.name + '=' + c.value).join('; ');
-      const resp = await page.request.get(abs, { headers: { cookie: cookieHeader } });
-      if (resp.ok()) {
-        pdfBuffer = await resp.body();
-        contentType = resp.headers()['content-type'] || 'application/pdf';
-      }
+      try {
+        const resp = await page.request.get(abs, { headers: { cookie: cookieHeader, referer: page.url() } });
+        if (resp.ok()) {
+          pdfBuffer = await resp.body();
+          contentType = resp.headers()['content-type'] || 'application/pdf';
+        }
+      } catch (e) { step('pdf fetch failed: ' + e.message); }
     }
   }
 
-  // Fallback: imprime a página atual como PDF
+  // Download event (botão que dispara download em vez de link)
+  if (!pdfBuffer) {
+    step('trying download event');
+    const btn = await page.$('button:has-text("Baixar PDF"), button:has-text("Baixar cartão"), a:has-text("Baixar PDF"), a:has-text("Baixar cartão")');
+    if (btn) {
+      try {
+        const [download] = await Promise.all([
+          page.waitForEvent('download', { timeout: 20_000 }),
+          btn.click(),
+        ]);
+        const path = await download.path();
+        if (path) {
+          const fs = await import('fs/promises');
+          pdfBuffer = await fs.readFile(path);
+          contentType = 'application/pdf';
+          step('download captured: ' + download.suggestedFilename());
+        }
+      } catch (e) { step('download event failed: ' + e.message); }
+    }
+  }
+
+  // Fallback: imprimir a página atual como PDF
   if (!pdfBuffer) {
     step('fallback: print page as pdf');
     pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
@@ -120,7 +215,7 @@ export default async function ({ page, context }) {
     data: {
       boardingPassBase64: pdfBuffer.toString('base64'),
       contentType,
-      meta: { log, url: page.url() },
+      meta: { log, finalUrl: page.url() },
     },
     type: 'application/json',
   };
@@ -128,10 +223,11 @@ export default async function ({ page, context }) {
 `;
 
 export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCheckinResult> {
-  const res = await runBrowserlessFunction<LatamCheckinResult>(LATAM_SCRIPT, {
-    locator: input.locator,
-    surname: input.surname,
-  }, { timeoutMs: 150_000 });
+  const res = await runBrowserlessFunction<LatamCheckinResult>(
+    LATAM_SCRIPT,
+    { locator: input.locator, surname: input.surname },
+    { timeoutMs: 180_000 },
+  );
   if (!res.data?.boardingPassBase64) {
     throw new Error("Browserless não devolveu PDF");
   }
