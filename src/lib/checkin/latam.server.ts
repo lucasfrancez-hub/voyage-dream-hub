@@ -194,12 +194,25 @@ export default async function ({ page, context }) {
       'abrir cartao',
       'abrir cartões',
       'abrir cartoes',
-    ], ['button','a']);
+    ], ['button','a','[role="button"]']);
     if (verCartao) {
       step('iter ' + i + ': "Ver cartão(ões) de embarque"');
+      const pagesBeforeClick = await page.browser().pages();
       await verCartao.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
       await verCartao.click().catch(async () => verCartao.evaluate((el) => el.click()));
       await sleep(4000);
+      const pagesAfterClick = await page.browser().pages();
+      const openedPage = pagesAfterClick.find((candidate) => !pagesBeforeClick.includes(candidate));
+      if (openedPage) {
+        page = openedPage;
+        page.setDefaultTimeout(60_000);
+        await page.setViewport({ width: 1366, height: 900 }).catch(() => {});
+        await page.bringToFront().catch(() => {});
+        await page.waitForNetworkIdle({ idleTime: 750, timeout: 20_000 }).catch(() => {});
+        step('iter ' + i + ': cartão aberto em nova aba: ' + page.url());
+      } else {
+        step('iter ' + i + ': cartão aberto na aba atual: ' + page.url());
+      }
       done = true; // já entramos na tela do cartão
       idle = 0;
       continue;
