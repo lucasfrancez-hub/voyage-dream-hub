@@ -810,17 +810,26 @@
     showToast("Lendo iframe e capturando tela pra Via Air…");
     try {
       if (isConsolidator) {
-        latestStructuredReservation = null;
-        publishStructuredReservation();
+        // Dispara request pros iframes ANTES de capturar — enquanto a tela é
+        // fotografada (leva ~2s), os frames respondem via postMessage e
+        // populam latestStructuredReservation.
         requestChildFrameData();
-        await sleep(600);
+        publishStructuredReservation();
+      }
+      // Captura tela em paralelo com a coleta do iframe.
+      const captureResult = await captureFullPage();
+      if (isConsolidator && !(extractStructuredReservation(document) || latestStructuredReservation)) {
+        // Reforça o pedido e aguarda até 4s pelos iframes responderem.
+        requestChildFrameData();
+        const deadline = Date.now() + 4000;
+        while (Date.now() < deadline) {
+          await sleep(200);
+          if (extractStructuredReservation(document) || latestStructuredReservation) break;
+          requestChildFrameData();
+        }
       }
       const structuredData = isConsolidator ? (extractStructuredReservation(document) || latestStructuredReservation) : null;
       const rawText = structuredData ? JSON.stringify(structuredData) : collectPageText();
-      // Híbrido OBRIGATÓRIO: sempre captura tela (janela + modal interno) — a
-      // IA usa as imagens pra ler VALORES (tarifa, taxas, TU, total, moeda)
-      // que o portal exibe fora do iframe da reserva.
-      const captureResult = await captureFullPage();
       const screenshots = captureResult.screenshots;
       if (screenshots.length === 0) {
         const detail = captureResult.errors[0];
