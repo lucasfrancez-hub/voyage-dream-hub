@@ -21,9 +21,21 @@ export interface LatamCheckinInput {
   checkinUrl?: string;
 }
 
+export interface LatamBoardingPass {
+  label: string;
+  flightNumber?: string;
+  fromIata?: string;
+  toIata?: string;
+  base64: string;
+  contentType: string;
+}
+
 export interface LatamCheckinResult {
+  /** PDF do primeiro trecho — mantido para compatibilidade. */
   boardingPassBase64: string;
   contentType: string;
+  /** Um cartão por trecho (LATAM mostra abinhas quando há conexões). */
+  boardingPasses: LatamBoardingPass[];
   meta?: Record<string, unknown>;
 }
 
