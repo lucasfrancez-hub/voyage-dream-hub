@@ -186,8 +186,33 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     step('abrindo reserva diretamente na mesma sessão desbloqueada');
     await gotoWithRetry(directReservationUrl);
     await sleep(4500);
+    // A LATAM às vezes serve apenas o shell da SPA quando entramos direto na
+    // URL da reserva (o snapshot só mostra a nav do topo). Espera a hidratação
+    // ou força um reload com networkidle antes de desistir.
+    const isHydrated = async () => page.evaluate(() => {
+      const t = (document.body?.innerText || '').toLowerCase();
+      return /minhas\s+viagens/.test(t) && (
+        /fazer\s+check-?in|cart[aã]o\s+de\s+embarque|ver\s+cart[aã]o|ir\s+ao\s+check-?in|voo\s+realizado|conclu[ií]do/.test(t)
+        || /\b(LA|JJ)\s?\d{2,4}\b/i.test(t)
+        || /\b[A-Z]{3}\s*(?:→|->|–|—)\s*[A-Z]{3}\b/.test(t)
+      );
+    }).catch(() => false);
+    let hydrated = await isHydrated();
+    for (let hi = 0; !hydrated && hi < 3; hi++) {
+      step('shell da SPA sem conteúdo (tentativa ' + (hi + 1) + '): aguardando hidratação');
+      await page.waitForNetworkIdle({ idleTime: 1000, timeout: 15_000 }).catch(() => {});
+      await sleep(2500);
+      hydrated = await isHydrated();
+      if (!hydrated && hi === 1) {
+        step('forçando reload com networkidle para forçar re-hidratação');
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
+        await page.waitForNetworkIdle({ idleTime: 1000, timeout: 20_000 }).catch(() => {});
+        await sleep(2500);
+      }
+    }
     step('after direct reservation nav: ' + JSON.stringify(await visiblePageState()).slice(0, 1_500));
   }
+
 
   // A busca pelo número da compra e sobrenome é o fluxo primário.
   const stillOnForm = await findByText(['procurar sua viagem','insira os dados']);
