@@ -332,7 +332,7 @@ export async function runLatamCheckin(input: LatamCheckinInput): Promise<LatamCh
     LATAM_SCRIPT,
     { locator: input.locator, surname: input.surname },
     {
-      timeoutMs: 180_000,
+      timeoutMs: 240_000,
       // A LATAM recusa a conexão HTTP/2 do Chrome de datacenter antes mesmo
       // de carregar o HTML. Forçar HTTP/1.1 resolve a falha de protocolo;
       // stealth + IP residencial BR evitam que o mesmo bloqueio seja aplicado
