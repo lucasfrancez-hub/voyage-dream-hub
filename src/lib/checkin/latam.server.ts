@@ -291,15 +291,38 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
 
     // Na página "Minhas viagens", cada trecho é um painel recolhido. O CTA
     // do cartão só entra no DOM após abrir o voo correspondente.
+    // Precisa evitar trechos "Voo realizado / Concluído" e clicar somente no
+    // painel que ainda tem check-in disponível — senão o robô abre o voo de
+    // ida (já feito) quando o passageiro está fazendo check-in da volta.
     if (!flightDetailsOpened && page.url().includes('/minhas-viagens/')) {
-      const flightRow = await findByText([
-        'segunda-feira', 'terça-feira', 'terca-feira', 'quarta-feira',
-        'quinta-feira', 'sexta-feira', 'sábado', 'sabado', 'domingo',
-      ], ['button','[role="button"]']);
-      if (flightRow) {
-        step('iter ' + i + ': abrindo detalhes do trecho');
-        await flightRow.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
-        await flightRow.click().catch(async () => flightRow.evaluate((el) => el.click()));
+      const eligibleRow = await page.evaluateHandle(() => {
+        const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        const dayRegex = /\b(segunda|ter[cç]a|quarta|quinta|sexta|s[áa]bado|domingo)-feira\b|\b(sábado|sabado|domingo)\b/;
+        const realizedRegex = /voo\s+realizado|j[aá]\s+realizado|conclu[ií]do|voo\s+finalizado|voo\s+encerrado|check-?in\s+encerrado|check-?in\s+indispon[ií]vel/;
+        const eligibleRegex = /fazer\s+check-?in|check-?in\s+dispon[ií]vel|iniciar\s+check-?in|abrir\s+cart[aã]o|ver\s+cart[aã]o/;
+        const candidates = Array.from(document.querySelectorAll('button, [role="button"], article, section, li'));
+        // Score: prefer rows with a day label AND eligible CTA, excluding realized.
+        let best = null;
+        let bestScore = -Infinity;
+        for (const el of candidates) {
+          const t = norm(el.innerText || el.textContent || '');
+          if (!t || t.length > 800) continue;
+          if (!dayRegex.test(t)) continue;
+          const r = el.getBoundingClientRect();
+          if (r.width <= 0 || r.height <= 0) continue;
+          let score = 0;
+          if (realizedRegex.test(t)) score -= 100;
+          if (eligibleRegex.test(t)) score += 50;
+          // Rows shown near the top of the page are usually the next upcoming segment.
+          score += Math.max(0, 40 - r.top / 20);
+          if (score > bestScore) { bestScore = score; best = el; }
+        }
+        return best;
+      }).then((h) => h.asElement());
+      if (eligibleRow) {
+        step('iter ' + i + ': abrindo detalhes do trecho elegível (ignora voos realizados)');
+        await eligibleRow.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
+        await eligibleRow.click().catch(async () => eligibleRow.evaluate((el) => el.click()));
         await sleep(3000);
         flightDetailsOpened = true;
         idle = 0;
