@@ -60,6 +60,7 @@ import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/public/nfse-atendenet-test'
+import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
@@ -332,6 +333,11 @@ const ApiPublicNfseAtendenetTestRoute =
     path: '/api/public/nfse-atendenet-test',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWaDiagRoute = ApiPublicWaDiagRouteImport.update({
+  id: '/api/public/wa-diag',
+  path: '/api/public/wa-diag',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWhatsappWebhookRoute =
   ApiPublicWhatsappWebhookRouteImport.update({
     id: '/api/public/whatsapp-webhook',
@@ -462,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
+  '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -528,6 +535,7 @@ export interface FileRoutesByTo {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
+  '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -596,6 +604,7 @@ export interface FileRoutesById {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
+  '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -665,6 +674,7 @@ export interface FileRouteTypes {
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/api/public/nfse-atendenet-test'
+    | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
@@ -731,6 +741,7 @@ export interface FileRouteTypes {
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/api/public/nfse-atendenet-test'
+    | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
@@ -798,6 +809,7 @@ export interface FileRouteTypes {
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/api/public/nfse-atendenet-test'
+    | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
@@ -836,6 +848,7 @@ export interface RootRouteChildren {
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   ApiPublicNfseAtendenetTestRoute: typeof ApiPublicNfseAtendenetTestRoute
+  ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
@@ -1209,6 +1222,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicNfseAtendenetTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/wa-diag': {
+      id: '/api/public/wa-diag'
+      path: '/api/public/wa-diag'
+      fullPath: '/api/public/wa-diag'
+      preLoaderRoute: typeof ApiPublicWaDiagRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/whatsapp-webhook': {
       id: '/api/public/whatsapp-webhook'
       path: '/api/public/whatsapp-webhook'
@@ -1432,6 +1452,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   ApiPublicNfseAtendenetTestRoute: ApiPublicNfseAtendenetTestRoute,
+  ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
