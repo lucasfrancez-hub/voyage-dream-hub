@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /chat
+Disallow: /api
+Disallow: /lovable
+Disallow: /pagar
+Disallow: /pagar-boleto
+Disallow: /orcamento
+Disallow: /protocolo
+
+Sitemap: https://pedidos.viaair.tur.br/sitemap.xml
