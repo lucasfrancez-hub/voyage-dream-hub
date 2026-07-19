@@ -84,13 +84,25 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
     onError: (e: any) => toast.error(`Falha ao enviar: ${e?.message ?? "erro"}`),
   });
 
-  // Só mostra voos LATAM
+  // Só mostra voos LATAM que estejam dentro da janela de check-in (até 48h antes da partida)
+  // ou que já tenham um check-in registrado (para acompanhar status/PDF).
   const rows = useMemo(() => {
+    const now = Date.now();
+    const WINDOW_MS = 48 * 60 * 60 * 1000;
     return flightItems
       .filter((it) => detectAirline({ airline: it.details?.airline, flight_number: it.details?.flight_number }) === "LATAM")
       .map((it) => {
         const ci = (checkins as any[]).find((c) => c.order_item_id === it.id);
         return { item: it, checkin: ci };
+      })
+      .filter(({ item, checkin }) => {
+        if (checkin) return true; // já iniciado — sempre mostra
+        const depRaw = item.details?.departure_at;
+        if (!depRaw) return false; // sem horário e sem check-in: não dá pra saber a janela
+        const depMs = new Date(depRaw).getTime();
+        if (!Number.isFinite(depMs)) return false;
+        const delta = depMs - now;
+        return delta > 0 && delta <= WINDOW_MS;
       });
   }, [flightItems, checkins]);
 
