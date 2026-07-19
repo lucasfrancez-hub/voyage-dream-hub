@@ -398,8 +398,16 @@ async function runLatamAutomation({ page, context }: { page: any; context: Recor
     if (cont) { step('iter ' + i + ': continuar/confirmar'); await cont.click().catch(() => {}); await sleep(2000); idle = 0; continue; }
 
     step('iter ' + i + ': sem ação, aguardando');
-    await sleep(2000); idle++;
-    if (idle > 4) { step('sem progresso, encerrando'); break; }
+    // A SPA da LATAM pode demorar 20-30s para renderizar o painel do trecho
+    // depois do primeiro paint. Dá mais tempo antes de desistir.
+    await sleep(3500); idle++;
+    if (idle === 4) {
+      step('sem progresso após 4 ciclos, tentando reload para forçar hidratação');
+      await page.reload({ waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {});
+      await page.waitForNetworkIdle({ idleTime: 1000, timeout: 15_000 }).catch(() => {});
+      await sleep(2500);
+    }
+    if (idle > 9) { step('sem progresso, encerrando'); break; }
   }
 
   if (!done) step('atenção: loop terminou sem detectar "Baixar PDF"');
