@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2 } from "lucide-react";
-import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse } from "@/lib/nfse.functions";
+import { listAllNfse, consultarNfse, cancelarNfse, deleteNfse, listNfseConfigs } from "@/lib/nfse.functions";
 import { downloadNfsePdf, downloadNfseXml } from "@/lib/nfse-document";
 import { CancelNfseDialog } from "@/components/nfse/CancelNfseDialog";
 import { NfseDetailsDialog } from "@/components/nfse/NfseDetailsDialog";
