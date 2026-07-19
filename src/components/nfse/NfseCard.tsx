@@ -519,9 +519,13 @@ export function NfseCard({
                   </SelectTrigger>
                   <SelectContent>
                     {prestadores.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
+                      <SelectItem
+                        key={p.id}
+                        value={p.id}
+                        className="data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground data-[state=checked]:bg-primary/15 data-[state=checked]:text-foreground"
+                      >
                         <span className="font-medium">{p.nome_fantasia || p.razao_social}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">
+                        <span className="ml-2 text-xs opacity-80">
                           CNPJ {p.cnpj} · {p.municipio_prestacao}/{p.uf_prestacao}
                           {p.padrao ? " · padrão" : ""}
                         </span>
