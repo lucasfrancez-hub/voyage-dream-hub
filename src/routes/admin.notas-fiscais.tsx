@@ -58,6 +58,7 @@ function NotasFiscaisPage() {
   const consultFn = useServerFn(consultarNfse);
   const cancelFn = useServerFn(cancelarNfse);
   const deleteFn = useServerFn(deleteNfse);
+  const listConfigsFn = useServerFn(listNfseConfigs);
   const qc = useQueryClient();
   const [tab, setTab] = useState<"todas" | StatusKey>("todas");
   const [search, setSearch] = useState("");
