@@ -290,7 +290,7 @@ function CheckinRow({
   onRun: (id: string, regenerate?: boolean) => void;
   onResend: (id: string) => void;
 }) {
-  const depIso = r.departure_at ?? r.item?.details?.departure_at ?? r.scheduled_for ?? null;
+  const depIso = r.departure_at ?? r.item?.details?.depart_at ?? r.item?.details?.departure_at ?? r.scheduled_for ?? null;
   const dep = depIso ? new Date(depIso) : null;
   const isBusy = busyId === r.id;
   const isSending = sendingId === r.id;
