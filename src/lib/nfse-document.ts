@@ -299,7 +299,7 @@ body{color:var(--texto);font-family:Arial,Helvetica,sans-serif;font-size:10.2px;
 <body>
 <div class="pagina">
   <div class="cabecalho">
-    <div class="marca"><img class="logo" src="${esc(viaAirLogoAsset.url)}" alt="VIA AIR"/></div>
+    <div class="marca">${logoPrest ? `<img class="logo" src="${esc(logoPrest)}" alt="${esc(fantasiaPrest || razaoPrest)}"/>` : `<div class="logo" style="display:flex;align-items:center;font-weight:800;color:var(--azul-escuro);font-size:16px;line-height:1.1">${esc(fantasiaPrest || razaoPrest)}</div>`}</div>
     <div class="titulo-nota">
       <div class="linha-1">Nota Fiscal de</div>
       <div class="linha-2">Serviço Eletrônica</div>
