@@ -2152,15 +2152,19 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
 
       const drafts: Partial<PackageRow>[] = list.map((raw, i) => {
         const p: any = raw;
-        const destination = String(p.destination || "").trim();
-        const origin = String(p.origin || "").trim();
+        const destination =
+          String(p.destination || "").trim() ||
+          String(p?.outbound_flight?.to_city || "").trim();
+        const origin =
+          String(p.origin || "").trim() ||
+          String(p?.outbound_flight?.from_city || "").trim() ||
+          String(p?.return_flight?.to_city || "").trim();
         const going = p.going_date ? String(p.going_date) : "";
         const ret = p.return_date ? String(p.return_date) : "";
-        const title = destination
-          ? origin
+        const title =
+          destination && origin
             ? `${destination} - Saída de ${origin}`
-            : destination
-          : "";
+            : destination || "";
         const baseSlug = (destination || "pacote")
           .toLowerCase()
           .normalize("NFD")
@@ -2171,7 +2175,7 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
         return {
           ...emptyForm,
           slug: uniqueSlug,
-          title: title ? `${title} #${i + 1}` : `Pacote #${i + 1}`,
+          title: title || `Pacote #${i + 1}`,
 
 
           destination,
