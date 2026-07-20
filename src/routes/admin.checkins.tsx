@@ -108,13 +108,23 @@ function CheckinsPage() {
     orderItemId: string;
     passengerIndex: number;
     file: File;
+    totalPax: number;
+    uploadedBefore: number;
+    checkinIdBefore: string | null;
+    alreadySent: boolean;
   }) {
     setBusyKey(args.key);
     try {
       const { base64, ext, contentType } = await readFileAsBase64(args.file);
-      await upload({ data: { orderItemId: args.orderItemId, passengerIndex: args.passengerIndex, fileBase64: base64, ext, contentType } });
+      const res: any = await upload({ data: { orderItemId: args.orderItemId, passengerIndex: args.passengerIndex, fileBase64: base64, ext, contentType } });
       toast.success("Cartão anexado");
-      q.refetch();
+      const willBeReady = args.uploadedBefore + 1 >= args.totalPax;
+      const checkinId = res?.checkinId ?? args.checkinIdBefore;
+      await q.refetch();
+      if (willBeReady && checkinId && !args.alreadySent) {
+        toast.message("Enviando pro WhatsApp…");
+        await handleSend(checkinId);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Falha no upload");
     } finally {
@@ -276,7 +286,7 @@ function BookingCard({
   group: any;
   busyKey: string | null;
   sendingId: string | null;
-  onUpload: (a: { key: string; orderItemId: string; passengerIndex: number; file: File }) => void;
+  onUpload: (a: { key: string; orderItemId: string; passengerIndex: number; file: File; totalPax: number; uploadedBefore: number; checkinIdBefore: string | null; alreadySent: boolean }) => void;
   onRemove: (checkinId: string, passengerIndex: number) => void;
   onSend: (checkinId: string) => void;
 }) {
@@ -374,7 +384,7 @@ function BookingCard({
                       existing={existing}
                       openUrl={openUrl}
                       busy={busyKey === rowKey || busyKey === `${seg.checkin?.id}:${pax.index}:rm`}
-                      onFile={(file) => onUpload({ key: rowKey, orderItemId: seg.order_item_id, passengerIndex: pax.index, file })}
+                      onFile={(file) => onUpload({ key: rowKey, orderItemId: seg.order_item_id, passengerIndex: pax.index, file, totalPax: paxCount, uploadedBefore: uploaded.length, checkinIdBefore: seg.checkin?.id ?? null, alreadySent })}
                       onRemove={() => seg.checkin?.id && onRemove(seg.checkin.id, pax.index)}
                       checkinId={seg.checkin?.id ?? null}
                     />
