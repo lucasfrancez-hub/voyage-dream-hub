@@ -496,9 +496,11 @@ function AdminPackages() {
           draftIndex={draftIndex}
           switchDraft={switchDraft}
           closeCurrentDraft={closeCurrentDraft}
+          nextNumber={pendingNumbers?.[draftIndex] ?? pendingNumbers?.[0] ?? null}
         />
 
       )}
+
 
     </div>
   );
