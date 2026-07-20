@@ -317,11 +317,35 @@ function CheckinsPage() {
     }
   }
 
-  const current = tab === "todo" ? aFazer : tab === "upcoming" ? proximos : prontos;
+  const currentRaw = tab === "todo" ? aFazer : tab === "upcoming" ? proximos : prontos;
+  const current = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    if (!s) return currentRaw;
+    return currentRaw.filter((g: any) => {
+      const seg = g.segments?.[0] ?? {};
+      const locator = String(seg.locator ?? g.locator ?? "").toLowerCase();
+      const orderNum = String(g.order_number ?? "").toLowerCase();
+      const trip = String(g.trip_title ?? "").toLowerCase();
+      const paxNames = (g.passengers ?? [])
+        .map((p: any) => String(p.full_name ?? "").toLowerCase())
+        .join(" | ");
+      const route = `${seg.origin ?? ""} ${seg.destination ?? ""}`.toLowerCase();
+      return (
+        locator.includes(s) ||
+        orderNum.includes(s) ||
+        trip.includes(s) ||
+        paxNames.includes(s) ||
+        route.includes(s)
+      );
+    });
+  }, [currentRaw, search]);
   const emptyLabel =
-    tab === "todo" ? "Nada pendente na janela. 🎉"
-    : tab === "upcoming" ? "Nenhum voo previsto nos próximos 7 dias."
-    : "Nada concluído ainda.";
+    search.trim()
+      ? "Nenhum resultado para a busca."
+      : tab === "todo" ? "Nada pendente na janela. 🎉"
+      : tab === "upcoming" ? "Nenhum voo previsto nos próximos 7 dias."
+      : "Nada concluído ainda.";
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
