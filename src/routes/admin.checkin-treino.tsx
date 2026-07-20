@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { confirmThen } from "@/lib/confirm";
 import {
+  askVisionAboutScreenshot,
   openTrainingSession,
   runLiveTrainingStep,
   screenshotTrainingSession,
