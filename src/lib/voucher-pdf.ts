@@ -1677,6 +1677,26 @@ const drawHotelSection = async (
     photo = await embedRemotePhoto(ctx.pdf, url);
     if (photo) break;
   }
+  // Fallback: se não há fotos salvas no item, tenta buscar no TripAdvisor pelo
+  // location_id ou pelo nome do hotel. As URLs são embutidas na hora e o item
+  // é atualizado no banco para acelerar as próximas gerações.
+  if (!photo && hotelName && hotelName !== "-") {
+    try {
+      const fetched = await fetchTripAdvisorPhotosForHotel({
+        locationId: d.tripadvisor_location_id ? Number(d.tripadvisor_location_id) : null,
+        hotelName,
+        city: String(d.city ?? "").trim() || null,
+      });
+      if (fetched.length) {
+        for (const url of fetched) {
+          photo = await embedRemotePhoto(ctx.pdf, url);
+          if (photo) break;
+        }
+        // Persiste para próxima geração (best-effort, ignora erro)
+        void persistHotelPhotos(item.id, fetched).catch(() => {});
+      }
+    } catch { /* ignore */ }
+  }
 
   const midX = innerX + (photo ? photoW + gapPhoto : 0);
   const midW = innerW - (photo ? photoW + gapPhoto : 0) - qrSize - 24;
