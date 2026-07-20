@@ -14,6 +14,7 @@ import { findAirline } from "@/lib/airlines";
 import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { generatePackageSummary, searchCoverImages, extractFlightFromImage, extractPackageFromDocument } from "@/lib/packages/ai.functions";
+import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
 import { FileUp, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pacotes")({
@@ -372,7 +373,7 @@ function deriveFromFlights(editing: Partial<PackageRow>): { originCity?: string;
   const last = outSegs[outSegs.length - 1];
   const originCity = first?.from_city?.trim();
   const destCity = last?.to_city?.trim();
-  const title = destCity && originCity ? `${destCity} - saída de ${originCity}` : destCity ? destCity : undefined;
+  const title = destCity && originCity ? `${destCity} - Saída de ${originCity}` : destCity ? destCity : undefined;
   let slug: string | undefined;
   if (destCity) {
     const going = editing.going_date;
@@ -415,6 +416,41 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derived.destCity, derived.originCity, derived.title, derived.slug]);
 
+  // Auto-preencher "O que inclui" a partir dos dados: passagem ida/volta, hospedagem,
+  // café da manhã (se meal_plan indicar) e bagagem despachada (se algum voo tiver).
+  const derivedIncludes = useMemo(() => {
+    const list: string[] = [];
+    const hasOutbound = !!editing.outbound_flight;
+    const hasReturn = !!editing.return_flight;
+    if (hasOutbound && hasReturn) list.push("Passagem Aérea de Ida e Volta");
+    else if (hasOutbound || hasReturn) list.push("Passagem Aérea");
+    if (editing.hotel_name || editing.tripadvisor_location_id) list.push("Hospedagem");
+    const meal = String(editing.meal_plan ?? "").toLowerCase();
+    if (meal.includes("café") || meal.includes("cafe") || meal.includes("meia pensão") || meal.includes("pensão completa") || meal.includes("all inclusive")) {
+      list.push("Café da Manhã");
+    }
+    const checked = !!(editing.outbound_flight?.checked_bag || editing.return_flight?.checked_bag);
+    if (checked) list.push("Bagagem Despachada");
+    return list;
+  }, [editing.outbound_flight, editing.return_flight, editing.hotel_name, editing.tripadvisor_location_id, editing.meal_plan]);
+
+  useEffect(() => {
+    if (derivedIncludes.length === 0) return;
+    const current = Array.isArray(editing.includes)
+      ? editing.includes
+      : typeof editing.includes === "string"
+        ? (editing.includes as string).split("\n").map((s) => s.trim()).filter(Boolean)
+        : [];
+    // Auto-preenche apenas se estiver vazio OU se contiver só itens do conjunto auto anterior.
+    const autoSet = new Set(["Passagem Aérea de Ida e Volta", "Passagem Aérea", "Hospedagem", "Café da Manhã", "Bagagem Despachada"]);
+    const isAutoOnly = current.every((s) => autoSet.has(s));
+    if (current.length === 0 || isAutoOnly) {
+      const same = current.length === derivedIncludes.length && current.every((v, i) => v === derivedIncludes[i]);
+      if (!same) setEditing({ ...editing, includes: derivedIncludes });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [derivedIncludes.join("|")]);
+
   function applyAuto() {
     const d = deriveFromFlights(editing);
     setEditing({
@@ -429,13 +465,20 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
 
   async function handleGenerateSummary() {
     const brief = (editing.summary ?? "").trim();
-    if (brief.length < 2) {
-      toast.error("Escreva um resumo, ex.: 'falar sobre Aracaju'");
+    const dest = (editing.destination ?? "").trim();
+    // Se o usuário não digitou briefing, usa o destino direto com estrutura padrão.
+    const finalBrief = brief.length >= 2
+      ? brief
+      : dest.length >= 2
+        ? `Escreva um resumo de ${dest} para pacote de viagens, para vender pacote de viagens`
+        : "";
+    if (!finalBrief) {
+      toast.error("Digite o destino ou escreva um resumo primeiro");
       return;
     }
     setAiLoading(true);
     try {
-      const { text } = await genSummary({ data: { brief } });
+      const { text } = await genSummary({ data: { brief: finalBrief } });
       setEditing({ ...editing, summary: text });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao gerar resumo");
@@ -443,6 +486,38 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
       setAiLoading(false);
     }
   }
+
+  // Auto-gerar resumo assim que houver destino e o resumo estiver vazio.
+  const autoSummaryDoneRef = (function useAutoSummaryRef() {
+    // usa useMemo pra manter uma ref estável entre renders sem importar useRef aqui.
+    const box = useMemo(() => ({ destKey: "" as string }), []);
+    return box;
+  })();
+  useEffect(() => {
+    const dest = (editing.destination ?? "").trim();
+    const summary = (editing.summary ?? "").trim();
+    if (!dest || summary || aiLoading) return;
+    if (autoSummaryDoneRef.destKey === dest) return;
+    autoSummaryDoneRef.destKey = dest;
+    const t = setTimeout(() => {
+      if ((editing.summary ?? "").trim()) return;
+      void (async () => {
+        setAiLoading(true);
+        try {
+          const { text } = await genSummary({
+            data: { brief: `Escreva um resumo de ${dest} para pacote de viagens, para vender pacote de viagens` },
+          });
+          setEditing({ ...editing, summary: text });
+        } catch {
+          /* silencioso — botão manual ainda funciona */
+        } finally {
+          setAiLoading(false);
+        }
+      })();
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing.destination]);
 
   async function handleSearchImages(nextPage = 1) {
     const q = imgQuery.trim() || editing.destination?.trim() || "";
@@ -546,7 +621,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                     className={inp}
                     value={editing.title ?? ""}
                     onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                    placeholder={derived.title ?? "Ex: Aracaju - saída de São Paulo"}
+                    placeholder={derived.title ?? "Ex: Aracaju - Saída de São Paulo"}
                   />
                 </FormField>
                 <FormField label="Slug (URL, auto)">
@@ -688,7 +763,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                 <div className="sm:col-span-2">
                   <div className="flex items-center justify-between mb-1">
                     <span className="block text-xs text-muted-foreground">
-                      Resumo curto — escreva um briefing (ex.: "falar sobre Aracaju") e clique em Gerar com IA
+                      Resumo curto — gerado automaticamente a partir do destino. Escreva algo específico e clique em Regerar para personalizar.
                     </span>
                     <button
                       type="button"
@@ -795,6 +870,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                 <FormField label="Hotel" wide>
                   <HotelAutocomplete
                     value={editing.hotel_name ?? ""}
+                    initialMode={editing.tripadvisor_location_id ? "live" : (editing.hotel_name ? "manual" : null)}
                     onChangeText={(v) => setEditing({ ...editing, hotel_name: v })}
                     onSelect={(h) => {
                       const automaticStars = h.rating != null
@@ -1572,6 +1648,8 @@ function PackageImportButton({
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const extract = useServerFn(extractPackageFromDocument);
+  const searchHotels = useServerFn(searchTripAdvisorHotels);
+  const hotelDetails = useServerFn(getTripAdvisorHotelDetails);
 
   async function handleFile(file: File) {
     const ok = file.type === "application/pdf" || file.type.startsWith("image/");
@@ -1624,6 +1702,7 @@ function PackageImportButton({
       if (p.room_category) patch.room_category = String(p.room_category);
       if (p.bed_type) patch.bed_type = String(p.bed_type);
       if (Array.isArray(p.includes)) patch.includes = p.includes.map((s: any) => String(s));
+      if (p.supplier_name) patch.supplier_name = String(p.supplier_name);
       if (p.outbound_flight && typeof p.outbound_flight === "object") {
         patch.outbound_flight = {
           ...p.outbound_flight,
@@ -1635,6 +1714,35 @@ function PackageImportButton({
           ...p.return_flight,
           segments: Array.isArray(p.return_flight.segments) ? p.return_flight.segments : [],
         };
+      }
+
+      // Tenta enriquecer o hotel automaticamente com dados do TripAdvisor.
+      if (patch.hotel_name) {
+        try {
+          const city = patch.destination ?? "";
+          const q = city ? `${patch.hotel_name} ${city}` : patch.hotel_name;
+          const results = await searchHotels({ data: { query: q } });
+          const best = results?.[0];
+          if (best) {
+            const full = await hotelDetails({ data: { locationId: best.location_id, photoLimit: 5 } });
+            const rating = full.rating ?? best.rating ?? null;
+            const cls = full.hotel_class ?? null;
+            const stars = rating != null
+              ? Math.min(5, Math.max(1, Math.round(rating)))
+              : cls != null
+                ? Math.min(5, Math.max(1, Math.round(cls)))
+                : patch.hotel_stars ?? 3;
+            patch.hotel_name = full.name || best.name || patch.hotel_name;
+            patch.hotel_stars = stars;
+            patch.tripadvisor_location_id = String(best.location_id);
+            patch.tripadvisor_url = full.tripadvisor_url ?? best.tripadvisor_url ?? null;
+            patch.tripadvisor_address = full.address ?? best.address ?? null;
+            const photos = (full.photos && full.photos.length > 0) ? full.photos : null;
+            if (photos) patch.tripadvisor_photos = photos;
+          }
+        } catch (err) {
+          console.warn("[import] falha ao enriquecer hotel via TripAdvisor", err);
+        }
       }
 
       onImported(patch);
