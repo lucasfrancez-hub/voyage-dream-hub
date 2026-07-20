@@ -25,7 +25,8 @@ export type LiveStep =
   | { action: "type"; x: number; y: number; text: string; clearFirst?: boolean }
   | { action: "press"; key: string }
   | { action: "scroll"; dy: number }
-  | { action: "back" };
+  | { action: "back" }
+  | { action: "capture_region"; x: number; y: number; width: number; height: number; filename?: string };
 
 interface StoredSession {
   id: string;
@@ -642,6 +643,8 @@ export async function runLiveStep(opts: {
     } else if (s.action === "back") {
       await evalExpr(cdp, "history.back()");
       await new Promise((r) => setTimeout(r, 800));
+    } else if (s.action === "capture_region") {
+      // Handled outside withConnection to allow admin storage upload.
     }
     return capture(cdp, session.initialUrl);
   });

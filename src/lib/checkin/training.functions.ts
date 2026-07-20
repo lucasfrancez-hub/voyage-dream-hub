@@ -16,6 +16,11 @@ const StepSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("type"), x: z.number(), y: z.number(), text: z.string(), clearFirst: z.boolean().optional() }),
   z.object({ action: z.literal("press"), key: z.string() }),
   z.object({ action: z.literal("scroll"), dy: z.number() }),
+  z.object({
+    action: z.literal("capture_region"),
+    x: z.number(), y: z.number(), width: z.number(), height: z.number(),
+    filename: z.string().optional(),
+  }),
 ]);
 export type TrainingStep = z.infer<typeof StepSchema>;
 
@@ -54,6 +59,7 @@ export const runTrainingScript = createServerFn({ method: "POST" })
 export default async ({ page, browser, context }) => {
   const { url, steps, viewportWidth, viewportHeight } = context;
   const logs = [];
+  const captures = [];
   const configuredPages = new WeakSet();
   const unusablePages = new WeakSet();
   const activeBrowser = browser || (page && typeof page.browser === "function" ? page.browser() : null);
@@ -149,6 +155,10 @@ export default async ({ page, browser, context }) => {
       } else if (s.action === "scroll") {
         await currentPage.evaluate((dy) => window.scrollBy(0, dy), s.dy);
         await new Promise((r) => setTimeout(r, 500));
+      } else if (s.action === "capture_region") {
+        const clip = { x: Math.max(0, s.x), y: Math.max(0, s.y), width: Math.max(1, s.width), height: Math.max(1, s.height) };
+        const pngB64 = await currentPage.screenshot({ type: "png", encoding: "base64", clip });
+        captures.push({ i, kind: "region", pngBase64: pngB64, filename: s.filename || null, width: clip.width, height: clip.height });
       }
       logs.push({ i, action: s.action, ok: true });
     } catch (e) {
@@ -165,12 +175,13 @@ export default async ({ page, browser, context }) => {
   if (currentUrl.startsWith("chrome-error://") || /ERR_HTTP2_PROTOCOL_ERROR|This site can.t be reached/i.test(bodyText)) {
     throw new Error("A LATAM recusou a conexão desta sessão do navegador");
   }
-  return { data: { screenshot, currentUrl, title, logs, width: viewportWidth, height: viewportHeight } };
+  return { data: { screenshot, currentUrl, title, logs, captures, width: viewportWidth, height: viewportHeight } };
 };
 `;
     const { runBrowserlessFunction } = await import("@/lib/checkin/browserless.server");
     type LogEntry = { i?: number; step?: string; action?: string; url?: string; ok: boolean; err?: string };
-    type TrainingResult = { screenshot: string; currentUrl: string; title: string; logs: LogEntry[]; width: number; height: number };
+    type CaptureItem = { i: number; kind: "region"; pngBase64: string; filename: string | null; width: number; height: number };
+    type TrainingResult = { screenshot: string; currentUrl: string; title: string; logs: LogEntry[]; captures?: CaptureItem[]; width: number; height: number };
     const strategies = [
       { proxy: "residential" as const, proxyCountry: "br", proxySticky: true },
     ];
@@ -187,8 +198,29 @@ export default async ({ page, browser, context }) => {
           ...strategy,
         });
 
-        if (result.data) return result.data;
-        throw new Error("O navegador remoto não devolveu a captura da LATAM");
+        if (!result.data) throw new Error("O navegador remoto não devolveu a captura da LATAM");
+        // Faz upload das regiões capturadas durante o script.
+        const uploads: Array<{ path: string; signedUrl: string | null; sizeKb: number; index: number }> = [];
+        const caps = result.data.captures ?? [];
+        if (caps.length > 0) {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          for (const c of caps) {
+            const bytes = Buffer.from(c.pngBase64, "base64");
+            const nameBase = c.filename || `${locator || "reserva"}-${surname || "pax"}-regiao-${c.i}.png`;
+            const safeName = nameBase.replace(/[^\w.\-]+/g, "_");
+            const finalName = safeName.toLowerCase().endsWith(".png") ? safeName : `${safeName}.png`;
+            const path = `training/${context.userId}/${Date.now()}-${finalName}`;
+            const up = await supabaseAdmin.storage
+              .from("boarding-passes")
+              .upload(path, bytes, { contentType: "image/png", upsert: true });
+            if (up.error) continue;
+            const signed = await supabaseAdmin.storage
+              .from("boarding-passes")
+              .createSignedUrl(path, 60 * 60 * 24 * 30);
+            uploads.push({ path, signedUrl: signed.data?.signedUrl ?? null, sizeKb: Math.round(bytes.length / 1024), index: c.i });
+          }
+        }
+        return { ...result.data, uploads };
       } catch (error) {
         lastError = error;
       }
@@ -256,8 +288,27 @@ export const runLiveTrainingStep = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     try {
+      const step = data.step;
+      // capture_region: crop + upload aqui (o runLiveStep só faz o print da tela cheia).
+      if (step.action === "capture_region") {
+        const { captureRegionPng, screenshotLiveSession } = await import("@/lib/checkin/training-session.server");
+        const { pngBase64 } = await captureRegionPng({
+          userId: context.userId, sessionId: data.sessionId,
+          x: step.x, y: step.y, width: step.width, height: step.height,
+        });
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const bytes = Buffer.from(pngBase64, "base64");
+        const safeName = (step.filename || `treino-regiao-${Date.now()}.png`).replace(/[^\w.\-]+/g, "_");
+        const finalName = safeName.toLowerCase().endsWith(".png") ? safeName : `${safeName}.png`;
+        const path = `training/${context.userId}/${Date.now()}-${finalName}`;
+        const up = await supabaseAdmin.storage.from("boarding-passes").upload(path, bytes, { contentType: "image/png", upsert: true });
+        if (up.error) throw new Error(up.error.message);
+        const signed = await supabaseAdmin.storage.from("boarding-passes").createSignedUrl(path, 60 * 60 * 24 * 30);
+        const shot = await screenshotLiveSession({ userId: context.userId, sessionId: data.sessionId });
+        return { ok: true as const, ...shot, region: { path, signedUrl: signed.data?.signedUrl ?? null, sizeKb: Math.round(bytes.length / 1024) } };
+      }
       const { runLiveStep } = await import("@/lib/checkin/training-session.server");
-      const result = await runLiveStep({ userId: context.userId, sessionId: data.sessionId, step: data.step as never });
+      const result = await runLiveStep({ userId: context.userId, sessionId: data.sessionId, step: step as never });
       return { ok: true as const, ...result };
     } catch (e) {
       console.error(e);
