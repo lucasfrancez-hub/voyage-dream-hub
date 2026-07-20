@@ -763,7 +763,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                 <div className="sm:col-span-2">
                   <div className="flex items-center justify-between mb-1">
                     <span className="block text-xs text-muted-foreground">
-                      Resumo curto — escreva um briefing (ex.: "falar sobre Aracaju") e clique em Gerar com IA
+                      Resumo curto — gerado automaticamente a partir do destino. Escreva algo específico e clique em Regerar para personalizar.
                     </span>
                     <button
                       type="button"
