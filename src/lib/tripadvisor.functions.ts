@@ -120,8 +120,12 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
 
     // Classificação oficial (1..5). TripAdvisor expõe em campos variados:
     // hotel_class ("4.0"), class, awards[].display_name ("4-star hotel"),
-    // ranking_data.hotel_class, etc. Tentamos todos.
-    const hotelClass = extractHotelClass(det);
+    // ranking_data.hotel_class, etc. Tentamos todos, e caímos em scraping
+    // da página pública como último recurso (JSON-LD starRating).
+    let hotelClass = extractHotelClass(det);
+    if (hotelClass == null && url) {
+      hotelClass = await scrapeHotelClassFromPage(url).catch(() => null);
+    }
 
     let photos: string[] = [];
     if (rPhotos.ok) {
@@ -148,6 +152,7 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
       description: (det.description as string | undefined) ?? null,
       hotel_class: hotelClass,
     };
+
   });
 
 function extractHotelClass(det: Record<string, unknown>): number | null {
