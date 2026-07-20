@@ -442,8 +442,8 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
         ? (editing.includes as string).split("\n").map((s) => s.trim()).filter(Boolean)
         : [];
     // Auto-preenche apenas se estiver vazio OU se contiver só itens do conjunto auto anterior.
-    const autoSet = new Set(["Passagem Aérea de Ida e Volta", "Passagem Aérea", "Hospedagem", "Café da Manhã", "Bagagem Despachada"]);
-    const isAutoOnly = current.every((s) => autoSet.has(s));
+    const autoRe = /^(passagem\s+a[eé]rea(\s+de\s+ida(\s+e\s+volta)?)?|a[eé]reo|hospedagem|caf[eé]\s+da\s+manh[aã]|bagagem\s+despachada)$/i;
+    const isAutoOnly = current.every((s) => autoRe.test(s.trim()));
     if (current.length === 0 || isAutoOnly) {
       const same = current.length === derivedIncludes.length && current.every((v, i) => v === derivedIncludes[i]);
       if (!same) setEditing({ ...editing, includes: derivedIncludes });
@@ -1701,7 +1701,9 @@ function PackageImportButton({
       if (p.room_type) patch.room_type = String(p.room_type);
       if (p.room_category) patch.room_category = String(p.room_category);
       if (p.bed_type) patch.bed_type = String(p.bed_type);
-      if (Array.isArray(p.includes)) patch.includes = p.includes.map((s: any) => String(s));
+      // Não usar includes do documento — a derivação automática monta na ordem correta
+      // (Passagem Aérea → Hospedagem → Café da Manhã → Bagagem Despachada).
+      patch.includes = [];
       if (p.supplier_name) patch.supplier_name = String(p.supplier_name);
       if (p.outbound_flight && typeof p.outbound_flight === "object") {
         patch.outbound_flight = {
