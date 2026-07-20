@@ -160,7 +160,7 @@ async function applyStealth(page: Page) {
   try {
     const cdp = await page.createCDPSession();
     await cdp.send("Emulation.setTimezoneOverride" as never, { timezoneId: "America/Sao_Paulo" } as never).catch(() => {});
-    await cdp.send("Emulation.setLocaleOverride" as never, { locale: "pt-BR" } as never).catch(() => {});
+    // NOTA: não usar Emulation.setLocaleOverride — força reload em branco.
     await cdp
       .send("Emulation.setGeolocationOverride" as never, {
         latitude: -23.5505,
