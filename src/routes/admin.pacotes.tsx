@@ -117,8 +117,58 @@ const emptyForm: Partial<PackageRow> = {
 
 function AdminPackages() {
   const qc = useQueryClient();
-  const [editing, setEditing] = useState<Partial<PackageRow> | null>(null);
+  const [editing, setEditingState] = useState<Partial<PackageRow> | null>(null);
   const [saving, setSaving] = useState(false);
+  // Multi-import drafts: array of partial packages open in tabs
+  const [drafts, setDrafts] = useState<Partial<PackageRow>[] | null>(null);
+  const [draftIndex, setDraftIndex] = useState(0);
+
+  // Wrap setEditing to keep the drafts array in sync with edits
+  const setEditing = (v: Partial<PackageRow> | null) => {
+    if (v === null) {
+      setEditingState(null);
+      setDrafts(null);
+      setDraftIndex(0);
+      return;
+    }
+    setEditingState(v);
+    setDrafts((prev) => {
+      if (!prev) return prev;
+      const next = prev.slice();
+      next[draftIndex] = v;
+      return next;
+    });
+  };
+
+  function switchDraft(newIdx: number) {
+    if (!drafts) return;
+    if (newIdx < 0 || newIdx >= drafts.length) return;
+    // persist current edits into drafts[draftIndex] first
+    const snapshot = drafts.slice();
+    if (editing) snapshot[draftIndex] = editing;
+    setDrafts(snapshot);
+    setDraftIndex(newIdx);
+    setEditingState(snapshot[newIdx]);
+  }
+
+  function closeCurrentDraft() {
+    if (!drafts) {
+      setEditing(null);
+      return;
+    }
+    const remaining = drafts.filter((_, i) => i !== draftIndex);
+    if (remaining.length === 0) {
+      setDrafts(null);
+      setDraftIndex(0);
+      setEditingState(null);
+      return;
+    }
+    const nextIdx = Math.min(draftIndex, remaining.length - 1);
+    setDrafts(remaining);
+    setDraftIndex(nextIdx);
+    setEditingState(remaining[nextIdx]);
+  }
+
 
   const { data: packages, isLoading } = useQuery({
     queryKey: ["admin", "packages"],
@@ -207,8 +257,13 @@ function AdminPackages() {
         : await supabase.from("packages").insert(payload);
       if (error) throw error;
       toast.success(editing.id ? "Pacote atualizado" : "Pacote criado");
-      setEditing(null);
+      if (drafts && drafts.length > 1) {
+        closeCurrentDraft();
+      } else {
+        setEditing(null);
+      }
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
+
       qc.invalidateQueries({ queryKey: ["packages"] });
     } catch (err) {
       const message = err instanceof Error
@@ -253,11 +308,14 @@ function AdminPackages() {
         </div>
         <div className="flex items-center gap-2">
           <MultiPackageImportButton
-            onDone={() => {
-              qc.invalidateQueries({ queryKey: ["admin", "packages"] });
-              qc.invalidateQueries({ queryKey: ["packages"] });
+            onExtracted={(list) => {
+              if (!list.length) return;
+              setDrafts(list);
+              setDraftIndex(0);
+              setEditingState(list[0]);
             }}
           />
+
           <button
             onClick={() => setEditing({ ...emptyForm })}
             className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
@@ -370,8 +428,13 @@ function AdminPackages() {
           setEditing={setEditing}
           saving={saving}
           save={save}
+          drafts={drafts}
+          draftIndex={draftIndex}
+          switchDraft={switchDraft}
+          closeCurrentDraft={closeCurrentDraft}
         />
       )}
+
     </div>
   );
 }
@@ -391,7 +454,12 @@ type PackageEditorModalProps = {
   setEditing: (v: Partial<PackageRow> | null) => void;
   saving: boolean;
   save: () => void;
+  drafts?: Partial<PackageRow>[] | null;
+  draftIndex?: number;
+  switchDraft?: (newIdx: number) => void;
+  closeCurrentDraft?: () => void;
 };
+
 
 type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
 
@@ -428,7 +496,7 @@ function deriveFromFlights(editing: Partial<PackageRow>): { originCity?: string;
   return { originCity, destCity, title, slug };
 }
 
-function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditorModalProps) {
+function PackageEditorModal({ editing, setEditing, saving, save, drafts, draftIndex = 0, switchDraft, closeCurrentDraft }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
   const [aiLoading, setAiLoading] = useState(false);
@@ -607,6 +675,62 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
             </button>
           </div>
         </div>
+
+        {drafts && drafts.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto border-b border-border bg-muted/20 px-6 sm:px-8 py-2.5 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mr-2 shrink-0">
+              Importação múltipla
+            </span>
+            {drafts.map((d, i) => {
+              const active = i === draftIndex;
+              const label = d.destination?.trim() || d.title?.trim() || `Pacote ${i + 1}`;
+              return (
+                <div key={i} className="flex items-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => switchDraft?.(i)}
+                    className={`px-3 py-1.5 rounded-l-lg text-[11px] font-bold uppercase tracking-wider transition ${
+                      active
+                        ? "bg-brand-orange text-white"
+                        : "bg-background hover:bg-muted text-foreground/70 border border-border"
+                    }`}
+                  >
+                    <span className="opacity-70 mr-1.5">#{i + 1}</span>
+                    <span className="truncate max-w-[160px] inline-block align-bottom">{label}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (i === draftIndex) closeCurrentDraft?.();
+                      else {
+                        // remove non-active draft directly
+                        const remaining = drafts.filter((_, idx) => idx !== i);
+                        // switch to active accounting for shift
+                        const newActive = i < draftIndex ? draftIndex - 1 : draftIndex;
+                        switchDraft?.(newActive);
+                        // trigger a state update by editing current same value (no-op)
+                        // then update drafts via parent-provided closeCurrentDraft is not possible;
+                        // fallback: only allow closing the active tab via X.
+                      }
+                    }}
+                    aria-label={`Descartar pacote ${i + 1}`}
+                    title={active ? "Descartar este pacote" : "Selecione para descartar"}
+                    className={`px-1.5 py-1.5 rounded-r-lg text-[11px] transition ${
+                      active
+                        ? "bg-brand-orange/80 hover:bg-brand-orange text-white"
+                        : "bg-background hover:bg-muted text-foreground/40 border border-l-0 border-border cursor-not-allowed opacity-60"
+                    }`}
+                    disabled={!active}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+
 
         <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
           {/* Sidebar */}
@@ -1911,7 +2035,7 @@ function PackageImportButton({
 }
 
 
-function MultiPackageImportButton({ onDone }: { onDone: () => void }) {
+function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial<PackageRow>[]) => void }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -1950,73 +2074,45 @@ function MultiPackageImportButton({ onDone }: { onDone: () => void }) {
       const list = Array.isArray(extracted) ? extracted.filter((p) => p && typeof p === "object") : [];
       if (list.length === 0) throw new Error("Nenhum orçamento reconhecido no documento");
 
-      // Slugs existentes (uma única consulta)
-      const { data: existingRows } = await supabase.from("packages").select("slug");
-      const usedSlugs = new Set<string>((existingRows ?? []).map((r: any) => r.slug));
-      const reserveSlug = (base: string) => {
-        let s = base || "pacote";
-        let i = 2;
-        while (usedSlugs.has(s)) {
-          s = `${base}-${i}`;
-          i += 1;
-        }
-        usedSlugs.add(s);
-        return s;
-      };
-
-      let created = 0;
-      let index = 0;
-      for (const raw of list) {
-        index += 1;
-        setStatus(`Salvando pacote ${index} de ${list.length}…`);
+      const drafts: Partial<PackageRow>[] = list.map((raw, i) => {
         const p: any = raw;
         const destination = String(p.destination || "").trim();
         const origin = String(p.origin || "").trim();
-        const going = p.going_date ? String(p.going_date) : null;
-        const label = `Pacote ${index}${destination ? ` — ${destination}` : ""}`;
-        const baseSlugSource = [destination || `pacote-${index}`, going ? going.slice(0, 7) : ""]
-          .filter(Boolean)
-          .join("-");
-        const slug = reserveSlug(slugify(baseSlugSource) || `pacote-${Date.now()}-${index}`);
-
-        const payload: any = {
-          slug,
+        const going = p.going_date ? String(p.going_date) : "";
+        const ret = p.return_date ? String(p.return_date) : "";
+        const label = `Pacote ${i + 1}${destination ? ` — ${destination}` : ""}`;
+        return {
+          ...emptyForm,
+          slug: "",
           title: label,
-          destination: destination || label,
-          origin: origin || null,
+          destination,
+          origin,
           going_date: going,
-          return_date: p.return_date ? String(p.return_date) : null,
-          nights: p.nights != null ? Number(p.nights) || null : null,
+          return_date: ret,
+          nights: p.nights != null ? Number(p.nights) || 0 : 0,
           base_occupancy: p.base_occupancy != null ? Number(p.base_occupancy) || 2 : 2,
           price_per_person: Number(p.price_per_person) || 0,
           taxes: Number(p.taxes) || 0,
-          hotel_name: p.hotel_name || null,
+          hotel_name: p.hotel_name || "",
           hotel_stars: p.hotel_stars != null ? Math.max(1, Math.min(5, Math.round(Number(p.hotel_stars)))) : null,
-          meal_plan: p.meal_plan || null,
-          room_type: p.room_type || null,
-          room_category: p.room_category || null,
-          bed_type: p.bed_type || null,
-          supplier_name: p.supplier_name || null,
+          meal_plan: p.meal_plan || "",
+          room_type: p.room_type || "",
+          room_category: p.room_category || "",
+          bed_type: p.bed_type || "",
+          supplier_name: p.supplier_name || "",
           includes: [],
           is_active: false,
           sort_order: 0,
-          image_url: null,
-          summary: null,
-          itinerary: null,
+          image_url: "",
+          summary: "",
+          itinerary: "",
           outbound_flight: cleanFlight(p.outbound_flight),
           return_flight: cleanFlight(p.return_flight),
-        };
-        const { error } = await supabase.from("packages").insert(payload);
-        if (error) {
-          console.warn(`[import-multi] pacote ${index} falhou`, error);
-          continue;
-        }
-        created += 1;
-      }
+        } as Partial<PackageRow>;
+      });
 
-      if (created === 0) throw new Error("Nenhum pacote foi salvo");
-      toast.success(`${created} pacote(s) importado(s) — abra cada um para revisar e ativar.`);
-      onDone();
+      toast.success(`${drafts.length} pacote(s) reconhecido(s) — revise nas abas acima e salve cada um.`);
+      onExtracted(drafts);
       setOpen(false);
       setFileName(null);
       setStatus("");
@@ -2026,6 +2122,8 @@ function MultiPackageImportButton({ onDone }: { onDone: () => void }) {
       setBusy(false);
     }
   }
+
+
 
   return (
     <>
@@ -2051,7 +2149,7 @@ function MultiPackageImportButton({ onDone }: { onDone: () => void }) {
               <div>
                 <h3 className="text-lg font-bold">Importar múltiplos pacotes</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Envie um PDF com vários orçamentos (padrão “Orcamento 1”, “Orcamento 2”…). Cada bloco vira um pacote separado, salvo como <span className="font-semibold">inativo</span> para você revisar.
+                  Envie um PDF com vários orçamentos (padrão “Orcamento 1”, “Orcamento 2”…). Cada bloco abre em uma aba no editor — igual ao "Novo Pacote" — pra você revisar e salvar um a um.
                 </p>
               </div>
               <button
