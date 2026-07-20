@@ -590,6 +590,43 @@ function AdminPackages() {
                     className="text-muted-foreground hover:text-foreground transition-colors"
                     title="Editar"
                   >
+                <div className="flex items-center gap-4">
+                  <a
+                    href={`/pacotes/${p.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-brand-orange transition-colors"
+                    title="Abrir página do pacote"
+                  >
+                    <LinkIcon className="h-[18px] w-[18px]" strokeWidth={2} />
+                  </a>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="text-muted-foreground hover:text-brand-orange transition-colors"
+                        title="Baixar arte para redes sociais"
+                      >
+                        <Download className="h-[18px] w-[18px]" strokeWidth={2} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => toast.info("Envie a capa para gerar a arte de Story (em breve).")}
+                      >
+                        Story (1080×1920)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => toast.info("Envie a capa para gerar a arte de Feed (em breve).")}
+                      >
+                        Feed (1080×1080)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <button
+                    onClick={() => setEditing(p)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="Editar"
+                  >
                     <Pencil className="h-[18px] w-[18px]" strokeWidth={2} />
                   </button>
                   <button
@@ -605,6 +642,7 @@ function AdminPackages() {
           </div>
         ))}
       </div>
+
 
       {(() => {
         const total = packages?.length ?? 0;
