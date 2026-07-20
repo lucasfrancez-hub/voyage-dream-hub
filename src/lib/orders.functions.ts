@@ -1468,11 +1468,11 @@ export const searchOrders = createServerFn({ method: "POST" })
       for (const r of ords ?? []) results.set((r as any).id, { ...(r as any), matched: "passageiro" });
     }
 
-    // 3) Busca por localizador em order_items (record_locator jsonb/text)
+    // 3) Busca por localizador em order_items (supplier_locator)
     const { data: items } = await supabase
       .from("order_items")
-      .select("order_id, record_locator")
-      .ilike("record_locator", like)
+      .select("order_id, supplier_locator")
+      .ilike("supplier_locator", like)
       .limit(30);
     const itemIds = Array.from(new Set((items ?? []).map((p: any) => p.order_id).filter((id: string) => !results.has(id))));
     if (itemIds.length) {
@@ -1482,6 +1482,7 @@ export const searchOrders = createServerFn({ method: "POST" })
         .in("id", itemIds);
       for (const r of ords ?? []) results.set((r as any).id, { ...(r as any), matched: "localizador" });
     }
+
 
     return Array.from(results.values()).slice(0, 30);
   });
