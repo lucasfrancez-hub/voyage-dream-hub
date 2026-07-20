@@ -57,7 +57,7 @@ async function persistHotelPhotos(itemId: string, photos: string[]): Promise<voi
   const { data: row } = await supabase.from("order_items").select("details").eq("id", itemId).maybeSingle();
   const details = ((row?.details ?? {}) as Record<string, unknown>);
   details.tripadvisor_photos_json = JSON.stringify(photos);
-  await supabase.from("order_items").update({ details }).eq("id", itemId);
+  await supabase.from("order_items").update({ details: details as never }).eq("id", itemId);
 }
 
 // --- Traduções auxiliares para o voucher em inglês ---
