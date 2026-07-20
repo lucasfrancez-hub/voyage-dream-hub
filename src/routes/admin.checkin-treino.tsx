@@ -844,11 +844,14 @@ function TreinoPage() {
               {regionMode && (
                 <div className="mb-2 flex flex-wrap items-center gap-2 rounded border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
                   <span className="flex-1 min-w-[220px]">
-                    Arraste um retângulo em volta do cartão de embarque. Depois
-                    clique em <b>Finalizar seleção</b> pra ver como ele fica.
+                    Arraste um retângulo em volta de cada cartão. Você pode
+                    capturar <b>vários seguidos</b> (2 pax, conexões) sem sair
+                    do modo — clique em <b>Finalizar seleção</b> a cada
+                    retângulo. Já capturados nesta sessão:{" "}
+                    <b>{steps.filter((s) => s.action === "capture_region").length}</b>.
                     {regionDraft && (
                       <span className="ml-2 opacity-70">
-                        ({regionDraft.w}×{regionDraft.h}px)
+                        (atual {regionDraft.w}×{regionDraft.h}px)
                       </span>
                     )}
                   </span>
@@ -859,7 +862,7 @@ function TreinoPage() {
                     disabled={busy || !sessionId || !regionDraft || regionDraft.w < 20 || regionDraft.h < 20}
                     onClick={() => void doCaptureRegion()}
                   >
-                    Finalizar seleção · ver cartão
+                    Finalizar seleção · salvar cartão
                   </Button>
                 </div>
               )}
