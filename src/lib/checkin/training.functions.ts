@@ -76,8 +76,8 @@ export default async ({ page, browser, context }) => {
     for (let attempt = 0; attempt < 3; attempt++) {
       const candidate = await resolveActivePage(attempt > 0);
       try {
-        await new Promise((r) => setTimeout(r, 500 + attempt * 500));
-        return await candidate.screenshot({ type: "jpeg", quality: 70, encoding: "base64", fullPage: false });
+        await new Promise((r) => setTimeout(r, 250 + attempt * 400));
+        return await candidate.screenshot({ type: "jpeg", quality: 60, encoding: "base64", fullPage: false });
       } catch (error) {
         lastError = error;
         const message = String(error && error.message || error);
