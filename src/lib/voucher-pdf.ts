@@ -560,6 +560,15 @@ const drawIcon = (page: PDFPage, kind: IconKind, x: number, y: number, size: num
       page.drawLine({ start: { x, y: y + s * 0.15 }, end: { x, y: y + s * 0.85 }, thickness: s * 0.1, color });
       break;
     }
+    case "coffee": {
+      // Xícara: corpo + alça + vapor
+      page.drawRectangle({ x: x + s * 0.15, y: y + s * 0.15, width: s * 0.55, height: s * 0.45, borderColor: color, borderWidth: s * 0.09, color: COLOR_WHITE });
+      page.drawCircle({ x: x + s * 0.78, y: y + s * 0.38, size: s * 0.13, borderColor: color, borderWidth: s * 0.08, color: COLOR_WHITE });
+      // vapor
+      page.drawLine({ start: { x: x + s * 0.3, y: y + s * 0.72 }, end: { x: x + s * 0.3, y: y + s * 0.92 }, thickness: s * 0.07, color });
+      page.drawLine({ start: { x: x + s * 0.5, y: y + s * 0.72 }, end: { x: x + s * 0.5, y: y + s * 0.92 }, thickness: s * 0.07, color });
+      break;
+    }
     case "building": {
       page.drawRectangle({ x: x + s * 0.15, y, width: s * 0.7, height: s * 0.95, borderColor: color, borderWidth: s * 0.08 });
       for (let r = 0; r < 3; r++) {
