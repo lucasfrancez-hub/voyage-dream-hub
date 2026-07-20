@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { confirm } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/checkins")({
   head: () => ({ meta: [{ title: "Check-ins — VIA AIR" }] }),
@@ -264,7 +265,17 @@ function CheckinsPage() {
     }
   }
 
-  async function handleRemove(checkinId: string, passengerIndex: number) {
+  async function handleRemove(checkinId: string, passengerIndex: number, passengerName?: string) {
+    const ok = await confirm({
+      title: "Remover cartão anexado?",
+      description: passengerName
+        ? `O cartão de embarque de ${passengerName} já está anexado. Deseja realmente removê-lo?`
+        : "Este cartão de embarque já está anexado. Deseja removê-lo?",
+      confirmText: "Remover",
+      cancelText: "Manter",
+      destructive: true,
+    });
+    if (!ok) return;
     const key = `${checkinId}:${passengerIndex}:rm`;
     setBusyKey(key);
     try {
@@ -461,7 +472,7 @@ function SegmentCard({
   busyKey: string | null;
   sendingId: string | null;
   onUpload: (a: any) => void;
-  onRemove: (checkinId: string, passengerIndex: number) => void;
+  onRemove: (checkinId: string, passengerIndex: number, passengerName?: string) => void;
   onSend: (checkinId: string) => void;
 }) {
   const paxCount = group.passengers.length;
@@ -652,7 +663,7 @@ function SegmentCard({
                   disabled={disabled}
                   busy={busyKey === rowKey || busyKey === `${seg.checkin?.id}:${pax.index}:rm`}
                   onFile={(file) => onUpload({ key: rowKey, orderItemId: seg.order_item_id, passengerIndex: pax.index, file, totalPax: paxCount, uploadedBefore: uploaded.length, checkinIdBefore: seg.checkin?.id ?? null, alreadySent })}
-                  onRemove={() => seg.checkin?.id && onRemove(seg.checkin.id, pax.index)}
+                  onRemove={() => seg.checkin?.id && onRemove(seg.checkin.id, pax.index, pax.full_name)}
                   checkinId={seg.checkin?.id ?? null}
                 />
               );
