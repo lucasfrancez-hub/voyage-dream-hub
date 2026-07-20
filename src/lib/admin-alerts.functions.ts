@@ -20,7 +20,7 @@ export const listFlightAlerts = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("flight_change_alerts")
       .select(
-        "id, order_id, order_item_id, flight_number, old_depart_at, new_depart_at, old_arrive_at, new_arrive_at, new_status, severity, summary, admin_seen_at, admin_email_sent_at, response, responded_at, wa_phone, created_at, orders!inner(order_number, full_name, payer_full_name)",
+        "id, order_id, order_item_id, flight_number, old_depart_at, new_depart_at, old_arrive_at, new_arrive_at, new_status, severity, summary, admin_seen_at, admin_email_sent_at, response, responded_at, wa_phone, wa_button_message_id, created_at, orders!inner(order_number, full_name, payer_full_name, airline_locator), order_items(supplier_locator)",
       )
       .gte("created_at", since)
       .order("created_at", { ascending: false })
@@ -33,6 +33,7 @@ export const listFlightAlerts = createServerFn({ method: "GET" })
       orderNumber: (r.orders?.order_number ?? "") as string,
       customerName: (r.orders?.full_name ?? r.orders?.payer_full_name ?? "Cliente") as string,
       flightNumber: r.flight_number as string,
+      locator: (r.order_items?.supplier_locator ?? r.orders?.airline_locator ?? null) as string | null,
       severity: (r.severity ?? "info") as string,
       summary: (r.summary ?? `Voo ${r.flight_number}`) as string,
       oldDepartAt: r.old_depart_at as string | null,
@@ -44,11 +45,14 @@ export const listFlightAlerts = createServerFn({ method: "GET" })
       respondedAt: r.responded_at as string | null,
       seenAt: r.admin_seen_at as string | null,
       emailSentAt: r.admin_email_sent_at as string | null,
+      waPhone: (r.wa_phone ?? null) as string | null,
+      autoSent: !!r.wa_button_message_id,
       createdAt: r.created_at as string,
     }));
     const unseen = rows.filter((r) => !r.seenAt).length;
     return { rows, unseen };
   });
+
 
 export const markFlightAlertSeen = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
