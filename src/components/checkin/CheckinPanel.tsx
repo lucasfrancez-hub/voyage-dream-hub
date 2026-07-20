@@ -236,42 +236,18 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                       runMut.mutate({
                         orderItemIds,
                         regenCheckinIds: allSuccess ? regenIds : undefined,
-                        mode: "code",
                       })
                     }
                     title={
                       !canRun && !allSuccess
                         ? "Disponível a partir de 48h antes do último trecho"
-                        : "Robô com seletores HTML — rápido e grátis"
+                        : "Piloto automático — IA olha a tela, decide e baixa o cartão"
                     }
                   >
-                    {isRunning && runMut.variables?.mode === "code"
+                    {isRunning
                       ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      : <Code2 className="h-3.5 w-3.5 mr-1" />}
-                    {allSuccess ? "Regerar (código)" : "Rodar (código)"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={isRunning || anyRunning || (!canRun && !allSuccess)}
-                    onClick={() =>
-                      runMut.mutate({
-                        orderItemIds,
-                        regenCheckinIds: allSuccess ? regenIds : undefined,
-                        mode: "vision",
-                      })
-                    }
-                    title={
-                      !canRun && !allSuccess
-                        ? "Disponível a partir de 48h antes do último trecho"
-                        : "Robô com visão IA — mais resiliente, ~R$ 0,05/check-in"
-                    }
-                    className="border-purple-400/50 text-purple-600 dark:text-purple-300 hover:bg-purple-500/10"
-                  >
-                    {isRunning && runMut.variables?.mode === "vision"
-                      ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      : <Eye className="h-3.5 w-3.5 mr-1" />}
-                    {allSuccess ? "Regerar (Visão IA)" : "Rodar (Visão IA)"}
+                      : <Bot className="h-3.5 w-3.5 mr-1" />}
+                    {allSuccess ? "Regerar cartão" : "Fazer check-in"}
                   </Button>
                 </div>
               </div>
