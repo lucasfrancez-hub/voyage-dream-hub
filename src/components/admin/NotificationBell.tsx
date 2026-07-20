@@ -112,17 +112,23 @@ function buildClientMessage(r: {
   if (isMinor) {
     lines.push("");
     lines.push(`ℹ️ _Esta alteração foi inferior a 30 minutos. Sua reserva permanece confirmada e não é necessário realizar nenhuma ação. Esta mensagem é apenas para mantê-lo(a) informado(a)._`);
+    lines.push("");
+    lines.push("Em caso de dúvidas, estamos à disposição. ✈️💛");
+  } else {
+    lines.push("");
+    lines.push(`⚠️ *Esta alteração foi superior a 30 minutos. Conforme a política da companhia aérea, caso o novo horário não atenda às suas necessidades, é possível solicitar uma alteração sem custo, sujeita às opções disponibilizadas pela companhia.*`);
+    lines.push("");
+    lines.push("Se desejar verificar as alternativas disponíveis, basta responder a esta mensagem. Teremos prazer em ajudar. ✈️💛");
   }
   if (r.newStatus && r.newStatus.toLowerCase() !== "expected") {
     lines.push("");
     lines.push(`ℹ️ Status: ${r.newStatus}`);
   }
   lines.push("");
-  lines.push("Em caso de dúvidas, estamos à disposição. ✈️💛");
-  lines.push("");
   lines.push("- _Equipe VIA AIR_");
   return lines.join("\n");
 }
+
 
 
 type AlertRow = {
