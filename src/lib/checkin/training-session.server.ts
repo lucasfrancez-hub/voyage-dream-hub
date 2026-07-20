@@ -235,7 +235,7 @@ export async function runLiveStep(opts: {
       }
       await page.keyboard.type(s.text, { delay: 30 });
     } else if (s.action === "press") {
-      await page.keyboard.press(s.key);
+      await page.keyboard.press(s.key as never);
       await new Promise((r) => setTimeout(r, 600));
     } else if (s.action === "scroll") {
       await page.evaluate((dy: number) => window.scrollBy(0, dy), s.dy);
