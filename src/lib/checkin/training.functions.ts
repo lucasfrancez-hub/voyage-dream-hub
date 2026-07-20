@@ -29,9 +29,15 @@ const RunInput = z.object({
 export const runTrainingScript = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => RunInput.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden: apenas admin");
     const token = process.env.BROWSERLESS_TOKEN;
     if (!token) throw new Error("BROWSERLESS_TOKEN não configurado");
+
 
     const code = `
 export default async ({ page, context }) => {
@@ -117,9 +123,15 @@ const AskInput = z.object({
 export const askVisionAboutScreenshot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AskInput.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden: apenas admin");
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("LOVABLE_API_KEY ausente");
+
 
     const systemPrompt = `Você é um assistente que analisa screenshots de páginas web para automação de check-in aéreo.
 A imagem tem dimensões ${data.width}x${data.height} pixels (origem 0,0 no canto superior esquerdo).
