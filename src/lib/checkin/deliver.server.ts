@@ -79,7 +79,12 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
       .eq("id", ci.order_item_id)
       .maybeSingle();
     const d = (it?.details ?? {}) as Record<string, any>;
-    const rawCity = String(d.to_city || d.destination_city || d.to || d.destination || "").trim();
+    let rawCity = String(d.to_city || d.destination_city || d.to || d.destination || "").trim();
+    const airport = String(d.to_airport || "").trim();
+    if (airport) {
+      const re = new RegExp(airport.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig");
+      rawCity = rawCity.replace(re, "").replace(/\s+/g, " ").trim();
+    }
     const iata = String(d.to_iata || d.arrival_iata || "").trim().toUpperCase();
     const small = new Set(["de", "da", "do", "das", "dos", "e"]);
     const city = rawCity
