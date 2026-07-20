@@ -384,7 +384,7 @@ function BookingCard({
                       existing={existing}
                       openUrl={openUrl}
                       busy={busyKey === rowKey || busyKey === `${seg.checkin?.id}:${pax.index}:rm`}
-                      onFile={(file) => onUpload({ key: rowKey, orderItemId: seg.order_item_id, passengerIndex: pax.index, file })}
+                      onFile={(file) => onUpload({ key: rowKey, orderItemId: seg.order_item_id, passengerIndex: pax.index, file, totalPax: paxCount, uploadedBefore: uploaded.length, checkinIdBefore: seg.checkin?.id ?? null, alreadySent })}
                       onRemove={() => seg.checkin?.id && onRemove(seg.checkin.id, pax.index)}
                       checkinId={seg.checkin?.id ?? null}
                     />
