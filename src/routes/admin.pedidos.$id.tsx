@@ -1783,7 +1783,7 @@ function ItemCard({
               <>
                 {typeof d.destination === "string" && <div>{d.destination as string}</div>}
                 {typeof d.address === "string" && <div>{d.address as string}</div>}
-                {typeof d.room === "string" && <div>Quarto: {d.room as string}</div>}
+                {typeof d.room === "string" && <div>Categoria: {d.room as string}</div>}
                 {typeof (d.board ?? d.meal_plan) === "string" && <div>Regime: {(d.board ?? d.meal_plan) as string}</div>}
                 {(() => {
                   const ci = (d.check_in as string) || (d.checkin as string) || "";
