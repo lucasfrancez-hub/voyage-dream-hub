@@ -643,6 +643,8 @@ export async function runLiveStep(opts: {
     } else if (s.action === "back") {
       await evalExpr(cdp, "history.back()");
       await new Promise((r) => setTimeout(r, 800));
+    } else if (s.action === "capture_region") {
+      // Handled outside withConnection to allow admin storage upload.
     }
     return capture(cdp, session.initialUrl);
   });
