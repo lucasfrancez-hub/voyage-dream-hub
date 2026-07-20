@@ -112,6 +112,13 @@ export async function runScriptInLiveSession(opts: {
           latest = await runLiveStep({ userId: opts.userId, sessionId, step });
         }
         logs.push({ i, action: step.action, ok: true, url: latest.currentUrl });
+        // Cadência humana entre passos — replica o roundtrip HTTP que o
+        // trainer tem naturalmente quando o botão "Repetir do zero" roda
+        // do navegador. Sem essa pausa, LATAM detecta velocidade e bloqueia.
+        if (i < resolvedSteps.length - 1) {
+          const jitter = 450 + Math.floor(Math.random() * 550); // 450–1000 ms
+          await new Promise((r) => setTimeout(r, jitter));
+        }
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
         logs.push({ i, action: step.action, ok: false, err: detail });
