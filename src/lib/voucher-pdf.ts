@@ -2259,9 +2259,11 @@ export async function generateVoucher(
     const g = groups.get(key)!;
     await drawAereoSection(ctx, g.outbound, g.returning);
     const ids = paxSetForItems([...g.outbound, ...g.returning]);
-    drawPaxForIds(ids);
+    const grpLoc = pickAereoLocator([...g.outbound, ...g.returning]);
+    drawPaxForIds(ids, grpLoc);
     passengerSetsAlreadyShown.add(paxSignature(ids));
   }
+
 
 
   // Monta string de hóspedes a partir dos passageiros (ex.: "2 adultos, 1 criança, 1 bebê")
