@@ -577,7 +577,7 @@ function TreinoPage() {
                 <SelectContent>
                   <SelectItem value="__new">+ Nova sessão</SelectItem>
                   {savedScripts.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{s.name}{s.pax_count ? ` · ${s.pax_count} pax` : ""}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
