@@ -416,6 +416,41 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derived.destCity, derived.originCity, derived.title, derived.slug]);
 
+  // Auto-preencher "O que inclui" a partir dos dados: passagem ida/volta, hospedagem,
+  // café da manhã (se meal_plan indicar) e bagagem despachada (se algum voo tiver).
+  const derivedIncludes = useMemo(() => {
+    const list: string[] = [];
+    const hasOutbound = !!editing.outbound_flight;
+    const hasReturn = !!editing.return_flight;
+    if (hasOutbound && hasReturn) list.push("Passagem Aérea de Ida e Volta");
+    else if (hasOutbound || hasReturn) list.push("Passagem Aérea");
+    if (editing.hotel_name || editing.tripadvisor_location_id) list.push("Hospedagem");
+    const meal = String(editing.meal_plan ?? "").toLowerCase();
+    if (meal.includes("café") || meal.includes("cafe") || meal.includes("meia pensão") || meal.includes("pensão completa") || meal.includes("all inclusive")) {
+      list.push("Café da Manhã");
+    }
+    const checked = !!(editing.outbound_flight?.checked_bag || editing.return_flight?.checked_bag);
+    if (checked) list.push("Bagagem Despachada");
+    return list;
+  }, [editing.outbound_flight, editing.return_flight, editing.hotel_name, editing.tripadvisor_location_id, editing.meal_plan]);
+
+  useEffect(() => {
+    if (derivedIncludes.length === 0) return;
+    const current = Array.isArray(editing.includes)
+      ? editing.includes
+      : typeof editing.includes === "string"
+        ? (editing.includes as string).split("\n").map((s) => s.trim()).filter(Boolean)
+        : [];
+    // Auto-preenche apenas se estiver vazio OU se contiver só itens do conjunto auto anterior.
+    const autoSet = new Set(["Passagem Aérea de Ida e Volta", "Passagem Aérea", "Hospedagem", "Café da Manhã", "Bagagem Despachada"]);
+    const isAutoOnly = current.every((s) => autoSet.has(s));
+    if (current.length === 0 || isAutoOnly) {
+      const same = current.length === derivedIncludes.length && current.every((v, i) => v === derivedIncludes[i]);
+      if (!same) setEditing({ ...editing, includes: derivedIncludes });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [derivedIncludes.join("|")]);
+
   function applyAuto() {
     const d = deriveFromFlights(editing);
     setEditing({
@@ -430,13 +465,20 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
 
   async function handleGenerateSummary() {
     const brief = (editing.summary ?? "").trim();
-    if (brief.length < 2) {
-      toast.error("Escreva um resumo, ex.: 'falar sobre Aracaju'");
+    const dest = (editing.destination ?? "").trim();
+    // Se o usuário não digitou briefing, usa o destino direto com estrutura padrão.
+    const finalBrief = brief.length >= 2
+      ? brief
+      : dest.length >= 2
+        ? `Escreva um resumo de ${dest} para pacote de viagens, para vender pacote de viagens`
+        : "";
+    if (!finalBrief) {
+      toast.error("Digite o destino ou escreva um resumo primeiro");
       return;
     }
     setAiLoading(true);
     try {
-      const { text } = await genSummary({ data: { brief } });
+      const { text } = await genSummary({ data: { brief: finalBrief } });
       setEditing({ ...editing, summary: text });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao gerar resumo");
@@ -444,6 +486,38 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
       setAiLoading(false);
     }
   }
+
+  // Auto-gerar resumo assim que houver destino e o resumo estiver vazio.
+  const autoSummaryDoneRef = (function useAutoSummaryRef() {
+    // usa useMemo pra manter uma ref estável entre renders sem importar useRef aqui.
+    const box = useMemo(() => ({ destKey: "" as string }), []);
+    return box;
+  })();
+  useEffect(() => {
+    const dest = (editing.destination ?? "").trim();
+    const summary = (editing.summary ?? "").trim();
+    if (!dest || summary || aiLoading) return;
+    if (autoSummaryDoneRef.destKey === dest) return;
+    autoSummaryDoneRef.destKey = dest;
+    const t = setTimeout(() => {
+      if ((editing.summary ?? "").trim()) return;
+      void (async () => {
+        setAiLoading(true);
+        try {
+          const { text } = await genSummary({
+            data: { brief: `Escreva um resumo de ${dest} para pacote de viagens, para vender pacote de viagens` },
+          });
+          setEditing((prev: any) => ({ ...(prev ?? editing), summary: text }));
+        } catch {
+          /* silencioso — botão manual ainda funciona */
+        } finally {
+          setAiLoading(false);
+        }
+      })();
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing.destination]);
 
   async function handleSearchImages(nextPage = 1) {
     const q = imgQuery.trim() || editing.destination?.trim() || "";
