@@ -94,7 +94,7 @@ function CheckinsPage() {
     });
   }, [upcoming]);
 
-  async function handleRun(id: string, regenerate = false, mode: "code" | "vision" = "code") {
+  async function handleRun(id: string, regenerate = false, runMode: "code" | "vision" = mode) {
     setBusyId(id);
     try {
       if (regenerate) {
