@@ -878,8 +878,28 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservati
   });
   cy -= 12;
 
+  const NAME_SIZE = 8.5;
+  const nameColW = colWs[0] - 6; // padding para não colar na próxima coluna
+  const shortenName = (raw: string): string => {
+    const full = (raw ?? "").toUpperCase().trim();
+    if (!full) return "-";
+    const fits = (s: string) => ctx.fontBold.widthOfTextAtSize(sanitize(s), NAME_SIZE) <= nameColW;
+    if (fits(full)) return full;
+    const parts = full.split(/\s+/).filter(Boolean);
+    if (parts.length >= 3) {
+      const twoPlusLast = `${parts[0]} ${parts[1]} ${parts[parts.length - 1]}`;
+      if (fits(twoPlusLast)) return twoPlusLast;
+      const firstPlusLast = `${parts[0]} ${parts[parts.length - 1]}`;
+      if (fits(firstPlusLast)) return firstPlusLast;
+    }
+    // Último recurso: trunca com reticências
+    let s = full;
+    while (s.length > 1 && !fits(`${s}…`)) s = s.slice(0, -1);
+    return `${s}…`;
+  };
+
   passengers.forEach((p, idx) => {
-    const name = (p.full_name ?? "").toUpperCase();
+    const name = shortenName(p.full_name ?? "");
     const doc = p.doc_type === "passport"
       ? (p.passport_number ? `PPT ${p.passport_number}` : "-")
       : (p.cpf ? `CPF ${p.cpf}` : (p.document ?? "-"));
@@ -889,15 +909,16 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservati
     const ticketFmt = formatTicketNumber(rawTicket);
 
     const cells = showTicket
-      ? [name || "-", tipo, doc, dob, ticketFmt || "-"]
-      : [name || "-", tipo, doc, dob];
+      ? [name, tipo, doc, dob, ticketFmt || "-"]
+      : [name, tipo, doc, dob];
 
     cells.forEach((v, i) => {
       ctx.page.drawText(sanitize(v), {
-        x: colXs[i], y: cy, size: 8.5, font: ctx.fontBold,
+        x: colXs[i], y: cy, size: i === 0 ? NAME_SIZE : 8.5, font: ctx.fontBold,
         color: showTicket && i === 4 && v !== "-" ? COLOR_ORANGE : COLOR_TEXT,
       });
     });
+
     cy -= rowH;
     if (idx < passengers.length - 1) {
       ctx.page.drawLine({
