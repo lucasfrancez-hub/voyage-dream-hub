@@ -278,10 +278,20 @@ function AdminPackages() {
       tripadvisor_address: pkg.tripadvisor_address || null,
       tripadvisor_photos: pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
     };
-    const { error } = pkg.id
-      ? await supabase.from("packages").update(payload).eq("id", pkg.id)
-      : await supabase.from("packages").insert(payload);
+    const savedPackage = pkg.id
+      ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
+      : await supabase.from("packages").insert(payload).select("id").single();
+    const { error } = savedPackage;
     if (error) throw error;
+    const sourcePhotos = payload.tripadvisor_photos ?? [];
+    if (sourcePhotos.length > 0 && sourcePhotos.some((url) => !url.includes("/api/public/package-hotel-photo/"))) {
+      const persisted = await persistHotelPhotosFn({
+        data: { packageId: savedPackage.data.id, photos: sourcePhotos.slice(0, 5) },
+      });
+      if (persisted.photos.length === 0) {
+        console.warn("[packages] não foi possível criar a cópia permanente das fotos do hotel");
+      }
+    }
   }
 
   async function save() {
