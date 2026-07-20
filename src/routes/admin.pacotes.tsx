@@ -393,6 +393,9 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
   const [imgOpen, setImgOpen] = useState(false);
   const [imgQuery, setImgQuery] = useState("");
   const [imgLoading, setImgLoading] = useState(false);
+  const [imgPage, setImgPage] = useState(1);
+  const [imgHasMore, setImgHasMore] = useState(false);
+  const [imgSource, setImgSource] = useState("");
   const [imgResults, setImgResults] = useState<Array<{ thumb: string; url: string; title: string; source: string; author: string }>>([]);
 
   const genSummary = useServerFn(generatePackageSummary);
