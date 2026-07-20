@@ -377,43 +377,45 @@ export const extractFlightFromImage = createServerFn({ method: "POST" })
 Analise a imagem e devolva APENAS um JSON válido, sem markdown, sem comentários, com esta forma exata:
 {
   "airline": "nome da cia (ex.: LATAM, GOL, Azul)",
-  "flight_number": "número do primeiro voo (ex.: LA3531)",
+  "flight_number": "número do primeiro voo — SÓ DÍGITOS, sem código de cia e sem hífen (ex.: '3531', '1137')",
   "from_iata": "IATA da origem do primeiro trecho",
   "from_city": "cidade da origem (só nome, sem estado)",
   "to_iata": "IATA do destino do último trecho",
   "to_city": "cidade do destino final",
-  "depart_at": "HH:MM do primeiro trecho (24h)",
-  "arrive_at": "HH:MM da chegada no destino final (24h)",
+  "depart_at": "ISO local YYYY-MM-DDTHH:MM do primeiro trecho (ex.: '2026-11-06T08:20')",
+  "arrive_at": "ISO local YYYY-MM-DDTHH:MM da chegada no destino final",
   "duration": "duração total (ex.: 05h55)",
   "cabin_class": "Econômica | Premium Economy | Executiva | Primeira",
-  "fare_class": "código da tarifa se visível (ex.: Q, LIGHT)",
-  "carry_on": true|false,
-  "checked_bag": true|false,
-  "personal_item": true|false,
+  "fare_class": "código da tarifa se visível (ex.: Q, LIGHT, BLOQ)",
+  "carry_on": true,
+  "checked_bag": true,
+  "personal_item": true,
   "segments": [
     {
-      "airline": "...",
-      "flight_number": "LA3531",
+      "airline": "GOL",
+      "flight_number": "1137",
       "from_iata": "MGF",
       "from_city": "Maringá",
-      "to_iata": "GRU",
+      "to_iata": "CGH",
       "to_city": "São Paulo",
-      "depart_at": "07:15",
-      "arrive_at": "08:40",
+      "depart_at": "2026-11-06T08:20",
+      "arrive_at": "2026-11-06T09:45",
       "duration": "01h25",
-      "layover": "02h35 em São Paulo"
+      "layover": "01h20 em São Paulo"
     }
   ]
 }
 Regras:
 - Retorne SÓ o JSON, começando com { e terminando com }.
-- flight_number: PRESERVE TODOS OS DÍGITOS visíveis (ex.: "LA3531", "AD4321", "G31234"). NUNCA trunque para 3 dígitos. Se a imagem mostra "LA 3531" ou "LA3531", devolva "LA3531" — nunca "LA531" ou "LA353".
-- Horários (depart_at / arrive_at): SEMPRE preencha quando visíveis na imagem (ex.: "07:15", "13:10"). Formato 24h HH:MM. Se houver segmentos, cada segmento DEVE ter depart_at e arrive_at.
+- flight_number: SOMENTE DÍGITOS. NUNCA inclua o código da cia (LA, G3, AD, etc.) e NUNCA inclua hífen. "G3 -1137" ou "G3-1137" na tela → devolva "1137". "LA 3531" → devolva "3531". Preserve TODOS os dígitos que aparecem (não trunque).
+- depart_at / arrive_at: SEMPRE em ISO local "YYYY-MM-DDTHH:MM". Combine a DATA visível na imagem (ex.: "Sex 06 Nov", "sex 6 nov 2026", "6 de novembro de 2026") com o horário HH:MM. Se o ano não estiver explícito, use o ano do cabeçalho/contexto (ex.: "IDA - sex 6 nov 2026"). Meses PT: jan=01, fev=02, mar=03, abr=04, mai=05, jun=06, jul=07, ago=08, set=09, out=10, nov=11, dez=12.
+- Cada segmento DEVE ter depart_at e arrive_at completos (data + hora). Se o próximo trecho passa da meia-noite, incremente a data.
 - Se um campo realmente não estiver visível, omita-o (não invente).
-- carry_on/checked_bag/personal_item: infira pelos ícones de bagagem (mão, despachada, pessoal). Ícone colorido/ativo = true; ícone cinza/riscado = false.
+- carry_on/checked_bag/personal_item: ícone colorido/ativo = true; ícone cinza/riscado = false.
 - Cidade sempre em português quando comum (São Paulo, não Sao Paulo).
-- Se houver várias paradas, preencha "segments" na ordem; "layover" só nos intermediários (ex.: "02h35 em São Paulo").
-- Antes de finalizar, RELEIA a imagem e confirme que os números de voo têm todos os dígitos e que todos os horários HH:MM foram capturados.`;
+- Se houver várias paradas, preencha "segments" na ordem; "layover" só nos intermediários (ex.: "01h20 em São Paulo").
+- Antes de finalizar, RELEIA a imagem e confirme: (a) números de voo só com dígitos, todos presentes; (b) TODOS os depart_at/arrive_at com data completa YYYY-MM-DDTHH:MM.`;
+
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -457,5 +459,23 @@ Regras:
     } catch {
       throw new Error("JSON inválido retornado pela IA");
     }
+
+    // Saneamento defensivo: garantir flight_number só-dígitos (remove prefixo cia + hífen)
+    const cleanNo = (v: any): string | undefined => {
+      if (v == null) return undefined;
+      const s = String(v).trim();
+      const digits = s.replace(/[^0-9]/g, "");
+      return digits || undefined;
+    };
+    if (parsed && typeof parsed === "object") {
+      if (parsed.flight_number !== undefined) parsed.flight_number = cleanNo(parsed.flight_number);
+      if (Array.isArray(parsed.segments)) {
+        parsed.segments = parsed.segments.map((s: any) => ({
+          ...s,
+          flight_number: s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
+        }));
+      }
+    }
+
     return { flight: parsed };
   });
