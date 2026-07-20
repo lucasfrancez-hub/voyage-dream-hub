@@ -242,11 +242,16 @@ PDFs capturados até agora: \${pdfCaptures.length}\`;
         await currentPage.mouse.click(+decision.x, +decision.y, { delay: 40 });
       } else if (a === "type") {
         await currentPage.mouse.click(+decision.x, +decision.y, { delay: 40 });
+        await new Promise((r) => setTimeout(r, 250 + Math.floor(Math.random() * 180)));
         if (decision.clearFirst) {
           await currentPage.keyboard.down("Control"); await currentPage.keyboard.press("A"); await currentPage.keyboard.up("Control");
           await currentPage.keyboard.press("Backspace");
         }
-        await currentPage.keyboard.type(String(decision.text || ""), { delay: 25 });
+        for (const character of String(decision.text || "")) {
+          await currentPage.keyboard.type(character);
+          await new Promise((r) => setTimeout(r, 90 + Math.floor(Math.random() * 100)));
+        }
+        await new Promise((r) => setTimeout(r, 350 + Math.floor(Math.random() * 300)));
       } else if (a === "press") {
         await currentPage.keyboard.press(String(decision.key || "Enter"));
       } else if (a === "scroll") {

@@ -321,9 +321,49 @@ async function mouseClick(cdp: CdpClient, x: number, y: number) {
   await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
 }
 
+function typingPause(minMs = 90, maxMs = 190) {
+  const ms = Math.round(minMs + Math.random() * (maxMs - minMs));
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function keyboardCodeFor(char: string) {
+  if (/^[a-z]$/i.test(char)) return `Key${char.toUpperCase()}`;
+  if (/^[0-9]$/.test(char)) return `Digit${char}`;
+  if (char === " ") return "Space";
+  return "";
+}
+
 async function typeText(cdp: CdpClient, text: string) {
-  // insertText é o mais próximo do IME natural; funciona pra a maioria dos inputs.
-  await cdp.send("Input.insertText", { text });
+  // Envia uma tecla por vez. `Input.insertText` injeta a string completa num
+  // único evento e não aciona da mesma forma as validações React/Angular da página.
+  for (const char of text) {
+    const upperCase = /^[A-Z]$/.test(char);
+    const keyCode = char.toUpperCase().charCodeAt(0);
+    const common = {
+      key: char,
+      code: keyboardCodeFor(char),
+      windowsVirtualKeyCode: keyCode,
+      nativeVirtualKeyCode: keyCode,
+      modifiers: upperCase ? 8 : 0,
+    };
+    await cdp.send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...common });
+    await cdp.send("Input.dispatchKeyEvent", {
+      type: "char",
+      ...common,
+      text: char,
+      unmodifiedText: char,
+    });
+    await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", ...common });
+    await typingPause();
+  }
+}
+
+async function clearFocusedField(cdp: CdpClient) {
+  const selectAll = { key: "a", code: "KeyA", windowsVirtualKeyCode: 65, nativeVirtualKeyCode: 65, modifiers: 2 };
+  await cdp.send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...selectAll });
+  await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", ...selectAll });
+  await typingPause(60, 110);
+  await pressKey(cdp, "Backspace");
 }
 
 async function pressKey(cdp: CdpClient, key: string) {
@@ -521,13 +561,13 @@ export async function runLiveStep(opts: {
       await new Promise((r) => setTimeout(r, 600));
     } else if (s.action === "type") {
       await mouseClick(cdp, s.x, s.y);
-      await new Promise((r) => setTimeout(r, 120));
+      await typingPause(220, 420);
       if (s.clearFirst) {
-        // seleciona tudo e apaga
-        await evalExpr(cdp, "document.activeElement && document.activeElement.select && document.activeElement.select()");
-        await pressKey(cdp, "Backspace");
+        await clearFocusedField(cdp);
       }
       await typeText(cdp, s.text);
+      // Dá tempo para validação/máscara do campo terminar antes do print ou clique seguinte.
+      await typingPause(350, 650);
     } else if (s.action === "press") {
       await pressKey(cdp, s.key);
       await new Promise((r) => setTimeout(r, 500));

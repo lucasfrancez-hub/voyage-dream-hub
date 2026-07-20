@@ -116,13 +116,18 @@ export default async ({ page, browser, context }) => {
         await new Promise((r) => setTimeout(r, 800));
       } else if (s.action === "type") {
         await currentPage.mouse.click(s.x, s.y, { delay: 60 });
+        await new Promise((r) => setTimeout(r, 250 + Math.floor(Math.random() * 180)));
         if (s.clearFirst) {
           await currentPage.keyboard.down("Control");
           await currentPage.keyboard.press("A");
           await currentPage.keyboard.up("Control");
           await currentPage.keyboard.press("Backspace");
         }
-        await currentPage.keyboard.type(s.text, { delay: 30 });
+        for (const character of s.text) {
+          await currentPage.keyboard.type(character);
+          await new Promise((r) => setTimeout(r, 90 + Math.floor(Math.random() * 100)));
+        }
+        await new Promise((r) => setTimeout(r, 350 + Math.floor(Math.random() * 300)));
       } else if (s.action === "press") {
         await currentPage.keyboard.press(s.key);
         await new Promise((r) => setTimeout(r, 600));
