@@ -53,34 +53,81 @@ REGRAS:
 - Se um popup de cookies aparecer, aceite (clique em "Aceitar" / "OK").`;
 
   const script = `
-export default async ({ page, context }) => {
+export default async ({ page, browser, context }) => {
   const { checkinUrl, goal, aiKey, maxSteps, viewportWidth, viewportHeight } = context;
   const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
   const MODEL = "google/gemini-3.5-flash";
 
   const transcript = [];
   const pdfCaptures = [];
+  const configuredPages = new WeakSet();
+  let activePage = page;
 
-  await page.setViewport({ width: viewportWidth, height: viewportHeight, deviceScaleFactor: 1 });
-  await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36");
-
-  page.on("response", async (resp) => {
-    try {
-      const ct = (resp.headers()["content-type"] || "").toLowerCase();
-      if (ct.includes("application/pdf") || (resp.url() || "").toLowerCase().endsWith(".pdf")) {
-        const buf = await resp.buffer();
-        if (buf && buf.length > 1000) {
-          pdfCaptures.push({ url: resp.url(), b64: buf.toString("base64") });
+  const configurePage = async (candidate) => {
+    if (!candidate || candidate.isClosed() || configuredPages.has(candidate)) return;
+    configuredPages.add(candidate);
+    await candidate.setViewport({ width: viewportWidth, height: viewportHeight, deviceScaleFactor: 1 }).catch(() => {});
+    await candidate.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36").catch(() => {});
+    candidate.on("response", async (resp) => {
+      try {
+        const ct = (resp.headers()["content-type"] || "").toLowerCase();
+        if (ct.includes("application/pdf") || (resp.url() || "").toLowerCase().endsWith(".pdf")) {
+          const buf = await resp.buffer();
+          if (buf && buf.length > 1000) {
+            pdfCaptures.push({ url: resp.url(), b64: buf.toString("base64") });
+          }
         }
-      }
+      } catch (_) {}
+    });
+    try {
+      const client = await candidate.target().createCDPSession();
+      await client.send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: "/tmp" });
     } catch (_) {}
-  });
+  };
 
-  // downloads → salva bytes
-  const client = await page.target().createCDPSession();
-  await client.send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: "/tmp" });
+  const resolveActivePage = async (createIfMissing = false) => {
+    let pages = [];
+    try { pages = browser ? await browser.pages() : []; } catch (_) {}
+    const openPages = pages.filter((candidate) => candidate && !candidate.isClosed());
+    const latamPage = [...openPages].reverse().find((candidate) => {
+      try { return candidate.url().includes("latamairlines.com"); } catch (_) { return false; }
+    });
+    const currentStillOpen = activePage && !activePage.isClosed() ? activePage : null;
+    activePage = latamPage || openPages[openPages.length - 1] || currentStillOpen;
+    if ((!activePage || activePage.isClosed()) && createIfMissing && browser) {
+      activePage = await browser.newPage();
+    }
+    if (!activePage || activePage.isClosed()) throw new Error("A aba da LATAM foi fechada durante a automação");
+    await configurePage(activePage);
+    await activePage.bringToFront().catch(() => {});
+    return activePage;
+  };
 
-  await page.goto(checkinUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
+  const captureActivePage = async () => {
+    let lastError = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const candidate = await resolveActivePage(attempt === 2);
+      try {
+        await new Promise((r) => setTimeout(r, 500 + attempt * 500));
+        return await candidate.screenshot({ type: "jpeg", quality: 60, encoding: "base64", fullPage: false });
+      } catch (error) {
+        lastError = error;
+        const message = String(error && error.message || error);
+        if (!/not attached|target closed|session closed|detached|most likely the page has been closed/i.test(message)) throw error;
+        await new Promise((r) => setTimeout(r, 700));
+      }
+    }
+    throw lastError || new Error("Não foi possível capturar a tela ativa da LATAM");
+  };
+
+  await configurePage(activePage);
+  try {
+    await activePage.goto(checkinUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
+  } catch (error) {
+    const recovered = await resolveActivePage(false).catch(() => null);
+    if (!recovered || recovered === activePage || recovered.url() === "about:blank") throw error;
+    activePage = recovered;
+  }
   await new Promise((r) => setTimeout(r, 3000));
 
   let totalCostCents = 0;
@@ -88,9 +135,10 @@ export default async ({ page, context }) => {
   let source = "printed-page";
 
   for (let i = 0; i < maxSteps; i++) {
-    const screenshotB64 = await page.screenshot({ type: "jpeg", quality: 60, encoding: "base64", fullPage: false });
-    const url = page.url();
-    const title = await page.title().catch(() => "");
+    const screenshotB64 = await captureActivePage();
+    const currentPage = await resolveActivePage();
+    const url = currentPage.url();
+    const title = await currentPage.title().catch(() => "");
     const historySummary = transcript.slice(-8).map((t) => \`\${t.i}. \${t.action}\${t.reason ? " (" + t.reason + ")" : ""}\`).join(" | ");
 
     const system = \`Você é um agente autônomo que controla um browser para completar um objetivo.
@@ -153,19 +201,19 @@ PDFs capturados até agora: \${pdfCaptures.length}\`;
       if (a === "abort") { throw new Error("IA abortou: " + (decision.reason || "sem motivo")); }
 
       if (a === "click") {
-        await page.mouse.move(+decision.x, +decision.y, { steps: 6 });
-        await page.mouse.click(+decision.x, +decision.y, { delay: 40 });
+        await currentPage.mouse.move(+decision.x, +decision.y, { steps: 6 });
+        await currentPage.mouse.click(+decision.x, +decision.y, { delay: 40 });
       } else if (a === "type") {
-        await page.mouse.click(+decision.x, +decision.y, { delay: 40 });
+        await currentPage.mouse.click(+decision.x, +decision.y, { delay: 40 });
         if (decision.clearFirst) {
-          await page.keyboard.down("Control"); await page.keyboard.press("A"); await page.keyboard.up("Control");
-          await page.keyboard.press("Backspace");
+          await currentPage.keyboard.down("Control"); await currentPage.keyboard.press("A"); await currentPage.keyboard.up("Control");
+          await currentPage.keyboard.press("Backspace");
         }
-        await page.keyboard.type(String(decision.text || ""), { delay: 25 });
+        await currentPage.keyboard.type(String(decision.text || ""), { delay: 25 });
       } else if (a === "press") {
-        await page.keyboard.press(String(decision.key || "Enter"));
+        await currentPage.keyboard.press(String(decision.key || "Enter"));
       } else if (a === "scroll") {
-        await page.evaluate((dy) => window.scrollBy(0, dy), +decision.dy || 400);
+        await currentPage.evaluate((dy) => window.scrollBy(0, dy), +decision.dy || 400);
       } else if (a === "wait") {
         await new Promise((r) => setTimeout(r, Math.min(+decision.ms || 1500, 8000)));
       } else {
@@ -188,16 +236,25 @@ PDFs capturados até agora: \${pdfCaptures.length}\`;
     source = "intercepted-pdf";
   } else {
     // fallback: printa a página atual (provável tela com cartão)
-    const buf = await page.pdf({ format: "A4", printBackground: true });
+    const finalPage = await resolveActivePage();
+    let buf;
+    try {
+      buf = await finalPage.pdf({ format: "A4", printBackground: true });
+    } catch (error) {
+      const recoveredPage = await resolveActivePage();
+      buf = await recoveredPage.pdf({ format: "A4", printBackground: true });
+    }
     pdfB64 = Buffer.from(buf).toString("base64");
     source = "printed-page";
   }
+
+  const finalPage = await resolveActivePage();
 
   return {
     data: {
       pdfB64,
       transcript,
-      finalUrl: page.url(),
+      finalUrl: finalPage.url(),
       costCents: Math.round(totalCostCents * 100) / 100,
       doneReason,
       source,
