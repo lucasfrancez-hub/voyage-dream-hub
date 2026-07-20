@@ -526,7 +526,9 @@ type PackageEditorModalProps = {
   draftIndex?: number;
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
+  nextNumber?: number | null;
 };
+
 
 
 
