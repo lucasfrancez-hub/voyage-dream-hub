@@ -1648,6 +1648,8 @@ function PackageImportButton({
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const extract = useServerFn(extractPackageFromDocument);
+  const searchHotels = useServerFn(searchTripAdvisorHotels);
+  const hotelDetails = useServerFn(getTripAdvisorHotelDetails);
 
   async function handleFile(file: File) {
     const ok = file.type === "application/pdf" || file.type.startsWith("image/");
@@ -1700,6 +1702,7 @@ function PackageImportButton({
       if (p.room_category) patch.room_category = String(p.room_category);
       if (p.bed_type) patch.bed_type = String(p.bed_type);
       if (Array.isArray(p.includes)) patch.includes = p.includes.map((s: any) => String(s));
+      if (p.supplier_name) patch.supplier_name = String(p.supplier_name);
       if (p.outbound_flight && typeof p.outbound_flight === "object") {
         patch.outbound_flight = {
           ...p.outbound_flight,
@@ -1711,6 +1714,35 @@ function PackageImportButton({
           ...p.return_flight,
           segments: Array.isArray(p.return_flight.segments) ? p.return_flight.segments : [],
         };
+      }
+
+      // Tenta enriquecer o hotel automaticamente com dados do TripAdvisor.
+      if (patch.hotel_name) {
+        try {
+          const city = patch.destination ?? "";
+          const q = city ? `${patch.hotel_name} ${city}` : patch.hotel_name;
+          const results = await searchHotels({ data: { query: q } });
+          const best = results?.[0];
+          if (best) {
+            const full = await hotelDetails({ data: { locationId: best.location_id, photoLimit: 5 } });
+            const rating = full.rating ?? best.rating ?? null;
+            const cls = full.hotel_class ?? null;
+            const stars = rating != null
+              ? Math.min(5, Math.max(1, Math.round(rating)))
+              : cls != null
+                ? Math.min(5, Math.max(1, Math.round(cls)))
+                : patch.hotel_stars ?? 3;
+            patch.hotel_name = full.name || best.name || patch.hotel_name;
+            patch.hotel_stars = stars;
+            patch.tripadvisor_location_id = String(best.location_id);
+            patch.tripadvisor_url = full.tripadvisor_url ?? best.tripadvisor_url ?? null;
+            patch.tripadvisor_address = full.address ?? best.address ?? null;
+            const photos = (full.photos && full.photos.length > 0) ? full.photos : null;
+            if (photos) patch.tripadvisor_photos = photos;
+          }
+        } catch (err) {
+          console.warn("[import] falha ao enriquecer hotel via TripAdvisor", err);
+        }
       }
 
       onImported(patch);
