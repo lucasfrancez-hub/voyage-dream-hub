@@ -303,7 +303,7 @@ export function AdminNotificationBell() {
       </DropdownMenu>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-[440px] p-0 overflow-hidden bg-[#0A0A0A] border border-white/10 rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]">
+        <DialogContent className="max-w-[560px] p-0 overflow-hidden bg-[#0A0A0A] border border-white/10 rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]">
           {selected && (
             <div>
               {/* Header */}
@@ -447,10 +447,9 @@ export function AdminNotificationBell() {
                     disabled={sending}
                     title={selected.autoSent ? "Reenviar via WhatsApp" : "Enviar via WhatsApp"}
                     aria-label={selected.autoSent ? "Reenviar via WhatsApp" : "Enviar via WhatsApp"}
-                    className="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-brand-orange hover:bg-[#ff7a2e] text-white text-xs font-semibold transition active:scale-95 shadow-[0_6px_18px_-6px_rgba(242,107,31,0.6)] disabled:opacity-60"
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-orange hover:bg-[#ff7a2e] text-white transition active:scale-95 shadow-[0_6px_18px_-6px_rgba(242,107,31,0.6)] disabled:opacity-60"
                   >
                     <Send className="w-4 h-4" />
-                    {selected.autoSent ? "Reenviar" : "Enviar"}
                   </button>
                 </div>
               </div>

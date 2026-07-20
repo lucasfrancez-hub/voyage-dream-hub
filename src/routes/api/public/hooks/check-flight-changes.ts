@@ -124,7 +124,20 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
           if (exists) continue;
 
           const order = item.orders as OrderRow | null;
-          const phone = order?.phone ?? order?.payer_phone ?? null;
+          // Sempre priorizar WhatsApp do passageiro principal
+          let phone: string | null = null;
+          {
+            const { data: pax } = await supabaseAdmin
+              .from("order_passengers")
+              .select("whatsapp")
+              .eq("order_id", item.order_id)
+              .order("sort_order", { ascending: true, nullsFirst: false })
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (pax?.whatsapp) phone = pax.whatsapp as string;
+          }
+          if (!phone) phone = order?.phone ?? order?.payer_phone ?? null;
           if (!phone) { skipped.push(item.id); continue; }
 
           const diffMin = diffMinutes(departAt, newDepart);
