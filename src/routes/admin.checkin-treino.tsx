@@ -222,6 +222,31 @@ function TreinoPage() {
     return false;
   };
 
+  const doCaptureRegion = async () => {
+    if (!sessionId || !regionDraft) return;
+    if (regionDraft.w < 20 || regionDraft.h < 20) return;
+    setBusy(true);
+    try {
+      const filename = `${pnr || "reserva"}-${surname || "pax"}-regiao.png`;
+      const r = await captureRegion({
+        data: { sessionId, x: regionDraft.x, y: regionDraft.y, width: regionDraft.w, height: regionDraft.h, filename },
+      });
+      if (!r.ok) { handleSessionError(new Error(r.error)); return; }
+      if (r.signedUrl) {
+        setPdfs((prev) => [{ url: r.signedUrl!, path: r.path, sizeKb: r.sizeKb, source: r.sourceUrl, kind: "png" }, ...prev]);
+        toast.success(`Imagem salva (${r.sizeKb} KB)`);
+        setRegionMode(false);
+        setRegionDraft(null);
+      } else {
+        toast.success("Região capturada, mas sem URL assinada.");
+      }
+    } catch (e) {
+      handleSessionError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const open = async () => {
     setBusy(true);
     setVision(null);
