@@ -308,11 +308,14 @@ function AdminPackages() {
         </div>
         <div className="flex items-center gap-2">
           <MultiPackageImportButton
-            onDone={() => {
-              qc.invalidateQueries({ queryKey: ["admin", "packages"] });
-              qc.invalidateQueries({ queryKey: ["packages"] });
+            onExtracted={(list) => {
+              if (!list.length) return;
+              setDrafts(list);
+              setDraftIndex(0);
+              setEditingState(list[0]);
             }}
           />
+
           <button
             onClick={() => setEditing({ ...emptyForm })}
             className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
