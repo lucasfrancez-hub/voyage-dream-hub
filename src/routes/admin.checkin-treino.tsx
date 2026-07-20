@@ -385,7 +385,14 @@ function TreinoPage() {
 
   const removeStep = (i: number) => setSteps((prev) => prev.filter((_, idx) => idx !== i));
 
-  const executeAndAppend = async (step: TrainingStep, label: string, hint?: string) => {
+  // Executa `step` no navegador remoto agora, mas persiste `persistStep`
+  // (com placeholders `{{locator}}` / `{{surname}}`) no script salvo.
+  const executeAndAppend = async (
+    step: TrainingStep,
+    label: string,
+    hint?: string,
+    persistStep?: TrainingStep,
+  ) => {
     if (!sessionId) {
       toast.error("Abra uma sessão primeiro.");
       return;
@@ -394,15 +401,14 @@ function TreinoPage() {
     setVision(null);
     setSelectedTarget(null);
     const urlBefore = shot?.url ?? "";
+    const stepToSave = persistStep ?? step;
     try {
       const r = await runStep({ data: { sessionId, step } });
       if (!r.ok) {
         handleSessionError(new Error(r.error));
         return;
       }
-      setSteps((prev) => [...prev, step]);
-      // Annotate the screenshot the action was taken ON (urlBefore), so the label sticks
-      // to the field the user marked, not to the next screen.
+      setSteps((prev) => [...prev, stepToSave]);
       if ((step.action === "type" || step.action === "click") && hint && urlBefore) {
         setAnnotations((prev) => [
           ...prev,
