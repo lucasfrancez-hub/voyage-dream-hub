@@ -417,7 +417,7 @@ export const listTrainingScripts = createServerFn({ method: "POST" })
     await ensureAdmin(context);
     const { data: rows, error } = await context.supabase
       .from("checkin_training_scripts")
-      .select("id,airline,name,initial_url,viewport_width,viewport_height,updated_at")
+      .select("id,airline,name,initial_url,viewport_width,viewport_height,pax_count,updated_at")
       .eq("airline", data.airline)
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
