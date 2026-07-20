@@ -253,7 +253,12 @@ function TreinoPage() {
     if (regionDraft.w < 20 || regionDraft.h < 20) return;
     setBusy(true);
     try {
-      const filename = `${pnr || "reserva"}-${surname || "pax"}-regiao.png`;
+      // Conta quantas capturas de região já existem no script pra numerar o
+      // arquivo — assim o usuário pode marcar vários cartões (2 pax, conexões)
+      // sem sair do modo "Selecionar região".
+      const existing = steps.filter((s) => s.action === "capture_region").length;
+      const idx = existing + 1;
+      const filename = `${pnr || "reserva"}-${surname || "pax"}-regiao-${idx}.png`;
       const r = await captureRegion({
         data: { sessionId, x: regionDraft.x, y: regionDraft.y, width: regionDraft.w, height: regionDraft.h, filename },
       });
@@ -267,8 +272,8 @@ function TreinoPage() {
           width: Math.round(regionDraft.w), height: Math.round(regionDraft.h),
           filename,
         }]);
-        toast.success(`Imagem salva (${r.sizeKb} KB) — passo adicionado ao script`);
-        setRegionMode(false);
+        toast.success(`Captura ${idx} salva (${r.sizeKb} KB) — arraste outro retângulo pra pegar o próximo, ou clique em Cancelar região quando terminar.`);
+        // Mantém o modo ativo pra permitir múltiplas capturas (2 pax, conexões).
         setRegionDraft(null);
       } else {
         toast.success("Região capturada, mas sem URL assinada.");
