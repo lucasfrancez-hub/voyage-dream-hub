@@ -24,12 +24,21 @@ export const Route = createFileRoute("/api/public/bp/$id")({
           return new Response("Not found", { status: 404 });
         }
         const buf = await dl.data.arrayBuffer();
+        const extension = ci.boarding_pass_path.split(".").pop()?.toLowerCase();
+        const contentType =
+          extension === "png"
+            ? "image/png"
+            : extension === "jpg" || extension === "jpeg"
+              ? "image/jpeg"
+              : "application/pdf";
+        const downloadExtension = extension === "png" || extension === "jpg" || extension === "jpeg" ? extension : "pdf";
         return new Response(buf, {
           status: 200,
           headers: {
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `inline; filename="cartao-embarque-${id.slice(0, 8)}.pdf"`,
+            "Content-Type": contentType,
+            "Content-Disposition": `attachment; filename="cartao-embarque-${id.slice(0, 8)}.${downloadExtension}"`,
             "Cache-Control": "private, max-age=300",
+            "X-Content-Type-Options": "nosniff",
           },
         });
       },
