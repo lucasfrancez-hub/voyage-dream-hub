@@ -89,13 +89,28 @@ export const sendFlightAlertToClient = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: alert, error } = await supabaseAdmin
       .from("flight_change_alerts")
-      .select("id, wa_phone, order_id, orders!inner(phone, payer_phone)")
+      .select("id, order_id, orders!inner(phone, payer_phone)")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    const phone = (alert as any)?.wa_phone || (alert as any)?.orders?.phone || (alert as any)?.orders?.payer_phone;
+    const orderId = (alert as any)?.order_id;
 
-    if (!phone) throw new Error("Cliente sem WhatsApp cadastrado");
+    // Sempre priorizar o WhatsApp do passageiro principal (primeiro pax do pedido)
+    let phone: string | null = null;
+    if (orderId) {
+      const { data: pax } = await supabaseAdmin
+        .from("order_passengers")
+        .select("whatsapp, sort_order, created_at")
+        .eq("order_id", orderId)
+        .order("sort_order", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (pax?.whatsapp) phone = pax.whatsapp as string;
+    }
+    if (!phone) phone = (alert as any)?.orders?.phone || (alert as any)?.orders?.payer_phone || null;
+
+    if (!phone) throw new Error("Passageiro principal sem WhatsApp cadastrado");
     const { sendWhatsAppText } = await import("@/lib/whatsapp/send.server");
     const sent = await sendWhatsAppText(phone, data.message);
     if (sent.error) throw new Error(sent.error);
