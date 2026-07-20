@@ -17,7 +17,7 @@ export type ScriptRunResult = {
   currentUrl: string;
   title: string;
   logs: Array<{ i?: number; step?: string; action?: string; url?: string; ok: boolean; err?: string }>;
-  captures: Array<{ i: number; kind: "region"; pngBase64: string; filename: string | null; width: number; height: number }>;
+  captures: Array<{ i: number; kind: "region"; pngBase64: string; filename: string | null; width: number; height: number; passengerIndex: number }>;
   width: number;
   height: number;
 };
