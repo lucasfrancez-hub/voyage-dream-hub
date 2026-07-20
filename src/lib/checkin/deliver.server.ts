@@ -150,8 +150,21 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
     }
     report.attempted++;
     const first = (pax.full_name ?? "").split(/\s+/)[0] || "";
-    const mediaLabel = isImage ? "imagem" : "PDF";
-    const caption = `✈️ *Cartão de embarque LATAM* ${flightNum}\n\nOlá, ${first}! Fizemos seu check-in. Aqui está seu cartão de embarque em ${mediaLabel}. Bom voo! 💛`;
+    const nomeCliente = first || (pax.full_name ?? "");
+    const caption =
+      `Olá, ${nomeCliente}! ✈️\n\n` +
+      `*Boas notícias! Seu check-in já foi realizado com sucesso.*\n\n` +
+      `Você não precisa fazer mais nada. Basta se apresentar ao aeroporto no horário recomendado para embarcar.\n\n` +
+      `Segue seu cartão de embarque para a sua viagem:\n\n` +
+      `*Destino*: ${destino || "—"}\n` +
+      `*Data*: ${dataVoo || "—"}\n` +
+      `*Voo*: ${flightNum || "—"}\n` +
+      `*Horário*: ${horaVoo || "—"}\n` +
+      `*Localizador*: ${locator || "—"}\n\n` +
+      `📎 _Seu cartão de embarque está anexado a esta mensagem._\n\n` +
+      `_Esta é uma mensagem automática. Em caso de dúvidas, basta responder esta mensagem e um dos nossos atendentes irá atendê-lo(a) o mais breve possível._\n\n` +
+      `Desejamos uma excelente viagem! 💙\n\n` +
+      `_Equipe Via Air_`;
     const filename = `cartao-embarque-${flightNum || pax.id.slice(0, 6)}.${ext}`;
     try {
       const r = isImage
