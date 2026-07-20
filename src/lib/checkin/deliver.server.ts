@@ -34,8 +34,19 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
     .maybeSingle();
   if (!ci) return report;
 
-  const base = "https://pedidos.viaair.tur.br";
-  const url = `${base}/api/public/bp/${ci.id}`;
+  // Gera URL assinada fresca (24h) direto do storage — evita depender de publish
+  // do endpoint /api/public/bp/:id e evita usar uma URL antiga expirada.
+  let url = ci.boarding_pass_url ?? "";
+  if (ci.boarding_pass_path) {
+    const signed = await supabaseAdmin.storage
+      .from("boarding-passes")
+      .createSignedUrl(ci.boarding_pass_path, 60 * 60 * 24);
+    if (signed.data?.signedUrl) url = signed.data.signedUrl;
+  }
+  if (!url) {
+    report.failed.push({ name: "—", error: "cartão de embarque sem URL/arquivo" });
+    return report;
+  }
   const flightNum = ci.flight_number ?? "";
 
   let passengers: Array<{ id: string; full_name: string | null; whatsapp: string | null }> = [];
