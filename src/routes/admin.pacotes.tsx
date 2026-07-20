@@ -230,7 +230,7 @@ function AdminPackages() {
       const n = numbering.number;
       normalized.title = normalized.title.replace(/\s*#\d+\s*$/, "").trim();
       const cleanSlug = normalized.slug.replace(/[-#]\d+$/, "");
-      normalized.slug = `${cleanSlug}#${n}`;
+      normalized.slug = `${cleanSlug}-${n}`;
     }
 
 
