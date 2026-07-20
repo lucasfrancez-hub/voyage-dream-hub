@@ -428,8 +428,13 @@ function AdminPackages() {
           setEditing={setEditing}
           saving={saving}
           save={save}
+          drafts={drafts}
+          draftIndex={draftIndex}
+          switchDraft={switchDraft}
+          closeCurrentDraft={closeCurrentDraft}
         />
       )}
+
     </div>
   );
 }
