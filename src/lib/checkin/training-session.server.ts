@@ -362,6 +362,9 @@ async function capture(cdp: CdpClient, fallbackUrl?: string) {
       format: "jpeg", quality: 70, fromSurface: false, captureBeyondViewport: false,
     });
   }
+  if (shot.data.length < 18_000) {
+    throw new Error("LATAM_EMPTY_FRAME: a página está carregada, mas o navegador remoto não pintou a imagem");
+  }
   const currentUrl = (await evalExpr<string>(cdp, "location.href")) || "";
   const title = (await evalExpr<string>(cdp, "document.title")) || "";
   const bodyText = (await evalExpr<string>(cdp, "document.body?.innerText?.slice(0, 800) || ''")) || "";
