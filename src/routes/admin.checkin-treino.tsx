@@ -348,9 +348,30 @@ function TreinoPage() {
                 <Button onClick={goBack} disabled={busy} variant="outline" size="icon" title="Voltar">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
+                <Button
+                  onClick={async () => {
+                    if (!sessionId) return;
+                    setBusy(true);
+                    setVision(null);
+                    setSelectedTarget(null);
+                    try {
+                      const r = await runStep({ data: { sessionId, step: { action: "goto", url } } });
+                      if (!r.ok) { handleSessionError(new Error(r.error)); return; }
+                      setShot((prev) => ({ b64: r.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: r.currentUrl, title: r.title }));
+                      toast.success("Página inicial recarregada");
+                    } catch (e) { handleSessionError(e); } finally { setBusy(false); }
+                  }}
+                  disabled={busy}
+                  variant="outline"
+                  size="icon"
+                  title="Recarregar URL inicial (mesma sessão)"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
                 <Button onClick={close} disabled={busy} variant="destructive" size="icon" title="Fechar sessão">
                   <PowerOff className="h-4 w-4" />
                 </Button>
+
               </>
             )}
           </div>
