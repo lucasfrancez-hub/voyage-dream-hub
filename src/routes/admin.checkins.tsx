@@ -96,7 +96,7 @@ function CheckinsPage() {
       if (regenerate) {
         await regen({ data: { checkinId: id } });
       }
-      const result = await run({ data: { checkinId: id, mode: "autopilot" } });
+      const result = await run({ data: { checkinId: id } });
       if (!result.ok) {
         toast.error(result.error);
         await q.refetch();

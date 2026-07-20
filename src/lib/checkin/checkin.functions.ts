@@ -173,7 +173,7 @@ export const regenerateAllBoardingPasses = createServerFn({ method: "POST" })
  */
 export const runCheckin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null; mode?: "code" | "vision" | "autopilot" }) => data)
+  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null }) => data)
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
     const { userId } = context as { userId: string };
@@ -278,7 +278,9 @@ export const runCheckin = createServerFn({ method: "POST" })
       }
     }
 
-    const mode = "autopilot" as const;
+    // `mode` mantém o valor compatível com a coluna existente; a execução
+    // real é exclusivamente o script salvo em sessão viva/CDP.
+    const mode = "code" as const;
 
     // Marca running
     await sb.from("flight_checkins")
@@ -292,6 +294,7 @@ export const runCheckin = createServerFn({ method: "POST" })
         airline: "LATAM",
         locator: checkin.locator,
         surname: checkin.pnr_surname,
+        runnerUserId: `manual:${userId}:${checkin.id}`,
       });
       if (!result) {
         throw new Error("Nenhum script de treinador salvo para LATAM. Grave um script em /admin/checkin-treino antes de rodar o check-in.");
@@ -299,7 +302,7 @@ export const runCheckin = createServerFn({ method: "POST" })
 
       const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
 
-      // Upload no storage — respeita PNG (script salvo) ou PDF (autopilot).
+      // Upload no storage do cartão capturado pelo script salvo.
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const isPng = (result.contentType || "").includes("png");
       const path = `${checkin.order_id}/${checkin.id}.${isPng ? "png" : "pdf"}`;
@@ -318,6 +321,7 @@ export const runCheckin = createServerFn({ method: "POST" })
         status: "success",
         boarding_pass_path: path,
         boarding_pass_url: url,
+        error: null,
         completed_at: new Date().toISOString(),
         run_duration_ms: Date.now() - startedAt,
         vision_cost_cents: visionCostCents,
@@ -340,17 +344,7 @@ export const runCheckin = createServerFn({ method: "POST" })
         error: msg.slice(0, 5_000),
       });
 
-      const isNavigationBlock = /ERR_HTTP2_PROTOCOL_ERROR|ERR_QUIC_PROTOCOL_ERROR|ERR_CONNECTION_RESET/i.test(msg);
-      const isIncompleteFlow = /Fluxo LATAM terminou antes do cartão|Robô visão não capturou/i.test(msg);
-      const isProviderTimeout = /Browserless HTTP 408|Request has timed out|AbortError/i.test(msg);
-      const isLatamBlock = /Tivemo.? um problema|não foi po.?ível carregar|nao foi possivel carregar/i.test(msg);
-      const friendlyError = isLatamBlock
-        ? "A LATAM interrompeu esta sessão. O robô fará uma nova tentativa automática."
-        : isNavigationBlock || isProviderTimeout
-          ? "A conexão com a LATAM não respondeu. O robô fará uma nova tentativa automática."
-        : isIncompleteFlow
-          ? "A sessão terminou antes do download. O robô fará uma nova tentativa automática."
-          : "O check-in não terminou nesta sessão. O robô fará uma nova tentativa automática.";
+      const friendlyError = formatTrainingFailure(msg);
 
       await sb.from("flight_checkins")
         .update({
@@ -433,7 +427,7 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
       return da - db;
     });
 
-    const mode = "autopilot" as const;
+    const mode = "code" as const;
 
     // Upsert um check-in por item, marca running
     const checkins: any[] = [];
@@ -456,13 +450,18 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
     const startedAt = Date.now();
     try {
       // Só usa o script salvo do treinador (autopilot antigo removido).
-      const result: any = await tryRunFromSavedScript(sb, { airline: "LATAM", locator, surname });
+      const result: any = await tryRunFromSavedScript(sb, {
+        airline: "LATAM",
+        locator,
+        surname,
+        runnerUserId: `manual:${userId}:${orderId}`,
+      });
       if (!result) {
         throw new Error("Nenhum script de treinador salvo para LATAM. Grave um script em /admin/checkin-treino antes de rodar o check-in.");
       }
 
       const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
-      // O script salvo devolve PNG (screenshot do cartão) e o autopilot devolve PDF.
+      // O script salvo devolve o PNG capturado no treinador.
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const passBytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
       const contentType = result.contentType || "application/pdf";
@@ -486,6 +485,7 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
           status: "success",
           boarding_pass_path: path,
           boarding_pass_url: url,
+          error: null,
           completed_at: new Date().toISOString(),
           run_duration_ms: Date.now() - startedAt,
           vision_cost_cents: visionCostCents,
@@ -504,7 +504,7 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
     } catch (err: any) {
       const msg = err?.message ?? String(err);
       console.error("[checkin] group automation failed", { error: msg.slice(0, 5_000) });
-      const friendlyError = "O check-in não terminou nesta sessão. O robô fará uma nova tentativa automática.";
+      const friendlyError = formatTrainingFailure(msg);
       for (const ci of checkins) {
         await sb.from("flight_checkins").update({ status: "failed", error: friendlyError }).eq("id", ci.id);
       }
@@ -518,13 +518,12 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
 /**
  * Busca o script salvo mais recente da companhia no treinador e roda no
  * navegador remoto usando o localizador/sobrenome reais da reserva.
- * Devolve { boardingPassBase64, contentType, meta } compatível com o formato
- * que o autopilot LATAM devolve, ou null se não houver script salvo (ou
- * se ele não capturar nenhuma região).
+ * Devolve o cartão capturado, ou null se não houver script salvo (ou se ele
+ * não capturar nenhuma região).
  */
 async function tryRunFromSavedScript(
   sb: any,
-  args: { airline: "LATAM" | "GOL" | "AZUL"; locator: string; surname: string },
+  args: { airline: "LATAM" | "GOL" | "AZUL"; locator: string; surname: string; runnerUserId: string },
 ): Promise<{ boardingPassBase64: string; contentType: string; meta: Record<string, unknown> } | null> {
   if (!args.locator || !args.surname) return null;
   const { data: rows } = await sb
@@ -535,9 +534,10 @@ async function tryRunFromSavedScript(
     .limit(1);
   const script = rows?.[0];
   if (!script || !Array.isArray(script.steps) || script.steps.length === 0) return null;
-  const { runScriptOnBrowserless, rebuildInitialUrlForOrder } = await import("./training-runner.server");
+  const { runScriptInLiveSession, rebuildInitialUrlForOrder } = await import("./training-runner.server");
   const url = rebuildInitialUrlForOrder(script.initial_url, args.locator, args.surname);
-  const result = await runScriptOnBrowserless({
+  const result = await runScriptInLiveSession({
+    userId: args.runnerUserId,
     url,
     steps: script.steps as any,
     viewportWidth: script.viewport_width ?? 1280,
@@ -552,4 +552,20 @@ async function tryRunFromSavedScript(
     contentType: "image/png",
     meta: { via: "training_script", scriptId: script.id, scriptName: script.name },
   };
+}
+
+function formatTrainingFailure(message: string): string {
+  const cleaned = message.replace(/\s+/g, " ").trim();
+  const step = cleaned.match(/Etapa \d+ \([^)]+\) falhou:[\s\S]*/i)?.[0];
+  if (step) return step.slice(0, 700);
+  if (/LATAM_NAVIGATION_BLOCKED|ERR_HTTP2_PROTOCOL_ERROR|ERR_QUIC_PROTOCOL_ERROR|ERR_CONNECTION_RESET/i.test(cleaned)) {
+    return "A LATAM recusou a conexão da sessão protegida antes de abrir o check-in.";
+  }
+  if (/408|timed out|timeout|AbortError/i.test(cleaned)) {
+    return "A sessão protegida atingiu o tempo limite antes de concluir o check-in.";
+  }
+  if (/não capturou|captur.*cartão|nenhuma região/i.test(cleaned)) {
+    return "O script terminou, mas a etapa de captura não gerou o cartão de embarque.";
+  }
+  return cleaned.slice(0, 700) || "O script do treinador terminou sem informar o motivo da falha.";
 }
