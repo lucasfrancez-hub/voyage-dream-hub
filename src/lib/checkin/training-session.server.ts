@@ -767,6 +767,38 @@ export const captureNextPdfFromClick = async (opts: {
   return capturePagePdf({ userId: opts.userId, sessionId: opts.sessionId });
 };
 
+/**
+ * Captura apenas uma região da tela como PNG. Útil quando o cartão de
+ * embarque aparece dentro de uma área específica e não precisamos da página
+ * inteira. Coordenadas são em pixels do viewport da sessão.
+ */
+export async function captureRegionPng(opts: {
+  userId: string;
+  sessionId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}): Promise<{ pngBase64: string; sourceUrl: string }> {
+  const session = requireSession(opts.sessionId, opts.userId);
+  const w = Math.max(10, Math.round(opts.width));
+  const h = Math.max(10, Math.round(opts.height));
+  const x = Math.max(0, Math.round(opts.x));
+  const y = Math.max(0, Math.round(opts.y));
+  return withConnection(session, async (cdp) => {
+    await waitForRenderablePage(cdp, session.initialUrl);
+    await waitForSpinnerGone(cdp);
+    const res = await cdp.send<{ data: string }>("Page.captureScreenshot", {
+      format: "png",
+      fromSurface: true,
+      captureBeyondViewport: false,
+      clip: { x, y, width: w, height: h, scale: 1 },
+    });
+    const sourceUrl = (await evalExpr<string>(cdp, "location.href")) || "";
+    return { pngBase64: res.data, sourceUrl };
+  });
+}
+
 
 async function closeRemote(wsEndpoint: string) {
   // Melhor esforço via CDP: Browser.close
