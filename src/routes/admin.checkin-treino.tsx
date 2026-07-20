@@ -717,41 +717,27 @@ function TreinoPage() {
                       setRegionMode((v) => !v);
                       setRegionDraft(null);
                     }}
-                    title="Arraste na imagem pra desenhar o retângulo do cartão de embarque e depois clique em 'Capturar região'."
+                    title="Arraste na imagem pra desenhar o retângulo do cartão de embarque — a captura é feita automaticamente quando você soltar o mouse."
                   >
                     {regionMode ? "Cancelar região" : "Selecionar região"}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    disabled={busy || !sessionId || !regionDraft || regionDraft.w < 20 || regionDraft.h < 20}
-                    onClick={async () => {
-                      if (!sessionId || !regionDraft) return;
-                      setBusy(true);
-                      try {
-                        const filename = `${pnr || "reserva"}-${surname || "pax"}-regiao.png`;
-                        const r = await captureRegion({ data: { sessionId, x: regionDraft.x, y: regionDraft.y, width: regionDraft.w, height: regionDraft.h, filename } });
-                        if (!r.ok) {
-                          handleSessionError(new Error(r.error));
-                          return;
-                        }
-                        if (r.signedUrl) {
-                          setPdfs((prev) => [{ url: r.signedUrl!, path: r.path, sizeKb: r.sizeKb, source: r.sourceUrl, kind: "png" }, ...prev]);
-                          toast.success(`Imagem salva (${r.sizeKb} KB)`);
-                          setRegionMode(false);
-                          setRegionDraft(null);
-                        } else {
-                          toast.success("Região capturada, mas sem URL assinada.");
-                        }
-                      } catch (e) {
-                        handleSessionError(e);
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                  >
-                    Capturar região
-                  </Button>
+                </div>
+              )}
+              {regionMode && (
+                <div className="mb-2 rounded border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
+                  Arraste um retângulo na imagem em volta do cartão de embarque.
+                  A captura é feita e salva automaticamente quando você soltar o mouse.
+                  {regionDraft && regionDraft.w >= 20 && regionDraft.h >= 20 && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="ml-3"
+                      disabled={busy || !sessionId}
+                      onClick={() => void doCaptureRegion()}
+                    >
+                      Capturar agora
+                    </Button>
+                  )}
                 </div>
               )}
               <div className="relative inline-block border rounded overflow-hidden bg-black/5">
