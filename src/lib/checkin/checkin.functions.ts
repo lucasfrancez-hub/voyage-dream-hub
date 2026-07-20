@@ -278,7 +278,7 @@ export const runCheckin = createServerFn({ method: "POST" })
       }
     }
 
-    const mode: "code" | "vision" | "autopilot" = data.mode === "vision" ? "vision" : data.mode === "autopilot" ? "autopilot" : "code";
+    const mode = "autopilot" as const;
 
     // Marca running
     await sb.from("flight_checkins")
@@ -287,22 +287,9 @@ export const runCheckin = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
-      let result: any;
-      let visionCostCents: number | null = null;
-      if (mode === "autopilot") {
-        const { runLatamAutopilot } = await import("./latam-autopilot.server");
-        const r = await runLatamAutopilot({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
-        result = r;
-        visionCostCents = r.meta?.visionCostCents ?? null;
-      } else if (mode === "vision") {
-        const { runLatamCheckinVision } = await import("./latam-vision.server");
-        const r = await runLatamCheckinVision({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
-        result = r;
-        visionCostCents = r.meta?.visionCostCents ?? null;
-      } else {
-        const { runLatamCheckin } = await import("./latam.server");
-        result = await runLatamCheckin({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
-      }
+      const { runLatamAutopilot } = await import("./latam-autopilot.server");
+      const result: any = await runLatamAutopilot({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
+      const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
 
       // Upload no storage
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
