@@ -300,19 +300,30 @@ export function AdminNotificationBell() {
                   <p className="text-[13px] leading-relaxed text-zinc-400">{selected.summary}</p>
                 </div>
 
-                <div className="relative space-y-2">
+                <div className="space-y-3">
                   {/* Voo anterior */}
                   <div className="p-4 bg-white/[0.01] border border-white/5 rounded-2xl">
-                    <span className="text-[9px] font-bold tracking-widest text-zinc-600 uppercase block mb-1.5">
+                    <span className="text-[9px] font-bold tracking-widest text-zinc-600 uppercase block mb-2">
                       Voo anterior
                     </span>
-                    <p className="text-sm text-zinc-500 line-through decoration-zinc-700">
-                      {fmtDateTime(selected.oldDepartAt)}
-                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-[9px] font-bold tracking-widest text-zinc-700 uppercase block mb-1">Saída</span>
+                        <p className="text-sm text-zinc-500 line-through decoration-zinc-700">
+                          {fmtDateTime(selected.oldDepartAt)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold tracking-widest text-zinc-700 uppercase block mb-1">Chegada</span>
+                        <p className="text-sm text-zinc-500 line-through decoration-zinc-700">
+                          {fmtDateTime(selected.oldArriveAt)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Connector */}
-                  <div className="absolute left-8 top-1/2 -translate-y-1/2 z-10">
+                  <div className="flex justify-center">
                     <div className="bg-[#0A0A0A] p-1 rounded-full border border-white/10">
                       <ArrowRight className="w-3 h-3 text-brand-orange rotate-90" />
                     </div>
@@ -320,18 +331,30 @@ export function AdminNotificationBell() {
 
                   {/* Voo novo */}
                   <div className="p-4 bg-brand-orange/[0.03] border border-brand-orange/20 rounded-2xl shadow-[inset_0_1px_1px_rgba(242,107,31,0.1)]">
-                    <div className="flex justify-between items-center gap-3">
-                      <div className="min-w-0">
-                        <span className="text-[9px] font-bold tracking-widest text-brand-orange uppercase block mb-1.5">
-                          Voo novo
-                        </span>
-                        <p className="text-sm font-semibold text-white">{fmtDateTime(selected.newDepartAt)}</p>
-                      </div>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <span className="text-[9px] font-bold tracking-widest text-brand-orange uppercase">
+                        Voo novo
+                      </span>
                       {info && info.label !== "sem alteração de horário" && (
-                        <span className="shrink-0 px-2 py-1 bg-brand-orange/10 border border-brand-orange/20 rounded-lg text-[10px] font-bold text-brand-orange whitespace-nowrap">
-                          {info.label}
+                        <span className="shrink-0 px-2 py-0.5 bg-brand-orange/10 border border-brand-orange/20 rounded-lg text-[10px] font-bold text-brand-orange whitespace-nowrap">
+                          saída {info.label}
                         </span>
                       )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-[9px] font-bold tracking-widest text-brand-orange/70 uppercase block mb-1">Saída</span>
+                        <p className="text-sm font-semibold text-white">{fmtDateTime(selected.newDepartAt)}</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold tracking-widest text-brand-orange/70 uppercase block mb-1">Chegada</span>
+                        <p className="text-sm font-semibold text-white">{fmtDateTime(selected.newArriveAt)}</p>
+                        {arriveInfo && arriveInfo.label !== "sem alteração de horário" && (
+                          <span className="mt-1 inline-block px-1.5 py-0.5 bg-brand-orange/10 border border-brand-orange/20 rounded text-[9px] font-bold text-brand-orange whitespace-nowrap">
+                            {arriveInfo.label}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
