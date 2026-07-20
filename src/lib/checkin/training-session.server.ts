@@ -332,14 +332,26 @@ export async function runLiveStep(opts: {
     } else if (s.action === "wait") {
       await new Promise((r) => setTimeout(r, s.ms));
     } else if (s.action === "click") {
+      const urlBefore = page.url();
+      const domBefore = await page
+        .evaluate(() => document.body?.innerText?.slice(0, 400) || "")
+        .catch(() => "");
       await page.mouse.move(s.x, s.y, { steps: 8 });
       await page.mouse.click(s.x, s.y, { delay: 60 });
-      await new Promise((r) => setTimeout(r, 800));
-      // Aguarda spinners/rede terminarem (ex: botão "procurar" da LATAM).
-      await (page as unknown as { waitForNetworkIdle?: (o: { idleTime: number; timeout: number }) => Promise<void> })
-        .waitForNetworkIdle?.({ idleTime: 700, timeout: 15000 })
-        .catch(() => {});
-      await new Promise((r) => setTimeout(r, 400));
+      // Espera algo mudar: URL diferente OU trecho inicial do body diferente.
+      // Teto de 6s — evita ficar preso em networkidle com trackers.
+      const start = Date.now();
+      while (Date.now() - start < 6000) {
+        await new Promise((r) => setTimeout(r, 250));
+        const changed =
+          page.url() !== urlBefore ||
+          (await page.evaluate(() => document.body?.innerText?.slice(0, 400) || "").catch(() => domBefore)) !==
+            domBefore;
+        if (changed) break;
+      }
+      // Dá um respiro extra pro layout assentar sem travar em requests infinitas.
+      await new Promise((r) => setTimeout(r, 600));
+
     } else if (s.action === "type") {
       await page.mouse.click(s.x, s.y, { delay: 60 });
       if (s.clearFirst) {
