@@ -688,6 +688,7 @@ function TreinoPage() {
                         { action: "type", x: lastClick.x, y: lastClick.y, text: pnr, clearFirst: true },
                         `Preencheu localizador (${pnr})`,
                         hint,
+                        { action: "type", x: lastClick.x, y: lastClick.y, text: "{{locator}}", clearFirst: true },
                       );
                     }}
                   >
@@ -705,6 +706,7 @@ function TreinoPage() {
                         { action: "type", x: lastClick.x, y: lastClick.y, text: surname, clearFirst: true },
                         `Preencheu sobrenome (${surname})`,
                         hint,
+                        { action: "type", x: lastClick.x, y: lastClick.y, text: "{{surname}}", clearFirst: true },
                       );
                     }}
                   >
