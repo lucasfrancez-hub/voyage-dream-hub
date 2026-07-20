@@ -51,8 +51,9 @@ Regras:
     return { text };
   });
 
-// Busca de imagens livres — combina Wikimedia Commons (bom p/ destinos/marcos
-// turísticos) com Openverse (fotos gerais Flickr/etc). Ambas gratuitas, sem key.
+// Busca de imagens livres — prioriza fotos do artigo da Wikipédia do destino
+// (garante que "Fortaleza" = cidade do Ceará, não qualquer forte pelo mundo),
+// complementa com Openverse.
 type CoverImage = {
   thumb: string;
   url: string;
@@ -61,45 +62,90 @@ type CoverImage = {
   author: string;
 };
 
-async function fetchWikimedia(query: string): Promise<CoverImage[]> {
-  const url = new URL("https://commons.wikimedia.org/w/api.php");
-  url.searchParams.set("action", "query");
-  url.searchParams.set("format", "json");
-  url.searchParams.set("origin", "*");
-  url.searchParams.set("generator", "search");
-  url.searchParams.set("gsrsearch", `${query} filetype:bitmap|drawing -fileres:0`);
-  url.searchParams.set("gsrlimit", "18");
-  url.searchParams.set("gsrnamespace", "6");
-  url.searchParams.set("prop", "imageinfo");
-  url.searchParams.set("iiprop", "url|extmetadata|size|mime");
-  url.searchParams.set("iiurlwidth", "1200");
+const UA = "VIA-AIR/1.0 (packages cover picker; contato@viaair.tur.br)";
 
-  const resp = await fetch(url.toString(), {
-    headers: { "User-Agent": "VIA-AIR/1.0 (packages cover picker; contato@viaair.tur.br)" },
-  });
-  if (!resp.ok) return [];
-  const json = (await resp.json()) as any;
-  const pages = json?.query?.pages ? Object.values(json.query.pages) : [];
-  const out: CoverImage[] = [];
-  for (const p of pages as any[]) {
-    const info = p?.imageinfo?.[0];
-    if (!info) continue;
-    const mime = String(info.mime || "");
-    if (!mime.startsWith("image/") || mime.includes("svg")) continue;
-    const w = Number(info.width || 0);
-    const h = Number(info.height || 0);
-    if (w < 800 || h < 500) continue;
-    if (h > w) continue; // preferir paisagem
-    const meta = info.extmetadata || {};
-    out.push({
-      thumb: info.thumburl || info.url,
-      url: info.url,
-      title: String(p.title || "").replace(/^File:/, "").replace(/\.[a-z]+$/i, ""),
-      source: "Wikimedia Commons",
-      author: String(meta?.Artist?.value || "").replace(/<[^>]+>/g, "").trim(),
-    });
+// Resolve o termo para o título canônico de artigo (Wikipédia PT → EN).
+async function resolveArticle(query: string): Promise<{ lang: "pt" | "en"; title: string } | null> {
+  for (const lang of ["pt", "en"] as const) {
+    try {
+      const u = new URL(`https://${lang}.wikipedia.org/w/api.php`);
+      u.searchParams.set("action", "query");
+      u.searchParams.set("format", "json");
+      u.searchParams.set("origin", "*");
+      u.searchParams.set("list", "search");
+      u.searchParams.set("srsearch", query);
+      u.searchParams.set("srlimit", "1");
+      u.searchParams.set("srnamespace", "0");
+      const r = await fetch(u.toString(), { headers: { "User-Agent": UA } });
+      if (!r.ok) continue;
+      const j = (await r.json()) as any;
+      const hit = j?.query?.search?.[0]?.title;
+      if (hit) return { lang, title: hit };
+    } catch {}
   }
-  return out;
+  return null;
+}
+
+// Puxa imagens listadas no artigo da Wikipédia do destino.
+async function fetchWikipediaArticleImages(query: string): Promise<CoverImage[]> {
+  const art = await resolveArticle(query);
+  if (!art) return [];
+  try {
+    const u = `https://${art.lang}.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(art.title)}`;
+    const r = await fetch(u, { headers: { "User-Agent": UA } });
+    if (!r.ok) return [];
+    const j = (await r.json()) as any;
+    const items = Array.isArray(j?.items) ? j.items : [];
+    const files: string[] = [];
+    for (const it of items) {
+      if (it?.type !== "image") continue;
+      const title = String(it?.title || "");
+      if (!title) continue;
+      if (/\.svg$/i.test(title)) continue;
+      if (/bandeira|brasão|coat[_ ]of[_ ]arms|flag|logo|mapa|map|location|localiza/i.test(title)) continue;
+      files.push(title.replace(/^Ficheiro:|^Arquivo:/, "File:"));
+      if (files.length >= 20) break;
+    }
+    if (!files.length) return [];
+
+    const cu = new URL("https://commons.wikimedia.org/w/api.php");
+    cu.searchParams.set("action", "query");
+    cu.searchParams.set("format", "json");
+    cu.searchParams.set("origin", "*");
+    cu.searchParams.set("titles", files.join("|"));
+    cu.searchParams.set("prop", "imageinfo");
+    cu.searchParams.set("iiprop", "url|extmetadata|size|mime");
+    cu.searchParams.set("iiurlwidth", "1200");
+    const cr = await fetch(cu.toString(), { headers: { "User-Agent": UA } });
+    if (!cr.ok) return [];
+    const cj = (await cr.json()) as any;
+    const pages = cj?.query?.pages ? Object.values(cj.query.pages) : [];
+    const out: CoverImage[] = [];
+    const orderIdx = new Map(files.map((f, i) => [f, i]));
+    const sorted = (pages as any[]).sort(
+      (a, b) => (orderIdx.get(a.title) ?? 99) - (orderIdx.get(b.title) ?? 99),
+    );
+    for (const p of sorted) {
+      const info = p?.imageinfo?.[0];
+      if (!info) continue;
+      const mime = String(info.mime || "");
+      if (!mime.startsWith("image/") || mime.includes("svg")) continue;
+      const w = Number(info.thumbwidth || info.width || 0);
+      const h = Number(info.thumbheight || info.height || 0);
+      if (h > w * 1.1) continue;
+      const meta = info.extmetadata || {};
+      out.push({
+        thumb: info.thumburl || info.url,
+        url: info.url,
+        title: String(p.title || "").replace(/^File:/, "").replace(/\.[a-z]+$/i, ""),
+        source: `Wikipédia · ${art.title}`,
+        author: String(meta?.Artist?.value || "").replace(/<[^>]+>/g, "").trim(),
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 async function fetchOpenverse(query: string): Promise<CoverImage[]> {
@@ -111,9 +157,7 @@ async function fetchOpenverse(query: string): Promise<CoverImage[]> {
     url.searchParams.set("size", "large");
     url.searchParams.set("license_type", "commercial");
     url.searchParams.set("mature", "false");
-    const resp = await fetch(url.toString(), {
-      headers: { "User-Agent": "VIA-AIR/1.0 (packages cover picker)" },
-    });
+    const resp = await fetch(url.toString(), { headers: { "User-Agent": UA } });
     if (!resp.ok) return [];
     const json = (await resp.json()) as any;
     const results = Array.isArray(json?.results) ? json.results : [];
@@ -139,25 +183,18 @@ export const searchCoverImages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
 
-    // Enriquecer a busca com termos turísticos p/ trazer paisagens e marcos.
     const base = data.query.trim();
-    const enriched = `${base} (praia OR paisagem OR turismo OR cidade OR skyline)`;
-
-    const [wm, ov] = await Promise.all([
-      fetchWikimedia(enriched).catch(() => [] as CoverImage[]),
-      fetchOpenverse(base).catch(() => [] as CoverImage[]),
+    const [wiki, ov] = await Promise.all([
+      fetchWikipediaArticleImages(base).catch(() => [] as CoverImage[]),
+      fetchOpenverse(`${base} city travel`).catch(() => [] as CoverImage[]),
     ]);
 
-    // Intercalar Wikimedia + Openverse, remover duplicatas por URL.
     const seen = new Set<string>();
     const images: CoverImage[] = [];
-    const max = Math.max(wm.length, ov.length);
-    for (let i = 0; i < max; i++) {
-      for (const src of [wm[i], ov[i]]) {
-        if (!src || seen.has(src.url)) continue;
-        seen.add(src.url);
-        images.push(src);
-      }
+    for (const src of [...wiki, ...ov]) {
+      if (!src.url || seen.has(src.url)) continue;
+      seen.add(src.url);
+      images.push(src);
     }
     return { images: images.slice(0, 30) };
   });
