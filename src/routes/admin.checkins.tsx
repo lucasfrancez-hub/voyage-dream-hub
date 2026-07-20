@@ -330,7 +330,11 @@ function CheckinsPage() {
       const paxNames = (g.passengers ?? [])
         .map((p: any) => String(p.full_name ?? "").toLowerCase())
         .join(" | ");
-      const route = `${seg.origin ?? ""} ${seg.destination ?? ""}`.toLowerCase();
+      const connections = Array.isArray(seg.connections) ? seg.connections.join(" ") : "";
+      const allSegs = (g.segments ?? [])
+        .map((s: any) => `${s.origin ?? ""} ${s.destination ?? ""}`)
+        .join(" ");
+      const route = `${seg.origin ?? ""} ${seg.destination ?? ""} ${connections} ${allSegs}`.toLowerCase();
       return (
         locator.includes(s) ||
         orderNum.includes(s) ||
