@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Bell, Check, Copy, Plane, ArrowRight } from "lucide-react";
+import { Bell, Check, Copy, Plane, ArrowRight, Send, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -14,7 +14,9 @@ import {
   listFlightAlerts,
   markAllFlightAlertsSeen,
   markFlightAlertSeen,
+  sendFlightAlertToClient,
 } from "@/lib/admin-alerts.functions";
+
 
 function severityColor(sev: string) {
   switch (sev) {
@@ -80,6 +82,7 @@ function diffInfo(oldIso: string | null, newIso: string | null) {
 
 function buildClientMessage(r: {
   flightNumber: string;
+  locator: string | null;
   oldDepartAt: string | null;
   newDepartAt: string | null;
   oldArriveAt: string | null;
@@ -91,7 +94,7 @@ function buildClientMessage(r: {
   const lines: string[] = [];
   lines.push(`Olá${first ? `, ${first}` : ""}! 👋`);
   lines.push("");
-  lines.push(`Informamos uma atualização no seu voo *${r.flightNumber}*:`);
+  lines.push(`Informamos uma atualização no seu voo *${r.flightNumber}*${r.locator ? ` (localizador *${r.locator}*)` : ""}:`);
   lines.push("");
   if (r.oldDepartAt) lines.push(`🕓 Saída anterior: ${fmtDateTime(r.oldDepartAt)}`);
   if (r.newDepartAt) lines.push(`🆕 Nova saída: ${fmtDateTime(r.newDepartAt)}`);
@@ -113,6 +116,7 @@ type AlertRow = {
   orderId: string;
   orderNumber: string | null;
   flightNumber: string;
+  locator: string | null;
   summary: string;
   severity: string;
   oldDepartAt: string | null;
@@ -124,15 +128,20 @@ type AlertRow = {
   createdAt: string;
   seenAt: string | null;
   response?: string | null;
+  autoSent?: boolean;
 };
+
 
 export function AdminNotificationBell() {
   const listFn = useServerFn(listFlightAlerts);
   const markOneFn = useServerFn(markFlightAlertSeen);
   const markAllFn = useServerFn(markAllFlightAlertsSeen);
+  const sendFn = useServerFn(sendFlightAlertToClient);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<AlertRow | null>(null);
+  const [sending, setSending] = useState(false);
+
 
   const q = useQuery({
     queryKey: ["admin-flight-alerts"],
@@ -165,6 +174,21 @@ export function AdminNotificationBell() {
       toast.error("Não consegui copiar — selecione e copie manualmente");
     }
   };
+  const handleSend = async (r: AlertRow) => {
+    if (sending) return;
+    setSending(true);
+    try {
+      await sendFn({ data: { id: r.id, message: buildClientMessage(r) } });
+      toast.success("Mensagem enviada ao cliente via WhatsApp");
+      qc.invalidateQueries({ queryKey: ["admin-flight-alerts"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao enviar via WhatsApp");
+    } finally {
+      setSending(false);
+    }
+  };
+
+
 
   const openAlert = (r: AlertRow) => {
     setSelected(r);
@@ -287,9 +311,17 @@ export function AdminNotificationBell() {
                         onClick={() => setSelected(null)}
                       >
                         #{selected.orderNumber || selected.orderId.slice(0, 8)}
-                      </Link>{" "}
-                      • {selected.customerName}
+                      </Link>
+                      {selected.locator && (
+                        <>
+                          {" "}
+                          • Loc.{" "}
+                          <span className="text-zinc-300 font-semibold">{selected.locator}</span>
+                        </>
+                      )}
+                      {" "}• {selected.customerName}
                     </p>
+
                   </div>
                 </div>
               </DialogHeader>
@@ -368,18 +400,40 @@ export function AdminNotificationBell() {
               </div>
 
               {/* Footer */}
-              <div className="p-8 mt-2">
-                <button
-                  onClick={() => handleCopy(selected)}
-                  className="w-full group relative overflow-hidden bg-brand-orange hover:bg-[#ff7a2e] text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-[0_8px_24px_-8px_rgba(242,107,31,0.5)] active:scale-[0.98]"
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <Copy className="w-5 h-5 text-white/90 group-hover:scale-110 transition-transform" />
-                    <span className="text-[15px] tracking-tight">Copiar mensagem pro cliente</span>
-                  </div>
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                </button>
+              <div className="p-8 pt-4 mt-2 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  {selected.autoSent ? (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
+                      <CheckCheck className="w-3 h-3" />
+                      Mensagem já enviada automático
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-zinc-500">
+                      Ainda não enviada automaticamente
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleCopy(selected)}
+                    title="Copiar mensagem"
+                    aria-label="Copiar mensagem"
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-300 hover:text-white transition active:scale-95"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleSend(selected)}
+                    disabled={sending}
+                    title="Enviar via WhatsApp"
+                    aria-label="Enviar via WhatsApp"
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-orange hover:bg-[#ff7a2e] text-white transition active:scale-95 shadow-[0_6px_18px_-6px_rgba(242,107,31,0.6)] disabled:opacity-60"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
+
             </div>
           )}
         </DialogContent>
