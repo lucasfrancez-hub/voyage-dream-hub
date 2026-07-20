@@ -237,6 +237,29 @@ function PacotesList() {
 
           <div className="flex-1">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Data da viagem
+            </label>
+            <Select value={monthFilter} onValueChange={setMonthFilter}>
+              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5 text-brand-orange" />
+                  <SelectValue placeholder="Todos os meses" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os meses</SelectItem>
+                {months.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1">
+
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               Ordenar por
             </label>
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
