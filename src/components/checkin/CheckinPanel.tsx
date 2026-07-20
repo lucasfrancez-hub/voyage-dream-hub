@@ -5,7 +5,6 @@ import { Loader2, Plane, CheckCircle2, XCircle, Clock, Download, Send, Bot } fro
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { confirm } from "@/lib/confirm";
 import {
   listCheckins,
   runCheckinGroup,
@@ -106,7 +105,8 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
 
     const bucket = new Map<string, Segment[]>();
     for (const it of flightItems) {
-      const ci = (checkins as any[]).find((c) => c.order_item_id === it.id) ?? null;
+      const candidates = (checkins as any[]).filter((c) => c.order_item_id === it.id);
+      const ci = candidates.sort((a, b) => checkinScore(b) - checkinScore(a))[0] ?? null;
       const key = (it.supplier_locator || "").trim().toUpperCase() || `__solo:${it.id}`;
       if (!bucket.has(key)) bucket.set(key, []);
       bucket.get(key)!.push({ item: it, checkin: ci });
@@ -195,6 +195,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
 
 
           const allSuccess = group.segments.every((s) => s.checkin?.status === "success");
+          const hasAttachedCard = group.segments.some((s) => hasBoardingPass(s.checkin));
           const anyRunning = group.segments.some((s) => s.checkin?.status === "running");
           const orderItemIds = group.segments.map((s) => s.item.id);
           const isRunning = runMut.isPending &&
@@ -238,31 +239,16 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                       Enviar cartão
                     </Button>
                   )}
-                  {!allSuccess && (() => {
-                    const hasSome = group.segments.some((s) => s.checkin?.id);
-                    return (
-                      <button
-                        type="button"
-                        onClick={async (e) => {
-                          if (hasSome) {
-                            e.preventDefault();
-                            const ok = await confirm({
-                              title: "Cartão já anexado",
-                              description: "Já existe cartão anexado nesta reserva. Deseja abrir a fila para adicionar/substituir?",
-                              confirmText: "Abrir fila",
-                              cancelText: "Cancelar",
-                            });
-                            if (!ok) return;
-                          }
-                          window.location.href = "/admin/checkins";
-                        }}
-                        className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
-                        title="Abrir a fila manual de check-in"
-                      >
-                        Anexar cartão
-                      </button>
-                    );
-                  })()}
+                  {!allSuccess && !hasAttachedCard && (
+                    <button
+                      type="button"
+                      onClick={() => { window.location.href = "/admin/checkins"; }}
+                      className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                      title="Abrir a fila manual de check-in"
+                    >
+                      Anexar cartão
+                    </button>
+                  )}
 
 
 
@@ -278,7 +264,10 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                   const via = journey.length > 1
                     ? journey.slice(0, -1).map((s) => s.item.details?.to_iata).filter(Boolean).join(" · ")
                     : null;
-                  const anchorCheckin = journey.find((s) => s.checkin)?.checkin ?? null;
+                  const anchorCheckin = journey
+                    .map((s) => s.checkin)
+                    .filter(Boolean)
+                    .sort((a, b) => checkinScore(b) - checkinScore(a))[0] ?? null;
                   const flightLabels = journey
                     .map((s) => s.item.details?.flight_number)
                     .filter(Boolean)
@@ -311,7 +300,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                             <Bot className="h-3 w-3 mr-1" />Piloto
                           </Badge>
                         )}
-                        {anchorCheckin?.id && (anchorCheckin?.boarding_pass_url || anchorCheckin?.boarding_pass_path) && (
+                        {anchorCheckin?.id && hasBoardingPass(anchorCheckin) && (
                           <a href={`/api/public/bp/${anchorCheckin.id}`} download>
                             <Button size="sm" variant="outline" className="h-7">
                               <Download className="h-3.5 w-3.5 mr-1" />Baixar cartão
@@ -353,6 +342,22 @@ function StatusBadge({ status }: { status?: string }) {
   if (status === "running") return <Badge variant="secondary" className="text-[10px]"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Rodando</Badge>;
   if (status === "failed") return <Badge variant="destructive" className="text-[10px]"><XCircle className="h-3 w-3 mr-1" />Falhou</Badge>;
   return <Badge variant="outline" className="text-[10px]">{status}</Badge>;
+}
+
+function hasBoardingPass(checkin: any | null | undefined) {
+  return Boolean(
+    (Array.isArray(checkin?.boarding_passes) && checkin.boarding_passes.length > 0)
+    || checkin?.boarding_pass_url
+    || checkin?.boarding_pass_path,
+  );
+}
+
+function checkinScore(checkin: any) {
+  const passCount = Array.isArray(checkin?.boarding_passes) ? checkin.boarding_passes.length : 0;
+  const consolidated = checkin?.passenger_id == null ? 1 : 0;
+  const hasLegacyPass = checkin?.boarding_pass_url || checkin?.boarding_pass_path ? 1 : 0;
+  return consolidated * 1_000_000 + passCount * 10_000 + hasLegacyPass * 1_000
+    + new Date(checkin?.updated_at || 0).getTime() / 1e13;
 }
 
 const MAX_LAYOVER_MS = 12 * 60 * 60 * 1000;
