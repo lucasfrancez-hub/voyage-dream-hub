@@ -119,6 +119,9 @@ function AdminPackages() {
   const qc = useQueryClient();
   const [editing, setEditingState] = useState<Partial<PackageRow> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+  const searchHotelsFn = useServerFn(searchTripAdvisorHotels);
+  const hotelDetailsFn = useServerFn(getTripAdvisorHotelDetails);
   // Multi-import drafts: array of partial packages open in tabs
   const [drafts, setDrafts] = useState<Partial<PackageRow>[] | null>(null);
   const [draftIndex, setDraftIndex] = useState(0);
@@ -357,6 +360,66 @@ function AdminPackages() {
     qc.invalidateQueries({ queryKey: ["admin", "packages"] });
   }
 
+  async function backfillHotelPhotos() {
+    if (backfilling) return;
+    setBackfilling(true);
+    try {
+      const { data: rows, error } = await supabase
+        .from("packages")
+        .select("id,hotel_name,destination,hotel_stars,tripadvisor_photos,tripadvisor_location_id")
+        .not("hotel_name", "is", null);
+      if (error) throw error;
+      const targets = (rows ?? []).filter((r: any) => {
+        const photos = r.tripadvisor_photos;
+        const has = Array.isArray(photos) ? photos.length > 0 : !!photos;
+        return r.hotel_name && !has;
+      });
+      if (targets.length === 0) {
+        toast.info("Nenhum pacote precisa de atualização.");
+        return;
+      }
+      toast.info(`Atualizando fotos de ${targets.length} pacote(s)…`);
+      let ok = 0;
+      for (const r of targets as any[]) {
+        try {
+          const q = r.destination ? `${r.hotel_name} ${r.destination}` : r.hotel_name;
+          const results = await searchHotelsFn({ data: { query: q } });
+          const best = results?.[0];
+          if (!best) continue;
+          const full = await hotelDetailsFn({ data: { locationId: best.location_id, photoLimit: 5 } });
+          if (!full.photos || full.photos.length === 0) continue;
+          const rating = full.rating ?? best.rating ?? null;
+          const cls = full.hotel_class ?? null;
+          const stars = rating != null
+            ? Math.min(5, Math.max(1, Math.round(rating)))
+            : cls != null
+              ? Math.min(5, Math.max(1, Math.round(cls)))
+              : r.hotel_stars ?? 3;
+          const { error: upErr } = await supabase
+            .from("packages")
+            .update({
+              hotel_name: full.name || best.name || r.hotel_name,
+              hotel_stars: stars,
+              tripadvisor_location_id: String(best.location_id),
+              tripadvisor_url: full.tripadvisor_url ?? best.tripadvisor_url ?? null,
+              tripadvisor_address: full.address ?? best.address ?? null,
+              tripadvisor_photos: full.photos,
+            })
+            .eq("id", r.id);
+          if (!upErr) ok++;
+        } catch (err) {
+          console.warn("[backfill] falhou", r.id, err);
+        }
+      }
+      toast.success(`Fotos atualizadas em ${ok}/${targets.length} pacote(s).`);
+      qc.invalidateQueries({ queryKey: ["admin", "packages"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao atualizar fotos");
+    } finally {
+      setBackfilling(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-3 sm:px-6 py-6 sm:py-10 text-[0.95em] selection:bg-brand-orange/30">
       {/* Command Center header */}
@@ -370,6 +433,16 @@ function AdminPackages() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={backfillHotelPhotos}
+            disabled={backfilling}
+            title="Buscar no TripAdvisor as fotos dos hotéis dos pacotes já cadastrados que estão sem imagens."
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-brand-orange disabled:opacity-60"
+          >
+            {backfilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            Atualizar fotos
+          </button>
           <MultiPackageImportButton
             onExtracted={async (list) => {
               if (!list.length) return;
@@ -2177,6 +2250,8 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
   const [status, setStatus] = useState<string>("");
   const [fileName, setFileName] = useState<string | null>(null);
   const extractMany = useServerFn(extractMultiplePackagesFromDocument);
+  const searchHotels = useServerFn(searchTripAdvisorHotels);
+  const hotelDetails = useServerFn(getTripAdvisorHotelDetails);
 
   async function handleFile(file: File) {
     if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
@@ -2261,6 +2336,35 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           return_flight: cleanFlight(p.return_flight),
         } as Partial<PackageRow>;
       });
+
+      setStatus("Buscando hotéis no TripAdvisor…");
+      await Promise.allSettled(
+        drafts.map(async (d) => {
+          if (!d.hotel_name) return;
+          try {
+            const q = d.destination ? `${d.hotel_name} ${d.destination}` : String(d.hotel_name);
+            const results = await searchHotels({ data: { query: q } });
+            const best = results?.[0];
+            if (!best) return;
+            const full = await hotelDetails({ data: { locationId: best.location_id, photoLimit: 5 } });
+            const rating = full.rating ?? best.rating ?? null;
+            const cls = full.hotel_class ?? null;
+            const stars = rating != null
+              ? Math.min(5, Math.max(1, Math.round(rating)))
+              : cls != null
+                ? Math.min(5, Math.max(1, Math.round(cls)))
+                : d.hotel_stars ?? 3;
+            d.hotel_name = full.name || best.name || d.hotel_name;
+            d.hotel_stars = stars;
+            (d as any).tripadvisor_location_id = String(best.location_id);
+            (d as any).tripadvisor_url = full.tripadvisor_url ?? best.tripadvisor_url ?? null;
+            (d as any).tripadvisor_address = full.address ?? best.address ?? null;
+            if (full.photos && full.photos.length > 0) (d as any).tripadvisor_photos = full.photos;
+          } catch (err) {
+            console.warn("[multi-import] TripAdvisor enrich falhou", err);
+          }
+        }),
+      );
 
       toast.success(`${drafts.length} pacote(s) reconhecido(s) — revise nas abas acima e salve cada um.`);
       onExtracted(drafts);
