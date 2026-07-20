@@ -426,6 +426,51 @@ function TreinoPage() {
       <div className="grid grid-cols-12 gap-4">
         {/* Config */}
         <Card className="col-span-12 lg:col-span-4 p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-medium">Companhia aérea</label>
+              <Select value={airline} onValueChange={(v) => onChangeAirline(v as Airline)} disabled={!!sessionId}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LATAM">LATAM</SelectItem>
+                  <SelectItem value="GOL">GOL</SelectItem>
+                  <SelectItem value="AZUL">AZUL</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">Sessão salva</label>
+              <Select
+                value={currentScriptId ?? "__new"}
+                onValueChange={(v) => { if (v === "__new") { setCurrentScriptId(null); setScriptName(""); } else { void loadScript(v); } }}
+              >
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Nova sessão" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__new">+ Nova sessão</SelectItem>
+                  {savedScripts.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={scriptName}
+              onChange={(e) => setScriptName(e.target.value)}
+              placeholder="Nome da sessão (ex: LATAM padrão)"
+              className="flex-1"
+            />
+            <Button size="sm" variant="secondary" onClick={saveCurrentScript} disabled={!scriptName.trim()}>
+              Salvar
+            </Button>
+            {currentScriptId && (
+              <Button size="sm" variant="outline" onClick={removeCurrentScript} title="Excluir sessão salva">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
           <div>
             <label className="text-xs font-medium">URL inicial</label>
             <Input value={url} onChange={(e) => setUrl(e.target.value)} className="mt-1" disabled={!!sessionId} />
