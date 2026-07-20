@@ -1,0 +1,1 @@
+UPDATE public.flight_checkins SET status='pending', error=NULL WHERE status='failed' AND error ILIKE '%conexão com a LATAM não respondeu%';
