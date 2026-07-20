@@ -516,7 +516,7 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
   "taxes": 167.50,
   "hotel_name": "BOSQUE DO PORTO PRAIA HOTEL",
   "hotel_stars": 4,
-  "meal_plan": "Café da manhã | Meia pensão | Pensão completa | All inclusive | Sem refeição",
+  "meal_plan": "Café da manhã | Meia pensão | Pensão completa | All inclusive | \"\" (vazio se não mencionado)",
   "room_type": "Standard | Superior | Luxo | ...",
   "room_category": "Standard",
   "bed_type": "Casal | Solteiro | Duplo",
