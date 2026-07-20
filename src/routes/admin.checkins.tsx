@@ -431,11 +431,23 @@ function SegmentCard({
                   Enviado
                 </span>
               )}
+              {group.direction && (
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${
+                    group.direction === "outbound"
+                      ? "bg-sky-500/10 text-sky-500"
+                      : "bg-fuchsia-500/10 text-fuchsia-500"
+                  }`}
+                >
+                  {group.direction === "outbound" ? "Ida" : "Volta"}
+                </span>
+              )}
               {seg.connections && seg.connections.length > 0 && (
                 <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500/10 text-amber-500">
                   {seg.connections.length} conexão{seg.connections.length > 1 ? "es" : ""}
                 </span>
               )}
+
             </div>
             <div className="flex items-center gap-3 mb-1 min-w-0">
               <span className="text-xl font-bold text-foreground truncate">{seg.origin ?? "?"}</span>
