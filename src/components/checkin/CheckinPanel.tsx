@@ -324,10 +324,8 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
           );
         })}
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        O robô roda automaticamente entre 48h e 1h antes do último trecho e envia todos os cartões da reserva por WhatsApp. Contato de emergência é sempre recusado.
-      </p>
     </div>
+
   );
 }
 
