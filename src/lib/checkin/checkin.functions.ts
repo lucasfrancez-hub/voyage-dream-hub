@@ -448,49 +448,17 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
       const { runLatamAutopilot } = await import("./latam-autopilot.server");
       const result: any = await runLatamAutopilot({ locator, surname, checkinUrl });
       const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
-      const passes = result.boardingPasses && result.boardingPasses.length
-        ? result.boardingPasses
-        : [{ label: "Cartão", base64: result.boardingPassBase64, contentType: result.contentType }];
-
+      // Autopilot devolve UM PDF só (normalmente contém todos os cartões
+      // da reserva). Salvamos o mesmo arquivo em cada check-in do grupo.
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const normalize = (v?: string | null) => (v || "").toString().toUpperCase().replace(/\s+/g, "");
-
-      const unassigned = [...passes];
-      const assignments: Array<{ ci: any; pass: any }> = [];
-
-      // 1ª tentativa: casa por número de voo
-      for (const ci of checkins) {
-        const fn = normalize(ci.flight_number);
-        if (!fn) continue;
-        const idx = unassigned.findIndex((p) => normalize(p.flightNumber) === fn);
-        if (idx >= 0) {
-          assignments.push({ ci, pass: unassigned[idx] });
-          unassigned.splice(idx, 1);
-        }
-      }
-      // 2ª tentativa: casa por rota IATA
-      for (const ci of checkins.filter((c) => !assignments.find((a) => a.ci.id === c.id))) {
-        const from = normalize(ci.from_iata || items.find((it) => it.id === ci.order_item_id)?.details?.from_iata);
-        const to = normalize(ci.to_iata || items.find((it) => it.id === ci.order_item_id)?.details?.to_iata);
-        if (!from || !to) continue;
-        const idx = unassigned.findIndex((p) => normalize(p.fromIata) === from && normalize(p.toIata) === to);
-        if (idx >= 0) {
-          assignments.push({ ci, pass: unassigned[idx] });
-          unassigned.splice(idx, 1);
-        }
-      }
-      // 3ª: por ordem
-      for (const ci of checkins.filter((c) => !assignments.find((a) => a.ci.id === c.id))) {
-        if (unassigned.length === 0) break;
-        assignments.push({ ci, pass: unassigned.shift() });
-      }
+      const pdfBytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
+      const contentType = result.contentType || "application/pdf";
 
       const results: Array<{ id: string; ok: boolean; url?: string | null; error?: string }> = [];
-      for (const { ci, pass } of assignments) {
+      for (const ci of checkins) {
         const path = `${orderId}/${ci.id}.pdf`;
-        const pdfBytes = Uint8Array.from(atob(pass.base64), (c) => c.charCodeAt(0));
         const up = await supabaseAdmin.storage.from("boarding-passes")
-          .upload(path, pdfBytes, { contentType: pass.contentType || "application/pdf", upsert: true });
+          .upload(path, pdfBytes, { contentType, upsert: true });
         if (up.error) {
           await sb.from("flight_checkins").update({ status: "failed", error: `Storage: ${up.error.message}` }).eq("id", ci.id);
           results.push({ id: ci.id, ok: false, error: up.error.message });
@@ -515,15 +483,6 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
         results.push({ id: ci.id, ok: true, url });
       }
 
-      // Check-ins sem PDF correspondente ficam pendentes
-      const assignedIds = new Set(assignments.map((a) => a.ci.id));
-      for (const ci of checkins.filter((c) => !assignedIds.has(c.id))) {
-        await sb.from("flight_checkins").update({
-          status: "failed",
-          error: "Nenhum cartão de embarque correspondente foi devolvido pela LATAM para este trecho.",
-        }).eq("id", ci.id);
-        results.push({ id: ci.id, ok: false, error: "sem cartão correspondente" });
-      }
 
       return { ok: true, results } as const;
     } catch (err: any) {
