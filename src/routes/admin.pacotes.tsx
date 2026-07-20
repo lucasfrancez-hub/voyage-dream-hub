@@ -496,7 +496,7 @@ function deriveFromFlights(editing: Partial<PackageRow>): { originCity?: string;
   return { originCity, destCity, title, slug };
 }
 
-function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditorModalProps) {
+function PackageEditorModal({ editing, setEditing, saving, save, drafts, draftIndex = 0, switchDraft, closeCurrentDraft }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
   const [aiLoading, setAiLoading] = useState(false);
