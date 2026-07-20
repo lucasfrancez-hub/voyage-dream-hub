@@ -29,9 +29,15 @@ const RunInput = z.object({
 export const runTrainingScript = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => RunInput.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden: apenas admin");
     const token = process.env.BROWSERLESS_TOKEN;
     if (!token) throw new Error("BROWSERLESS_TOKEN não configurado");
+
 
     const code = `
 export default async ({ page, context }) => {
