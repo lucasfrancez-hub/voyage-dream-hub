@@ -2155,16 +2155,12 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           onClick={() => !busy && setOpen(false)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl border border-border/70 bg-card p-6 shadow-2xl"
+            className="w-full max-w-lg rounded-2xl border border-border/70 bg-card/80 backdrop-blur-xl p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold">Importar múltiplos pacotes</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Envie um PDF com vários orçamentos (padrão “Orcamento 1”, “Orcamento 2”…). Cada bloco abre em uma aba no editor — igual ao "Novo Pacote" — pra você revisar e salvar um a um.
-                </p>
-              </div>
+              <h3 className="text-lg font-bold">Importar pacote</h3>
+
               <button
                 type="button"
                 onClick={() => !busy && setOpen(false)}
