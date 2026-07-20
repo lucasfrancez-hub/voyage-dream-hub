@@ -37,13 +37,13 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
   // Carrega o PDF diretamente do storage. Além de evitar URLs assinadas no
   // envio à UazAPI, isso detecta registros antigos cujo arquivo foi apagado.
   let url = ci.boarding_pass_url ?? "";
-  let pdfBytes: Uint8Array | null = null;
+  let fileBytes: Uint8Array | null = null;
   if (ci.boarding_pass_path) {
     const downloaded = await supabaseAdmin.storage
       .from("boarding-passes")
       .download(ci.boarding_pass_path);
     if (downloaded.error || !downloaded.data) {
-      const error = "PDF não encontrado no armazenamento. Clique em “Regerar cartão” antes de enviar.";
+      const error = "Arquivo do cartão não encontrado no armazenamento. Rode o check-in novamente.";
       await supabaseAdmin
         .from("flight_checkins")
         .update({ status: "failed", error, boarding_pass_path: null, boarding_pass_url: null })
@@ -51,17 +51,22 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
       report.failed.push({ name: "—", error });
       return report;
     }
-    pdfBytes = new Uint8Array(await downloaded.data.arrayBuffer());
+    fileBytes = new Uint8Array(await downloaded.data.arrayBuffer());
 
     const signed = await supabaseAdmin.storage
       .from("boarding-passes")
       .createSignedUrl(ci.boarding_pass_path, 60 * 60 * 24);
     if (signed.data?.signedUrl) url = signed.data.signedUrl;
   }
-  if (!pdfBytes) {
-    report.failed.push({ name: "—", error: "PDF não encontrado no armazenamento. Clique em “Regerar cartão” antes de enviar." });
+  if (!fileBytes) {
+    report.failed.push({ name: "—", error: "Arquivo do cartão não encontrado. Rode o check-in novamente." });
     return report;
   }
+  // Detecta PNG (89 50 4E 47) — capturado do treinador — vs PDF (25 50 44 46).
+  const isPng = fileBytes.length >= 4 && fileBytes[0] === 0x89 && fileBytes[1] === 0x50 && fileBytes[2] === 0x4e && fileBytes[3] === 0x47;
+  const isJpg = fileBytes.length >= 3 && fileBytes[0] === 0xff && fileBytes[1] === 0xd8 && fileBytes[2] === 0xff;
+  const isImage = isPng || isJpg;
+  const ext = isPng ? "png" : isJpg ? "jpg" : "pdf";
   const flightNum = ci.flight_number ?? "";
 
   let passengers: Array<{ id: string; full_name: string | null; whatsapp: string | null }> = [];
