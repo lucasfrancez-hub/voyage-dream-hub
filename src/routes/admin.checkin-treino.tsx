@@ -568,7 +568,7 @@ function TreinoPage() {
               variant="default"
               className="w-full bg-emerald-600 hover:bg-emerald-700"
               disabled={busy || !pnr || !surname}
-              onClick={() => void runFullScript()}
+              onClick={() => void runAllFromScratch()}
               title="Roda todos os passos do zero, substituindo {{locator}} e {{surname}} pelos valores acima. Serve pra validar antes de plugar no check-in automático."
             >
               <Play className="h-4 w-4 mr-1" /> Executar script salvo (fim-a-fim)
