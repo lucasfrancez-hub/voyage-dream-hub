@@ -3,8 +3,7 @@
  *
  * NOTA IMPORTANTE: puppeteer-core não roda no Cloudflare Workers
  * (usa `net.createConnection` do Node). Aqui falamos o Chrome DevTools
- * Protocol direto via WebSocket, que o runtime do Worker suporta
- * (fetch com Upgrade: websocket).
+ * Protocol direto via WebSocket de saída, que o runtime do Worker suporta.
  *
  * Abre a LATAM UMA vez no Browserless via stealth+reconnect e guarda
  * o `browserWSEndpoint` num Map em memória. Cada ação reconecta, envia
@@ -75,9 +74,9 @@ interface Pending {
   reject: (e: Error) => void;
 }
 
-// Tipagem local para o WebSocket do Cloudflare Workers (fetch upgrade).
+// Interface mínima comum ao WebSocket de saída do runtime e ao navegador.
 type WorkerWebSocket = {
-  accept: () => void;
+  readyState: number;
   send: (data: string) => void;
   close: (code?: number, reason?: string) => void;
   addEventListener: (ev: string, cb: (ev: { data?: unknown; code?: number; reason?: string }) => void) => void;
@@ -96,24 +95,41 @@ class CdpClient {
   }
 
   static async connect(wsUrl: string, timeoutMs = 20_000): Promise<CdpClient> {
-    // fetch com Upgrade funciona em ws:// e wss:// convertidos pra http/https
-    const httpUrl = wsUrl.replace(/^ws:\/\//, "http://").replace(/^wss:\/\//, "https://");
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    let resp: Response;
-    try {
-      resp = await fetch(httpUrl, {
-        headers: { Upgrade: "websocket" },
-        signal: controller.signal,
+    // Não use fetch({ Upgrade: "websocket" }) aqui: na camada serverless ele
+    // pode ser tratado como um fetch HTTP comum e falhar antes do handshake.
+    // O construtor WebSocket abre diretamente o endpoint wss:// retornado pela
+    // Browserless e já vem aceito para conexões de saída.
+    const WebSocketCtor = globalThis.WebSocket;
+    if (typeof WebSocketCtor !== "function") {
+      throw new Error("WebSocket de saída indisponível neste ambiente");
+    }
+    const ws = new WebSocketCtor(wsUrl) as unknown as WorkerWebSocket;
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        try {
+          ws.close(1000, "timeout");
+        } catch {
+          /* ignore */
+        }
+        reject(new Error(`Timeout ao conectar no navegador remoto (${timeoutMs}ms)`));
+      }, timeoutMs);
+      ws.addEventListener("open", () => {
+        clearTimeout(timer);
+        resolve();
       });
-    } finally {
-      clearTimeout(timer);
-    }
-    const ws = (resp as unknown as { webSocket?: WorkerWebSocket }).webSocket;
-    if (!ws) {
-      throw new Error(`Falha WebSocket → HTTP ${resp.status}: ${(await resp.text().catch(() => "")).slice(0, 300)}`);
-    }
-    ws.accept();
+      ws.addEventListener("error", () => {
+        clearTimeout(timer);
+        reject(new Error("Falha no handshake WebSocket com o navegador remoto"));
+      });
+      ws.addEventListener("close", (event) => {
+        clearTimeout(timer);
+        reject(
+          new Error(
+            `WebSocket remoto fechou durante a conexão (código ${event.code ?? "indisponível"}${event.reason ? `: ${event.reason}` : ""})`,
+          ),
+        );
+      });
+    });
     const client = new CdpClient(ws);
     ws.addEventListener("message", (ev) => client.onMessage(typeof ev.data === "string" ? ev.data : ""));
     ws.addEventListener("close", () => {
