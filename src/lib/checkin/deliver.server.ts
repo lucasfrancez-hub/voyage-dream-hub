@@ -5,7 +5,7 @@
  */
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendWhatsAppDocumentBytes } from "@/lib/whatsapp/send.server";
+import { sendWhatsAppDocumentBytes, sendWhatsAppImageBytes } from "@/lib/whatsapp/send.server";
 
 function normalizePhone(raw: string | null | undefined): string {
   return (raw ?? "").replace(/\D/g, "");
