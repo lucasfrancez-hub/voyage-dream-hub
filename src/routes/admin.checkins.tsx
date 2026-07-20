@@ -232,9 +232,9 @@ function CheckinsPage() {
 
 
       <div className="grid grid-cols-3 gap-3 mb-8">
-        <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Reservas a fazer" value={aFazer.length} tone="warning" />
+        <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Na janela" value={aFazer.length} tone="warning" />
         <StatCard icon={<FileUp className="h-4 w-4" />} label="Cartões faltando" value={totalToUpload} tone="muted" />
-        <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Prontos p/ enviar" value={prontos.length} tone="success" />
+        <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Concluídos" value={prontos.length} tone="success" />
       </div>
 
       {q.isLoading && <div className="text-sm text-muted-foreground">Carregando…</div>}
