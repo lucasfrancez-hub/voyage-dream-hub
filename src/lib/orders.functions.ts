@@ -1190,6 +1190,43 @@ export const createOrder = createServerFn({ method: "POST" })
       if (!isPartner) throw new Error("Forbidden");
     }
     const nn = (v?: string | null) => (v && String(v).trim() !== "" ? v : null);
+
+    // Auto-cadastro de pessoa se não vier person_id
+    let personId = nn(data.person_id);
+    if (!personId) {
+      const cpfClean = nn(data.cpf)?.replace(/\D/g, "") || null;
+      const cnpjClean = nn(data.cnpj)?.replace(/\D/g, "") || null;
+      // tenta achar por CPF/CNPJ
+      if (cpfClean || cnpjClean) {
+        const q = context.supabase.from("people").select("id").limit(1);
+        if (cpfClean) q.eq("cpf", cpfClean);
+        else if (cnpjClean) q.eq("cnpj", cnpjClean);
+        const { data: found } = await q.maybeSingle();
+        if (found?.id) personId = found.id as string;
+      }
+      if (!personId && nn(data.full_name)) {
+        const { data: person, error: pe } = await context.supabase
+          .from("people")
+          .insert({
+            full_name: data.full_name,
+            email: nn(data.email),
+            phone: nn(data.phone),
+            cpf: cpfClean,
+            cnpj: cnpjClean,
+            birth_date: nn(data.birth_date),
+            zip: nn(data.payer_zip),
+            address: nn(data.payer_address),
+            number: nn(data.payer_number),
+            district: nn(data.payer_district),
+            city: nn(data.payer_city),
+            state: nn(data.payer_state),
+          } as never)
+          .select("id")
+          .single();
+        if (!pe && person?.id) personId = person.id as string;
+      }
+    }
+
     const payload: Record<string, unknown> = {
       full_name: data.full_name,
       email: nn(data.email),
@@ -1205,7 +1242,7 @@ export const createOrder = createServerFn({ method: "POST" })
       notes: nn(data.notes),
       supplier_name: nn(data.supplier_name),
       airline_locator: nn(data.airline_locator),
-      person_id: nn(data.person_id),
+      person_id: personId,
       birth_date: nn(data.birth_date),
       payer_full_name: nn(data.payer_full_name),
       payer_cpf: nn(data.payer_cpf),
@@ -1231,6 +1268,7 @@ export const createOrder = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return { id: created.id, order_number: created.order_number };
+
   });
 
 // --------- Item ↔ Passenger links ---------
