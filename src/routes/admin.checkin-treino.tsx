@@ -125,7 +125,7 @@ function TreinoPage() {
     try {
       const r = await getScript({ data: { id } });
       if (!r.ok) return;
-      const s = r.script as { id: string; name: string; initial_url: string; steps: TrainingStep[]; annotations: typeof annotations; viewport_width: number; viewport_height: number };
+      const s = r.script as unknown as { id: string; name: string; initial_url: string; steps: TrainingStep[]; annotations: typeof annotations; viewport_width: number; viewport_height: number };
       setCurrentScriptId(s.id);
       setScriptName(s.name);
       setUrl(s.initial_url);
