@@ -94,9 +94,9 @@ export default async ({ page, browser, context }) => {
   await configurePage(activePage);
 
   try {
-    await activePage.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await activePage.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
     logs.push({ step: "goto", url, ok: true });
-    await new Promise((r) => setTimeout(r, 2500));
+    await new Promise((r) => setTimeout(r, 900));
   } catch (e) {
     logs.push({ step: "goto", url, ok: false, err: String(e && e.message || e) });
   }
