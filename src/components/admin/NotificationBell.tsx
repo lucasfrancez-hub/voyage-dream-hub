@@ -82,6 +82,8 @@ function buildClientMessage(r: {
   flightNumber: string;
   oldDepartAt: string | null;
   newDepartAt: string | null;
+  oldArriveAt: string | null;
+  newArriveAt: string | null;
   newStatus: string | null;
   customerName: string;
 }) {
@@ -91,9 +93,13 @@ function buildClientMessage(r: {
   lines.push("");
   lines.push(`Informamos uma atualização no seu voo *${r.flightNumber}*:`);
   lines.push("");
-  if (r.oldDepartAt) lines.push(`🕓 Horário anterior: ${fmtDateTime(r.oldDepartAt)}`);
-  if (r.newDepartAt) lines.push(`🆕 Novo horário: ${fmtDateTime(r.newDepartAt)}`);
+  if (r.oldDepartAt) lines.push(`🕓 Saída anterior: ${fmtDateTime(r.oldDepartAt)}`);
+  if (r.newDepartAt) lines.push(`🆕 Nova saída: ${fmtDateTime(r.newDepartAt)}`);
+  if (r.oldArriveAt || r.newArriveAt) lines.push("");
+  if (r.oldArriveAt) lines.push(`🛬 Chegada anterior: ${fmtDateTime(r.oldArriveAt)}`);
+  if (r.newArriveAt) lines.push(`🆕 Nova chegada: ${fmtDateTime(r.newArriveAt)}`);
   if (r.newStatus && r.newStatus.toLowerCase() !== "expected") {
+    lines.push("");
     lines.push(`ℹ️ Status: ${r.newStatus}`);
   }
   lines.push("");
@@ -111,6 +117,8 @@ type AlertRow = {
   severity: string;
   oldDepartAt: string | null;
   newDepartAt: string | null;
+  oldArriveAt: string | null;
+  newArriveAt: string | null;
   newStatus: string | null;
   customerName: string;
   createdAt: string;
