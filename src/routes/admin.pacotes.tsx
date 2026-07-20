@@ -213,11 +213,11 @@ function AdminPackages() {
     // Global hashtag numbering: applied ONLY to slug of new packages (no id).
     if (!pkg.id && numbering) {
       const n = numbering.number;
-      // strip any legacy " #N" from title and trailing "-N" from slug
       normalized.title = normalized.title.replace(/\s*#\d+\s*$/, "").trim();
-      const cleanSlug = normalized.slug.replace(/-\d+$/, "");
-      normalized.slug = `${cleanSlug}-${n}`;
+      const cleanSlug = normalized.slug.replace(/[-#]\d+$/, "");
+      normalized.slug = `${cleanSlug}#${n}`;
     }
+
 
     const baseSlug = normalized.slug;
     const { data: existingSlugs, error: slugLookupError } = await supabase
