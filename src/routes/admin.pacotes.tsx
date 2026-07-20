@@ -507,7 +507,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
           const { text } = await genSummary({
             data: { brief: `Escreva um resumo de ${dest} para pacote de viagens, para vender pacote de viagens` },
           });
-          setEditing((prev: any) => ({ ...(prev ?? editing), summary: text }));
+          setEditing({ ...editing, summary: text });
         } catch {
           /* silencioso — botão manual ainda funciona */
         } finally {
