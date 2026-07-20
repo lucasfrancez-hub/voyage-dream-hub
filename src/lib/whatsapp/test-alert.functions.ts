@@ -17,7 +17,8 @@ export const sendTestFlightAlert = createServerFn({ method: "POST" })
     const phone = normalizePhone(data.phone);
     const scenario = data.scenario ?? "major";
 
-    const { sendWhatsAppButtons, sendWhatsAppText } = await import("@/lib/whatsapp/send.server");
+    const { sendWhatsAppText } = await import("@/lib/whatsapp/send.server");
+    const { sendWhatsAppButtons } = await import("@/lib/whatsapp/send-buttons.server");
 
     const nome = "Lucas";
     const voo = "LA3456";
