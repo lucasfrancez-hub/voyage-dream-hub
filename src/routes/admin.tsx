@@ -451,7 +451,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
           active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        <ShieldCheck className="h-4 w-4" /> Segurança <ChevronDown className="h-3.5 w-3.5" />
+        <Settings className="h-4 w-4" /> Configurações <ChevronDown className="h-3.5 w-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
         <DropdownMenuItem asChild>
