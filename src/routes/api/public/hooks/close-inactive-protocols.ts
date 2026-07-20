@@ -90,6 +90,11 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               skipped.push(proto.numero);
               continue;
             }
+            if (!(await lastMessageFromUs(proto.conversation_id))) {
+              skipped.push(proto.numero);
+              continue;
+            }
+
             const { data: conv } = await supabaseAdmin
               .from("wa_conversations")
               .select("wa_phone")
