@@ -50,7 +50,6 @@ function CheckinsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [mode, setMode] = useState<"code" | "vision" | "autopilot">("autopilot");
 
 
   const q = useQuery({
@@ -94,25 +93,19 @@ function CheckinsPage() {
     });
   }, [upcoming]);
 
-  async function handleRun(id: string, regenerate = false, runMode: "code" | "vision" | "autopilot" = mode) {
+  async function handleRun(id: string, regenerate = false) {
     setBusyId(id);
     try {
       if (regenerate) {
         await regen({ data: { checkinId: id } });
       }
-      const result = await run({ data: { checkinId: id, mode: runMode } });
+      const result = await run({ data: { checkinId: id, mode: "autopilot" } });
       if (!result.ok) {
         toast.error(result.error);
         await q.refetch();
         return;
       }
-      const modeLabel = runMode === "autopilot" ? "Piloto automático" : runMode === "vision" ? "Visão IA" : "Código";
-      toast.success(
-        regenerate
-          ? `Cartão regerado (${modeLabel}) e enviado`
-          : `Check-in (${modeLabel}) concluído`,
-      );
-
+      toast.success(regenerate ? "Cartão regerado e enviado" : "Check-in concluído");
       q.refetch();
     } catch (e: any) {
       toast.error(e?.message ?? "Falhou");
