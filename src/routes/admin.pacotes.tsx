@@ -2203,11 +2203,10 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           .replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, "");
-        const uniqueSlug = `${baseSlug}-${i + 1}`;
         return {
           ...emptyForm,
-          slug: uniqueSlug,
-          title: title || `Pacote #${i + 1}`,
+          slug: baseSlug,
+          title: title || "",
 
 
           destination,
