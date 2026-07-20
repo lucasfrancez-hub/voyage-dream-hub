@@ -3,7 +3,7 @@
  * HTML/CSS 1:1 com o mockup aprovado — NÃO ALTERAR ESTRUTURA.
  * Todos os campos vêm do cadastro; a frase (tagline) é gerada por IA.
  */
-import { forwardRef } from "react";
+import { forwardRef, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo.png.asset.json";
 
 export type FeedArtData = {
