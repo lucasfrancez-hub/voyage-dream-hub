@@ -1653,11 +1653,25 @@ function PackageImportButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const f = e.dataTransfer.files?.[0];
+          if (f) {
+            setOpen(true);
+            void handleFile(f);
+          }
+        }}
         className="inline-flex items-center gap-2 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-orange hover:bg-brand-orange/20 transition"
       >
         <FileUp className="h-3.5 w-3.5" strokeWidth={2} />
         Importar
       </button>
+
 
       {open && (
         <div
