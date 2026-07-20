@@ -32,8 +32,6 @@ export interface AutopilotResult {
   };
 }
 
-const BROWSERLESS_URL = "https://production-sfo.browserless.io/function";
-
 export async function runLatamAutopilot(input: AutopilotInput): Promise<AutopilotResult> {
   const token = process.env.BROWSERLESS_TOKEN;
   const aiKey = process.env.LOVABLE_API_KEY;
@@ -145,6 +143,13 @@ export default async ({ page, browser, context }) => {
   }
   if (navigationError) throw navigationError;
   await new Promise((r) => setTimeout(r, 3000));
+
+  const navigationPage = await resolveActivePage();
+  const navigationUrl = navigationPage.url();
+  const navigationText = await navigationPage.evaluate(() => document.body?.innerText || "").catch(() => "");
+  if (navigationUrl.startsWith("chrome-error://") || /ERR_HTTP2_PROTOCOL_ERROR|This site can.t be reached/i.test(navigationText)) {
+    throw new Error("A LATAM recusou a conexão desta sessão do navegador");
+  }
 
   let totalCostCents = 0;
   let doneReason = "";
@@ -280,39 +285,54 @@ PDFs capturados até agora: \${pdfCaptures.length}\`;
 };
 `;
 
-  const params = new URLSearchParams({ token, timeout: "600000" });
-  const res = await fetch(`${BROWSERLESS_URL}?${params.toString()}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      code: script,
-      context: {
-        checkinUrl: input.checkinUrl,
-        goal,
-        aiKey,
-        maxSteps: input.maxSteps ?? 25,
-        viewportWidth: 1280,
-        viewportHeight: 900,
-      },
-    }),
-  });
-  if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    throw new Error(`Browserless HTTP ${res.status}: ${t.slice(0, 1500)}`);
-  }
   type BrowserlessOut = {
-    data: {
-      pdfB64: string;
-      transcript: Array<{ i: number; action: string; reason?: string; ok: boolean; err?: string }>;
-      finalUrl: string;
-      costCents: number;
-      doneReason: string;
-      source: "intercepted-pdf" | "printed-page";
-      steps: number;
-    };
+    pdfB64: string;
+    transcript: Array<{ i: number; action: string; reason?: string; ok: boolean; err?: string }>;
+    finalUrl: string;
+    costCents: number;
+    doneReason: string;
+    source: "intercepted-pdf" | "printed-page";
+    steps: number;
   };
-  const json = (await res.json()) as BrowserlessOut;
-  const d = json.data;
+  const { runBrowserlessFunction } = await import("./browserless.server");
+  const browserContext = {
+    checkinUrl: input.checkinUrl,
+    goal,
+    aiKey,
+    maxSteps: input.maxSteps ?? 25,
+    viewportWidth: 1280,
+    viewportHeight: 900,
+  };
+  const strategies = [
+    { proxy: "residential" as const, proxyCountry: "br", proxySticky: true },
+    { proxy: undefined, proxyCountry: undefined, proxySticky: undefined },
+  ];
+  let d: BrowserlessOut | undefined;
+  let lastError: unknown;
+  for (const strategy of strategies) {
+    try {
+      const result = await runBrowserlessFunction<BrowserlessOut>(script, browserContext, {
+        timeoutMs: 600_000,
+        launch: {
+          headless: true,
+          stealth: true,
+          args: ["--disable-http2", "--disable-quic", "--lang=pt-BR"],
+        },
+        ...strategy,
+      });
+      if (result.data?.pdfB64) {
+        d = result.data;
+        break;
+      }
+      throw new Error("Piloto automático não capturou PDF");
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (!d) {
+    const detail = lastError instanceof Error ? lastError.message : String(lastError || "erro desconhecido");
+    throw new Error(`Não foi possível abrir a LATAM no navegador protegido: ${detail}`);
+  }
   if (!d?.pdfB64) throw new Error("Piloto automático não capturou PDF");
   return {
     boardingPassBase64: d.pdfB64,

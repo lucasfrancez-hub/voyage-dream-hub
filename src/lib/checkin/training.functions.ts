@@ -35,10 +35,6 @@ export const runTrainingScript = createServerFn({ method: "POST" })
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Forbidden: apenas admin");
-    const token = process.env.BROWSERLESS_TOKEN;
-    if (!token) throw new Error("BROWSERLESS_TOKEN não configurado");
-
-
     const code = `
 export default async ({ page, browser, context }) => {
   const { url, steps, viewportWidth, viewportHeight } = context;
@@ -145,25 +141,40 @@ export default async ({ page, browser, context }) => {
   const finalPage = await resolveActivePage();
   const currentUrl = finalPage.url();
   const title = await finalPage.title().catch(() => "");
+  const bodyText = await finalPage.evaluate(() => document.body?.innerText || "").catch(() => "");
+  if (currentUrl.startsWith("chrome-error://") || /ERR_HTTP2_PROTOCOL_ERROR|This site can.t be reached/i.test(bodyText)) {
+    throw new Error("A LATAM recusou a conexão desta sessão do navegador");
+  }
   return { data: { screenshot, currentUrl, title, logs, width: viewportWidth, height: viewportHeight } };
 };
 `;
-
-    const params = new URLSearchParams({ token, timeout: "120000" });
-    const res = await fetch(`https://production-sfo.browserless.io/function?${params.toString()}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, context: data }),
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Browserless HTTP ${res.status}: ${text.slice(0, 2000)}`);
-    }
+    const { runBrowserlessFunction } = await import("@/lib/checkin/browserless.server");
     type LogEntry = { i?: number; step?: string; action?: string; url?: string; ok: boolean; err?: string };
-    const json = (await res.json()) as {
-      data: { screenshot: string; currentUrl: string; title: string; logs: LogEntry[]; width: number; height: number };
-    };
-    return json.data;
+    type TrainingResult = { screenshot: string; currentUrl: string; title: string; logs: LogEntry[]; width: number; height: number };
+    const strategies = [
+      { proxy: "residential" as const, proxyCountry: "br", proxySticky: true },
+      { proxy: undefined, proxyCountry: undefined, proxySticky: undefined },
+    ];
+    let lastError: unknown;
+    for (const strategy of strategies) {
+      try {
+        const result = await runBrowserlessFunction<TrainingResult>(code, data, {
+          timeoutMs: 120_000,
+          launch: {
+            headless: true,
+            stealth: true,
+            args: ["--disable-http2", "--disable-quic", "--lang=pt-BR"],
+          },
+          ...strategy,
+        });
+        if (result.data) return result.data;
+        throw new Error("O navegador remoto não devolveu a captura da LATAM");
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    const detail = lastError instanceof Error ? lastError.message : String(lastError || "erro desconhecido");
+    throw new Error(`Não foi possível abrir a LATAM no navegador protegido: ${detail}`);
   });
 
 const AskInput = z.object({
