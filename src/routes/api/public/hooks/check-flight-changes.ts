@@ -386,25 +386,48 @@ function buildMessage(p: {
   const hi = firstName(p.customerName);
   const destino = destinationName(p);
   const rota = routeLine(p);
-  const reserva = p.locator ? `\n* _Reserva *${p.locator}*_\n` : "";
 
-  const verbo = p.cancelled ? "cancelado" : "modificado";
+  // Template dedicado para cancelamento
+  if (p.cancelled) {
+    const origem = p.fromCity
+      ? `${p.fromCity}${p.fromIata ? ` (${p.fromIata})` : ""}`
+      : (p.fromIata || p.fromAirport || "—");
+    const destinoFmt = p.toCity
+      ? `${p.toCity}${p.toIata ? ` (${p.toIata})` : ""}`
+      : (p.toIata || p.toAirport || destino);
+    const dataVoo = fmtLong(p.oldDepart);
+    const voo = p.oldFlightNumber;
+    const loc = p.locator || "—";
+    return (
+      `Olá, ${hi || "cliente"}! 👋\n\n` +
+      `*Recebemos a informação de que o seu voo ${voo} foi cancelado pela companhia aérea.*\n\n` +
+      `🎫 *Localizador: ${loc}*\n\n` +
+      `❌ *Voo cancelado*: ${voo}\n` +
+      `📅 *Data*: ${dataVoo}\n` +
+      `🛫 *Origem*: ${origem}\n` +
+      `🛬 *Destino*: ${destinoFmt}\n\n` +
+      `Para facilitar o seu atendimento, escolha uma das opções abaixo conforme a sua necessidade:\n\n` +
+      `✈️ Remarcar voo – caso deseje buscar uma nova opção de viagem.\n\n` +
+      `💰 Solicitar reembolso – caso não tenha mais interesse em viajar.\n\n` +
+      `Assim que recebermos a sua solicitação, nossa equipe dará andamento ao atendimento o mais rápido possível.\n\n` +
+      `_Equipe VIA AIR ✈️💛_`
+    );
+  }
+
+  const reserva = p.locator ? `\n* _Reserva *${p.locator}*_\n` : "";
   const abertura =
     `Olá${hi ? ` ${hi}` : ""},\n\n` +
-    `Lamentamos comunicar que seu voo com destino a *${destino}* foi *${verbo}.*\n\n` +
+    `Lamentamos comunicar que seu voo com destino a *${destino}* foi *modificado.*\n\n` +
     `Pedimos sinceras desculpas se isso modifica seus planos.\n\n` +
     `Confira os detalhes 👇\n` +
     reserva;
 
   const rotaBlock = rota ? `\n${rota}\n` : "\n";
 
-  const novoBlock = p.cancelled
-    ? ""
-    : (
-        `\n🛫 *Novo voo* *${p.newFlightNumber}* 🟢\n\n` +
-        `_*Partida:* ${fmtLong(p.newDepart)}_\n\n` +
-        (p.newArrive ? `_*Chegada:* ${fmtLong(p.newArrive)}_\n` : "")
-      );
+  const novoBlock =
+    `\n🛫 *Novo voo* *${p.newFlightNumber}* 🟢\n\n` +
+    `_*Partida:* ${fmtLong(p.newDepart)}_\n\n` +
+    (p.newArrive ? `_*Chegada:* ${fmtLong(p.newArrive)}_\n` : "");
 
   const anteriorBlock =
     `\n🛬 *Voo anterior* *${p.oldFlightNumber}* 🔴\n\n` +
@@ -412,11 +435,7 @@ function buildMessage(p: {
     (p.oldArrive ? `_*Chegada:* ${fmtLong(p.oldArrive)}_\n` : "");
 
   let footer: string;
-  if (p.cancelled) {
-    footer =
-      `\nSeu voo foi *cancelado pela companhia*. Por regra da ANAC, você tem direito a *remarcação sem custo* ou *reembolso integral*.\n\n` +
-      `Escolha uma das opções abaixo para acionar nossa equipe 👇`;
-  } else if (p.minorChange) {
+  if (p.minorChange) {
     footer =
       `\nℹ️ Como sua alteração foi *inferior a 30 minutos*, ela *não permite remarcação ou solicitação de reembolso sem custo*.\n\n` +
       `Estamos enviando apenas para *mero informativo*, para que você fique ciente da nova programação.`;
