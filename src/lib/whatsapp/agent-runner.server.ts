@@ -130,6 +130,13 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     parts.push(`- nome_do_cliente: não informado. Pergunte como pode chamar antes de continuar.`);
   }
   parts.push(`- Protocolo ATIVO: ${protocolo.numero} (uso interno — NÃO mencione o número ao cliente na abertura nem no meio da conversa; ele só aparece na mensagem automática de encerramento).`);
+  parts.push(
+    `- Mensagens marcadas com "[sistema · <tipo>]" no histórico são AÇÕES AUTOMÁTICAS que a VIA AIR já enviou pra esse cliente (check-in, alerta/cancelamento de voo, voucher, recibo, contrato). ` +
+    `Elas trazem localizador, número do voo, pedido, data, passageiro e outros dados. ` +
+    `Se o cliente responder algo ligado a esse assunto (ex.: "remarcar voo", "quero reembolso", "não recebi o cartão", "quando é o voo?"), ` +
+    `USE ESSES DADOS DIRETO — jamais peça localizador/CPF/número do pedido pra localizar algo que já está no [sistema · ...]. ` +
+    `Assuma que o pedido está identificado por esse localizador e siga o atendimento.`
+  );
 
   if (conv.identity_verified_at) {
     parts.push(`- Identidade JÁ VERIFICADA. Pode falar de dados financeiros/pedidos.`);
@@ -190,7 +197,31 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const sinceIso: string | undefined = pMeta?.opened_at ?? undefined;
 
   const history = await loadHistory(conv.id, 30, sinceIso);
-  const messages: ModelMessage[] = history.map((m) => ({
+
+  // CONTEXTO OPERACIONAL: pega TAMBÉM as mensagens automáticas (check-in,
+  // alerta de voo, voucher, cobrança) dos últimos 7 dias que estão FORA do
+  // protocolo atual — quando o cliente abre um novo protocolo respondendo
+  // a uma ação nossa (ex.: "Remarcar voo" depois do alerta), a IA precisa
+  // saber o que já foi enviado (localizador, voo, etc). Sem isso ela pede
+  // dado que a gente já tem.
+  const recentSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: sysRows } = await supabaseAdmin
+    .from("wa_messages")
+    .select("id, conversation_id, direction, sender, content, wa_message_id, tool_calls, protocolo_id, created_at")
+    .eq("conversation_id", conv.id)
+    .eq("sender", "system")
+    .eq("direction", "outbound")
+    .gte("created_at", recentSince)
+    .order("created_at", { ascending: true });
+
+  const seenIds = new Set(history.map((h) => h.id));
+  const merged = [...history];
+  for (const r of ((sysRows ?? []) as typeof history)) {
+    if (!seenIds.has(r.id)) merged.push(r);
+  }
+  merged.sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  const messages: ModelMessage[] = merged.map((m) => ({
     role: m.sender === "customer" ? "user" : "assistant",
     content: m.content,
   }));
