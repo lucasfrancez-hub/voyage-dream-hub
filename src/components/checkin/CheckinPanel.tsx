@@ -252,52 +252,61 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
               </div>
 
               <div className="space-y-1">
-                {group.segments.map(({ item, checkin }) => {
-                  const depIso = item.details?.depart_at ?? item.details?.departure_at ?? null;
+                {buildJourneys(group.segments).map((journey, jIdx) => {
+                  const first = journey[0];
+                  const last = journey[journey.length - 1];
+                  const depIso = first.item.details?.depart_at ?? first.item.details?.departure_at ?? null;
                   const dep = depIso ? new Date(depIso) : null;
+                  const via = journey.length > 1
+                    ? journey.slice(0, -1).map((s) => s.item.details?.to_iata).filter(Boolean).join(" · ")
+                    : null;
+                  const anchorCheckin = journey.find((s) => s.checkin)?.checkin ?? null;
+                  const flightLabels = journey
+                    .map((s) => s.item.details?.flight_number)
+                    .filter(Boolean)
+                    .join(" + ");
                   return (
                     <div
-                      key={item.id}
+                      key={`${group.key}-j${jIdx}`}
                       className="flex items-center justify-between gap-3 rounded-md bg-background/40 px-3 py-2 text-xs"
                     >
                       <div className="min-w-0">
                         <div className="font-medium truncate">
-                          {item.details?.flight_number ?? "Voo"} — {item.details?.from_iata}→{item.details?.to_iata}
+                          {flightLabels || "Voo"} — {first.item.details?.from_iata}→{last.item.details?.to_iata}
+                          {via && (
+                            <span className="ml-2 text-[10px] text-muted-foreground font-normal">
+                              via {via} · {journey.length - 1} conexão{journey.length - 1 > 1 ? "es" : ""}
+                            </span>
+                          )}
                         </div>
                         <div className="text-muted-foreground">
                           {dep ? dep.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Sem horário"}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <StatusBadge status={checkin?.status} />
-                        {checkin?.mode && (
+                        <StatusBadge status={anchorCheckin?.status} />
+                        {anchorCheckin?.mode && (
                           <Badge
                             variant="outline"
                             className="text-[10px] border-border text-muted-foreground"
-                            title={
-                              checkin.run_duration_ms
-                                ? `${(checkin.run_duration_ms / 1000).toFixed(1)}s` +
-                                  (checkin.vision_cost_cents ? ` · ~R$ ${(checkin.vision_cost_cents / 100).toFixed(2)}` : "")
-                                : undefined
-                            }
                           >
                             <Bot className="h-3 w-3 mr-1" />Piloto
                           </Badge>
                         )}
-                        {checkin?.id && (checkin?.boarding_pass_url || checkin?.boarding_pass_path) && (
-                          <a href={`/api/public/bp/${checkin.id}`} download>
+                        {anchorCheckin?.id && (anchorCheckin?.boarding_pass_url || anchorCheckin?.boarding_pass_path) && (
+                          <a href={`/api/public/bp/${anchorCheckin.id}`} download>
                             <Button size="sm" variant="outline" className="h-7">
                               <Download className="h-3.5 w-3.5 mr-1" />Baixar cartão
                             </Button>
                           </a>
                         )}
-                        {checkin?.id && checkin?.status === "success" && (
+                        {anchorCheckin?.id && anchorCheckin?.status === "success" && (
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-7"
                             disabled={resendMut.isPending}
-                            onClick={() => resendMut.mutate(checkin.id)}
+                            onClick={() => resendMut.mutate(anchorCheckin.id)}
                             title="Reenviar este cartão pelo WhatsApp"
                           >
                             {resendMut.isPending
