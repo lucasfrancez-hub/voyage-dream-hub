@@ -213,11 +213,11 @@ function AdminPackages() {
     // Global hashtag numbering: applied ONLY to slug of new packages (no id).
     if (!pkg.id && numbering) {
       const n = numbering.number;
-      // strip any legacy " #N" from title and trailing "-N" from slug
       normalized.title = normalized.title.replace(/\s*#\d+\s*$/, "").trim();
-      const cleanSlug = normalized.slug.replace(/-\d+$/, "");
-      normalized.slug = `${cleanSlug}-${n}`;
+      const cleanSlug = normalized.slug.replace(/[-#]\d+$/, "");
+      normalized.slug = `${cleanSlug}#${n}`;
     }
+
 
     const baseSlug = normalized.slug;
     const { data: existingSlugs, error: slugLookupError } = await supabase
@@ -607,10 +607,18 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     if (!editing.destination && derived.destCity) patch.destination = derived.destCity;
     if (!editing.origin && derived.originCity) patch.origin = derived.originCity;
     if (!editing.title && derived.title) patch.title = derived.title;
-    if (!editing.slug && derived.slug) {
-      const base = derived.slug.replace(/-\d+$/, "");
-      patch.slug = !editing.id && nextNumber ? `${base}-${nextNumber}` : derived.slug;
+    const currentSlug = editing.slug || derived.slug || "";
+    if (currentSlug) {
+      const needsNumber = !editing.id && nextNumber && !/#\d+$/.test(currentSlug);
+      if (needsNumber) {
+        const base = currentSlug.replace(/[-#]\d+$/, "");
+        patch.slug = `${base}#${nextNumber}`;
+      } else if (!editing.slug && derived.slug) {
+        patch.slug = derived.slug;
+      }
     }
+
+
     if (Object.keys(patch).length) setEditing({ ...editing, ...patch });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derived.destCity, derived.originCity, derived.title, derived.slug, nextNumber]);
