@@ -111,10 +111,22 @@ export const listManualQueue = createServerFn({ method: "GET" })
       .or(`and(details->>depart_at.gte.${nowIso},details->>depart_at.lte.${in7d}),and(details->>departure_at.gte.${nowIso},details->>departure_at.lte.${in7d})`)
       .limit(500);
 
+    // Tabela IATA → país para detectar internacional
+    let iataTable: Record<string, { co?: string }> = {};
+    try {
+      iataTable = (await import("@/lib/iata-cities.json")).default as any;
+    } catch { /* noop */ }
+    const isBR = (iata?: string | null) => {
+      if (!iata) return true;
+      const rec = iataTable[iata.toUpperCase()];
+      if (!rec?.co) return true;
+      return rec.co.toLowerCase().startsWith("bras");
+    };
+
     const flightItems = ((items ?? []) as any[])
       .filter((it) => !it.order?.deleted_at)
-      .filter((it) => detectAirline({ airline: it.details?.airline, flight_number: it.details?.flight_number }) === "LATAM")
       .map((it) => {
+        const airline = detectAirline({ airline: it.details?.airline, flight_number: it.details?.flight_number });
         const url = String(it.details?.airline_checkin_url || "");
         let latamOrderId = "";
         try { latamOrderId = new URL(url).searchParams.get("orderId")?.trim().toUpperCase() || ""; } catch { /* noop */ }
@@ -126,18 +138,24 @@ export const listManualQueue = createServerFn({ method: "GET" })
           it.details?.locator ||
           ""
         ).toString().trim().toUpperCase();
+        const origin = it.details?.from_iata ?? it.details?.origin ?? null;
+        const destination = it.details?.to_iata ?? it.details?.destination ?? null;
         return {
           id: it.id as string,
           order_id: it.order_id as string,
           order: it.order,
           locator,
+          airline,
+          airline_label: it.details?.airline ?? airline ?? "Voo",
+          is_intl: !isBR(origin) || !isBR(destination),
           flight_number: it.details?.flight_number ?? null,
           departure_at: it.details?.depart_at ?? it.details?.departure_at ?? null,
-          origin: it.details?.from_iata ?? it.details?.origin ?? null,
-          destination: it.details?.to_iata ?? it.details?.destination ?? null,
+          origin,
+          destination,
         };
       })
       .filter((it) => it.locator);
+
 
     const orderIds = Array.from(new Set(flightItems.map((it) => it.order_id)));
     const itemIds = flightItems.map((it) => it.id);
