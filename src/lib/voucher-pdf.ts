@@ -922,8 +922,8 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservati
     cy -= rowH;
     if (idx < passengers.length - 1) {
       ctx.page.drawLine({
-        start: { x: MARGIN + 12, y: cy + 5 },
-        end: { x: MARGIN + CONTENT_W - 12, y: cy + 5 },
+        start: { x: MARGIN + 12, y: cy + 11 },
+        end: { x: MARGIN + CONTENT_W - 12, y: cy + 11 },
         thickness: 0.3, color: COLOR_BORDER,
       });
     }
