@@ -105,8 +105,11 @@ async function withConnection<T>(
         deviceScaleFactor: 1,
       })
       .catch(() => {});
+    // Reforço stealth: UA/idioma/timezone/geo BR + máscara de webdriver.
+    await applyStealth(page).catch(() => {});
     await page.bringToFront().catch(() => {});
     const result = await fn(page, browser);
+
     // `reconnect(timeout)` vale a partir do momento em que foi solicitado.
     // Renove antes de cada disconnect; apenas reconectar via Puppeteer não
     // reinicia esse relógio no Browserless.
