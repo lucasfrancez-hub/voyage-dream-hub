@@ -311,9 +311,17 @@ export function AdminNotificationBell() {
                         onClick={() => setSelected(null)}
                       >
                         #{selected.orderNumber || selected.orderId.slice(0, 8)}
-                      </Link>{" "}
-                      • {selected.customerName}
+                      </Link>
+                      {selected.locator && (
+                        <>
+                          {" "}
+                          • Loc.{" "}
+                          <span className="text-zinc-300 font-semibold">{selected.locator}</span>
+                        </>
+                      )}
+                      {" "}• {selected.customerName}
                     </p>
+
                   </div>
                 </div>
               </DialogHeader>
