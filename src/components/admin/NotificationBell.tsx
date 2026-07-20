@@ -322,7 +322,7 @@ export function AdminNotificationBell() {
                     <DialogTitle className="text-2xl font-bold text-white tracking-tight leading-tight">
                       Voo {selected.flightNumber}
                     </DialogTitle>
-                    <p className="text-[13px] text-zinc-500 mt-0.5 truncate">
+                    <p className="text-[13px] text-zinc-500 mt-0.5 break-words">
                       Pedido{" "}
                       <Link
                         to="/admin/pedidos/$id"
