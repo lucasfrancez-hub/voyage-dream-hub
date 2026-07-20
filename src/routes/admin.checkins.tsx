@@ -368,7 +368,7 @@ function CheckinRow({
           title={r.status === "success" ? "Apaga o PDF atual e roda o check-in de novo" : ""}
         >
           {isBusy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
-          {r.status === "success" ? "Regerar cartão" : "Fazer check-in"}
+          {isBusy ? "Processando…" : r.status === "success" ? "Regerar cartão" : "Fazer check-in"}
         </Button>
       </div>
     </Card>
