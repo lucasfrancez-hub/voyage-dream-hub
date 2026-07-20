@@ -2145,11 +2145,16 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
         const origin = String(p.origin || "").trim();
         const going = p.going_date ? String(p.going_date) : "";
         const ret = p.return_date ? String(p.return_date) : "";
-        const label = `Pacote ${i + 1}${destination ? ` — ${destination}` : ""}`;
+        const title = destination
+          ? origin
+            ? `${destination} - Saída de ${origin}`
+            : destination
+          : "";
         return {
           ...emptyForm,
           slug: "",
-          title: label,
+          title,
+
           destination,
           origin,
           going_date: going,
