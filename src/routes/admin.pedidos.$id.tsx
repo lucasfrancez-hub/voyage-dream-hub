@@ -2107,10 +2107,9 @@ function FlightReservationCard({
             {passengers.map((p) => {
               const isPassport = p.doc_type === "passport";
               const docNum = isPassport ? p.passport_number : p.cpf;
-              const segTicket = segments
-                .map((s) => String(((s.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
-                .find(Boolean) ?? "";
-              const ticket = p.ticket_number || segTicket;
+              const locKey = ((locator ?? first?.supplier_locator ?? "") || "").toUpperCase().trim() || "_";
+              const perLocTicket = (p.tickets ?? {})[locKey] ?? "";
+              const ticketValue = perLocTicket || (p.ticket_number ?? "");
               return (
                 <li key={p.id} className="text-xs">
                   <div className="flex items-start justify-between gap-1">
@@ -2125,11 +2124,25 @@ function FlightReservationCard({
                           {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
                         </div>
                       )}
-                      {ticket && (
-                        <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                          <Hash className="inline h-2.5 w-2.5" /> {ticket}
+                      {onPatchPassengerTicket ? (
+                        <div className="mt-1 flex items-center gap-1">
+                          <Hash className="h-2.5 w-2.5 text-brand-orange shrink-0" />
+                          <InlineText
+                            value={ticketValue}
+                            placeholder="Nº do bilhete"
+                            className="text-[10px] font-mono tabular-nums w-full"
+                            onCommit={(v) => {
+                              if ((v || "").trim() !== (perLocTicket || "").trim()) {
+                                onPatchPassengerTicket(p, locKey, v);
+                              }
+                            }}
+                          />
                         </div>
-                      )}
+                      ) : ticketValue ? (
+                        <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                          <Hash className="inline h-2.5 w-2.5" /> {ticketValue}
+                        </div>
+                      ) : null}
                     </div>
                     {onUnlink && (
                       <UnlinkButton onClick={() => onUnlink(p.id, segments.map((s) => s.id))} />
@@ -2138,6 +2151,7 @@ function FlightReservationCard({
                 </li>
               );
             })}
+
 
           </ul>
           {onLink && allPassengers && (
