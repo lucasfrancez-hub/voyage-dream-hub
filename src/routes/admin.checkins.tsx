@@ -97,6 +97,19 @@ function CheckinsPage() {
     return hoursTo <= windowHoursFor(seg) && hoursTo > -6;
   }
 
+  // Cada reserva (g) = UMA jornada única. Mesmo com conexões, o cliente recebe
+  // 1 PDF por passageiro cobrindo toda a viagem — então tratamos o grupo inteiro
+  // pelo trecho-âncora (primeiro voo). O card final mostra origem→destino final.
+  function anchorOf(g: any) {
+    const sorted = [...g.segments].sort(
+      (a: any, b: any) => new Date(a.departure_at || 0).getTime() - new Date(b.departure_at || 0).getTime(),
+    );
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    const connections = sorted.length > 1 ? sorted.slice(1).map((s: any) => s.origin) : [];
+    return { ...first, destination: last?.destination ?? first.destination, connections };
+  }
+
   const [aFazer, proximos, prontos] = useMemo(() => {
     const todo: any[] = [];
     const upcoming: any[] = [];
@@ -105,23 +118,20 @@ function CheckinsPage() {
     const now = Date.now();
     for (const g of groups) {
       const paxCount = g.passengers.length;
-      const isReady = g.segments.every((s: any) =>
-        s.checkin?.boarding_passes && (s.checkin.boarding_passes as any[]).length >= paxCount,
-      );
-      if (isReady) { done.push(g); continue; }
-      const openSegs: any[] = [];
-      const upcomingSegs: any[] = [];
-      for (const s of g.segments) {
-        const paxDone =
-          Array.isArray(s.checkin?.boarding_passes) &&
-          (s.checkin.boarding_passes as any[]).length >= paxCount;
-        if (paxDone) continue;
-        if (s.checkin || isWithinWindow(s)) { openSegs.push(s); continue; }
-        const dep = s.departure_at ? new Date(s.departure_at).getTime() : 0;
-        if (dep && dep - now <= SEVEN_DAYS && dep - now > 0) upcomingSegs.push(s);
+      const anchor = anchorOf(g);
+      const uploadedCount = Array.isArray(anchor.checkin?.boarding_passes)
+        ? (anchor.checkin.boarding_passes as any[]).length
+        : 0;
+      const isReady = uploadedCount >= paxCount;
+      if (isReady) { done.push({ ...g, segments: [anchor] }); continue; }
+      if (anchor.checkin || isWithinWindow(anchor)) {
+        todo.push({ ...g, segments: [anchor] });
+        continue;
       }
-      if (openSegs.length > 0) todo.push({ ...g, segments: openSegs });
-      if (upcomingSegs.length > 0) upcoming.push({ ...g, segments: upcomingSegs });
+      const dep = anchor.departure_at ? new Date(anchor.departure_at).getTime() : 0;
+      if (dep && dep - now <= SEVEN_DAYS && dep - now > 0) {
+        upcoming.push({ ...g, segments: [anchor] });
+      }
     }
     return [todo, upcoming, done];
   }, [groups]);
@@ -129,16 +139,16 @@ function CheckinsPage() {
   const totalToUpload = useMemo(() => {
     let n = 0;
     for (const g of aFazer) {
-      for (const s of g.segments) {
-        const done =
-          Array.isArray(s.checkin?.boarding_passes)
-            ? (s.checkin.boarding_passes as any[]).length
-            : 0;
-        n += Math.max(0, g.passengers.length - done);
-      }
+      const s = g.segments[0];
+      const done =
+        Array.isArray(s.checkin?.boarding_passes)
+          ? (s.checkin.boarding_passes as any[]).length
+          : 0;
+      n += Math.max(0, g.passengers.length - done);
     }
     return n;
   }, [aFazer]);
+
 
   async function handleUpload(args: {
     key: string;
