@@ -339,18 +339,57 @@ function TreinoPage() {
           )}
           {shot && (
             <div>
-              <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
-                <span className="font-mono truncate">{shot.url}</span>
+              <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2 flex-wrap">
+                <span className="font-mono truncate flex-1 min-w-0">{shot.url}</span>
                 <span>·</span>
                 <span>{shot.w}×{shot.h}</span>
+                <label className="flex items-center gap-1 ml-2 cursor-pointer">
+                  <input type="checkbox" checked={interactive} onChange={(e) => setInteractive(e.target.checked)} />
+                  Interação direta (clique na imagem)
+                </label>
               </div>
+              {interactive && (
+                <div className="mb-2 flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">
+                    {lastClick ? `Último clique: ${lastClick.x},${lastClick.y}` : "Clique na imagem pra clicar na página."}
+                  </span>
+                  <input
+                    type="text"
+                    value={typeBuffer}
+                    onChange={(e) => setTypeBuffer(e.target.value)}
+                    placeholder="digitar no último clique + Enter"
+                    className="flex-1 border rounded px-2 py-1"
+                    onKeyDown={async (e) => {
+                      if (e.key !== "Enter" || !lastClick || !typeBuffer || busy) return;
+                      e.preventDefault();
+                      const text = typeBuffer;
+                      setTypeBuffer("");
+                      await executeAndAppend(
+                        { action: "type", x: lastClick.x, y: lastClick.y, text, clearFirst: true },
+                        `Digitou "${text}"`
+                      );
+                    }}
+                  />
+                </div>
+              )}
               <div className="relative inline-block border rounded overflow-hidden bg-black/5">
                 <img
                   ref={imgRef}
                   src={`data:image/jpeg;base64,${shot.b64}`}
-                  className="block w-full h-auto"
+                  className={`block w-full h-auto ${interactive ? "cursor-crosshair" : ""}`}
                   alt="screenshot"
+                  onClick={async (e) => {
+                    if (!interactive || busy || !shot) return;
+                    const img = imgRef.current;
+                    if (!img) return;
+                    const rect = img.getBoundingClientRect();
+                    const x = Math.round(((e.clientX - rect.left) / rect.width) * shot.w);
+                    const y = Math.round(((e.clientY - rect.top) / rect.height) * shot.h);
+                    setLastClick({ x, y });
+                    await executeAndAppend({ action: "click", x, y }, `Clique ${x},${y}`);
+                  }}
                 />
+
                 {vision?.targets?.map((t, i) => {
                   const isSel = selectedTarget === i;
                   const startDrag = (
