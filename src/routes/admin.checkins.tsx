@@ -430,13 +430,33 @@ function SegmentCard({
               <div className="text-[10px] uppercase text-muted-foreground font-bold">Localizador</div>
               <div className="font-mono text-foreground text-sm truncate">{group.locator}</div>
             </div>
-            <div className="text-right">
-              <div className="text-[10px] uppercase text-muted-foreground font-bold">Progresso</div>
-              <div className={`text-sm font-bold ${ready ? "text-emerald-500" : "text-brand-orange"}`}>
-                {uploaded.length}/{paxCount} <span className="text-muted-foreground font-normal">anexados</span>
+            <div className="text-right flex items-center gap-3">
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground font-bold">Progresso</div>
+                <div className={`text-sm font-bold ${ready ? "text-emerald-500" : "text-brand-orange"}`}>
+                  {uploaded.length}/{paxCount} <span className="text-muted-foreground font-normal">anexados</span>
+                </div>
               </div>
+              {seg.checkin?.id && (
+                <Button
+                  size="sm"
+                  onClick={() => onSend(seg.checkin.id)}
+                  disabled={sendingId === seg.checkin.id}
+                  title={alreadySent ? "Reenviar WhatsApp" : "Forçar envio agora"}
+                  className={`h-9 w-9 p-0 shrink-0 ${
+                    alreadySent
+                      ? "bg-sky-500/15 hover:bg-sky-500 text-sky-500 hover:text-white"
+                      : "bg-emerald-500/15 hover:bg-emerald-600 text-emerald-500 hover:text-white"
+                  }`}
+                >
+                  {sendingId === seg.checkin.id
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Send className="h-4 w-4" />}
+                </Button>
+              )}
             </div>
           </div>
+
 
           {ready && seg.checkin?.id && (
             <Button
