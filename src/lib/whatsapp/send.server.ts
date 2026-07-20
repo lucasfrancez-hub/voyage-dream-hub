@@ -63,10 +63,31 @@ async function uazSendMedia(
   link: string,
   opts: { caption?: string | null; filename?: string } = {},
 ): Promise<{ id: string | null; error?: string }> {
+  // UazAPI aceita URL OU base64 no campo `file`. URLs assinadas do Supabase
+  // Storage podem falhar (HTTP 400/404 no lado do processador da UazAPI),
+  // então baixamos o arquivo aqui e enviamos como base64 — muito mais confiável.
+  let filePayload = link;
+  try {
+    const dl = await fetch(link);
+    if (dl.ok) {
+      const buf = new Uint8Array(await dl.arrayBuffer());
+      // btoa não aguenta strings gigantes; converte em chunks
+      let bin = "";
+      const chunk = 0x8000;
+      for (let i = 0; i < buf.length; i += chunk) {
+        bin += String.fromCharCode(...buf.subarray(i, i + chunk));
+      }
+      filePayload = btoa(bin);
+    } else {
+      console.warn("[uazapi] fallback URL — download falhou:", dl.status);
+    }
+  } catch (err) {
+    console.warn("[uazapi] fallback URL — exceção no download:", err instanceof Error ? err.message : err);
+  }
   return uazPost("/send/media", {
     number: normalizePhone(to),
     type,
-    file: link,
+    file: filePayload,
     ...(opts.caption ? { text: opts.caption.slice(0, 1024) } : {}),
     ...(opts.filename ? { docName: opts.filename.slice(0, 240) } : {}),
   });
