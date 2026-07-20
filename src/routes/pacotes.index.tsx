@@ -388,7 +388,7 @@ function PacotesList() {
           )}
 
 
-          {filteredPackages.map((p, idx) => (
+          {paginatedPackages.map((p, idx) => (
             <Link
               key={p.id}
               to="/pacotes/$slug"
