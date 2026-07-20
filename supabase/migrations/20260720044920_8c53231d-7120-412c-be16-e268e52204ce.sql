@@ -1,0 +1,2 @@
+CREATE POLICY "Admins create orders" ON public.orders FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Partners create own orders" ON public.orders FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'partner') AND (owner_user_id = auth.uid() OR owner_user_id IS NULL));
