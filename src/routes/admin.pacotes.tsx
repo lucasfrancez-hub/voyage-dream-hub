@@ -649,7 +649,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                               >
                                 <img src={r.thumb || r.url} alt={r.title} loading="lazy" className="w-full h-full object-cover" />
                                 <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-[9px] text-white/90">
-                                  {r.source === "Openverse" ? "OV" : "WC"}
+                                  {r.source === "Pexels" ? "PX" : r.source === "Unsplash" ? "UN" : r.source === "Openverse" ? "OV" : "WC"}
                                 </span>
                               </button>
                             ))}
