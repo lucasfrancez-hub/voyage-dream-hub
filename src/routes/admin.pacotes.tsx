@@ -1562,5 +1562,188 @@ function FlightImportButton({
   );
 }
 
+function PackageImportButton({
+  onImported,
+}: {
+  onImported: (patch: Partial<PackageRow>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const extract = useServerFn(extractPackageFromDocument);
+
+  async function handleFile(file: File) {
+    const ok = file.type === "application/pdf" || file.type.startsWith("image/");
+    if (!ok) {
+      toast.error("Envie um PDF ou uma imagem (PNG/JPG)");
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx. 15 MB)");
+      return;
+    }
+    setBusy(true);
+    setFileName(file.name);
+    try {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      const CHUNK = 0x8000;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
+      }
+      const base64 = btoa(binary);
+      const { pkg } = await extract({
+        data: {
+          file_base64: base64,
+          mime_type: file.type || "application/pdf",
+          filename: file.name || "orcamento.pdf",
+        },
+      });
+      if (!pkg || typeof pkg !== "object") throw new Error("Documento sem dados reconhecíveis");
+
+      // Normalizar payload em Partial<PackageRow>
+      const patch: Partial<PackageRow> = {};
+      const p: any = pkg;
+      if (p.destination) patch.destination = String(p.destination);
+      if (p.origin) patch.origin = String(p.origin);
+      if (p.going_date) patch.going_date = String(p.going_date);
+      if (p.return_date) patch.return_date = String(p.return_date);
+      if (p.nights != null) patch.nights = Number(p.nights) || 0;
+      if (p.base_occupancy != null) patch.base_occupancy = Number(p.base_occupancy) || 2;
+      if (p.price_per_person != null) patch.price_per_person = Number(p.price_per_person) || 0;
+      if (p.taxes != null) patch.taxes = Number(p.taxes) || 0;
+      if (p.hotel_name) patch.hotel_name = String(p.hotel_name);
+      if (p.hotel_stars != null) {
+        const n = Math.round(Number(p.hotel_stars));
+        if (Number.isFinite(n)) patch.hotel_stars = Math.max(1, Math.min(5, n));
+      }
+      if (p.meal_plan) patch.meal_plan = String(p.meal_plan);
+      if (p.room_type) patch.room_type = String(p.room_type);
+      if (p.room_category) patch.room_category = String(p.room_category);
+      if (p.bed_type) patch.bed_type = String(p.bed_type);
+      if (Array.isArray(p.includes)) patch.includes = p.includes.map((s: any) => String(s));
+      if (p.outbound_flight && typeof p.outbound_flight === "object") {
+        patch.outbound_flight = {
+          ...p.outbound_flight,
+          segments: Array.isArray(p.outbound_flight.segments) ? p.outbound_flight.segments : [],
+        };
+      }
+      if (p.return_flight && typeof p.return_flight === "object") {
+        patch.return_flight = {
+          ...p.return_flight,
+          segments: Array.isArray(p.return_flight.segments) ? p.return_flight.segments : [],
+        };
+      }
+
+      onImported(patch);
+      toast.success("Pacote importado! Confira os campos e complete o que faltar.");
+      setOpen(false);
+      setFileName(null);
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao ler o documento");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-2 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-orange hover:bg-brand-orange/20 transition"
+      >
+        <FileUp className="h-3.5 w-3.5" strokeWidth={2} />
+        Importar
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => !busy && setOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border/70 bg-card p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold">Importar pacote de um documento</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Envie um PDF de orçamento / voucher ou uma imagem. A IA extrai destino, datas, hotel, refeição, valores e voos (ida + volta com conexões).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !busy && setOpen(false)}
+                className="p-1.5 rounded-md hover:bg-muted"
+                disabled={busy}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <label
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!busy) setDragging(true);
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!busy) setDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragging(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragging(false);
+                const f = e.dataTransfer.files?.[0];
+                if (f) void handleFile(f);
+              }}
+              className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 cursor-pointer transition ${
+                dragging
+                  ? "border-brand-orange bg-brand-orange/10"
+                  : "border-border hover:border-brand-orange/60 hover:bg-muted/40"
+              } ${busy ? "opacity-60 pointer-events-none" : ""}`}
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin text-brand-orange" />
+                  <span className="text-sm font-medium">Lendo {fileName ?? "documento"}…</span>
+                  <span className="text-[11px] text-muted-foreground">Pode levar alguns segundos</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-7 w-7 text-brand-orange" />
+                  <span className="text-sm font-semibold">Solte o arquivo aqui ou clique para escolher</span>
+                  <span className="text-[11px] text-muted-foreground">PDF, PNG ou JPG · até 15 MB</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="application/pdf,image/*"
+                className="hidden"
+                disabled={busy}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleFile(f);
+                }}
+              />
+            </label>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 
 
