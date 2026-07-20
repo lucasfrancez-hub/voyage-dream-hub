@@ -255,6 +255,9 @@ type RenderState = {
   readyState: string;
   bodyHtmlLength: number;
   elementCount: number;
+  visibleElementCount: number;
+  bodyWidth: number;
+  bodyHeight: number;
 };
 
 async function readRenderState(cdp: CdpClient): Promise<RenderState | null> {
@@ -265,7 +268,14 @@ async function readRenderState(cdp: CdpClient): Promise<RenderState | null> {
       title: document.title || '',
       readyState: document.readyState,
       bodyHtmlLength: document.body?.innerHTML?.length || 0,
-      elementCount: document.body?.getElementsByTagName('*')?.length || 0
+      elementCount: document.body?.getElementsByTagName('*')?.length || 0,
+      visibleElementCount: Array.from(document.body?.querySelectorAll('*') || []).slice(0, 500).filter((el) => {
+        const r = el.getBoundingClientRect();
+        const s = getComputedStyle(el);
+        return r.width > 2 && r.height > 2 && s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || 1) > 0;
+      }).length,
+      bodyWidth: document.body?.getBoundingClientRect().width || 0,
+      bodyHeight: document.body?.getBoundingClientRect().height || 0
     }))()`,
   );
 }
@@ -281,7 +291,10 @@ async function waitForRenderablePage(cdp: CdpClient, fallbackUrl?: string) {
         state.href !== "about:blank" &&
         state.readyState !== "loading" &&
         state.bodyHtmlLength > 300 &&
-        state.elementCount > 3
+        state.elementCount > 3 &&
+        state.visibleElementCount > 2 &&
+        state.bodyWidth > 100 &&
+        state.bodyHeight > 100
       ) {
         await evalExpr(
           cdp,
@@ -297,12 +310,12 @@ async function waitForRenderablePage(cdp: CdpClient, fallbackUrl?: string) {
   let state = await waitUntilReady(8_000);
   if (
     fallbackUrl &&
-    (!state || state.href === "about:blank" || state.bodyHtmlLength <= 300 || state.elementCount <= 3)
+    (!state || state.href === "about:blank" || state.bodyHtmlLength <= 300 || state.elementCount <= 3 || state.visibleElementCount <= 2)
   ) {
     await cdp.send("Page.navigate", { url: fallbackUrl });
     state = await waitUntilReady(12_000);
   }
-  if (!state || state.href === "about:blank" || state.bodyHtmlLength <= 300 || state.elementCount <= 3) {
+  if (!state || state.href === "about:blank" || state.bodyHtmlLength <= 300 || state.elementCount <= 3 || state.visibleElementCount <= 2) {
     throw new Error(
       `LATAM_EMPTY_PAGE: url=${state?.href || "indisponível"}; estado=${state?.readyState || "indisponível"}`,
     );
@@ -335,12 +348,20 @@ async function waitForSpinnerGone(cdp: CdpClient, timeoutMs = 20_000) {
 async function capture(cdp: CdpClient, fallbackUrl?: string) {
   await waitForRenderablePage(cdp, fallbackUrl);
   await waitForSpinnerGone(cdp);
-  const shot = await cdp.send<{ data: string }>("Page.captureScreenshot", {
-    format: "jpeg",
-    quality: 60,
-    fromSurface: true,
-    captureBeyondViewport: false,
+  await cdp.send("Page.bringToFront").catch(() => {});
+  await evalExpr(cdp, "new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+  let shot = await cdp.send<{ data: string }>("Page.captureScreenshot", {
+    format: "jpeg", quality: 60, fromSurface: true, captureBeyondViewport: false,
   });
+  // Em algumas reconexões o compositor remoto devolve apenas um quadro branco
+  // apesar de o DOM estar pronto. Uma imagem JPEG 1280x900 quase vazia fica
+  // anormalmente pequena; nesse caso capturamos pelo viewport da própria página.
+  if (shot.data.length < 18_000) {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    shot = await cdp.send<{ data: string }>("Page.captureScreenshot", {
+      format: "jpeg", quality: 70, fromSurface: false, captureBeyondViewport: false,
+    });
+  }
   const currentUrl = (await evalExpr<string>(cdp, "location.href")) || "";
   const title = (await evalExpr<string>(cdp, "document.title")) || "";
   const bodyText = (await evalExpr<string>(cdp, "document.body?.innerText?.slice(0, 800) || ''")) || "";
