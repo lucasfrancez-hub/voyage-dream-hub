@@ -61,6 +61,8 @@ export default async ({ page, browser, context }) => {
   const transcript = [];
   const pdfCaptures = [];
   const configuredPages = new WeakSet();
+  const unusablePages = new WeakSet();
+  const activeBrowser = browser || (page && typeof page.browser === "function" ? page.browser() : null);
   let activePage = page;
 
   const configurePage = async (candidate) => {
@@ -87,15 +89,17 @@ export default async ({ page, browser, context }) => {
 
   const resolveActivePage = async (createIfMissing = false) => {
     let pages = [];
-    try { pages = browser ? await browser.pages() : []; } catch (_) {}
-    const openPages = pages.filter((candidate) => candidate && !candidate.isClosed());
+    try { pages = activeBrowser ? await activeBrowser.pages() : []; } catch (_) {}
+    const openPages = pages.filter((candidate) => candidate && !candidate.isClosed() && !unusablePages.has(candidate));
     const latamPage = [...openPages].reverse().find((candidate) => {
       try { return candidate.url().includes("latamairlines.com"); } catch (_) { return false; }
     });
     const currentStillOpen = activePage && !activePage.isClosed() ? activePage : null;
     activePage = latamPage || openPages[openPages.length - 1] || currentStillOpen;
-    if ((!activePage || activePage.isClosed()) && createIfMissing && browser) {
-      activePage = await browser.newPage();
+    if ((!activePage || activePage.isClosed() || unusablePages.has(activePage)) && createIfMissing && activeBrowser) {
+      activePage = await activeBrowser.newPage();
+      await configurePage(activePage);
+      await activePage.goto(checkinUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
     }
     if (!activePage || activePage.isClosed()) throw new Error("A aba da LATAM foi fechada durante a automação");
     await configurePage(activePage);
@@ -114,6 +118,8 @@ export default async ({ page, browser, context }) => {
         lastError = error;
         const message = String(error && error.message || error);
         if (!/not attached|target closed|session closed|detached|most likely the page has been closed/i.test(message)) throw error;
+        unusablePages.add(candidate);
+        if (activePage === candidate) activePage = null;
         await new Promise((r) => setTimeout(r, 700));
       }
     }
@@ -132,6 +138,7 @@ export default async ({ page, browser, context }) => {
       break;
     } catch (error) {
       navigationError = error;
+      if (activePage) unusablePages.add(activePage);
       activePage = null;
       await new Promise((r) => setTimeout(r, 1000));
     }
