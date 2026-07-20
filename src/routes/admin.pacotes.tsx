@@ -2264,6 +2264,35 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
         } as Partial<PackageRow>;
       });
 
+      setStatus("Buscando hotéis no TripAdvisor…");
+      await Promise.allSettled(
+        drafts.map(async (d) => {
+          if (!d.hotel_name) return;
+          try {
+            const q = d.destination ? `${d.hotel_name} ${d.destination}` : String(d.hotel_name);
+            const results = await searchHotels({ data: { query: q } });
+            const best = results?.[0];
+            if (!best) return;
+            const full = await hotelDetails({ data: { locationId: best.location_id, photoLimit: 5 } });
+            const rating = full.rating ?? best.rating ?? null;
+            const cls = full.hotel_class ?? null;
+            const stars = rating != null
+              ? Math.min(5, Math.max(1, Math.round(rating)))
+              : cls != null
+                ? Math.min(5, Math.max(1, Math.round(cls)))
+                : d.hotel_stars ?? 3;
+            d.hotel_name = full.name || best.name || d.hotel_name;
+            d.hotel_stars = stars;
+            (d as any).tripadvisor_location_id = String(best.location_id);
+            (d as any).tripadvisor_url = full.tripadvisor_url ?? best.tripadvisor_url ?? null;
+            (d as any).tripadvisor_address = full.address ?? best.address ?? null;
+            if (full.photos && full.photos.length > 0) (d as any).tripadvisor_photos = full.photos;
+          } catch (err) {
+            console.warn("[multi-import] TripAdvisor enrich falhou", err);
+          }
+        }),
+      );
+
       toast.success(`${drafts.length} pacote(s) reconhecido(s) — revise nas abas acima e salve cada um.`);
       onExtracted(drafts);
       setOpen(false);
