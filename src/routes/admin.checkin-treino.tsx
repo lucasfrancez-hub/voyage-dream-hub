@@ -222,8 +222,13 @@ function TreinoPage() {
       mode === "click"
         ? { action: "click", x: Math.round(t.x), y: Math.round(t.y) }
         : { action: "type", x: Math.round(t.x), y: Math.round(t.y), text, clearFirst: true };
-    await executeAndAppend(step, `${mode === "click" ? "Clique" : "Digitação"} em ${t.label}`);
+    const hint =
+      mode === "type"
+        ? `digite aqui: ${text || t.label}`
+        : `clique aqui: ${t.label}`;
+    await executeAndAppend(step, `${mode === "click" ? "Clique" : "Digitação"} em ${t.label}`, hint);
   };
+
 
   const addManualStep = (s: TrainingStep, label: string) => executeAndAppend(s, label);
 
