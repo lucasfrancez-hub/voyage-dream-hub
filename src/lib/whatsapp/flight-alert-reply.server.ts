@@ -75,8 +75,19 @@ async function generateContextualReply(input: {
       system,
       messages: [...messages, { role: "user", content: user }],
     });
-    const clean = (text ?? "").trim();
-    return clean || fallback;
+    let clean = (text ?? "").trim();
+    if (!clean) return fallback;
+    // Normaliza assinatura — nunca "Equipe/Time VIA AIR"
+    clean = clean.replace(/_?(Equipe|Time)\s+VIA\s*AIR_?\.?$/gim, "_Camila · VIA AIR_");
+    if (!/Camila\s*·\s*VIA\s*AIR/i.test(clean)) {
+      clean = `${clean}\n\n_Camila · VIA AIR_`;
+    }
+    // Se a IA errou o nome do cliente, cai no fallback (que usa o firstName correto)
+    if (input.firstName && !new RegExp(`\\b${input.firstName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(clean)) {
+      return fallback;
+    }
+    return clean;
+
   } catch (err) {
     console.warn("[flight-alert-reply] IA falhou, usando fallback:", err instanceof Error ? err.message : err);
     return fallback;
