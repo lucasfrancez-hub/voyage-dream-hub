@@ -156,8 +156,38 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               .maybeSingle();
             if (!conv) continue;
 
-            const encerramentoMsg = `Atendimento encerrado, protocolo ${proto.numero}.`;
+            // CRÍTICO: fecha o protocolo ANTES de qualquer envio/IA.
+            // Se travar depois (resumo IA, envio WhatsApp), o próximo cron NÃO
+            // reencontra esse protocolo e não reenvia a mensagem de encerramento.
+            // Usa .eq("status","aberto") como guard de concorrência: se outro cron
+            // já fechou, updateRes.count será 0 e a gente pula.
+            const { data: updatedRows, error: updateErr } = await supabaseAdmin
+              .from("wa_protocolos")
+              .update({
+                status: "encerrado_inatividade",
+                closed_at: new Date().toISOString(),
+                funnel_stage_final: conv.funnel_stage ?? null,
+              })
+              .eq("id", proto.id)
+              .eq("status", "aberto")
+              .select("id");
 
+            if (updateErr) {
+              console.error("[inactivity] close update:", updateErr.message);
+              continue;
+            }
+            if (!updatedRows || updatedRows.length === 0) {
+              // Já foi fechado por outro ciclo — não reenvia.
+              skipped.push(proto.numero);
+              continue;
+            }
+
+            await supabaseAdmin
+              .from("wa_conversations")
+              .update({ protocolo_ativo_id: null })
+              .eq("id", proto.conversation_id);
+
+            const encerramentoMsg = `Atendimento encerrado, protocolo ${proto.numero}.`;
 
             await sendWhatsAppBubbles(conv.wa_phone, encerramentoMsg);
 
@@ -169,8 +199,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               skip_protocolo: true,
             });
 
-            // Gera resumo automático da conversa via IA (não bloqueia se falhar)
-            let resumoConversa: string | null = null;
+            // Gera resumo automático da conversa via IA (best-effort, pode travar/falhar).
             try {
               const { data: msgs } = await supabaseAdmin
                 .from("wa_messages")
@@ -197,8 +226,12 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
                 const { generateText } = await import("ai");
                 const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
                 const gateway = createLovableAiGatewayProvider(apiKey);
+                // Timeout defensivo pra IA não travar o cron
+                const controller = new AbortController();
+                const t = setTimeout(() => controller.abort(), 20_000);
                 const { text } = await generateText({
                   model: gateway("openai/gpt-5.5"),
+                  abortSignal: controller.signal,
                   prompt:
                     "Resuma a conversa abaixo entre um cliente da VIA AIR e o atendimento (IA/humano). " +
                     "Escreva em português, tom objetivo, em no máximo 6 bullets curtos. " +
@@ -206,29 +239,22 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
                     "o que foi resolvido e pendências (se houver). Não inclua saudações nem cabeçalho.\n\n" +
                     "CONVERSA:\n" + transcript,
                 });
-                resumoConversa = text.trim() || null;
+                clearTimeout(t);
+                const resumo = text.trim();
+                if (resumo) {
+                  await supabaseAdmin
+                    .from("wa_protocolos")
+                    .update({ resumo_conversa: resumo })
+                    .eq("id", proto.id);
+                }
               }
             } catch (err) {
               console.error("[inactivity] resumo:", (err as Error).message);
             }
 
-            await supabaseAdmin
-              .from("wa_protocolos")
-              .update({
-                status: "encerrado_inatividade",
-                closed_at: new Date().toISOString(),
-                funnel_stage_final: conv.funnel_stage ?? null,
-                resumo_conversa: resumoConversa,
-              })
-              .eq("id", proto.id);
-
-            await supabaseAdmin
-              .from("wa_conversations")
-              .update({ protocolo_ativo_id: null })
-              .eq("id", proto.conversation_id);
-
             closed.push(proto.numero);
           }
+
         }
 
         return new Response(JSON.stringify({ ok: true, warned, closed, skipped }), {
