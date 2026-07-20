@@ -52,6 +52,22 @@ function pickAddress(addresses: Array<Record<string, unknown>> | undefined) {
   };
 }
 
+function extractRating(obj: Record<string, unknown>): number | null {
+  const candidates: unknown[] = [
+    (obj.overall_rating as { rating?: unknown } | undefined)?.rating,
+    obj.rating,
+    (obj as { review_rating?: { rating?: unknown } }).review_rating?.rating,
+    (obj as { ratings?: { overall?: { rating?: unknown } } }).ratings?.overall?.rating,
+  ];
+  for (const c of candidates) {
+    if (c == null) continue;
+    const n = typeof c === "number" ? c : Number(String(c).replace(",", "."));
+    if (Number.isFinite(n) && n > 0 && n <= 5) return n;
+  }
+  return null;
+}
+
+
 // Busca hotéis por nome (autocomplete). Retorna até 8 sugestões.
 export const searchTripAdvisorHotels = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
