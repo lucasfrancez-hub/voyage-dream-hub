@@ -1,16 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Play, Eye, Trash2, Type as TypeIcon, MousePointer2, Clock, ArrowUp } from "lucide-react";
+import {
+  Loader2, Play, Eye, Trash2, Type as TypeIcon, MousePointer2, Clock, ArrowUp,
+  Power, PowerOff, ArrowLeft, Camera, RotateCcw,
+} from "lucide-react";
 import {
   runTrainingScript,
   askVisionAboutScreenshot,
+  openTrainingSession,
+  runLiveTrainingStep,
+  screenshotTrainingSession,
+  closeTrainingSession,
   type TrainingStep,
 } from "@/lib/checkin/training.functions";
 
@@ -21,29 +28,126 @@ export const Route = createFileRoute("/admin/checkin-treino")({
 
 type VisionTarget = { label: string; x: number; y: number; w: number; h: number; confidence?: number };
 type VisionParsed = { reasoning?: string; targets?: VisionTarget[]; notes?: string; raw?: string };
+type Shot = { b64: string; w: number; h: number; url: string; title: string };
 
 const DEFAULT_URL = "https://www.latamairlines.com/br/pt/check-in";
 const DEFAULT_QUESTION =
   "Identifique os campos para iniciar check-in por localizador (código de reserva) e sobrenome, e o botão para continuar. Retorne cada elemento em 'targets' com coordenadas do centro e tamanho.";
+const SESSION_STORAGE_KEY = "via_training_session_id";
 
 function TreinoPage() {
   const runScript = useServerFn(runTrainingScript);
   const askVision = useServerFn(askVisionAboutScreenshot);
+  const openSession = useServerFn(openTrainingSession);
+  const runStep = useServerFn(runLiveTrainingStep);
+  const shotSession = useServerFn(screenshotTrainingSession);
+  const closeSession = useServerFn(closeTrainingSession);
 
   const [url, setUrl] = useState(DEFAULT_URL);
   const [pnr, setPnr] = useState("LA9571886LWKG");
   const [surname, setSurname] = useState("PEREIRA");
   const [steps, setSteps] = useState<TrainingStep[]>([]);
-  const [shot, setShot] = useState<{ b64: string; w: number; h: number; url: string; title: string } | null>(null);
+  const [shot, setShot] = useState<Shot | null>(null);
   const [logs, setLogs] = useState<unknown[]>([]);
   const [question, setQuestion] = useState(DEFAULT_QUESTION);
   const [vision, setVision] = useState<VisionParsed | null>(null);
   const [selectedTarget, setSelectedTarget] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [useProxy, setUseProxy] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  const runAll = async () => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (saved) setSessionId(saved);
+    }
+  }, []);
+
+  const persistSession = (id: string | null) => {
+    setSessionId(id);
+    if (typeof window === "undefined") return;
+    if (id) window.sessionStorage.setItem(SESSION_STORAGE_KEY, id);
+    else window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  };
+
+  const handleSessionError = (e: unknown) => {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("SESSION_EXPIRED")) {
+      persistSession(null);
+      toast.error("A sessão expirou. Clique em Abrir sessão novamente.");
+      return true;
+    }
+    toast.error(msg);
+    return false;
+  };
+
+  const open = async () => {
+    setBusy(true);
+    setVision(null);
+    setSelectedTarget(null);
+    try {
+      const r = await openSession({
+        data: { url, viewportWidth: 1280, viewportHeight: 900, useResidentialProxy: useProxy },
+      });
+      persistSession(r.sessionId);
+      setShot({ b64: r.screenshot, w: r.width, h: r.height, url: r.currentUrl, title: r.title });
+      toast.success(`Sessão aberta: ${r.title || r.currentUrl}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const close = async () => {
+    if (!sessionId) return;
+    setBusy(true);
+    try {
+      await closeSession({ data: { sessionId } });
+      persistSession(null);
+      setShot(null);
+      setVision(null);
+      toast.success("Sessão encerrada.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const refreshShot = async () => {
+    if (!sessionId) return;
+    setBusy(true);
+    setVision(null);
+    setSelectedTarget(null);
+    try {
+      const r = await shotSession({ data: { sessionId } });
+      setShot((prev) => ({ b64: r.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: r.currentUrl, title: r.title }));
+    } catch (e) {
+      handleSessionError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const goBack = async () => {
+    if (!sessionId) return;
+    setBusy(true);
+    setVision(null);
+    setSelectedTarget(null);
+    try {
+      const r = await runStep({ data: { sessionId, step: { action: "back" } } });
+      setShot((prev) => ({ b64: r.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: r.currentUrl, title: r.title }));
+    } catch (e) {
+      handleSessionError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runAllFromScratch = async () => {
     setBusy(true);
     setVision(null);
     setSelectedTarget(null);
@@ -51,7 +155,7 @@ function TreinoPage() {
       const r = await runScript({ data: { url, steps, viewportWidth: 1280, viewportHeight: 900 } });
       setShot({ b64: r.screenshot, w: r.width, h: r.height, url: r.currentUrl, title: r.title });
       setLogs(r.logs);
-      toast.success(`Página aberta: ${r.title || r.currentUrl}`);
+      toast.success(`Reexecutado: ${r.title || r.currentUrl}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha");
     } finally {
@@ -74,19 +178,37 @@ function TreinoPage() {
     }
   };
 
-  const addStep = (s: TrainingStep) => setSteps((prev) => [...prev, s]);
   const removeStep = (i: number) => setSteps((prev) => prev.filter((_, idx) => idx !== i));
 
-  const clickTargetAsStep = (t: VisionTarget, mode: "click" | "type", text = "") => {
-    if (mode === "click") addStep({ action: "click", x: Math.round(t.x), y: Math.round(t.y) });
-    else addStep({ action: "type", x: Math.round(t.x), y: Math.round(t.y), text, clearFirst: true });
-    toast.success(`Passo adicionado (${mode}) em ${t.label}`);
+  const executeAndAppend = async (step: TrainingStep, label: string) => {
+    if (!sessionId) {
+      toast.error("Abra uma sessão primeiro.");
+      return;
+    }
+    setBusy(true);
+    setVision(null);
+    setSelectedTarget(null);
+    try {
+      const r = await runStep({ data: { sessionId, step } });
+      setSteps((prev) => [...prev, step]);
+      setShot((prev) => ({ b64: r.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: r.currentUrl, title: r.title }));
+      toast.success(`${label} · executado`);
+    } catch (e) {
+      handleSessionError(e);
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const scale = useMemo(() => {
-    if (!shot || !imgRef.current) return 1;
-    return imgRef.current.clientWidth / shot.w;
-  }, [shot]);
+  const clickTargetAsStep = async (t: VisionTarget, mode: "click" | "type", text = "") => {
+    const step: TrainingStep =
+      mode === "click"
+        ? { action: "click", x: Math.round(t.x), y: Math.round(t.y) }
+        : { action: "type", x: Math.round(t.x), y: Math.round(t.y), text, clearFirst: true };
+    await executeAndAppend(step, `${mode === "click" ? "Clique" : "Digitação"} em ${t.label}`);
+  };
+
+  const addManualStep = (s: TrainingStep, label: string) => executeAndAppend(s, label);
 
   return (
     <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
@@ -94,10 +216,17 @@ function TreinoPage() {
         <div>
           <h1 className="text-2xl font-semibold">Treinador de Check-in</h1>
           <p className="text-sm text-muted-foreground">
-            Abra a página da cia, tire print, deixe a IA identificar onde clicar. Você valida antes de virar passo.
+            Abra a sessão UMA vez — cada clique/digitação roda ao vivo na mesma aba, sem reabrir a página.
           </p>
         </div>
-        <Badge variant="outline">MVP · LATAM</Badge>
+        <div className="flex items-center gap-2">
+          {sessionId ? (
+            <Badge className="bg-emerald-600 hover:bg-emerald-600">Sessão ativa</Badge>
+          ) : (
+            <Badge variant="outline">Sem sessão</Badge>
+          )}
+          <Badge variant="outline">LATAM</Badge>
+        </div>
       </div>
 
       <div className="grid grid-cols-12 gap-4">
@@ -105,7 +234,7 @@ function TreinoPage() {
         <Card className="col-span-12 lg:col-span-4 p-4 space-y-3">
           <div>
             <label className="text-xs font-medium">URL inicial</label>
-            <Input value={url} onChange={(e) => setUrl(e.target.value)} className="mt-1" />
+            <Input value={url} onChange={(e) => setUrl(e.target.value)} className="mt-1" disabled={!!sessionId} />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -116,6 +245,38 @@ function TreinoPage() {
               <label className="text-xs font-medium">Sobrenome</label>
               <Input value={surname} onChange={(e) => setSurname(e.target.value)} className="mt-1" />
             </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={useProxy}
+              onChange={(e) => setUseProxy(e.target.checked)}
+              disabled={!!sessionId}
+            />
+            Usar proxy residencial BR (mais lento, use só se a LATAM bloquear)
+          </label>
+
+          <div className="flex gap-2 pt-1">
+            {!sessionId ? (
+              <Button onClick={open} disabled={busy} className="flex-1">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Power className="h-4 w-4 mr-2" />}
+                Abrir sessão
+              </Button>
+            ) : (
+              <>
+                <Button onClick={refreshShot} disabled={busy} variant="secondary" className="flex-1">
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Camera className="h-4 w-4 mr-2" />}
+                  Print agora
+                </Button>
+                <Button onClick={goBack} disabled={busy} variant="outline" size="icon" title="Voltar">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <Button onClick={close} disabled={busy} variant="destructive" size="icon" title="Fechar sessão">
+                  <PowerOff className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
 
           <div className="pt-2 border-t">
@@ -129,7 +290,7 @@ function TreinoPage() {
             </div>
             <div className="space-y-1 max-h-64 overflow-auto">
               {steps.length === 0 && (
-                <p className="text-xs text-muted-foreground">Nenhum passo. Rode o script pra começar.</p>
+                <p className="text-xs text-muted-foreground">Nenhum passo. Abra a sessão e comece a interagir.</p>
               )}
               {steps.map((s, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs bg-muted/40 rounded px-2 py-1">
@@ -141,13 +302,18 @@ function TreinoPage() {
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="flex gap-2 pt-2">
-            <Button onClick={runAll} disabled={busy} className="flex-1">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Executar & Print
-            </Button>
+            {steps.length > 0 && (
+              <Button
+                onClick={runAllFromScratch}
+                disabled={busy}
+                variant="outline"
+                size="sm"
+                className="w-full mt-2"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                Repetir do zero (validar script)
+              </Button>
+            )}
           </div>
 
           <div className="pt-3 border-t space-y-2">
@@ -164,17 +330,15 @@ function TreinoPage() {
         <Card className="col-span-12 lg:col-span-8 p-4">
           {!shot && (
             <div className="text-sm text-muted-foreground py-12 text-center">
-              Clique em <strong>Executar & Print</strong> pra abrir a página.
+              Clique em <strong>Abrir sessão</strong> pra iniciar o navegador ao vivo.
             </div>
           )}
           {shot && (
             <div>
               <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
-                <span className="font-mono">{shot.url}</span>
+                <span className="font-mono truncate">{shot.url}</span>
                 <span>·</span>
-                <span>
-                  {shot.w}×{shot.h}
-                </span>
+                <span>{shot.w}×{shot.h}</span>
               </div>
               <div className="relative inline-block border rounded overflow-hidden bg-black/5">
                 <img
@@ -287,7 +451,9 @@ function TreinoPage() {
             </div>
             {vision.targets && vision.targets.length > 0 && (
               <div>
-                <div className="text-xs font-medium mb-2">Alvos identificados — valide e vire passo:</div>
+                <div className="text-xs font-medium mb-2">
+                  Alvos identificados — clicar já executa na sessão viva:
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {vision.targets.map((t, i) => (
                     <div
@@ -305,13 +471,13 @@ function TreinoPage() {
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        <Button size="sm" variant="outline" onClick={() => clickTargetAsStep(t, "click")}>
+                        <Button size="sm" variant="outline" disabled={busy || !sessionId} onClick={() => clickTargetAsStep(t, "click")}>
                           <MousePointer2 className="h-3 w-3 mr-1" /> Clicar
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => clickTargetAsStep(t, "type", pnr)}>
+                        <Button size="sm" variant="outline" disabled={busy || !sessionId} onClick={() => clickTargetAsStep(t, "type", pnr)}>
                           <TypeIcon className="h-3 w-3 mr-1" /> Digitar PNR
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => clickTargetAsStep(t, "type", surname)}>
+                        <Button size="sm" variant="outline" disabled={busy || !sessionId} onClick={() => clickTargetAsStep(t, "type", surname)}>
                           <TypeIcon className="h-3 w-3 mr-1" /> Digitar sobrenome
                         </Button>
                       </div>
@@ -331,15 +497,15 @@ function TreinoPage() {
 
         {/* Utility steps */}
         <Card className="col-span-12 p-4">
-          <div className="text-xs font-medium mb-2">Adicionar passo manual</div>
+          <div className="text-xs font-medium mb-2">Adicionar passo manual (já executa na sessão)</div>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => addStep({ action: "wait", ms: 2000 })}>
+            <Button size="sm" variant="outline" disabled={busy || !sessionId} onClick={() => addManualStep({ action: "wait", ms: 2000 }, "Esperar 2s")}>
               <Clock className="h-3 w-3 mr-1" /> Esperar 2s
             </Button>
-            <Button size="sm" variant="outline" onClick={() => addStep({ action: "press", key: "Enter" })}>
+            <Button size="sm" variant="outline" disabled={busy || !sessionId} onClick={() => addManualStep({ action: "press", key: "Enter" }, "Enter")}>
               ⏎ Enter
             </Button>
-            <Button size="sm" variant="outline" onClick={() => addStep({ action: "scroll", dy: 400 })}>
+            <Button size="sm" variant="outline" disabled={busy || !sessionId} onClick={() => addManualStep({ action: "scroll", dy: 400 }, "Scroll ↓400")}>
               <ArrowUp className="h-3 w-3 mr-1 rotate-180" /> Scroll ↓400
             </Button>
           </div>
@@ -348,7 +514,7 @@ function TreinoPage() {
         {/* Logs */}
         {logs.length > 0 && (
           <Card className="col-span-12 p-4">
-            <div className="text-xs font-medium mb-2">Logs da execução</div>
+            <div className="text-xs font-medium mb-2">Logs da última reexecução</div>
             <pre className="text-xs bg-muted/40 p-2 rounded overflow-auto max-h-48">
               {JSON.stringify(logs, null, 2)}
             </pre>
