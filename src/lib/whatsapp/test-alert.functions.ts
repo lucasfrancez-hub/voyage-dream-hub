@@ -73,7 +73,7 @@ export const sendTestFlightAlert = createServerFn({ method: "POST" })
     }
 
     try {
-      const sent = await sendWhatsAppButtons(phone, { body, buttons });
+      const sent = await sendWhatsAppButtons({ to: phone, body, buttons });
       return { ok: true, phone, scenario, id: sent.id };
     } catch (err) {
       // Fallback: se botões falharem, manda texto simples
