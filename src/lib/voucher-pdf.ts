@@ -468,7 +468,7 @@ const ensureSpace = (ctx: Ctx, needed: number) => {
 type IconKind =
   | "envelope" | "phone" | "pin" | "ticket" | "user" | "plane" | "bed"
   | "calendar" | "moon" | "users" | "info" | "building" | "planeSmall"
-  | "phoneRed" | "envelopeRed" | "clock"
+  | "phoneRed" | "envelopeRed" | "clock" | "coffee"
   | "bagPersonal" | "bagCarry" | "bagChecked" | "check" | "cross";
 
 const drawIcon = (page: PDFPage, kind: IconKind, x: number, y: number, size: number, color: Color) => {
