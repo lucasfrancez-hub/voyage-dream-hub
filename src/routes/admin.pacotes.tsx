@@ -442,8 +442,8 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
         ? (editing.includes as string).split("\n").map((s) => s.trim()).filter(Boolean)
         : [];
     // Auto-preenche apenas se estiver vazio OU se contiver só itens do conjunto auto anterior.
-    const autoSet = new Set(["Passagem Aérea de Ida e Volta", "Passagem Aérea", "Hospedagem", "Café da Manhã", "Bagagem Despachada"]);
-    const isAutoOnly = current.every((s) => autoSet.has(s));
+    const autoRe = /^(passagem\s+a[eé]rea(\s+de\s+ida(\s+e\s+volta)?)?|a[eé]reo|hospedagem|caf[eé]\s+da\s+manh[aã]|bagagem\s+despachada)$/i;
+    const isAutoOnly = current.every((s) => autoRe.test(s.trim()));
     if (current.length === 0 || isAutoOnly) {
       const same = current.length === derivedIncludes.length && current.every((v, i) => v === derivedIncludes[i]);
       if (!same) setEditing({ ...editing, includes: derivedIncludes });
