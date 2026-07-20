@@ -142,7 +142,65 @@ async function withConnection<T>(
   }
 }
 
+async function applyStealth(page: Page) {
+  const UA =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
+  await page.setUserAgent(UA).catch(() => {});
+  await page
+    .setExtraHTTPHeaders({
+      "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    })
+    .catch(() => {});
+  try {
+    const cdp = await page.createCDPSession();
+    await cdp.send("Emulation.setTimezoneOverride" as never, { timezoneId: "America/Sao_Paulo" } as never).catch(() => {});
+    await cdp.send("Emulation.setLocaleOverride" as never, { locale: "pt-BR" } as never).catch(() => {});
+    await cdp
+      .send("Emulation.setGeolocationOverride" as never, {
+        latitude: -23.5505,
+        longitude: -46.6333,
+        accuracy: 80,
+      } as never)
+      .catch(() => {});
+    await cdp.detach().catch(() => {});
+  } catch { /* ignore */ }
+  await page
+    .evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+      Object.defineProperty(navigator, "languages", { get: () => ["pt-BR", "pt", "en-US", "en"] });
+      Object.defineProperty(navigator, "platform", { get: () => "MacIntel" });
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 8 });
+      Object.defineProperty(navigator, "deviceMemory", { get: () => 8 });
+      Object.defineProperty(navigator, "plugins", {
+        get: () => [
+          { name: "PDF Viewer", filename: "internal-pdf-viewer" },
+          { name: "Chrome PDF Viewer", filename: "internal-pdf-viewer" },
+          { name: "Chromium PDF Viewer", filename: "mhjfbmdgcfjbbpaeojofohoefgiehjai" },
+        ],
+      });
+      // WebGL vendor/renderer coerentes com Mac Chrome
+      const getParam = WebGLRenderingContext.prototype.getParameter;
+      WebGLRenderingContext.prototype.getParameter = function (p: number) {
+        if (p === 37445) return "Intel Inc.";
+        if (p === 37446) return "Intel Iris OpenGL Engine";
+        return getParam.call(this, p);
+      };
+      // chrome runtime presente
+      (window as unknown as { chrome?: unknown }).chrome = { runtime: {} };
+      // permissions.query devolve estado consistente
+      const orig = navigator.permissions?.query?.bind(navigator.permissions);
+      if (orig) {
+        navigator.permissions.query = (p: PermissionDescriptor) =>
+          p.name === "notifications"
+            ? Promise.resolve({ state: Notification.permission } as PermissionStatus)
+            : orig(p);
+      }
+    })
+    .catch(() => {});
+}
+
 async function capture(page: Page) {
+
   await new Promise((r) => setTimeout(r, 300));
   const screenshot = (await page.screenshot({
     type: "jpeg",
