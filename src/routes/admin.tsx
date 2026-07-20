@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { AdminNotificationBell } from "@/components/admin/NotificationBell";
+import { GlobalSearchButton } from "@/components/admin/GlobalSearch";
+
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
