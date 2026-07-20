@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { confirm } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/checkins")({
   head: () => ({ meta: [{ title: "Check-ins — VIA AIR" }] }),
@@ -662,7 +663,7 @@ function SegmentCard({
                   disabled={disabled}
                   busy={busyKey === rowKey || busyKey === `${seg.checkin?.id}:${pax.index}:rm`}
                   onFile={(file) => onUpload({ key: rowKey, orderItemId: seg.order_item_id, passengerIndex: pax.index, file, totalPax: paxCount, uploadedBefore: uploaded.length, checkinIdBefore: seg.checkin?.id ?? null, alreadySent })}
-                  onRemove={() => seg.checkin?.id && onRemove(seg.checkin.id, pax.index)}
+                  onRemove={() => seg.checkin?.id && onRemove(seg.checkin.id, pax.index, pax.full_name)}
                   checkinId={seg.checkin?.id ?? null}
                 />
               );
