@@ -84,17 +84,39 @@ function CheckinsPage() {
 
   const groups = (q.data ?? []) as Array<any>;
 
-  const [aFazer, prontos] = useMemo(() => {
+  // Janela de check-in por trecho:
+  // - Internacional: 24h
+  // - Nacional LATAM/GOL/AZUL: 24h
+  // - Nacional demais companhias: 48h
+  function windowHoursFor(seg: any): number {
+    const airline = String(seg.airline || "").toUpperCase();
+    const isIntl = !!seg.is_intl;
+    if (isIntl) return 24;
+    if (airline === "LATAM" || airline === "GOL" || airline === "AZUL") return 24;
+    return 48;
+  }
+  function isWithinWindow(seg: any): boolean {
+    const dep = seg.departure_at ? new Date(seg.departure_at).getTime() : 0;
+    if (!dep) return false;
+    const hoursTo = (dep - Date.now()) / HOUR;
+    return hoursTo <= windowHoursFor(seg) && hoursTo > -6;
+  }
+
+  const [aFazer, proximos, prontos] = useMemo(() => {
     const todo: any[] = [];
+    const upcoming: any[] = [];
     const done: any[] = [];
     for (const g of groups) {
       const paxCount = g.passengers.length;
       const isReady = g.segments.every((s: any) =>
         s.checkin?.boarding_passes && (s.checkin.boarding_passes as any[]).length >= paxCount,
       );
-      if (isReady) done.push(g); else todo.push(g);
+      if (isReady) { done.push(g); continue; }
+      // "A fazer" = pelo menos um segmento dentro da janela (ou já iniciado)
+      const anyOpen = g.segments.some((s: any) => s.checkin || isWithinWindow(s));
+      if (anyOpen) todo.push(g); else upcoming.push(g);
     }
-    return [todo, done];
+    return [todo, upcoming, done];
   }, [groups]);
 
   const totalToUpload = useMemo(() => {
@@ -102,6 +124,7 @@ function CheckinsPage() {
     for (const g of aFazer) n += g.segments.length * g.passengers.length;
     return n;
   }, [aFazer]);
+
 
   async function handleUpload(args: {
     key: string;
@@ -198,13 +221,34 @@ function CheckinsPage() {
       {q.isLoading && <div className="text-sm text-muted-foreground">Carregando…</div>}
 
       <div className="space-y-10">
+
+
         <Section
           title="A fazer"
-          subtitle="Reservas com voos nos próximos 7 dias. Anexe o cartão de cada passageiro."
-          empty="Nada pendente. 🎉"
+          subtitle="Reservas com pelo menos um trecho já na janela de check-in (48h nacional, 24h LATAM/GOL/AZUL e internacional)."
+          empty="Nada pendente na janela. 🎉"
           count={aFazer.length}
         >
           {aFazer.map((g) => (
+            <BookingCard
+              key={g.key}
+              group={g}
+              busyKey={busyKey}
+              sendingId={sendingId}
+              onUpload={handleUpload}
+              onRemove={handleRemove}
+              onSend={handleSend}
+            />
+          ))}
+        </Section>
+
+        <Section
+          title="Próximos check-ins"
+          subtitle="Reservas dos próximos 7 dias que ainda não entraram na janela de check-in."
+          empty="Nada previsto."
+          count={proximos.length}
+        >
+          {proximos.map((g) => (
             <BookingCard
               key={g.key}
               group={g}
@@ -235,6 +279,7 @@ function CheckinsPage() {
             />
           ))}
         </Section>
+
       </div>
     </div>
   );
@@ -328,7 +373,7 @@ function BookingCard({
               <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
                 <div>
                   <div className="font-semibold text-sm">
-                    LATAM {seg.flight_number || ""} · {seg.origin ?? "?"} → {seg.destination ?? "?"}
+                    {seg.airline_label || seg.airline || "Voo"} {seg.flight_number || ""} · {seg.origin ?? "?"} → {seg.destination ?? "?"}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {dep ? dep.toLocaleString("pt-BR", { timeZone: "UTC", dateStyle: "short", timeStyle: "short" }) : "Sem horário"}
@@ -370,12 +415,19 @@ function BookingCard({
                 {group.passengers.map((pax: any) => {
                   const rowKey = `${seg.order_item_id}:${pax.index}`;
                   const existing = uploaded.find((p) => p.passenger_index === pax.index);
-                  const openUrl = buildLatamBoardingPassUrl({
-                    locator: group.locator,
-                    surname: group.surname,
-                    tripPassengerId: pax.trip_passenger_id,
-                    segmentIndex: seg.segment_index,
-                  });
+                  const openUrl = seg.airline === "LATAM"
+                    ? buildLatamBoardingPassUrl({
+                        locator: group.locator,
+                        surname: group.surname,
+                        tripPassengerId: pax.trip_passenger_id,
+                        segmentIndex: seg.segment_index,
+                      })
+                    : (seg.airline === "GOL"
+                      ? `https://q.voegol.com.br/CheckinWeb/Home/Index?pnr=${encodeURIComponent(group.locator)}&lastName=${encodeURIComponent(group.surname)}`
+                      : seg.airline === "AZUL"
+                        ? `https://checkin.voeazul.com.br/?pnr=${encodeURIComponent(group.locator)}&lastName=${encodeURIComponent(group.surname)}`
+                        : `https://www.google.com/search?q=${encodeURIComponent(`check-in ${seg.airline_label || ""} ${group.locator}`)}`);
+
                   return (
                     <PassengerRow
                       key={rowKey}
