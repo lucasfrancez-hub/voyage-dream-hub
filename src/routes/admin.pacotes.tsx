@@ -122,6 +122,9 @@ function AdminPackages() {
   // Multi-import drafts: array of partial packages open in tabs
   const [drafts, setDrafts] = useState<Partial<PackageRow>[] | null>(null);
   const [draftIndex, setDraftIndex] = useState(0);
+  // Global hashtag number(s) reserved for the currently-open new package(s)
+  const [pendingNumbers, setPendingNumbers] = useState<number[] | null>(null);
+
 
   // Wrap setEditing to keep the drafts array in sync with edits
   const setEditing = (v: Partial<PackageRow> | null) => {
