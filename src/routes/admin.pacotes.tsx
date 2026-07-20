@@ -1701,7 +1701,9 @@ function PackageImportButton({
       if (p.room_type) patch.room_type = String(p.room_type);
       if (p.room_category) patch.room_category = String(p.room_category);
       if (p.bed_type) patch.bed_type = String(p.bed_type);
-      if (Array.isArray(p.includes)) patch.includes = p.includes.map((s: any) => String(s));
+      // Não usar includes do documento — a derivação automática monta na ordem correta
+      // (Passagem Aérea → Hospedagem → Café da Manhã → Bagagem Despachada).
+      patch.includes = [];
       if (p.supplier_name) patch.supplier_name = String(p.supplier_name);
       if (p.outbound_flight && typeof p.outbound_flight === "object") {
         patch.outbound_flight = {
