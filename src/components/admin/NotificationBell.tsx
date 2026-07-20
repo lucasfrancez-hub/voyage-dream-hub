@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Bell, Check, Copy, Plane, ArrowRight } from "lucide-react";
+import { Bell, Check, Copy, Plane, ArrowRight, Send, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -14,7 +14,9 @@ import {
   listFlightAlerts,
   markAllFlightAlertsSeen,
   markFlightAlertSeen,
+  sendFlightAlertToClient,
 } from "@/lib/admin-alerts.functions";
+
 
 function severityColor(sev: string) {
   switch (sev) {
