@@ -278,7 +278,9 @@ export const runCheckin = createServerFn({ method: "POST" })
       }
     }
 
-    const mode = "training_script" as const;
+    // `mode` mantém o valor compatível com a coluna existente; a execução
+    // real é exclusivamente o script salvo em sessão viva/CDP.
+    const mode = "code" as const;
 
     // Marca running
     await sb.from("flight_checkins")
@@ -425,7 +427,7 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
       return da - db;
     });
 
-    const mode = "training_script" as const;
+    const mode = "code" as const;
 
     // Upsert um check-in por item, marca running
     const checkins: any[] = [];
