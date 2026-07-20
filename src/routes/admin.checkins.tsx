@@ -74,6 +74,8 @@ function CheckinsPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("todo");
+  const [search, setSearch] = useState("");
+
 
   const q = useQuery({
     queryKey: ["manual-checkins"],
