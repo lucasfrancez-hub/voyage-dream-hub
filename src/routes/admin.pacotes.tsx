@@ -15,7 +15,7 @@ import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { generatePackageSummary, searchCoverImages, extractFlightFromImage, extractPackageFromDocument, extractMultiplePackagesFromDocument } from "@/lib/packages/ai.functions";
 import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
-import { FileUp, Upload } from "lucide-react";
+import { FileUp, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
