@@ -304,7 +304,7 @@ function CheckinRow({
 }) {
   const depIso = r.departure_at ?? r.item?.details?.depart_at ?? r.item?.details?.departure_at ?? r.scheduled_for ?? null;
   const dep = depIso ? new Date(depIso) : null;
-  const isBusy = busyId === r.id;
+  const isBusy = busyId === r.id || r.status === "running";
   const isSending = sendingId === r.id;
   const hasPdf = !!(r.boarding_pass_path || r.boarding_pass_url);
   const passengerLabel = r.passenger?.full_name || r.pnr_surname || null;
@@ -368,7 +368,7 @@ function CheckinRow({
           title={r.status === "success" ? "Apaga o PDF atual e roda o check-in de novo" : ""}
         >
           {isBusy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
-          {r.status === "success" ? "Regerar cartão" : "Fazer check-in"}
+          {isBusy ? "Processando…" : r.status === "success" ? "Regerar cartão" : "Fazer check-in"}
         </Button>
       </div>
     </Card>
