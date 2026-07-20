@@ -154,6 +154,10 @@ export default async ({ page, browser, context }) => {
       } else if (s.action === "scroll") {
         await currentPage.evaluate((dy) => window.scrollBy(0, dy), s.dy);
         await new Promise((r) => setTimeout(r, 500));
+      } else if (s.action === "capture_region") {
+        const clip = { x: Math.max(0, s.x), y: Math.max(0, s.y), width: Math.max(1, s.width), height: Math.max(1, s.height) };
+        const pngB64 = await currentPage.screenshot({ type: "png", encoding: "base64", clip });
+        captures.push({ i, kind: "region", pngBase64: pngB64, filename: s.filename || null, width: clip.width, height: clip.height });
       }
       logs.push({ i, action: s.action, ok: true });
     } catch (e) {
@@ -170,7 +174,7 @@ export default async ({ page, browser, context }) => {
   if (currentUrl.startsWith("chrome-error://") || /ERR_HTTP2_PROTOCOL_ERROR|This site can.t be reached/i.test(bodyText)) {
     throw new Error("A LATAM recusou a conexão desta sessão do navegador");
   }
-  return { data: { screenshot, currentUrl, title, logs, width: viewportWidth, height: viewportHeight } };
+  return { data: { screenshot, currentUrl, title, logs, captures, width: viewportWidth, height: viewportHeight } };
 };
 `;
     const { runBrowserlessFunction } = await import("@/lib/checkin/browserless.server");
