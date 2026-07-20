@@ -789,10 +789,15 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                     value={editing.hotel_name ?? ""}
                     onChangeText={(v) => setEditing({ ...editing, hotel_name: v })}
                     onSelect={(h) => {
+                      const automaticStars = h.rating != null
+                        ? Math.min(5, Math.max(1, Math.round(h.rating)))
+                        : h.hotel_class != null
+                          ? Math.min(5, Math.max(1, Math.round(h.hotel_class)))
+                          : 3;
                       setEditing({
                         ...editing,
                         hotel_name: h.name,
-                        hotel_stars: h.rating != null ? Math.round(h.rating) : (h.hotel_class ?? editing.hotel_stars ?? 3),
+                        hotel_stars: automaticStars,
                         image_url: (editing.image_url && editing.image_url.length > 0) ? editing.image_url : (h.photos[0] ?? editing.image_url ?? ""),
                         tripadvisor_location_id: String(h.location_id),
                         tripadvisor_url: h.tripadvisor_url ?? null,
@@ -1249,7 +1254,10 @@ function FlightFieldset({
                       const curr = String(s.flight_number ?? "").trim();
                       let nextNo = curr;
                       if (curr) {
-                        const m = curr.toUpperCase().match(/^[A-Z0-9]{2,3}\s*(.+)$/);
+                        const upper = curr.toUpperCase();
+                        const m = /^\d+$/.test(upper)
+                          ? null
+                          : upper.match(/^(?=[A-Z0-9]{2,3}\s)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,3}\s*(.+)$/);
                         const suffix = m && /\d/.test(m[1]) ? m[1].trim() : curr.toUpperCase();
                         nextNo = a ? `${a.iata} ${suffix}` : suffix;
                       }

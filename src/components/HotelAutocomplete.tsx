@@ -68,9 +68,22 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     setFetchingId(item.location_id);
     try {
       const full = await details({ data: { locationId: item.location_id, photoLimit } });
+      // O endpoint de busca costuma trazer a nota (ex.: 4,1), enquanto o de
+      // detalhes pode omiti-la. Preserve a nota exibida na sugestão para que
+      // o formulário sempre consiga preencher as estrelas automaticamente.
+      const selected: HotelSelection = {
+        ...full,
+        name: full.name || item.name,
+        address: full.address ?? item.address,
+        city: full.city ?? item.city,
+        country: full.country ?? item.country,
+        latitude: full.latitude ?? item.latitude,
+        longitude: full.longitude ?? item.longitude,
+        rating: full.rating ?? item.rating,
+        tripadvisor_url: full.tripadvisor_url ?? item.tripadvisor_url,
+      };
       suppressRef.current = true;
-      onChangeText(full.name);
-      onSelect(full);
+      onSelect(selected);
       setOpen(false);
     } catch (e) {
       console.error(e);
