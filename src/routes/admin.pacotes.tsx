@@ -540,6 +540,8 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   const [imgHasMore, setImgHasMore] = useState(false);
   const [imgSource, setImgSource] = useState("");
   const [imgResults, setImgResults] = useState<Array<{ thumb: string; url: string; title: string; source: string; author: string }>>([]);
+  const draftsScrollRef = useRef<HTMLDivElement | null>(null);
+
 
   const genSummary = useServerFn(generatePackageSummary);
   const searchImages = useServerFn(searchCoverImages);
