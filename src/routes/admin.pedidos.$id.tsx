@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { detectBrand } from "@/components/CardForm";
 
 import {
@@ -1783,7 +1783,7 @@ function ItemCard({
               <>
                 {typeof d.destination === "string" && <div>{d.destination as string}</div>}
                 {typeof d.address === "string" && <div>{d.address as string}</div>}
-                {typeof d.room === "string" && <div>Quarto: {d.room as string}</div>}
+                {typeof d.room === "string" && <div>Categoria: {d.room as string}</div>}
                 {typeof (d.board ?? d.meal_plan) === "string" && <div>Regime: {(d.board ?? d.meal_plan) as string}</div>}
                 {(() => {
                   const ci = (d.check_in as string) || (d.checkin as string) || "";
@@ -2277,7 +2277,7 @@ function HotelReservationCard({
           <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
             {destination && <div>{destination}</div>}
             {address && <div>{address}</div>}
-            {room && <div>Quarto: <span className="text-foreground">{room}</span></div>}
+            {room && <div>Categoria: <span className="text-foreground">{room}</span></div>}
             {typeof d.bed_type === "string" && (d.bed_type as string).trim() && (
               <div>Cama: <span className="text-foreground">{d.bed_type as string}</span></div>
             )}
@@ -2506,6 +2506,26 @@ function ItemDialog({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [locator, setLocator] = useState(initial?.supplier_locator ?? "");
   const [status, setStatusVal] = useState<"confirmed" | "reserved" | "cancelled" | "pending">((initial?.status ?? "confirmed") as "confirmed" | "reserved" | "cancelled" | "pending");
+
+  // Extrai apenas escalares para o form; guarda o resto (arrays/objetos como
+  // `observations`, `tripadvisor_photos`, etc.) num ref para merge no save.
+  // Sem isso, importações do voucher com observations[] eram apagadas ao editar.
+  const extractExtras = (raw: unknown): Record<string, unknown> => {
+    const extras: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries((raw ?? {}) as Record<string, unknown>)) {
+      if (v === null || v === undefined) continue;
+      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") continue;
+      extras[k] = v;
+    }
+    return extras;
+  };
+  const preservedExtrasRef = useRef<Record<string, unknown>>(extractExtras(initialDetails));
+  const preservedSiblingExtrasRef = useRef<Record<string, Record<string, unknown>>>(
+    kind === "flight"
+      ? Object.fromEntries((siblings ?? []).filter((s) => s.id).map((s) => [s.id!, extractExtras(s.details)]))
+      : {}
+  );
+
   const [details, setDetails] = useState<Record<string, string | number | boolean>>(() => {
     const clean: Record<string, string | number | boolean> = {};
     for (const [k, v] of Object.entries(initialDetails)) {
@@ -2542,6 +2562,10 @@ function ItemDialog({
     const d0 = cleanDetails(initial?.details);
     if (kind === "hotel" && !d0.guests && guestsFromPax) d0.guests = guestsFromPax;
     setDetails(d0);
+    preservedExtrasRef.current = extractExtras(initial?.details);
+    preservedSiblingExtrasRef.current = kind === "flight"
+      ? Object.fromEntries((siblings ?? []).filter((s) => s.id).map((s) => [s.id!, extractExtras(s.details)]))
+      : {};
     setExtraSegments(
       kind === "flight"
         ? (siblings ?? []).map((s) => ({ id: s.id, details: cleanDetails(s.details) }))
@@ -2883,7 +2907,7 @@ function ItemDialog({
               </div>
               <div><Label>Endereço</Label><Input value={String(details.address ?? "")} onChange={(e) => setField("address", e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Quarto</Label><Input value={String(details.room ?? "")} onChange={(e) => setField("room", e.target.value)} /></div>
+                <div><Label>Categoria</Label><Input value={String(details.room ?? "")} onChange={(e) => setField("room", e.target.value)} placeholder="Ex: Suíte Luxo, Deluxe Ocean View..." /></div>
                 <div><Label>Regime</Label><Input value={String(details.board ?? "")} onChange={(e) => setField("board", e.target.value)} placeholder="Café da manhã, All inclusive..." /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -3063,7 +3087,9 @@ function ItemDialog({
               return cd;
             };
 
-            const cleanMain = buildClean(details);
+            // Merge extras preservados (arrays/objetos como `observations`, `tripadvisor_photos`)
+            // ANTES dos escalares editados — assim edições no form ganham, mas o resto sobrevive.
+            const cleanMain = { ...preservedExtrasRef.current, ...buildClean(details) };
             let effectiveTitle = title.trim();
             if (kind === "flight") {
               // Localizador opcional: se vier, precisa ter ao menos 6 alfanuméricos
@@ -3111,7 +3137,8 @@ function ItemDialog({
                     return seg.id || from || to;
                   })
                   .map((seg, idx) => {
-                    const cd = buildClean(seg.details);
+                    const preserved = seg.id ? (preservedSiblingExtrasRef.current[seg.id] ?? {}) : {};
+                    const cd = { ...preserved, ...buildClean(seg.details) };
                     return {
                       id: seg.id,
                       title: segmentTitle(seg.details),
