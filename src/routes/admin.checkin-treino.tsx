@@ -187,7 +187,7 @@ function TreinoPage() {
 
   const removeStep = (i: number) => setSteps((prev) => prev.filter((_, idx) => idx !== i));
 
-  const executeAndAppend = async (step: TrainingStep, label: string) => {
+  const executeAndAppend = async (step: TrainingStep, label: string, hint?: string) => {
     if (!sessionId) {
       toast.error("Abra uma sessão primeiro.");
       return;
@@ -195,9 +195,18 @@ function TreinoPage() {
     setBusy(true);
     setVision(null);
     setSelectedTarget(null);
+    const urlBefore = shot?.url ?? "";
     try {
       const r = await runStep({ data: { sessionId, step } });
       setSteps((prev) => [...prev, step]);
+      // Annotate the screenshot the action was taken ON (urlBefore), so the label sticks
+      // to the field the user marked, not to the next screen.
+      if ((step.action === "type" || step.action === "click") && hint && urlBefore) {
+        setAnnotations((prev) => [
+          ...prev,
+          { x: step.x, y: step.y, label: hint, kind: step.action, url: urlBefore },
+        ]);
+      }
       setShot((prev) => ({ b64: r.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: r.currentUrl, title: r.title }));
       toast.success(`${label} · executado`);
     } catch (e) {
@@ -206,6 +215,7 @@ function TreinoPage() {
       setBusy(false);
     }
   };
+
 
   const clickTargetAsStep = async (t: VisionTarget, mode: "click" | "type", text = "") => {
     const step: TrainingStep =
