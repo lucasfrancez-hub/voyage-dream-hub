@@ -457,11 +457,13 @@ function AdminPackages() {
           setEditing={setEditing}
           saving={saving}
           save={save}
+          saveAll={saveAll}
           drafts={drafts}
           draftIndex={draftIndex}
           switchDraft={switchDraft}
           closeCurrentDraft={closeCurrentDraft}
         />
+
       )}
 
     </div>
