@@ -366,7 +366,10 @@ function TreinoPage() {
         executionLogs.push({ step: i + 1, action: steps[i].action, ok: true });
         latest = { ...latest, b64: result.screenshot, url: result.currentUrl, title: result.title };
         setShot(latest);
-      }
+        const region = (result as { region?: { path: string; signedUrl: string | null; sizeKb: number } }).region;
+        if (region?.signedUrl) {
+          setPdfs((prev) => [{ url: region.signedUrl!, path: region.path, sizeKb: region.sizeKb, source: result.currentUrl, kind: "png" }, ...prev]);
+        }
       setShot(latest);
       setLogs(executionLogs);
       toast.success(`Validado: ${latest.title || latest.url}`);
