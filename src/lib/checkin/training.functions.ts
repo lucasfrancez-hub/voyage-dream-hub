@@ -180,7 +180,8 @@ export default async ({ page, browser, context }) => {
 `;
     const { runBrowserlessFunction } = await import("@/lib/checkin/browserless.server");
     type LogEntry = { i?: number; step?: string; action?: string; url?: string; ok: boolean; err?: string };
-    type TrainingResult = { screenshot: string; currentUrl: string; title: string; logs: LogEntry[]; width: number; height: number };
+    type CaptureItem = { i: number; kind: "region"; pngBase64: string; filename: string | null; width: number; height: number };
+    type TrainingResult = { screenshot: string; currentUrl: string; title: string; logs: LogEntry[]; captures?: CaptureItem[]; width: number; height: number };
     const strategies = [
       { proxy: "residential" as const, proxyCountry: "br", proxySticky: true },
     ];
@@ -197,8 +198,29 @@ export default async ({ page, browser, context }) => {
           ...strategy,
         });
 
-        if (result.data) return result.data;
-        throw new Error("O navegador remoto não devolveu a captura da LATAM");
+        if (!result.data) throw new Error("O navegador remoto não devolveu a captura da LATAM");
+        // Faz upload das regiões capturadas durante o script.
+        const uploads: Array<{ path: string; signedUrl: string | null; sizeKb: number; index: number }> = [];
+        const caps = result.data.captures ?? [];
+        if (caps.length > 0) {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          for (const c of caps) {
+            const bytes = Buffer.from(c.pngBase64, "base64");
+            const nameBase = c.filename || `${locator || "reserva"}-${surname || "pax"}-regiao-${c.i}.png`;
+            const safeName = nameBase.replace(/[^\w.\-]+/g, "_");
+            const finalName = safeName.toLowerCase().endsWith(".png") ? safeName : `${safeName}.png`;
+            const path = `training/${context.userId}/${Date.now()}-${finalName}`;
+            const up = await supabaseAdmin.storage
+              .from("boarding-passes")
+              .upload(path, bytes, { contentType: "image/png", upsert: true });
+            if (up.error) continue;
+            const signed = await supabaseAdmin.storage
+              .from("boarding-passes")
+              .createSignedUrl(path, 60 * 60 * 24 * 30);
+            uploads.push({ path, signedUrl: signed.data?.signedUrl ?? null, sizeKb: Math.round(bytes.length / 1024), index: c.i });
+          }
+        }
+        return { ...result.data, uploads };
       } catch (error) {
         lastError = error;
       }
