@@ -482,3 +482,179 @@ Regras:
 
     return { flight: parsed };
   });
+
+
+// Extrai um pacote completo a partir de um documento (PDF ou imagem):
+// orçamento, voucher, itinerário. Retorna partial PackageRow com datas,
+// destino, hotel, refeição, valores e voos de ida/volta.
+export const extractPackageFromDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        file_base64: z.string().min(100),
+        mime_type: z.string().default("application/pdf"),
+        filename: z.string().default("orcamento.pdf"),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
+
+    const system = `Você extrai dados de PACOTES TURÍSTICOS a partir de orçamentos, vouchers e itinerários (PDF ou imagem) de operadoras (Visual, CVC, Azul Viagens, Flytour, etc).
+Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos que não estiverem no documento — NÃO invente):
+{
+  "destination": "Cidade principal do destino (ex.: Porto Seguro)",
+  "origin": "Cidade de origem (ex.: Maringá)",
+  "going_date": "YYYY-MM-DD (data de ida)",
+  "return_date": "YYYY-MM-DD (data de volta)",
+  "nights": 6,
+  "base_occupancy": 2,
+  "price_per_person": 2705.89,
+  "taxes": 167.50,
+  "hotel_name": "BOSQUE DO PORTO PRAIA HOTEL",
+  "hotel_stars": 4,
+  "meal_plan": "Café da manhã | Meia pensão | Pensão completa | All inclusive | Sem refeição",
+  "room_type": "Standard | Superior | Luxo | ...",
+  "room_category": "Standard",
+  "bed_type": "Casal | Solteiro | Duplo",
+  "includes": ["Hospedagem", "Aéreo", "Traslados", "Passeios"],
+  "outbound_flight": {
+    "airline": "GOL",
+    "flight_number": "1137",
+    "from_iata": "MGF",
+    "from_city": "Maringá",
+    "to_iata": "BPS",
+    "to_city": "Porto Seguro",
+    "depart_at": "2026-11-06T08:20",
+    "arrive_at": "2026-11-06T13:05",
+    "duration": "04h45",
+    "cabin_class": "Econômica",
+    "carry_on": true,
+    "checked_bag": true,
+    "personal_item": true,
+    "segments": [
+      {
+        "airline": "GOL",
+        "flight_number": "1137",
+        "from_iata": "MGF",
+        "from_city": "Maringá",
+        "to_iata": "CGH",
+        "to_city": "São Paulo",
+        "depart_at": "2026-11-06T08:20",
+        "arrive_at": "2026-11-06T09:45",
+        "duration": "01h25",
+        "layover": "01h20 em São Paulo"
+      },
+      {
+        "airline": "GOL",
+        "flight_number": "1502",
+        "from_iata": "CGH",
+        "from_city": "São Paulo",
+        "to_iata": "BPS",
+        "to_city": "Porto Seguro",
+        "depart_at": "2026-11-06T11:05",
+        "arrive_at": "2026-11-06T13:05",
+        "duration": "02h00"
+      }
+    ]
+  },
+  "return_flight": { ...mesma estrutura, no sentido inverso }
+}
+Regras:
+- Se o documento mostra VALOR TOTAL para N pessoas, calcule price_per_person = (produtos ou (total - taxas)) / base_occupancy. taxes é o total das taxas (não por pessoa). Se só houver total, divida por base_occupancy e deixe taxes = 0.
+- flight_number: SOMENTE dígitos, todos preservados (ex.: "1137", não "7").
+- depart_at/arrive_at: sempre ISO "YYYY-MM-DDTHH:MM". Combine a data do trecho (ex.: "06 nov 2026") com o horário HH:MM.
+- Meses PT: jan=01, fev=02, mar=03, abr=04, mai=05, jun=06, jul=07, ago=08, set=09, out=10, nov=11, dez=12.
+- Se houver conexões, preencha "segments" na ordem e defina depart_at do voo agregado = do primeiro segmento, arrive_at = do último.
+- Cidade em português (São Paulo, não Sao Paulo). from_city/to_city do voo agregado = origem do primeiro trecho / destino final.
+- meal_plan: se "Café da Manhã" → "Café da manhã"; "All inclusive"/"Tudo incluído" → "All inclusive"; senão o que aparecer.
+- hotel_stars: número inteiro de 1 a 5 (conte as estrelas ou pegue a classificação).
+- includes: liste os itens da seção "Incluso" do documento.
+- Retorne SÓ o JSON, começando com { e terminando com }.`;
+
+    const userContent: any[] = [
+      {
+        type: "text",
+        text: "Extraia todos os campos do pacote a partir deste documento. Preste atenção especial: datas de ida/volta, valor por pessoa (calcular a partir do total se necessário), hotel, refeição, e AMBOS os voos (ida e volta) com todos os segmentos/conexões.",
+      },
+    ];
+
+    const isPdf = data.mime_type.includes("pdf");
+    if (isPdf) {
+      userContent.push({
+        type: "file",
+        file: {
+          filename: data.filename,
+          file_data: `data:${data.mime_type};base64,${data.file_base64}`,
+        },
+      });
+    } else {
+      userContent.push({
+        type: "image_url",
+        image_url: { url: `data:${data.mime_type};base64,${data.file_base64}` },
+      });
+    }
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-5.5",
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: userContent },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => "");
+      throw new Error(`Falha IA (${resp.status}): ${txt.slice(0, 200)}`);
+    }
+    const json = (await resp.json()) as any;
+    let text = String(json?.choices?.[0]?.message?.content ?? "").trim();
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start === -1 || end === -1) throw new Error("IA não retornou JSON");
+    let parsed: any;
+    try {
+      parsed = JSON.parse(text.slice(start, end + 1));
+    } catch {
+      throw new Error("JSON inválido retornado pela IA");
+    }
+
+    const cleanNo = (v: any): string | undefined => {
+      if (v == null) return undefined;
+      const digits = String(v).replace(/[^0-9]/g, "");
+      return digits || undefined;
+    };
+    const sanitizeFlight = (f: any) => {
+      if (!f || typeof f !== "object") return f;
+      if (f.flight_number !== undefined) f.flight_number = cleanNo(f.flight_number);
+      if (Array.isArray(f.segments)) {
+        f.segments = f.segments.map((s: any) => ({
+          ...s,
+          flight_number: s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
+        }));
+      }
+      return f;
+    };
+    if (parsed && typeof parsed === "object") {
+      sanitizeFlight(parsed.outbound_flight);
+      sanitizeFlight(parsed.return_flight);
+      if (parsed.hotel_stars != null) {
+        const n = Math.round(Number(parsed.hotel_stars));
+        parsed.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
+      }
+    }
+
+    return { pkg: parsed };
+  });
