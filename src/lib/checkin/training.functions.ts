@@ -288,8 +288,27 @@ export const runLiveTrainingStep = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     try {
+      const step = data.step;
+      // capture_region: crop + upload aqui (o runLiveStep só faz o print da tela cheia).
+      if (step.action === "capture_region") {
+        const { captureRegionPng, screenshotLiveSession } = await import("@/lib/checkin/training-session.server");
+        const { pngBase64 } = await captureRegionPng({
+          userId: context.userId, sessionId: data.sessionId,
+          x: step.x, y: step.y, width: step.width, height: step.height,
+        });
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const bytes = Buffer.from(pngBase64, "base64");
+        const safeName = (step.filename || `treino-regiao-${Date.now()}.png`).replace(/[^\w.\-]+/g, "_");
+        const finalName = safeName.toLowerCase().endsWith(".png") ? safeName : `${safeName}.png`;
+        const path = `training/${context.userId}/${Date.now()}-${finalName}`;
+        const up = await supabaseAdmin.storage.from("boarding-passes").upload(path, bytes, { contentType: "image/png", upsert: true });
+        if (up.error) throw new Error(up.error.message);
+        const signed = await supabaseAdmin.storage.from("boarding-passes").createSignedUrl(path, 60 * 60 * 24 * 30);
+        const shot = await screenshotLiveSession({ userId: context.userId, sessionId: data.sessionId });
+        return { ok: true as const, ...shot, region: { path, signedUrl: signed.data?.signedUrl ?? null, sizeKb: Math.round(bytes.length / 1024) } };
+      }
       const { runLiveStep } = await import("@/lib/checkin/training-session.server");
-      const result = await runLiveStep({ userId: context.userId, sessionId: data.sessionId, step: data.step as never });
+      const result = await runLiveStep({ userId: context.userId, sessionId: data.sessionId, step: step as never });
       return { ok: true as const, ...result };
     } catch (e) {
       console.error(e);
