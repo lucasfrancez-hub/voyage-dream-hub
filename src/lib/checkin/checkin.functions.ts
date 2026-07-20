@@ -473,9 +473,10 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
 
       const results: Array<{ id: string; ok: boolean; url?: string | null; error?: string }> = [];
       for (const ci of checkins) {
-        const path = `${orderId}/${ci.id}.pdf`;
+        const path = `${orderId}/${ci.id}.${ext}`;
         const up = await supabaseAdmin.storage.from("boarding-passes")
-          .upload(path, pdfBytes, { contentType, upsert: true });
+          .upload(path, passBytes, { contentType, upsert: true });
+
         if (up.error) {
           await sb.from("flight_checkins").update({ status: "failed", error: `Storage: ${up.error.message}` }).eq("id", ci.id);
           results.push({ id: ci.id, ok: false, error: up.error.message });
