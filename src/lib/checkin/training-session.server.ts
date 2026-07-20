@@ -15,8 +15,9 @@ import { randomUUID } from "crypto";
 import type { Browser, Page } from "puppeteer-core";
 
 const BROWSERLESS_BASE = "https://production-sfo.browserless.io";
-const SESSION_RECONNECT_MS = 10 * 60 * 1000; // 10 min de vida no Browserless
+const SESSION_RECONNECT_MS = 60 * 1000; // limite do plano Browserless (max ~60s entre ações)
 const SESSION_INACTIVITY_MS = 10 * 60 * 1000;
+
 
 export type LiveStep =
   | { action: "goto"; url: string }
