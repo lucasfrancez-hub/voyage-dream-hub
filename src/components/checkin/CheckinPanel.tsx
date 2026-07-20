@@ -186,18 +186,12 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
       <div className="space-y-3">
         {groups.map((group) => {
           const now = Date.now();
-          const isIntl = group.segments.some((s) => {
-            const from = s.item.details?.from_iata ?? "";
-            const to = s.item.details?.to_iata ?? "";
-            // domestic when both look BR-ish; here we simply reuse group scope
-            return /[A-Z]{3}/.test(from) && /[A-Z]{3}/.test(to) && false; // placeholder — computed in memo
-          });
-          void isIntl;
-          const WINDOW_MS = 48 * 60 * 60 * 1000; // canRun tolerante: aceita 48h (int'l também estará dentro)
+          const WINDOW_MS = 48 * 60 * 60 * 1000;
           const lastDep = group.lastDep;
           const canRun = lastDep != null
             ? lastDep - now <= WINDOW_MS && lastDep - now > 0
             : false;
+
 
           const allSuccess = group.segments.every((s) => s.checkin?.status === "success");
           const anyRunning = group.segments.some((s) => s.checkin?.status === "running");
