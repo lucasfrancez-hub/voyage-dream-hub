@@ -2883,7 +2883,7 @@ function ItemDialog({
               </div>
               <div><Label>Endereço</Label><Input value={String(details.address ?? "")} onChange={(e) => setField("address", e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Quarto</Label><Input value={String(details.room ?? "")} onChange={(e) => setField("room", e.target.value)} /></div>
+                <div><Label>Categoria</Label><Input value={String(details.room ?? "")} onChange={(e) => setField("room", e.target.value)} placeholder="Ex: Suíte Luxo, Deluxe Ocean View..." /></div>
                 <div><Label>Regime</Label><Input value={String(details.board ?? "")} onChange={(e) => setField("board", e.target.value)} placeholder="Café da manhã, All inclusive..." /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
