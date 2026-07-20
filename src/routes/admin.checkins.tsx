@@ -350,7 +350,7 @@ function CheckinRow({
             <Button size="sm" variant="ghost" className="h-9 w-9 p-0"><Download className="h-4 w-4" /></Button>
           </a>
         )}
-        {r.status !== "success" && r.locator && r.pnr_surname && (
+        {!isBusy && r.status !== "success" && r.locator && r.pnr_surname && (
           <a
             href={`https://www.latamairlines.com/br/pt/check-in/status?orderId=${encodeURIComponent(String(r.locator).toUpperCase())}&lastName=${encodeURIComponent(String(r.pnr_surname).toLowerCase())}`}
             target="_blank"
@@ -359,18 +359,25 @@ function CheckinRow({
             <Button size="sm" variant="outline" className="h-9"><ExternalLink className="h-3.5 w-3.5 mr-1.5" />Ver cartão(ões)</Button>
           </a>
         )}
-        <Button
-          size="sm"
-          variant={r.status === "success" ? "outline" : "default"}
-          className={r.status === "success" ? "h-9" : "h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"}
-          disabled={isBusy}
-          onClick={() => onRun(r.id, r.status === "success")}
-          title={r.status === "success" ? "Apaga o PDF atual e roda o check-in de novo" : ""}
-        >
-          {isBusy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
-          {isBusy ? "Processando…" : r.status === "success" ? "Regerar cartão" : "Fazer check-in"}
-        </Button>
+        {isBusy ? (
+          <div className="h-9 px-3 flex items-center gap-2 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-500 text-sm font-medium">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Processando check-in…
+          </div>
+        ) : (
+          <Button
+            size="sm"
+            variant={r.status === "success" ? "outline" : "default"}
+            className={r.status === "success" ? "h-9" : "h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"}
+            onClick={() => onRun(r.id, r.status === "success")}
+            title={r.status === "success" ? "Apaga o PDF atual e roda o check-in de novo" : ""}
+          >
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            {r.status === "success" ? "Regerar cartão" : "Fazer check-in"}
+          </Button>
+        )}
       </div>
+
     </Card>
   );
 }
