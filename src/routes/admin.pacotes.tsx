@@ -592,10 +592,14 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     if (!editing.destination && derived.destCity) patch.destination = derived.destCity;
     if (!editing.origin && derived.originCity) patch.origin = derived.originCity;
     if (!editing.title && derived.title) patch.title = derived.title;
-    if (!editing.slug && derived.slug) patch.slug = derived.slug;
+    if (!editing.slug && derived.slug) {
+      const base = derived.slug.replace(/-\d+$/, "");
+      patch.slug = !editing.id && nextNumber ? `${base}-${nextNumber}` : derived.slug;
+    }
     if (Object.keys(patch).length) setEditing({ ...editing, ...patch });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [derived.destCity, derived.originCity, derived.title, derived.slug]);
+  }, [derived.destCity, derived.originCity, derived.title, derived.slug, nextNumber]);
+
 
   // Montar "O que inclui" a partir dos campos efetivamente preenchidos/marcados.
   const derivedIncludes = useMemo(() => {
