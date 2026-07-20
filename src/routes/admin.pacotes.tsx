@@ -13,7 +13,7 @@ import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { findAirline } from "@/lib/airlines";
 import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
-import { generatePackageSummary, searchCoverImages } from "@/lib/packages/ai.functions";
+import { generatePackageSummary, searchCoverImages, extractFlightFromImage } from "@/lib/packages/ai.functions";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
@@ -857,30 +857,43 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
 
             {tab === "flights" && (
               <div className="space-y-5">
-                <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-border/70 bg-muted/30">
-                  {([
-                    { id: "outbound", label: "Voo de ida", filled: !!editing.outbound_flight },
-                    { id: "return", label: "Voo de volta", filled: !!editing.return_flight },
-                  ] as const).map((t) => {
-                    const active = flightLeg === t.id;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setFlightLeg(t.id)}
-                        className={`px-4 py-2 rounded-md text-[11px] font-bold uppercase tracking-[0.18em] transition inline-flex items-center gap-2 ${
-                          active
-                            ? "bg-brand-orange text-white shadow-[0_2px_10px_rgba(242,107,31,0.35)]"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {t.label}
-                        {t.filled && (
-                          <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-brand-orange"}`} />
-                        )}
-                      </button>
-                    );
-                  })}
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-border/70 bg-muted/30">
+                    {([
+                      { id: "outbound", label: "Voo de ida", filled: !!editing.outbound_flight },
+                      { id: "return", label: "Voo de volta", filled: !!editing.return_flight },
+                    ] as const).map((t) => {
+                      const active = flightLeg === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setFlightLeg(t.id)}
+                          className={`px-4 py-2 rounded-md text-[11px] font-bold uppercase tracking-[0.18em] transition inline-flex items-center gap-2 ${
+                            active
+                              ? "bg-brand-orange text-white shadow-[0_2px_10px_rgba(242,107,31,0.35)]"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {t.label}
+                          {t.filled && (
+                            <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-brand-orange"}`} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <FlightImportButton
+                    leg={flightLeg}
+                    onImported={(flight) =>
+                      setEditing(
+                        flightLeg === "outbound"
+                          ? { ...editing, outbound_flight: flight }
+                          : { ...editing, return_flight: flight },
+                      )
+                    }
+                  />
                 </div>
 
                 {flightLeg === "outbound" ? (
@@ -1345,5 +1358,139 @@ function formatMinutes(m: number | null): string {
   if (min === 0) return `${h}h`;
   return `${h}h ${min}min`;
 }
+
+function FlightImportButton({
+  leg,
+  onImported,
+}: {
+  leg: "outbound" | "return";
+  onImported: (flight: FlightInfo) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const extract = useServerFn(extractFlightFromImage);
+
+  async function handleFile(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Envie um arquivo de imagem (PNG, JPG)");
+      return;
+    }
+    setBusy(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
+      setPreview(`data:${file.type};base64,${base64}`);
+      const { flight } = await extract({
+        data: { image_base64: base64, mime_type: file.type },
+      });
+      const normalized: FlightInfo = {
+        ...flight,
+        segments: Array.isArray(flight?.segments) ? flight.segments : [],
+      };
+      onImported(normalized);
+      toast.success(`Voo de ${leg === "outbound" ? "ida" : "volta"} importado!`);
+      setOpen(false);
+      setPreview(null);
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao ler o print");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handlePaste(e: React.ClipboardEvent) {
+    const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith("image/"));
+    if (!item) return;
+    const file = item.getAsFile();
+    if (file) await handleFile(file);
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-2 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-orange hover:bg-brand-orange/20 transition"
+      >
+        <ImageIcon className="h-3.5 w-3.5" strokeWidth={2} />
+        Importar do print
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => !busy && setOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border/70 bg-card p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            onPaste={handlePaste}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold">
+                  Importar voo de {leg === "outbound" ? "ida" : "volta"}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cole (Ctrl/⌘ + V) ou envie o print. A IA extrai horários, conexões e bagagem.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !busy && setOpen(false)}
+                className="p-1.5 rounded-md hover:bg-muted"
+                disabled={busy}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {preview && (
+              <div className="mb-4 rounded-lg overflow-hidden border border-border/70 bg-muted/30">
+                <img src={preview} alt="Prévia" className="w-full max-h-48 object-contain" />
+              </div>
+            )}
+
+            <label
+              className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-8 cursor-pointer transition ${
+                busy
+                  ? "border-brand-orange/40 bg-brand-orange/5"
+                  : "border-border hover:border-brand-orange/60 hover:bg-brand-orange/5"
+              }`}
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="h-6 w-6 text-brand-orange animate-spin" />
+                  <span className="text-sm font-medium">Lendo o print com IA…</span>
+                </>
+              ) : (
+                <>
+                  <ImageIcon className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
+                  <span className="text-sm font-medium">Clique para enviar ou cole o print</span>
+                  <span className="text-[11px] text-muted-foreground">PNG, JPG · até ~10 MB</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={busy}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleFile(f);
+                }}
+              />
+            </label>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 
 
