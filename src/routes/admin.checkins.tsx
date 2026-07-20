@@ -230,10 +230,6 @@ function CheckinsPage() {
         </div>
       </header>
 
-      <p className="text-sm text-muted-foreground mb-6 max-w-2xl">
-        Fluxo manual passo a passo. Para cada reserva próxima, abra o cartão de embarque de cada
-        passageiro no site da companhia, baixe o PDF/imagem, anexe aqui e envie para o WhatsApp do cliente.
-      </p>
 
       <div className="grid grid-cols-3 gap-3 mb-8">
         <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Reservas a fazer" value={aFazer.length} tone="warning" />
