@@ -96,7 +96,7 @@ export async function handleFlightAlertReply(input: {
   const orderRow = (alert as { orders?: { full_name?: string | null; payer_full_name?: string | null; airline_locator?: string | null } } | null)?.orders ?? null;
   const fullName = orderRow?.full_name ?? orderRow?.payer_full_name ?? null;
   const firstName = fullName ? fullName.trim().split(/\s+/)[0] : null;
-  const greet = firstName ? `${firstName}` : "";
+  
 
   const responseMap: Record<string, "accepted" | "rejected" | null> = {
     accept: "accepted",
