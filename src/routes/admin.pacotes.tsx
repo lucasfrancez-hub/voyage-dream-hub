@@ -585,12 +585,7 @@ function AdminPackages() {
                   {p.is_active ? "Ativo" : "Oculto"}
                 </button>
                 <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setEditing(p)}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    title="Editar"
-                  >
-                <div className="flex items-center gap-4">
+
                   <a
                     href={`/pacotes/${p.slug}`}
                     target="_blank"
