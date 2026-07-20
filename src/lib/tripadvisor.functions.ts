@@ -20,6 +20,8 @@ export type TAHotelDetails = TAHotelSuggestion & {
   website: string | null;
   photos: string[];
   description: string | null;
+  /** Classificação oficial do hotel (1..5 estrelas). */
+  hotel_class: number | null;
 };
 
 async function taFetch(path: string): Promise<Response> {
