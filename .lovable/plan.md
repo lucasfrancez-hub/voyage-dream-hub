@@ -1,53 +1,44 @@
-## O que vai ser construído
 
-Um segundo canal de WhatsApp **só pra disparo administrativo**, totalmente separado do WhatsApp Meta que roda a IA/protocolos. Baseado em **Evolution API** (não-oficial, QR Code), sem janela de 24h e sem templates.
+## Objetivo
 
-## Fluxo
+Transformar o Treinador de Check-in num "navegador ao vivo": abre a LATAM uma única vez, e cada ação (clicar / digitar / scroll) roda **na hora** na mesma aba, sem reabrir a página. O print atualiza depois de cada ação, como se você tivesse um mini-navegador dentro do painel.
 
-```text
-Admin → /admin/whatsapp-disparo
-        ├── Conectar (QR Code da Evolution)
-        ├── Templates salvos (CRUD com variáveis {{nome}}, {{pedido}}, ...)
-        └── Enviar
-             ├── Individual: botão "WhatsApp (disparo)" no pedido/passageiro
-             └── Em massa: seleção por filtro/lista de pedidos → fila
-```
+## Como vai funcionar (fluxo novo)
 
-## Backend
+1. Botão **"Abrir sessão"** — abre a LATAM no Browserless com proxy/stealth, guarda o endpoint da sessão e devolve o primeiro print.
+2. Você escreve a pergunta → **Perguntar pra IA** → aparecem os alvos (igual hoje).
+3. Você clica em **Clicar** / **Digitar PNR** / **Digitar sobrenome** no alvo:
+   - o passo é adicionado à lista de "Passos aprendidos"
+   - **e já executa na sessão viva** — a página avança de verdade
+   - retorna o novo print automaticamente
+4. Botões auxiliares na mesma sessão: **Print agora**, **Voltar** (undo do último passo), **Fechar sessão**.
+5. No fim, botão **"Salvar script"** grava a lista de passos como script reutilizável do autopilot.
 
-- **Tabelas novas** (schema `public`, com GRANTs + RLS admin-only):
-  - `wa_disparo_config` — URL da instância Evolution, nome, status (conectado/desconectado), last_qr.
-  - `wa_disparo_templates` — nome, corpo com `{{variáveis}}`, categoria.
-  - `wa_disparo_envios` — histórico (destinatário, mensagem, anexo, status, erro, order_id opcional).
-- **Server functions** (`src/lib/wa-disparo.functions.ts`, admin-only via `has_role`):
-  - `getDisparoStatus` / `connectDisparoQR` (retorna QR base64)
-  - `listTemplates` / `saveTemplate` / `deleteTemplate`
-  - `sendDisparo({ to, message, mediaUrl?, orderId? })` — chama `POST {url}/message/sendText` ou `/sendMedia` da Evolution
-  - `sendDisparoBulk({ recipients[], templateId, variables })` — enfileira envios com throttle 3s
-- **Secrets**: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE_NAME` — pedidos via `add_secret` depois do plano aprovado.
+O botão antigo "Executar & Print" vira **"Repetir do zero"** (opcional, pra validar que o script inteiro funciona do começo).
 
-## Frontend
+## Como manter a sessão viva
 
-- **Nova rota** `src/routes/_authenticated/admin.whatsapp-disparo.tsx`:
-  - Card de conexão (status + botão "Gerar QR Code" que abre modal com QR)
-  - Aba **Templates**: lista + editor com preview de variáveis
-  - Aba **Histórico**: últimos envios com filtro por status
-- **Botão de disparo individual** em `OrderDetailDialog` e ficha do passageiro: modal com seleção de template, edição do texto, campo pra anexar PDF (reusa `boarding-passes`/`order-documents`), pré-visualização.
-- **Envio em massa**: na lista de pedidos, checkbox por linha + botão "Disparar WhatsApp" → modal com template + confirmação (`confirmThen`).
+Browserless retorna um `browserWSEndpoint` (reconnect URL) quando a sessão é aberta com stealth. Vou:
 
-## Regras
+- Guardar `{ sessionId, wsEndpoint, expiresAt }` num Map em memória no server (chaveado pelo `userId` admin — 1 sessão por admin por vez).
+- Cada ação nova reconecta no mesmo `wsEndpoint` via `puppeteer.connect()`, roda o passo, tira print, e devolve. Puppeteer desconecta ao fim da chamada, mas a sessão remota do Browserless continua viva.
+- TTL de 10 min de inatividade. Se expirar, o front avisa "sessão encerrada, abra novamente".
 
-- Zero acoplamento com `wa_conversations` / IA / protocolos existentes.
-- Números normalizados pra E.164 (55 + DDD + número).
-- Anexos: upload pro bucket `order-documents`, gera signed URL de 1h, envia via `/sendMedia`.
-- Throttle no bulk (3s entre envios) pra não derrubar a instância.
-- Botões usam `confirm`/`confirmThen` de `@/lib/confirm` (nunca `window.confirm`).
+## Arquivos
 
-## Ordem de entrega
+- `src/lib/checkin/training-session.server.ts` — novo. Map em memória `openSession()`, `getSession()`, `closeSession()`, `runStepOnSession()`.
+- `src/lib/checkin/training.functions.ts` — adicionar 4 server fns: `openTrainingSession`, `runStepLive`, `screenshotSession`, `closeTrainingSession`. Manter as antigas (`runTrainingScript`, `askVisionAboutScreenshot`) intactas.
+- `src/routes/admin.checkin-treino.tsx` — trocar o botão principal por **Abrir sessão** + estado `sessionId`. Ao clicar em Clicar/Digitar, chama `runStepLive` em vez de só acumular passo. Adicionar botões Voltar / Fechar / Repetir do zero.
 
-1. Migração (3 tabelas + GRANTs + RLS admin).
-2. `add_secret` pra credenciais Evolution.
-3. Server functions + integração HTTP com Evolution.
-4. Rota `/admin/whatsapp-disparo` com conexão, templates e histórico.
-5. Botão de disparo individual no pedido + passageiro.
-6. Seleção múltipla e disparo em massa na lista de pedidos.
+## Detalhes técnicos
+
+- **Persistência real**: Map em memória do worker. Um worker Cloudflare pode reciclar entre requests, então o `wsEndpoint` também vai pra `sessionStorage` do navegador como fallback — se o Map perdeu, o front reenvia o endpoint e o server reconecta.
+- **Concorrência**: 1 sessão ativa por admin. Abrir uma nova fecha a anterior.
+- **Erro de sessão morta**: se `puppeteer.connect()` falhar (Browserless matou por timeout), server responde `SESSION_EXPIRED` e o front mostra "reabrir sessão".
+- **Print**: JPEG 60 (já tá assim), viewport 1280×900. Retornado como base64 pro `<img>`.
+- **Undo (Voltar)**: navegador não tem `undo` universal — o "Voltar" faz `page.goBack()` + print. Suficiente pra corrigir clique errado na maioria dos casos.
+
+## Fora do escopo
+
+- Não vou mexer no `latam-autopilot.server.ts` (o executor de produção continua igual).
+- Não vou mudar a estrutura do JSON dos passos salvos — os scripts gravados continuam compatíveis com o autopilot atual.
