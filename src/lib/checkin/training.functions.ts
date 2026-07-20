@@ -421,3 +421,103 @@ As coordenadas devem estar dentro de 0..${data.width} e 0..${data.height}.`;
     }
     return { raw, parsed };
   });
+
+/* ==========================================================================
+ * SCRIPTS SALVOS por companhia (LATAM/GOL/AZUL)
+ * ========================================================================== */
+
+const AirlineEnum = z.enum(["LATAM", "GOL", "AZUL"]);
+
+const ListScriptsInput = z.object({ airline: AirlineEnum });
+
+export const listTrainingScripts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ListScriptsInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { data: rows, error } = await context.supabase
+      .from("checkin_training_scripts")
+      .select("id,airline,name,initial_url,viewport_width,viewport_height,updated_at")
+      .eq("airline", data.airline)
+      .order("updated_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return { ok: true as const, scripts: rows ?? [] };
+  });
+
+const GetScriptInput = z.object({ id: z.string().uuid() });
+
+export const getTrainingScript = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => GetScriptInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { data: row, error } = await context.supabase
+      .from("checkin_training_scripts")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Script não encontrado");
+    return { ok: true as const, script: row };
+  });
+
+const SaveScriptInput = z.object({
+  id: z.string().uuid().optional(),
+  airline: AirlineEnum,
+  name: z.string().min(1).max(120),
+  initial_url: z.string().url(),
+  steps: z.array(StepSchema),
+  annotations: z.array(z.object({
+    x: z.number(), y: z.number(), label: z.string(),
+    kind: z.enum(["type", "click"]), url: z.string(),
+  })).default([]),
+  viewport_width: z.number().int().default(1280),
+  viewport_height: z.number().int().default(900),
+});
+
+export const saveTrainingScript = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SaveScriptInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const payload = {
+      airline: data.airline,
+      name: data.name,
+      initial_url: data.initial_url,
+      steps: data.steps,
+      annotations: data.annotations,
+      viewport_width: data.viewport_width,
+      viewport_height: data.viewport_height,
+      created_by: context.userId,
+    };
+    if (data.id) {
+      const { data: row, error } = await context.supabase
+        .from("checkin_training_scripts")
+        .update(payload)
+        .eq("id", data.id)
+        .select("id")
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return { ok: true as const, id: row?.id ?? data.id };
+    }
+    const { data: row, error } = await context.supabase
+      .from("checkin_training_scripts")
+      .insert(payload)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { ok: true as const, id: row!.id as string };
+  });
+
+export const deleteTrainingScript = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => GetScriptInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { error } = await context.supabase
+      .from("checkin_training_scripts")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
