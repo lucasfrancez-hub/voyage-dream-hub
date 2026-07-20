@@ -174,6 +174,21 @@ export function AdminNotificationBell() {
       toast.error("Não consegui copiar — selecione e copie manualmente");
     }
   };
+  const handleSend = async (r: AlertRow) => {
+    if (sending) return;
+    setSending(true);
+    try {
+      await sendFn({ data: { id: r.id, message: buildClientMessage(r) } });
+      toast.success("Mensagem enviada ao cliente via WhatsApp");
+      qc.invalidateQueries({ queryKey: ["admin-flight-alerts"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao enviar via WhatsApp");
+    } finally {
+      setSending(false);
+    }
+  };
+
+
 
   const openAlert = (r: AlertRow) => {
     setSelected(r);
