@@ -259,9 +259,10 @@ function TreinoPage() {
       // sem sair do modo "Selecionar região".
       const existing = steps.filter((s) => s.action === "capture_region").length;
       const idx = existing + 1;
-      const filename = `${pnr || "reserva"}-${surname || "pax"}-regiao-${idx}.png`;
+      const paxIdx = Math.max(1, Math.min(20, Math.round(regionPaxIndex || 1)));
+      const filename = `${pnr || "reserva"}-${surname || "pax"}-pax${paxIdx}.png`;
       const r = await captureRegion({
-        data: { sessionId, x: regionDraft.x, y: regionDraft.y, width: regionDraft.w, height: regionDraft.h, filename },
+        data: { sessionId, x: regionDraft.x, y: regionDraft.y, width: regionDraft.w, height: regionDraft.h, filename, passenger_index: paxIdx },
       });
       if (!r.ok) { handleSessionError(new Error(r.error)); return; }
       if (r.signedUrl) {
@@ -272,9 +273,11 @@ function TreinoPage() {
           x: Math.round(regionDraft.x), y: Math.round(regionDraft.y),
           width: Math.round(regionDraft.w), height: Math.round(regionDraft.h),
           filename,
+          passenger_index: paxIdx,
         }]);
-        toast.success(`Captura ${idx} salva (${r.sizeKb} KB) — arraste outro retângulo pra pegar o próximo, ou clique em Cancelar região quando terminar.`);
-        // Mantém o modo ativo pra permitir múltiplas capturas (2 pax, conexões).
+        toast.success(`Cartão do passageiro ${paxIdx} salvo (${r.sizeKb} KB). Ajuste "Passageiro nº" e arraste outro retângulo pro próximo pax.`);
+        // Auto-avança pro próximo passageiro pra facilitar 2/3 pax na sequência.
+        setRegionPaxIndex((p) => Math.min(20, (p || idx) + 1));
         setRegionDraft(null);
       } else {
         toast.success("Região capturada, mas sem URL assinada.");
