@@ -136,20 +136,32 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
               locator: ci.locator,
               surname: ci.pnr_surname,
             });
-            const png = (result.captures || []).find((c: any) => c.pngBase64);
-            if (!png) throw new Error("Script rodou mas não capturou o cartão de embarque.");
-            const path = `${ci.order_id}/${ci.id}.png`;
-            const pdfBytes = Uint8Array.from(atob(png.pngBase64), (c) => c.charCodeAt(0));
-            const up = await supabaseAdmin.storage.from("boarding-passes")
-              .upload(path, pdfBytes, { contentType: "image/png", upsert: true });
-            if (up.error) throw new Error(up.error.message);
-            const signed = await supabaseAdmin.storage.from("boarding-passes").createSignedUrl(path, 60 * 60 * 24 * 30);
+            const caps = (result.captures || []).filter((c: any) => c.pngBase64);
+            if (caps.length === 0) throw new Error("Script rodou mas não capturou nenhum cartão de embarque.");
+
+            // Faz upload de TODOS os recortes; cada um pode representar um pax.
+            const boardingPasses: Array<{ path: string; url: string | null; passenger_index: number; filename: string | null }> = [];
+            let primaryPath = "";
+            let primaryUrl: string | null = null;
+            for (let idx = 0; idx < caps.length; idx += 1) {
+              const cap: any = caps[idx];
+              const bytes = Uint8Array.from(atob(cap.pngBase64), (c) => c.charCodeAt(0));
+              const path = caps.length === 1 ? `${ci.order_id}/${ci.id}.png` : `${ci.order_id}/${ci.id}-pax${idx + 1}.png`;
+              const up = await supabaseAdmin.storage.from("boarding-passes")
+                .upload(path, bytes, { contentType: "image/png", upsert: true });
+              if (up.error) throw new Error(up.error.message);
+              const signed = await supabaseAdmin.storage.from("boarding-passes").createSignedUrl(path, 60 * 60 * 24 * 30);
+              const paxIdx = typeof cap.passengerIndex === "number" && cap.passengerIndex > 0 ? cap.passengerIndex : idx + 1;
+              boardingPasses.push({ path, url: signed.data?.signedUrl ?? null, passenger_index: paxIdx, filename: cap.filename ?? null });
+              if (idx === 0) { primaryPath = path; primaryUrl = signed.data?.signedUrl ?? null; }
+            }
 
 
             await supabaseAdmin.from("flight_checkins").update({
               status: "success",
-              boarding_pass_path: path,
-              boarding_pass_url: signed.data?.signedUrl ?? null,
+              boarding_pass_path: primaryPath,
+              boarding_pass_url: primaryUrl,
+              boarding_passes: boardingPasses,
               error: null,
               completed_at: new Date().toISOString(),
             }).eq("id", ci.id);

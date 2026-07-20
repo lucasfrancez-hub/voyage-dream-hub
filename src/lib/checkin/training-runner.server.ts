@@ -17,7 +17,7 @@ export type ScriptRunResult = {
   currentUrl: string;
   title: string;
   logs: Array<{ i?: number; step?: string; action?: string; url?: string; ok: boolean; err?: string }>;
-  captures: Array<{ i: number; kind: "region"; pngBase64: string; filename: string | null; width: number; height: number }>;
+  captures: Array<{ i: number; kind: "region"; pngBase64: string; filename: string | null; width: number; height: number; passengerIndex: number }>;
   width: number;
   height: number;
 };
@@ -99,6 +99,8 @@ export async function runScriptInLiveSession(opts: {
             width: step.width,
             height: step.height,
           });
+          const paxIdxRaw = (step as unknown as { passenger_index?: number }).passenger_index;
+          const paxIdx = typeof paxIdxRaw === "number" && paxIdxRaw > 0 ? paxIdxRaw : 0;
           captures.push({
             i,
             kind: "region",
@@ -106,6 +108,7 @@ export async function runScriptInLiveSession(opts: {
             filename: step.filename || null,
             width: Math.max(10, Math.round(step.width)),
             height: Math.max(10, Math.round(step.height)),
+            passengerIndex: paxIdx,
           });
           latest = await screenshotLiveSession({ userId: opts.userId, sessionId });
         } else {

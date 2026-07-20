@@ -89,6 +89,7 @@ function TreinoPage() {
   const [pdfs, setPdfs] = useState<{ url: string; path: string; sizeKb: number; source: string; kind?: "pdf" | "png" }[]>([]);
   const [regionMode, setRegionMode] = useState(false);
   const [regionDraft, setRegionDraft] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [regionPaxIndex, setRegionPaxIndex] = useState<number>(1);
   const regionDragRef = useRef<{ startX: number; startY: number; sx: number; sy: number } | null>(null);
   const [savedScripts, setSavedScripts] = useState<SavedScript[]>([]);
   const [currentScriptId, setCurrentScriptId] = useState<string | null>(null);
@@ -258,9 +259,10 @@ function TreinoPage() {
       // sem sair do modo "Selecionar região".
       const existing = steps.filter((s) => s.action === "capture_region").length;
       const idx = existing + 1;
-      const filename = `${pnr || "reserva"}-${surname || "pax"}-regiao-${idx}.png`;
+      const paxIdx = Math.max(1, Math.min(20, Math.round(regionPaxIndex || 1)));
+      const filename = `${pnr || "reserva"}-${surname || "pax"}-pax${paxIdx}.png`;
       const r = await captureRegion({
-        data: { sessionId, x: regionDraft.x, y: regionDraft.y, width: regionDraft.w, height: regionDraft.h, filename },
+        data: { sessionId, x: regionDraft.x, y: regionDraft.y, width: regionDraft.w, height: regionDraft.h, filename, passenger_index: paxIdx },
       });
       if (!r.ok) { handleSessionError(new Error(r.error)); return; }
       if (r.signedUrl) {
@@ -271,9 +273,11 @@ function TreinoPage() {
           x: Math.round(regionDraft.x), y: Math.round(regionDraft.y),
           width: Math.round(regionDraft.w), height: Math.round(regionDraft.h),
           filename,
+          passenger_index: paxIdx,
         }]);
-        toast.success(`Captura ${idx} salva (${r.sizeKb} KB) — arraste outro retângulo pra pegar o próximo, ou clique em Cancelar região quando terminar.`);
-        // Mantém o modo ativo pra permitir múltiplas capturas (2 pax, conexões).
+        toast.success(`Cartão do passageiro ${paxIdx} salvo (${r.sizeKb} KB). Ajuste "Passageiro nº" e arraste outro retângulo pro próximo pax.`);
+        // Auto-avança pro próximo passageiro pra facilitar 2/3 pax na sequência.
+        setRegionPaxIndex((p) => Math.min(20, (p || idx) + 1));
         setRegionDraft(null);
       } else {
         toast.success("Região capturada, mas sem URL assinada.");
@@ -844,10 +848,10 @@ function TreinoPage() {
               {regionMode && (
                 <div className="mb-2 flex flex-wrap items-center gap-2 rounded border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
                   <span className="flex-1 min-w-[220px]">
-                    Arraste um retângulo em volta de cada cartão. Você pode
-                    capturar <b>vários seguidos</b> (2 pax, conexões) sem sair
-                    do modo — clique em <b>Finalizar seleção</b> a cada
-                    retângulo. Já capturados nesta sessão:{" "}
+                    Arraste um retângulo em volta do cartão de <b>cada passageiro</b>.
+                    Antes de cada captura, ajuste <b>Passageiro nº</b> — o robô
+                    envia o cartão certo pro WhatsApp de cada pessoa. Já
+                    capturados nesta sessão:{" "}
                     <b>{steps.filter((s) => s.action === "capture_region").length}</b>.
                     {regionDraft && (
                       <span className="ml-2 opacity-70">
@@ -855,6 +859,17 @@ function TreinoPage() {
                       </span>
                     )}
                   </span>
+                  <label className="flex items-center gap-1 font-medium">
+                    Passageiro nº
+                    <Input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={regionPaxIndex}
+                      onChange={(e) => setRegionPaxIndex(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                      className="h-7 w-16 text-center"
+                    />
+                  </label>
                   <Button
                     size="sm"
                     variant="default"
@@ -862,7 +877,7 @@ function TreinoPage() {
                     disabled={busy || !sessionId || !regionDraft || regionDraft.w < 20 || regionDraft.h < 20}
                     onClick={() => void doCaptureRegion()}
                   >
-                    Finalizar seleção · salvar cartão
+                    Salvar cartão do pax {regionPaxIndex}
                   </Button>
                 </div>
               )}

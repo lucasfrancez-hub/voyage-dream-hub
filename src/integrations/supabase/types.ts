@@ -372,6 +372,7 @@ export type Database = {
           attempts: number
           boarding_pass_path: string | null
           boarding_pass_url: string | null
+          boarding_passes: Json
           cia: string
           completed_at: string | null
           created_at: string
@@ -398,6 +399,7 @@ export type Database = {
           attempts?: number
           boarding_pass_path?: string | null
           boarding_pass_url?: string | null
+          boarding_passes?: Json
           cia: string
           completed_at?: string | null
           created_at?: string
@@ -424,6 +426,7 @@ export type Database = {
           attempts?: number
           boarding_pass_path?: string | null
           boarding_pass_url?: string | null
+          boarding_passes?: Json
           cia?: string
           completed_at?: string | null
           created_at?: string
