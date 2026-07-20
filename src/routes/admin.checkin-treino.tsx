@@ -486,6 +486,39 @@ function TreinoPage() {
                   >
                     Preencher sobrenome
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    disabled={busy || !sessionId || !lastClick}
+                    onClick={async () => {
+                      if (!lastClick || !sessionId) return;
+                      setBusy(true);
+                      try {
+                        const filename = `${pnr || "reserva"}-${surname || "pax"}.pdf`;
+                        const r = await capturePdf({ data: { sessionId, x: lastClick.x, y: lastClick.y, filename } });
+                        if (!r.ok) {
+                          handleSessionError(new Error(r.error));
+                          return;
+                        }
+                        if (r.signedUrl) {
+                          setPdfs((prev) => [{ url: r.signedUrl!, path: r.path, sizeKb: r.sizeKb, source: r.sourceUrl }, ...prev]);
+                          toast.success(`PDF salvo (${r.sizeKb} KB)`);
+                        } else {
+                          toast.success("PDF capturado, mas sem URL assinada.");
+                        }
+                        // atualiza o screenshot pós-clique
+                        const s = await shotSession({ data: { sessionId } });
+                        if (s.ok) setShot((prev) => ({ b64: s.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: s.currentUrl, title: s.title }));
+                      } catch (e) {
+                        handleSessionError(e);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                    title="Clica no botão de baixar PDF marcado como Último clique e salva o arquivo na base"
+                  >
+                    Capturar PDF
+                  </Button>
                 </div>
               )}
               <div className="relative inline-block border rounded overflow-hidden bg-black/5">
