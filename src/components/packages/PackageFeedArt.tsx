@@ -4,7 +4,7 @@
  * Todos os campos vêm do cadastro; a frase (tagline) é gerada por IA.
  */
 import { forwardRef, type ReactElement } from "react";
-import logoAsset from "@/assets/viaair-logo.png.asset.json";
+import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 
 export type FeedArtData = {
   backgroundDataUrl: string; // data:image/...;base64,...
