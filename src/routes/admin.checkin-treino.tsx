@@ -153,6 +153,7 @@ function TreinoPage() {
     setAnnotations([]);
     setCurrentScriptId(null);
     setScriptName("");
+    setScriptPaxCount("");
   };
 
   const loadScript = async (id: string) => {
