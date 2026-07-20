@@ -257,8 +257,13 @@ function AdminPackages() {
         : await supabase.from("packages").insert(payload);
       if (error) throw error;
       toast.success(editing.id ? "Pacote atualizado" : "Pacote criado");
-      setEditing(null);
+      if (drafts && drafts.length > 1) {
+        closeCurrentDraft();
+      } else {
+        setEditing(null);
+      }
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
+
       qc.invalidateQueries({ queryKey: ["packages"] });
     } catch (err) {
       const message = err instanceof Error
