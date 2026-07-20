@@ -93,12 +93,16 @@ function CheckinsPage() {
       const segs = [...(g.segments ?? [])].sort(
         (a: any, b: any) => new Date(a.departure_at || 0).getTime() - new Date(b.departure_at || 0).getTime(),
       );
-      if (segs.length <= 1) { out.push(g); continue; }
+      if (segs.length <= 1) {
+        const only = segs[0] ?? {};
+        out.push({ ...g, direction: only.direction ?? null });
+        continue;
+      }
       const journeys: any[][] = [];
       let cur: any[] = [];
-      // Uma conexão real tem: destino_anterior == origem_atual, gap curto
-      // (< 12h típico de layover) e sem revisitar aeroporto já usado como
-      // origem (o retorno pra casa vira nova jornada).
+      // Conexão real: (1) mesma direção (ida/volta) OU direção ausente com
+      // encadeamento válido; (2) destino_anterior == origem_atual; (3) gap
+      // curto (< 12h); (4) não revisita aeroporto já usado como origem.
       const MAX_LAYOVER_MS = 12 * HOUR;
       for (const s of segs) {
         if (cur.length === 0) { cur.push(s); continue; }
@@ -110,14 +114,27 @@ function CheckinsPage() {
         const shortLayover = gap > 0 && gap <= MAX_LAYOVER_MS;
         const origins = new Set(cur.map((x: any) => x.origin));
         const revisits = origins.has(s.destination);
-        if (chained && shortLayover && !revisits) cur.push(s);
+        const sameDirection =
+          !prev.direction || !s.direction ? true : prev.direction === s.direction;
+        if (chained && shortLayover && !revisits && sameDirection) cur.push(s);
         else { journeys.push(cur); cur = [s]; }
       }
 
       if (cur.length) journeys.push(cur);
       journeys.forEach((jSegs, idx) => {
-        out.push({ ...g, key: `${g.key}::j${idx}`, segments: jSegs });
+        // Direção do card: usa a explícita do primeiro trecho; se ausente,
+        // infere pela ordem (1ª jornada = ida, 2ª = volta) quando há mais de uma.
+        const explicit = jSegs[0]?.direction as "outbound" | "return" | null;
+        const inferred: "outbound" | "return" | null =
+          journeys.length > 1 ? (idx === 0 ? "outbound" : "return") : null;
+        out.push({
+          ...g,
+          key: `${g.key}::j${idx}`,
+          segments: jSegs,
+          direction: explicit ?? inferred,
+        });
       });
+
     }
     return out;
   }, [rawGroups]);
@@ -414,11 +431,23 @@ function SegmentCard({
                   Enviado
                 </span>
               )}
+              {group.direction && (
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${
+                    group.direction === "outbound"
+                      ? "bg-sky-500/10 text-sky-500"
+                      : "bg-fuchsia-500/10 text-fuchsia-500"
+                  }`}
+                >
+                  {group.direction === "outbound" ? "Ida" : "Volta"}
+                </span>
+              )}
               {seg.connections && seg.connections.length > 0 && (
                 <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500/10 text-amber-500">
                   {seg.connections.length} conexão{seg.connections.length > 1 ? "es" : ""}
                 </span>
               )}
+
             </div>
             <div className="flex items-center gap-3 mb-1 min-w-0">
               <span className="text-xl font-bold text-foreground truncate">{seg.origin ?? "?"}</span>

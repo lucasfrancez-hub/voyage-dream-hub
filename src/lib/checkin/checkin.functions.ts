@@ -140,6 +140,11 @@ export const listManualQueue = createServerFn({ method: "GET" })
         ).toString().trim().toUpperCase();
         const origin = it.details?.from_iata ?? it.details?.origin ?? null;
         const destination = it.details?.to_iata ?? it.details?.destination ?? null;
+        const rawDir = String(it.details?.direction ?? "").toLowerCase();
+        const direction: "outbound" | "return" | null =
+          rawDir === "outbound" || rawDir === "ida" ? "outbound"
+          : rawDir === "return" || rawDir === "volta" ? "return"
+          : null;
         return {
           id: it.id as string,
           order_id: it.order_id as string,
@@ -150,9 +155,12 @@ export const listManualQueue = createServerFn({ method: "GET" })
           is_intl: !isBR(origin) || !isBR(destination),
           flight_number: it.details?.flight_number ?? null,
           departure_at: it.details?.depart_at ?? it.details?.departure_at ?? null,
+          arrival_at: it.details?.arrival_at ?? it.details?.arrive_at ?? null,
           origin,
           destination,
+          direction,
         };
+
       })
       .filter((it) => it.locator);
 
@@ -228,10 +236,13 @@ export const listManualQueue = createServerFn({ method: "GET" })
         is_intl: it.is_intl,
         flight_number: it.flight_number,
         departure_at: it.departure_at,
+        arrival_at: it.arrival_at,
         origin: it.origin,
         destination: it.destination,
+        direction: it.direction,
         checkin,
       });
+
 
     }
 
