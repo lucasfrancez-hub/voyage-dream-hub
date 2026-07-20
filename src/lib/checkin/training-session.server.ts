@@ -184,6 +184,8 @@ export async function openLiveSession(opts: OpenSessionOpts) {
   const params = new URLSearchParams({
     token,
     timeout: String(OPEN_REQUEST_TIMEOUT_MS),
+    humanlike: "true",
+    blockAds: "true",
   });
   if (opts.useResidentialProxy) {
     params.set("proxy", "residential");
@@ -192,6 +194,7 @@ export async function openLiveSession(opts: OpenSessionOpts) {
     params.set("proxyLocaleMatch", "true");
   }
   const endpoint = `${BROWSERLESS_BASE}/stealth/bql?${params.toString()}`;
+
   const query = `
     mutation OpenLive($url: String!) {
       goto(url: $url, waitUntil: domContentLoaded, timeout: 35000) { status }
