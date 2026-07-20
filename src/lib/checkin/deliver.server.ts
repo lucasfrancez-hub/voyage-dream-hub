@@ -81,9 +81,10 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
     const d = (it?.details ?? {}) as Record<string, any>;
     let rawCity = String(d.to_city || d.destination_city || d.to || d.destination || "").trim();
     const airport = String(d.to_airport || "").trim();
-    if (airport) {
-      const re = new RegExp(airport.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig");
-      rawCity = rawCity.replace(re, "").replace(/\s+/g, " ").trim();
+    if (airport && rawCity) {
+      const re = new RegExp(`\\b${airport.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "ig");
+      const stripped = rawCity.replace(re, "").replace(/\s+/g, " ").trim();
+      if (stripped) rawCity = stripped; // mantém a cidade original se ficou vazio
     }
     const iata = String(d.to_iata || d.arrival_iata || "").trim().toUpperCase();
     const small = new Set(["de", "da", "do", "das", "dos", "e"]);
