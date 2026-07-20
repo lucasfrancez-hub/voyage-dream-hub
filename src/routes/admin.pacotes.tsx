@@ -207,13 +207,12 @@ function AdminPackages() {
       throw new Error(`Preencha slug, título e destino${pkg.title ? ` (${pkg.title})` : ""}.`);
     }
 
-    // Global hashtag numbering: applied ONLY to new packages (no id).
+    // Global hashtag numbering: applied ONLY to slug of new packages (no id).
     if (!pkg.id && numbering) {
       const n = numbering.number;
-      // strip any existing " #N" from title and trailing "-N" from slug
-      const cleanTitle = normalized.title.replace(/\s*#\d+\s*$/, "").trim();
+      // strip any legacy " #N" from title and trailing "-N" from slug
+      normalized.title = normalized.title.replace(/\s*#\d+\s*$/, "").trim();
       const cleanSlug = normalized.slug.replace(/-\d+$/, "");
-      normalized.title = `${cleanTitle} #${n}`;
       normalized.slug = `${cleanSlug}-${n}`;
     }
 
