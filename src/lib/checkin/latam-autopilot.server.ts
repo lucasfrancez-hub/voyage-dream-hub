@@ -121,13 +121,22 @@ export default async ({ page, browser, context }) => {
   };
 
   await configurePage(activePage);
-  try {
-    await activePage.goto(checkinUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
-  } catch (error) {
-    const recovered = await resolveActivePage(false).catch(() => null);
-    if (!recovered || recovered === activePage || recovered.url() === "about:blank") throw error;
-    activePage = recovered;
+  let navigationError = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const navigationPage = attempt === 0 ? activePage : await resolveActivePage(true);
+      if (navigationPage.url() === "about:blank" || !navigationPage.url().includes("latamairlines.com")) {
+        await navigationPage.goto(checkinUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
+      }
+      navigationError = null;
+      break;
+    } catch (error) {
+      navigationError = error;
+      activePage = null;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
   }
+  if (navigationError) throw navigationError;
   await new Promise((r) => setTimeout(r, 3000));
 
   let totalCostCents = 0;
