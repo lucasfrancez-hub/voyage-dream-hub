@@ -221,24 +221,7 @@ function CheckinsPage() {
       {q.isLoading && <div className="text-sm text-muted-foreground">Carregando…</div>}
 
       <div className="space-y-10">
-        <Section
-          title="A fazer"
-          subtitle="Reservas com voos nos próximos 7 dias. Anexe o cartão de cada passageiro."
-          empty="Nada pendente. 🎉"
-          count={aFazer.length}
-        >
-          {aFazer.map((g) => (
-            <BookingCard
-              key={g.key}
-              group={g}
-              busyKey={busyKey}
-              sendingId={sendingId}
-              onUpload={handleUpload}
-              onRemove={handleRemove}
-              onSend={handleSend}
-            />
-          ))}
-        </Section>
+
 
         <Section
           title="A fazer"
