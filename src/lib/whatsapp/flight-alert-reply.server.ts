@@ -50,9 +50,11 @@ export async function handleFlightAlertReply(input: {
   // Ack = alteração informativa, não escala
   if (action === "ack") {
     const reply =
-      "✅ Recebemos sua confirmação. Obrigado!\n\n" +
-      "Como essa alteração não gera direito a remarcação sem custo, seguimos apenas com o registro. " +
-      "Se precisar de qualquer coisa, é só chamar aqui.";
+      (greet ? `Oi, ${greet}! ` : "") +
+      "recebi sua confirmação sobre a alteração do voo " +
+      `${alert?.flight_number ?? ""}`.trim() + ". ✅\n\n" +
+      "Como a mudança foi pequena, sua reserva segue confirmada e não precisa fazer nada. " +
+      "Se precisar de qualquer coisa, é só chamar por aqui. 💛";
     const sent = await sendWhatsAppText(input.wa_phone, reply);
     await saveMessage({
       conversation_id: input.conversation_id,
