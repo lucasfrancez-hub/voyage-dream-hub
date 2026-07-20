@@ -607,10 +607,11 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     if (!editing.destination && derived.destCity) patch.destination = derived.destCity;
     if (!editing.origin && derived.originCity) patch.origin = derived.originCity;
     if (!editing.title && derived.title) patch.title = derived.title;
-    if (!editing.slug && derived.slug) {
-      const base = derived.slug.replace(/-\d+$/, "");
-      patch.slug = !editing.id && nextNumber ? `${base}-${nextNumber}` : derived.slug;
+    if ((!editing.slug || /^[a-z0-9-]+$/.test(editing.slug) && !editing.id && nextNumber && !/[#]\d+$/.test(editing.slug)) && derived.slug) {
+      const base = (editing.slug || derived.slug).replace(/[-#]\d+$/, "");
+      patch.slug = !editing.id && nextNumber ? `${base}#${nextNumber}` : (editing.slug || derived.slug);
     }
+
     if (Object.keys(patch).length) setEditing({ ...editing, ...patch });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derived.destCity, derived.originCity, derived.title, derived.slug, nextNumber]);
