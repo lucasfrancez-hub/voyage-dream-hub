@@ -160,9 +160,10 @@ function TreinoPage() {
     try {
       const r = await getScript({ data: { id } });
       if (!r.ok) return;
-      const s = r.script as unknown as { id: string; name: string; initial_url: string; steps: TrainingStep[]; annotations: typeof annotations; viewport_width: number; viewport_height: number };
+      const s = r.script as unknown as { id: string; name: string; initial_url: string; steps: TrainingStep[]; annotations: typeof annotations; viewport_width: number; viewport_height: number; pax_count: number | null };
       setCurrentScriptId(s.id);
       setScriptName(s.name);
+      setScriptPaxCount(s.pax_count ?? "");
       setUrl(s.initial_url);
       setSteps(s.steps || []);
       setAnnotations(s.annotations || []);
