@@ -178,7 +178,7 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     buscar_pacotes: tool({
       description:
-        "Lista pacotes disponíveis no admin, opcionalmente filtrados por destino ou mês. Use quando o cliente está buscando ideia de viagem ou perguntando sobre um destino específico.",
+        "Lista pacotes disponíveis no admin, opcionalmente filtrados por destino. Retorna a lista SÓ pra você escolher — não envia nada ao cliente. Depois use enviar_pacote (folder completo com imagem + preços) ou enviar_link_pacote.",
       inputSchema: z.object({
         destino: z.string().nullable().describe("Cidade/país (ex: 'Buenos Aires', 'Nordeste')"),
         limit: z.number().nullable().describe("Máximo de resultados, padrão 5"),
@@ -186,7 +186,7 @@ export function buildCamilaTools(conversation: WaConversation) {
       execute: async ({ destino, limit }) => {
         let q = supabaseAdmin
           .from("packages")
-          .select("slug, title, destination, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy")
+          .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url")
           .eq("is_active", true)
           .order("going_date", { ascending: true })
           .limit(limit ?? 5);
@@ -200,8 +200,10 @@ export function buildCamilaTools(conversation: WaConversation) {
         return {
           encontrados: data.length,
           pacotes: data.map((p) => ({
+            slug: p.slug,
             titulo: p.title,
             destino: p.destination,
+            origem: p.origin,
             ida: fmtDate(p.going_date),
             volta: fmtDate(p.return_date),
             noites: p.nights,
@@ -209,15 +211,137 @@ export function buildCamilaTools(conversation: WaConversation) {
             estrelas: p.hotel_stars,
             preco_por_pessoa: fmtMoney(Number(p.price_per_person)),
             ocupacao_base: p.base_occupancy,
+            tem_imagem: !!p.image_url,
             link: `https://pedidos.viaair.tur.br/pacotes/${p.slug}`,
           })),
         };
       },
     }),
 
+    enviar_pacote: tool({
+      description:
+        "Envia o FOLDER completo do pacote pelo WhatsApp: imagem do header + descritivo formatado (origem, datas, hotel, refeição, assessoria) + formas de pagamento (Pix com 5% off, cartão 10x sem juros, boleto 10x mediante aprovação, boleto sem análise de crédito até a data da viagem) + link. Use SEMPRE que o cliente demonstrar interesse num pacote específico. NÃO exige CPF nem confirmação — pacote é conteúdo público. Depois de chamar, responda com UM balão curto só perguntando 'O que você achou?' (ou variação natural).",
+      inputSchema: z.object({
+        slug: z.string().describe("slug do pacote (vem de buscar_pacotes)"),
+        quantidade_adultos: z.number().int().nullable().describe("adultos para calcular Pix total; padrão = base_occupancy (geralmente 2)"),
+      }),
+      execute: async ({ slug, quantidade_adultos }) => {
+        const { data: pkg } = await supabaseAdmin
+          .from("packages")
+          .select("slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (!pkg || !pkg.is_active) return { error: "Pacote não encontrado ou inativo" };
+
+        const qtd = quantidade_adultos && quantidade_adultos > 0 ? quantidade_adultos : (pkg.base_occupancy ?? 2);
+        const priceP = Number(pkg.price_per_person) || 0;
+        const total = priceP * qtd;
+        const pixTotal = total * 0.95;
+        const parcelaCartao = total / 10;
+
+        const brl = (n: number) =>
+          n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+        const includesArr: string[] = Array.isArray(pkg.includes) ? (pkg.includes as string[]) : [];
+        const mealText = String(pkg.meal_plan ?? "");
+        const hasBreakfast =
+          /café|cafe|breakfast|manhã|manha/i.test(mealText) ||
+          includesArr.some((i) => /café|cafe|manhã|manha/i.test(String(i)));
+        const hasAllInclusive =
+          /all\s*inclusive|tudo\s*incluso/i.test(mealText) ||
+          includesArr.some((i) => /all\s*inclusive|tudo\s*incluso/i.test(String(i)));
+
+        const dateRange = (() => {
+          try {
+            const d1 = new Date(String(pkg.going_date) + "T12:00:00");
+            const d2 = new Date(String(pkg.return_date) + "T12:00:00");
+            const mes = d1.toLocaleDateString("pt-BR", { month: "long" }).toUpperCase();
+            const sameMonth = d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear();
+            if (sameMonth) return `${d1.getDate()} a ${d2.getDate()}/${mes}`;
+            return `${d1.toLocaleDateString("pt-BR")} a ${d2.toLocaleDateString("pt-BR")}`;
+          } catch {
+            return `${fmtDate(pkg.going_date)} a ${fmtDate(pkg.return_date)}`;
+          }
+        })();
+
+        const link = `https://pedidos.viaair.tur.br/pacotes/${pkg.slug}`;
+        const title = String(pkg.title || pkg.destination || "PACOTE").toUpperCase();
+
+        const lines: string[] = [];
+        lines.push(`*${title}*`);
+        lines.push("");
+        if (pkg.origin) lines.push(`✈️ Saindo de ${pkg.origin}`);
+        lines.push(`🗓 ${dateRange}`);
+        const hotelLine = pkg.hotel_name
+          ? `🏨 Hospedagem no ${pkg.hotel_name}${pkg.hotel_stars ? ` (${pkg.hotel_stars}★)` : ""}`
+          : `🏨 Hospedagem`;
+        lines.push(hotelLine);
+        if (hasAllInclusive) lines.push(`🍽 All inclusive`);
+        else if (hasBreakfast) lines.push(`🍽 Café da manhã`);
+        lines.push(`🎧 Assessoria completa`);
+        lines.push("");
+        lines.push(`*FORMAS DE PAGAMENTO:*`);
+        lines.push(`🤑 PIX: ${brl(pixTotal)} para ${qtd} adulto${qtd === 1 ? "" : "s"} (5% de desconto)`);
+        lines.push(`💳 Cartão de crédito: 10x de ${brl(parcelaCartao)}`);
+        lines.push(`🧾 Boleto bancário: até 10x mediante aprovação`);
+        lines.push(`🧾 Boleto sem análise de crédito até a data da viagem`);
+        lines.push(`_sem juros em qualquer forma de pagamento_`);
+        lines.push("");
+        lines.push(link);
+        const caption = lines.join("\n");
+
+        const { sendWhatsAppImage, sendWhatsAppText } = await import("./send.server");
+        const { saveMessage } = await import("./conversation.server");
+
+        let sendErr: string | undefined;
+        if (pkg.image_url) {
+          const r = await sendWhatsAppImage(conversation.wa_phone, pkg.image_url, caption);
+          if (r.error) {
+            sendErr = r.error;
+            await sendWhatsAppText(conversation.wa_phone, caption);
+          }
+        } else {
+          await sendWhatsAppText(conversation.wa_phone, caption);
+        }
+
+        await saveMessage({
+          conversation_id: conversation.id,
+          direction: "outbound",
+          sender: "camila",
+          content: caption,
+        });
+
+        return {
+          ok: true,
+          enviado: true,
+          image_fallback_error: sendErr ?? null,
+          instrucao:
+            "Folder do pacote (imagem + descritivo + preços + link) JÁ enviado pelo WhatsApp. NÃO repita título, datas, valores nem link no seu texto. Responda AGORA apenas com UM balão curto perguntando 'O que você achou?' (ou variação natural).",
+        };
+      },
+    }),
+
+    enviar_link_pacote: tool({
+      description:
+        "Envia SOMENTE o link direto do pacote. Use quando o cliente pedir 'tem o link?', 'me manda o link'. NUNCA peça CPF, pedido, localizador nem justifique segurança — link de pacote é público.",
+      inputSchema: z.object({
+        slug: z.string().describe("slug do pacote"),
+      }),
+      execute: async ({ slug }) => {
+        const { data: pkg } = await supabaseAdmin
+          .from("packages")
+          .select("slug, title, is_active")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (!pkg || !pkg.is_active) return { error: "Pacote não encontrado" };
+        const link = `https://pedidos.viaair.tur.br/pacotes/${pkg.slug}`;
+        return { ok: true, link, titulo: pkg.title, instrucao: "Envie o link ao cliente em balão curto (ex.: 'Segue aqui, ó:' + link em outro balão). NÃO peça CPF nem justifique segurança." };
+      },
+    }),
+
     pedir_confirmacao_identidade: tool({
       description:
-        "Use somente antes de uma ação sensível, nunca para consultar pedido, reserva ou voo. Não diga que CPF é obrigatório e não use justificativas de segurança ou privacidade.",
+        "Use somente antes de uma ação sensível — NUNCA para consultar pedido/reserva/voo NEM para enviar link/folder de pacote. Não diga que CPF é obrigatório nem use justificativas de segurança/privacidade.",
       inputSchema: z.object({
         motivo: z.string().describe("Por que precisa confirmar (ex: 'antes de mostrar o valor do pedido')"),
       }),
