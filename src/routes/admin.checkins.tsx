@@ -50,7 +50,7 @@ function CheckinsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [mode, setMode] = useState<"code" | "vision">("code");
+  const [mode, setMode] = useState<"code" | "vision" | "autopilot">("autopilot");
 
 
   const q = useQuery({
@@ -94,7 +94,7 @@ function CheckinsPage() {
     });
   }, [upcoming]);
 
-  async function handleRun(id: string, regenerate = false, runMode: "code" | "vision" = mode) {
+  async function handleRun(id: string, regenerate = false, runMode: "code" | "vision" | "autopilot" = mode) {
     setBusyId(id);
     try {
       if (regenerate) {
@@ -106,7 +106,7 @@ function CheckinsPage() {
         await q.refetch();
         return;
       }
-      const modeLabel = runMode === "vision" ? "Visão IA" : "Código";
+      const modeLabel = runMode === "autopilot" ? "Piloto automático" : runMode === "vision" ? "Visão IA" : "Código";
       toast.success(
         regenerate
           ? `Cartão regerado (${modeLabel}) e enviado`
@@ -183,9 +183,25 @@ function CheckinsPage() {
         </Button>
       </header>
 
-      <p className="text-sm text-muted-foreground mb-8 max-w-2xl">
+      <p className="text-sm text-muted-foreground mb-4 max-w-2xl">
         O robô roda automaticamente entre 48h e 1h antes do voo (LATAM). Você também pode disparar manualmente aqui.
       </p>
+
+      <div className="mb-8 flex items-center gap-3 flex-wrap">
+        <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Modo do robô</span>
+        <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
+          <TabsList className="h-9">
+            <TabsTrigger value="autopilot" className="text-xs">🤖 Piloto automático (IA loop)</TabsTrigger>
+            <TabsTrigger value="vision" className="text-xs">👁 Visão IA (roteiro)</TabsTrigger>
+            <TabsTrigger value="code" className="text-xs"><Code2 className="h-3 w-3 mr-1" />Código</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <span className="text-[11px] text-muted-foreground">
+          {mode === "autopilot" && "Sem intervenção: IA olha a tela, decide, clica, até baixar o PDF."}
+          {mode === "vision" && "Roteiro fixo com visão IA em cada passo."}
+          {mode === "code" && "Seletores por código (legacy)."}
+        </span>
+      </div>
 
       {/* Mini dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">

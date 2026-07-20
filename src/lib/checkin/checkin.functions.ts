@@ -173,7 +173,7 @@ export const regenerateAllBoardingPasses = createServerFn({ method: "POST" })
  */
 export const runCheckin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null; mode?: "code" | "vision" }) => data)
+  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null; mode?: "code" | "vision" | "autopilot" }) => data)
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
     const { userId } = context as { userId: string };
@@ -278,7 +278,7 @@ export const runCheckin = createServerFn({ method: "POST" })
       }
     }
 
-    const mode: "code" | "vision" = data.mode === "vision" ? "vision" : "code";
+    const mode: "code" | "vision" | "autopilot" = data.mode === "vision" ? "vision" : data.mode === "autopilot" ? "autopilot" : "code";
 
     // Marca running
     await sb.from("flight_checkins")
@@ -289,7 +289,12 @@ export const runCheckin = createServerFn({ method: "POST" })
     try {
       let result: any;
       let visionCostCents: number | null = null;
-      if (mode === "vision") {
+      if (mode === "autopilot") {
+        const { runLatamAutopilot } = await import("./latam-autopilot.server");
+        const r = await runLatamAutopilot({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
+        result = r;
+        visionCostCents = r.meta?.visionCostCents ?? null;
+      } else if (mode === "vision") {
         const { runLatamCheckinVision } = await import("./latam-vision.server");
         const r = await runLatamCheckinVision({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
         result = r;
