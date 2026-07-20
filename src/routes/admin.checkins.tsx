@@ -15,6 +15,8 @@ import {
   FileUp,
   Loader2,
   Send,
+  Search,
+
   Trash2,
   ArrowRight,
   Lock,
