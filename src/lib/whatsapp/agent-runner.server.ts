@@ -113,7 +113,11 @@ function looksLikeRealName(v: string | null | undefined): boolean {
 }
 
 function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, _isNewProtocolo: boolean): string {
-  const parts = [agent.system_prompt];
+  // Sempre gera o prompt compartilhado com o nome/gênero deste agente,
+  // ignorando o system_prompt armazenado (mantém a base única pra todo o time).
+  const base = buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
+  const parts = [base];
+
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
   parts.push(`- Telefone do cliente: ${conv.wa_phone}`);
