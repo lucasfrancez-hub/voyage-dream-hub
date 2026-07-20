@@ -29,7 +29,7 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
   };
   const { data: ci } = await supabaseAdmin
     .from("flight_checkins")
-    .select("id, order_id, order_item_id, passenger_id, flight_number, boarding_pass_path, boarding_pass_url")
+    .select("id, order_id, order_item_id, passenger_id, flight_number, locator, departure_at, boarding_pass_path, boarding_pass_url")
     .eq("id", checkinId)
     .maybeSingle();
   if (!ci) return report;
