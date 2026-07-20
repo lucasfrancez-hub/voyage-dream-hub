@@ -126,15 +126,13 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
     }
     report.attempted++;
     const first = (pax.full_name ?? "").split(/\s+/)[0] || "";
-    const caption = `✈️ *Cartão de embarque LATAM* ${flightNum}\n\nOlá, ${first}! Fizemos seu check-in. Aqui está seu cartão de embarque em PDF. Bom voo! 💛`;
+    const mediaLabel = isImage ? "imagem" : "PDF";
+    const caption = `✈️ *Cartão de embarque LATAM* ${flightNum}\n\nOlá, ${first}! Fizemos seu check-in. Aqui está seu cartão de embarque em ${mediaLabel}. Bom voo! 💛`;
+    const filename = `cartao-embarque-${flightNum || pax.id.slice(0, 6)}.${ext}`;
     try {
-      const r = await sendWhatsAppDocumentBytes(
-        phone,
-        pdfBytes,
-        `cartao-embarque-${flightNum || pax.id.slice(0, 6)}.pdf`,
-        caption,
-        url || undefined,
-      );
+      const r = isImage
+        ? await sendWhatsAppImageBytes(phone, fileBytes, filename, caption, url || undefined)
+        : await sendWhatsAppDocumentBytes(phone, fileBytes, filename, caption, url || undefined);
       if (r.id) {
         report.delivered++;
       } else {
