@@ -443,7 +443,9 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
   const active =
     pathname.startsWith("/admin/seguranca") ||
     pathname.startsWith("/admin/instalar-extensao") ||
+    pathname.startsWith("/admin/checkin-treino") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -468,6 +470,15 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
             <span className="text-xs text-muted-foreground">Importador de reservas</span>
           </Link>
         </DropdownMenuItem>
+        {showUsuarios && (
+          <DropdownMenuItem asChild>
+            <Link to="/admin/checkin-treino" className="flex flex-col items-start gap-0.5">
+              <span className="text-sm font-medium">Treinador de check-in</span>
+              <span className="text-xs text-muted-foreground">Ensinar IA passo a passo (admin)</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
+
         {showUsuarios && (
           <DropdownMenuItem asChild>
             <Link to="/admin/usuarios" className="flex flex-col items-start gap-0.5">
