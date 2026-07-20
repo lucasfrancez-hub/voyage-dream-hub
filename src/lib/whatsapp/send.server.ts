@@ -57,37 +57,53 @@ async function uazSendText(to: string, body: string): Promise<{ id: string | nul
   });
 }
 
+function mimeForType(type: "image" | "document" | "video" | "audio", filename?: string): string {
+  if (type === "image") return "image/jpeg";
+  if (type === "video") return "video/mp4";
+  if (type === "audio") return "audio/mpeg";
+  const ext = (filename ?? "").toLowerCase().split(".").pop() ?? "";
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "png") return "image/png";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  return "application/octet-stream";
+}
+
 async function uazSendMedia(
   to: string,
   type: "image" | "document" | "video" | "audio",
   link: string,
   opts: { caption?: string | null; filename?: string } = {},
 ): Promise<{ id: string | null; error?: string }> {
-  // UazAPI aceita URL OU base64 no campo `file`. URLs assinadas do Supabase
-  // Storage podem falhar (HTTP 400/404 no lado do processador da UazAPI),
-  // então baixamos o arquivo aqui e enviamos como base64 — muito mais confiável.
-  let filePayload = link;
+  // Baixa o arquivo no worker e envia como data URI base64 — o processador da
+  // UazAPI falha (HTTP 400/404) tentando buscar URLs assinadas do Supabase,
+  // então nunca caímos de volta para a URL crua.
+  let dataUri: string;
   try {
     const dl = await fetch(link);
-    if (dl.ok) {
-      const buf = new Uint8Array(await dl.arrayBuffer());
-      // btoa não aguenta strings gigantes; converte em chunks
-      let bin = "";
-      const chunk = 0x8000;
-      for (let i = 0; i < buf.length; i += chunk) {
-        bin += String.fromCharCode(...buf.subarray(i, i + chunk));
-      }
-      filePayload = btoa(bin);
-    } else {
-      console.warn("[uazapi] fallback URL — download falhou:", dl.status);
+    if (!dl.ok) {
+      const msg = `download falhou (${dl.status})`;
+      console.error("[uazapi] " + msg, link.slice(0, 120));
+      return { id: null, error: msg };
     }
+    const buf = new Uint8Array(await dl.arrayBuffer());
+    let bin = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < buf.length; i += chunk) {
+      bin += String.fromCharCode(...buf.subarray(i, i + chunk));
+    }
+    const b64 = btoa(bin);
+    const mime = mimeForType(type, opts.filename);
+    dataUri = `data:${mime};base64,${b64}`;
+    console.log("[uazapi] download ok:", buf.length, "bytes", mime);
   } catch (err) {
-    console.warn("[uazapi] fallback URL — exceção no download:", err instanceof Error ? err.message : err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[uazapi] exceção no download:", msg);
+    return { id: null, error: `download exception: ${msg}` };
   }
   return uazPost("/send/media", {
     number: normalizePhone(to),
     type,
-    file: filePayload,
+    file: dataUri,
     ...(opts.caption ? { text: opts.caption.slice(0, 1024) } : {}),
     ...(opts.filename ? { docName: opts.filename.slice(0, 240) } : {}),
   });
