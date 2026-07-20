@@ -274,12 +274,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                         {checkin?.mode && (
                           <Badge
                             variant="outline"
-                            className={
-                              "text-[10px] " +
-                              (checkin.mode === "vision"
-                                ? "border-purple-400/50 text-purple-600 dark:text-purple-300"
-                                : "border-border text-muted-foreground")
-                            }
+                            className="text-[10px] border-border text-muted-foreground"
                             title={
                               checkin.run_duration_ms
                                 ? `${(checkin.run_duration_ms / 1000).toFixed(1)}s` +
@@ -287,9 +282,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                                 : undefined
                             }
                           >
-                            {checkin.mode === "vision"
-                              ? <><Eye className="h-3 w-3 mr-1" />Visão IA</>
-                              : <><Code2 className="h-3 w-3 mr-1" />Código</>}
+                            <Bot className="h-3 w-3 mr-1" />Piloto
                           </Badge>
                         )}
                         {checkin?.id && (checkin?.boarding_pass_url || checkin?.boarding_pass_path) && (
