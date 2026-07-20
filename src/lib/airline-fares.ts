@@ -83,8 +83,13 @@ export const GENERIC_FARE_CLASSES = [
   "First",
 ];
 
-/** Retorna a lista de tarifas para um IATA; cai no genérico se não achar. */
+/** Retorna a lista de tarifas para um IATA; cai no genérico se não achar.
+ *  "Standard" fica sempre disponível como fallback comum a todas as cias. */
 export function fareClassesFor(iata: string | null | undefined): string[] {
-  if (!iata) return GENERIC_FARE_CLASSES;
-  return FARE_CLASSES_BY_AIRLINE[iata.toUpperCase()] ?? GENERIC_FARE_CLASSES;
+  const base = !iata
+    ? GENERIC_FARE_CLASSES
+    : (FARE_CLASSES_BY_AIRLINE[iata.toUpperCase()] ?? GENERIC_FARE_CLASSES);
+  return base.some((f) => f.toLowerCase() === "standard")
+    ? base
+    : [...base, "Standard"];
 }
