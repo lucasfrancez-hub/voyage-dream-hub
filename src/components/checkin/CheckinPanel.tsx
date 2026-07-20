@@ -336,3 +336,42 @@ function StatusBadge({ status }: { status?: string }) {
   if (status === "failed") return <Badge variant="destructive" className="text-[10px]"><XCircle className="h-3 w-3 mr-1" />Falhou</Badge>;
   return <Badge variant="outline" className="text-[10px]">{status}</Badge>;
 }
+
+const MAX_LAYOVER_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * Agrupa segmentos em jornadas encadeadas por rota (destino do anterior =
+ * origem do seguinte), com layover < 12h. Espelha a lógica de /admin/checkins
+ * para que conexões apareçam como um único trecho (GRU→PTY→CUR = 1 linha).
+ */
+function buildJourneys(segments: Segment[]): Segment[][] {
+  if (segments.length <= 1) return segments.length ? [segments] : [];
+  const decorated = segments.map((s) => ({
+    seg: s,
+    origin: (s.item.details?.from_iata || "").toUpperCase(),
+    destination: (s.item.details?.to_iata || "").toUpperCase(),
+    dep: new Date(s.item.details?.depart_at ?? s.item.details?.departure_at ?? 0).getTime(),
+  }));
+  const remaining = [...decorated];
+  const journeys: Segment[][] = [];
+  while (remaining.length) {
+    const remDest = new Set(remaining.map((s) => s.destination));
+    let startIdx = remaining.findIndex((s) => !remDest.has(s.origin));
+    if (startIdx === -1) startIdx = 0;
+    const chain = [remaining.splice(startIdx, 1)[0]];
+    while (true) {
+      const prev = chain[chain.length - 1];
+      const nextIdx = remaining.findIndex((s) => s.origin === prev.destination);
+      if (nextIdx === -1) break;
+      const cand = remaining[nextIdx];
+      const gap = prev.dep && cand.dep ? cand.dep - prev.dep : 0;
+      const shortLayover = !prev.dep || !cand.dep ? true : gap >= 0 && gap <= MAX_LAYOVER_MS * 2;
+      const origins = new Set(chain.map((x) => x.origin));
+      const revisits = origins.has(cand.destination);
+      if (!shortLayover || revisits) break;
+      chain.push(remaining.splice(nextIdx, 1)[0]);
+    }
+    journeys.push(chain.map((c) => c.seg));
+  }
+  return journeys;
+}
