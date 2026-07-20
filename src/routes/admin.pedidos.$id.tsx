@@ -1102,12 +1102,16 @@ function PassengerRow({
       <td className="px-3 py-3 w-[140px]">
         {(() => {
           const map = (passenger.tickets ?? {}) as Record<string, string>;
-          const list = Object.entries(map).filter(([, v]) => !!v && String(v).trim());
+          const entries = Object.entries(map).filter(([, v]) => !!v && String(v).trim());
+          const legacy = (passenger.ticket_number ?? "").trim();
+          const legacyInMap = entries.some(([, v]) => v.trim() === legacy);
+          const list: Array<[string, string]> = [...entries];
+          if (legacy && !legacyInMap) list.push(["_", legacy]);
           if (list.length > 0) {
             return (
               <div className="text-[10px] font-mono tabular-nums text-brand-orange space-y-0.5" title="Editar dentro de cada reserva">
                 {list.map(([loc, t]) => (
-                  <div key={loc}><span className="text-muted-foreground">{loc === "_" ? "" : loc + ": "}</span>{t}</div>
+                  <div key={loc + ":" + t}><span className="text-muted-foreground">{loc === "_" ? "" : loc + ": "}</span>{t}</div>
                 ))}
               </div>
             );
@@ -1118,6 +1122,7 @@ function PassengerRow({
           );
         })()}
       </td>
+
 
       <td className="px-3 py-3 w-[180px]">
         <InlineText value={(passenger as any).whatsapp ?? ""} placeholder="+55 48 9…" className="text-xs tabular-nums w-full"
