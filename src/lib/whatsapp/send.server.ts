@@ -320,3 +320,25 @@ export async function sendWhatsAppDocumentBytes(
     },
   });
 }
+
+/**
+ * Envia uma imagem já carregada pelo servidor — usada para cartões de
+ * embarque capturados como PNG, que exibem preview direto no WhatsApp.
+ */
+export async function sendWhatsAppImageBytes(
+  to: string,
+  bytes: Uint8Array,
+  filename: string,
+  caption?: string | null,
+  fallbackLink?: string,
+): Promise<{ id: string | null; error?: string }> {
+  if (uazConfigured()) {
+    return uazSendMediaBytes(to, "image", bytes, { caption, filename });
+  }
+  if (!fallbackLink) return { id: null, error: "URL da imagem ausente" };
+  return metaSendMedia(to, {
+    type: "image",
+    image: { link: fallbackLink, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+  });
+}
+
