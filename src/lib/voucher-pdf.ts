@@ -30,6 +30,35 @@ import type { OrderDetail, OrderItem, OrderPassenger } from "./orders.functions"
 import { type HotelMapData } from "./voucher-map.functions";
 import { translateText } from "./translate.functions";
 import { computeAutoTitle } from "./auto-title";
+import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "./tripadvisor.functions";
+import { supabase } from "@/integrations/supabase/client";
+
+// Busca fotos do TripAdvisor por location_id ou pelo nome do hotel.
+async function fetchTripAdvisorPhotosForHotel(args: {
+  locationId: number | null;
+  hotelName: string;
+  city: string | null;
+}): Promise<string[]> {
+  let locationId = args.locationId && Number.isFinite(args.locationId) ? args.locationId : null;
+  if (!locationId) {
+    const query = args.city ? `${args.hotelName} ${args.city}` : args.hotelName;
+    const suggestions = await searchTripAdvisorHotels({ data: { query } });
+    if (Array.isArray(suggestions) && suggestions.length > 0) {
+      locationId = suggestions[0].location_id;
+    }
+  }
+  if (!locationId) return [];
+  const details = await getTripAdvisorHotelDetails({ data: { locationId, photoLimit: 5 } });
+  return Array.isArray(details?.photos) ? details.photos : [];
+}
+
+async function persistHotelPhotos(itemId: string, photos: string[]): Promise<void> {
+  if (!itemId || !photos.length) return;
+  const { data: row } = await supabase.from("order_items").select("details").eq("id", itemId).maybeSingle();
+  const details = ((row?.details ?? {}) as Record<string, unknown>);
+  details.tripadvisor_photos_json = JSON.stringify(photos);
+  await supabase.from("order_items").update({ details: details as never }).eq("id", itemId);
+}
 
 // --- Traduções auxiliares para o voucher em inglês ---
 const translateGuestsPtToEn = (input: string): string => {
@@ -922,8 +951,8 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservati
     cy -= rowH;
     if (idx < passengers.length - 1) {
       ctx.page.drawLine({
-        start: { x: MARGIN + 12, y: cy + 5 },
-        end: { x: MARGIN + CONTENT_W - 12, y: cy + 5 },
+        start: { x: MARGIN + 12, y: cy + 11 },
+        end: { x: MARGIN + CONTENT_W - 12, y: cy + 11 },
         thickness: 0.3, color: COLOR_BORDER,
       });
     }
@@ -1676,6 +1705,26 @@ const drawHotelSection = async (
   for (const url of photoCandidates) {
     photo = await embedRemotePhoto(ctx.pdf, url);
     if (photo) break;
+  }
+  // Fallback: se não há fotos salvas no item, tenta buscar no TripAdvisor pelo
+  // location_id ou pelo nome do hotel. As URLs são embutidas na hora e o item
+  // é atualizado no banco para acelerar as próximas gerações.
+  if (!photo && hotelName && hotelName !== "-") {
+    try {
+      const fetched = await fetchTripAdvisorPhotosForHotel({
+        locationId: d.tripadvisor_location_id ? Number(d.tripadvisor_location_id) : null,
+        hotelName,
+        city: String(d.city ?? "").trim() || null,
+      });
+      if (fetched.length) {
+        for (const url of fetched) {
+          photo = await embedRemotePhoto(ctx.pdf, url);
+          if (photo) break;
+        }
+        // Persiste para próxima geração (best-effort, ignora erro)
+        void persistHotelPhotos(item.id, fetched).catch(() => {});
+      }
+    } catch { /* ignore */ }
   }
 
   const midX = innerX + (photo ? photoW + gapPhoto : 0);
