@@ -18,6 +18,7 @@ import {
   screenshotTrainingSession,
   heartbeatTrainingSession,
   closeTrainingSession,
+  captureTrainingPdf,
   type TrainingStep,
 } from "@/lib/checkin/training.functions";
 
