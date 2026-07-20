@@ -2149,7 +2149,7 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
               <div>
                 <h3 className="text-lg font-bold">Importar múltiplos pacotes</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Envie um PDF com vários orçamentos (padrão “Orcamento 1”, “Orcamento 2”…). Cada bloco vira um pacote separado, salvo como <span className="font-semibold">inativo</span> para você revisar.
+                  Envie um PDF com vários orçamentos (padrão “Orcamento 1”, “Orcamento 2”…). Cada bloco abre em uma aba no editor — igual ao "Novo Pacote" — pra você revisar e salvar um a um.
                 </p>
               </div>
               <button
