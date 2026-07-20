@@ -70,7 +70,7 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
   const flightNum = ci.flight_number ?? "";
   const locator = ci.locator ?? "";
 
-  // Busca destino / cidade a partir do order_item (details.to_city / to_iata / destination).
+  // Busca destino / cidade a partir do order_item (details.to_city / to_airport / to_iata).
   let destino = "";
   if (ci.order_item_id) {
     const { data: it } = await supabaseAdmin
@@ -79,8 +79,17 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
       .eq("id", ci.order_item_id)
       .maybeSingle();
     const d = (it?.details ?? {}) as Record<string, any>;
-    destino = d.to_city || d.destination_city || d.to || d.destination || d.to_iata || d.arrival_iata || "";
+    const city = String(d.to_city || d.destination_city || "").trim();
+    const airport = String(d.to_airport || "").trim();
+    const iata = String(d.to_iata || d.arrival_iata || "").trim().toUpperCase();
+    const parts: string[] = [];
+    if (city) parts.push(city);
+    if (airport && airport.toLowerCase() !== city.toLowerCase()) parts.push(airport);
+    let out = parts.join(", ");
+    if (iata) out = out ? `${out} (${iata})` : iata;
+    destino = out || String(d.to || d.destination || "");
   }
+
 
   // Formata data/horário do voo em pt-BR.
   let dataVoo = "";
