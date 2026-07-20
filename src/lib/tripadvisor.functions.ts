@@ -52,6 +52,22 @@ function pickAddress(addresses: Array<Record<string, unknown>> | undefined) {
   };
 }
 
+function extractRating(obj: Record<string, unknown>): number | null {
+  const candidates: unknown[] = [
+    (obj.overall_rating as { rating?: unknown } | undefined)?.rating,
+    obj.rating,
+    (obj as { review_rating?: { rating?: unknown } }).review_rating?.rating,
+    (obj as { ratings?: { overall?: { rating?: unknown } } }).ratings?.overall?.rating,
+  ];
+  for (const c of candidates) {
+    if (c == null) continue;
+    const n = typeof c === "number" ? c : Number(String(c).replace(",", "."));
+    if (Number.isFinite(n) && n > 0 && n <= 5) return n;
+  }
+  return null;
+}
+
+
 // Busca hotéis por nome (autocomplete). Retorna até 8 sugestões.
 export const searchTripAdvisorHotels = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -79,7 +95,8 @@ function mapSearch(list: Array<{ location?: Record<string, unknown> }>): TAHotel
     const loc = (item.location ?? item) as Record<string, unknown>;
     const addr = pickAddress(loc.addresses as Array<Record<string, unknown>> | undefined);
     const coords = (loc.coordinates as { latitude?: number; longitude?: number } | undefined) || undefined;
-    const rating = (loc.overall_rating as { rating?: number } | undefined)?.rating ?? null;
+    const rating = extractRating(loc);
+
     const url = (loc.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null;
     return {
       location_id: Number(loc.id),
@@ -113,7 +130,7 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
     const det = (await rDet.json()) as Record<string, unknown>;
     const addr = pickAddress(det.addresses as Array<Record<string, unknown>> | undefined);
     const coords = (det.coordinates as { latitude?: number; longitude?: number } | undefined) || undefined;
-    const rating = (det.overall_rating as { rating?: number } | undefined)?.rating ?? null;
+    const rating = extractRating(det);
     const url = (det.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null;
     const phones = det.phone_numbers as Array<{ value?: string }> | undefined;
     const websites = det.websites as Array<{ url?: string }> | undefined;
