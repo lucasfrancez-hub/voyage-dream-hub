@@ -403,7 +403,7 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     escalar_para_humano: tool({
       description:
-        "Sinaliza que a conversa precisa de um consultor humano (nova cotação, alteração/cancelamento de voo pela cia, reclamação, algo fora do seu escopo). Marca a conversa como aguardando_humano com prioridade e briefing pro painel do atendente. IMPORTANTE: você CONTINUA respondendo ao cliente normalmente até um humano assumir manualmente pelo painel — não pare, não fique em silêncio, siga ajudando com o que puder (dúvidas, informações, contexto). O comercial pode estar ocupado ou fora do horário. Preencha os campos estruturados com o que já foi coletado.",
+        "Transfere a conversa pro atendimento humano (nova cotação, alteração/cancelamento de voo pela cia, reclamação, algo fora do seu escopo). Marca a conversa como mode=human com prioridade e briefing pro painel do atendente. DEPOIS de chamar essa tool, envie APENAS UMA mensagem curta avisando que passou pro time humano e ENCERRE — a IA sai do ar automaticamente e o atendente assume. Preencha os campos estruturados com o que já foi coletado.",
 
       inputSchema: z.object({
         motivo: z
