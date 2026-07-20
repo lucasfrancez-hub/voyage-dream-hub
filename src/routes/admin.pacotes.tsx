@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks, Sparkles, Image as ImageIcon, Search, Wand2 } from "lucide-react";
 import { toast } from "sonner";
