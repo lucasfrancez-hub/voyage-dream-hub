@@ -173,7 +173,7 @@ export const regenerateAllBoardingPasses = createServerFn({ method: "POST" })
  */
 export const runCheckin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null; mode?: "code" | "vision" | "autopilot" }) => data)
+  .inputValidator((data: { checkinId?: string; orderItemId?: string; passengerId?: string | null }) => data)
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
     const { userId } = context as { userId: string };
@@ -300,7 +300,7 @@ export const runCheckin = createServerFn({ method: "POST" })
 
       const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
 
-      // Upload no storage — respeita PNG (script salvo) ou PDF (autopilot).
+      // Upload no storage do cartão capturado pelo script salvo.
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const isPng = (result.contentType || "").includes("png");
       const path = `${checkin.order_id}/${checkin.id}.${isPng ? "png" : "pdf"}`;
@@ -458,7 +458,7 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
       }
 
       const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
-      // O script salvo devolve PNG (screenshot do cartão) e o autopilot devolve PDF.
+      // O script salvo devolve o PNG capturado no treinador.
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const passBytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
       const contentType = result.contentType || "application/pdf";
@@ -514,9 +514,8 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
 /**
  * Busca o script salvo mais recente da companhia no treinador e roda no
  * navegador remoto usando o localizador/sobrenome reais da reserva.
- * Devolve { boardingPassBase64, contentType, meta } compatível com o formato
- * que o autopilot LATAM devolve, ou null se não houver script salvo (ou
- * se ele não capturar nenhuma região).
+ * Devolve o cartão capturado, ou null se não houver script salvo (ou se ele
+ * não capturar nenhuma região).
  */
 async function tryRunFromSavedScript(
   sb: any,

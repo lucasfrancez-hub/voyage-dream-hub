@@ -48,8 +48,9 @@ export const runTrainingScript = createServerFn({ method: "POST" })
     const surname = (data.surname || "").trim();
 
     try {
-      const { runScriptOnBrowserless } = await import("@/lib/checkin/training-runner.server");
-      const result = await runScriptOnBrowserless({
+      const { runScriptInLiveSession } = await import("@/lib/checkin/training-runner.server");
+      const result = await runScriptInLiveSession({
+        userId: `training:${context.userId}`,
         url: data.url,
         steps: data.steps,
         viewportWidth: data.viewportWidth,
