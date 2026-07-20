@@ -103,7 +103,7 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
           .order("scheduled_for", { ascending: true })
           .limit(5);
 
-        const { runLatamCheckin } = await import("@/lib/checkin/latam.server");
+        const { runLatamAutopilot } = await import("@/lib/checkin/latam-autopilot.server");
         const { deliverBoardingPass } = await import("@/lib/checkin/deliver.server");
 
         for (const ci of (scheduled ?? []) as Array<any>) {
