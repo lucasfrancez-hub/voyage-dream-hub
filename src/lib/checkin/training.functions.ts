@@ -40,14 +40,65 @@ export const runTrainingScript = createServerFn({ method: "POST" })
 
 
     const code = `
-export default async ({ page, context }) => {
+export default async ({ page, browser, context }) => {
   const { url, steps, viewportWidth, viewportHeight } = context;
   const logs = [];
-  await page.setViewport({ width: viewportWidth, height: viewportHeight, deviceScaleFactor: 1 });
-  await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36");
+  const configuredPages = new WeakSet();
+  const unusablePages = new WeakSet();
+  const activeBrowser = browser || (page && typeof page.browser === "function" ? page.browser() : null);
+  let activePage = page;
+
+  const configurePage = async (candidate) => {
+    if (!candidate || candidate.isClosed() || configuredPages.has(candidate)) return;
+    configuredPages.add(candidate);
+    await candidate.setViewport({ width: viewportWidth, height: viewportHeight, deviceScaleFactor: 1 }).catch(() => {});
+    await candidate.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36").catch(() => {});
+  };
+
+  const resolveActivePage = async (createIfMissing = false) => {
+    let pages = [];
+    try { pages = activeBrowser ? await activeBrowser.pages() : []; } catch (_) {}
+    const openPages = pages.filter((candidate) => candidate && !candidate.isClosed() && !unusablePages.has(candidate));
+    const latamPage = [...openPages].reverse().find((candidate) => {
+      try { return candidate.url().includes("latamairlines.com"); } catch (_) { return false; }
+    });
+    const currentStillOpen = activePage && !activePage.isClosed() ? activePage : null;
+    activePage = latamPage || openPages[openPages.length - 1] || currentStillOpen;
+    if ((!activePage || activePage.isClosed() || unusablePages.has(activePage)) && createIfMissing && activeBrowser) {
+      activePage = await activeBrowser.newPage();
+      await configurePage(activePage);
+      await activePage.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    }
+    if (!activePage || activePage.isClosed()) throw new Error("A aba da LATAM foi fechada durante o treinamento");
+    await configurePage(activePage);
+    await activePage.bringToFront().catch(() => {});
+    return activePage;
+  };
+
+  const captureActivePage = async () => {
+    let lastError = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const candidate = await resolveActivePage(attempt > 0);
+      try {
+        await new Promise((r) => setTimeout(r, 500 + attempt * 500));
+        return await candidate.screenshot({ type: "jpeg", quality: 70, encoding: "base64", fullPage: false });
+      } catch (error) {
+        lastError = error;
+        const message = String(error && error.message || error);
+        if (!/not attached|target closed|session closed|detached|most likely the page has been closed/i.test(message)) throw error;
+        logs.push({ step: "screenshot-retry", ok: false, err: message });
+        unusablePages.add(candidate);
+        if (activePage === candidate) activePage = null;
+        await new Promise((r) => setTimeout(r, 700));
+      }
+    }
+    throw lastError || new Error("Não foi possível capturar a tela ativa da LATAM");
+  };
+
+  await configurePage(activePage);
 
   try {
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await activePage.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
     logs.push({ step: "goto", url, ok: true });
     await new Promise((r) => setTimeout(r, 2500));
   } catch (e) {
@@ -57,29 +108,30 @@ export default async ({ page, context }) => {
   for (let i = 0; i < steps.length; i++) {
     const s = steps[i];
     try {
+      const currentPage = await resolveActivePage();
       if (s.action === "goto") {
-        await page.goto(s.url, { waitUntil: "domcontentloaded", timeout: 60000 });
+        await currentPage.goto(s.url, { waitUntil: "domcontentloaded", timeout: 60000 });
         await new Promise((r) => setTimeout(r, 1500));
       } else if (s.action === "wait") {
         await new Promise((r) => setTimeout(r, s.ms));
       } else if (s.action === "click") {
-        await page.mouse.move(s.x, s.y, { steps: 8 });
-        await page.mouse.click(s.x, s.y, { delay: 60 });
+        await currentPage.mouse.move(s.x, s.y, { steps: 8 });
+        await currentPage.mouse.click(s.x, s.y, { delay: 60 });
         await new Promise((r) => setTimeout(r, 800));
       } else if (s.action === "type") {
-        await page.mouse.click(s.x, s.y, { delay: 60 });
+        await currentPage.mouse.click(s.x, s.y, { delay: 60 });
         if (s.clearFirst) {
-          await page.keyboard.down("Control");
-          await page.keyboard.press("A");
-          await page.keyboard.up("Control");
-          await page.keyboard.press("Backspace");
+          await currentPage.keyboard.down("Control");
+          await currentPage.keyboard.press("A");
+          await currentPage.keyboard.up("Control");
+          await currentPage.keyboard.press("Backspace");
         }
-        await page.keyboard.type(s.text, { delay: 30 });
+        await currentPage.keyboard.type(s.text, { delay: 30 });
       } else if (s.action === "press") {
-        await page.keyboard.press(s.key);
+        await currentPage.keyboard.press(s.key);
         await new Promise((r) => setTimeout(r, 600));
       } else if (s.action === "scroll") {
-        await page.evaluate((dy) => window.scrollBy(0, dy), s.dy);
+        await currentPage.evaluate((dy) => window.scrollBy(0, dy), s.dy);
         await new Promise((r) => setTimeout(r, 500));
       }
       logs.push({ i, action: s.action, ok: true });
@@ -89,9 +141,10 @@ export default async ({ page, context }) => {
     }
   }
 
-  const screenshot = await page.screenshot({ type: "jpeg", quality: 70, encoding: "base64", fullPage: false });
-  const currentUrl = page.url();
-  const title = await page.title().catch(() => "");
+  const screenshot = await captureActivePage();
+  const finalPage = await resolveActivePage();
+  const currentUrl = finalPage.url();
+  const title = await finalPage.title().catch(() => "");
   return { data: { screenshot, currentUrl, title, logs, width: viewportWidth, height: viewportHeight } };
 };
 `;
