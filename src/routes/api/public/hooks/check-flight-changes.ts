@@ -207,14 +207,14 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
             body,
             buttons: cancelled
               ? [
-                  { id: `flight_alert:${alert.id}:reschedule`, title: "Remarcar" },
-                  { id: `flight_alert:${alert.id}:refund`, title: "Reembolso" },
+                  { id: `flight_alert:${alert.id}:reschedule`, title: "Remarcar voo" },
+                  { id: `flight_alert:${alert.id}:refund`, title: "Solicitar reembolso" },
                 ]
               : minorChange
                 ? [{ id: `flight_alert:${alert.id}:ack`, title: "Ok, ciente" }]
                 : [
-                    { id: `flight_alert:${alert.id}:reschedule`, title: "Remarcar" },
-                    { id: `flight_alert:${alert.id}:refund`, title: "Reembolso" },
+                    { id: `flight_alert:${alert.id}:reschedule`, title: "Remarcar voo" },
+                    { id: `flight_alert:${alert.id}:refund`, title: "Solicitar reembolso" },
                   ],
             footer: "Aviso automático VIA AIR",
           });
