@@ -114,14 +114,18 @@ export async function handleFlightAlertReply(input: {
     })
     .eq("id", alertId);
 
+  const cancelled = (alert?.new_status ?? "").toLowerCase().includes("cancel");
+
   // Ack = alteração informativa, não escala
   if (action === "ack") {
-    const reply =
-      (greet ? `Oi, ${greet}! ` : "") +
-      "recebi sua confirmação sobre a alteração do voo " +
-      `${alert?.flight_number ?? ""}`.trim() + ". ✅\n\n" +
-      "Como a mudança foi pequena, sua reserva segue confirmada e não precisa fazer nada. " +
-      "Se precisar de qualquer coisa, é só chamar por aqui. 💛";
+    const reply = await generateContextualReply({
+      conversation_id: input.conversation_id,
+      intent: "ack",
+      firstName,
+      flightNumber: alert?.flight_number ?? null,
+      locator: orderRow?.airline_locator ?? null,
+      cancelled,
+    });
     const sent = await sendWhatsAppText(input.wa_phone, reply);
     await saveMessage({
       conversation_id: input.conversation_id,
