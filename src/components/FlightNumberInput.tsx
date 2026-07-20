@@ -20,11 +20,14 @@ type Props = {
  */
 function stripPrefix(raw: string): string {
   const s = raw.trim().toUpperCase();
+  // A flight number made only of digits has no airline prefix. Check this
+  // before the generic prefix regex, otherwise "1137" is split as
+  // prefix "113" + suffix "7".
+  if (/^\d+$/.test(s)) return s;
   // Match optional airline code (letters+digits, 2-3 chars) + optional space, then the rest
-  const m = s.match(/^[A-Z0-9]{2,3}\s*(.+)$/);
+  const m = s.match(/^(?=[A-Z0-9]{2,3}\s)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,3}\s*(.+)$/);
   if (m && /\d/.test(m[1])) return m[1].trim();
-  // If input starts with a digit, return as-is
-  return s.replace(/^\s+/, "");
+  return s;
 }
 
 export function FlightNumberInput({
