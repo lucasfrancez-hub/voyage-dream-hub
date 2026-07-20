@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks, Sparkles, Image as ImageIcon, Search, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
@@ -12,6 +13,7 @@ import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { findAirline } from "@/lib/airlines";
 import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
+import { generatePackageSummary, searchCoverImages } from "@/lib/packages/ai.functions";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
