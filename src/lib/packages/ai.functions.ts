@@ -424,13 +424,16 @@ Regras:
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "openai/gpt-5.5",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: system },
           {
             role: "user",
             content: [
-              { type: "text", text: "Extraia os dados deste voo. Confira os números de voo dígito a dígito e todos os horários HH:MM antes de devolver." },
+              {
+                type: "text",
+                text: "Extraia os dados deste voo. IMPORTANTE: os horários de partida e chegada (HH:MM) aparecem em destaque no print, geralmente em fonte grande ao lado de cada aeroporto/IATA — leia CADA UM e devolva ISO completo YYYY-MM-DDTHH:MM combinando com a data do cabeçalho. Confira dígito a dígito os números de voo (todos os 4 dígitos) antes de devolver.",
+              },
               {
                 type: "image_url",
                 image_url: { url: `data:${data.mime_type};base64,${data.image_base64}` },
