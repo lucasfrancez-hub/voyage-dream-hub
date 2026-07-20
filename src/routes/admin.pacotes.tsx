@@ -117,8 +117,58 @@ const emptyForm: Partial<PackageRow> = {
 
 function AdminPackages() {
   const qc = useQueryClient();
-  const [editing, setEditing] = useState<Partial<PackageRow> | null>(null);
+  const [editing, setEditingState] = useState<Partial<PackageRow> | null>(null);
   const [saving, setSaving] = useState(false);
+  // Multi-import drafts: array of partial packages open in tabs
+  const [drafts, setDrafts] = useState<Partial<PackageRow>[] | null>(null);
+  const [draftIndex, setDraftIndex] = useState(0);
+
+  // Wrap setEditing to keep the drafts array in sync with edits
+  const setEditing = (v: Partial<PackageRow> | null) => {
+    if (v === null) {
+      setEditingState(null);
+      setDrafts(null);
+      setDraftIndex(0);
+      return;
+    }
+    setEditingState(v);
+    setDrafts((prev) => {
+      if (!prev) return prev;
+      const next = prev.slice();
+      next[draftIndex] = v;
+      return next;
+    });
+  };
+
+  function switchDraft(newIdx: number) {
+    if (!drafts) return;
+    if (newIdx < 0 || newIdx >= drafts.length) return;
+    // persist current edits into drafts[draftIndex] first
+    const snapshot = drafts.slice();
+    if (editing) snapshot[draftIndex] = editing;
+    setDrafts(snapshot);
+    setDraftIndex(newIdx);
+    setEditingState(snapshot[newIdx]);
+  }
+
+  function closeCurrentDraft() {
+    if (!drafts) {
+      setEditing(null);
+      return;
+    }
+    const remaining = drafts.filter((_, i) => i !== draftIndex);
+    if (remaining.length === 0) {
+      setDrafts(null);
+      setDraftIndex(0);
+      setEditingState(null);
+      return;
+    }
+    const nextIdx = Math.min(draftIndex, remaining.length - 1);
+    setDrafts(remaining);
+    setDraftIndex(nextIdx);
+    setEditingState(remaining[nextIdx]);
+  }
+
 
   const { data: packages, isLoading } = useQuery({
     queryKey: ["admin", "packages"],
