@@ -443,7 +443,9 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
   const active =
     pathname.startsWith("/admin/seguranca") ||
     pathname.startsWith("/admin/instalar-extensao") ||
+    pathname.startsWith("/admin/checkin-treino") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
