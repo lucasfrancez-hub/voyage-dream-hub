@@ -854,11 +854,10 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   async function handleGenerateSummary() {
     const brief = (editing.summary ?? "").trim();
     const dest = (editing.destination ?? "").trim();
-    // Se o usuário não digitou briefing, usa o destino direto com estrutura padrão.
     const finalBrief = brief.length >= 2
       ? brief
       : dest.length >= 2
-        ? `Escreva um resumo de ${dest} para pacote de viagens, para vender pacote de viagens`
+        ? `Resumo autoral sobre ${dest}, focado no que torna o lugar único.`
         : "";
     if (!finalBrief) {
       toast.error("Digite o destino ou escreva um resumo primeiro");
@@ -866,7 +865,7 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     }
     setAiLoading(true);
     try {
-      const { text } = await genSummary({ data: { brief: finalBrief } });
+      const { text } = await genSummary({ data: { brief: finalBrief, destination: dest || undefined } });
       setEditing({ ...editing, summary: text });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao gerar resumo");
@@ -874,6 +873,7 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
       setAiLoading(false);
     }
   }
+
 
   // Auto-gerar resumo assim que houver destino e o resumo estiver vazio.
   // Dispara também em cada troca de draft (pacote diferente com destino igual).
