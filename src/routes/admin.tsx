@@ -233,24 +233,27 @@ function AdminLayout() {
               {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
             {isAdmin && <AdminNotificationBell />}
-
-            <a
-              href="/chat"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange/15 px-3 py-1.5 text-xs font-medium text-brand-orange transition-colors hover:bg-brand-orange/25"
-              title="Central de atendimento WhatsApp + IA (abre em nova aba)"
-            >
-              <MessageCircle className="h-3.5 w-3.5" /> Chat
-            </a>
             <a
               href="https://viaair.tur.br"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-brand-orange"
+              title="Ver site"
+              aria-label="Ver site"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-brand-orange hover:text-brand-orange"
             >
-              <Home className="h-4 w-4" /> Ver site
+              <Home className="h-3.5 w-3.5" />
             </a>
+            <GlobalSearchButton />
+            <a
+              href="/chat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-500 transition-colors hover:bg-emerald-500/25"
+              title="Central de atendimento WhatsApp + IA (abre em nova aba)"
+            >
+              <MessageCircle className="h-3.5 w-3.5" /> Chat
+            </a>
+
             <button
               onClick={async () => {
                 await supabase.auth.signOut();
