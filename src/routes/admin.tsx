@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home, Link2, ShieldCheck, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle, Sun, Moon } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -451,7 +451,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
           active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        <ShieldCheck className="h-4 w-4" /> Segurança <ChevronDown className="h-3.5 w-3.5" />
+        <Settings className="h-4 w-4" /> Configurações <ChevronDown className="h-3.5 w-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
         <DropdownMenuItem asChild>
