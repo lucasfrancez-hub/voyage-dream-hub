@@ -2150,10 +2150,18 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
             ? `${destination} - Saída de ${origin}`
             : destination
           : "";
+        const baseSlug = (destination || "pacote")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+        const uniqueSlug = `${baseSlug}-${i + 1}`;
         return {
           ...emptyForm,
-          slug: "",
-          title,
+          slug: uniqueSlug,
+          title: title ? `${title} #${i + 1}` : `Pacote #${i + 1}`,
+
 
           destination,
           origin,
