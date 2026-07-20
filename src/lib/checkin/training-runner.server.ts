@@ -22,6 +22,118 @@ export type ScriptRunResult = {
   height: number;
 };
 
+/**
+ * Executa um script salvo usando exatamente a mesma sessão viva/CDP usada
+ * pelo botão "Repetir do zero" do treinador. Não usa o endpoint /function.
+ */
+export async function runScriptInLiveSession(opts: {
+  userId: string;
+  url: string;
+  steps: TrainingStep[];
+  viewportWidth?: number;
+  viewportHeight?: number;
+  locator?: string;
+  surname?: string;
+}): Promise<ScriptRunResult> {
+  const viewportWidth = opts.viewportWidth ?? 1280;
+  const viewportHeight = opts.viewportHeight ?? 900;
+  const locator = (opts.locator || "").trim();
+  const surname = (opts.surname || "").trim();
+  const resolvedSteps = opts.steps.map((step) => {
+    if (step.action === "type") {
+      return {
+        ...step,
+        text: step.text
+          .replaceAll("{{locator}}", locator)
+          .replaceAll("{{surname}}", surname),
+      };
+    }
+    if (step.action === "goto") {
+      return {
+        ...step,
+        url: rebuildInitialUrlForOrder(
+          step.url
+            .replaceAll("{{locator}}", encodeURIComponent(locator))
+            .replaceAll("{{surname}}", encodeURIComponent(surname)),
+          locator,
+          surname,
+        ),
+      };
+    }
+    return step;
+  });
+
+  const {
+    openLiveSession,
+    runLiveStep,
+    captureRegionPng,
+    screenshotLiveSession,
+    closeLiveSession,
+  } = await import("./training-session.server");
+  const logs: ScriptRunResult["logs"] = [];
+  const captures: ScriptRunResult["captures"] = [];
+  let sessionId = "";
+  let latest: { screenshot: string; currentUrl: string; title: string } | null = null;
+
+  try {
+    const opened = await openLiveSession({
+      userId: opts.userId,
+      url: opts.url,
+      viewportWidth,
+      viewportHeight,
+      useResidentialProxy: true,
+    });
+    sessionId = opened.sessionId;
+    latest = opened;
+    logs.push({ step: "goto", url: opts.url, ok: true });
+
+    for (let i = 0; i < resolvedSteps.length; i += 1) {
+      const step = resolvedSteps[i];
+      try {
+        if (step.action === "capture_region") {
+          const captured = await captureRegionPng({
+            userId: opts.userId,
+            sessionId,
+            x: step.x,
+            y: step.y,
+            width: step.width,
+            height: step.height,
+          });
+          captures.push({
+            i,
+            kind: "region",
+            pngBase64: captured.pngBase64,
+            filename: step.filename || null,
+            width: Math.max(10, Math.round(step.width)),
+            height: Math.max(10, Math.round(step.height)),
+          });
+          latest = await screenshotLiveSession({ userId: opts.userId, sessionId });
+        } else {
+          latest = await runLiveStep({ userId: opts.userId, sessionId, step });
+        }
+        logs.push({ i, action: step.action, ok: true, url: latest.currentUrl });
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        logs.push({ i, action: step.action, ok: false, err: detail });
+        throw new Error(`Etapa ${i + 1} (${step.action}) falhou: ${detail}`);
+      }
+    }
+
+    if (!latest) throw new Error("A sessão não devolveu a tela final");
+    return {
+      ...latest,
+      logs,
+      captures,
+      width: viewportWidth,
+      height: viewportHeight,
+    };
+  } finally {
+    if (sessionId) {
+      await closeLiveSession({ userId: opts.userId, sessionId }).catch(() => undefined);
+    }
+  }
+}
+
 export async function runScriptOnBrowserless(opts: {
   url: string;
   steps: TrainingStep[];

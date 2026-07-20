@@ -103,7 +103,7 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
           .order("scheduled_for", { ascending: true })
           .limit(5);
 
-        const { runScriptOnBrowserless, rebuildInitialUrlForOrder } = await import("@/lib/checkin/training-runner.server");
+        const { runScriptInLiveSession, rebuildInitialUrlForOrder } = await import("@/lib/checkin/training-runner.server");
         const { deliverBoardingPass } = await import("@/lib/checkin/deliver.server");
 
         for (const ci of (scheduled ?? []) as Array<any>) {
@@ -127,7 +127,8 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
               throw new Error("Nenhum script de treinador salvo para LATAM. Grave um em /admin/checkin-treino.");
             }
             const runUrl = rebuildInitialUrlForOrder(script.initial_url, ci.locator, ci.pnr_surname);
-            const result = await runScriptOnBrowserless({
+            const result = await runScriptInLiveSession({
+              userId: `cron:${ci.id}`,
               url: runUrl,
               steps: script.steps as any,
               viewportWidth: script.viewport_width ?? 1280,
