@@ -236,10 +236,13 @@ export const listManualQueue = createServerFn({ method: "GET" })
         is_intl: it.is_intl,
         flight_number: it.flight_number,
         departure_at: it.departure_at,
+        arrival_at: it.arrival_at,
         origin: it.origin,
         destination: it.destination,
+        direction: it.direction,
         checkin,
       });
+
 
     }
 
