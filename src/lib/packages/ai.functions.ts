@@ -571,7 +571,7 @@ Regras:
 - Meses PT: jan=01, fev=02, mar=03, abr=04, mai=05, jun=06, jul=07, ago=08, set=09, out=10, nov=11, dez=12.
 - Se houver conexões, preencha "segments" na ordem e defina depart_at do voo agregado = do primeiro segmento, arrive_at = do último.
 - Cidade em português (São Paulo, não Sao Paulo). from_city/to_city do voo agregado = origem do primeiro trecho / destino final.
-- meal_plan: SOMENTE se o documento mencionar explicitamente refeição. "Café da Manhã" → "Café da manhã"; "All inclusive"/"Tudo incluído" → "All inclusive"; se NÃO houver menção → "" (string vazia). Não assuma café da manhã por padrão.
+- meal_plan: procure ATIVAMENTE. Indicadores BR: "Café da Manhã"/"com café"/"c/ café"/"café incluso"/"ACM"/"APT c/ café" → "Café da manhã"; "Meia Pensão"/"MAP" → "Meia pensão"; "Pensão Completa"/"FAP" → "Pensão completa"; "All Inclusive"/"Tudo Incluso"/"AI" → "All inclusive"; "Sem refeição"/"SC"/"Room Only" → "Sem refeição". "" só se realmente não houver menção.
 - checked_bag/carry_on/personal_item: true APENAS se o documento indicar explicitamente (ícone ativo, texto "1 bagagem despachada", "23kg" etc.). Se não houver menção clara → false. Não assuma bagagem despachada por padrão.
 - hotel_stars: número inteiro de 1 a 5 (conte as estrelas ou pegue a classificação).
 - includes: liste os itens da seção "Incluso" do documento.
@@ -717,7 +717,7 @@ Regras (aplicar em CADA pacote):
 - flight_number: SOMENTE dígitos, todos preservados (ex.: "1137", não "7", não "G3-1137").
 - depart_at / arrive_at: ISO "YYYY-MM-DDTHH:MM". Meses PT: jan=01…dez=12.
 - Conexões: segments em ordem; depart_at agregado = 1º segmento; arrive_at = último; from_city/to_city agregado = origem 1º / destino final.
-- meal_plan: SOMENTE se explicitamente mencionado. Senão "".
+- meal_plan: procure ATIVAMENTE em cada bloco. Indicadores comuns em orçamentos BR: "Café da Manhã", "com café", "c/ café", "café incluso", "ACM"/"APT c/ café" → "Café da manhã"; "Meia Pensão"/"MAP" → "Meia pensão"; "Pensão Completa"/"FAP" → "Pensão completa"; "All Inclusive"/"Tudo Incluso"/"AI" → "All inclusive"; "Sem refeição"/"Só hospedagem"/"SC"/"Room Only" → "Sem refeição". Só use "" se REALMENTE não houver nenhuma menção ao regime.
 - checked_bag/carry_on/personal_item: true apenas se o bloco indicar explicitamente. Caso contrário false.
 - hotel_stars: inteiro 1-5.
 - supplier_name: operadora emissora (nunca a agência revendedora VIA AIR).
