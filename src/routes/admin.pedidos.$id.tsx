@@ -1333,8 +1333,20 @@ function ItemsTab({
       passport_issue_date: passenger.passport_issue_date,
       passport_expiry_date: passenger.passport_expiry_date,
     } as any });
+    // Se algum passageiro tem bilhete para esse localizador → marca voos como confirmados (emitidos)
+    if (kind === "flight" && t) {
+      const targetLoc = key === "_" ? "" : key;
+      for (const it of items) {
+        const itLoc = (it.supplier_locator || "").toUpperCase().trim();
+        if (targetLoc && itLoc !== targetLoc) continue;
+        if (it.status !== "confirmed") {
+          setStatus({ data: { id: it.id, status: "confirmed" } }).catch(() => {});
+        }
+      }
+    }
     onChange();
   };
+
   const [editing, setEditing] = useState<OrderItem | null>(null);
   const [open, setOpen] = useState(false);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(() => new Set());
