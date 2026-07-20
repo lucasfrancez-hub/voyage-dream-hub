@@ -16,6 +16,7 @@ import {
   openTrainingSession,
   runLiveTrainingStep,
   screenshotTrainingSession,
+  heartbeatTrainingSession,
   closeTrainingSession,
   type TrainingStep,
 } from "@/lib/checkin/training.functions";
@@ -39,6 +40,7 @@ function TreinoPage() {
   const openSession = useServerFn(openTrainingSession);
   const runStep = useServerFn(runLiveTrainingStep);
   const shotSession = useServerFn(screenshotTrainingSession);
+  const heartbeatSession = useServerFn(heartbeatTrainingSession);
   const closeSession = useServerFn(closeTrainingSession);
 
   const [url, setUrl] = useState(DEFAULT_URL);
@@ -69,6 +71,20 @@ function TreinoPage() {
       if (saved) setSessionId(saved);
     }
   }, []);
+
+  useEffect(() => {
+    if (!sessionId || busy) return;
+    let cancelled = false;
+    const renew = async () => {
+      const result = await heartbeatSession({ data: { sessionId } }).catch(() => ({ ok: false as const, error: "SESSION_EXPIRED" }));
+      if (!cancelled && !result.ok) handleSessionError(new Error(result.error));
+    };
+    const timer = window.setInterval(() => void renew(), 6_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [sessionId, busy, heartbeatSession]);
 
   const persistSession = (id: string | null) => {
     setSessionId(id);

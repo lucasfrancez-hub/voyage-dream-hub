@@ -15,7 +15,9 @@ import { randomUUID } from "crypto";
 import type { Browser, Page } from "puppeteer-core";
 
 const BROWSERLESS_BASE = "https://production-sfo.browserless.io";
-const SESSION_RECONNECT_MS = 60 * 1000; // limite do plano Browserless (max ~60s entre ações)
+// O plano Free limita reconnect a 10s. O front envia um heartbeat a cada 6s,
+// permitindo que a aba continue viva enquanto o treinador estiver aberto.
+const SESSION_RECONNECT_MS = 9 * 1000;
 const SESSION_INACTIVITY_MS = 10 * 60 * 1000;
 const OPEN_REQUEST_TIMEOUT_MS = 70 * 1000;
 
@@ -295,6 +297,12 @@ export async function runLiveStep(opts: {
 export async function screenshotLiveSession(opts: { userId: string; sessionId: string }) {
   const session = requireSession(opts.sessionId, opts.userId);
   return withConnection(session, (page) => capture(page));
+}
+
+export async function heartbeatLiveSession(opts: { userId: string; sessionId: string }) {
+  const session = requireSession(opts.sessionId, opts.userId);
+  await withConnection(session, async () => undefined);
+  return { alive: true as const };
 }
 
 export async function closeLiveSession(opts: { userId: string; sessionId: string }) {

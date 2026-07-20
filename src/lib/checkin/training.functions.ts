@@ -271,6 +271,21 @@ export const screenshotTrainingSession = createServerFn({ method: "POST" })
     }
   });
 
+export const heartbeatTrainingSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SessionIdInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    try {
+      const { heartbeatLiveSession } = await import("@/lib/checkin/training-session.server");
+      await heartbeatLiveSession({ userId: context.userId, sessionId: data.sessionId });
+      return { ok: true as const };
+    } catch (e) {
+      console.error(e);
+      return { ok: false as const, error: "SESSION_EXPIRED" };
+    }
+  });
+
 export const closeTrainingSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SessionIdInput.parse(input))
