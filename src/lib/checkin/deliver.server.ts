@@ -30,44 +30,53 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
   };
   const { data: ci } = await supabaseAdmin
     .from("flight_checkins")
-    .select("id, order_id, order_item_id, passenger_id, flight_number, locator, departure_at, boarding_pass_path, boarding_pass_url")
+    .select("id, order_id, order_item_id, passenger_id, flight_number, locator, departure_at, boarding_pass_path, boarding_pass_url, boarding_passes")
     .eq("id", checkinId)
     .maybeSingle();
   if (!ci) return report;
 
-  // Carrega o PDF diretamente do storage. Além de evitar URLs assinadas no
-  // envio à UazAPI, isso detecta registros antigos cujo arquivo foi apagado.
-  let url = ci.boarding_pass_url ?? "";
-  let fileBytes: Uint8Array | null = null;
-  if (ci.boarding_pass_path) {
-    const downloaded = await supabaseAdmin.storage
-      .from("boarding-passes")
-      .download(ci.boarding_pass_path);
+  // Monta lista de cartões (novo formato boarding_passes[] preferido; fallback pro único legado).
+  type PassRec = { path: string; url: string | null; passenger_index: number; bytes: Uint8Array; isImage: boolean; ext: "png" | "jpg" | "pdf" };
+  const rawPasses: Array<{ path: string; url: string | null; passenger_index: number }> = Array.isArray(ci.boarding_passes) && (ci.boarding_passes as unknown[]).length > 0
+    ? (ci.boarding_passes as Array<{ path: string; url: string | null; passenger_index?: number }>).map((p, i) => ({
+        path: p.path,
+        url: p.url ?? null,
+        passenger_index: typeof p.passenger_index === "number" && p.passenger_index > 0 ? p.passenger_index : i + 1,
+      }))
+    : ci.boarding_pass_path
+      ? [{ path: ci.boarding_pass_path, url: ci.boarding_pass_url ?? null, passenger_index: 1 }]
+      : [];
+
+  if (rawPasses.length === 0) {
+    report.failed.push({ name: "—", error: "Arquivo do cartão não encontrado. Rode o check-in novamente." });
+    return report;
+  }
+
+  const passes: PassRec[] = [];
+  for (const p of rawPasses) {
+    const downloaded = await supabaseAdmin.storage.from("boarding-passes").download(p.path);
     if (downloaded.error || !downloaded.data) {
-      const error = "Arquivo do cartão não encontrado no armazenamento. Rode o check-in novamente.";
-      await supabaseAdmin
-        .from("flight_checkins")
-        .update({ status: "failed", error, boarding_pass_path: null, boarding_pass_url: null })
+      const error = `Arquivo do cartão não encontrado (${p.path}). Rode o check-in novamente.`;
+      await supabaseAdmin.from("flight_checkins")
+        .update({ status: "failed", error })
         .eq("id", checkinId);
       report.failed.push({ name: "—", error });
       return report;
     }
-    fileBytes = new Uint8Array(await downloaded.data.arrayBuffer());
+    const bytes = new Uint8Array(await downloaded.data.arrayBuffer());
+    const signed = await supabaseAdmin.storage.from("boarding-passes").createSignedUrl(p.path, 60 * 60 * 24);
+    const isPng = bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    const isJpg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    passes.push({
+      path: p.path,
+      url: signed.data?.signedUrl ?? p.url,
+      passenger_index: p.passenger_index,
+      bytes,
+      isImage: isPng || isJpg,
+      ext: isPng ? "png" : isJpg ? "jpg" : "pdf",
+    });
+  }
 
-    const signed = await supabaseAdmin.storage
-      .from("boarding-passes")
-      .createSignedUrl(ci.boarding_pass_path, 60 * 60 * 24);
-    if (signed.data?.signedUrl) url = signed.data.signedUrl;
-  }
-  if (!fileBytes) {
-    report.failed.push({ name: "—", error: "Arquivo do cartão não encontrado. Rode o check-in novamente." });
-    return report;
-  }
-  // Detecta PNG (89 50 4E 47) — capturado do treinador — vs PDF (25 50 44 46).
-  const isPng = fileBytes.length >= 4 && fileBytes[0] === 0x89 && fileBytes[1] === 0x50 && fileBytes[2] === 0x4e && fileBytes[3] === 0x47;
-  const isJpg = fileBytes.length >= 3 && fileBytes[0] === 0xff && fileBytes[1] === 0xd8 && fileBytes[2] === 0xff;
-  const isImage = isPng || isJpg;
-  const ext = isPng ? "png" : isJpg ? "jpg" : "pdf";
   const flightNum = ci.flight_number ?? "";
   const locator = ci.locator ?? "";
 
