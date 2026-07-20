@@ -286,7 +286,7 @@ function BookingCard({
   group: any;
   busyKey: string | null;
   sendingId: string | null;
-  onUpload: (a: { key: string; orderItemId: string; passengerIndex: number; file: File }) => void;
+  onUpload: (a: { key: string; orderItemId: string; passengerIndex: number; file: File; totalPax: number; uploadedBefore: number; checkinIdBefore: string | null; alreadySent: boolean }) => void;
   onRemove: (checkinId: string, passengerIndex: number) => void;
   onSend: (checkinId: string) => void;
 }) {
