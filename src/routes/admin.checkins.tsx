@@ -84,17 +84,39 @@ function CheckinsPage() {
 
   const groups = (q.data ?? []) as Array<any>;
 
-  const [aFazer, prontos] = useMemo(() => {
+  // Janela de check-in por trecho:
+  // - Internacional: 24h
+  // - Nacional LATAM/GOL/AZUL: 24h
+  // - Nacional demais companhias: 48h
+  function windowHoursFor(seg: any): number {
+    const airline = String(seg.airline || "").toUpperCase();
+    const isIntl = !!seg.is_intl;
+    if (isIntl) return 24;
+    if (airline === "LATAM" || airline === "GOL" || airline === "AZUL") return 24;
+    return 48;
+  }
+  function isWithinWindow(seg: any): boolean {
+    const dep = seg.departure_at ? new Date(seg.departure_at).getTime() : 0;
+    if (!dep) return false;
+    const hoursTo = (dep - Date.now()) / HOUR;
+    return hoursTo <= windowHoursFor(seg) && hoursTo > -6;
+  }
+
+  const [aFazer, proximos, prontos] = useMemo(() => {
     const todo: any[] = [];
+    const upcoming: any[] = [];
     const done: any[] = [];
     for (const g of groups) {
       const paxCount = g.passengers.length;
       const isReady = g.segments.every((s: any) =>
         s.checkin?.boarding_passes && (s.checkin.boarding_passes as any[]).length >= paxCount,
       );
-      if (isReady) done.push(g); else todo.push(g);
+      if (isReady) { done.push(g); continue; }
+      // "A fazer" = pelo menos um segmento dentro da janela (ou já iniciado)
+      const anyOpen = g.segments.some((s: any) => s.checkin || isWithinWindow(s));
+      if (anyOpen) todo.push(g); else upcoming.push(g);
     }
-    return [todo, done];
+    return [todo, upcoming, done];
   }, [groups]);
 
   const totalToUpload = useMemo(() => {
@@ -102,6 +124,7 @@ function CheckinsPage() {
     for (const g of aFazer) n += g.segments.length * g.passengers.length;
     return n;
   }, [aFazer]);
+
 
   async function handleUpload(args: {
     key: string;
