@@ -447,7 +447,19 @@ function TreinoPage() {
               <label className="text-xs font-medium">Sessão salva</label>
               <Select
                 value={currentScriptId ?? "__new"}
-                onValueChange={(v) => { if (v === "__new") { setCurrentScriptId(null); setScriptName(""); } else { void loadScript(v); } }}
+                onValueChange={(v) => {
+                  if (v === "__new") {
+                    // Nova sessão = tudo em branco. Passos e anotações são por
+                    // sessão salva, então não podem vazar da anterior.
+                    setCurrentScriptId(null);
+                    setScriptName("");
+                    setSteps([]);
+                    setAnnotations([]);
+                    setUrl(DEFAULT_URL_BY_AIRLINE[airline] ?? url);
+                  } else {
+                    void loadScript(v);
+                  }
+                }}
               >
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Nova sessão" /></SelectTrigger>
                 <SelectContent>
