@@ -611,9 +611,18 @@ function AdminPackages() {
                         Story (1080×1920)
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => toast.info("Envie a capa para gerar a arte de Feed (em breve).")}
+                        onClick={async () => {
+                          const t = toast.loading("Gerando arte do feed…");
+                          try {
+                            const { generatePackageFeedArt } = await import("@/lib/packages/feed-art");
+                            await generatePackageFeedArt(p);
+                            toast.success("Arte pronta!", { id: t });
+                          } catch (e) {
+                            toast.error(e instanceof Error ? e.message : "Falha ao gerar arte", { id: t });
+                          }
+                        }}
                       >
-                        Feed (1080×1080)
+                        Feed (1080×1440)
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
