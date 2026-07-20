@@ -252,52 +252,61 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
               </div>
 
               <div className="space-y-1">
-                {group.segments.map(({ item, checkin }) => {
-                  const depIso = item.details?.depart_at ?? item.details?.departure_at ?? null;
+                {buildJourneys(group.segments).map((journey, jIdx) => {
+                  const first = journey[0];
+                  const last = journey[journey.length - 1];
+                  const depIso = first.item.details?.depart_at ?? first.item.details?.departure_at ?? null;
                   const dep = depIso ? new Date(depIso) : null;
+                  const via = journey.length > 1
+                    ? journey.slice(0, -1).map((s) => s.item.details?.to_iata).filter(Boolean).join(" · ")
+                    : null;
+                  const anchorCheckin = journey.find((s) => s.checkin)?.checkin ?? null;
+                  const flightLabels = journey
+                    .map((s) => s.item.details?.flight_number)
+                    .filter(Boolean)
+                    .join(" + ");
                   return (
                     <div
-                      key={item.id}
+                      key={`${group.key}-j${jIdx}`}
                       className="flex items-center justify-between gap-3 rounded-md bg-background/40 px-3 py-2 text-xs"
                     >
                       <div className="min-w-0">
                         <div className="font-medium truncate">
-                          {item.details?.flight_number ?? "Voo"} — {item.details?.from_iata}→{item.details?.to_iata}
+                          {flightLabels || "Voo"} — {first.item.details?.from_iata}→{last.item.details?.to_iata}
+                          {via && (
+                            <span className="ml-2 text-[10px] text-muted-foreground font-normal">
+                              via {via} · {journey.length - 1} conexão{journey.length - 1 > 1 ? "es" : ""}
+                            </span>
+                          )}
                         </div>
                         <div className="text-muted-foreground">
                           {dep ? dep.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Sem horário"}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <StatusBadge status={checkin?.status} />
-                        {checkin?.mode && (
+                        <StatusBadge status={anchorCheckin?.status} />
+                        {anchorCheckin?.mode && (
                           <Badge
                             variant="outline"
                             className="text-[10px] border-border text-muted-foreground"
-                            title={
-                              checkin.run_duration_ms
-                                ? `${(checkin.run_duration_ms / 1000).toFixed(1)}s` +
-                                  (checkin.vision_cost_cents ? ` · ~R$ ${(checkin.vision_cost_cents / 100).toFixed(2)}` : "")
-                                : undefined
-                            }
                           >
                             <Bot className="h-3 w-3 mr-1" />Piloto
                           </Badge>
                         )}
-                        {checkin?.id && (checkin?.boarding_pass_url || checkin?.boarding_pass_path) && (
-                          <a href={`/api/public/bp/${checkin.id}`} download>
+                        {anchorCheckin?.id && (anchorCheckin?.boarding_pass_url || anchorCheckin?.boarding_pass_path) && (
+                          <a href={`/api/public/bp/${anchorCheckin.id}`} download>
                             <Button size="sm" variant="outline" className="h-7">
                               <Download className="h-3.5 w-3.5 mr-1" />Baixar cartão
                             </Button>
                           </a>
                         )}
-                        {checkin?.id && checkin?.status === "success" && (
+                        {anchorCheckin?.id && anchorCheckin?.status === "success" && (
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-7"
                             disabled={resendMut.isPending}
-                            onClick={() => resendMut.mutate(checkin.id)}
+                            onClick={() => resendMut.mutate(anchorCheckin.id)}
                             title="Reenviar este cartão pelo WhatsApp"
                           >
                             {resendMut.isPending
@@ -326,4 +335,43 @@ function StatusBadge({ status }: { status?: string }) {
   if (status === "running") return <Badge variant="secondary" className="text-[10px]"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Rodando</Badge>;
   if (status === "failed") return <Badge variant="destructive" className="text-[10px]"><XCircle className="h-3 w-3 mr-1" />Falhou</Badge>;
   return <Badge variant="outline" className="text-[10px]">{status}</Badge>;
+}
+
+const MAX_LAYOVER_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * Agrupa segmentos em jornadas encadeadas por rota (destino do anterior =
+ * origem do seguinte), com layover < 12h. Espelha a lógica de /admin/checkins
+ * para que conexões apareçam como um único trecho (GRU→PTY→CUR = 1 linha).
+ */
+function buildJourneys(segments: Segment[]): Segment[][] {
+  if (segments.length <= 1) return segments.length ? [segments] : [];
+  const decorated = segments.map((s) => ({
+    seg: s,
+    origin: (s.item.details?.from_iata || "").toUpperCase(),
+    destination: (s.item.details?.to_iata || "").toUpperCase(),
+    dep: new Date(s.item.details?.depart_at ?? s.item.details?.departure_at ?? 0).getTime(),
+  }));
+  const remaining = [...decorated];
+  const journeys: Segment[][] = [];
+  while (remaining.length) {
+    const remDest = new Set(remaining.map((s) => s.destination));
+    let startIdx = remaining.findIndex((s) => !remDest.has(s.origin));
+    if (startIdx === -1) startIdx = 0;
+    const chain = [remaining.splice(startIdx, 1)[0]];
+    while (true) {
+      const prev = chain[chain.length - 1];
+      const nextIdx = remaining.findIndex((s) => s.origin === prev.destination);
+      if (nextIdx === -1) break;
+      const cand = remaining[nextIdx];
+      const gap = prev.dep && cand.dep ? cand.dep - prev.dep : 0;
+      const shortLayover = !prev.dep || !cand.dep ? true : gap >= 0 && gap <= MAX_LAYOVER_MS * 2;
+      const origins = new Set(chain.map((x) => x.origin));
+      const revisits = origins.has(cand.destination);
+      if (!shortLayover || revisits) break;
+      chain.push(remaining.splice(nextIdx, 1)[0]);
+    }
+    journeys.push(chain.map((c) => c.seg));
+  }
+  return journeys;
 }
