@@ -362,7 +362,7 @@ function CheckinRow({
         <Button
           size="sm"
           variant={r.status === "success" ? "outline" : "default"}
-          className={r.status === "success" ? "h-9" : "h-9 bg-brand-orange hover:bg-brand-orange/90 text-white shadow-lg shadow-brand-orange/10"}
+          className={r.status === "success" ? "h-9" : "h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"}
           disabled={isBusy}
           onClick={() => onRun(r.id, r.status === "success")}
           title={r.status === "success" ? "Apaga o PDF atual e roda o check-in de novo" : ""}
