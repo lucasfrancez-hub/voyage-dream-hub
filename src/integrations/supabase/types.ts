@@ -77,6 +77,7 @@ export type Database = {
           id: string
           initial_url: string
           name: string
+          pax_count: number | null
           steps: Json
           updated_at: string
           viewport_height: number
@@ -90,6 +91,7 @@ export type Database = {
           id?: string
           initial_url: string
           name: string
+          pax_count?: number | null
           steps?: Json
           updated_at?: string
           viewport_height?: number
@@ -103,6 +105,7 @@ export type Database = {
           id?: string
           initial_url?: string
           name?: string
+          pax_count?: number | null
           steps?: Json
           updated_at?: string
           viewport_height?: number
