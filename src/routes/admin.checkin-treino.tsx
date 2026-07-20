@@ -96,6 +96,89 @@ function TreinoPage() {
     }
   }, []);
 
+  // Recarrega scripts sempre que a companhia muda
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await listScripts({ data: { airline } });
+        if (!cancelled && r.ok) setSavedScripts(r.scripts as SavedScript[]);
+      } catch { /* silencioso */ }
+    })();
+    return () => { cancelled = true; };
+  }, [airline, listScripts]);
+
+  const onChangeAirline = (a: Airline) => {
+    if (sessionId) {
+      toast.error("Feche a sessão antes de trocar de companhia.");
+      return;
+    }
+    setAirline(a);
+    setUrl(DEFAULT_URL_BY_AIRLINE[a]);
+    setSteps([]);
+    setAnnotations([]);
+    setCurrentScriptId(null);
+    setScriptName("");
+  };
+
+  const loadScript = async (id: string) => {
+    try {
+      const r = await getScript({ data: { id } });
+      if (!r.ok) return;
+      const s = r.script as { id: string; name: string; initial_url: string; steps: TrainingStep[]; annotations: typeof annotations; viewport_width: number; viewport_height: number };
+      setCurrentScriptId(s.id);
+      setScriptName(s.name);
+      setUrl(s.initial_url);
+      setSteps(s.steps || []);
+      setAnnotations(s.annotations || []);
+      toast.success(`Script "${s.name}" carregado`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao carregar");
+    }
+  };
+
+  const saveCurrentScript = async () => {
+    const name = scriptName.trim();
+    if (!name) { toast.error("Dá um nome pro script antes de salvar."); return; }
+    try {
+      const r = await saveScript({
+        data: {
+          id: currentScriptId ?? undefined,
+          airline,
+          name,
+          initial_url: url,
+          steps,
+          annotations,
+          viewport_width: 1280,
+          viewport_height: 900,
+        },
+      });
+      if (!r.ok) return;
+      setCurrentScriptId(r.id);
+      const list = await listScripts({ data: { airline } });
+      if (list.ok) setSavedScripts(list.scripts as SavedScript[]);
+      toast.success("Script salvo");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+    }
+  };
+
+  const removeCurrentScript = async () => {
+    if (!currentScriptId) return;
+    if (!window.confirm("Excluir este script?")) return;
+    try {
+      await deleteScript({ data: { id: currentScriptId } });
+      setCurrentScriptId(null);
+      setScriptName("");
+      const list = await listScripts({ data: { airline } });
+      if (list.ok) setSavedScripts(list.scripts as SavedScript[]);
+      toast.success("Script excluído");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao excluir");
+    }
+  };
+
+
   useEffect(() => {
     if (!sessionId || busy) return;
     let cancelled = false;
