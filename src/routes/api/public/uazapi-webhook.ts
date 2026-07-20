@@ -153,6 +153,33 @@ async function processUaz(payload: UazPayload) {
     });
     if (!saved) continue;
 
+    // Detecta resposta de botão do robô de alertas de voo (títulos fixos).
+    // UazAPI não preserva IDs de botão — mapeamos pelo texto e casamos com o
+    // alerta pendente mais recente pra esse telefone.
+    const buttonAction = matchFlightAlertButton(content);
+    if (buttonAction) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: pending } = await supabaseAdmin
+        .from("flight_change_alerts")
+        .select("id")
+        .eq("wa_phone", phone)
+        .is("response", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (pending?.id) {
+        const { handleFlightAlertReply } = await import("@/lib/whatsapp/flight-alert-reply.server");
+        await handleFlightAlertReply({
+          conversation_id: conv.id,
+          wa_phone: phone,
+          button_id: `flight_alert:${pending.id}:${buttonAction}`,
+        });
+        continue;
+      }
+    }
+
+
+
     // Mesma lógica de debounce adaptativo do webhook Meta.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: convState } = await supabaseAdmin
