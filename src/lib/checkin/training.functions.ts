@@ -453,6 +453,7 @@ const SaveScriptInput = z.object({
   })).default([]),
   viewport_width: z.number().int().default(1280),
   viewport_height: z.number().int().default(900),
+  pax_count: z.number().int().min(1).max(20).nullable().optional(),
 });
 
 export const saveTrainingScript = createServerFn({ method: "POST" })
@@ -468,6 +469,7 @@ export const saveTrainingScript = createServerFn({ method: "POST" })
       annotations: data.annotations,
       viewport_width: data.viewport_width,
       viewport_height: data.viewport_height,
+      pax_count: data.pax_count ?? null,
       created_by: context.userId,
     };
     if (data.id) {
