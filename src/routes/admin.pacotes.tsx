@@ -664,17 +664,11 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   }
 
   // Auto-gerar resumo assim que houver destino e o resumo estiver vazio.
-  const autoSummaryDoneRef = (function useAutoSummaryRef() {
-    // usa useMemo pra manter uma ref estável entre renders sem importar useRef aqui.
-    const box = useMemo(() => ({ destKey: "" as string }), []);
-    return box;
-  })();
+  // Dispara também em cada troca de draft (pacote diferente com destino igual).
   useEffect(() => {
     const dest = (editing.destination ?? "").trim();
     const summary = (editing.summary ?? "").trim();
     if (!dest || summary || aiLoading) return;
-    if (autoSummaryDoneRef.destKey === dest) return;
-    autoSummaryDoneRef.destKey = dest;
     const t = setTimeout(() => {
       if ((editing.summary ?? "").trim()) return;
       void (async () => {
@@ -687,14 +681,14 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
         } catch (err) {
           console.warn("[auto-summary] falhou", err);
         } finally {
-
           setAiLoading(false);
         }
       })();
     }, 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing.destination]);
+  }, [editing.destination, editing.slug, draftIndex]);
+
 
   async function handleSearchImages(nextPage = 1) {
     const q = imgQuery.trim() || editing.destination?.trim() || "";
