@@ -151,7 +151,9 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
     // O horário do voo é armazenado como wall-clock local do aeroporto (sem
     // conversão de fuso). Formatamos em UTC para preservar exatamente os
     // dígitos originais (ex.: 12:15 permanece 12:15, não vira 09:15).
-    const dt = new Date(ci.departure_at);
+    const raw = String(ci.departure_at);
+    const iso = /[zZ]|[+-]\d\d:?\d\d$/.test(raw) ? raw : `${raw}Z`;
+    const dt = new Date(iso);
     if (!isNaN(dt.getTime())) {
       dataVoo = dt.toLocaleDateString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric" });
       horaVoo = dt.toLocaleTimeString("pt-BR", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" });
