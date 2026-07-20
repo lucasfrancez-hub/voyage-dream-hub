@@ -78,6 +78,54 @@ Regras rígidas:
   });
 
 
+export const generatePackageTagline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ destination: z.string().min(1).max(200) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
+
+    const system = `Você é copywriter da VIA AIR. Crie UMA frase curta, elegante e atrativa para uma arte de post sobre o destino "${data.destination}".
+Regras:
+- No máximo 55 caracteres.
+- Apenas UMA linha, sem quebras.
+- Termine com ponto final.
+- Sem emojis, sem hashtags, sem aspas, sem markdown.
+- NÃO cite preços, hotel, datas, agência ou pacote.
+- Deve remeter ao lugar (paisagem/clima/vibe).
+Exemplos:
+Porto Seguro: "O paraíso te espera."
+Gramado: "Viva o charme da Serra Gaúcha."
+Bariloche: "Neve, paisagens e experiências inesquecíveis."
+Cancún: "Águas cristalinas esperando por você."
+Responda apenas com a frase.`;
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-3.5-flash",
+        temperature: 1.1,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: `Destino: ${data.destination}` },
+        ],
+      }),
+    });
+    if (!resp.ok) throw new Error(`Falha IA (${resp.status})`);
+    const json = (await resp.json()) as any;
+    const raw = String(json?.choices?.[0]?.message?.content ?? "").trim();
+    const text = raw.replace(/^["'“”]+|["'“”]+$/g, "").split("\n")[0].trim();
+    return { text: text || `Descubra ${data.destination}.` };
+  });
+
+
+
+
+
 // Busca de imagens livres — combina múltiplas fontes de alta qualidade:
 // 1) Categoria do destino no Wikimedia Commons (galeria curada com centenas
 //    de fotos: pontos turísticos, praias, arquitetura). Usa Wikidata (P373)
