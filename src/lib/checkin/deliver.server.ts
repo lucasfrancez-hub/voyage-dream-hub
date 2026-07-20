@@ -116,7 +116,27 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
           const db = new Date(b.details?.depart_at || b.details?.departure_at || 0).getTime();
           return da - db;
         });
-      if (chain.length > 0) finalDetails = (chain[chain.length - 1].details ?? finalDetails) as Record<string, any>;
+      // Uma mesma reserva pode conter IDA + VOLTA. Isolamos a JORNADA que
+      // contém o segmento âncora: seguimos a cadeia (destino == próxima origem)
+      // pra frente e pra trás a partir do âncora e paramos na primeira quebra.
+      if (chain.length > 0) {
+        const anchorIdx = chain.findIndex((s: any) => s.id === anchor!.id);
+        const idx = anchorIdx >= 0 ? anchorIdx : 0;
+        let start = idx, end = idx;
+        while (start > 0) {
+          const prev = chain[start - 1]?.details ?? {};
+          const cur = chain[start]?.details ?? {};
+          if (prev.to_iata && cur.from_iata && prev.to_iata === cur.from_iata) start--;
+          else break;
+        }
+        while (end < chain.length - 1) {
+          const cur = chain[end]?.details ?? {};
+          const nxt = chain[end + 1]?.details ?? {};
+          if (cur.to_iata && nxt.from_iata && cur.to_iata === nxt.from_iata) end++;
+          else break;
+        }
+        finalDetails = (chain[end].details ?? finalDetails) as Record<string, any>;
+      }
     }
     const d = finalDetails;
     const genericDestination = String(d.to || d.destination || "").trim();
