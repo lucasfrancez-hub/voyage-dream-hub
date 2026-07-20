@@ -80,3 +80,24 @@ export const markAllFlightAlertsSeen = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const sendFlightAlertToClient = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: uuid, message: z.string().min(1) }).parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: alert, error } = await supabaseAdmin
+      .from("flight_change_alerts")
+      .select("id, wa_phone, order_id, orders!inner(wa_phone)")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    const phone = (alert as any)?.wa_phone || (alert as any)?.orders?.wa_phone;
+    if (!phone) throw new Error("Cliente sem WhatsApp cadastrado");
+    const { sendWhatsAppText } = await import("@/lib/whatsapp/send.server");
+    const sent = await sendWhatsAppText(phone, data.message);
+    if (sent.error) throw new Error(sent.error);
+    return { ok: true, id: sent.id };
+  });
+
