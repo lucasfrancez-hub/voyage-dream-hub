@@ -885,8 +885,9 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservati
       : (p.cpf ? `CPF ${p.cpf}` : (p.document ?? "-"));
     const tipo = passengerTypeLabel(t, p.passenger_type ?? "ADT");
     const dob = p.birth_date ? fmtDateBR(p.birth_date) : "-";
-    const rawTicket = (p.ticket_number ?? "").trim();
+    const rawTicket = ticketFor(p);
     const ticketFmt = formatTicketNumber(rawTicket);
+
     const cells = showTicket
       ? [name || "-", tipo, doc, dob, ticketFmt || "-"]
       : [name || "-", tipo, doc, dob];
