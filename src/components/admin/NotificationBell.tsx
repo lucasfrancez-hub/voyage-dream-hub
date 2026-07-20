@@ -136,9 +136,12 @@ export function AdminNotificationBell() {
   const listFn = useServerFn(listFlightAlerts);
   const markOneFn = useServerFn(markFlightAlertSeen);
   const markAllFn = useServerFn(markAllFlightAlertsSeen);
+  const sendFn = useServerFn(sendFlightAlertToClient);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<AlertRow | null>(null);
+  const [sending, setSending] = useState(false);
+
 
   const q = useQuery({
     queryKey: ["admin-flight-alerts"],
