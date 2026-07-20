@@ -2,28 +2,27 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  listAllCheckins,
-  listUpcomingFlights,
-  runCheckin,
+  listManualQueue,
+  uploadManualBoardingPass,
+  removeManualBoardingPass,
   resendBoardingPass,
 } from "@/lib/checkin/checkin.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
 import {
   CalendarClock,
   CheckCircle2,
   Download,
   ExternalLink,
-  Hourglass,
+  FileUp,
   Loader2,
   PlaneTakeoff,
   Send,
-  TimerReset,
-  XCircle,
+  Trash2,
+  X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/checkins")({
@@ -33,78 +32,113 @@ export const Route = createFileRoute("/admin/checkins")({
 
 const HOUR = 3600 * 1000;
 
+function buildLatamBoardingPassUrl(opts: {
+  locator: string;
+  surname: string;
+  tripPassengerId: string;
+  segmentIndex: number;
+}) {
+  const p = new URLSearchParams({
+    orderId: opts.locator.toUpperCase(),
+    lastName: opts.surname.toLowerCase(),
+    tripPassengerId: opts.tripPassengerId,
+    segmentIndex: String(opts.segmentIndex),
+    itineraryId: "1",
+  });
+  return `https://www.latamairlines.com/br/pt/cartao-de-embarque?${p.toString()}`;
+}
+
+function readFileAsBase64(file: File): Promise<{ base64: string; ext: "pdf" | "png" | "jpg"; contentType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const result = reader.result as string; // data:xxx;base64,....
+      const base64 = result.split(",")[1] ?? "";
+      const ct = file.type || "";
+      const ext: "pdf" | "png" | "jpg" =
+        ct.includes("png") || file.name.toLowerCase().endsWith(".png") ? "png"
+        : ct.includes("jpeg") || ct.includes("jpg") || /\.jpe?g$/i.test(file.name) ? "jpg"
+        : "pdf";
+      const contentType = ext === "pdf" ? "application/pdf" : ext === "png" ? "image/png" : "image/jpeg";
+      resolve({ base64, ext, contentType });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function CheckinsPage() {
-  const load = useServerFn(listAllCheckins);
-  const loadUpcoming = useServerFn(listUpcomingFlights);
-  const run = useServerFn(runCheckin);
+  const load = useServerFn(listManualQueue);
+  const upload = useServerFn(uploadManualBoardingPass);
+  const remove = useServerFn(removeManualBoardingPass);
   const resend = useServerFn(resendBoardingPass);
-  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
 
-
   const q = useQuery({
-    queryKey: ["all-checkins"],
+    queryKey: ["manual-checkins"],
     queryFn: () => load(),
-    refetchInterval: 15_000,
-  });
-  const qUp = useQuery({
-    queryKey: ["upcoming-flights"],
-    queryFn: () => loadUpcoming(),
     refetchInterval: 60_000,
   });
 
-  const rows = (q.data ?? []) as Array<any>;
-  const upcoming = (qUp.data ?? []) as Array<any>;
+  const groups = (q.data ?? []) as Array<any>;
 
-  const groups = useMemo(() => {
-    const now = Date.now();
-    const imminent: any[] = []; // pending/failed dentro de 48h
-    const running: any[] = [];
+  const [aFazer, prontos] = useMemo(() => {
+    const todo: any[] = [];
     const done: any[] = [];
-    const failed: any[] = [];
-    for (const r of rows) {
-      const depIso = r.departure_at ?? r.item?.details?.depart_at ?? r.item?.details?.departure_at ?? r.scheduled_for ?? null;
-      const dep = depIso ? new Date(depIso).getTime() : null;
-      if (r.status === "success") done.push(r);
-      else if (r.status === "running") running.push(r);
-      else if (r.status === "failed") failed.push(r);
-      else if (dep && dep - now <= 48 * HOUR) imminent.push(r);
-      else imminent.push(r); // pending sem horário
+    for (const g of groups) {
+      const paxCount = g.passengers.length;
+      const isReady = g.segments.every((s: any) =>
+        s.checkin?.boarding_passes && (s.checkin.boarding_passes as any[]).length >= paxCount,
+      );
+      if (isReady) done.push(g); else todo.push(g);
     }
-    return { imminent, running, done, failed };
-  }, [rows]);
+    return [todo, done];
+  }, [groups]);
 
-  const upcoming7d = useMemo(() => {
-    const now = Date.now();
-    const in7 = now + 7 * 24 * HOUR;
-    return upcoming.filter((u: any) => {
-      const dep = u.departure_at ? new Date(u.departure_at).getTime() : null;
-      return dep && dep >= now && dep <= in7;
-    });
-  }, [upcoming]);
+  const totalToUpload = useMemo(() => {
+    let n = 0;
+    for (const g of aFazer) n += g.segments.length * g.passengers.length;
+    return n;
+  }, [aFazer]);
 
-  async function handleRun(id: string) {
-    setBusyId(id);
+  async function handleUpload(args: {
+    key: string;
+    orderItemId: string;
+    passengerIndex: number;
+    file: File;
+  }) {
+    setBusyKey(args.key);
     try {
-      const result = await run({ data: { checkinId: id } });
-      if (!result.ok) {
-        toast.error(result.error);
-        await q.refetch();
-        return;
-      }
-      toast.success("Check-in concluído");
+      const { base64, ext, contentType } = await readFileAsBase64(args.file);
+      await upload({ data: { orderItemId: args.orderItemId, passengerIndex: args.passengerIndex, fileBase64: base64, ext, contentType } });
+      toast.success("Cartão anexado");
       q.refetch();
     } catch (e: any) {
-      toast.error(e?.message ?? "Falhou");
+      toast.error(e?.message ?? "Falha no upload");
     } finally {
-      setBusyId(null);
+      setBusyKey(null);
     }
   }
 
-  async function handleResend(id: string) {
-    setSendingId(id);
+  async function handleRemove(checkinId: string, passengerIndex: number) {
+    const key = `${checkinId}:${passengerIndex}:rm`;
+    setBusyKey(key);
     try {
-      const res = await resend({ data: { checkinId: id } });
+      await remove({ data: { checkinId, passengerIndex } });
+      q.refetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha");
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function handleSend(checkinId: string) {
+    setSendingId(checkinId);
+    try {
+      const res = await resend({ data: { checkinId } });
       const r = (res as any).report as {
         attempted: number; delivered: number;
         skippedNoPhone: Array<{ name: string }>; failed: Array<{ name: string; error: string }>;
@@ -122,6 +156,7 @@ function CheckinsPage() {
         toast.success(
           `Cartão enviado (${r.delivered}/${r.attempted + r.skippedNoPhone.length})${r.usedOrderFallback ? " · usou telefone do pedido" : ""}`,
         );
+        q.refetch();
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao enviar");
@@ -140,69 +175,56 @@ function CheckinsPage() {
       </header>
 
       <p className="text-sm text-muted-foreground mb-6 max-w-2xl">
-        Robô 100% autônomo (piloto automático): a IA olha a tela, decide o próximo clique e baixa o cartão sozinha. Roda entre 48h e 1h antes do voo (LATAM). Você também pode disparar manualmente aqui.
+        Fluxo manual passo a passo. Para cada reserva próxima, abra o cartão de embarque de cada
+        passageiro no site da companhia, baixe o PDF/imagem, anexe aqui e envie para o WhatsApp do cliente.
       </p>
 
-      {/* Mini dashboard */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
-        <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Próximos (7d)" value={upcoming7d.length} tone="muted" />
-        <StatCard icon={<Hourglass className="h-4 w-4" />} label="A realizar (48h)" value={groups.imminent.length} tone="warning" />
-        <StatCard icon={<TimerReset className="h-4 w-4" />} label="Em andamento" value={groups.running.length} tone="info" />
-        <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Realizados" value={groups.done.length} tone="success" />
-        <StatCard icon={<XCircle className="h-4 w-4" />} label="Falharam" value={groups.failed.length} tone="danger" />
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Reservas a fazer" value={aFazer.length} tone="warning" />
+        <StatCard icon={<FileUp className="h-4 w-4" />} label="Cartões faltando" value={totalToUpload} tone="muted" />
+        <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Prontos p/ enviar" value={prontos.length} tone="success" />
       </div>
 
       {q.isLoading && <div className="text-sm text-muted-foreground">Carregando…</div>}
 
       <div className="space-y-10">
         <Section
-          title="A realizar em breve (dentro de 48h)"
-          subtitle="Voos já dentro do prazo de check-in automático."
-          empty="Nenhum check-in na janela das próximas 48h."
-          items={groups.imminent}
-          render={(r) => (
-            <CheckinRow r={r} busyId={busyId} sendingId={sendingId} onRun={handleRun} onResend={handleResend} />
-          )}
-        />
+          title="A fazer"
+          subtitle="Reservas com voos nos próximos 7 dias. Anexe o cartão de cada passageiro."
+          empty="Nada pendente. 🎉"
+          count={aFazer.length}
+        >
+          {aFazer.map((g) => (
+            <BookingCard
+              key={g.key}
+              group={g}
+              busyKey={busyKey}
+              sendingId={sendingId}
+              onUpload={handleUpload}
+              onRemove={handleRemove}
+              onSend={handleSend}
+            />
+          ))}
+        </Section>
 
         <Section
-          title="Em andamento"
-          empty="Nenhum check-in rodando agora."
-          items={groups.running}
-          render={(r) => (
-            <CheckinRow r={r} busyId={busyId} sendingId={sendingId} onRun={handleRun} onResend={handleResend} />
-          )}
-        />
-
-        <Section
-          title="Realizados"
-          subtitle="Cartões de embarque já baixados e disponíveis para reenvio."
-          empty="Ainda não há check-ins concluídos."
-          items={groups.done}
-          render={(r) => (
-            <CheckinRow r={r} busyId={busyId} sendingId={sendingId} onRun={handleRun} onResend={handleResend} />
-          )}
-        />
-
-        {groups.failed.length > 0 && (
-          <Section
-            title="Falharam"
-            subtitle="Voos que precisam de retry manual."
-            empty=""
-            items={groups.failed}
-            render={(r) => (
-              <CheckinRow r={r} busyId={busyId} sendingId={sendingId} onRun={handleRun} onResend={handleResend} />
-            )}
-          />
-        )}
-
-        <Section
-          title="Próximos check-ins (dentro de 7 dias)"
-          subtitle="Voos futuros identificados nos pedidos. O robô inicia automaticamente 48h antes."
-          empty="Nenhum voo nos próximos 7 dias."
-          items={upcoming7d}
-          render={(u) => <UpcomingRow u={u} />}
-        />
+          title="Prontos"
+          subtitle="Cartões anexados. Clique em enviar para disparar no WhatsApp dos passageiros."
+          empty="Nada por aqui ainda."
+          count={prontos.length}
+        >
+          {prontos.map((g) => (
+            <BookingCard
+              key={g.key}
+              group={g}
+              busyKey={busyKey}
+              sendingId={sendingId}
+              onUpload={handleUpload}
+              onRemove={handleRemove}
+              onSend={handleSend}
+            />
+          ))}
+        </Section>
       </div>
     </div>
   );
@@ -210,13 +232,11 @@ function CheckinsPage() {
 
 function StatCard({
   icon, label, value, tone,
-}: { icon: React.ReactNode; label: string; value: number; tone: "muted" | "warning" | "info" | "success" | "danger" }) {
+}: { icon: React.ReactNode; label: string; value: number; tone: "muted" | "warning" | "success" }) {
   const toneMap = {
     muted: "text-muted-foreground",
     warning: "text-brand-orange font-semibold",
-    info: "text-sky-500",
     success: "text-emerald-500",
-    danger: "text-rose-500",
   } as const;
   return (
     <Card className="p-4 bg-card/40 border-border/60 rounded-xl">
@@ -230,169 +250,211 @@ function StatCard({
 }
 
 function Section({
-  title, subtitle, empty, items, render,
-}: {
-  title: string;
-  subtitle?: string;
-  empty: string;
-  items: any[];
-  render: (r: any) => React.ReactNode;
-}) {
+  title, subtitle, empty, count, children,
+}: { title: string; subtitle?: string; empty: string; count: number; children: React.ReactNode }) {
   return (
     <section>
       <div className="flex items-baseline gap-2 mb-1">
         <h2 className="text-sm font-semibold">{title}</h2>
-        <span className="text-xs text-muted-foreground font-mono">{items.length}</span>
+        <span className="text-xs text-muted-foreground font-mono">{count}</span>
       </div>
       {subtitle && <p className="text-xs text-muted-foreground mb-4">{subtitle}</p>}
-      {!subtitle && <div className="mb-3" />}
-      {items.length === 0 ? (
-        empty && (
-          <div className="p-6 rounded-xl border border-dashed border-border/60 bg-card/20 text-center text-sm text-muted-foreground">
-            {empty}
-          </div>
-        )
+      {count === 0 ? (
+        <div className="p-6 rounded-xl border border-dashed border-border/60 bg-card/20 text-center text-sm text-muted-foreground">
+          {empty}
+        </div>
       ) : (
-        <div className="space-y-3">{items.map((r) => <div key={r.id}>{render(r)}</div>)}</div>
+        <div className="space-y-4">{children}</div>
       )}
     </section>
   );
 }
 
-function CheckinRow({
-  r, busyId, sendingId, onRun, onResend,
+function BookingCard({
+  group, busyKey, sendingId, onUpload, onRemove, onSend,
 }: {
-  r: any;
-  busyId: string | null;
+  group: any;
+  busyKey: string | null;
   sendingId: string | null;
-  onRun: (id: string, regenerate?: boolean) => void;
-  onResend: (id: string) => void;
+  onUpload: (a: { key: string; orderItemId: string; passengerIndex: number; file: File }) => void;
+  onRemove: (checkinId: string, passengerIndex: number) => void;
+  onSend: (checkinId: string) => void;
 }) {
-  const depIso = r.departure_at ?? r.item?.details?.depart_at ?? r.item?.details?.departure_at ?? r.scheduled_for ?? null;
-  const dep = depIso ? new Date(depIso) : null;
-  const isBusy = busyId === r.id || r.status === "running";
-  const isSending = sendingId === r.id;
-  const hasPdf = !!(r.boarding_pass_path || r.boarding_pass_url);
-  const passengerLabel = r.passenger?.full_name || r.pnr_surname || null;
+  const paxCount = group.passengers.length;
   return (
-    <Card className="p-5 bg-card/30 border-border/60 rounded-xl hover:border-brand-orange/40 transition-colors flex flex-wrap items-center justify-between gap-4">
-      <div className="flex-1 min-w-[260px]">
-        <div className="flex items-center gap-3 mb-1 flex-wrap">
-          <span className="font-bold">{r.cia} {r.flight_number || ""}</span>
-          {r.locator && (
+    <Card className="p-5 bg-card/30 border-border/60 rounded-xl">
+      <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="px-2 py-0.5 bg-muted text-muted-foreground text-[10px] font-mono rounded uppercase tracking-wider">
-              Loc {r.locator}
+              LOC {group.locator}
             </span>
+            <span className="text-xs text-muted-foreground">{paxCount} pax</span>
+          </div>
+          {group.order && (
+            <div className="mt-2 text-sm">
+              <Link
+                to="/admin/pedidos/$id"
+                params={{ id: group.order.id }}
+                className="text-brand-orange/90 hover:text-brand-orange hover:underline font-semibold"
+              >
+                Pedido #{group.order.order_number ?? group.order.id.slice(0, 8)} — {group.order.full_name ?? ""}
+              </Link>
+            </div>
           )}
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span>{dep ? dep.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Sem horário"}</span>
-          {passengerLabel && <span>Passageiro: {passengerLabel}</span>}
-        </div>
-        {r.order && (
-          <div className="mt-2 text-[11px]">
-            <Link to="/admin/pedidos/$id" params={{ id: r.order.id }} className="text-brand-orange/80 hover:text-brand-orange hover:underline font-medium">
-              Pedido #{r.order.order_number ?? r.order.id.slice(0, 8)} — {r.order.full_name ?? ""}
-            </Link>
-          </div>
-        )}
-        {r.error && <div className="text-xs text-destructive mt-1">Erro: {r.error}</div>}
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <StatusBadge status={r.status} />
+      <div className="space-y-4">
+        {group.segments.map((seg: any) => {
+          const dep = seg.departure_at ? new Date(seg.departure_at) : null;
+          const hoursTo = dep ? Math.round((dep.getTime() - Date.now()) / HOUR) : null;
+          const uploaded: any[] = Array.isArray(seg.checkin?.boarding_passes) ? seg.checkin.boarding_passes : [];
+          const uploadedIdx = new Set(uploaded.map((p) => p.passenger_index));
+          const ready = uploadedIdx.size >= paxCount;
+          const alreadySent = !!seg.checkin?.delivered_wa_at;
+          return (
+            <div key={seg.order_item_id} className="border border-border/50 rounded-lg p-4 bg-background/30">
+              <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+                <div>
+                  <div className="font-semibold text-sm">
+                    LATAM {seg.flight_number || ""} · {seg.origin ?? "?"} → {seg.destination ?? "?"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {dep ? dep.toLocaleString("pt-BR", { timeZone: "UTC", dateStyle: "short", timeStyle: "short" }) : "Sem horário"}
+                    {hoursTo != null && ` · em ${hoursTo}h`}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {ready ? (
+                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 border">
+                      Pronto ({uploaded.length}/{paxCount})
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-amber-500/30 text-amber-500 bg-amber-500/10">
+                      {uploaded.length}/{paxCount} anexados
+                    </Badge>
+                  )}
+                  {alreadySent && (
+                    <Badge variant="outline" className="border-sky-500/30 text-sky-500 bg-sky-500/10">
+                      Enviado
+                    </Badge>
+                  )}
+                  {ready && seg.checkin?.id && (
+                    <Button
+                      size="sm"
+                      onClick={() => onSend(seg.checkin.id)}
+                      disabled={sendingId === seg.checkin.id}
+                      className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      {sendingId === seg.checkin.id
+                        ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        : <Send className="h-3.5 w-3.5 mr-1.5" />}
+                      {alreadySent ? "Reenviar" : "Enviar WhatsApp"}
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-        {hasPdf && (
-          <Button
-            size="sm" variant="ghost" className="h-9 w-9 p-0"
-            disabled={isSending} onClick={() => onResend(r.id)}
-            title="Enviar cartão de embarque"
-          >
-            {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <div className="space-y-2">
+                {group.passengers.map((pax: any) => {
+                  const rowKey = `${seg.order_item_id}:${pax.index}`;
+                  const existing = uploaded.find((p) => p.passenger_index === pax.index);
+                  const openUrl = buildLatamBoardingPassUrl({
+                    locator: group.locator,
+                    surname: group.surname,
+                    tripPassengerId: pax.trip_passenger_id,
+                    segmentIndex: seg.segment_index,
+                  });
+                  return (
+                    <PassengerRow
+                      key={rowKey}
+                      rowKey={rowKey}
+                      pax={pax}
+                      existing={existing}
+                      openUrl={openUrl}
+                      busy={busyKey === rowKey || busyKey === `${seg.checkin?.id}:${pax.index}:rm`}
+                      onFile={(file) => onUpload({ key: rowKey, orderItemId: seg.order_item_id, passengerIndex: pax.index, file })}
+                      onRemove={() => seg.checkin?.id && onRemove(seg.checkin.id, pax.index)}
+                      checkinId={seg.checkin?.id ?? null}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function PassengerRow({
+  rowKey, pax, existing, openUrl, busy, onFile, onRemove, checkinId,
+}: {
+  rowKey: string;
+  pax: any;
+  existing: any | undefined;
+  openUrl: string;
+  busy: boolean;
+  onFile: (f: File) => void;
+  onRemove: () => void;
+  checkinId: string | null;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const label = pax.full_name || `Passageiro ${pax.index}`;
+  return (
+    <div className="flex items-center justify-between gap-3 flex-wrap px-3 py-2 rounded-md bg-card/40 border border-border/40">
+      <div className="min-w-[180px] flex-1">
+        <div className="text-sm font-medium">{label}</div>
+        <div className="text-[11px] text-muted-foreground font-mono uppercase tracking-wider">
+          {pax.trip_passenger_id} · pax {pax.index}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <a href={openUrl} target="_blank" rel="noreferrer">
+          <Button size="sm" variant="outline" className="h-8">
+            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+            Abrir cartão
           </Button>
-        )}
-        {hasPdf && (
-          <a href={`/api/public/bp/${r.id}`} download title="Baixar cartão de embarque">
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0"><Download className="h-4 w-4" /></Button>
-          </a>
-        )}
-        {!isBusy && r.status !== "success" && r.locator && r.pnr_surname && (
-          <a
-            href={`https://www.latamairlines.com/br/pt/check-in/status?orderId=${encodeURIComponent(String(r.locator).toUpperCase())}&lastName=${encodeURIComponent(String(r.pnr_surname).toLowerCase())}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Button size="sm" variant="outline" className="h-9"><ExternalLink className="h-3.5 w-3.5 mr-1.5" />Ver cartão(ões)</Button>
-          </a>
-        )}
-        {isBusy ? (
-          <div className="h-9 px-3 flex items-center gap-2 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-500 text-sm font-medium">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Processando check-in…
-          </div>
-        ) : r.status !== "success" ? (
+        </a>
+        {existing && checkinId ? (
+          <>
+            <a href={`/api/public/bp/${checkinId}?pax=${pax.index}`} target="_blank" rel="noreferrer" title="Baixar cartão anexado">
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0"><Download className="h-4 w-4" /></Button>
+            </a>
+            <Button
+              size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive"
+              onClick={onRemove} disabled={busy} title="Remover anexo"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            </Button>
+            <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 border">Anexado</Badge>
+          </>
+        ) : (
           <Button
             size="sm"
             variant="default"
-            className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
-            onClick={() => onRun(r.id)}
+            className="h-8 bg-brand-orange hover:bg-brand-orange/90 text-white"
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
           >
-            <PlaneTakeoff className="h-3.5 w-3.5 mr-1.5" />
-            Fazer check-in
+            {busy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5 mr-1.5" />}
+            Anexar cartão
           </Button>
-        ) : null}
-      </div>
-
-    </Card>
-  );
-}
-
-function UpcomingRow({ u }: { u: any }) {
-  const dep = u.departure_at ? new Date(u.departure_at) : null;
-  const hoursTo = dep ? Math.round((dep.getTime() - Date.now()) / HOUR) : null;
-  return (
-    <Card className="p-5 bg-card/30 border-border/60 rounded-xl flex flex-wrap items-center justify-between gap-4">
-      <div className="flex-1 min-w-[260px]">
-        <div className="flex items-center gap-3 mb-1 flex-wrap">
-          <span className="font-bold">{u.cia} {u.flight_number || ""}</span>
-          {u.locator && (
-            <span className="px-2 py-0.5 bg-muted text-muted-foreground text-[10px] font-mono rounded uppercase tracking-wider">
-              Loc {u.locator}
-            </span>
-          )}
-          {u.origin && u.destination && (
-            <span className="text-xs text-muted-foreground">{u.origin} → {u.destination}</span>
-          )}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {dep ? dep.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Sem horário"}
-          {hoursTo !== null && <> · faltam {hoursTo}h</>}
-        </div>
-        {u.order && (
-          <div className="mt-2 text-[11px]">
-            <Link to="/admin/pedidos/$id" params={{ id: u.order.id }} className="text-brand-orange/80 hover:text-brand-orange hover:underline font-medium">
-              Pedido #{u.order.order_number ?? u.order.id.slice(0, 8)} — {u.order.full_name ?? ""}
-            </Link>
-          </div>
         )}
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          accept="application/pdf,image/png,image/jpeg"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onFile(f);
+            e.target.value = "";
+          }}
+        />
       </div>
-      <Badge variant="outline" className="bg-muted/40 text-muted-foreground border-border/60">Aguardando janela</Badge>
-    </Card>
-  );
-}
-
-function StatusBadge({ status }: { status?: string }) {
-  const map: Record<string, { label: string; className: string; dot?: boolean }> = {
-    success: { label: "Concluído", className: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" },
-    running: { label: "Rodando", className: "bg-amber-500/10 text-amber-500 border-amber-500/30", dot: true },
-    failed: { label: "Falhou", className: "bg-destructive/10 text-destructive border-destructive/30" },
-    pending: { label: "Pendente", className: "bg-muted text-muted-foreground border-border" },
-  };
-  const s = map[status ?? "pending"] ?? map.pending;
-  return (
-    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wide ${s.className}`}>
-      {s.dot && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
-      {s.label}
     </div>
   );
 }
