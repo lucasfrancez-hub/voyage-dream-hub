@@ -1394,6 +1394,7 @@ function FlightImportButton({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const extract = useServerFn(extractFlightFromImage);
 
   async function handleFile(file: File) {
