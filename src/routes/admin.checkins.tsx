@@ -102,26 +102,49 @@ function CheckinsPage() {
     return hoursTo <= windowHoursFor(seg) && hoursTo > -6;
   }
 
+  // Divide segmento-a-segmento: cada trecho é avaliado pela sua própria janela.
+  // Mesma reserva pode aparecer em "A fazer" (só trechos abertos) e em
+  // "Próximos check-ins" (só trechos que ainda não abriram).
   const [aFazer, proximos, prontos] = useMemo(() => {
     const todo: any[] = [];
     const upcoming: any[] = [];
     const done: any[] = [];
+    const SEVEN_DAYS = 7 * 24 * HOUR;
+    const now = Date.now();
     for (const g of groups) {
       const paxCount = g.passengers.length;
       const isReady = g.segments.every((s: any) =>
         s.checkin?.boarding_passes && (s.checkin.boarding_passes as any[]).length >= paxCount,
       );
       if (isReady) { done.push(g); continue; }
-      // "A fazer" = pelo menos um segmento dentro da janela (ou já iniciado)
-      const anyOpen = g.segments.some((s: any) => s.checkin || isWithinWindow(s));
-      if (anyOpen) todo.push(g); else upcoming.push(g);
+      const openSegs: any[] = [];
+      const upcomingSegs: any[] = [];
+      for (const s of g.segments) {
+        const paxDone =
+          Array.isArray(s.checkin?.boarding_passes) &&
+          (s.checkin.boarding_passes as any[]).length >= paxCount;
+        if (paxDone) continue; // trecho já pronto some das listas pendentes
+        if (s.checkin || isWithinWindow(s)) { openSegs.push(s); continue; }
+        const dep = s.departure_at ? new Date(s.departure_at).getTime() : 0;
+        if (dep && dep - now <= SEVEN_DAYS && dep - now > 0) upcomingSegs.push(s);
+      }
+      if (openSegs.length > 0) todo.push({ ...g, segments: openSegs });
+      if (upcomingSegs.length > 0) upcoming.push({ ...g, segments: upcomingSegs });
     }
     return [todo, upcoming, done];
   }, [groups]);
 
   const totalToUpload = useMemo(() => {
     let n = 0;
-    for (const g of aFazer) n += g.segments.length * g.passengers.length;
+    for (const g of aFazer) {
+      for (const s of g.segments) {
+        const done =
+          Array.isArray(s.checkin?.boarding_passes)
+            ? (s.checkin.boarding_passes as any[]).length
+            : 0;
+        n += Math.max(0, g.passengers.length - done);
+      }
+    }
     return n;
   }, [aFazer]);
 
