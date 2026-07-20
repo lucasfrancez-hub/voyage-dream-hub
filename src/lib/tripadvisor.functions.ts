@@ -79,7 +79,8 @@ function mapSearch(list: Array<{ location?: Record<string, unknown> }>): TAHotel
     const loc = (item.location ?? item) as Record<string, unknown>;
     const addr = pickAddress(loc.addresses as Array<Record<string, unknown>> | undefined);
     const coords = (loc.coordinates as { latitude?: number; longitude?: number } | undefined) || undefined;
-    const rating = (loc.overall_rating as { rating?: number } | undefined)?.rating ?? null;
+    const rating = extractRating(loc);
+
     const url = (loc.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null;
     return {
       location_id: Number(loc.id),
