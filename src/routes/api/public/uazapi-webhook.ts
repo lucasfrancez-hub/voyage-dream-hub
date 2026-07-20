@@ -90,13 +90,8 @@ function extractText(m: UazMessage): string | null {
   );
 }
 
-function matchFlightAlertButton(text: string): "reschedule" | "refund" | "ack" | null {
-  const t = text.trim().toLowerCase();
-  if (t === "remarcar voo") return "reschedule";
-  if (t === "solicitar reembolso") return "refund";
-  if (t === "ok, ciente" || t === "ok ciente") return "ack";
-  return null;
-}
+// matcher em módulo compartilhado (usado também pelo webhook Meta)
+
 
 async function processUaz(payload: UazPayload) {
   const event = (payload.event ?? payload.EventType ?? "").toLowerCase();
@@ -164,13 +159,17 @@ async function processUaz(payload: UazPayload) {
     // Detecta resposta de botão do robô de alertas de voo (títulos fixos).
     // UazAPI não preserva IDs de botão — mapeamos pelo texto e casamos com o
     // alerta pendente mais recente pra esse telefone.
+    const { matchFlightAlertButton } = await import("@/lib/whatsapp/flight-alert-match");
     const buttonAction = matchFlightAlertButton(content);
     if (buttonAction) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const variants = new Set<string>([phone]);
+      if (phone.startsWith("55") && phone.length === 13) variants.add(phone.slice(0, 4) + phone.slice(5));
+      else if (phone.startsWith("55") && phone.length === 12) variants.add(phone.slice(0, 4) + "9" + phone.slice(4));
       const { data: pending } = await supabaseAdmin
         .from("flight_change_alerts")
         .select("id")
-        .eq("wa_phone", phone)
+        .in("wa_phone", Array.from(variants))
         .is("response", null)
         .order("created_at", { ascending: false })
         .limit(1)

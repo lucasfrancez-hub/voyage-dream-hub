@@ -149,11 +149,46 @@ async function processPayload(payload: WhatsAppPayload) {
           continue;
         }
 
-        // Se foi resposta de botão do robô de voos, trata sem acionar a IA
+        // Se foi resposta de botão do robô de voos (via id interativo), trata sem IA
         if (buttonReplyId && buttonReplyId.startsWith("flight_alert:")) {
           const { handleFlightAlertReply } = await import("@/lib/whatsapp/flight-alert-reply.server");
           await handleFlightAlertReply({ conversation_id: conv.id, wa_phone: msg.from, button_id: buttonReplyId });
           continue;
+        }
+
+        // Fallback: alguns clientes devolvem só o TÍTULO do botão como texto puro.
+        // Casa pelo título e usa o alerta pendente mais recente pra esse telefone.
+        {
+          const { matchFlightAlertButton } = await import("@/lib/whatsapp/flight-alert-match");
+          const buttonAction = matchFlightAlertButton(content);
+          if (buttonAction) {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const phoneDigits = msg.from.replace(/\D/g, "");
+            const variants = new Set<string>([phoneDigits]);
+            // BR mobile: tenta com e sem o 9 depois do DDD
+            if (phoneDigits.startsWith("55") && phoneDigits.length === 13) {
+              variants.add(phoneDigits.slice(0, 4) + phoneDigits.slice(5));
+            } else if (phoneDigits.startsWith("55") && phoneDigits.length === 12) {
+              variants.add(phoneDigits.slice(0, 4) + "9" + phoneDigits.slice(4));
+            }
+            const { data: pending } = await supabaseAdmin
+              .from("flight_change_alerts")
+              .select("id")
+              .in("wa_phone", Array.from(variants))
+              .is("response", null)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (pending?.id) {
+              const { handleFlightAlertReply } = await import("@/lib/whatsapp/flight-alert-reply.server");
+              await handleFlightAlertReply({
+                conversation_id: conv.id,
+                wa_phone: msg.from,
+                button_id: `flight_alert:${pending.id}:${buttonAction}`,
+              });
+              continue;
+            }
+          }
         }
 
         // Debounce ADAPTATIVO: agenda a resposta da IA pra daqui X segundos.
