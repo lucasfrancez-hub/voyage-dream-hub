@@ -2278,7 +2278,13 @@ function HotelReservationCard({
             {destination && <div>{destination}</div>}
             {address && <div>{address}</div>}
             {room && <div>Quarto: <span className="text-foreground">{room}</span></div>}
+            {typeof d.bed_type === "string" && (d.bed_type as string).trim() && (
+              <div>Cama: <span className="text-foreground">{d.bed_type as string}</span></div>
+            )}
             {board && <div>Regime: <span className="text-foreground">{board}</span></div>}
+            {typeof d.breakfast === "string" && (d.breakfast as string).trim() && (
+              <div>Café da manhã: <span className="text-foreground">{d.breakfast as string}</span></div>
+            )}
             {(ci || co) && (
               <div>
                 Check-in <span className="text-foreground">{formatDate(ci)}</span>
@@ -2879,6 +2885,28 @@ function ItemDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Quarto</Label><Input value={String(details.room ?? "")} onChange={(e) => setField("room", e.target.value)} /></div>
                 <div><Label>Regime</Label><Input value={String(details.board ?? "")} onChange={(e) => setField("board", e.target.value)} placeholder="Café da manhã, All inclusive..." /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Tipo de cama</Label>
+                  <Input
+                    value={String(details.bed_type ?? "")}
+                    onChange={(e) => setField("bed_type", e.target.value)}
+                    placeholder="Casal, 2 solteiros, King..."
+                  />
+                </div>
+                <div>
+                  <Label>Café da manhã</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={String(details.breakfast ?? "")}
+                    onChange={(e) => setField("breakfast", e.target.value)}
+                  >
+                    <option value="">—</option>
+                    <option value="Incluso">Incluso</option>
+                    <option value="Não incluso">Não incluso</option>
+                  </select>
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div><Label>Check-in</Label><Input type="date" value={String(details.check_in ?? details.checkin ?? "")} onChange={(e) => setField("check_in", e.target.value)} /></div>

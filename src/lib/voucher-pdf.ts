@@ -134,6 +134,10 @@ const L = {
     checkout: "CHECK-OUT",
     noites: "NOITES",
     hospedes: "HOSPEDES",
+    tipoCama: "TIPO DE CAMA",
+    cafeManha: "CAFE DA MANHA",
+    cafeIncluso: "Incluso",
+    cafeNaoIncluso: "Nao incluso",
     locHotel: "Clique ou escaneie para\nver a localizacao do hotel",
     infoGerais: "INFORMACOES GERAIS",
     infoHotel: "HOTEL:",
@@ -182,6 +186,10 @@ const L = {
     checkout: "CHECK-OUT",
     noites: "NIGHTS",
     hospedes: "GUESTS",
+    tipoCama: "BED TYPE",
+    cafeManha: "BREAKFAST",
+    cafeIncluso: "Included",
+    cafeNaoIncluso: "Not included",
     locHotel: "Tap or scan to see\nthe hotel location",
     infoGerais: "GENERAL INFORMATION",
     infoHotel: "HOTEL:",
@@ -460,7 +468,7 @@ const ensureSpace = (ctx: Ctx, needed: number) => {
 type IconKind =
   | "envelope" | "phone" | "pin" | "ticket" | "user" | "plane" | "bed"
   | "calendar" | "moon" | "users" | "info" | "building" | "planeSmall"
-  | "phoneRed" | "envelopeRed" | "clock"
+  | "phoneRed" | "envelopeRed" | "clock" | "coffee"
   | "bagPersonal" | "bagCarry" | "bagChecked" | "check" | "cross";
 
 const drawIcon = (page: PDFPage, kind: IconKind, x: number, y: number, size: number, color: Color) => {
@@ -550,6 +558,15 @@ const drawIcon = (page: PDFPage, kind: IconKind, x: number, y: number, size: num
       page.drawRectangle({ x, y: y + s * 0.15, width: s, height: s * 0.25, color });
       page.drawRectangle({ x, y: y + s * 0.4, width: s * 0.35, height: s * 0.25, color });
       page.drawLine({ start: { x, y: y + s * 0.15 }, end: { x, y: y + s * 0.85 }, thickness: s * 0.1, color });
+      break;
+    }
+    case "coffee": {
+      // Xícara: corpo + alça + vapor
+      page.drawRectangle({ x: x + s * 0.15, y: y + s * 0.15, width: s * 0.55, height: s * 0.45, borderColor: color, borderWidth: s * 0.09, color: COLOR_WHITE });
+      page.drawCircle({ x: x + s * 0.78, y: y + s * 0.38, size: s * 0.13, borderColor: color, borderWidth: s * 0.08, color: COLOR_WHITE });
+      // vapor
+      page.drawLine({ start: { x: x + s * 0.3, y: y + s * 0.72 }, end: { x: x + s * 0.3, y: y + s * 0.92 }, thickness: s * 0.07, color });
+      page.drawLine({ start: { x: x + s * 0.5, y: y + s * 0.72 }, end: { x: x + s * 0.5, y: y + s * 0.92 }, thickness: s * 0.07, color });
       break;
     }
     case "building": {
@@ -1857,6 +1874,34 @@ const drawHotelSection = async (
     }
   });
 
+  // Segunda linha: Tipo de cama + Café da manhã (quando informados)
+  const bedTypeRaw = String(d.bed_type ?? "").trim();
+  const breakfastRaw = String(d.breakfast ?? "").trim();
+  const breakfastLabel = (() => {
+    if (!breakfastRaw) return "";
+    const low = breakfastRaw.toLowerCase();
+    if (/(n[aã]o|nao\s*incluso|not\s*included|no)/.test(low)) return t.cafeNaoIncluso;
+    if (/(incluso|sim|yes|included|s[íi]m)/.test(low)) return t.cafeIncluso;
+    return breakfastRaw;
+  })();
+  const row2: Array<{ label: string; value: string; icon: IconKind }> = [];
+  if (bedTypeRaw) row2.push({ label: t.tipoCama, value: bedTypeRaw, icon: "bed" });
+  if (breakfastLabel) row2.push({ label: t.cafeManha, value: breakfastLabel, icon: "coffee" });
+  const row2Y = infoY - 32;
+  if (row2.length) {
+    const col2W = midW / 2;
+    row2.forEach((c, i) => {
+      const x = midX + i * col2W;
+      drawIcon(ctx.page, c.icon, x, row2Y + 14, 10, COLOR_NAVY);
+      ctx.page.drawText(sanitize(c.label), {
+        x: x + 14, y: row2Y + 16, size: 7, font: ctx.fontBold, color: COLOR_MUTED,
+      });
+      ctx.page.drawText(sanitize(c.value), {
+        x, y: row2Y, size: 10, font: ctx.fontBold, color: COLOR_TEXT,
+      });
+    });
+  }
+
   // QR (direita)
   const qrTopY = headerBottom - 16;
   const qrX = innerX + innerW - qrSize - 10;
@@ -1878,7 +1923,8 @@ const drawHotelSection = async (
     }
   }
 
-  cy = Math.min(infoY - 18, qrY - 26) - notesGap;
+  const bottomInfoY = row2.length ? row2Y : infoY;
+  cy = Math.min(bottomInfoY - 18, qrY - 26) - notesGap;
 
   // Política de cancelamento + Observações (dois blocos empilhados, em tópicos)
   const drawBulletBox = (title: string, items: string[][], topY: number): number => {
