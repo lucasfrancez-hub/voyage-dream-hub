@@ -373,7 +373,7 @@ function deriveFromFlights(editing: Partial<PackageRow>): { originCity?: string;
   const last = outSegs[outSegs.length - 1];
   const originCity = first?.from_city?.trim();
   const destCity = last?.to_city?.trim();
-  const title = destCity && originCity ? `${destCity} - saída de ${originCity}` : destCity ? destCity : undefined;
+  const title = destCity && originCity ? `${destCity} - Saída de ${originCity}` : destCity ? destCity : undefined;
   let slug: string | undefined;
   if (destCity) {
     const going = editing.going_date;
