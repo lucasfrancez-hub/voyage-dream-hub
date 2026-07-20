@@ -100,8 +100,9 @@ export default async ({ page, context }) => {
       const text = await res.text().catch(() => "");
       throw new Error(`Browserless HTTP ${res.status}: ${text.slice(0, 2000)}`);
     }
+    type LogEntry = { i?: number; step?: string; action?: string; url?: string; ok: boolean; err?: string };
     const json = (await res.json()) as {
-      data: { screenshot: string; currentUrl: string; title: string; logs: unknown[]; width: number; height: number };
+      data: { screenshot: string; currentUrl: string; title: string; logs: LogEntry[]; width: number; height: number };
     };
     return json.data;
   });
