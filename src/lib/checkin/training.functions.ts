@@ -162,9 +162,11 @@ As coordenadas devem estar dentro de 0..${data.width} e 0..${data.height}.`;
     }
     const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const raw = j.choices?.[0]?.message?.content ?? "{}";
-    let parsed: unknown = null;
+    type VisionTarget = { label: string; x: number; y: number; w: number; h: number; confidence?: number };
+    type VisionResult = { reasoning?: string; targets?: VisionTarget[]; notes?: string; raw?: string };
+    let parsed: VisionResult = {};
     try {
-      parsed = JSON.parse(raw);
+      parsed = JSON.parse(raw) as VisionResult;
     } catch {
       parsed = { reasoning: "resposta não-JSON", raw };
     }
