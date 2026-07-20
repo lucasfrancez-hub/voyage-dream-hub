@@ -116,7 +116,7 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
           const db = new Date(b.details?.depart_at || b.details?.departure_at || 0).getTime();
           return da - db;
         });
-      if (chain.length > 0) finalDetails = chain[chain.length - 1].details ?? finalDetails;
+      if (chain.length > 0) finalDetails = (chain[chain.length - 1].details ?? finalDetails) as Record<string, any>;
     }
     const d = finalDetails;
     const genericDestination = String(d.to || d.destination || "").trim();
