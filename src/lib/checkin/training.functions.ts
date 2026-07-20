@@ -152,14 +152,14 @@ export default async ({ page, browser, context }) => {
     type LogEntry = { i?: number; step?: string; action?: string; url?: string; ok: boolean; err?: string };
     type TrainingResult = { screenshot: string; currentUrl: string; title: string; logs: LogEntry[]; width: number; height: number };
     const strategies = [
-      { proxy: "residential" as const, proxyCountry: "br", proxySticky: true },
       { proxy: undefined, proxyCountry: undefined, proxySticky: undefined },
+      { proxy: "residential" as const, proxyCountry: "br", proxySticky: true },
     ];
     let lastError: unknown;
     for (const strategy of strategies) {
       try {
         const result = await runBrowserlessFunction<TrainingResult>(code, data, {
-          timeoutMs: 120_000,
+          timeoutMs: 180_000,
           launch: {
             headless: true,
             stealth: true,
@@ -167,6 +167,7 @@ export default async ({ page, browser, context }) => {
           },
           ...strategy,
         });
+
         if (result.data) return result.data;
         throw new Error("O navegador remoto não devolveu a captura da LATAM");
       } catch (error) {
