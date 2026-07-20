@@ -2880,6 +2880,28 @@ function ItemDialog({
                 <div><Label>Quarto</Label><Input value={String(details.room ?? "")} onChange={(e) => setField("room", e.target.value)} /></div>
                 <div><Label>Regime</Label><Input value={String(details.board ?? "")} onChange={(e) => setField("board", e.target.value)} placeholder="Café da manhã, All inclusive..." /></div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Tipo de cama</Label>
+                  <Input
+                    value={String(details.bed_type ?? "")}
+                    onChange={(e) => setField("bed_type", e.target.value)}
+                    placeholder="Casal, 2 solteiros, King..."
+                  />
+                </div>
+                <div>
+                  <Label>Café da manhã</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={String(details.breakfast ?? "")}
+                    onChange={(e) => setField("breakfast", e.target.value)}
+                  >
+                    <option value="">—</option>
+                    <option value="Incluso">Incluso</option>
+                    <option value="Não incluso">Não incluso</option>
+                  </select>
+                </div>
+              </div>
               <div className="grid grid-cols-3 gap-3">
                 <div><Label>Check-in</Label><Input type="date" value={String(details.check_in ?? details.checkin ?? "")} onChange={(e) => setField("check_in", e.target.value)} /></div>
                 <div><Label>Check-out</Label><Input type="date" value={String(details.check_out ?? details.checkout ?? "")} onChange={(e) => setField("check_out", e.target.value)} /></div>
