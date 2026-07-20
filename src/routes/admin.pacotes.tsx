@@ -2244,7 +2244,7 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           bed_type: p.bed_type || "",
           supplier_name: p.supplier_name || "",
           includes: [],
-          is_active: false,
+          is_active: true,
           sort_order: 0,
           image_url: "",
           summary: "",
