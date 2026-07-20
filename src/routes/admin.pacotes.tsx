@@ -547,7 +547,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                     className={inp}
                     value={editing.title ?? ""}
                     onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                    placeholder={derived.title ?? "Ex: Aracaju - saída de São Paulo"}
+                    placeholder={derived.title ?? "Ex: Aracaju - Saída de São Paulo"}
                   />
                 </FormField>
                 <FormField label="Slug (URL, auto)">
