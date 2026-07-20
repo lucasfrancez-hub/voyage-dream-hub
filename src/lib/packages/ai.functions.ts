@@ -728,7 +728,7 @@ Retorne SÓ o JSON.`;
     const userContent: any[] = [
       {
         type: "text",
-        text: "Este documento contém múltiplos orçamentos separados por 'Orcamento 1', 'Orcamento 2', etc. Extraia cada um como um item de 'packages', na ordem em que aparecem. Separe corretamente os blocos: cada orçamento tem seu próprio hotel, valores, ida e volta.",
+        text: "Este documento contém MÚLTIPLOS orçamentos separados por 'Orcamento 1', 'Orcamento 2', 'Orcamento 3'… (pode ter 2, 5, 7 ou mais). Extraia TODOS os orçamentos presentes, sem pular nenhum. O array 'packages' deve ter EXATAMENTE o mesmo número de itens que os cabeçalhos 'Orcamento N' no documento. Cada bloco tem seu próprio hotel, valores, ida e volta.",
       },
     ];
     const isPdf = data.mime_type.includes("pdf");
@@ -754,8 +754,10 @@ Retorne SÓ o JSON.`;
           { role: "user", content: userContent },
         ],
         response_format: { type: "json_object" },
+        max_completion_tokens: 32000,
       }),
     });
+
     if (!resp.ok) {
       const txt = await resp.text().catch(() => "");
       throw new Error(`Falha IA (${resp.status}): ${txt.slice(0, 200)}`);
