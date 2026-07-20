@@ -26,8 +26,9 @@ async function generateContextualReply(input: {
   const locLine = input.locator ? ` Já localizei sua reserva pelo localizador *${input.locator}*.` : "";
   const fallback =
     input.intent === "ack"
-      ? `${greet} Aqui é a Camila, consultora da VIA AIR. Recebi sua confirmação sobre a alteração do voo${input.flightNumber ? ` *${input.flightNumber}*` : ""} — como a mudança foi pequena, sua reserva segue confirmada e não é preciso fazer nada.\n\n_Equipe VIA AIR_`
-      : `${greet} Aqui é a Camila, consultora da VIA AIR. Vi que seu voo${input.flightNumber ? ` *${input.flightNumber}*` : ""} teve ${input.cancelled ? "*cancelamento*" : "*alteração significativa*"} e você pediu *${input.intent === "refund" ? "reembolso" : "remarcação sem custo"}*.${locLine} Já estou transferindo pro nosso time operacional, que dá sequência por aqui em instantes.\n\n_Equipe VIA AIR_`;
+      ? `${greet} Aqui é a Camila, consultora da VIA AIR. Recebi sua confirmação sobre a alteração do voo${input.flightNumber ? ` *${input.flightNumber}*` : ""} — como a mudança foi pequena, sua reserva segue confirmada e não é preciso fazer nada.\n\n_Camila · VIA AIR_`
+      : `${greet} Aqui é a Camila, consultora da VIA AIR. Vi que seu voo${input.flightNumber ? ` *${input.flightNumber}*` : ""} teve ${input.cancelled ? "*cancelamento*" : "*alteração significativa*"} e você pediu *${input.intent === "refund" ? "reembolso" : "remarcação sem custo"}*.${locLine} Já estou transferindo pro nosso time operacional, que dá sequência por aqui em instantes.\n\n_Camila · VIA AIR_`;
+
 
   if (!key) return fallback;
 
