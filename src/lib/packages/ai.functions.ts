@@ -503,7 +503,7 @@ export const extractPackageFromDocument = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
 
-    const system = `Você extrai dados de PACOTES TURÍSTICOS a partir de orçamentos, vouchers e itinerários (PDF ou imagem) de operadoras (Visual, CVC, Azul Viagens, Flytour, etc).
+    const system = `Você extrai dados de PACOTES TURÍSTICOS a partir de orçamentos, vouchers e itinerários (PDF ou imagem) de operadoras (Visual Turismo, CVC, Azul Viagens, Flytour, Nascimento, etc).
 Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos que não estiverem no documento — NÃO invente):
 {
   "destination": "Cidade principal do destino (ex.: Porto Seguro)",
@@ -521,6 +521,7 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
   "room_category": "Standard",
   "bed_type": "Casal | Solteiro | Duplo",
   "includes": ["Hospedagem", "Aéreo", "Traslados", "Passeios"],
+  "supplier_name": "Visual Turismo",
   "outbound_flight": {
     "airline": "GOL",
     "flight_number": "1137",
@@ -573,6 +574,7 @@ Regras:
 - meal_plan: se "Café da Manhã" → "Café da manhã"; "All inclusive"/"Tudo incluído" → "All inclusive"; senão o que aparecer.
 - hotel_stars: número inteiro de 1 a 5 (conte as estrelas ou pegue a classificação).
 - includes: liste os itens da seção "Incluso" do documento.
+- supplier_name: identifique a OPERADORA/FORNECEDOR emissor do orçamento. Procure o LOGO ou nome no cabeçalho/rodapé/topo do documento. Regras: se aparecer "Visual" (com losango azul) → "Visual Turismo"; "CVC" → "CVC"; "Azul Viagens" → "Azul Viagens"; "Flytour" → "Flytour"; "Nascimento" → "Nascimento Turismo". Nunca coloque o nome da agência revendedora (ex.: VIA AIR), só da OPERADORA emissora.
 - Retorne SÓ o JSON, começando com { e terminando com }.`;
 
     const userContent: any[] = [
