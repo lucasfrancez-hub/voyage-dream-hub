@@ -433,6 +433,16 @@ function AdminPackages() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={backfillHotelPhotos}
+            disabled={backfilling}
+            title="Buscar no TripAdvisor as fotos dos hotéis dos pacotes já cadastrados que estão sem imagens."
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-brand-orange disabled:opacity-60"
+          >
+            {backfilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            Atualizar fotos
+          </button>
           <MultiPackageImportButton
             onExtracted={async (list) => {
               if (!list.length) return;
