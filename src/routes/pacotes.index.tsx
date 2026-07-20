@@ -53,6 +53,7 @@ function PacotesList() {
 
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
+  const [monthFilter, setMonthFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("price_asc");
@@ -66,11 +67,40 @@ function PacotesList() {
     [packages],
   );
 
+  const MONTH_NAMES = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  ];
+  const months = useMemo(() => {
+    const keys = new Set<string>();
+    for (const p of packages || []) {
+      if (!p.going_date) continue;
+      const d = new Date(String(p.going_date) + "T12:00:00");
+      if (isNaN(d.getTime())) continue;
+      keys.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return Array.from(keys)
+      .sort()
+      .map((k) => {
+        const [y, m] = k.split("-");
+        return { value: k, label: `${MONTH_NAMES[Number(m) - 1]} ${y}` };
+      });
+  }, [packages]);
+
   const filteredPackages = useMemo(() => {
     const filtered = (packages || []).filter((p) => {
       const originMatch = originFilter === "all" || p.origin === originFilter;
       const destinationMatch = destinationFilter === "all" || p.destination === destinationFilter;
-      return originMatch && destinationMatch;
+      let monthMatch = true;
+      if (monthFilter !== "all") {
+        if (!p.going_date) monthMatch = false;
+        else {
+          const d = new Date(String(p.going_date) + "T12:00:00");
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          monthMatch = key === monthFilter;
+        }
+      }
+      return originMatch && destinationMatch && monthMatch;
     });
 
     const sorted = [...filtered];
@@ -111,16 +141,21 @@ function PacotesList() {
         break;
     }
     return sorted;
-  }, [packages, originFilter, destinationFilter, sortBy]);
+  }, [packages, originFilter, destinationFilter, monthFilter, sortBy]);
 
   const hasActiveFilters =
-    originFilter !== "all" || destinationFilter !== "all" || sortBy !== "sort_order";
+    originFilter !== "all" ||
+    destinationFilter !== "all" ||
+    monthFilter !== "all" ||
+    sortBy !== "sort_order";
 
   const clearFilters = () => {
     setOriginFilter("all");
     setDestinationFilter("all");
+    setMonthFilter("all");
     setSortBy("sort_order");
   };
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -201,6 +236,29 @@ function PacotesList() {
           </div>
 
           <div className="flex-1">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Data da viagem
+            </label>
+            <Select value={monthFilter} onValueChange={setMonthFilter}>
+              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5 text-brand-orange" />
+                  <SelectValue placeholder="Todos os meses" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os meses</SelectItem>
+                {months.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1">
+
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               Ordenar por
             </label>
