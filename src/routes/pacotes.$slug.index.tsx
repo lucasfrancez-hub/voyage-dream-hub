@@ -23,10 +23,13 @@ export const Route = createFileRoute("/pacotes/$slug/")({
     preview: s.preview === "1" || s.preview === 1 || s.preview === true ? true : undefined,
   }),
   loader: async ({ params }) => {
+    const slugs = params.slug.includes("#")
+      ? [params.slug, params.slug.replace(/#/g, "-")]
+      : [params.slug];
     const { data } = await supabase
       .from("packages")
       .select("title,destination,origin,summary,image_url,nights,price_per_person,base_occupancy")
-      .eq("slug", params.slug)
+      .in("slug", slugs)
       .eq("is_active", true)
       .maybeSingle();
     return { pkg: data };
