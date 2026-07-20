@@ -834,8 +834,16 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                     className={inp}
                     value={editing.destination ?? ""}
                     onChange={(e) => setEditing({ ...editing, destination: e.target.value })}
+                    onBlur={() => {
+                      const dest = (editing.destination ?? "").trim();
+                      const summary = (editing.summary ?? "").trim();
+                      if (dest.length >= 2 && !summary && !aiLoading) {
+                        void handleGenerateSummary();
+                      }
+                    }}
                     placeholder={derived.destCity ?? ""}
                   />
+
                 </FormField>
                 <FormField label="Origem (auto)">
                   <input
