@@ -2177,6 +2177,8 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
   const [status, setStatus] = useState<string>("");
   const [fileName, setFileName] = useState<string | null>(null);
   const extractMany = useServerFn(extractMultiplePackagesFromDocument);
+  const searchHotels = useServerFn(searchTripAdvisorHotels);
+  const hotelDetails = useServerFn(getTripAdvisorHotelDetails);
 
   async function handleFile(file: File) {
     if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
