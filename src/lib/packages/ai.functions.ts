@@ -534,7 +534,7 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
     "duration": "04h45",
     "cabin_class": "Econômica",
     "carry_on": true,
-    "checked_bag": true,
+    "checked_bag": false,
     "personal_item": true,
     "segments": [
       {
