@@ -403,7 +403,7 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     escalar_para_humano: tool({
       description:
-        "Sinaliza que a conversa precisa de um consultor humano (nova cotação, alteração/cancelamento de voo pela cia, reclamação, algo fora do seu escopo). Marca a conversa como aguardando_humano com prioridade e briefing pro painel do atendente. IMPORTANTE: você CONTINUA respondendo ao cliente normalmente até um humano assumir manualmente pelo painel — não pare, não fique em silêncio, siga ajudando com o que puder (dúvidas, informações, contexto). O comercial pode estar ocupado ou fora do horário. Preencha os campos estruturados com o que já foi coletado.",
+        "Transfere a conversa pro atendimento humano (nova cotação, alteração/cancelamento de voo pela cia, reclamação, algo fora do seu escopo). Marca a conversa como mode=human com prioridade e briefing pro painel do atendente. DEPOIS de chamar essa tool, envie APENAS UMA mensagem curta avisando que passou pro time humano e ENCERRE — a IA sai do ar automaticamente e o atendente assume. Preencha os campos estruturados com o que já foi coletado.",
 
       inputSchema: z.object({
         motivo: z
@@ -457,8 +457,9 @@ export function buildCamilaTools(conversation: WaConversation) {
         await supabaseAdmin
           .from("wa_conversations")
           .update({
-            // IMPORTANTE: NÃO trocamos mode pra "human" automaticamente.
-            // A IA segue respondendo até um operador assumir manualmente pelo painel.
+            // Ao escalar, transfere de fato pra humano: a IA para de responder
+            // e a conversa aparece no painel como "aguardando atendimento".
+            mode: "human",
             priority: prioridade ?? "normal",
             tags: newTags,
           })
@@ -475,7 +476,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         await recordHandoff({
           conversation_id: conversation.id,
           from_mode: "ai",
-          to_mode: "ai", // marcado como pendente de humano, mas IA segue ativa
+          to_mode: "human",
           reason: motivo,
           briefing,
         });
@@ -483,7 +484,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         return {
           ok: true,
           instrucao:
-            "Avise ao cliente que já sinalizou pro time comercial assumir e siga ajudando normalmente com o que puder — dúvidas, informações, contexto. Não fique em silêncio. Quando um humano assumir, o sistema te desativa automaticamente.",
+            "Envie UMA mensagem curta avisando que já passou pro time humano assumir daqui, agradeça a paciência e encerre por aqui — NÃO faça mais perguntas nem siga respondendo, o atendente humano vai continuar.",
         };
       },
     }),
