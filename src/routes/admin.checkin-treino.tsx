@@ -43,6 +43,7 @@ function TreinoPage() {
   const shotSession = useServerFn(screenshotTrainingSession);
   const heartbeatSession = useServerFn(heartbeatTrainingSession);
   const closeSession = useServerFn(closeTrainingSession);
+  const capturePdf = useServerFn(captureTrainingPdf);
 
   const [url, setUrl] = useState(DEFAULT_URL);
   const [pnr, setPnr] = useState("LA9571886LWKG");
