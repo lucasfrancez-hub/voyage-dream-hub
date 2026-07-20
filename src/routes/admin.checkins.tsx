@@ -472,7 +472,7 @@ function SegmentCard({
   busyKey: string | null;
   sendingId: string | null;
   onUpload: (a: any) => void;
-  onRemove: (checkinId: string, passengerIndex: number) => void;
+  onRemove: (checkinId: string, passengerIndex: number, passengerName?: string) => void;
   onSend: (checkinId: string) => void;
 }) {
   const paxCount = group.passengers.length;
