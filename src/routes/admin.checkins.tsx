@@ -366,6 +366,27 @@ function CheckinsPage() {
           </nav>
         </div>
 
+        {/* Search */}
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-border/60 bg-card/40 px-3 py-2">
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome do passageiro, localizador, pedido, rota (GRU, CWB…)"
+            className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="text-xs text-muted-foreground hover:text-foreground"
+              aria-label="Limpar busca"
+            >
+              Limpar
+            </button>
+          )}
+        </div>
+
+
         {/* Content */}
         {q.isLoading ? (
           <div className="text-sm text-muted-foreground py-16 text-center">Carregando…</div>
