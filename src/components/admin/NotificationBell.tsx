@@ -400,18 +400,40 @@ export function AdminNotificationBell() {
               </div>
 
               {/* Footer */}
-              <div className="p-8 mt-2">
-                <button
-                  onClick={() => handleCopy(selected)}
-                  className="w-full group relative overflow-hidden bg-brand-orange hover:bg-[#ff7a2e] text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-[0_8px_24px_-8px_rgba(242,107,31,0.5)] active:scale-[0.98]"
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <Copy className="w-5 h-5 text-white/90 group-hover:scale-110 transition-transform" />
-                    <span className="text-[15px] tracking-tight">Copiar mensagem pro cliente</span>
-                  </div>
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                </button>
+              <div className="p-8 pt-4 mt-2 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  {selected.autoSent ? (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
+                      <CheckCheck className="w-3 h-3" />
+                      Mensagem já enviada automático
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-zinc-500">
+                      Ainda não enviada automaticamente
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleCopy(selected)}
+                    title="Copiar mensagem"
+                    aria-label="Copiar mensagem"
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-300 hover:text-white transition active:scale-95"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleSend(selected)}
+                    disabled={sending}
+                    title="Enviar via WhatsApp"
+                    aria-label="Enviar via WhatsApp"
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-orange hover:bg-[#ff7a2e] text-white transition active:scale-95 shadow-[0_6px_18px_-6px_rgba(242,107,31,0.6)] disabled:opacity-60"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
+
             </div>
           )}
         </DialogContent>
