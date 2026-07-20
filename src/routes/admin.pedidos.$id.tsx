@@ -1291,6 +1291,29 @@ function ItemsTab({
   const recalculateTotal = useServerFn(recalculateOrderTotal);
   const linkFn = useServerFn(linkPassengerToItem);
   const unlinkFn = useServerFn(unlinkPassengerFromItem);
+  const upsertPax = useServerFn(upsertPassenger);
+  const patchPassengerTicket = async (passenger: OrderPassenger, locator: string, ticket: string) => {
+    const key = (locator || "").toUpperCase().trim() || "_";
+    const currentTickets: Record<string, string> = { ...(passenger.tickets ?? {}) };
+    const t = ticket.trim();
+    if (t) currentTickets[key] = t; else delete currentTickets[key];
+    await upsertPax({ data: {
+      id: passenger.id,
+      order_id: passenger.order_id,
+      full_name: passenger.full_name,
+      passenger_type: passenger.passenger_type,
+      birth_date: passenger.birth_date,
+      cpf: passenger.cpf,
+      ticket_number: passenger.ticket_number,
+      tickets: currentTickets,
+      sort_order: passenger.sort_order,
+      doc_type: passenger.doc_type,
+      passport_number: passenger.passport_number,
+      passport_issue_date: passenger.passport_issue_date,
+      passport_expiry_date: passenger.passport_expiry_date,
+    } as any });
+    onChange();
+  };
   const [editing, setEditing] = useState<OrderItem | null>(null);
   const [open, setOpen] = useState(false);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(() => new Set());
