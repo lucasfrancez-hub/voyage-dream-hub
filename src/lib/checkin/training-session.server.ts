@@ -17,6 +17,7 @@ import type { Browser, Page } from "puppeteer-core";
 const BROWSERLESS_BASE = "https://production-sfo.browserless.io";
 const SESSION_RECONNECT_MS = 60 * 1000; // limite do plano Browserless (max ~60s entre ações)
 const SESSION_INACTIVITY_MS = 10 * 60 * 1000;
+const OPEN_REQUEST_TIMEOUT_MS = 70 * 1000;
 
 
 export type LiveStep =
@@ -104,6 +105,27 @@ async function withConnection<T>(
       .catch(() => {});
     await page.bringToFront().catch(() => {});
     const result = await fn(page, browser);
+    // `reconnect(timeout)` vale a partir do momento em que foi solicitado.
+    // Renove antes de cada disconnect; apenas reconectar via Puppeteer não
+    // reinicia esse relógio no Browserless.
+    try {
+      const cdp = await page.createCDPSession();
+      const renewed = await cdp.send("Browserless.reconnect" as never, {
+        timeout: SESSION_RECONNECT_MS,
+      } as never) as unknown as { browserWSEndpoint?: string };
+      if (renewed.browserWSEndpoint) {
+        const token = process.env.BROWSERLESS_TOKEN;
+        const ws = new URL(renewed.browserWSEndpoint);
+        if (token && !ws.searchParams.has("token")) ws.searchParams.set("token", token);
+        session.wsEndpoint = ws.toString();
+      }
+      await cdp.detach().catch(() => {});
+    } catch (error) {
+      sessions.delete(session.id);
+      throw new SessionExpiredError(
+        `Não foi possível renovar a sessão remota: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
     session.lastUsed = Date.now();
     return result;
   } finally {
@@ -125,6 +147,13 @@ async function capture(page: Page) {
   })) as string;
   const currentUrl = page.url();
   const title = await page.title().catch(() => "");
+  const bodyText = await page.evaluate(() => document.body?.innerText || "").catch(() => "");
+  if (
+    currentUrl.startsWith("chrome-error://") ||
+    /ERR_HTTP2_PROTOCOL_ERROR|ERR_QUIC_PROTOCOL_ERROR|ERR_CONNECTION_RESET|This site can.t be reached/i.test(bodyText)
+  ) {
+    throw new Error("LATAM_NAVIGATION_BLOCKED");
+  }
   return { screenshot, currentUrl, title };
 }
 
@@ -152,7 +181,7 @@ export async function openLiveSession(opts: OpenSessionOpts) {
 
   const params = new URLSearchParams({
     token,
-    timeout: "180000",
+    timeout: String(OPEN_REQUEST_TIMEOUT_MS),
   });
   if (opts.useResidentialProxy) {
     params.set("proxy", "residential");
@@ -163,16 +192,23 @@ export async function openLiveSession(opts: OpenSessionOpts) {
   const endpoint = `${BROWSERLESS_BASE}/stealth/bql?${params.toString()}`;
   const query = `
     mutation OpenLive($url: String!) {
-      goto(url: $url, waitUntil: domContentLoaded, timeout: 45000) { status }
-      solve(timeout: 30000, wait: true) { found solved time }
+      goto(url: $url, waitUntil: domContentLoaded, timeout: 35000) { status }
       reconnect(timeout: ${SESSION_RECONNECT_MS}) { browserWSEndpoint }
     }
   `;
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables: { url: opts.url } }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OPEN_REQUEST_TIMEOUT_MS + 2_000);
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables: { url: opts.url } }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
   const body = await response.text();
   if (!response.ok) {
     throw new Error(`Browserless HTTP ${response.status}: ${body.slice(0, 2000)}`);
@@ -200,7 +236,14 @@ export async function openLiveSession(opts: OpenSessionOpts) {
   };
   sessions.set(session.id, session);
 
-  const shot = await withConnection(session, (page) => capture(page));
+  let shot: Awaited<ReturnType<typeof capture>>;
+  try {
+    shot = await withConnection(session, (page) => capture(page));
+  } catch (error) {
+    sessions.delete(session.id);
+    await closeRemote(session.wsEndpoint).catch(() => {});
+    throw error;
+  }
   return {
     sessionId: session.id,
     ...shot,

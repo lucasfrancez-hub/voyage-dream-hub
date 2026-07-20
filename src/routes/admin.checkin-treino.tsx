@@ -12,7 +12,6 @@ import {
   Power, PowerOff, ArrowLeft, Camera, RotateCcw,
 } from "lucide-react";
 import {
-  runTrainingScript,
   askVisionAboutScreenshot,
   openTrainingSession,
   runLiveTrainingStep,
@@ -36,7 +35,6 @@ const DEFAULT_QUESTION =
 const SESSION_STORAGE_KEY = "via_training_session_id";
 
 function TreinoPage() {
-  const runScript = useServerFn(runTrainingScript);
   const askVision = useServerFn(askVisionAboutScreenshot);
   const openSession = useServerFn(openTrainingSession);
   const runStep = useServerFn(runLiveTrainingStep);
@@ -98,6 +96,10 @@ function TreinoPage() {
       const r = await openSession({
         data: { url, viewportWidth: 1280, viewportHeight: 900, useResidentialProxy: useProxy },
       });
+      if (!r.ok) {
+        toast.error(r.error);
+        return;
+      }
       persistSession(r.sessionId);
       setShot({ b64: r.screenshot, w: r.width, h: r.height, url: r.currentUrl, title: r.title });
       toast.success(`Sessão aberta: ${r.title || r.currentUrl}`);
@@ -131,6 +133,10 @@ function TreinoPage() {
     setSelectedTarget(null);
     try {
       const r = await shotSession({ data: { sessionId } });
+      if (!r.ok) {
+        handleSessionError(new Error(r.error));
+        return;
+      }
       setShot((prev) => ({ b64: r.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: r.currentUrl, title: r.title }));
     } catch (e) {
       handleSessionError(e);
@@ -146,6 +152,10 @@ function TreinoPage() {
     setSelectedTarget(null);
     try {
       const r = await runStep({ data: { sessionId, step: { action: "back" } } });
+      if (!r.ok) {
+        handleSessionError(new Error(r.error));
+        return;
+      }
       setShot((prev) => ({ b64: r.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: r.currentUrl, title: r.title }));
     } catch (e) {
       handleSessionError(e);
@@ -159,10 +169,39 @@ function TreinoPage() {
     setVision(null);
     setSelectedTarget(null);
     try {
-      const r = await runScript({ data: { url, steps, viewportWidth: 1280, viewportHeight: 900 } });
-      setShot({ b64: r.screenshot, w: r.width, h: r.height, url: r.currentUrl, title: r.title });
-      setLogs(r.logs);
-      toast.success(`Reexecutado: ${r.title || r.currentUrl}`);
+      if (sessionId) await closeSession({ data: { sessionId } }).catch(() => undefined);
+      persistSession(null);
+      const opened = await openSession({
+        data: { url, viewportWidth: 1280, viewportHeight: 900, useResidentialProxy: useProxy },
+      });
+      if (!opened.ok) {
+        toast.error(opened.error);
+        return;
+      }
+      persistSession(opened.sessionId);
+      let latest: Shot = {
+        b64: opened.screenshot,
+        w: opened.width,
+        h: opened.height,
+        url: opened.currentUrl,
+        title: opened.title,
+      };
+      const executionLogs: Array<{ step: number; action: string; ok: boolean; error?: string }> = [];
+      for (let i = 0; i < steps.length; i += 1) {
+        const result = await runStep({ data: { sessionId: opened.sessionId, step: steps[i] } });
+        if (!result.ok) {
+          executionLogs.push({ step: i + 1, action: steps[i].action, ok: false, error: result.error });
+          setLogs(executionLogs);
+          handleSessionError(new Error(result.error));
+          return;
+        }
+        executionLogs.push({ step: i + 1, action: steps[i].action, ok: true });
+        latest = { ...latest, b64: result.screenshot, url: result.currentUrl, title: result.title };
+        setShot(latest);
+      }
+      setShot(latest);
+      setLogs(executionLogs);
+      toast.success(`Validado: ${latest.title || latest.url}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha");
     } finally {
@@ -198,6 +237,10 @@ function TreinoPage() {
     const urlBefore = shot?.url ?? "";
     try {
       const r = await runStep({ data: { sessionId, step } });
+      if (!r.ok) {
+        handleSessionError(new Error(r.error));
+        return;
+      }
       setSteps((prev) => [...prev, step]);
       // Annotate the screenshot the action was taken ON (urlBefore), so the label sticks
       // to the field the user marked, not to the next screen.
