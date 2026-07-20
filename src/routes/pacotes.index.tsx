@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapPin, Calendar, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket, Compass } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
