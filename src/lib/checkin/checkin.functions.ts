@@ -289,13 +289,21 @@ export const runCheckin = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
+      // Conta os passageiros da reserva pra casar com o script de treino salvo (1 pax, 2 pax, …).
+      const paxCountRes = await sb
+        .from("order_passengers")
+        .select("id", { count: "exact", head: true })
+        .eq("order_id", checkin.order_id);
+      const paxCount = (paxCountRes as any).count ?? null;
       // Só usa o script salvo no treinador de check-in (autopilot antigo foi removido).
       const result: any = await tryRunFromSavedScript(sb, {
         airline: "LATAM",
         locator: checkin.locator,
         surname: checkin.pnr_surname,
         runnerUserId: `manual:${userId}:${checkin.id}`,
+        paxCount,
       });
+
       if (!result) {
         throw new Error("Nenhum script de treinador salvo para LATAM. Grave um script em /admin/checkin-treino antes de rodar o check-in.");
       }
