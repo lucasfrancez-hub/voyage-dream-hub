@@ -456,14 +456,20 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
-      const { runLatamAutopilot } = await import("./latam-autopilot.server");
-      const result: any = await runLatamAutopilot({ locator, surname, checkinUrl });
+      // Tenta primeiro rodar o script salvo do treinador para a companhia.
+      let result: any = await tryRunFromSavedScript(sb, { airline: "LATAM", locator, surname })
+        .catch((e: unknown) => { console.warn("[checkin] saved script failed", e); return null; });
+      if (!result) {
+        const { runLatamAutopilot } = await import("./latam-autopilot.server");
+        result = await runLatamAutopilot({ locator, surname, checkinUrl });
+      }
       const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
-      // Autopilot devolve UM PDF só (normalmente contém todos os cartões
-      // da reserva). Salvamos o mesmo arquivo em cada check-in do grupo.
+      // O script salvo devolve PNG (screenshot do cartão) e o autopilot devolve PDF.
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const pdfBytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
+      const passBytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
       const contentType = result.contentType || "application/pdf";
+      const ext = contentType.includes("png") ? "png" : "pdf";
+
 
       const results: Array<{ id: string; ok: boolean; url?: string | null; error?: string }> = [];
       for (const ci of checkins) {
