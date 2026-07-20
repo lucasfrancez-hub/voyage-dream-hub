@@ -295,8 +295,32 @@ async function waitForRenderablePage(cdp: CdpClient, fallbackUrl?: string) {
   }
 }
 
+async function waitForSpinnerGone(cdp: CdpClient, timeoutMs = 20_000) {
+  const started = Date.now();
+  const pattern = "estamos procurando|aguarde|carregando|processando|loading|please wait|um momento";
+  while (Date.now() - started < timeoutMs) {
+    const stillLoading = await evalExpr<boolean>(
+      cdp,
+      `(() => {
+        const t = (document.body?.innerText || '').toLowerCase();
+        if (new RegExp(${JSON.stringify(pattern)}).test(t)) return true;
+        // spinner visível (ícones/circulares comuns)
+        const spin = document.querySelector('[class*="spinner" i],[class*="loader" i],[class*="loading" i],[role="progressbar"]');
+        if (spin) {
+          const r = spin.getBoundingClientRect();
+          if (r.width > 8 && r.height > 8) return true;
+        }
+        return false;
+      })()`,
+    );
+    if (!stillLoading) return;
+    await new Promise((r) => setTimeout(r, 400));
+  }
+}
+
 async function capture(cdp: CdpClient, fallbackUrl?: string) {
   await waitForRenderablePage(cdp, fallbackUrl);
+  await waitForSpinnerGone(cdp);
   const shot = await cdp.send<{ data: string }>("Page.captureScreenshot", {
     format: "jpeg",
     quality: 60,
@@ -552,13 +576,16 @@ export async function runLiveStep(opts: {
       const domBefore = (await evalExpr<string>(cdp, "document.body?.innerText?.slice(0,400) || ''")) || "";
       await mouseClick(cdp, s.x, s.y);
       const start = Date.now();
-      while (Date.now() - start < 6000) {
-        await new Promise((r) => setTimeout(r, 250));
+      let changed = false;
+      while (Date.now() - start < 20_000) {
+        await new Promise((r) => setTimeout(r, 300));
         const urlNow = (await evalExpr<string>(cdp, "location.href")) || "";
         const domNow = (await evalExpr<string>(cdp, "document.body?.innerText?.slice(0,400) || ''")) || "";
-        if (urlNow !== urlBefore || domNow !== domBefore) break;
+        if (urlNow !== urlBefore || domNow !== domBefore) { changed = true; break; }
       }
-      await new Promise((r) => setTimeout(r, 600));
+      // depois que algo mudou, espera o spinner sumir também
+      if (changed) await waitForSpinnerGone(cdp, 25_000);
+      await new Promise((r) => setTimeout(r, 400));
     } else if (s.action === "type") {
       await mouseClick(cdp, s.x, s.y);
       await typingPause(220, 420);
