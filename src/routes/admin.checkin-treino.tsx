@@ -236,7 +236,14 @@ function TreinoPage() {
       if (!r.ok) { handleSessionError(new Error(r.error)); return; }
       if (r.signedUrl) {
         setPdfs((prev) => [{ url: r.signedUrl!, path: r.path, sizeKb: r.sizeKb, source: r.sourceUrl, kind: "png" }, ...prev]);
-        toast.success(`Imagem salva (${r.sizeKb} KB)`);
+        // Grava o passo no script para o runner replicar a captura automaticamente.
+        setSteps((prev) => [...prev, {
+          action: "capture_region",
+          x: Math.round(regionDraft.x), y: Math.round(regionDraft.y),
+          width: Math.round(regionDraft.w), height: Math.round(regionDraft.h),
+          filename,
+        }]);
+        toast.success(`Imagem salva (${r.sizeKb} KB) — passo adicionado ao script`);
         setRegionMode(false);
         setRegionDraft(null);
       } else {
