@@ -116,6 +116,30 @@ function TreinoPage() {
     return () => { cancelled = true; };
   }, [airline, listScripts]);
 
+  // Mantém a URL inicial em sincronia com localizador + sobrenome quando
+  // estamos usando o deep-link da LATAM (padrão). Assim, quando o operador
+  // mudar o sobrenome de "PEREIRA" pra "PEREIRO", a URL atualiza sozinha.
+  // Só age quando não há sessão aberta e a URL segue o padrão check-in/status.
+  useEffect(() => {
+    if (sessionId) return;
+    if (airline !== "LATAM") return;
+    const oid = pnr.trim().toUpperCase();
+    const ln = surname.trim().toLowerCase();
+    if (!oid || !ln) return;
+    try {
+      const parsed = new URL(url);
+      if (!/latamairlines\.com$/i.test(parsed.hostname)) return;
+      if (!/\/check-in\/status/i.test(parsed.pathname)) return;
+      parsed.searchParams.set("orderId", oid);
+      parsed.searchParams.set("lastName", ln);
+      const next = parsed.toString();
+      if (next !== url) setUrl(next);
+    } catch {
+      /* URL inválida — ignora */
+    }
+  }, [airline, pnr, surname, sessionId, url]);
+
+
   const onChangeAirline = (a: Airline) => {
     if (sessionId) {
       toast.error("Feche a sessão antes de trocar de companhia.");
