@@ -20,6 +20,7 @@ import {
   heartbeatTrainingSession,
   closeTrainingSession,
   captureTrainingPdf,
+  captureTrainingRegion,
   listTrainingScripts,
   getTrainingScript,
   saveTrainingScript,
