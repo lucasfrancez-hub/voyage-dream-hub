@@ -118,6 +118,11 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
     const phones = det.phone_numbers as Array<{ value?: string }> | undefined;
     const websites = det.websites as Array<{ url?: string }> | undefined;
 
+    // Classificação oficial (1..5). TripAdvisor expõe em campos variados:
+    // hotel_class ("4.0"), class, awards[].display_name ("4-star hotel"),
+    // ranking_data.hotel_class, etc. Tentamos todos.
+    const hotelClass = extractHotelClass(det);
+
     let photos: string[] = [];
     if (rPhotos.ok) {
       const jp = (await rPhotos.json()) as { data?: Array<{ photo?: { original_size_url?: string } }> };
@@ -141,5 +146,31 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
       website: websites?.[0]?.url ?? null,
       photos,
       description: (det.description as string | undefined) ?? null,
+      hotel_class: hotelClass,
     };
   });
+
+function extractHotelClass(det: Record<string, unknown>): number | null {
+  const candidates: unknown[] = [
+    det.hotel_class,
+    det.class,
+    (det.ranking_data as { hotel_class?: unknown } | undefined)?.hotel_class,
+  ];
+  const awards = det.awards as Array<Record<string, unknown>> | undefined;
+  if (Array.isArray(awards)) {
+    for (const a of awards) {
+      candidates.push(a.display_name, a.name, a.award_type);
+    }
+  }
+  for (const c of candidates) {
+    if (c == null) continue;
+    const s = String(c);
+    // Aceita "4", "4.0", "4-star hotel", "Categoria 4 estrelas"
+    const m = s.match(/([1-5])(?:\.\d)?/);
+    if (m) {
+      const n = Number(m[1]);
+      if (n >= 1 && n <= 5) return n;
+    }
+  }
+  return null;
+}
