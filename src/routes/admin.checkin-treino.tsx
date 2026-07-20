@@ -59,6 +59,7 @@ function TreinoPage() {
   const heartbeatSession = useServerFn(heartbeatTrainingSession);
   const closeSession = useServerFn(closeTrainingSession);
   const capturePdf = useServerFn(captureTrainingPdf);
+  const captureRegion = useServerFn(captureTrainingRegion);
   const listScripts = useServerFn(listTrainingScripts);
   const getScript = useServerFn(getTrainingScript);
   const saveScript = useServerFn(saveTrainingScript);
