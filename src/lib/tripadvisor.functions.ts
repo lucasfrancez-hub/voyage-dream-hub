@@ -179,3 +179,34 @@ function extractHotelClass(det: Record<string, unknown>): number | null {
   }
   return null;
 }
+
+async function scrapeHotelClassFromPage(url: string): Promise<number | null> {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+      "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+    },
+  });
+  if (!res.ok) return null;
+  const html = await res.text();
+  // JSON-LD schema.org/Hotel starRating.ratingValue
+  const ld = html.match(/"starRating"\s*:\s*\{[^}]*"ratingValue"\s*:\s*"?([1-5](?:\.\d)?)/i);
+  if (ld) {
+    const n = Math.round(Number(ld[1]));
+    if (n >= 1 && n <= 5) return n;
+  }
+  // Embedded fields TA usa em variantes: "hotelClass":4, hotel_class":"4.0"
+  const emb = html.match(/hotel[_ ]?class"?\s*:\s*"?([1-5](?:\.\d)?)/i);
+  if (emb) {
+    const n = Math.round(Number(emb[1]));
+    if (n >= 1 && n <= 5) return n;
+  }
+  // Texto exibido: "4-star hotel" / "Hotel 4 estrelas"
+  const txt = html.match(/([1-5])[-\s]?(?:star|estrelas?)/i);
+  if (txt) {
+    const n = Number(txt[1]);
+    if (n >= 1 && n <= 5) return n;
+  }
+  return null;
+}
+
