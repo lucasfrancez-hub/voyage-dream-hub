@@ -146,33 +146,21 @@ function CheckinsPage() {
         continue;
       }
 
-      // Bucket por direção explícita
-      const outbound = segs.filter((s) => s.direction === "outbound");
-      const ret = segs.filter((s) => s.direction === "return");
-      const noDir = segs.filter((s) => !s.direction);
-
-      const allJourneys: { segs: any[]; direction: "outbound" | "return" | null }[] = [];
-      buildJourneys(outbound).forEach((j) => allJourneys.push({ segs: j, direction: "outbound" }));
-      buildJourneys(ret).forEach((j) => allJourneys.push({ segs: j, direction: "return" }));
-      const noDirJourneys = buildJourneys(noDir);
-      noDirJourneys.forEach((j, idx) => {
+      // Chain TODAS as conexões primeiro (independente de "direction"),
+      // pra que GRU→PTY→CUR fique num único card mesmo quando um segmento
+      // vem sem direção explícita. A direção é inferida depois a partir
+      // de qualquer segmento da cadeia que tenha tag.
+      const journeys = buildJourneys(segs);
+      journeys.forEach((j, idx) => {
+        const explicit = j.map((s) => s.direction).find((d) => d === "outbound" || d === "return") ?? null;
         const inferred: "outbound" | "return" | null =
-          noDirJourneys.length > 1 || allJourneys.length > 0
-            ? idx === 0 && allJourneys.length === 0
-              ? "outbound"
-              : allJourneys.length === 0
-                ? "return"
-                : null
-            : null;
-        allJourneys.push({ segs: j, direction: inferred });
-      });
-
-      allJourneys.forEach((j, idx) => {
+          explicit ??
+          (journeys.length > 1 ? (idx === 0 ? "outbound" : "return") : null);
         out.push({
           ...g,
           key: `${g.key}::j${idx}`,
-          segments: j.segs,
-          direction: j.direction,
+          segments: j,
+          direction: inferred,
         });
       });
     }
