@@ -415,12 +415,19 @@ function BookingCard({
                 {group.passengers.map((pax: any) => {
                   const rowKey = `${seg.order_item_id}:${pax.index}`;
                   const existing = uploaded.find((p) => p.passenger_index === pax.index);
-                  const openUrl = buildLatamBoardingPassUrl({
-                    locator: group.locator,
-                    surname: group.surname,
-                    tripPassengerId: pax.trip_passenger_id,
-                    segmentIndex: seg.segment_index,
-                  });
+                  const openUrl = seg.airline === "LATAM"
+                    ? buildLatamBoardingPassUrl({
+                        locator: group.locator,
+                        surname: group.surname,
+                        tripPassengerId: pax.trip_passenger_id,
+                        segmentIndex: seg.segment_index,
+                      })
+                    : (seg.airline === "GOL"
+                      ? `https://q.voegol.com.br/CheckinWeb/Home/Index?pnr=${encodeURIComponent(group.locator)}&lastName=${encodeURIComponent(group.surname)}`
+                      : seg.airline === "AZUL"
+                        ? `https://checkin.voeazul.com.br/?pnr=${encodeURIComponent(group.locator)}&lastName=${encodeURIComponent(group.surname)}`
+                        : `https://www.google.com/search?q=${encodeURIComponent(`check-in ${seg.airline_label || ""} ${group.locator}`)}`);
+
                   return (
                     <PassengerRow
                       key={rowKey}
