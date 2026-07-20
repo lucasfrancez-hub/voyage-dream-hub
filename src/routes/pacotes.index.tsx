@@ -59,6 +59,9 @@ function PacotesList() {
   const [sortBy, setSortBy] = useState<
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("price_asc");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
+
 
   const origins = useMemo(
     () => Array.from(new Set((packages || []).map((p) => p.origin).filter(Boolean))).sort(),
