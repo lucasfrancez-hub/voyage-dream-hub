@@ -62,7 +62,7 @@ export const persistPackageHotelPhotos = createServerFn({ method: "POST" })
         const { error } = await supabaseAdmin.storage
           .from(BUCKET)
           .upload(path, bytes, { contentType, upsert: true, cacheControl: "31536000" });
-        if (!error) persisted.push(`/api/public/package-hotel-photo/${encodeURIComponent(path)}`);
+        if (!error) persisted.push(`/api/public/package-hotel-photo/${path}`);
       } catch (error) {
         console.warn("[package-hotel-photos] falha ao persistir foto", error);
       }
