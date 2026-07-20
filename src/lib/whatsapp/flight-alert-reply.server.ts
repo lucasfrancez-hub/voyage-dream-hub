@@ -111,10 +111,14 @@ export async function handleFlightAlertReply(input: {
     briefing,
   });
 
+  const solicitacao = action === "refund" ? "*reembolso*" : "*remarcação sem custo* do seu voo";
   const reply =
-    action === "refund"
-      ? "📩 Recebemos sua solicitação de *reembolso*.\n\nUm consultor da nossa equipe vai continuar o atendimento por aqui em instantes."
-      : "📩 Recebemos sua solicitação de *remarcação sem custo*.\n\nUm consultor da nossa equipe vai continuar o atendimento por aqui em instantes.";
+    (greet ? `Oi, ${greet}! ` : "") +
+    `vi que você solicitou ${solicitacao}` +
+    (alert?.flight_number ? ` (voo ${alert.flight_number}` + (orderRow?.airline_locator ? ` · localizador ${orderRow.airline_locator}` : "") + ")" : "") +
+    `. 📩\n\n` +
+    "Já estou transferindo seu atendimento para o nosso *time operacional*, que vai dar sequência por aqui mesmo em instantes. ✈️💛\n\n" +
+    "_Equipe VIA AIR_";
 
   const sent = await sendWhatsAppText(input.wa_phone, reply);
 
