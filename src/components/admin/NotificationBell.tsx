@@ -82,6 +82,7 @@ function diffInfo(oldIso: string | null, newIso: string | null) {
 
 function buildClientMessage(r: {
   flightNumber: string;
+  locator: string | null;
   oldDepartAt: string | null;
   newDepartAt: string | null;
   oldArriveAt: string | null;
@@ -93,7 +94,7 @@ function buildClientMessage(r: {
   const lines: string[] = [];
   lines.push(`Olá${first ? `, ${first}` : ""}! 👋`);
   lines.push("");
-  lines.push(`Informamos uma atualização no seu voo *${r.flightNumber}*:`);
+  lines.push(`Informamos uma atualização no seu voo *${r.flightNumber}*${r.locator ? ` (localizador *${r.locator}*)` : ""}:`);
   lines.push("");
   if (r.oldDepartAt) lines.push(`🕓 Saída anterior: ${fmtDateTime(r.oldDepartAt)}`);
   if (r.newDepartAt) lines.push(`🆕 Nova saída: ${fmtDateTime(r.newDepartAt)}`);
@@ -115,6 +116,7 @@ type AlertRow = {
   orderId: string;
   orderNumber: string | null;
   flightNumber: string;
+  locator: string | null;
   summary: string;
   severity: string;
   oldDepartAt: string | null;
@@ -126,7 +128,9 @@ type AlertRow = {
   createdAt: string;
   seenAt: string | null;
   response?: string | null;
+  autoSent?: boolean;
 };
+
 
 export function AdminNotificationBell() {
   const listFn = useServerFn(listFlightAlerts);
