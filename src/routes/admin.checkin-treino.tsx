@@ -697,15 +697,94 @@ function TreinoPage() {
                   >
                     Capturar PDF do botão Salvar
                   </Button>
+                  <Button
+                    size="sm"
+                    variant={regionMode ? "default" : "outline"}
+                    disabled={busy || !sessionId}
+                    onClick={() => {
+                      setRegionMode((v) => !v);
+                      setRegionDraft(null);
+                    }}
+                    title="Arraste na imagem pra desenhar o retângulo do cartão de embarque e depois clique em 'Capturar região'."
+                  >
+                    {regionMode ? "Cancelar região" : "Selecionar região"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    disabled={busy || !sessionId || !regionDraft || regionDraft.w < 20 || regionDraft.h < 20}
+                    onClick={async () => {
+                      if (!sessionId || !regionDraft) return;
+                      setBusy(true);
+                      try {
+                        const filename = `${pnr || "reserva"}-${surname || "pax"}-regiao.png`;
+                        const r = await captureRegion({ data: { sessionId, x: regionDraft.x, y: regionDraft.y, width: regionDraft.w, height: regionDraft.h, filename } });
+                        if (!r.ok) {
+                          handleSessionError(new Error(r.error));
+                          return;
+                        }
+                        if (r.signedUrl) {
+                          setPdfs((prev) => [{ url: r.signedUrl!, path: r.path, sizeKb: r.sizeKb, source: r.sourceUrl, kind: "png" }, ...prev]);
+                          toast.success(`Imagem salva (${r.sizeKb} KB)`);
+                          setRegionMode(false);
+                          setRegionDraft(null);
+                        } else {
+                          toast.success("Região capturada, mas sem URL assinada.");
+                        }
+                      } catch (e) {
+                        handleSessionError(e);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    Capturar região
+                  </Button>
                 </div>
               )}
               <div className="relative inline-block border rounded overflow-hidden bg-black/5">
                 <img
                   ref={imgRef}
                   src={`data:image/jpeg;base64,${shot.b64}`}
-                  className={`block w-full h-auto ${interactive ? "cursor-crosshair" : ""}`}
+                  className={`block w-full h-auto ${interactive || regionMode ? "cursor-crosshair" : ""}`}
                   alt="screenshot"
+                  draggable={false}
+                  onPointerDown={(e) => {
+                    if (!regionMode || !shot) return;
+                    const img = imgRef.current;
+                    if (!img) return;
+                    e.preventDefault();
+                    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+                    const rect = img.getBoundingClientRect();
+                    const sx = shot.w / rect.width;
+                    const sy = shot.h / rect.height;
+                    regionDragRef.current = { startX: e.clientX, startY: e.clientY, sx, sy };
+                    const x = Math.round((e.clientX - rect.left) * sx);
+                    const y = Math.round((e.clientY - rect.top) * sy);
+                    setRegionDraft({ x, y, w: 0, h: 0 });
+                  }}
+                  onPointerMove={(e) => {
+                    if (!regionMode || !regionDragRef.current || !shot) return;
+                    const img = imgRef.current;
+                    if (!img) return;
+                    const rect = img.getBoundingClientRect();
+                    const { sx, sy } = regionDragRef.current;
+                    const x1 = Math.round((regionDragRef.current.startX - rect.left) * sx);
+                    const y1 = Math.round((regionDragRef.current.startY - rect.top) * sy);
+                    const x2 = Math.round((e.clientX - rect.left) * sx);
+                    const y2 = Math.round((e.clientY - rect.top) * sy);
+                    const x = Math.max(0, Math.min(x1, x2));
+                    const y = Math.max(0, Math.min(y1, y2));
+                    const w = Math.min(shot.w - x, Math.abs(x2 - x1));
+                    const h = Math.min(shot.h - y, Math.abs(y2 - y1));
+                    setRegionDraft({ x, y, w, h });
+                  }}
+                  onPointerUp={() => {
+                    if (!regionMode) return;
+                    regionDragRef.current = null;
+                  }}
                   onClick={async (e) => {
+                    if (regionMode) return;
                     if (!interactive || busy || !shot) return;
                     const img = imgRef.current;
                     if (!img) return;
@@ -722,6 +801,22 @@ function TreinoPage() {
                     );
                   }}
                 />
+
+                {regionMode && regionDraft && shot && (
+                  <div
+                    className="absolute pointer-events-none border-2 border-orange-500 bg-orange-500/20"
+                    style={{
+                      left: `${(regionDraft.x / shot.w) * 100}%`,
+                      top: `${(regionDraft.y / shot.h) * 100}%`,
+                      width: `${(regionDraft.w / shot.w) * 100}%`,
+                      height: `${(regionDraft.h / shot.h) * 100}%`,
+                    }}
+                  >
+                    <div className="absolute -top-6 left-0 text-[10px] font-medium text-white bg-orange-500 px-1.5 py-0.5 rounded shadow whitespace-nowrap">
+                      {regionDraft.w}×{regionDraft.h}px
+                    </div>
+                  </div>
+                )}
 
                 {annotations
                   .filter((a) => a.url === shot.url)
