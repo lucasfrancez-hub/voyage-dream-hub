@@ -576,6 +576,56 @@ function AdminPackages() {
         ))}
       </div>
 
+      {(() => {
+        const total = packages?.length ?? 0;
+        const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        const current = Math.min(page, totalPages);
+        if (total <= PAGE_SIZE) return null;
+        const from = (current - 1) * PAGE_SIZE + 1;
+        const to = Math.min(current * PAGE_SIZE, total);
+        return (
+          <div className="mt-6 flex items-center justify-between gap-3 px-2">
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              {from}–{to} de {total}
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={current === 1}
+                className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg border border-border bg-card hover:border-brand-orange disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Anterior
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((n) => n === 1 || n === totalPages || Math.abs(n - current) <= 1)
+                .map((n, i, arr) => (
+                  <span key={n} className="flex items-center">
+                    {i > 0 && arr[i - 1] !== n - 1 && <span className="px-1 text-muted-foreground">…</span>}
+                    <button
+                      onClick={() => setPage(n)}
+                      className={`min-w-[32px] px-2 py-1.5 text-xs font-semibold rounded-lg border transition ${
+                        n === current
+                          ? "bg-brand-orange text-white border-brand-orange"
+                          : "border-border bg-card hover:border-brand-orange"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  </span>
+                ))}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={current === totalPages}
+                className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg border border-border bg-card hover:border-brand-orange disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Próxima
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
+
       {editing && (
         <PackageEditorModal
           editing={editing}
