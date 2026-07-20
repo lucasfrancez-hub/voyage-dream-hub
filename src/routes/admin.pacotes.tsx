@@ -1911,4 +1911,207 @@ function PackageImportButton({
 }
 
 
+function MultiPackageImportButton({ onDone }: { onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [status, setStatus] = useState<string>("");
+  const [fileName, setFileName] = useState<string | null>(null);
+  const extractMany = useServerFn(extractMultiplePackagesFromDocument);
+
+  async function handleFile(file: File) {
+    if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+      toast.error("Envie um PDF ou imagem");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx. 20 MB)");
+      return;
+    }
+    setBusy(true);
+    setFileName(file.name);
+    setStatus("Lendo documento…");
+    try {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      const CHUNK = 0x8000;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
+      }
+      const base64 = btoa(binary);
+      const { packages: extracted } = await extractMany({
+        data: {
+          file_base64: base64,
+          mime_type: file.type || "application/pdf",
+          filename: file.name || "orcamentos.pdf",
+        },
+      });
+      const list = Array.isArray(extracted) ? extracted.filter((p) => p && typeof p === "object") : [];
+      if (list.length === 0) throw new Error("Nenhum orçamento reconhecido no documento");
+
+      // Slugs existentes (uma única consulta)
+      const { data: existingRows } = await supabase.from("packages").select("slug");
+      const usedSlugs = new Set<string>((existingRows ?? []).map((r: any) => r.slug));
+      const reserveSlug = (base: string) => {
+        let s = base || "pacote";
+        let i = 2;
+        while (usedSlugs.has(s)) {
+          s = `${base}-${i}`;
+          i += 1;
+        }
+        usedSlugs.add(s);
+        return s;
+      };
+
+      let created = 0;
+      let index = 0;
+      for (const raw of list) {
+        index += 1;
+        setStatus(`Salvando pacote ${index} de ${list.length}…`);
+        const p: any = raw;
+        const destination = String(p.destination || "").trim();
+        const origin = String(p.origin || "").trim();
+        const going = p.going_date ? String(p.going_date) : null;
+        const label = `Pacote ${index}${destination ? ` — ${destination}` : ""}`;
+        const baseSlugSource = [destination || `pacote-${index}`, going ? going.slice(0, 7) : ""]
+          .filter(Boolean)
+          .join("-");
+        const slug = reserveSlug(slugify(baseSlugSource) || `pacote-${Date.now()}-${index}`);
+
+        const payload: any = {
+          slug,
+          title: label,
+          destination: destination || label,
+          origin: origin || null,
+          going_date: going,
+          return_date: p.return_date ? String(p.return_date) : null,
+          nights: p.nights != null ? Number(p.nights) || null : null,
+          base_occupancy: p.base_occupancy != null ? Number(p.base_occupancy) || 2 : 2,
+          price_per_person: Number(p.price_per_person) || 0,
+          taxes: Number(p.taxes) || 0,
+          hotel_name: p.hotel_name || null,
+          hotel_stars: p.hotel_stars != null ? Math.max(1, Math.min(5, Math.round(Number(p.hotel_stars)))) : null,
+          meal_plan: p.meal_plan || null,
+          room_type: p.room_type || null,
+          room_category: p.room_category || null,
+          bed_type: p.bed_type || null,
+          supplier_name: p.supplier_name || null,
+          includes: [],
+          is_active: false,
+          sort_order: 0,
+          image_url: null,
+          summary: null,
+          itinerary: null,
+          outbound_flight: cleanFlight(p.outbound_flight),
+          return_flight: cleanFlight(p.return_flight),
+        };
+        const { error } = await supabase.from("packages").insert(payload);
+        if (error) {
+          console.warn(`[import-multi] pacote ${index} falhou`, error);
+          continue;
+        }
+        created += 1;
+      }
+
+      if (created === 0) throw new Error("Nenhum pacote foi salvo");
+      toast.success(`${created} pacote(s) importado(s) — abra cada um para revisar e ativar.`);
+      onDone();
+      setOpen(false);
+      setFileName(null);
+      setStatus("");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha na importação múltipla");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center justify-center gap-2 bg-black hover:bg-neutral-900 text-brand-orange border border-brand-orange/60 px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)]"
+        title="Importar vários pacotes de um único PDF"
+      >
+        <FileUp className="h-4 w-4" strokeWidth={2.5} /> Importar múltiplos
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => !busy && setOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border/70 bg-card p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold">Importar múltiplos pacotes</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Envie um PDF com vários orçamentos (padrão “Orcamento 1”, “Orcamento 2”…). Cada bloco vira um pacote separado, salvo como <span className="font-semibold">inativo</span> para você revisar.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !busy && setOpen(false)}
+                className="p-1.5 rounded-md hover:bg-muted"
+                disabled={busy}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <label
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); if (!busy) setDragging(true); }}
+              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (!busy) setDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragging(false); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragging(false);
+                const f = e.dataTransfer.files?.[0];
+                if (f) void handleFile(f);
+              }}
+              className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 cursor-pointer transition ${
+                dragging
+                  ? "border-brand-orange bg-brand-orange/10"
+                  : "border-border hover:border-brand-orange/60 hover:bg-muted/40"
+              } ${busy ? "opacity-60 pointer-events-none" : ""}`}
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin text-brand-orange" />
+                  <span className="text-sm font-medium">{status || `Lendo ${fileName ?? "documento"}…`}</span>
+                  <span className="text-[11px] text-muted-foreground">Pode levar alguns segundos por pacote</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-7 w-7 text-brand-orange" />
+                  <span className="text-sm font-semibold">Solte o PDF aqui ou clique para escolher</span>
+                  <span className="text-[11px] text-muted-foreground">PDF · até 20 MB · vários orçamentos em um só arquivo</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="application/pdf,image/*"
+                className="hidden"
+                disabled={busy}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleFile(f);
+                }}
+              />
+            </label>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+
 
