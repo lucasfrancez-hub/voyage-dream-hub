@@ -386,12 +386,22 @@ function SegmentCard({
                   Enviado
                 </span>
               )}
+              {seg.connections && seg.connections.length > 0 && (
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500/10 text-amber-500">
+                  {seg.connections.length} conexão{seg.connections.length > 1 ? "es" : ""}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-3 mb-1 min-w-0">
               <span className="text-xl font-bold text-foreground truncate">{seg.origin ?? "?"}</span>
               <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="text-xl font-bold text-foreground truncate">{seg.destination ?? "?"}</span>
             </div>
+            {seg.connections && seg.connections.length > 0 && (
+              <div className="text-[11px] text-muted-foreground mb-1">
+                via {seg.connections.join(" · ")}
+              </div>
+            )}
             <div className="text-xs text-muted-foreground font-medium">
               {(seg.airline_label || seg.airline || "Voo")} {seg.flight_number || ""}
               {dep && (
