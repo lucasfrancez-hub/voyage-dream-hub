@@ -443,7 +443,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
     }
   }
 
-  async function handleSearchImages() {
+  async function handleSearchImages(nextPage = 1) {
     const q = imgQuery.trim() || editing.destination?.trim() || "";
     if (q.length < 2) {
       toast.error("Digite o que buscar (ex.: 'Aracaju praia')");
@@ -451,9 +451,13 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
     }
     setImgLoading(true);
     try {
-      const { images } = await searchImages({ data: { query: q } });
-      setImgResults(images);
-      if (images.length === 0) toast("Nenhuma imagem encontrada");
+      const res: any = await searchImages({ data: { query: q, page: nextPage } });
+      const newImgs = res.images ?? [];
+      setImgResults((prev) => (nextPage === 1 ? newImgs : [...prev, ...newImgs]));
+      setImgPage(nextPage);
+      setImgHasMore(!!res.hasMore);
+      setImgSource(res.sourceLabel ?? "");
+      if (nextPage === 1 && newImgs.length === 0) toast("Nenhuma imagem encontrada");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha na busca");
     } finally {
