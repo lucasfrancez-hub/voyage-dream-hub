@@ -18,6 +18,21 @@ import {
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
 import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, firstName as extractFirstName } from "./text-utils.server";
+import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
+
+// Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
+const AGENT_GENDER: Record<string, "f" | "m"> = {
+  camila: "f",
+  nath: "f",
+  maria: "f",
+  roberto: "m",
+  fabricio: "m",
+  geovane: "m",
+};
+function genderOf(slug: string): "f" | "m" {
+  return AGENT_GENDER[slug.toLowerCase()] ?? "f";
+}
+
 
 type Agent = {
   id: string;
