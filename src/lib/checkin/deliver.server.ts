@@ -124,14 +124,14 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
         const idx = anchorIdx >= 0 ? anchorIdx : 0;
         let start = idx, end = idx;
         while (start > 0) {
-          const prev = chain[start - 1]?.details ?? {};
-          const cur = chain[start]?.details ?? {};
+          const prev = (chain[start - 1]?.details ?? {}) as Record<string, any>;
+          const cur = (chain[start]?.details ?? {}) as Record<string, any>;
           if (prev.to_iata && cur.from_iata && prev.to_iata === cur.from_iata) start--;
           else break;
         }
         while (end < chain.length - 1) {
-          const cur = chain[end]?.details ?? {};
-          const nxt = chain[end + 1]?.details ?? {};
+          const cur = (chain[end]?.details ?? {}) as Record<string, any>;
+          const nxt = (chain[end + 1]?.details ?? {}) as Record<string, any>;
           if (cur.to_iata && nxt.from_iata && cur.to_iata === nxt.from_iata) end++;
           else break;
         }
