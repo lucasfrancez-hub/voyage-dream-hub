@@ -68,6 +68,30 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
   const isImage = isPng || isJpg;
   const ext = isPng ? "png" : isJpg ? "jpg" : "pdf";
   const flightNum = ci.flight_number ?? "";
+  const locator = ci.locator ?? "";
+
+  // Busca destino / cidade a partir do order_item (details.to_city / to_iata / destination).
+  let destino = "";
+  if (ci.order_item_id) {
+    const { data: it } = await supabaseAdmin
+      .from("order_items")
+      .select("details")
+      .eq("id", ci.order_item_id)
+      .maybeSingle();
+    const d = (it?.details ?? {}) as Record<string, any>;
+    destino = d.to_city || d.destination_city || d.to || d.destination || d.to_iata || d.arrival_iata || "";
+  }
+
+  // Formata data/horário do voo em pt-BR.
+  let dataVoo = "";
+  let horaVoo = "";
+  if (ci.departure_at) {
+    const dt = new Date(ci.departure_at);
+    if (!isNaN(dt.getTime())) {
+      dataVoo = dt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+      horaVoo = dt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+    }
+  }
 
   let passengers: Array<{ id: string; full_name: string | null; whatsapp: string | null }> = [];
   if (ci.passenger_id) {
