@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapPin, Calendar, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket, Compass } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -59,6 +59,9 @@ function PacotesList() {
   const [sortBy, setSortBy] = useState<
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("price_asc");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
+
 
   const origins = useMemo(
     () => Array.from(new Set((packages || []).map((p) => p.origin).filter(Boolean))).sort(),
@@ -157,6 +160,19 @@ function PacotesList() {
     setMonthFilter("all");
     setSortBy("sort_order");
   };
+
+  useEffect(() => {
+    setPage(1);
+  }, [originFilter, destinationFilter, monthFilter, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedPackages = filteredPackages.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
+
 
 
   return (
@@ -372,7 +388,7 @@ function PacotesList() {
           )}
 
 
-          {filteredPackages.map((p, idx) => (
+          {paginatedPackages.map((p, idx) => (
             <Link
               key={p.id}
               to="/pacotes/$slug"
@@ -434,7 +450,43 @@ function PacotesList() {
             </Link>
           ))}
         </div>
+
+        {!isLoading && totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Anterior
+            </Button>
+            {Array.from({ length: totalPages }).map((_, i) => {
+              const n = i + 1;
+              return (
+                <Button
+                  key={n}
+                  variant={n === currentPage ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPage(n)}
+                  className={n === currentPage ? "bg-brand-orange hover:bg-brand-orange/90" : ""}
+                >
+                  {n}
+                </Button>
+              );
+            })}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Próxima
+            </Button>
+          </div>
+        )}
       </section>
+
       </main>
 
       <ContactFooter />
