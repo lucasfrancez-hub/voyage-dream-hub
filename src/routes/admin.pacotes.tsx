@@ -183,79 +183,80 @@ function AdminPackages() {
     },
   });
 
-  async function save() {
-    if (!editing) return;
-    const derived = deriveFromFlights(editing);
+  async function persistPackage(pkg: Partial<PackageRow>): Promise<void> {
+    const derived = deriveFromFlights(pkg);
     const normalized = {
-      ...editing,
-      destination: editing.destination?.trim() || derived.destCity || "",
-      origin: editing.origin?.trim() || derived.originCity || "",
-      title: editing.title?.trim() || derived.title || "",
-      slug: editing.slug?.trim() || derived.slug || "",
+      ...pkg,
+      destination: pkg.destination?.trim() || derived.destCity || "",
+      origin: pkg.origin?.trim() || derived.originCity || "",
+      title: pkg.title?.trim() || derived.title || "",
+      slug: pkg.slug?.trim() || derived.slug || "",
     };
     if (!normalized.slug || !normalized.title || !normalized.destination) {
-      toast.error("Preencha slug, título e destino.");
-      return;
+      throw new Error(`Preencha slug, título e destino${pkg.title ? ` (${pkg.title})` : ""}.`);
     }
+    const baseSlug = normalized.slug;
+    const { data: existingSlugs, error: slugLookupError } = await supabase
+      .from("packages")
+      .select("id, slug")
+      .like("slug", `${baseSlug}%`);
+    if (slugLookupError) throw slugLookupError;
+    const usedSlugs = new Set(
+      (existingSlugs ?? [])
+        .filter((row) => row.id !== pkg.id)
+        .map((row) => row.slug),
+    );
+    let availableSlug = baseSlug;
+    let suffix = 2;
+    while (usedSlugs.has(availableSlug)) {
+      availableSlug = `${baseSlug}-${suffix}`;
+      suffix += 1;
+    }
+    const payload = {
+      slug: availableSlug,
+      title: normalized.title,
+      destination: normalized.destination,
+      origin: normalized.origin || null,
+      image_url: pkg.image_url || null,
+      summary: pkg.summary || null,
+      itinerary: pkg.itinerary || null,
+      hotel_name: pkg.hotel_name || null,
+      meal_plan: pkg.meal_plan || null,
+      room_type: pkg.room_type || null,
+      room_category: pkg.room_category || null,
+      bed_type: pkg.bed_type || null,
+      is_active: pkg.is_active ?? true,
+      includes:
+        typeof pkg.includes === "string"
+          ? (pkg.includes as string).split("\n").map((s) => s.trim()).filter(Boolean)
+          : pkg.includes ?? [],
+      price_per_person: Number(pkg.price_per_person) || 0,
+      taxes: Number(pkg.taxes) || 0,
+      nights: pkg.nights ? Number(pkg.nights) : null,
+      hotel_stars: pkg.hotel_stars ? Number(pkg.hotel_stars) : null,
+      sort_order: Number(pkg.sort_order) || 0,
+      going_date: pkg.going_date || null,
+      return_date: pkg.return_date || null,
+      base_occupancy: Number(pkg.base_occupancy) || 2,
+      outbound_flight: cleanFlight(pkg.outbound_flight),
+      return_flight: cleanFlight(pkg.return_flight),
+      supplier_name: pkg.supplier_name || null,
+      tripadvisor_location_id: pkg.tripadvisor_location_id || null,
+      tripadvisor_url: pkg.tripadvisor_url || null,
+      tripadvisor_address: pkg.tripadvisor_address || null,
+      tripadvisor_photos: pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
+    };
+    const { error } = pkg.id
+      ? await supabase.from("packages").update(payload).eq("id", pkg.id)
+      : await supabase.from("packages").insert(payload);
+    if (error) throw error;
+  }
+
+  async function save() {
+    if (!editing) return;
     setSaving(true);
     try {
-      const baseSlug = normalized.slug;
-      const { data: existingSlugs, error: slugLookupError } = await supabase
-        .from("packages")
-        .select("id, slug")
-        .like("slug", `${baseSlug}%`);
-      if (slugLookupError) throw slugLookupError;
-
-      const usedSlugs = new Set(
-        (existingSlugs ?? [])
-          .filter((row) => row.id !== editing.id)
-          .map((row) => row.slug),
-      );
-      let availableSlug = baseSlug;
-      let suffix = 2;
-      while (usedSlugs.has(availableSlug)) {
-        availableSlug = `${baseSlug}-${suffix}`;
-        suffix += 1;
-      }
-
-      const payload = {
-        slug: availableSlug,
-        title: normalized.title,
-        destination: normalized.destination,
-        origin: normalized.origin || null,
-        image_url: editing.image_url || null,
-        summary: editing.summary || null,
-        itinerary: editing.itinerary || null,
-        hotel_name: editing.hotel_name || null,
-        meal_plan: editing.meal_plan || null,
-        room_type: editing.room_type || null,
-        room_category: editing.room_category || null,
-        bed_type: editing.bed_type || null,
-        is_active: editing.is_active ?? true,
-        includes:
-          typeof editing.includes === "string"
-            ? (editing.includes as string).split("\n").map((s) => s.trim()).filter(Boolean)
-            : editing.includes ?? [],
-        price_per_person: Number(editing.price_per_person) || 0,
-        taxes: Number(editing.taxes) || 0,
-        nights: editing.nights ? Number(editing.nights) : null,
-        hotel_stars: editing.hotel_stars ? Number(editing.hotel_stars) : null,
-        sort_order: Number(editing.sort_order) || 0,
-        going_date: editing.going_date || null,
-        return_date: editing.return_date || null,
-        base_occupancy: Number(editing.base_occupancy) || 2,
-        outbound_flight: cleanFlight(editing.outbound_flight),
-        return_flight: cleanFlight(editing.return_flight),
-        supplier_name: editing.supplier_name || null,
-        tripadvisor_location_id: editing.tripadvisor_location_id || null,
-        tripadvisor_url: editing.tripadvisor_url || null,
-        tripadvisor_address: editing.tripadvisor_address || null,
-        tripadvisor_photos: editing.tripadvisor_photos && editing.tripadvisor_photos.length > 0 ? editing.tripadvisor_photos : null,
-      };
-      const { error } = editing.id
-        ? await supabase.from("packages").update(payload).eq("id", editing.id)
-        : await supabase.from("packages").insert(payload);
-      if (error) throw error;
+      await persistPackage(editing);
       toast.success(editing.id ? "Pacote atualizado" : "Pacote criado");
       if (drafts && drafts.length > 1) {
         closeCurrentDraft();
@@ -263,19 +264,47 @@ function AdminPackages() {
         setEditing(null);
       }
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
-
       qc.invalidateQueries({ queryKey: ["packages"] });
     } catch (err) {
-      const message = err instanceof Error
-        ? err.message
-        : typeof err === "object" && err && "message" in err
-          ? String(err.message)
-          : "Erro ao salvar";
+      const message = err instanceof Error ? err.message : "Erro ao salvar";
       toast.error(message);
     } finally {
       setSaving(false);
     }
   }
+
+  async function saveAll() {
+    if (!drafts || drafts.length === 0) return;
+    // persist current edits into the draft list before iterating
+    const list = drafts.slice();
+    if (editing) list[draftIndex] = editing;
+    setSaving(true);
+    let ok = 0;
+    const errors: string[] = [];
+    try {
+      for (let i = 0; i < list.length; i++) {
+        try {
+          await persistPackage(list[i]);
+          ok += 1;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : "Erro";
+          errors.push(`#${i + 1}: ${msg}`);
+        }
+      }
+      if (ok > 0) toast.success(`${ok} pacote(s) salvo(s)`);
+      if (errors.length > 0) toast.error(errors.join(" • "));
+      qc.invalidateQueries({ queryKey: ["admin", "packages"] });
+      qc.invalidateQueries({ queryKey: ["packages"] });
+      if (errors.length === 0) {
+        setDrafts(null);
+        setDraftIndex(0);
+        setEditingState(null);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
 
   async function toggleActive(p: PackageRow) {
     const { error } = await supabase
@@ -428,11 +457,13 @@ function AdminPackages() {
           setEditing={setEditing}
           saving={saving}
           save={save}
+          saveAll={saveAll}
           drafts={drafts}
           draftIndex={draftIndex}
           switchDraft={switchDraft}
           closeCurrentDraft={closeCurrentDraft}
         />
+
       )}
 
     </div>
@@ -454,11 +485,13 @@ type PackageEditorModalProps = {
   setEditing: (v: Partial<PackageRow> | null) => void;
   saving: boolean;
   save: () => void;
+  saveAll?: () => void;
   drafts?: Partial<PackageRow>[] | null;
   draftIndex?: number;
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
 };
+
 
 
 type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
@@ -496,7 +529,7 @@ function deriveFromFlights(editing: Partial<PackageRow>): { originCity?: string;
   return { originCity, destCity, title, slug };
 }
 
-function PackageEditorModal({ editing, setEditing, saving, save, drafts, draftIndex = 0, switchDraft, closeCurrentDraft }: PackageEditorModalProps) {
+function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts, draftIndex = 0, switchDraft, closeCurrentDraft }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
   const [aiLoading, setAiLoading] = useState(false);
@@ -607,9 +640,10 @@ function PackageEditorModal({ editing, setEditing, saving, save, drafts, draftIn
             data: { brief: `Escreva um resumo de ${dest} para pacote de viagens, para vender pacote de viagens` },
           });
           setEditing({ ...editing, summary: text });
-        } catch {
-          /* silencioso — botão manual ainda funciona */
+        } catch (err) {
+          console.warn("[auto-summary] falhou", err);
         } finally {
+
           setAiLoading(false);
         }
       })();
@@ -800,8 +834,16 @@ function PackageEditorModal({ editing, setEditing, saving, save, drafts, draftIn
                     className={inp}
                     value={editing.destination ?? ""}
                     onChange={(e) => setEditing({ ...editing, destination: e.target.value })}
+                    onBlur={() => {
+                      const dest = (editing.destination ?? "").trim();
+                      const summary = (editing.summary ?? "").trim();
+                      if (dest.length >= 2 && !summary && !aiLoading) {
+                        void handleGenerateSummary();
+                      }
+                    }}
                     placeholder={derived.destCity ?? ""}
                   />
+
                 </FormField>
                 <FormField label="Origem (auto)">
                   <input
@@ -1226,14 +1268,37 @@ function PackageEditorModal({ editing, setEditing, saving, save, drafts, draftIn
             >
               Cancelar
             </button>
-            <button
-              onClick={save}
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Salvar pacote
-            </button>
+            {drafts && drafts.length > 1 ? (
+              <>
+                <button
+                  onClick={save}
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-full border border-brand-orange/60 px-4 py-2 text-sm font-semibold text-brand-orange hover:bg-brand-orange/10 disabled:opacity-60"
+                  title="Salvar apenas este pacote e ir para o próximo"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Salvar este
+                </button>
+                <button
+                  onClick={saveAll}
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Salvar todos os pacotes ({drafts.length})
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={save}
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Salvar pacote
+              </button>
+            )}
+
           </div>
         </div>
       </div>
