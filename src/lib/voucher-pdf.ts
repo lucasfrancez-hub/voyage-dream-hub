@@ -30,6 +30,35 @@ import type { OrderDetail, OrderItem, OrderPassenger } from "./orders.functions"
 import { type HotelMapData } from "./voucher-map.functions";
 import { translateText } from "./translate.functions";
 import { computeAutoTitle } from "./auto-title";
+import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "./tripadvisor.functions";
+import { supabase } from "@/integrations/supabase/client";
+
+// Busca fotos do TripAdvisor por location_id ou pelo nome do hotel.
+async function fetchTripAdvisorPhotosForHotel(args: {
+  locationId: number | null;
+  hotelName: string;
+  city: string | null;
+}): Promise<string[]> {
+  let locationId = args.locationId && Number.isFinite(args.locationId) ? args.locationId : null;
+  if (!locationId) {
+    const query = args.city ? `${args.hotelName} ${args.city}` : args.hotelName;
+    const suggestions = await searchTripAdvisorHotels({ data: { query } });
+    if (Array.isArray(suggestions) && suggestions.length > 0) {
+      locationId = suggestions[0].location_id;
+    }
+  }
+  if (!locationId) return [];
+  const details = await getTripAdvisorHotelDetails({ data: { locationId, photoLimit: 5 } });
+  return Array.isArray(details?.photos) ? details.photos : [];
+}
+
+async function persistHotelPhotos(itemId: string, photos: string[]): Promise<void> {
+  if (!itemId || !photos.length) return;
+  const { data: row } = await supabase.from("order_items").select("details").eq("id", itemId).maybeSingle();
+  const details = ((row?.details ?? {}) as Record<string, unknown>);
+  details.tripadvisor_photos_json = JSON.stringify(photos);
+  await supabase.from("order_items").update({ details }).eq("id", itemId);
+}
 
 // --- Traduções auxiliares para o voucher em inglês ---
 const translateGuestsPtToEn = (input: string): string => {
