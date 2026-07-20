@@ -2239,10 +2239,11 @@ export async function generateVoucher(
     // quando os passageiros não foram atrelados via order_item_passengers).
     return s.size === 0 ? new Set(allPassengerIds) : s;
   };
-  const drawPaxForIds = (ids: Set<string>) => {
+  const drawPaxForIds = (ids: Set<string>, locator?: string | null) => {
     const list = detail.passengers.filter((p) => ids.has(p.id));
-    if (list.length > 0) drawPassengersSection(ctx, list);
+    if (list.length > 0) drawPassengersSection(ctx, list, locator ?? null);
   };
+
   const paxSignature = (ids: Set<string>) => [...ids].sort().join("|");
   const passengerSetsAlreadyShown = new Set<string>();
 
