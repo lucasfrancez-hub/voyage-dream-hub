@@ -1394,6 +1394,7 @@ function FlightImportButton({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const extract = useServerFn(extractFlightFromImage);
 
   async function handleFile(file: File) {
@@ -1481,10 +1482,35 @@ function FlightImportButton({
             )}
 
             <label
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!busy) setDragging(true);
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!busy) setDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragging(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragging(false);
+                if (busy) return;
+                const f = e.dataTransfer.files?.[0];
+                if (f) void handleFile(f);
+              }}
               className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-8 cursor-pointer transition ${
                 busy
                   ? "border-brand-orange/40 bg-brand-orange/5"
-                  : "border-border hover:border-brand-orange/60 hover:bg-brand-orange/5"
+                  : dragging
+                    ? "border-brand-orange bg-brand-orange/10 scale-[1.01]"
+                    : "border-border hover:border-brand-orange/60 hover:bg-brand-orange/5"
               }`}
             >
               {busy ? (
@@ -1495,7 +1521,9 @@ function FlightImportButton({
               ) : (
                 <>
                   <ImageIcon className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
-                  <span className="text-sm font-medium">Clique para enviar ou cole o print</span>
+                  <span className="text-sm font-medium">
+                    {dragging ? "Solte a imagem aqui" : "Arraste, clique para enviar ou cole (⌘V)"}
+                  </span>
                   <span className="text-[11px] text-muted-foreground">PNG, JPG · até ~10 MB</span>
                 </>
               )}
@@ -1510,6 +1538,7 @@ function FlightImportButton({
                 }}
               />
             </label>
+
           </div>
         </div>
       )}
