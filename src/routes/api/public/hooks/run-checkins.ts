@@ -103,7 +103,7 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
           .order("scheduled_for", { ascending: true })
           .limit(5);
 
-        const { runLatamAutopilot } = await import("@/lib/checkin/latam-autopilot.server");
+        const { runScriptOnBrowserless, rebuildInitialUrlForOrder } = await import("@/lib/checkin/training-runner.server");
         const { deliverBoardingPass } = await import("@/lib/checkin/deliver.server");
 
         for (const ci of (scheduled ?? []) as Array<any>) {
@@ -115,14 +115,35 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
               error: null,
             }).eq("id", ci.id);
 
-            const { data: sourceItem } = await supabaseAdmin.from("order_items").select("details").eq("id", ci.order_item_id).maybeSingle();
-            const result = await runLatamAutopilot({ locator: ci.locator, surname: ci.pnr_surname, checkinUrl: String((sourceItem as any)?.details?.airline_checkin_url || "") });
-            const path = `${ci.order_id}/${ci.id}.pdf`;
-            const pdfBytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
+            // Só rodamos via script salvo no treinador. Autopilot antigo foi removido.
+            const { data: scriptRows } = await supabaseAdmin
+              .from("checkin_training_scripts")
+              .select("id, initial_url, steps, viewport_width, viewport_height")
+              .eq("airline", "LATAM")
+              .order("updated_at", { ascending: false })
+              .limit(1);
+            const script = (scriptRows ?? [])[0] as any;
+            if (!script || !Array.isArray(script.steps) || script.steps.length === 0) {
+              throw new Error("Nenhum script de treinador salvo para LATAM. Grave um em /admin/checkin-treino.");
+            }
+            const runUrl = rebuildInitialUrlForOrder(script.initial_url, ci.locator, ci.pnr_surname);
+            const result = await runScriptOnBrowserless({
+              url: runUrl,
+              steps: script.steps as any,
+              viewportWidth: script.viewport_width ?? 1280,
+              viewportHeight: script.viewport_height ?? 900,
+              locator: ci.locator,
+              surname: ci.pnr_surname,
+            });
+            const png = (result.captures || []).find((c: any) => c.pngBase64);
+            if (!png) throw new Error("Script rodou mas não capturou o cartão de embarque.");
+            const path = `${ci.order_id}/${ci.id}.png`;
+            const pdfBytes = Uint8Array.from(atob(png.pngBase64), (c) => c.charCodeAt(0));
             const up = await supabaseAdmin.storage.from("boarding-passes")
-              .upload(path, pdfBytes, { contentType: result.contentType, upsert: true });
+              .upload(path, pdfBytes, { contentType: "image/png", upsert: true });
             if (up.error) throw new Error(up.error.message);
             const signed = await supabaseAdmin.storage.from("boarding-passes").createSignedUrl(path, 60 * 60 * 24 * 30);
+
 
             await supabaseAdmin.from("flight_checkins").update({
               status: "success",
