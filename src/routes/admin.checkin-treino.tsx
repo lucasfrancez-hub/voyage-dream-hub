@@ -56,7 +56,11 @@ function TreinoPage() {
   const [asking, setAsking] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [useProxy, setUseProxy] = useState(false);
+  const [interactive, setInteractive] = useState(true);
+  const [lastClick, setLastClick] = useState<{ x: number; y: number } | null>(null);
+  const [typeBuffer, setTypeBuffer] = useState("");
   const imgRef = useRef<HTMLImageElement>(null);
+
 
   useEffect(() => {
     if (typeof window !== "undefined") {
