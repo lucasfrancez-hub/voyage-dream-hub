@@ -187,43 +187,45 @@ const CSS = `
 .stage .bg{position:absolute;inset:0;background-size:cover;background-position:center;transform:scale(1.01)}
 .stage .overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,15,28,.12) 0%,rgba(0,13,24,.18) 43%,rgba(0,10,18,.64) 100%)}
 .stage .content{position:absolute;inset:0;padding:50px 54px 44px;display:flex;flex-direction:column}
-.stage .logo{width:310px;height:auto;object-fit:contain;object-position:left center;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35))}
-.stage .state{margin-top:38px;display:inline-flex;align-items:center;gap:12px;width:max-content;padding:10px 20px;border:2px solid #ff8a1f;border-radius:999px;color:#ff8a1f;font-weight:800;font-size:28px;letter-spacing:.5px;background:rgba(0,20,28,.18);backdrop-filter:blur(12px)}
-.stage .hero{margin-top:18px}
+.stage .logo{width:280px;height:auto;object-fit:contain;object-position:left center;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35))}
+.stage .state{margin-top:34px;display:inline-flex;align-items:center;gap:12px;width:max-content;padding:9px 18px;border:2px solid #ff8a1f;border-radius:999px;color:#ff8a1f;font-weight:800;font-size:26px;letter-spacing:.5px;background:rgba(0,20,28,.55);isolation:isolate;overflow:hidden}
+.stage .hero{margin-top:16px}
 .stage .destination{font-size:100px;line-height:.88;font-weight:900;letter-spacing:-3px;text-transform:uppercase;text-shadow:0 7px 18px rgba(0,0,0,.35)}
 .stage .destination span{display:block;color:#ff8a1f}
-.stage .tagline{margin-top:14px;font-family:Georgia,serif;font-style:italic;font-size:48px;line-height:1;color:#fff;text-shadow:0 5px 12px rgba(0,0,0,.5)}
-.stage .tagline:after{content:"";display:block;width:290px;height:4px;background:#ff8a1f;border-radius:9px;margin:10px 0 0 18px;transform:rotate(-2deg)}
-.stage .glass{border:1.5px solid rgba(255,255,255,.46);box-shadow:0 16px 42px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.2);backdrop-filter:blur(20px) saturate(125%)}
-.stage .glass.light{background:linear-gradient(135deg,rgba(245,248,250,.25),rgba(222,233,238,.14))}
-.stage .glass.dark{background:linear-gradient(135deg,rgba(2,18,27,.88),rgba(8,17,21,.70));border-color:rgba(255,255,255,.27)}
-.stage .info{margin-top:38px;border-radius:28px;padding:26px 26px;display:grid;grid-template-columns:1.08fr .82fr 1.25fr;align-items:stretch}
-.stage .info-item{display:grid;grid-template-columns:54px 1fr;gap:16px;align-items:center;padding:0 18px;min-height:120px}
+.stage .tagline{margin-top:12px;font-family:Georgia,serif;font-style:italic;font-size:38px;line-height:1;color:#fff;text-shadow:0 5px 12px rgba(0,0,0,.5)}
+.stage .tagline:after{content:"";display:block;width:230px;height:3px;background:#ff8a1f;border-radius:9px;margin:8px 0 0 14px;transform:rotate(-2deg)}
+.stage .glass{position:relative;isolation:isolate;overflow:hidden;border:1.5px solid rgba(255,255,255,.4);box-shadow:0 8px 20px rgba(0,0,0,.22)}
+.stage .glass.light{background:linear-gradient(135deg,rgba(245,248,250,.32),rgba(222,233,238,.22))}
+.stage .glass.dark{background:linear-gradient(135deg,rgba(2,18,27,.90),rgba(8,17,21,.78));border-color:rgba(255,255,255,.25)}
+.stage .info{margin-top:30px;border-radius:24px;padding:18px 20px;display:grid;grid-template-columns:1.08fr .82fr 1.25fr;align-items:stretch}
+.stage .info-item{display:flex;align-items:center;justify-content:flex-start;text-align:left;gap:14px;padding:0 16px;min-height:96px}
 .stage .info-item+.info-item{border-left:2px solid #ff8a1f}
-.stage .icon{width:48px;height:48px;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-.stage .info strong{display:block;font-size:29px;line-height:1.12}
-.stage .info small{display:block;font-size:22px;line-height:1.22;margin-top:7px}
-.stage .stars{color:#ff8a1f;font-size:28px;letter-spacing:4px;margin-top:6px}
-.stage .section-title{margin:24px 0 12px;display:flex;align-items:center;gap:16px;font-size:29px;font-weight:800;text-align:center}
+.stage .info-item>div{min-width:0}
+.stage .icon{width:44px;height:44px;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.stage .info strong{display:block;font-size:24px;line-height:1.12;font-weight:800}
+.stage .info small{display:block;font-size:19px;line-height:1.22;margin-top:5px}
+.stage .stars{color:#ff8a1f;font-size:24px;letter-spacing:3px;margin-top:4px}
+.stage .section-title{margin:22px 0 10px;display:flex;align-items:center;gap:16px;font-size:26px;font-weight:800}
 .stage .section-title:before,.stage .section-title:after{content:"";height:3px;background:#ff8a1f;flex:1;border-radius:4px}
-.stage .includes{border-radius:28px;padding:18px 20px;display:grid;grid-template-columns:repeat(var(--n,1),minmax(0,1fr));justify-content:center;align-items:stretch;width:max-content;max-width:100%;margin:0 auto}
-.stage .include{min-width:120px;max-width:170px;min-height:126px;padding:8px 12px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:8px;font-size:20px;line-height:1.08}
+.stage .includes{border-radius:24px;padding:12px 16px;display:grid;grid-template-columns:repeat(var(--n,1),minmax(0,1fr));justify-content:center;align-items:stretch;width:max-content;max-width:100%;margin:0 auto}
+.stage .include{min-width:118px;max-width:160px;min-height:100px;padding:6px 10px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:6px;font-size:17px;line-height:1.1;font-weight:600}
 .stage .include+.include{border-left:2px solid #ff8a1f}
-.stage .include .icon{width:46px;height:46px}
-.stage .bottom{margin-top:auto;display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:stretch}
-.stage .price{border-radius:28px;padding:28px 30px 26px}
-.stage .kicker{font-size:27px;letter-spacing:1px}
-.stage .price-row{display:flex;align-items:flex-end;gap:12px;margin:10px 0 4px}
-.stage .installments{font-size:34px;line-height:1.05}
-.stage .currency{font-size:34px;font-weight:800;color:#ff8a1f;margin-bottom:15px}
-.stage .amount{font-size:98px;line-height:.8;font-weight:900;color:#ff8a1f;letter-spacing:-4px}
-.stage .cents{font-size:42px;letter-spacing:-1px}
-.stage .total{font-size:26px;border-top:2px solid #ff8a1f;border-bottom:2px solid #ff8a1f;padding:13px 0;margin-top:18px;text-align:center}
+.stage .include .icon{width:40px;height:40px}
+.stage .bottom{margin-top:auto;display:grid;grid-template-columns:1.05fr .95fr;gap:24px;align-items:stretch}
+.stage .price{border-radius:24px;padding:24px 26px 22px;text-align:left}
+.stage .kicker{font-size:24px;letter-spacing:1px;font-weight:700}
+.stage .price-row{display:flex;align-items:flex-end;gap:12px;margin:8px 0 4px;justify-content:flex-start}
+.stage .installments{font-size:32px;line-height:1.05}
+.stage .installments strong{font-weight:900}
+.stage .currency{font-size:32px;font-weight:800;color:#ff8a1f;margin-bottom:14px}
+.stage .amount{font-size:92px;line-height:.8;font-weight:900;color:#ff8a1f;letter-spacing:-4px}
+.stage .cents{font-size:38px;letter-spacing:-1px}
+.stage .total{font-size:22px;border-top:2px solid #ff8a1f;border-bottom:2px solid #ff8a1f;padding:10px 0;margin-top:14px;text-align:left}
 .stage .total strong{color:#ff8a1f}
-.stage .payment{margin-top:18px;display:flex;align-items:center;gap:16px;font-size:25px;line-height:1.22}
-.stage .payment .icon{width:46px;height:46px}
-.stage .side-cards{display:flex;flex-direction:column;gap:20px;justify-content:flex-end}
-.stage .side-card{border-radius:24px;padding:23px 24px;display:grid;grid-template-columns:58px 1fr;gap:15px;align-items:center;font-size:24px;line-height:1.25;min-height:126px}
-.stage .side-card .icon{width:52px;height:52px}
-.stage .note{text-align:center;margin-top:20px;font-size:19px;color:rgba(255,255,255,.78)}
+.stage .payment{margin-top:14px;display:flex;align-items:center;gap:14px;font-size:21px;line-height:1.22;text-align:left}
+.stage .payment .icon{width:40px;height:40px}
+.stage .side-cards{display:flex;flex-direction:column;gap:16px;justify-content:flex-end}
+.stage .side-card{border-radius:20px;padding:18px 22px;display:flex;align-items:center;justify-content:flex-start;text-align:left;gap:14px;font-size:20px;line-height:1.25;min-height:96px}
+.stage .side-card .icon{width:46px;height:46px}
+.stage .note{text-align:center;margin-top:16px;font-size:17px;color:rgba(255,255,255,.78)}
 `;
