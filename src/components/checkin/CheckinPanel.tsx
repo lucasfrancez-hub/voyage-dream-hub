@@ -238,24 +238,15 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                     </Button>
                   )}
                   {!allSuccess && (
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                      disabled={isRunning || anyRunning || !canRun}
-                      onClick={() => runMut.mutate({ orderItemIds })}
-                      title={
-                        !canRun
-                          ? "Disponível a partir de 48h antes do último trecho"
-                          : "Robô usa o script salvo do treinador"
-                      }
+                    <a
+                      href="/admin/checkins"
+                      className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                      title="Abrir a fila manual de check-in"
                     >
-                      {isRunning
-                        ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                        : <Bot className="h-3.5 w-3.5 mr-1" />}
-                      Fazer check-in
-                    </Button>
+                      Anexar cartão
+                    </a>
                   )}
+
 
                 </div>
               </div>
