@@ -19,12 +19,17 @@ export async function handleFlightAlertReply(input: {
   const action = parts[2];
   if (!alertId || !action) return;
 
-  // Busca alerta pra usar nas mensagens/briefing
+  // Busca alerta + nome do cliente pra usar nas mensagens/briefing
   const { data: alert } = await supabaseAdmin
     .from("flight_change_alerts")
-    .select("id, order_id, flight_number, old_depart_at, new_depart_at, new_status")
+    .select("id, order_id, flight_number, old_depart_at, new_depart_at, new_status, orders!inner(full_name, payer_full_name, airline_locator)")
     .eq("id", alertId)
     .maybeSingle();
+
+  const orderRow = (alert as { orders?: { full_name?: string | null; payer_full_name?: string | null; airline_locator?: string | null } } | null)?.orders ?? null;
+  const fullName = orderRow?.full_name ?? orderRow?.payer_full_name ?? null;
+  const firstName = fullName ? fullName.trim().split(/\s+/)[0] : null;
+  const greet = firstName ? `${firstName}` : "";
 
   const responseMap: Record<string, "accepted" | "rejected" | null> = {
     accept: "accepted",
@@ -45,9 +50,11 @@ export async function handleFlightAlertReply(input: {
   // Ack = alteração informativa, não escala
   if (action === "ack") {
     const reply =
-      "✅ Recebemos sua confirmação. Obrigado!\n\n" +
-      "Como essa alteração não gera direito a remarcação sem custo, seguimos apenas com o registro. " +
-      "Se precisar de qualquer coisa, é só chamar aqui.";
+      (greet ? `Oi, ${greet}! ` : "") +
+      "recebi sua confirmação sobre a alteração do voo " +
+      `${alert?.flight_number ?? ""}`.trim() + ". ✅\n\n" +
+      "Como a mudança foi pequena, sua reserva segue confirmada e não precisa fazer nada. " +
+      "Se precisar de qualquer coisa, é só chamar por aqui. 💛";
     const sent = await sendWhatsAppText(input.wa_phone, reply);
     await saveMessage({
       conversation_id: input.conversation_id,
@@ -104,10 +111,14 @@ export async function handleFlightAlertReply(input: {
     briefing,
   });
 
+  const solicitacao = action === "refund" ? "*reembolso*" : "*remarcação sem custo* do seu voo";
   const reply =
-    action === "refund"
-      ? "📩 Recebemos sua solicitação de *reembolso*.\n\nUm consultor da nossa equipe vai continuar o atendimento por aqui em instantes."
-      : "📩 Recebemos sua solicitação de *remarcação sem custo*.\n\nUm consultor da nossa equipe vai continuar o atendimento por aqui em instantes.";
+    (greet ? `Oi, ${greet}! ` : "") +
+    `vi que você solicitou ${solicitacao}` +
+    (alert?.flight_number ? ` (voo ${alert.flight_number}` + (orderRow?.airline_locator ? ` · localizador ${orderRow.airline_locator}` : "") + ")" : "") +
+    `. 📩\n\n` +
+    "Já estou transferindo seu atendimento para o nosso *time operacional*, que vai dar sequência por aqui mesmo em instantes. ✈️💛\n\n" +
+    "_Equipe VIA AIR_";
 
   const sent = await sendWhatsAppText(input.wa_phone, reply);
 
