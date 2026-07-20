@@ -204,8 +204,22 @@ export const openTrainingSession = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => OpenSessionInput.parse(input))
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
-    const { openLiveSession } = await import("@/lib/checkin/training-session.server");
-    return openLiveSession({ userId: context.userId, ...data });
+    try {
+      const { openLiveSession } = await import("@/lib/checkin/training-session.server");
+      const result = await openLiveSession({ userId: context.userId, ...data });
+      return { ok: true as const, ...result };
+    } catch (error) {
+      console.error(error);
+      const detail = error instanceof Error ? error.message : String(error);
+      const message = /LATAM_NAVIGATION_BLOCKED|ERR_HTTP2_PROTOCOL_ERROR|ERR_QUIC_PROTOCOL_ERROR/i.test(detail)
+        ? data.useResidentialProxy
+          ? "A LATAM bloqueou também a conexão residencial. Aguarde um pouco e tente abrir uma nova sessão."
+          : "A LATAM bloqueou a conexão direta. Ative ‘Usar proxy residencial BR’ e abra uma nova sessão."
+        : /408|timed out|timeout|aborted/i.test(detail)
+          ? "A LATAM demorou demais para abrir. A tentativa foi encerrada sem travar a tela; tente novamente."
+          : "Não foi possível abrir a sessão protegida da LATAM agora.";
+      return { ok: false as const, error: message };
+    }
   });
 
 const RunStepInput = z.object({
@@ -220,13 +234,21 @@ export const runLiveTrainingStep = createServerFn({ method: "POST" })
     await ensureAdmin(context);
     try {
       const { runLiveStep } = await import("@/lib/checkin/training-session.server");
-      return await runLiveStep({ userId: context.userId, sessionId: data.sessionId, step: data.step as never });
+      const result = await runLiveStep({ userId: context.userId, sessionId: data.sessionId, step: data.step as never });
+      return { ok: true as const, ...result };
     } catch (e) {
+      console.error(e);
       const code = (e as { code?: string })?.code;
       if (code === "SESSION_EXPIRED") {
-        throw new Error("SESSION_EXPIRED");
+        return { ok: false as const, error: "SESSION_EXPIRED" };
       }
-      throw e;
+      const detail = e instanceof Error ? e.message : String(e);
+      return {
+        ok: false as const,
+        error: /LATAM_NAVIGATION_BLOCKED/i.test(detail)
+          ? "A LATAM interrompeu esta conexão. Feche a sessão e reabra usando o proxy residencial BR."
+          : "Não foi possível executar esta ação na sessão da LATAM.",
+      };
     }
   });
 
@@ -239,11 +261,28 @@ export const screenshotTrainingSession = createServerFn({ method: "POST" })
     await ensureAdmin(context);
     try {
       const { screenshotLiveSession } = await import("@/lib/checkin/training-session.server");
-      return await screenshotLiveSession({ userId: context.userId, sessionId: data.sessionId });
+      const result = await screenshotLiveSession({ userId: context.userId, sessionId: data.sessionId });
+      return { ok: true as const, ...result };
     } catch (e) {
+      console.error(e);
       const code = (e as { code?: string })?.code;
-      if (code === "SESSION_EXPIRED") throw new Error("SESSION_EXPIRED");
-      throw e;
+      if (code === "SESSION_EXPIRED") return { ok: false as const, error: "SESSION_EXPIRED" };
+      return { ok: false as const, error: "Não foi possível atualizar a imagem da sessão." };
+    }
+  });
+
+export const heartbeatTrainingSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SessionIdInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    try {
+      const { heartbeatLiveSession } = await import("@/lib/checkin/training-session.server");
+      await heartbeatLiveSession({ userId: context.userId, sessionId: data.sessionId });
+      return { ok: true as const };
+    } catch (e) {
+      console.error(e);
+      return { ok: false as const, error: "SESSION_EXPIRED" };
     }
   });
 
