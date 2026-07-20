@@ -620,7 +620,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                         />
                         <button
                           type="button"
-                          onClick={handleSearchImages}
+                          onClick={() => handleSearchImages(1)}
                           disabled={imgLoading}
                           className="inline-flex items-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2 text-xs font-semibold text-white hover:bg-[#ff7b30] transition disabled:opacity-60 whitespace-nowrap"
                         >
@@ -629,30 +629,48 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                         </button>
                       </div>
                       {imgResults.length > 0 && (
-                        <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-72 overflow-y-auto">
-                          {imgResults.map((r, idx) => (
-                            <button
-                              key={`${r.url}-${idx}`}
-                              type="button"
-                              onClick={() => {
-                                setEditing({ ...editing, image_url: r.url });
-                                setImgOpen(false);
-                                toast.success("Imagem selecionada");
-                              }}
-                              className={`group relative aspect-video rounded-lg overflow-hidden border transition ${
-                                editing.image_url === r.url
-                                  ? "border-brand-orange ring-2 ring-brand-orange/40"
-                                  : "border-border hover:border-brand-orange/60"
-                              }`}
-                              title={`${r.title}${r.author ? " — " + r.author : ""}`}
-                            >
-                              <img src={r.thumb || r.url} alt={r.title} loading="lazy" className="w-full h-full object-cover" />
-                            </button>
-                          ))}
-                        </div>
+                        <>
+                          <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-96 overflow-y-auto pr-1">
+                            {imgResults.map((r, idx) => (
+                              <button
+                                key={`${r.url}-${idx}`}
+                                type="button"
+                                onClick={() => {
+                                  setEditing({ ...editing, image_url: r.url });
+                                  setImgOpen(false);
+                                  toast.success("Imagem selecionada");
+                                }}
+                                className={`group relative aspect-video rounded-lg overflow-hidden border transition ${
+                                  editing.image_url === r.url
+                                    ? "border-brand-orange ring-2 ring-brand-orange/40"
+                                    : "border-border hover:border-brand-orange/60"
+                                }`}
+                                title={`${r.title}${r.author ? " — " + r.author : ""}`}
+                              >
+                                <img src={r.thumb || r.url} alt={r.title} loading="lazy" className="w-full h-full object-cover" />
+                                <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-[9px] text-white/90">
+                                  {r.source === "Openverse" ? "OV" : "WC"}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                          {imgHasMore && (
+                            <div className="mt-3 flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() => handleSearchImages(imgPage + 1)}
+                                disabled={imgLoading}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-semibold text-brand-orange hover:bg-brand-orange/20 transition disabled:opacity-60"
+                              >
+                                {imgLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                                Carregar mais fotos
+                              </button>
+                            </div>
+                          )}
+                        </>
                       )}
                       <div className="mt-2 text-[10px] text-muted-foreground">
-                        Imagens de bancos públicos (Openverse) — sempre confira licença e autoria.
+                        {imgSource || "Wikimedia Commons + Openverse"} — sempre confira licença e autoria.
                       </div>
                     </div>
                   )}
