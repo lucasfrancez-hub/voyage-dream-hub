@@ -161,6 +161,19 @@ function PacotesList() {
     setSortBy("sort_order");
   };
 
+  useEffect(() => {
+    setPage(1);
+  }, [originFilter, destinationFilter, monthFilter, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedPackages = filteredPackages.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
+
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
