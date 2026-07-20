@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks, Sparkles, Image as ImageIcon, Search, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
@@ -12,6 +13,7 @@ import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { findAirline } from "@/lib/airlines";
 import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
+import { generatePackageSummary, searchCoverImages } from "@/lib/packages/ai.functions";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
@@ -349,18 +351,119 @@ type PackageEditorModalProps = {
   save: () => void;
 };
 
-type TabId = "about" | "dates" | "hotel" | "flights" | "extras";
+type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
+
+function slugify(input: string): string {
+  return (input || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+const PT_MONTHS = ["janeiro","fevereiro","marco","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+
+function deriveFromFlights(editing: Partial<PackageRow>): { originCity?: string; destCity?: string; title?: string; slug?: string } {
+  const outSegs = editing.outbound_flight?.segments ?? [];
+  const first = outSegs[0];
+  const last = outSegs[outSegs.length - 1];
+  const originCity = first?.from_city?.trim();
+  const destCity = last?.to_city?.trim();
+  const title = destCity && originCity ? `${destCity} - saída de ${originCity}` : destCity ? destCity : undefined;
+  let slug: string | undefined;
+  if (destCity) {
+    const going = editing.going_date;
+    if (going) {
+      const [y, m] = going.split("-");
+      const monthName = PT_MONTHS[Number(m) - 1];
+      slug = slugify(`${destCity}-${monthName ?? m}-${y}`);
+    } else {
+      slug = slugify(destCity);
+    }
+  }
+  return { originCity, destCity, title, slug };
+}
 
 function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditorModalProps) {
-  const [tab, setTab] = useState<TabId>("about");
+  const [tab, setTab] = useState<TabId>("dates");
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [imgOpen, setImgOpen] = useState(false);
+  const [imgQuery, setImgQuery] = useState("");
+  const [imgLoading, setImgLoading] = useState(false);
+  const [imgResults, setImgResults] = useState<Array<{ thumb: string; url: string; title: string; source: string; author: string }>>([]);
+
+  const genSummary = useServerFn(generatePackageSummary);
+  const searchImages = useServerFn(searchCoverImages);
+
+  const derived = useMemo(() => deriveFromFlights(editing), [editing.outbound_flight, editing.going_date]);
+
+  // Auto-fill empty fields when derived values become available
+  useEffect(() => {
+    const patch: Partial<PackageRow> = {};
+    if (!editing.destination && derived.destCity) patch.destination = derived.destCity;
+    if (!editing.origin && derived.originCity) patch.origin = derived.originCity;
+    if (!editing.title && derived.title) patch.title = derived.title;
+    if (!editing.slug && derived.slug) patch.slug = derived.slug;
+    if (Object.keys(patch).length) setEditing({ ...editing, ...patch });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [derived.destCity, derived.originCity, derived.title, derived.slug]);
+
+  function applyAuto() {
+    const d = deriveFromFlights(editing);
+    setEditing({
+      ...editing,
+      title: d.title ?? editing.title,
+      slug: d.slug ?? editing.slug,
+      destination: d.destCity ?? editing.destination,
+      origin: d.originCity ?? editing.origin,
+    });
+    toast.success("Campos preenchidos a partir dos aéreos");
+  }
+
+  async function handleGenerateSummary() {
+    const brief = (editing.summary ?? "").trim();
+    if (brief.length < 2) {
+      toast.error("Escreva um resumo, ex.: 'falar sobre Aracaju'");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const { text } = await genSummary({ data: { brief } });
+      setEditing({ ...editing, summary: text });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar resumo");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  async function handleSearchImages() {
+    const q = imgQuery.trim() || editing.destination?.trim() || "";
+    if (q.length < 2) {
+      toast.error("Digite o que buscar (ex.: 'Aracaju praia')");
+      return;
+    }
+    setImgLoading(true);
+    try {
+      const { images } = await searchImages({ data: { query: q } });
+      setImgResults(images);
+      if (images.length === 0) toast("Nenhuma imagem encontrada");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha na busca");
+    } finally {
+      setImgLoading(false);
+    }
+  }
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: "about", label: "SOBRE O PACOTE", icon: <Info className="h-4 w-4" strokeWidth={1.75} /> },
     { id: "dates", label: "DATAS E PREÇOS", icon: <CalendarRange className="h-4 w-4" strokeWidth={1.75} /> },
     { id: "hotel", label: "HOSPEDAGEM", icon: <Building2 className="h-4 w-4" strokeWidth={1.75} /> },
     { id: "flights", label: "AÉREOS", icon: <Plane className="h-4 w-4" strokeWidth={1.75} /> },
     { id: "extras", label: "EXTRAS E INCLUSOS", icon: <ListChecks className="h-4 w-4" strokeWidth={1.75} /> },
+    { id: "about", label: "SOBRE O PACOTE", icon: <Info className="h-4 w-4" strokeWidth={1.75} /> },
   ];
 
   return (
@@ -410,20 +513,33 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
           <main className="flex-1 overflow-y-auto px-6 sm:px-8 py-6">
             {tab === "about" && (
               <div className="grid sm:grid-cols-2 gap-3">
-                <FormField label="Título *" wide>
+                <div className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-brand-orange/25 bg-brand-orange/5 px-4 py-3">
+                  <div className="text-xs text-muted-foreground">
+                    Título, slug, destino e origem são preenchidos automaticamente a partir dos aéreos. Você pode editar se quiser.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={applyAuto}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-semibold text-brand-orange hover:bg-brand-orange/20 transition whitespace-nowrap"
+                  >
+                    <Wand2 className="h-3.5 w-3.5" /> Regenerar
+                  </button>
+                </div>
+
+                <FormField label="Título (auto)" wide>
                   <input
                     className={inp}
                     value={editing.title ?? ""}
                     onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                    placeholder="Ex: Jalapão Místico"
+                    placeholder={derived.title ?? "Ex: Aracaju - saída de São Paulo"}
                   />
                 </FormField>
-                <FormField label="Slug (URL) *">
+                <FormField label="Slug (URL, auto)">
                   <input
                     className={inp}
                     value={editing.slug ?? ""}
                     onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
-                    placeholder="jalapao-abril-2027"
+                    placeholder={derived.slug ?? "aracaju-abril-2027"}
                   />
                 </FormField>
                 <FormField label="Ordem de exibição">
@@ -434,35 +550,131 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                     onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })}
                   />
                 </FormField>
-                <FormField label="Destino *">
+                <FormField label="Destino (auto)">
                   <input
                     className={inp}
                     value={editing.destination ?? ""}
                     onChange={(e) => setEditing({ ...editing, destination: e.target.value })}
+                    placeholder={derived.destCity ?? ""}
                   />
                 </FormField>
-                <FormField label="Origem">
+                <FormField label="Origem (auto)">
                   <input
                     className={inp}
                     value={editing.origin ?? ""}
                     onChange={(e) => setEditing({ ...editing, origin: e.target.value })}
+                    placeholder={derived.originCity ?? ""}
                   />
                 </FormField>
-                <FormField label="URL da imagem de capa" wide>
-                  <input
-                    className={inp}
-                    value={editing.image_url ?? ""}
-                    onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
-                    placeholder="https://…"
-                  />
-                </FormField>
-                <FormField label="Resumo curto" wide>
+
+                {/* Cover image with picker */}
+                <div className="sm:col-span-2">
+                  <div className="flex items-end gap-2">
+                    <FormField label="URL da imagem de capa" wide>
+                      <input
+                        className={inp}
+                        value={editing.image_url ?? ""}
+                        onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
+                        placeholder="https://… ou use o buscador ao lado"
+                      />
+                    </FormField>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImgOpen((v) => !v);
+                        if (!imgQuery) setImgQuery(editing.destination ?? "");
+                      }}
+                      className="mb-0 shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-brand-orange/40 bg-brand-orange/10 px-3 py-2 text-xs font-semibold text-brand-orange hover:bg-brand-orange/20 transition"
+                    >
+                      <ImageIcon className="h-4 w-4" /> Buscar imagens
+                    </button>
+                  </div>
+
+                  {editing.image_url && (
+                    <div className="mt-2 relative w-full h-32 rounded-xl overflow-hidden border border-border bg-muted/20">
+                      <img src={editing.image_url} alt="capa" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+
+                  {imgOpen && (
+                    <div className="mt-3 rounded-xl border border-border bg-muted/10 p-3">
+                      <div className="flex gap-2">
+                        <input
+                          className={inp}
+                          value={imgQuery}
+                          onChange={(e) => setImgQuery(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleSearchImages();
+                            }
+                          }}
+                          placeholder="Ex.: Aracaju praia, Fernando de Noronha, Jalapão…"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSearchImages}
+                          disabled={imgLoading}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2 text-xs font-semibold text-white hover:bg-[#ff7b30] transition disabled:opacity-60 whitespace-nowrap"
+                        >
+                          {imgLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                          Buscar
+                        </button>
+                      </div>
+                      {imgResults.length > 0 && (
+                        <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-72 overflow-y-auto">
+                          {imgResults.map((r, idx) => (
+                            <button
+                              key={`${r.url}-${idx}`}
+                              type="button"
+                              onClick={() => {
+                                setEditing({ ...editing, image_url: r.url });
+                                setImgOpen(false);
+                                toast.success("Imagem selecionada");
+                              }}
+                              className={`group relative aspect-video rounded-lg overflow-hidden border transition ${
+                                editing.image_url === r.url
+                                  ? "border-brand-orange ring-2 ring-brand-orange/40"
+                                  : "border-border hover:border-brand-orange/60"
+                              }`}
+                              title={`${r.title}${r.author ? " — " + r.author : ""}`}
+                            >
+                              <img src={r.thumb || r.url} alt={r.title} loading="lazy" className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="mt-2 text-[10px] text-muted-foreground">
+                        Imagens de bancos públicos (Openverse) — sempre confira licença e autoria.
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Summary with AI */}
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="block text-xs text-muted-foreground">
+                      Resumo curto — escreva um briefing (ex.: "falar sobre Aracaju") e clique em Gerar com IA
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleGenerateSummary}
+                      disabled={aiLoading}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-[11px] font-semibold text-brand-orange hover:bg-brand-orange/20 transition disabled:opacity-60"
+                    >
+                      {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                      Gerar com IA
+                    </button>
+                  </div>
                   <textarea
-                    className={`${inp} min-h-[70px]`}
+                    className={`${inp} min-h-[110px]`}
                     value={editing.summary ?? ""}
                     onChange={(e) => setEditing({ ...editing, summary: e.target.value })}
+                    placeholder='Ex.: "falar sobre Aracaju" — depois clique em Gerar com IA'
                   />
-                </FormField>
+                </div>
+
                 <FormField label="Fornecedor (interno)" wide>
                   <input
                     className={inp}
