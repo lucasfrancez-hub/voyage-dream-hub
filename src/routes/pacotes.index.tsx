@@ -450,7 +450,43 @@ function PacotesList() {
             </Link>
           ))}
         </div>
+
+        {!isLoading && totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Anterior
+            </Button>
+            {Array.from({ length: totalPages }).map((_, i) => {
+              const n = i + 1;
+              return (
+                <Button
+                  key={n}
+                  variant={n === currentPage ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPage(n)}
+                  className={n === currentPage ? "bg-brand-orange hover:bg-brand-orange/90" : ""}
+                >
+                  {n}
+                </Button>
+              );
+            })}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Próxima
+            </Button>
+          </div>
+        )}
       </section>
+
       </main>
 
       <ContactFooter />
