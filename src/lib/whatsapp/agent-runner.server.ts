@@ -18,6 +18,21 @@ import {
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
 import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, firstName as extractFirstName } from "./text-utils.server";
+import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
+
+// Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
+const AGENT_GENDER: Record<string, "f" | "m"> = {
+  camila: "f",
+  nath: "f",
+  maria: "f",
+  roberto: "m",
+  fabricio: "m",
+  geovane: "m",
+};
+function genderOf(slug: string): "f" | "m" {
+  return AGENT_GENDER[slug.toLowerCase()] ?? "f";
+}
+
 
 type Agent = {
   id: string;
@@ -64,15 +79,22 @@ async function loadAgents(): Promise<Agent[]> {
   return (data ?? []) as unknown as Agent[];
 }
 
-function pickAgent(agents: Agent[]): Agent | null {
+function pickAgent(agents: Agent[], stickySlug?: string | null): Agent | null {
   if (!agents.length) return null;
   const now = currentHourInSaoPaulo();
-  const match = agents.find((a) =>
+  const inWindow = agents.filter((a) =>
     isInWindow(now, hmToDecimal(a.horario_inicio), hmToDecimal(a.horario_fim)),
   );
-  // Fora de qualquer janela ativa → retorna null para disparar mensagem de ausência.
-  return match ?? null;
+  if (!inWindow.length) return null;
+  // stickiness: se o agente que já atendeu essa conversa ainda está em janela, reusa.
+  if (stickySlug) {
+    const kept = inWindow.find((a) => a.slug === stickySlug);
+    if (kept) return kept;
+  }
+  // senão, escolhe aleatório entre os disponíveis (rotativo, "primeiro que atende").
+  return inWindow[Math.floor(Math.random() * inWindow.length)];
 }
+
 
 function firstAvailableAusencia(agents: Agent[]): string | null {
   for (const a of agents) if (a.mensagem_ausencia) return a.mensagem_ausencia;
@@ -91,7 +113,11 @@ function looksLikeRealName(v: string | null | undefined): boolean {
 }
 
 function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, _isNewProtocolo: boolean): string {
-  const parts = [agent.system_prompt];
+  // Sempre gera o prompt compartilhado com o nome/gênero deste agente,
+  // ignorando o system_prompt armazenado (mantém a base única pra todo o time).
+  const base = buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
+  const parts = [base];
+
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
   parts.push(`- Telefone do cliente: ${conv.wa_phone}`);
@@ -126,7 +152,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   }
 
   const agents = await loadAgents();
-  const agent = pickAgent(agents);
+  const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
+  const agent = pickAgent(agents, stickySlug);
+
+
 
   if (!agent) {
     const msg =
