@@ -38,7 +38,9 @@ interface StoredSession {
   createdAt: number;
   lastUsed: number;
   viewport: { width: number; height: number };
+  stealthApplied?: boolean;
 }
+
 
 // Cache no globalThis pra sobreviver a HMR/reimports do módulo dentro do
 // mesmo isolate. Cloudflare pode reciclar o isolate entre requests — quando
