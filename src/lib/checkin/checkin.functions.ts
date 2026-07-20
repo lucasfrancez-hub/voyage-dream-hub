@@ -287,17 +287,16 @@ export const runCheckin = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
-      // Tenta primeiro rodar o script salvo no treinador de check-in.
-      // Se não houver script salvo pra companhia, cai no autopilot por visão.
-      let result: any = await tryRunFromSavedScript(sb, {
+      // Só usa o script salvo no treinador de check-in (autopilot antigo foi removido).
+      const result: any = await tryRunFromSavedScript(sb, {
         airline: "LATAM",
         locator: checkin.locator,
         surname: checkin.pnr_surname,
-      }).catch((e: unknown) => { console.warn("[checkin] saved script failed", e); return null; });
+      });
       if (!result) {
-        const { runLatamAutopilot } = await import("./latam-autopilot.server");
-        result = await runLatamAutopilot({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
+        throw new Error("Nenhum script de treinador salvo para LATAM. Grave um script em /admin/checkin-treino antes de rodar o check-in.");
       }
+
       const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
 
       // Upload no storage — respeita PNG (script salvo) ou PDF (autopilot).
@@ -456,13 +455,12 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
-      // Tenta primeiro rodar o script salvo do treinador para a companhia.
-      let result: any = await tryRunFromSavedScript(sb, { airline: "LATAM", locator, surname })
-        .catch((e: unknown) => { console.warn("[checkin] saved script failed", e); return null; });
+      // Só usa o script salvo do treinador (autopilot antigo removido).
+      const result: any = await tryRunFromSavedScript(sb, { airline: "LATAM", locator, surname });
       if (!result) {
-        const { runLatamAutopilot } = await import("./latam-autopilot.server");
-        result = await runLatamAutopilot({ locator, surname, checkinUrl });
+        throw new Error("Nenhum script de treinador salvo para LATAM. Grave um script em /admin/checkin-treino antes de rodar o check-in.");
       }
+
       const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
       // O script salvo devolve PNG (screenshot do cartão) e o autopilot devolve PDF.
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
