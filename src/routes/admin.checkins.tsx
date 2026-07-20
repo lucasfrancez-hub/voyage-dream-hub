@@ -106,7 +106,7 @@ function CheckinsPage() {
         await q.refetch();
         return;
       }
-      const modeLabel = runMode === "vision" ? "Visão IA" : "Código";
+      const modeLabel = runMode === "autopilot" ? "Piloto automático" : runMode === "vision" ? "Visão IA" : "Código";
       toast.success(
         regenerate
           ? `Cartão regerado (${modeLabel}) e enviado`
