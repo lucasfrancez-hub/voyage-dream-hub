@@ -16,6 +16,11 @@ const StepSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("type"), x: z.number(), y: z.number(), text: z.string(), clearFirst: z.boolean().optional() }),
   z.object({ action: z.literal("press"), key: z.string() }),
   z.object({ action: z.literal("scroll"), dy: z.number() }),
+  z.object({
+    action: z.literal("capture_region"),
+    x: z.number(), y: z.number(), width: z.number(), height: z.number(),
+    filename: z.string().optional(),
+  }),
 ]);
 export type TrainingStep = z.infer<typeof StepSchema>;
 
