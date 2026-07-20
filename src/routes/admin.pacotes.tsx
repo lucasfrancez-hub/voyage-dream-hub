@@ -488,7 +488,9 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
           </div>
           <div className="flex items-center gap-2">
             <PackageImportButton
-              onImported={(patch) => setEditing((prev) => ({ ...(prev ?? {}), ...patch }))}
+              onImported={(patch: Partial<PackageRow>) =>
+                setEditing({ ...(editing ?? {}), ...patch })
+              }
             />
             <button
               onClick={() => setEditing(null)}
