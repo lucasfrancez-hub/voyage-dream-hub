@@ -287,17 +287,28 @@ export const runCheckin = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
-      const { runLatamAutopilot } = await import("./latam-autopilot.server");
-      const result: any = await runLatamAutopilot({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
+      // Tenta primeiro rodar o script salvo no treinador de check-in.
+      // Se não houver script salvo pra companhia, cai no autopilot por visão.
+      let result: any = await tryRunFromSavedScript(sb, {
+        airline: "LATAM",
+        locator: checkin.locator,
+        surname: checkin.pnr_surname,
+      }).catch((e) => { console.warn("[checkin] saved script failed", e); return null; });
+      if (!result) {
+        const { runLatamAutopilot } = await import("./latam-autopilot.server");
+        result = await runLatamAutopilot({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
+      }
       const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
 
-      // Upload no storage
+      // Upload no storage — respeita PNG (script salvo) ou PDF (autopilot).
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const path = `${checkin.order_id}/${checkin.id}.pdf`;
-      const pdfBytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
+      const isPng = (result.contentType || "").includes("png");
+      const path = `${checkin.order_id}/${checkin.id}.${isPng ? "png" : "pdf"}`;
+      const bytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
       const up = await supabaseAdmin.storage
         .from("boarding-passes")
-        .upload(path, pdfBytes, { contentType: result.contentType, upsert: true });
+        .upload(path, bytes, { contentType: result.contentType, upsert: true });
+
       if (up.error) throw new Error(`Storage: ${up.error.message}`);
 
       // Signed URL 30 dias
