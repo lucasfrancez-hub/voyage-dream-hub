@@ -241,6 +241,44 @@ function CheckinsPage() {
         </Section>
 
         <Section
+          title="A fazer"
+          subtitle="Reservas com pelo menos um trecho já na janela de check-in (48h nacional, 24h LATAM/GOL/AZUL e internacional)."
+          empty="Nada pendente na janela. 🎉"
+          count={aFazer.length}
+        >
+          {aFazer.map((g) => (
+            <BookingCard
+              key={g.key}
+              group={g}
+              busyKey={busyKey}
+              sendingId={sendingId}
+              onUpload={handleUpload}
+              onRemove={handleRemove}
+              onSend={handleSend}
+            />
+          ))}
+        </Section>
+
+        <Section
+          title="Próximos check-ins"
+          subtitle="Reservas dos próximos 7 dias que ainda não entraram na janela de check-in."
+          empty="Nada previsto."
+          count={proximos.length}
+        >
+          {proximos.map((g) => (
+            <BookingCard
+              key={g.key}
+              group={g}
+              busyKey={busyKey}
+              sendingId={sendingId}
+              onUpload={handleUpload}
+              onRemove={handleRemove}
+              onSend={handleSend}
+            />
+          ))}
+        </Section>
+
+        <Section
           title="Prontos"
           subtitle="Cartões anexados. Clique em enviar para disparar no WhatsApp dos passageiros."
           empty="Nada por aqui ainda."
@@ -258,6 +296,7 @@ function CheckinsPage() {
             />
           ))}
         </Section>
+
       </div>
     </div>
   );
