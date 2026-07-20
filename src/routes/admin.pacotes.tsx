@@ -857,30 +857,43 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
 
             {tab === "flights" && (
               <div className="space-y-5">
-                <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-border/70 bg-muted/30">
-                  {([
-                    { id: "outbound", label: "Voo de ida", filled: !!editing.outbound_flight },
-                    { id: "return", label: "Voo de volta", filled: !!editing.return_flight },
-                  ] as const).map((t) => {
-                    const active = flightLeg === t.id;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setFlightLeg(t.id)}
-                        className={`px-4 py-2 rounded-md text-[11px] font-bold uppercase tracking-[0.18em] transition inline-flex items-center gap-2 ${
-                          active
-                            ? "bg-brand-orange text-white shadow-[0_2px_10px_rgba(242,107,31,0.35)]"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {t.label}
-                        {t.filled && (
-                          <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-brand-orange"}`} />
-                        )}
-                      </button>
-                    );
-                  })}
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-border/70 bg-muted/30">
+                    {([
+                      { id: "outbound", label: "Voo de ida", filled: !!editing.outbound_flight },
+                      { id: "return", label: "Voo de volta", filled: !!editing.return_flight },
+                    ] as const).map((t) => {
+                      const active = flightLeg === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setFlightLeg(t.id)}
+                          className={`px-4 py-2 rounded-md text-[11px] font-bold uppercase tracking-[0.18em] transition inline-flex items-center gap-2 ${
+                            active
+                              ? "bg-brand-orange text-white shadow-[0_2px_10px_rgba(242,107,31,0.35)]"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {t.label}
+                          {t.filled && (
+                            <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-brand-orange"}`} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <FlightImportButton
+                    leg={flightLeg}
+                    onImported={(flight) =>
+                      setEditing(
+                        flightLeg === "outbound"
+                          ? { ...editing, outbound_flight: flight }
+                          : { ...editing, return_flight: flight },
+                      )
+                    }
+                  />
                 </div>
 
                 {flightLeg === "outbound" ? (
