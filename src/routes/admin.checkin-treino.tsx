@@ -59,7 +59,10 @@ function TreinoPage() {
   const [interactive, setInteractive] = useState(true);
   const [lastClick, setLastClick] = useState<{ x: number; y: number } | null>(null);
   const [typeBuffer, setTypeBuffer] = useState("");
+  const [hintBuffer, setHintBuffer] = useState("");
+  const [annotations, setAnnotations] = useState<{ x: number; y: number; label: string; kind: "type" | "click"; url: string }[]>([]);
   const imgRef = useRef<HTMLImageElement>(null);
+
 
 
   useEffect(() => {
