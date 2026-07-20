@@ -792,7 +792,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                       setEditing({
                         ...editing,
                         hotel_name: h.name,
-                        hotel_stars: h.rating != null ? Math.round(h.rating) : (editing.hotel_stars ?? 3),
+                        hotel_stars: h.hotel_class ?? (h.rating != null ? Math.round(h.rating) : (editing.hotel_stars ?? 3)),
                         image_url: (editing.image_url && editing.image_url.length > 0) ? editing.image_url : (h.photos[0] ?? editing.image_url ?? ""),
                         tripadvisor_location_id: String(h.location_id),
                         tripadvisor_url: h.tripadvisor_url ?? null,
