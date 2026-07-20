@@ -2277,7 +2277,7 @@ function HotelReservationCard({
           <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
             {destination && <div>{destination}</div>}
             {address && <div>{address}</div>}
-            {room && <div>Quarto: <span className="text-foreground">{room}</span></div>}
+            {room && <div>Categoria: <span className="text-foreground">{room}</span></div>}
             {typeof d.bed_type === "string" && (d.bed_type as string).trim() && (
               <div>Cama: <span className="text-foreground">{d.bed_type as string}</span></div>
             )}
