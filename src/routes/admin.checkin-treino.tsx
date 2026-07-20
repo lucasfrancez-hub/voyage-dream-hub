@@ -56,6 +56,7 @@ function TreinoPage() {
   const askVision = useServerFn(askVisionAboutScreenshot);
   const openSession = useServerFn(openTrainingSession);
   const runStep = useServerFn(runLiveTrainingStep);
+  const runScript = useServerFn(runTrainingScript);
   const shotSession = useServerFn(screenshotTrainingSession);
   const heartbeatSession = useServerFn(heartbeatTrainingSession);
   const closeSession = useServerFn(closeTrainingSession);
