@@ -848,10 +848,10 @@ function TreinoPage() {
               {regionMode && (
                 <div className="mb-2 flex flex-wrap items-center gap-2 rounded border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
                   <span className="flex-1 min-w-[220px]">
-                    Arraste um retângulo em volta de cada cartão. Você pode
-                    capturar <b>vários seguidos</b> (2 pax, conexões) sem sair
-                    do modo — clique em <b>Finalizar seleção</b> a cada
-                    retângulo. Já capturados nesta sessão:{" "}
+                    Arraste um retângulo em volta do cartão de <b>cada passageiro</b>.
+                    Antes de cada captura, ajuste <b>Passageiro nº</b> — o robô
+                    envia o cartão certo pro WhatsApp de cada pessoa. Já
+                    capturados nesta sessão:{" "}
                     <b>{steps.filter((s) => s.action === "capture_region").length}</b>.
                     {regionDraft && (
                       <span className="ml-2 opacity-70">
@@ -859,6 +859,17 @@ function TreinoPage() {
                       </span>
                     )}
                   </span>
+                  <label className="flex items-center gap-1 font-medium">
+                    Passageiro nº
+                    <Input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={regionPaxIndex}
+                      onChange={(e) => setRegionPaxIndex(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                      className="h-7 w-16 text-center"
+                    />
+                  </label>
                   <Button
                     size="sm"
                     variant="default"
@@ -866,7 +877,7 @@ function TreinoPage() {
                     disabled={busy || !sessionId || !regionDraft || regionDraft.w < 20 || regionDraft.h < 20}
                     onClick={() => void doCaptureRegion()}
                   >
-                    Finalizar seleção · salvar cartão
+                    Salvar cartão do pax {regionPaxIndex}
                   </Button>
                 </div>
               )}
