@@ -90,6 +90,14 @@ function extractText(m: UazMessage): string | null {
   );
 }
 
+function matchFlightAlertButton(text: string): "reschedule" | "refund" | "ack" | null {
+  const t = text.trim().toLowerCase();
+  if (t === "remarcar voo") return "reschedule";
+  if (t === "solicitar reembolso") return "refund";
+  if (t === "ok, ciente" || t === "ok ciente") return "ack";
+  return null;
+}
+
 async function processUaz(payload: UazPayload) {
   const event = (payload.event ?? payload.EventType ?? "").toLowerCase();
   // Aceita "messages", "messages.upsert", "message", "onmessage" etc.
