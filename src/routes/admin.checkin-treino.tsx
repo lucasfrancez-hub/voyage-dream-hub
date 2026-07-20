@@ -163,20 +163,25 @@ function TreinoPage() {
     }
   };
 
-  const removeCurrentScript = async () => {
+  const removeCurrentScript = () => {
     if (!currentScriptId) return;
-    if (!window.confirm("Excluir este script?")) return;
-    try {
-      await deleteScript({ data: { id: currentScriptId } });
-      setCurrentScriptId(null);
-      setScriptName("");
-      const list = await listScripts({ data: { airline } });
-      if (list.ok) setSavedScripts(list.scripts as SavedScript[]);
-      toast.success("Script excluído");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao excluir");
-    }
+    confirmThen(
+      { title: "Excluir script", description: "Excluir este script de treinamento?", confirmText: "Excluir", variant: "destructive" },
+      async () => {
+        try {
+          await deleteScript({ data: { id: currentScriptId } });
+          setCurrentScriptId(null);
+          setScriptName("");
+          const list = await listScripts({ data: { airline } });
+          if (list.ok) setSavedScripts(list.scripts as unknown as SavedScript[]);
+          toast.success("Script excluído");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Falha ao excluir");
+        }
+      },
+    );
   };
+
 
 
   useEffect(() => {
