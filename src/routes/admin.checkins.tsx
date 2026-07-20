@@ -50,7 +50,7 @@ function CheckinsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [mode, setMode] = useState<"code" | "vision">("code");
+  const [mode, setMode] = useState<"code" | "vision" | "autopilot">("autopilot");
 
 
   const q = useQuery({
