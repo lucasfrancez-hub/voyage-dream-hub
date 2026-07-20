@@ -2140,8 +2140,20 @@ function FlightReservationCard({
             {passengers.map((p) => {
               const isPassport = p.doc_type === "passport";
               const docNum = isPassport ? p.passport_number : p.cpf;
-              const locKey = ((locator ?? first?.supplier_locator ?? "") || "").toUpperCase().trim() || "_";
-              const perLocTicket = (p.tickets ?? {})[locKey] ?? "";
+              // Chaves possíveis onde o bilhete pode estar armazenado (carrier_locator
+              // usado como display, supplier_locator vindo do backfill, e o próprio
+              // locator do grupo). Tentamos todas e caímos no legado ticket_number.
+              const displayLoc = ((locator ?? "") || "").toUpperCase().trim();
+              const supplierKey = ((first?.supplier_locator ?? "") || "").toUpperCase().trim();
+              const carrierKey = String(((first?.details ?? {}) as Record<string, unknown>).carrier_locator ?? "").toUpperCase().trim();
+              const locKey = displayLoc || supplierKey || "_";
+              const tmap = (p.tickets ?? {}) as Record<string, string>;
+              const perLocTicket =
+                (locKey && tmap[locKey]) ||
+                (carrierKey && tmap[carrierKey]) ||
+                (supplierKey && tmap[supplierKey]) ||
+                (p.ticket_number ?? "") ||
+                "";
               const ticketValue = perLocTicket;
 
               return (
