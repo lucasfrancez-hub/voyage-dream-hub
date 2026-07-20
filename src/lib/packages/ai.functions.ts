@@ -407,10 +407,13 @@ Analise a imagem e devolva APENAS um JSON válido, sem markdown, sem comentário
 }
 Regras:
 - Retorne SÓ o JSON, começando com { e terminando com }.
-- Se um campo não estiver visível, omita-o (não invente).
-- carry_on/checked_bag/personal_item: infira pelos ícones de bagagem (mão, despachada, pessoal). Se ícone aparece sem risco/cinza, é true.
+- flight_number: PRESERVE TODOS OS DÍGITOS visíveis (ex.: "LA3531", "AD4321", "G31234"). NUNCA trunque para 3 dígitos. Se a imagem mostra "LA 3531" ou "LA3531", devolva "LA3531" — nunca "LA531" ou "LA353".
+- Horários (depart_at / arrive_at): SEMPRE preencha quando visíveis na imagem (ex.: "07:15", "13:10"). Formato 24h HH:MM. Se houver segmentos, cada segmento DEVE ter depart_at e arrive_at.
+- Se um campo realmente não estiver visível, omita-o (não invente).
+- carry_on/checked_bag/personal_item: infira pelos ícones de bagagem (mão, despachada, pessoal). Ícone colorido/ativo = true; ícone cinza/riscado = false.
 - Cidade sempre em português quando comum (São Paulo, não Sao Paulo).
-- Se houver várias paradas, preencha "segments" na ordem; "layover" só nos intermediários.`;
+- Se houver várias paradas, preencha "segments" na ordem; "layover" só nos intermediários (ex.: "02h35 em São Paulo").
+- Antes de finalizar, RELEIA a imagem e confirme que os números de voo têm todos os dígitos e que todos os horários HH:MM foram capturados.`;
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -419,13 +422,13 @@ Regras:
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-3.5-flash",
+        model: "openai/gpt-5.5",
         messages: [
           { role: "system", content: system },
           {
             role: "user",
             content: [
-              { type: "text", text: "Extraia os dados deste voo:" },
+              { type: "text", text: "Extraia os dados deste voo. Confira os números de voo dígito a dígito e todos os horários HH:MM antes de devolver." },
               {
                 type: "image_url",
                 image_url: { url: `data:${data.mime_type};base64,${data.image_base64}` },
@@ -433,8 +436,10 @@ Regras:
             ],
           },
         ],
+        response_format: { type: "json_object" },
       }),
     });
+
 
     if (!resp.ok) {
       const txt = await resp.text().catch(() => "");
