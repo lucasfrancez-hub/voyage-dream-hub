@@ -165,6 +165,11 @@ class CdpClient {
       this.pending.delete(msg.id);
       if (msg.error) p.reject(new Error(msg.error.message || "CDP error"));
       else p.resolve(msg.result);
+      return;
+    }
+    if (msg.method) {
+      const set = this.eventHandlers.get(msg.method);
+      if (set) for (const cb of set) { try { cb((msg as unknown as { params?: unknown }).params); } catch { /* ignore */ } }
     }
     // eventos não usados por enquanto
   }
