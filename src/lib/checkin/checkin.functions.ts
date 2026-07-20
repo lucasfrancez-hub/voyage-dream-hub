@@ -423,7 +423,7 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
       return da - db;
     });
 
-    const mode: "code" | "vision" = data.mode === "vision" ? "vision" : "code";
+    const mode = "autopilot" as const;
 
     // Upsert um check-in por item, marca running
     const checkins: any[] = [];
@@ -445,17 +445,9 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
-      let result: any;
-      let visionCostCents: number | null = null;
-      if (mode === "vision") {
-        const { runLatamCheckinVision } = await import("./latam-vision.server");
-        const r = await runLatamCheckinVision({ locator, surname, checkinUrl });
-        result = r;
-        visionCostCents = r.meta?.visionCostCents ?? null;
-      } else {
-        const { runLatamCheckin } = await import("./latam.server");
-        result = await runLatamCheckin({ locator, surname, checkinUrl });
-      }
+      const { runLatamAutopilot } = await import("./latam-autopilot.server");
+      const result: any = await runLatamAutopilot({ locator, surname, checkinUrl });
+      const visionCostCents: number | null = result.meta?.visionCostCents ?? null;
       const passes = result.boardingPasses && result.boardingPasses.length
         ? result.boardingPasses
         : [{ label: "Cartão", base64: result.boardingPassBase64, contentType: result.contentType }];
