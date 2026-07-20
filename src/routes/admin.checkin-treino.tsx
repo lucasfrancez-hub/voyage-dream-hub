@@ -41,7 +41,7 @@ type Airline = "LATAM" | "GOL" | "AZUL";
 type VisionTarget = { label: string; x: number; y: number; w: number; h: number; confidence?: number };
 type VisionParsed = { reasoning?: string; targets?: VisionTarget[]; notes?: string; raw?: string };
 type Shot = { b64: string; w: number; h: number; url: string; title: string };
-type SavedScript = { id: string; airline: Airline; name: string; initial_url: string; viewport_width: number; viewport_height: number; updated_at: string };
+type SavedScript = { id: string; airline: Airline; name: string; initial_url: string; viewport_width: number; viewport_height: number; pax_count: number | null; updated_at: string };
 
 const DEFAULT_URL_BY_AIRLINE: Record<Airline, string> = {
   LATAM: "https://www.latamairlines.com/br/pt/check-in/status?orderId=LA9571886LWKG&lastName=pereira",
@@ -94,6 +94,7 @@ function TreinoPage() {
   const [savedScripts, setSavedScripts] = useState<SavedScript[]>([]);
   const [currentScriptId, setCurrentScriptId] = useState<string | null>(null);
   const [scriptName, setScriptName] = useState("");
+  const [scriptPaxCount, setScriptPaxCount] = useState<number | "">("");
   const imgRef = useRef<HTMLImageElement>(null);
 
 
@@ -152,15 +153,17 @@ function TreinoPage() {
     setAnnotations([]);
     setCurrentScriptId(null);
     setScriptName("");
+    setScriptPaxCount("");
   };
 
   const loadScript = async (id: string) => {
     try {
       const r = await getScript({ data: { id } });
       if (!r.ok) return;
-      const s = r.script as unknown as { id: string; name: string; initial_url: string; steps: TrainingStep[]; annotations: typeof annotations; viewport_width: number; viewport_height: number };
+      const s = r.script as unknown as { id: string; name: string; initial_url: string; steps: TrainingStep[]; annotations: typeof annotations; viewport_width: number; viewport_height: number; pax_count: number | null };
       setCurrentScriptId(s.id);
       setScriptName(s.name);
+      setScriptPaxCount(s.pax_count ?? "");
       setUrl(s.initial_url);
       setSteps(s.steps || []);
       setAnnotations(s.annotations || []);
@@ -184,6 +187,7 @@ function TreinoPage() {
           annotations,
           viewport_width: 1280,
           viewport_height: 900,
+          pax_count: typeof scriptPaxCount === "number" ? scriptPaxCount : null,
         },
       });
       if (!r.ok) return;
@@ -573,19 +577,35 @@ function TreinoPage() {
                 <SelectContent>
                   <SelectItem value="__new">+ Nova sessão</SelectItem>
                   {savedScripts.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{s.name}{s.pax_count ? ` · ${s.pax_count} pax` : ""}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             <Input
               value={scriptName}
               onChange={(e) => setScriptName(e.target.value)}
-              placeholder="Nome da sessão (ex: LATAM padrão)"
-              className="flex-1"
+              placeholder="Nome da sessão (ex: LATAM 2 pax)"
+              className="flex-1 min-w-[220px]"
             />
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Qtde pax</span>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={scriptPaxCount}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setScriptPaxCount(v === "" ? "" : Math.max(1, Math.min(20, Math.round(Number(v) || 1))));
+                }}
+                placeholder="qualquer"
+                className="w-24"
+                title="Qtde de passageiros da reserva que esse script atende. Deixe em branco para usar como fallback."
+              />
+            </div>
             <Button size="sm" variant="secondary" onClick={saveCurrentScript} disabled={!scriptName.trim()}>
               Salvar
             </Button>
@@ -595,6 +615,7 @@ function TreinoPage() {
               </Button>
             )}
           </div>
+
           {steps.length > 0 && (
             <Button
               size="sm"

@@ -417,7 +417,7 @@ export const listTrainingScripts = createServerFn({ method: "POST" })
     await ensureAdmin(context);
     const { data: rows, error } = await context.supabase
       .from("checkin_training_scripts")
-      .select("id,airline,name,initial_url,viewport_width,viewport_height,updated_at")
+      .select("id,airline,name,initial_url,viewport_width,viewport_height,pax_count,updated_at")
       .eq("airline", data.airline)
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -453,6 +453,7 @@ const SaveScriptInput = z.object({
   })).default([]),
   viewport_width: z.number().int().default(1280),
   viewport_height: z.number().int().default(900),
+  pax_count: z.number().int().min(1).max(20).nullable().optional(),
 });
 
 export const saveTrainingScript = createServerFn({ method: "POST" })
@@ -468,6 +469,7 @@ export const saveTrainingScript = createServerFn({ method: "POST" })
       annotations: data.annotations,
       viewport_width: data.viewport_width,
       viewport_height: data.viewport_height,
+      pax_count: data.pax_count ?? null,
       created_by: context.userId,
     };
     if (data.id) {

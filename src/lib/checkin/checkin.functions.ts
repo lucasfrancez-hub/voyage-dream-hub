@@ -289,13 +289,21 @@ export const runCheckin = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
+      // Conta os passageiros da reserva pra casar com o script de treino salvo (1 pax, 2 pax, …).
+      const paxCountRes = await sb
+        .from("order_passengers")
+        .select("id", { count: "exact", head: true })
+        .eq("order_id", checkin.order_id);
+      const paxCount = (paxCountRes as any).count ?? null;
       // Só usa o script salvo no treinador de check-in (autopilot antigo foi removido).
       const result: any = await tryRunFromSavedScript(sb, {
         airline: "LATAM",
         locator: checkin.locator,
         surname: checkin.pnr_surname,
         runnerUserId: `manual:${userId}:${checkin.id}`,
+        paxCount,
       });
+
       if (!result) {
         throw new Error("Nenhum script de treinador salvo para LATAM. Grave um script em /admin/checkin-treino antes de rodar o check-in.");
       }
@@ -449,13 +457,20 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
+      const paxCountRes = await sb
+        .from("order_passengers")
+        .select("id", { count: "exact", head: true })
+        .eq("order_id", orderId);
+      const paxCount = (paxCountRes as any).count ?? null;
       // Só usa o script salvo do treinador (autopilot antigo removido).
       const result: any = await tryRunFromSavedScript(sb, {
         airline: "LATAM",
         locator,
         surname,
         runnerUserId: `manual:${userId}:${orderId}`,
+        paxCount,
       });
+
       if (!result) {
         throw new Error("Nenhum script de treinador salvo para LATAM. Grave um script em /admin/checkin-treino antes de rodar o check-in.");
       }
@@ -523,16 +538,22 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
  */
 async function tryRunFromSavedScript(
   sb: any,
-  args: { airline: "LATAM" | "GOL" | "AZUL"; locator: string; surname: string; runnerUserId: string },
+  args: { airline: "LATAM" | "GOL" | "AZUL"; locator: string; surname: string; runnerUserId: string; paxCount?: number | null },
 ): Promise<{ boardingPassBase64: string; contentType: string; meta: Record<string, unknown> } | null> {
   if (!args.locator || !args.surname) return null;
   const { data: rows } = await sb
     .from("checkin_training_scripts")
-    .select("id, name, initial_url, steps, viewport_width, viewport_height")
+    .select("id, name, initial_url, steps, viewport_width, viewport_height, pax_count")
     .eq("airline", args.airline)
-    .order("updated_at", { ascending: false })
-    .limit(1);
-  const script = rows?.[0];
+    .order("updated_at", { ascending: false });
+  const all = (rows ?? []) as any[];
+  if (all.length === 0) return null;
+  // 1) Prefer exact pax match, 2) fallback to script sem pax_count definido, 3) qualquer script.
+  const pax = args.paxCount ?? null;
+  const script =
+    (pax != null && all.find((s) => Number(s.pax_count) === Number(pax))) ||
+    all.find((s) => s.pax_count == null) ||
+    all[0];
   if (!script || !Array.isArray(script.steps) || script.steps.length === 0) return null;
   const { runScriptInLiveSession, rebuildInitialUrlForOrder } = await import("./training-runner.server");
   const url = rebuildInitialUrlForOrder(script.initial_url, args.locator, args.surname);
@@ -550,9 +571,10 @@ async function tryRunFromSavedScript(
   return {
     boardingPassBase64: png.pngBase64,
     contentType: "image/png",
-    meta: { via: "training_script", scriptId: script.id, scriptName: script.name },
+    meta: { via: "training_script", scriptId: script.id, scriptName: script.name, scriptPaxCount: script.pax_count ?? null, matchedPax: pax },
   };
 }
+
 
 function formatTrainingFailure(message: string): string {
   const cleaned = message.replace(/\s+/g, " ").trim();

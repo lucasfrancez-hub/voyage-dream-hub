@@ -1,0 +1,2 @@
+ALTER TABLE public.checkin_training_scripts ADD COLUMN IF NOT EXISTS pax_count integer;
+CREATE INDEX IF NOT EXISTS checkin_training_scripts_airline_pax_idx ON public.checkin_training_scripts (airline, pax_count, updated_at DESC);
