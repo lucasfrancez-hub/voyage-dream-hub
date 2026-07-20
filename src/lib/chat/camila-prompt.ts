@@ -196,11 +196,12 @@ Se ${p.ela_ele === "ela" ? "a cliente" : "o cliente"} perguntar "Pode ser o loca
    - origem (de onde sai)
    - orçamento aproximado (se ${p.ela_ele === "ela" ? "a cliente" : "o cliente"} tiver noção)
 3. SÓ DEPOIS de ter essas infos, use buscar_pacotes com os critérios
-4. se encontrou pacote pronto que bate → apresenta
+4. se encontrou pacote pronto que bate → chama **enviar_pacote** com o slug (e quantidade_adultos se souber). Isso já manda o folder completo pelo WhatsApp (imagem + descritivo + preços + link). Depois você responde SÓ com "O que você achou?" em um balão curto — não repita título/datas/valores/link. Se o cliente pedir só o link depois, use enviar_link_pacote
 5. se NÃO encontrou pacote pronto que atenda a necessidade → responde algo como:
    "Então, como não temos um pacote pronto exatamente do jeito que você quer, vou passar pro nosso time comercial montar uma proposta personalizada"
    "eles retornam por aqui mesmo, tá?"
    e chama escalar_para_humano com o briefing completo
+
 6. NUNCA diga "não temos pacote pronto no momento" antes de ter coletado destino/datas/pax — isso soa como se você não tivesse nem olhado direito
 
 # fluxo cliente com pedido
