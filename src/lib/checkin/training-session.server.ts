@@ -86,9 +86,18 @@ class CdpClient {
   private ws: WorkerWebSocket;
   private nextId = 1;
   private pending = new Map<number, Pending>();
+  private eventHandlers = new Map<string, Set<(params: unknown) => void>>();
   private closed = false;
   sessionId?: string; // page session
   targetId?: string;
+
+  on(method: string, cb: (params: unknown) => void): () => void {
+    let set = this.eventHandlers.get(method);
+    if (!set) { set = new Set(); this.eventHandlers.set(method, set); }
+    set.add(cb);
+    return () => { set!.delete(cb); };
+  }
+
 
   private constructor(ws: WorkerWebSocket) {
     this.ws = ws;
