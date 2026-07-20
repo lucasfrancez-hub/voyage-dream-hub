@@ -38,17 +38,33 @@ export async function runLatamAutopilot(input: AutopilotInput): Promise<Autopilo
   if (!token) throw new Error("BROWSERLESS_TOKEN ausente");
   if (!aiKey) throw new Error("LOVABLE_API_KEY ausente");
 
-  const goal = `Fazer o check-in online da LATAM até baixar o cartão de embarque em PDF.
-Localizador (orderId): ${input.locator}
-Sobrenome: ${input.surname}
+  const goal = `Fazer o check-in online da LATAM e baixar o cartão de embarque em PDF, exatamente como um humano faria.
 
-REGRAS:
-- NUNCA selecione bagagem paga, assento pago, upgrade, seguro ou qualquer produto extra.
-- Se aparecer tela de assento/bagagem, procure "Pular", "Continuar sem selecionar", "Não, obrigado" ou similar.
-- Se aparecer aviso de bebê (INF) ou criança (CHD) que não permite check-in online, aborte com motivo.
-- Marque TODOS os passageiros/checkboxes de aceite quando pedir.
-- Quando chegar na tela final com botão "Baixar PDF" / "Download boarding pass" / "Imprimir cartão", clique nele e depois responda done.
-- Se um popup de cookies aparecer, aceite (clique em "Aceitar" / "OK").`;
+DADOS DO PEDIDO (use SEMPRE estes valores — não invente, não altere):
+- Localizador da reserva (PNR / código de 6 caracteres): ${input.locator}
+- Sobrenome do passageiro (o mesmo que está na reserva): ${input.surname}
+
+COMO OS CAMPOS SE MAPEIAM (é assim que você preenche, igual eu faria clicando):
+1. Campo "Código da reserva" / "Localizador" / "Booking code" / "PNR" → digite: ${input.locator}
+2. Campo "Sobrenome" / "Last name" / "Apellido" → digite: ${input.surname}
+3. Botão "Buscar" / "Continuar" / "Search" → clique.
+4. Se pedir pra escolher passageiros, marque TODOS os checkboxes.
+5. Se pedir aceite de termos / condições / bagagem, marque TODOS os checkboxes de aceite.
+6. Se aparecer tela de assento (mapa de assentos), procure "Pular", "Continuar sem selecionar", "Escolher depois", "Skip", "Não, obrigado" — clique nele. NUNCA selecione um assento pago.
+7. Se aparecer tela de bagagem despachada / bagagem extra / upgrade / seguro, procure "Pular" / "Continuar" / "Não, obrigado" — clique. NUNCA compre bagagem, upgrade, seguro ou qualquer extra.
+8. Na tela final, procure o botão "Baixar cartão de embarque" / "Baixar PDF" / "Download boarding pass" / "Imprimir" — clique nele. Depois disso, responda { "action": "done" }.
+
+REGRAS DE OURO:
+- Trabalhe SEMPRE com base no que está visível no screenshot atual. Não tente adivinhar a próxima tela.
+- Antes de digitar num campo, dê UM clique nele pra focar (use clearFirst:true no type pra apagar valor antigo).
+- Se um popup de cookies aparecer ("Aceitar todos", "Accept all", "OK"), aceite antes de qualquer outra ação.
+- Se aparecer aviso de que a reserva tem bebê (INF) ou criança (CHD) e o check-in online NÃO é permitido, responda { "action": "abort", "reason": "reserva com bebê/criança exige check-in no aeroporto" }.
+- Se ficar preso na mesma tela por 3 tentativas seguidas sem progresso, responda abort explicando o motivo.
+- Se a página estiver carregando (spinner, tela em branco), responda { "action": "wait", "ms": 2500 } em vez de clicar no escuro.
+- Nunca clique em "Sair", "Cancelar reserva", "Alterar voo" ou qualquer coisa que não seja o fluxo de check-in.
+
+COORDENADAS: x cresce pra direita, y cresce pra baixo. Origem (0,0) é o canto superior esquerdo. Aponte pro CENTRO do elemento que você quer clicar.`;
+
 
   const script = `
 export default async ({ page, browser, context }) => {
