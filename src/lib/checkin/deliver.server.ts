@@ -70,7 +70,7 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
   const flightNum = ci.flight_number ?? "";
   const locator = ci.locator ?? "";
 
-  // Busca destino / cidade a partir do order_item (details.to_city / to_airport / to_iata).
+  // Busca destino / cidade a partir do order_item (details.to_city / to_iata).
   let destino = "";
   if (ci.order_item_id) {
     const { data: it } = await supabaseAdmin
@@ -79,16 +79,17 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
       .eq("id", ci.order_item_id)
       .maybeSingle();
     const d = (it?.details ?? {}) as Record<string, any>;
-    const city = String(d.to_city || d.destination_city || "").trim();
-    const airport = String(d.to_airport || "").trim();
+    const rawCity = String(d.to_city || d.destination_city || d.to || d.destination || "").trim();
     const iata = String(d.to_iata || d.arrival_iata || "").trim().toUpperCase();
-    const parts: string[] = [];
-    if (city) parts.push(city);
-    if (airport && airport.toLowerCase() !== city.toLowerCase()) parts.push(airport);
-    let out = parts.join(", ");
-    if (iata) out = out ? `${out} (${iata})` : iata;
-    destino = out || String(d.to || d.destination || "");
+    const small = new Set(["de", "da", "do", "das", "dos", "e"]);
+    const city = rawCity
+      .toLocaleLowerCase("pt-BR")
+      .split(/\s+/)
+      .map((w, i) => (i > 0 && small.has(w) ? w : w.charAt(0).toLocaleUpperCase("pt-BR") + w.slice(1)))
+      .join(" ");
+    destino = [city, iata ? `(${iata})` : ""].filter(Boolean).join(" ");
   }
+
 
 
   // Formata data/horário do voo em pt-BR.
