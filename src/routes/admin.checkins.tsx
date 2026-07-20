@@ -89,55 +89,92 @@ function CheckinsPage() {
   // mostra a origem real e o destino FINAL daquela perna.
   const groups = useMemo(() => {
     const out: any[] = [];
+    const MAX_LAYOVER_MS = 12 * HOUR;
+
+    // Constrói jornadas encadeadas por rota (origem→destino). Independe da
+    // ordem cronológica dos dados (que às vezes vem invertida por causa de
+    // timezone). Estratégia:
+    //  1. Particiona por direção explícita (ida/volta) quando existir.
+    //  2. Dentro do bucket, encontra "starts" = origens que não são destino
+    //     de nenhum outro segmento do bucket.
+    //  3. A partir de cada start, segue destino→origem consumindo segmentos.
+    //  4. Valida layover < 12h e mesma direção; senão quebra em nova jornada.
+    function buildJourneys(segs: any[]): any[][] {
+      if (segs.length <= 1) return segs.length ? [segs] : [];
+      const remaining = [...segs];
+      const destinations = new Set(segs.map((s) => s.destination));
+      const journeys: any[][] = [];
+
+      while (remaining.length) {
+        // start: origem que ninguém aponta como destino (dentro do remaining)
+        const remDest = new Set(remaining.map((s) => s.destination));
+        let startIdx = remaining.findIndex((s) => !remDest.has(s.origin));
+        if (startIdx === -1) startIdx = 0;
+        const chain: any[] = [remaining.splice(startIdx, 1)[0]];
+
+        // segue a cadeia
+        while (true) {
+          const prev = chain[chain.length - 1];
+          const nextIdx = remaining.findIndex((s) => s.origin === prev.destination);
+          if (nextIdx === -1) break;
+          const cand = remaining[nextIdx];
+          const prevArr = prev.arrival_at || prev.departure_at;
+          const curDep = cand.departure_at;
+          const gap = prevArr && curDep ? new Date(curDep).getTime() - new Date(prevArr).getTime() : 0;
+          const shortLayover = !prevArr || !curDep ? true : gap >= 0 && gap <= MAX_LAYOVER_MS;
+          const sameDir = !prev.direction || !cand.direction ? true : prev.direction === cand.direction;
+          const origins = new Set(chain.map((x) => x.origin));
+          const revisits = origins.has(cand.destination);
+          if (!shortLayover || !sameDir || revisits) break;
+          chain.push(remaining.splice(nextIdx, 1)[0]);
+        }
+        journeys.push(chain);
+        void destinations; // silence lint
+      }
+      return journeys;
+    }
+
     for (const g of rawGroups) {
-      const segs = [...(g.segments ?? [])].sort(
-        (a: any, b: any) => new Date(a.departure_at || 0).getTime() - new Date(b.departure_at || 0).getTime(),
-      );
+      const segs = [...(g.segments ?? [])];
       if (segs.length <= 1) {
         const only = segs[0] ?? {};
         out.push({ ...g, direction: only.direction ?? null });
         continue;
       }
-      const journeys: any[][] = [];
-      let cur: any[] = [];
-      // Conexão real: (1) mesma direção (ida/volta) OU direção ausente com
-      // encadeamento válido; (2) destino_anterior == origem_atual; (3) gap
-      // curto (< 12h); (4) não revisita aeroporto já usado como origem.
-      const MAX_LAYOVER_MS = 12 * HOUR;
-      for (const s of segs) {
-        if (cur.length === 0) { cur.push(s); continue; }
-        const prev = cur[cur.length - 1];
-        const chained = prev.destination && s.origin && prev.destination === s.origin;
-        const prevArr = prev.arrival_at || prev.departure_at;
-        const curDep = s.departure_at;
-        const gap = prevArr && curDep ? new Date(curDep).getTime() - new Date(prevArr).getTime() : 0;
-        const shortLayover = gap > 0 && gap <= MAX_LAYOVER_MS;
-        const origins = new Set(cur.map((x: any) => x.origin));
-        const revisits = origins.has(s.destination);
-        const sameDirection =
-          !prev.direction || !s.direction ? true : prev.direction === s.direction;
-        if (chained && shortLayover && !revisits && sameDirection) cur.push(s);
-        else { journeys.push(cur); cur = [s]; }
-      }
 
-      if (cur.length) journeys.push(cur);
-      journeys.forEach((jSegs, idx) => {
-        // Direção do card: usa a explícita do primeiro trecho; se ausente,
-        // infere pela ordem (1ª jornada = ida, 2ª = volta) quando há mais de uma.
-        const explicit = jSegs[0]?.direction as "outbound" | "return" | null;
+      // Bucket por direção explícita
+      const outbound = segs.filter((s) => s.direction === "outbound");
+      const ret = segs.filter((s) => s.direction === "return");
+      const noDir = segs.filter((s) => !s.direction);
+
+      const allJourneys: { segs: any[]; direction: "outbound" | "return" | null }[] = [];
+      buildJourneys(outbound).forEach((j) => allJourneys.push({ segs: j, direction: "outbound" }));
+      buildJourneys(ret).forEach((j) => allJourneys.push({ segs: j, direction: "return" }));
+      const noDirJourneys = buildJourneys(noDir);
+      noDirJourneys.forEach((j, idx) => {
         const inferred: "outbound" | "return" | null =
-          journeys.length > 1 ? (idx === 0 ? "outbound" : "return") : null;
+          noDirJourneys.length > 1 || allJourneys.length > 0
+            ? idx === 0 && allJourneys.length === 0
+              ? "outbound"
+              : allJourneys.length === 0
+                ? "return"
+                : null
+            : null;
+        allJourneys.push({ segs: j, direction: inferred });
+      });
+
+      allJourneys.forEach((j, idx) => {
         out.push({
           ...g,
           key: `${g.key}::j${idx}`,
-          segments: jSegs,
-          direction: explicit ?? inferred,
+          segments: j.segs,
+          direction: j.direction,
         });
       });
-
     }
     return out;
   }, [rawGroups]);
+
 
   function windowHoursFor(seg: any): number {
     const airline = String(seg.airline || "").toUpperCase();
