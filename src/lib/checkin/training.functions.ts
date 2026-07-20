@@ -59,6 +59,7 @@ export const runTrainingScript = createServerFn({ method: "POST" })
 export default async ({ page, browser, context }) => {
   const { url, steps, viewportWidth, viewportHeight } = context;
   const logs = [];
+  const captures = [];
   const configuredPages = new WeakSet();
   const unusablePages = new WeakSet();
   const activeBrowser = browser || (page && typeof page.browser === "function" ? page.browser() : null);
