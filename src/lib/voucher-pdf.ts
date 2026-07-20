@@ -829,7 +829,7 @@ const passengerTypeLabel = (t: ReturnType<typeof T>, kind: string): string => {
   return t.adulto;
 };
 
-const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
+const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservationLocator: string | null = null) => {
   if (!passengers.length) return;
   const t = T(ctx);
   const rowH = 16;
@@ -842,8 +842,14 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
   const innerX = MARGIN + 20;
   const innerW = CONTENT_W - 40;
 
+  const locKey = ((reservationLocator ?? "") || "").toUpperCase().trim() || "_";
+  const ticketFor = (p: OrderPassenger): string => {
+    const map = ((p as unknown as { tickets?: Record<string, string> }).tickets) ?? {};
+    return (map[locKey] ?? p.ticket_number ?? "").trim();
+  };
   // Só mostra a coluna Bilhete se pelo menos um passageiro tem número de bilhete
-  const showTicket = passengers.some((p) => ((p.ticket_number ?? "").trim().length > 0));
+  const showTicket = passengers.some((p) => ticketFor(p).length > 0);
+
 
   const weights = showTicket ? [2.2, 0.9, 1.6, 1.1, 1.3] : [2.4, 1.0, 1.8, 1.2];
   const units = weights.reduce((a, b) => a + b, 0);
