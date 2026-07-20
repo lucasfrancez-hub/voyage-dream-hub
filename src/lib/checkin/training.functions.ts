@@ -44,190 +44,48 @@ export const runTrainingScript = createServerFn({ method: "POST" })
     });
     if (!isAdmin) throw new Error("Forbidden: apenas admin");
 
-    // Aplica placeholders antes de mandar pro Browserless.
     const locator = (data.locator || "").trim();
     const surname = (data.surname || "").trim();
-    const resolvedSteps = data.steps.map((s) => {
-      if (s.action !== "type") return s;
-      const text = s.text
-        .replaceAll("{{locator}}", locator)
-        .replaceAll("{{surname}}", surname);
-      return { ...s, text };
-    });
-    const payload = { ...data, steps: resolvedSteps };
-    const code = `
-export default async ({ page, browser, context }) => {
-  const { url, steps, viewportWidth, viewportHeight } = context;
-  const logs = [];
-  const captures = [];
-  const configuredPages = new WeakSet();
-  const unusablePages = new WeakSet();
-  const activeBrowser = browser || (page && typeof page.browser === "function" ? page.browser() : null);
-  let activePage = page;
 
-  const configurePage = async (candidate) => {
-    if (!candidate || candidate.isClosed() || configuredPages.has(candidate)) return;
-    configuredPages.add(candidate);
-    await candidate.setViewport({ width: viewportWidth, height: viewportHeight, deviceScaleFactor: 1 }).catch(() => {});
-    await candidate.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36").catch(() => {});
-  };
-
-  const resolveActivePage = async (createIfMissing = false) => {
-    let pages = [];
-    try { pages = activeBrowser ? await activeBrowser.pages() : []; } catch (_) {}
-    const openPages = pages.filter((candidate) => candidate && !candidate.isClosed() && !unusablePages.has(candidate));
-    const latamPage = [...openPages].reverse().find((candidate) => {
-      try { return candidate.url().includes("latamairlines.com"); } catch (_) { return false; }
-    });
-    const currentStillOpen = activePage && !activePage.isClosed() ? activePage : null;
-    activePage = latamPage || openPages[openPages.length - 1] || currentStillOpen;
-    if ((!activePage || activePage.isClosed() || unusablePages.has(activePage)) && createIfMissing && activeBrowser) {
-      activePage = await activeBrowser.newPage();
-      await configurePage(activePage);
-      await activePage.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-    }
-    if (!activePage || activePage.isClosed()) throw new Error("A aba da LATAM foi fechada durante o treinamento");
-    await configurePage(activePage);
-    await activePage.bringToFront().catch(() => {});
-    return activePage;
-  };
-
-  const captureActivePage = async () => {
-    let lastError = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const candidate = await resolveActivePage(attempt > 0);
-      try {
-        await new Promise((r) => setTimeout(r, 250 + attempt * 400));
-        return await candidate.screenshot({ type: "jpeg", quality: 60, encoding: "base64", fullPage: false });
-      } catch (error) {
-        lastError = error;
-        const message = String(error && error.message || error);
-        if (!/not attached|target closed|session closed|detached|most likely the page has been closed/i.test(message)) throw error;
-        logs.push({ step: "screenshot-retry", ok: false, err: message });
-        unusablePages.add(candidate);
-        if (activePage === candidate) activePage = null;
-        await new Promise((r) => setTimeout(r, 700));
-      }
-    }
-    throw lastError || new Error("Não foi possível capturar a tela ativa da LATAM");
-  };
-
-  await configurePage(activePage);
-
-  try {
-    await activePage.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
-    logs.push({ step: "goto", url, ok: true });
-    await new Promise((r) => setTimeout(r, 900));
-  } catch (e) {
-    logs.push({ step: "goto", url, ok: false, err: String(e && e.message || e) });
-  }
-
-  for (let i = 0; i < steps.length; i++) {
-    const s = steps[i];
     try {
-      const currentPage = await resolveActivePage();
-      if (s.action === "goto") {
-        await currentPage.goto(s.url, { waitUntil: "domcontentloaded", timeout: 60000 });
-        await new Promise((r) => setTimeout(r, 1500));
-      } else if (s.action === "wait") {
-        await new Promise((r) => setTimeout(r, s.ms));
-      } else if (s.action === "click") {
-        await currentPage.mouse.move(s.x, s.y, { steps: 8 });
-        await currentPage.mouse.click(s.x, s.y, { delay: 60 });
-        await new Promise((r) => setTimeout(r, 800));
-      } else if (s.action === "type") {
-        await currentPage.mouse.click(s.x, s.y, { delay: 60 });
-        await new Promise((r) => setTimeout(r, 250 + Math.floor(Math.random() * 180)));
-        if (s.clearFirst) {
-          await currentPage.keyboard.down("Control");
-          await currentPage.keyboard.press("A");
-          await currentPage.keyboard.up("Control");
-          await currentPage.keyboard.press("Backspace");
-        }
-        for (const character of s.text) {
-          await currentPage.keyboard.type(character);
-          await new Promise((r) => setTimeout(r, 90 + Math.floor(Math.random() * 100)));
-        }
-        await new Promise((r) => setTimeout(r, 350 + Math.floor(Math.random() * 300)));
-      } else if (s.action === "press") {
-        await currentPage.keyboard.press(s.key);
-        await new Promise((r) => setTimeout(r, 600));
-      } else if (s.action === "scroll") {
-        await currentPage.evaluate((dy) => window.scrollBy(0, dy), s.dy);
-        await new Promise((r) => setTimeout(r, 500));
-      } else if (s.action === "capture_region") {
-        const clip = { x: Math.max(0, s.x), y: Math.max(0, s.y), width: Math.max(1, s.width), height: Math.max(1, s.height) };
-        const pngB64 = await currentPage.screenshot({ type: "png", encoding: "base64", clip });
-        captures.push({ i, kind: "region", pngBase64: pngB64, filename: s.filename || null, width: clip.width, height: clip.height });
-      }
-      logs.push({ i, action: s.action, ok: true });
-    } catch (e) {
-      logs.push({ i, action: s.action, ok: false, err: String(e && e.message || e) });
-      break;
-    }
-  }
+      const { runScriptOnBrowserless } = await import("@/lib/checkin/training-runner.server");
+      const result = await runScriptOnBrowserless({
+        url: data.url,
+        steps: data.steps,
+        viewportWidth: data.viewportWidth,
+        viewportHeight: data.viewportHeight,
+        locator,
+        surname,
+      });
 
-  const screenshot = await captureActivePage();
-  const finalPage = await resolveActivePage();
-  const currentUrl = finalPage.url();
-  const title = await finalPage.title().catch(() => "");
-  const bodyText = await finalPage.evaluate(() => document.body?.innerText || "").catch(() => "");
-  if (currentUrl.startsWith("chrome-error://") || /ERR_HTTP2_PROTOCOL_ERROR|This site can.t be reached/i.test(bodyText)) {
-    throw new Error("A LATAM recusou a conexão desta sessão do navegador");
-  }
-  return { data: { screenshot, currentUrl, title, logs, captures, width: viewportWidth, height: viewportHeight } };
-};
-`;
-    const { runBrowserlessFunction } = await import("@/lib/checkin/browserless.server");
-    type LogEntry = { i?: number; step?: string; action?: string; url?: string; ok: boolean; err?: string };
-    type CaptureItem = { i: number; kind: "region"; pngBase64: string; filename: string | null; width: number; height: number };
-    type TrainingResult = { screenshot: string; currentUrl: string; title: string; logs: LogEntry[]; captures?: CaptureItem[]; width: number; height: number };
-    const strategies = [
-      { proxy: "residential" as const, proxyCountry: "br", proxySticky: true },
-    ];
-    let lastError: unknown;
-    for (const strategy of strategies) {
-      try {
-        const result = await runBrowserlessFunction<TrainingResult>(code, payload, {
-          timeoutMs: 180_000,
-          launch: {
-            headless: true,
-            stealth: true,
-            args: ["--disable-http2", "--disable-quic", "--lang=pt-BR"],
-          },
-          ...strategy,
-        });
-
-        if (!result.data) throw new Error("O navegador remoto não devolveu a captura da LATAM");
-        // Faz upload das regiões capturadas durante o script.
-        const uploads: Array<{ path: string; signedUrl: string | null; sizeKb: number; index: number }> = [];
-        const caps = result.data.captures ?? [];
-        if (caps.length > 0) {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          for (const c of caps) {
-            const bytes = Buffer.from(c.pngBase64, "base64");
-            const nameBase = c.filename || `${locator || "reserva"}-${surname || "pax"}-regiao-${c.i}.png`;
-            const safeName = nameBase.replace(/[^\w.\-]+/g, "_");
-            const finalName = safeName.toLowerCase().endsWith(".png") ? safeName : `${safeName}.png`;
-            const path = `training/${context.userId}/${Date.now()}-${finalName}`;
-            const up = await supabaseAdmin.storage
-              .from("boarding-passes")
-              .upload(path, bytes, { contentType: "image/png", upsert: true });
-            if (up.error) continue;
-            const signed = await supabaseAdmin.storage
-              .from("boarding-passes")
-              .createSignedUrl(path, 60 * 60 * 24 * 30);
-            uploads.push({ path, signedUrl: signed.data?.signedUrl ?? null, sizeKb: Math.round(bytes.length / 1024), index: c.i });
-          }
+      // Faz upload das regiões capturadas durante o script.
+      const uploads: Array<{ path: string; signedUrl: string | null; sizeKb: number; index: number }> = [];
+      const caps = result.captures ?? [];
+      if (caps.length > 0) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        for (const c of caps) {
+          const bytes = Buffer.from(c.pngBase64, "base64");
+          const nameBase = c.filename || `${locator || "reserva"}-${surname || "pax"}-regiao-${c.i}.png`;
+          const safeName = nameBase.replace(/[^\w.\-]+/g, "_");
+          const finalName = safeName.toLowerCase().endsWith(".png") ? safeName : `${safeName}.png`;
+          const path = `training/${context.userId}/${Date.now()}-${finalName}`;
+          const up = await supabaseAdmin.storage
+            .from("boarding-passes")
+            .upload(path, bytes, { contentType: "image/png", upsert: true });
+          if (up.error) continue;
+          const signed = await supabaseAdmin.storage
+            .from("boarding-passes")
+            .createSignedUrl(path, 60 * 60 * 24 * 30);
+          uploads.push({ path, signedUrl: signed.data?.signedUrl ?? null, sizeKb: Math.round(bytes.length / 1024), index: c.i });
         }
-        return { ...result.data, uploads };
-      } catch (error) {
-        lastError = error;
       }
+      return { ...result, uploads };
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error || "erro desconhecido");
+      throw new Error(`Não foi possível rodar o script no navegador protegido: ${detail}`);
     }
-    const detail = lastError instanceof Error ? lastError.message : String(lastError || "erro desconhecido");
-    throw new Error(`Não foi possível abrir a LATAM no navegador protegido: ${detail}`);
   });
+
 
 /* ==========================================================================
  * SESSÃO VIVA — abre a página uma vez e executa cada passo na hora
