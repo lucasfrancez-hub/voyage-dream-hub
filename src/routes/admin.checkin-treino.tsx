@@ -11,6 +11,7 @@ import {
   Loader2, Play, Eye, Trash2, Type as TypeIcon, MousePointer2, Clock, ArrowUp,
   Power, PowerOff, ArrowLeft, Camera, RotateCcw,
 } from "lucide-react";
+import { confirmThen } from "@/lib/confirm";
 import {
   askVisionAboutScreenshot,
   openTrainingSession,
@@ -19,19 +20,32 @@ import {
   heartbeatTrainingSession,
   closeTrainingSession,
   captureTrainingPdf,
+  listTrainingScripts,
+  getTrainingScript,
+  saveTrainingScript,
+  deleteTrainingScript,
   type TrainingStep,
 } from "@/lib/checkin/training.functions";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/admin/checkin-treino")({
   head: () => ({ meta: [{ title: "Treinador de Check-in — VIA AIR" }] }),
   component: TreinoPage,
 });
 
+type Airline = "LATAM" | "GOL" | "AZUL";
 type VisionTarget = { label: string; x: number; y: number; w: number; h: number; confidence?: number };
 type VisionParsed = { reasoning?: string; targets?: VisionTarget[]; notes?: string; raw?: string };
 type Shot = { b64: string; w: number; h: number; url: string; title: string };
+type SavedScript = { id: string; airline: Airline; name: string; initial_url: string; viewport_width: number; viewport_height: number; updated_at: string };
 
-const DEFAULT_URL = "https://www.latamairlines.com/br/pt/check-in/status?orderId=LA9571886LWKG&lastName=pereira";
+const DEFAULT_URL_BY_AIRLINE: Record<Airline, string> = {
+  LATAM: "https://www.latamairlines.com/br/pt/check-in/status?orderId=LA9571886LWKG&lastName=pereira",
+  GOL: "https://www.voegol.com.br/checkin",
+  AZUL: "https://www.voeazul.com.br/br/pt/home/check-in",
+};
 const DEFAULT_QUESTION =
   "Identifique os campos para iniciar check-in por localizador (código de reserva) e sobrenome, e o botão para continuar. Retorne cada elemento em 'targets' com coordenadas do centro e tamanho.";
 const SESSION_STORAGE_KEY = "via_training_session_id";
@@ -44,8 +58,13 @@ function TreinoPage() {
   const heartbeatSession = useServerFn(heartbeatTrainingSession);
   const closeSession = useServerFn(closeTrainingSession);
   const capturePdf = useServerFn(captureTrainingPdf);
+  const listScripts = useServerFn(listTrainingScripts);
+  const getScript = useServerFn(getTrainingScript);
+  const saveScript = useServerFn(saveTrainingScript);
+  const deleteScript = useServerFn(deleteTrainingScript);
 
-  const [url, setUrl] = useState(DEFAULT_URL);
+  const [airline, setAirline] = useState<Airline>("LATAM");
+  const [url, setUrl] = useState(DEFAULT_URL_BY_AIRLINE.LATAM);
   const [pnr, setPnr] = useState("LA9571886LWKG");
   const [surname, setSurname] = useState("PEREIRA");
   const [steps, setSteps] = useState<TrainingStep[]>([]);
@@ -64,6 +83,9 @@ function TreinoPage() {
   const [hintBuffer, setHintBuffer] = useState("");
   const [annotations, setAnnotations] = useState<{ x: number; y: number; label: string; kind: "type" | "click"; url: string }[]>([]);
   const [pdfs, setPdfs] = useState<{ url: string; path: string; sizeKb: number; source: string }[]>([]);
+  const [savedScripts, setSavedScripts] = useState<SavedScript[]>([]);
+  const [currentScriptId, setCurrentScriptId] = useState<string | null>(null);
+  const [scriptName, setScriptName] = useState("");
   const imgRef = useRef<HTMLImageElement>(null);
 
 
@@ -74,6 +96,94 @@ function TreinoPage() {
       if (saved) setSessionId(saved);
     }
   }, []);
+
+  // Recarrega scripts sempre que a companhia muda
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await listScripts({ data: { airline } });
+        if (!cancelled && r.ok) setSavedScripts(r.scripts as unknown as SavedScript[]);
+      } catch { /* silencioso */ }
+    })();
+    return () => { cancelled = true; };
+  }, [airline, listScripts]);
+
+  const onChangeAirline = (a: Airline) => {
+    if (sessionId) {
+      toast.error("Feche a sessão antes de trocar de companhia.");
+      return;
+    }
+    setAirline(a);
+    setUrl(DEFAULT_URL_BY_AIRLINE[a]);
+    setSteps([]);
+    setAnnotations([]);
+    setCurrentScriptId(null);
+    setScriptName("");
+  };
+
+  const loadScript = async (id: string) => {
+    try {
+      const r = await getScript({ data: { id } });
+      if (!r.ok) return;
+      const s = r.script as unknown as { id: string; name: string; initial_url: string; steps: TrainingStep[]; annotations: typeof annotations; viewport_width: number; viewport_height: number };
+      setCurrentScriptId(s.id);
+      setScriptName(s.name);
+      setUrl(s.initial_url);
+      setSteps(s.steps || []);
+      setAnnotations(s.annotations || []);
+      toast.success(`Script "${s.name}" carregado`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao carregar");
+    }
+  };
+
+  const saveCurrentScript = async () => {
+    const name = scriptName.trim();
+    if (!name) { toast.error("Dá um nome pro script antes de salvar."); return; }
+    try {
+      const r = await saveScript({
+        data: {
+          id: currentScriptId ?? undefined,
+          airline,
+          name,
+          initial_url: url,
+          steps,
+          annotations,
+          viewport_width: 1280,
+          viewport_height: 900,
+        },
+      });
+      if (!r.ok) return;
+      setCurrentScriptId(r.id);
+      const list = await listScripts({ data: { airline } });
+      if (list.ok) setSavedScripts(list.scripts as unknown as SavedScript[]);
+      toast.success("Script salvo");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+    }
+  };
+
+  const removeCurrentScript = () => {
+    if (!currentScriptId) return;
+    confirmThen(
+      { title: "Excluir script", description: "Excluir este script de treinamento?", confirmText: "Excluir" },
+      async () => {
+        try {
+          await deleteScript({ data: { id: currentScriptId } });
+          setCurrentScriptId(null);
+          setScriptName("");
+          const list = await listScripts({ data: { airline } });
+          if (list.ok) setSavedScripts(list.scripts as unknown as SavedScript[]);
+          toast.success("Script excluído");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Falha ao excluir");
+        }
+      },
+    );
+  };
+
+
 
   useEffect(() => {
     if (!sessionId || busy) return;
@@ -309,13 +419,58 @@ function TreinoPage() {
           ) : (
             <Badge variant="outline">Sem sessão</Badge>
           )}
-          <Badge variant="outline">LATAM</Badge>
+          <Badge variant="outline">{airline}</Badge>
         </div>
       </div>
 
       <div className="grid grid-cols-12 gap-4">
         {/* Config */}
         <Card className="col-span-12 lg:col-span-4 p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-medium">Companhia aérea</label>
+              <Select value={airline} onValueChange={(v) => onChangeAirline(v as Airline)} disabled={!!sessionId}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LATAM">LATAM</SelectItem>
+                  <SelectItem value="GOL">GOL</SelectItem>
+                  <SelectItem value="AZUL">AZUL</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">Sessão salva</label>
+              <Select
+                value={currentScriptId ?? "__new"}
+                onValueChange={(v) => { if (v === "__new") { setCurrentScriptId(null); setScriptName(""); } else { void loadScript(v); } }}
+              >
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Nova sessão" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__new">+ Nova sessão</SelectItem>
+                  {savedScripts.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={scriptName}
+              onChange={(e) => setScriptName(e.target.value)}
+              placeholder="Nome da sessão (ex: LATAM padrão)"
+              className="flex-1"
+            />
+            <Button size="sm" variant="secondary" onClick={saveCurrentScript} disabled={!scriptName.trim()}>
+              Salvar
+            </Button>
+            {currentScriptId && (
+              <Button size="sm" variant="outline" onClick={removeCurrentScript} title="Excluir sessão salva">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
           <div>
             <label className="text-xs font-medium">URL inicial</label>
             <Input value={url} onChange={(e) => setUrl(e.target.value)} className="mt-1" disabled={!!sessionId} />
@@ -510,13 +665,13 @@ function TreinoPage() {
                   <Button
                     size="sm"
                     variant="default"
-                    disabled={busy || !sessionId || !lastClick}
+                    disabled={busy || !sessionId}
                     onClick={async () => {
-                      if (!lastClick || !sessionId) return;
+                      if (!sessionId) return;
                       setBusy(true);
                       try {
                         const filename = `${pnr || "reserva"}-${surname || "pax"}.pdf`;
-                        const r = await capturePdf({ data: { sessionId, x: lastClick.x, y: lastClick.y, filename } });
+                        const r = await capturePdf({ data: { sessionId, x: lastClick?.x ?? 0, y: lastClick?.y ?? 0, filename } });
                         if (!r.ok) {
                           handleSessionError(new Error(r.error));
                           return;
@@ -527,16 +682,13 @@ function TreinoPage() {
                         } else {
                           toast.success("PDF capturado, mas sem URL assinada.");
                         }
-                        // atualiza o screenshot pós-clique
-                        const s = await shotSession({ data: { sessionId } });
-                        if (s.ok) setShot((prev) => ({ b64: s.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: s.currentUrl, title: s.title }));
                       } catch (e) {
                         handleSessionError(e);
                       } finally {
                         setBusy(false);
                       }
                     }}
-                    title="Clica no botão de baixar PDF marcado como Último clique e salva o arquivo na base"
+                    title="Imprime a página atual (cartão de embarque) em PDF e salva na base"
                   >
                     Capturar PDF
                   </Button>

@@ -629,22 +629,44 @@ export async function closeLiveSession(opts: { userId: string; sessionId: string
 }
 
 /**
- * Placeholder: captura de PDF via click. A implementação anterior dependia
- * do puppeteer (Network events). Numa próxima passada reimplementamos via
- * CDP puro (Network.enable + Network.getResponseBody). Por enquanto, avisa
- * o front pra baixar o PDF manualmente.
+ * Captura o PDF da página atual usando `Page.printToPDF` do CDP.
+ * Não depende de clicar no botão "Baixar PDF" da companhia — imprime
+ * o cartão de embarque que já está renderizado na tela.
  */
-export async function captureNextPdfFromClick(_opts: {
+export async function capturePagePdf(opts: {
   userId: string;
   sessionId: string;
-  x: number;
-  y: number;
-  timeoutMs?: number;
 }): Promise<{ pdfBase64: string; sourceUrl: string }> {
-  throw new Error(
-    "Captura automática de PDF temporariamente indisponível nesta versão CDP. Baixe pela aba do navegador remoto e reenvie.",
-  );
+  const session = requireSession(opts.sessionId, opts.userId);
+  return withConnection(session, async (cdp) => {
+    // garante que a página está estável antes de imprimir
+    await waitForRenderablePage(cdp, session.initialUrl);
+    await waitForSpinnerGone(cdp);
+    const res = await cdp.send<{ data: string }>("Page.printToPDF", {
+      printBackground: true,
+      preferCSSPageSize: true,
+      landscape: false,
+      paperWidth: 8.27,
+      paperHeight: 11.69,
+      marginTop: 0.2,
+      marginBottom: 0.2,
+      marginLeft: 0.2,
+      marginRight: 0.2,
+      scale: 0.9,
+    });
+    const sourceUrl = (await evalExpr<string>(cdp, "location.href")) || "";
+    return { pdfBase64: res.data, sourceUrl };
+  });
 }
+
+// Compat: nomes antigos ainda usados no server-fn.
+export const captureNextPdfFromClick = async (opts: {
+  userId: string;
+  sessionId: string;
+  x?: number;
+  y?: number;
+  timeoutMs?: number;
+}) => capturePagePdf({ userId: opts.userId, sessionId: opts.sessionId });
 
 async function closeRemote(wsEndpoint: string) {
   // Melhor esforço via CDP: Browser.close

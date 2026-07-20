@@ -68,6 +68,48 @@ export type Database = {
         }
         Relationships: []
       }
+      checkin_training_scripts: {
+        Row: {
+          airline: string
+          annotations: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          initial_url: string
+          name: string
+          steps: Json
+          updated_at: string
+          viewport_height: number
+          viewport_width: number
+        }
+        Insert: {
+          airline: string
+          annotations?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          initial_url: string
+          name: string
+          steps?: Json
+          updated_at?: string
+          viewport_height?: number
+          viewport_width?: number
+        }
+        Update: {
+          airline?: string
+          annotations?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          initial_url?: string
+          name?: string
+          steps?: Json
+          updated_at?: string
+          viewport_height?: number
+          viewport_width?: number
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
