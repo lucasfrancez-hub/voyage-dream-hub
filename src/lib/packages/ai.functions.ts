@@ -312,12 +312,12 @@ export const searchCoverImages = createServerFn({ method: "POST" })
 
     let commonsImgs: CoverImage[] = [];
     let articleImgs: CoverImage[] = [];
-    let sourceLabel = "Wikimedia Commons + Openverse";
+    let sourceLabel = "Pexels + Unsplash + Wikimedia";
 
     if (page === 1) {
       const dest = await resolveDestination(base).catch(() => null);
       if (dest) {
-        sourceLabel = `Wikimedia Commons · ${dest.title}`;
+        sourceLabel = `Pexels · Unsplash · Wikimedia (${dest.title})`;
         const [catFiles, artFiles] = await Promise.all([
           dest.commonsCategory
             ? listCategoryFiles(dest.commonsCategory, 250).catch(() => [])
@@ -332,23 +332,29 @@ export const searchCoverImages = createServerFn({ method: "POST" })
       }
     }
 
-    const ov = await fetchOpenverse(base, page).catch(() => [] as CoverImage[]);
+    const [px, un, ov] = await Promise.all([
+      fetchPexels(base, page).catch(() => [] as CoverImage[]),
+      fetchUnsplash(base, page).catch(() => [] as CoverImage[]),
+      fetchOpenverse(base, page).catch(() => [] as CoverImage[]),
+    ]);
 
     const seen = new Set<string>();
     const images: CoverImage[] = [];
-    for (const src of [...articleImgs, ...commonsImgs, ...ov]) {
+    // Prioridade: Pexels/Unsplash (fotos profissionais) → Wikimedia → Openverse
+    for (const src of [...px, ...un, ...articleImgs, ...commonsImgs, ...ov]) {
       if (!src.url || seen.has(src.url)) continue;
       seen.add(src.url);
       images.push(src);
     }
 
     return {
-      images: images.slice(0, 80),
+      images: images.slice(0, 120),
       page,
-      hasMore: ov.length >= 20 || (page === 1 && commonsImgs.length >= 40),
+      hasMore: px.length >= 20 || un.length >= 20 || ov.length >= 20,
       sourceLabel,
     };
   });
+
 
 // Extrai dados de voo de um print (screenshot) via IA visão (Gemini).
 // Retorna FlightInfo compatível com o editor de pacotes.
