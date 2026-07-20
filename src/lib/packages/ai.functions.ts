@@ -198,3 +198,102 @@ export const searchCoverImages = createServerFn({ method: "POST" })
     }
     return { images: images.slice(0, 30) };
   });
+
+// Extrai dados de voo de um print (screenshot) via IA visão (Gemini).
+// Retorna FlightInfo compatível com o editor de pacotes.
+export const extractFlightFromImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        image_base64: z.string().min(100),
+        mime_type: z.string().default("image/png"),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
+
+    const system = `Você é um extrator de dados de voos a partir de screenshots de sistemas GDS / motores de reserva (Sabre, Amadeus, LATAM Trade, Skyteam, etc).
+Analise a imagem e devolva APENAS um JSON válido, sem markdown, sem comentários, com esta forma exata:
+{
+  "airline": "nome da cia (ex.: LATAM, GOL, Azul)",
+  "flight_number": "número do primeiro voo (ex.: LA3531)",
+  "from_iata": "IATA da origem do primeiro trecho",
+  "from_city": "cidade da origem (só nome, sem estado)",
+  "to_iata": "IATA do destino do último trecho",
+  "to_city": "cidade do destino final",
+  "depart_at": "HH:MM do primeiro trecho (24h)",
+  "arrive_at": "HH:MM da chegada no destino final (24h)",
+  "duration": "duração total (ex.: 05h55)",
+  "cabin_class": "Econômica | Premium Economy | Executiva | Primeira",
+  "fare_class": "código da tarifa se visível (ex.: Q, LIGHT)",
+  "carry_on": true|false,
+  "checked_bag": true|false,
+  "personal_item": true|false,
+  "segments": [
+    {
+      "airline": "...",
+      "flight_number": "LA3531",
+      "from_iata": "MGF",
+      "from_city": "Maringá",
+      "to_iata": "GRU",
+      "to_city": "São Paulo",
+      "depart_at": "07:15",
+      "arrive_at": "08:40",
+      "duration": "01h25",
+      "layover": "02h35 em São Paulo"
+    }
+  ]
+}
+Regras:
+- Retorne SÓ o JSON, começando com { e terminando com }.
+- Se um campo não estiver visível, omita-o (não invente).
+- carry_on/checked_bag/personal_item: infira pelos ícones de bagagem (mão, despachada, pessoal). Se ícone aparece sem risco/cinza, é true.
+- Cidade sempre em português quando comum (São Paulo, não Sao Paulo).
+- Se houver várias paradas, preencha "segments" na ordem; "layover" só nos intermediários.`;
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3.5-flash",
+        messages: [
+          { role: "system", content: system },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Extraia os dados deste voo:" },
+              {
+                type: "image_url",
+                image_url: { url: `data:${data.mime_type};base64,${data.image_base64}` },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => "");
+      throw new Error(`Falha IA (${resp.status}): ${txt.slice(0, 200)}`);
+    }
+    const json = (await resp.json()) as any;
+    let text = String(json?.choices?.[0]?.message?.content ?? "").trim();
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start === -1 || end === -1) throw new Error("IA não retornou JSON");
+    let parsed: any;
+    try {
+      parsed = JSON.parse(text.slice(start, end + 1));
+    } catch {
+      throw new Error("JSON inválido retornado pela IA");
+    }
+    return { flight: parsed };
+  });
