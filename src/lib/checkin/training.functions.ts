@@ -294,6 +294,52 @@ export const closeTrainingSession = createServerFn({ method: "POST" })
     return closeLiveSession({ userId: context.userId, sessionId: data.sessionId });
   });
 
+const CapturePdfInput = z.object({
+  sessionId: z.string().min(4),
+  x: z.number(),
+  y: z.number(),
+  filename: z.string().optional(),
+});
+
+export const captureTrainingPdf = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => CapturePdfInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    try {
+      const { captureNextPdfFromClick } = await import("@/lib/checkin/training-session.server");
+      const { pdfBase64, sourceUrl } = await captureNextPdfFromClick({
+        userId: context.userId,
+        sessionId: data.sessionId,
+        x: Math.round(data.x),
+        y: Math.round(data.y),
+      });
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const bytes = Buffer.from(pdfBase64, "base64");
+      const safeName = (data.filename || `treino-${Date.now()}.pdf`).replace(/[^\w.\-]+/g, "_");
+      const path = `training/${context.userId}/${Date.now()}-${safeName}`;
+      const up = await supabaseAdmin.storage
+        .from("boarding-passes")
+        .upload(path, bytes, { contentType: "application/pdf", upsert: true });
+      if (up.error) throw new Error(up.error.message);
+      const signed = await supabaseAdmin.storage
+        .from("boarding-passes")
+        .createSignedUrl(path, 60 * 60 * 24 * 30);
+      return {
+        ok: true as const,
+        path,
+        sourceUrl,
+        signedUrl: signed.data?.signedUrl ?? null,
+        sizeKb: Math.round(bytes.length / 1024),
+      };
+    } catch (e) {
+      console.error(e);
+      const code = (e as { code?: string })?.code;
+      if (code === "SESSION_EXPIRED") return { ok: false as const, error: "SESSION_EXPIRED" };
+      return { ok: false as const, error: e instanceof Error ? e.message : "Falha ao capturar PDF" };
+    }
+  });
+
 
 const AskInput = z.object({
   imageBase64: z.string().min(100),
