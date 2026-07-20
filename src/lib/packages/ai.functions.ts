@@ -51,9 +51,12 @@ Regras:
     return { text };
   });
 
-// Busca de imagens livres — prioriza fotos do artigo da Wikipédia do destino
-// (garante que "Fortaleza" = cidade do Ceará, não qualquer forte pelo mundo),
-// complementa com Openverse.
+// Busca de imagens livres — combina múltiplas fontes de alta qualidade:
+// 1) Categoria do destino no Wikimedia Commons (galeria curada com centenas
+//    de fotos: pontos turísticos, praias, arquitetura). Usa Wikidata (P373)
+//    para achar a categoria correta a partir do artigo da Wikipédia.
+// 2) Fotos listadas no próprio artigo da Wikipédia.
+// 3) Openverse como complemento e para paginação.
 type CoverImage = {
   thumb: string;
   url: string;
@@ -64,66 +67,67 @@ type CoverImage = {
 
 const UA = "VIA-AIR/1.0 (packages cover picker; contato@viaair.tur.br)";
 
-// Resolve o termo para o título canônico de artigo (Wikipédia PT → EN).
-async function resolveArticle(query: string): Promise<{ lang: "pt" | "en"; title: string } | null> {
+// Bloqueia imagens que não são fotos do destino.
+const BAD_TITLE = /bandeira|brasão|coat[_ ]of[_ ]arms|flag|logo|mapa|map\b|location|localiza|seal[_ ]of|escudo|orthographic|topograph|climograph|graph|chart|diagram|elevation|satellite|nasa|landsat|blank|svg|icon/i;
+
+async function fetchJson(u: string) {
+  const r = await fetch(u, { headers: { "User-Agent": UA, Accept: "application/json" } });
+  if (!r.ok) return null;
+  return r.json().catch(() => null);
+}
+
+async function resolveDestination(query: string): Promise<{
+  lang: "pt" | "en";
+  title: string;
+  commonsCategory: string | null;
+} | null> {
   for (const lang of ["pt", "en"] as const) {
-    try {
-      const u = new URL(`https://${lang}.wikipedia.org/w/api.php`);
-      u.searchParams.set("action", "query");
-      u.searchParams.set("format", "json");
-      u.searchParams.set("origin", "*");
-      u.searchParams.set("list", "search");
-      u.searchParams.set("srsearch", query);
-      u.searchParams.set("srlimit", "1");
-      u.searchParams.set("srnamespace", "0");
-      const r = await fetch(u.toString(), { headers: { "User-Agent": UA } });
-      if (!r.ok) continue;
-      const j = (await r.json()) as any;
-      const hit = j?.query?.search?.[0]?.title;
-      if (hit) return { lang, title: hit };
-    } catch {}
+    const su = new URL(`https://${lang}.wikipedia.org/w/api.php`);
+    su.search = new URLSearchParams({
+      action: "query", format: "json", origin: "*",
+      list: "search", srsearch: query, srlimit: "1", srnamespace: "0",
+    }).toString();
+    const sj: any = await fetchJson(su.toString());
+    const title = sj?.query?.search?.[0]?.title;
+    if (!title) continue;
+
+    const pu = new URL(`https://${lang}.wikipedia.org/w/api.php`);
+    pu.search = new URLSearchParams({
+      action: "query", format: "json", origin: "*",
+      titles: title, prop: "pageprops",
+    }).toString();
+    const pj: any = await fetchJson(pu.toString());
+    const pages = pj?.query?.pages ? Object.values(pj.query.pages) : [];
+    const qid = (pages[0] as any)?.pageprops?.wikibase_item as string | undefined;
+
+    let commonsCategory: string | null = null;
+    if (qid) {
+      const wj: any = await fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
+      const p373 = wj?.entities?.[qid]?.claims?.P373?.[0]?.mainsnak?.datavalue?.value;
+      if (typeof p373 === "string" && p373.length > 0) commonsCategory = p373;
+    }
+    return { lang, title, commonsCategory };
   }
   return null;
 }
 
-// Puxa imagens listadas no artigo da Wikipédia do destino.
-async function fetchWikipediaArticleImages(query: string): Promise<CoverImage[]> {
-  const art = await resolveArticle(query);
-  if (!art) return [];
-  try {
-    const u = `https://${art.lang}.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(art.title)}`;
-    const r = await fetch(u, { headers: { "User-Agent": UA } });
-    if (!r.ok) return [];
-    const j = (await r.json()) as any;
-    const items = Array.isArray(j?.items) ? j.items : [];
-    const files: string[] = [];
-    for (const it of items) {
-      if (it?.type !== "image") continue;
-      const title = String(it?.title || "");
-      if (!title) continue;
-      if (/\.svg$/i.test(title)) continue;
-      if (/bandeira|brasão|coat[_ ]of[_ ]arms|flag|logo|mapa|map|location|localiza/i.test(title)) continue;
-      files.push(title.replace(/^Ficheiro:|^Arquivo:/, "File:"));
-      if (files.length >= 20) break;
-    }
-    if (!files.length) return [];
-
-    const cu = new URL("https://commons.wikimedia.org/w/api.php");
-    cu.searchParams.set("action", "query");
-    cu.searchParams.set("format", "json");
-    cu.searchParams.set("origin", "*");
-    cu.searchParams.set("titles", files.join("|"));
-    cu.searchParams.set("prop", "imageinfo");
-    cu.searchParams.set("iiprop", "url|extmetadata|size|mime");
-    cu.searchParams.set("iiurlwidth", "1200");
-    const cr = await fetch(cu.toString(), { headers: { "User-Agent": UA } });
-    if (!cr.ok) return [];
-    const cj = (await cr.json()) as any;
-    const pages = cj?.query?.pages ? Object.values(cj.query.pages) : [];
-    const out: CoverImage[] = [];
-    const orderIdx = new Map(files.map((f, i) => [f, i]));
+async function loadImageInfos(titles: string[]): Promise<CoverImage[]> {
+  const out: CoverImage[] = [];
+  for (let i = 0; i < titles.length; i += 50) {
+    const batch = titles.slice(i, i + 50);
+    const u = new URL("https://commons.wikimedia.org/w/api.php");
+    u.search = new URLSearchParams({
+      action: "query", format: "json", origin: "*",
+      titles: batch.join("|"),
+      prop: "imageinfo",
+      iiprop: "url|extmetadata|size|mime",
+      iiurlwidth: "1600",
+    }).toString();
+    const j: any = await fetchJson(u.toString());
+    const pages = j?.query?.pages ? Object.values(j.query.pages) : [];
+    const order = new Map(batch.map((t, idx) => [t, idx]));
     const sorted = (pages as any[]).sort(
-      (a, b) => (orderIdx.get(a.title) ?? 99) - (orderIdx.get(b.title) ?? 99),
+      (a, b) => (order.get(a.title) ?? 99) - (order.get(b.title) ?? 99),
     );
     for (const p of sorted) {
       const info = p?.imageinfo?.[0];
@@ -132,27 +136,86 @@ async function fetchWikipediaArticleImages(query: string): Promise<CoverImage[]>
       if (!mime.startsWith("image/") || mime.includes("svg")) continue;
       const w = Number(info.thumbwidth || info.width || 0);
       const h = Number(info.thumbheight || info.height || 0);
-      if (h > w * 1.1) continue;
+      if (!w || !h) continue;
+      if (h > w * 1.15) continue;
+      if (Number(info.width || 0) < 900) continue;
+      const title = String(p.title || "");
+      if (BAD_TITLE.test(title)) continue;
       const meta = info.extmetadata || {};
       out.push({
         thumb: info.thumburl || info.url,
         url: info.url,
-        title: String(p.title || "").replace(/^File:/, "").replace(/\.[a-z]+$/i, ""),
-        source: `Wikipédia · ${art.title}`,
-        author: String(meta?.Artist?.value || "").replace(/<[^>]+>/g, "").trim(),
+        title: title.replace(/^File:/, "").replace(/\.[a-z]+$/i, ""),
+        source: "Wikimedia Commons",
+        author: String(meta?.Artist?.value || "").replace(/<[^>]+>/g, "").trim().slice(0, 80),
       });
     }
-    return out;
-  } catch {
-    return [];
   }
+  return out;
 }
 
-async function fetchOpenverse(query: string): Promise<CoverImage[]> {
+async function listCategoryFiles(category: string, limit = 250): Promise<string[]> {
+  const cat = category.startsWith("Category:") ? category : `Category:${category}`;
+  const files: string[] = [];
+
+  async function pull(catTitle: string, max: number) {
+    const u = new URL("https://commons.wikimedia.org/w/api.php");
+    u.search = new URLSearchParams({
+      action: "query", format: "json", origin: "*",
+      list: "categorymembers",
+      cmtitle: catTitle, cmtype: "file",
+      cmlimit: String(max),
+    }).toString();
+    const j: any = await fetchJson(u.toString());
+    for (const m of j?.query?.categorymembers ?? []) {
+      if (typeof m?.title === "string") files.push(m.title);
+    }
+  }
+
+  await pull(cat, limit);
+
+  if (files.length < limit) {
+    const su = new URL("https://commons.wikimedia.org/w/api.php");
+    su.search = new URLSearchParams({
+      action: "query", format: "json", origin: "*",
+      list: "categorymembers",
+      cmtitle: cat, cmtype: "subcat", cmlimit: "30",
+    }).toString();
+    const sj: any = await fetchJson(su.toString());
+    const subs: string[] = (sj?.query?.categorymembers ?? [])
+      .map((m: any) => String(m?.title || ""))
+      .filter((t: string) =>
+        /beach|praia|coast|litoral|landmark|tourism|turismo|architecture|arquitetura|building|edif|view|paisagem|landscape|monument|park|parque|square|praça|church|igreja|cathedral|catedral|hotel|street|rua|avenid|centro|downtown|skyline/i.test(t),
+      )
+      .slice(0, 10);
+    for (const s of subs) {
+      if (files.length >= limit) break;
+      await pull(s, 50);
+    }
+  }
+  return Array.from(new Set(files));
+}
+
+async function fetchArticleImages(lang: "pt" | "en", title: string): Promise<string[]> {
+  const u = `https://${lang}.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(title)}`;
+  const j: any = await fetchJson(u);
+  const items = Array.isArray(j?.items) ? j.items : [];
+  const files: string[] = [];
+  for (const it of items) {
+    if (it?.type !== "image") continue;
+    const t = String(it?.title || "").replace(/^Ficheiro:|^Arquivo:/, "File:");
+    if (!t || BAD_TITLE.test(t)) continue;
+    files.push(t);
+  }
+  return files;
+}
+
+async function fetchOpenverse(query: string, page: number): Promise<CoverImage[]> {
   try {
     const url = new URL("https://api.openverse.org/v1/images/");
     url.searchParams.set("q", query);
-    url.searchParams.set("page_size", "18");
+    url.searchParams.set("page_size", "24");
+    url.searchParams.set("page", String(page));
     url.searchParams.set("aspect_ratio", "wide");
     url.searchParams.set("size", "large");
     url.searchParams.set("license_type", "commercial");
@@ -169,7 +232,7 @@ async function fetchOpenverse(query: string): Promise<CoverImage[]> {
         source: "Openverse",
         author: (r?.creator as string) || "",
       }))
-      .filter((x: CoverImage) => !!x.url);
+      .filter((x: CoverImage) => !!x.url && !BAD_TITLE.test(x.title));
   } catch {
     return [];
   }
@@ -178,25 +241,54 @@ async function fetchOpenverse(query: string): Promise<CoverImage[]> {
 export const searchCoverImages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({ query: z.string().min(2).max(120) }).parse(data),
+    z.object({
+      query: z.string().min(2).max(120),
+      page: z.number().int().min(1).max(10).default(1),
+    }).parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-
     const base = data.query.trim();
-    const [wiki, ov] = await Promise.all([
-      fetchWikipediaArticleImages(base).catch(() => [] as CoverImage[]),
-      fetchOpenverse(`${base} city travel`).catch(() => [] as CoverImage[]),
-    ]);
+    const page = data.page;
+
+    let commonsImgs: CoverImage[] = [];
+    let articleImgs: CoverImage[] = [];
+    let sourceLabel = "Wikimedia Commons + Openverse";
+
+    if (page === 1) {
+      const dest = await resolveDestination(base).catch(() => null);
+      if (dest) {
+        sourceLabel = `Wikimedia Commons · ${dest.title}`;
+        const [catFiles, artFiles] = await Promise.all([
+          dest.commonsCategory
+            ? listCategoryFiles(dest.commonsCategory, 250).catch(() => [])
+            : Promise.resolve([]),
+          fetchArticleImages(dest.lang, dest.title).catch(() => []),
+        ]);
+        const allFiles = Array.from(new Set([...artFiles, ...catFiles])).slice(0, 150);
+        const infos = await loadImageInfos(allFiles).catch(() => []);
+        const artSet = new Set(artFiles);
+        articleImgs = infos.filter((i) => artSet.has(`File:${i.title}`) || artSet.has(i.title));
+        commonsImgs = infos.filter((i) => !articleImgs.includes(i));
+      }
+    }
+
+    const ov = await fetchOpenverse(base, page).catch(() => [] as CoverImage[]);
 
     const seen = new Set<string>();
     const images: CoverImage[] = [];
-    for (const src of [...wiki, ...ov]) {
+    for (const src of [...articleImgs, ...commonsImgs, ...ov]) {
       if (!src.url || seen.has(src.url)) continue;
       seen.add(src.url);
       images.push(src);
     }
-    return { images: images.slice(0, 30) };
+
+    return {
+      images: images.slice(0, 80),
+      page,
+      hasMore: ov.length >= 20 || (page === 1 && commonsImgs.length >= 40),
+      sourceLabel,
+    };
   });
 
 // Extrai dados de voo de um print (screenshot) via IA visão (Gemini).
