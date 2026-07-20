@@ -25,7 +25,8 @@ export type LiveStep =
   | { action: "type"; x: number; y: number; text: string; clearFirst?: boolean }
   | { action: "press"; key: string }
   | { action: "scroll"; dy: number }
-  | { action: "back" };
+  | { action: "back" }
+  | { action: "capture_region"; x: number; y: number; width: number; height: number; filename?: string };
 
 interface StoredSession {
   id: string;
