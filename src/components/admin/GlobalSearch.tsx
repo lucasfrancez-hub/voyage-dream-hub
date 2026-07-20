@@ -144,11 +144,11 @@ function SpotlightDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center bg-black/70 backdrop-blur-md pt-[15vh] px-4"
+      className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 backdrop-blur-xl pt-[15vh] px-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl border border-white/10 bg-neutral-900/95 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden"
+        className="w-full max-w-2xl rounded-2xl border border-white/10 bg-neutral-900/70 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.9)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Barra de busca — estilo Spotlight */}
