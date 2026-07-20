@@ -371,8 +371,8 @@ function deriveFromFlights(editing: Partial<PackageRow>): { originCity?: string;
   const outSegs = editing.outbound_flight?.segments ?? [];
   const first = outSegs[0];
   const last = outSegs[outSegs.length - 1];
-  const originCity = first?.from_city?.trim();
-  const destCity = last?.to_city?.trim();
+  const originCity = first?.from_city?.trim() || editing.origin?.trim() || undefined;
+  const destCity = last?.to_city?.trim() || editing.destination?.trim() || undefined;
   const title = destCity && originCity ? `${destCity} - Saída de ${originCity}` : destCity ? destCity : undefined;
   let slug: string | undefined;
   if (destCity) {
@@ -403,7 +403,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
   const genSummary = useServerFn(generatePackageSummary);
   const searchImages = useServerFn(searchCoverImages);
 
-  const derived = useMemo(() => deriveFromFlights(editing), [editing.outbound_flight, editing.going_date]);
+  const derived = useMemo(() => deriveFromFlights(editing), [editing.outbound_flight, editing.going_date, editing.destination, editing.origin]);
 
   // Auto-fill empty fields when derived values become available
   useEffect(() => {
