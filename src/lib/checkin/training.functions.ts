@@ -20,6 +20,9 @@ const StepSchema = z.discriminatedUnion("action", [
     action: z.literal("capture_region"),
     x: z.number(), y: z.number(), width: z.number(), height: z.number(),
     filename: z.string().optional(),
+    // 1-based: qual passageiro (pela ordem em order_passengers.sort_order)
+    // este recorte representa. 0/undefined = genérico (envia pra todos).
+    passenger_index: z.number().int().min(0).max(20).optional(),
   }),
 ]);
 export type TrainingStep = z.infer<typeof StepSchema>;
