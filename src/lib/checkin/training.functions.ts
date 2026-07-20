@@ -349,6 +349,57 @@ export const captureTrainingPdf = createServerFn({ method: "POST" })
     }
   });
 
+const CaptureRegionInput = z.object({
+  sessionId: z.string().min(4),
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+  filename: z.string().optional(),
+});
+
+export const captureTrainingRegion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => CaptureRegionInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    try {
+      const { captureRegionPng } = await import("@/lib/checkin/training-session.server");
+      const { pngBase64, sourceUrl } = await captureRegionPng({
+        userId: context.userId,
+        sessionId: data.sessionId,
+        x: data.x,
+        y: data.y,
+        width: data.width,
+        height: data.height,
+      });
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const bytes = Buffer.from(pngBase64, "base64");
+      const safeName = (data.filename || `treino-${Date.now()}.png`).replace(/[^\w.\-]+/g, "_");
+      const finalName = safeName.toLowerCase().endsWith(".png") ? safeName : `${safeName}.png`;
+      const path = `training/${context.userId}/${Date.now()}-${finalName}`;
+      const up = await supabaseAdmin.storage
+        .from("boarding-passes")
+        .upload(path, bytes, { contentType: "image/png", upsert: true });
+      if (up.error) throw new Error(up.error.message);
+      const signed = await supabaseAdmin.storage
+        .from("boarding-passes")
+        .createSignedUrl(path, 60 * 60 * 24 * 30);
+      return {
+        ok: true as const,
+        path,
+        sourceUrl,
+        signedUrl: signed.data?.signedUrl ?? null,
+        sizeKb: Math.round(bytes.length / 1024),
+      };
+    } catch (e) {
+      console.error(e);
+      const code = (e as { code?: string })?.code;
+      if (code === "SESSION_EXPIRED") return { ok: false as const, error: "SESSION_EXPIRED" };
+      return { ok: false as const, error: e instanceof Error ? e.message : "Falha ao capturar região" };
+    }
+  });
+
 
 const AskInput = z.object({
   imageBase64: z.string().min(100),
