@@ -167,6 +167,26 @@ export const Route = createFileRoute("/api/public/test-flight-alert")({
             .from("flight_change_alerts")
             .update({ wa_button_message_id: sent.id })
             .eq("id", alertRow.id);
+
+          // Registra no chat como mensagem do sistema pra IA ter contexto
+          // quando o cliente responder (mesmo padrão do hook real check-flight-changes).
+          const { logSystemOutbound } = await import("@/lib/whatsapp/log-system-outbound.server");
+          await logSystemOutbound({
+            wa_phone: phone,
+            kind: scenario === "cancelled" ? "flight_cancel_alert" : "flight_change_alert",
+            summary:
+              scenario === "cancelled"
+                ? `[TESTE] Aviso automático de CANCELAMENTO enviado (voo ${voo} · localizador ${localizador}). Cliente pode responder "Remarcar voo" ou "Solicitar reembolso".`
+                : `[TESTE] Aviso automático de alteração de voo enviado (voo ${voo} · localizador ${localizador}). Cliente pode responder ${scenario === "minor" ? '"Ok, ciente".' : '"Remarcar voo" ou "Solicitar reembolso".'}`,
+            wa_message_id: sent.id,
+            meta: {
+              test: true,
+              alert_id: alertRow.id,
+              locator: localizador,
+              flight: voo,
+              scenario,
+            },
+          });
         }
 
         return Response.json({
