@@ -213,12 +213,16 @@ export const listManualQueue = createServerFn({ method: "GET" })
       const checkin = ciByItem.get(it.id) ?? null;
       g.segments.push({
         order_item_id: it.id,
+        airline: it.airline,
+        airline_label: it.airline_label,
+        is_intl: it.is_intl,
         flight_number: it.flight_number,
         departure_at: it.departure_at,
         origin: it.origin,
         destination: it.destination,
         checkin,
       });
+
     }
 
     // Ordena segmentos por horário e injeta segment_index
