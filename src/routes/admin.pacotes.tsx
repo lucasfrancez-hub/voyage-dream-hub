@@ -402,7 +402,10 @@ function AdminPackages() {
           let sourcePhotos = existing;
           if (sourcePhotos.length === 0) {
             const q = r.destination ? `${r.hotel_name} ${r.destination}` : r.hotel_name;
-            const results = await searchHotelsFn({ data: { query: q } });
+            let results = await searchHotelsFn({ data: { query: q } });
+            if (!results?.length && q !== r.hotel_name) {
+              results = await searchHotelsFn({ data: { query: r.hotel_name } });
+            }
             best = results?.[0];
             if (!best) continue;
             full = await hotelDetailsFn({ data: { locationId: best.location_id, photoLimit: 5 } });
