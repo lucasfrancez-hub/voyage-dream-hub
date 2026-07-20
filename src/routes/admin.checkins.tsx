@@ -243,14 +243,14 @@ function CheckinsPage() {
 
 
         <Section
-          title="A fazer"
-          subtitle="Reservas com pelo menos um trecho já na janela de check-in (48h nacional, 24h LATAM/GOL/AZUL e internacional)."
+          title="A fazer agora"
+          subtitle="Trechos dentro da janela de check-in — anexe o cartão de cada passageiro."
           empty="Nada pendente na janela. 🎉"
           count={aFazer.length}
         >
           {aFazer.map((g) => (
             <BookingCard
-              key={g.key}
+              key={`todo-${g.key}`}
               group={g}
               busyKey={busyKey}
               sendingId={sendingId}
@@ -263,13 +263,13 @@ function CheckinsPage() {
 
         <Section
           title="Próximos check-ins"
-          subtitle="Reservas dos próximos 7 dias que ainda não entraram na janela de check-in."
+          subtitle="Trechos dos próximos 7 dias, ainda fora da janela."
           empty="Nada previsto."
           count={proximos.length}
         >
           {proximos.map((g) => (
             <BookingCard
-              key={g.key}
+              key={`up-${g.key}`}
               group={g}
               busyKey={busyKey}
               sendingId={sendingId}
@@ -281,14 +281,13 @@ function CheckinsPage() {
         </Section>
 
         <Section
-          title="Prontos"
-          subtitle="Cartões anexados. Clique em enviar para disparar no WhatsApp dos passageiros."
+          title="Concluídos"
+          subtitle="Cartões anexados e enviados."
           empty="Nada por aqui ainda."
           count={prontos.length}
-        >
-          {prontos.map((g) => (
+        >{prontos.map((g) => (
             <BookingCard
-              key={g.key}
+              key={`done-${g.key}`}
               group={g}
               busyKey={busyKey}
               sendingId={sendingId}
