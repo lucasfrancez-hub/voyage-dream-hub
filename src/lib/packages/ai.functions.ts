@@ -717,7 +717,7 @@ Regras (aplicar em CADA pacote):
 - flight_number: SOMENTE dígitos, todos preservados (ex.: "1137", não "7", não "G3-1137").
 - depart_at / arrive_at: ISO "YYYY-MM-DDTHH:MM". Meses PT: jan=01…dez=12.
 - Conexões: segments em ordem; depart_at agregado = 1º segmento; arrive_at = último; from_city/to_city agregado = origem 1º / destino final.
-- meal_plan: SOMENTE se explicitamente mencionado. Senão "".
+- meal_plan: procure ATIVAMENTE em cada bloco. Indicadores comuns em orçamentos BR: "Café da Manhã", "com café", "c/ café", "café incluso", "ACM"/"APT c/ café" → "Café da manhã"; "Meia Pensão"/"MAP" → "Meia pensão"; "Pensão Completa"/"FAP" → "Pensão completa"; "All Inclusive"/"Tudo Incluso"/"AI" → "All inclusive"; "Sem refeição"/"Só hospedagem"/"SC"/"Room Only" → "Sem refeição". Só use "" se REALMENTE não houver nenhuma menção ao regime.
 - checked_bag/carry_on/personal_item: true apenas se o bloco indicar explicitamente. Caso contrário false.
 - hotel_stars: inteiro 1-5.
 - supplier_name: operadora emissora (nunca a agência revendedora VIA AIR).
