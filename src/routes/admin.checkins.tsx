@@ -170,10 +170,10 @@ function CheckinsPage() {
 
 
   function windowHoursFor(seg: any): number {
-    const airline = String(seg.airline || "").toUpperCase();
-    const isIntl = !!seg.is_intl;
-    if (isIntl) return 24;
-    if (airline === "LATAM" || airline === "GOL" || airline === "AZUL") return 24;
+    // Janela ampla de visibilidade: 48h para todos os voos.
+    // O check-in real na cia abre entre 24h-48h antes — o badge do card
+    // já mostra "Abre em ~Xh" enquanto ainda não abriu.
+    const _ = seg;
     return 48;
   }
   function isWithinWindow(seg: any): boolean {
