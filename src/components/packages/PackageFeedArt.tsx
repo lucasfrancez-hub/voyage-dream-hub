@@ -35,7 +35,7 @@ export type FeedArtData = {
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const ICONS: Record<string, JSX.Element> = {
+const ICONS: Record<string, ReactElement> = {
   aereo: (
     <svg className="icon" viewBox="0 0 24 24"><path d="M2 16.5 22 8l-4.5-2-5.5 3-5-3-2 1 3.5 4-4 2z"/></svg>
   ),
