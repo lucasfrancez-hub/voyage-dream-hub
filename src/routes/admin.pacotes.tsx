@@ -371,8 +371,14 @@ function AdminPackages() {
         </div>
         <div className="flex items-center gap-2">
           <MultiPackageImportButton
-            onExtracted={(list) => {
+            onExtracted={async (list) => {
               if (!list.length) return;
+              try {
+                const base = await nextPackageBaseNumber();
+                setPendingNumbers(list.map((_, i) => base + i));
+              } catch {
+                setPendingNumbers(null);
+              }
               setDrafts(list);
               setDraftIndex(0);
               setEditingState(list[0]);
@@ -380,11 +386,20 @@ function AdminPackages() {
           />
 
           <button
-            onClick={() => setEditing({ ...emptyForm })}
+            onClick={async () => {
+              try {
+                const base = await nextPackageBaseNumber();
+                setPendingNumbers([base]);
+              } catch {
+                setPendingNumbers(null);
+              }
+              setEditing({ ...emptyForm });
+            }}
             className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
           >
             <Plus className="h-5 w-5" strokeWidth={3} /> Novo Pacote
           </button>
+
         </div>
       </div>
 
