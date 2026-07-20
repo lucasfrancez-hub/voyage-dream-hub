@@ -86,9 +86,18 @@ class CdpClient {
   private ws: WorkerWebSocket;
   private nextId = 1;
   private pending = new Map<number, Pending>();
+  private eventHandlers = new Map<string, Set<(params: unknown) => void>>();
   private closed = false;
   sessionId?: string; // page session
   targetId?: string;
+
+  on(method: string, cb: (params: unknown) => void): () => void {
+    let set = this.eventHandlers.get(method);
+    if (!set) { set = new Set(); this.eventHandlers.set(method, set); }
+    set.add(cb);
+    return () => { set!.delete(cb); };
+  }
+
 
   private constructor(ws: WorkerWebSocket) {
     this.ws = ws;
@@ -156,6 +165,11 @@ class CdpClient {
       this.pending.delete(msg.id);
       if (msg.error) p.reject(new Error(msg.error.message || "CDP error"));
       else p.resolve(msg.result);
+      return;
+    }
+    if (msg.method) {
+      const set = this.eventHandlers.get(msg.method);
+      if (set) for (const cb of set) { try { cb((msg as unknown as { params?: unknown }).params); } catch { /* ignore */ } }
     }
     // eventos não usados por enquanto
   }
@@ -659,14 +673,100 @@ export async function capturePagePdf(opts: {
   });
 }
 
-// Compat: nomes antigos ainda usados no server-fn.
+/**
+ * Clica em (x,y) — o botão "Salvar PDF" da companhia — e intercepta a
+ * resposta HTTP que carrega o PDF real (via Fetch domain do CDP). Assim
+ * salvamos o cartão de embarque original assinado pela companhia, em vez
+ * de uma reimpressão do HTML.
+ */
+export async function captureDownloadedPdfFromClick(opts: {
+  userId: string;
+  sessionId: string;
+  x: number;
+  y: number;
+  timeoutMs?: number;
+}): Promise<{ pdfBase64: string; sourceUrl: string }> {
+  const session = requireSession(opts.sessionId, opts.userId);
+  const timeout = opts.timeoutMs ?? 45_000;
+  return withConnection(session, async (cdp) => {
+    // Permite downloads (senão o Chromium bloqueia em modo headless)
+    await cdp
+      .send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: "/tmp" }, null)
+      .catch(() => {});
+    await cdp.send("Fetch.enable", { patterns: [{ requestStage: "Response" }] });
+
+    const pdfPromise = new Promise<string>((resolve, reject) => {
+      const timer = setTimeout(() => { off(); reject(new Error("Timeout aguardando PDF do botão Salvar")); }, timeout);
+      const off = cdp.on("Fetch.requestPaused", (params) => {
+        void (async () => {
+          const p = params as {
+            requestId: string;
+            responseHeaders?: Array<{ name: string; value: string }>;
+            responseStatusCode?: number;
+            request?: { url?: string };
+          };
+          try {
+            const headers = p.responseHeaders || [];
+            const ct = headers.find((h) => h.name.toLowerCase() === "content-type")?.value || "";
+            const cd = headers.find((h) => h.name.toLowerCase() === "content-disposition")?.value || "";
+            const url = (p.request?.url || "").toLowerCase();
+            const looksPdf =
+              ct.toLowerCase().includes("pdf") ||
+              cd.toLowerCase().includes(".pdf") ||
+              url.endsWith(".pdf") ||
+              url.includes("boardingpass") ||
+              url.includes("boarding-pass");
+            if (!p.responseStatusCode || !looksPdf) {
+              await cdp.send("Fetch.continueRequest", { requestId: p.requestId }).catch(() => {});
+              return;
+            }
+            const body = await cdp.send<{ body: string; base64Encoded: boolean }>(
+              "Fetch.getResponseBody",
+              { requestId: p.requestId },
+            );
+            await cdp.send("Fetch.continueRequest", { requestId: p.requestId }).catch(() => {});
+            const b64 = body.base64Encoded ? body.body : Buffer.from(body.body, "utf8").toString("base64");
+            clearTimeout(timer);
+            off();
+            resolve(b64);
+          } catch {
+            await cdp.send("Fetch.continueRequest", { requestId: p.requestId }).catch(() => {});
+          }
+        })();
+      });
+    });
+
+    try {
+      await mouseClick(cdp, opts.x, opts.y);
+      const pdfBase64 = await pdfPromise;
+      const sourceUrl = (await evalExpr<string>(cdp, "location.href")) || "";
+      return { pdfBase64, sourceUrl };
+    } finally {
+      await cdp.send("Fetch.disable").catch(() => {});
+    }
+  });
+}
+
+// Compat: se veio x,y > 0, intercepta o download real; senão printa a página.
 export const captureNextPdfFromClick = async (opts: {
   userId: string;
   sessionId: string;
   x?: number;
   y?: number;
   timeoutMs?: number;
-}) => capturePagePdf({ userId: opts.userId, sessionId: opts.sessionId });
+}) => {
+  if (opts.x && opts.y && opts.x > 0 && opts.y > 0) {
+    return captureDownloadedPdfFromClick({
+      userId: opts.userId,
+      sessionId: opts.sessionId,
+      x: opts.x,
+      y: opts.y,
+      timeoutMs: opts.timeoutMs,
+    });
+  }
+  return capturePagePdf({ userId: opts.userId, sessionId: opts.sessionId });
+};
+
 
 async function closeRemote(wsEndpoint: string) {
   // Melhor esforço via CDP: Browser.close

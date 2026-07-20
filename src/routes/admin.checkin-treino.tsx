@@ -665,13 +665,13 @@ function TreinoPage() {
                   <Button
                     size="sm"
                     variant="default"
-                    disabled={busy || !sessionId}
+                    disabled={busy || !sessionId || !lastClick}
                     onClick={async () => {
-                      if (!sessionId) return;
+                      if (!sessionId || !lastClick) return;
                       setBusy(true);
                       try {
                         const filename = `${pnr || "reserva"}-${surname || "pax"}.pdf`;
-                        const r = await capturePdf({ data: { sessionId, x: lastClick?.x ?? 0, y: lastClick?.y ?? 0, filename } });
+                        const r = await capturePdf({ data: { sessionId, x: lastClick.x, y: lastClick.y, filename } });
                         if (!r.ok) {
                           handleSessionError(new Error(r.error));
                           return;
@@ -688,9 +688,9 @@ function TreinoPage() {
                         setBusy(false);
                       }
                     }}
-                    title="Imprime a página atual (cartão de embarque) em PDF e salva na base"
+                    title="Marque com Último clique o botão 'Salvar PDF' da companhia — vamos clicar nele e interceptar o PDF real que ela gera."
                   >
-                    Capturar PDF
+                    Capturar PDF do botão Salvar
                   </Button>
                 </div>
               )}
