@@ -516,3 +516,42 @@ export const runCheckinGroup = createServerFn({ method: "POST" })
       return { ok: false, error: friendlyError, manualUrl } as const;
     }
   });
+
+/**
+ * Busca o script salvo mais recente da companhia no treinador e roda no
+ * navegador remoto usando o localizador/sobrenome reais da reserva.
+ * Devolve { boardingPassBase64, contentType, meta } compatível com o formato
+ * que o autopilot LATAM devolve, ou null se não houver script salvo (ou
+ * se ele não capturar nenhuma região).
+ */
+async function tryRunFromSavedScript(
+  sb: any,
+  args: { airline: "LATAM" | "GOL" | "AZUL"; locator: string; surname: string },
+): Promise<{ boardingPassBase64: string; contentType: string; meta: Record<string, unknown> } | null> {
+  if (!args.locator || !args.surname) return null;
+  const { data: rows } = await sb
+    .from("checkin_training_scripts")
+    .select("id, name, initial_url, steps, viewport_width, viewport_height")
+    .eq("airline", args.airline)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  const script = rows?.[0];
+  if (!script || !Array.isArray(script.steps) || script.steps.length === 0) return null;
+  const { runScriptOnBrowserless, rebuildInitialUrlForOrder } = await import("./training-runner.server");
+  const url = rebuildInitialUrlForOrder(script.initial_url, args.locator, args.surname);
+  const result = await runScriptOnBrowserless({
+    url,
+    steps: script.steps as any,
+    viewportWidth: script.viewport_width ?? 1280,
+    viewportHeight: script.viewport_height ?? 900,
+    locator: args.locator,
+    surname: args.surname,
+  });
+  const png = (result.captures || []).find((c) => c.pngBase64);
+  if (!png) return null;
+  return {
+    boardingPassBase64: png.pngBase64,
+    contentType: "image/png",
+    meta: { via: "training_script", scriptId: script.id, scriptName: script.name },
+  };
+}
