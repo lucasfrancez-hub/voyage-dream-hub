@@ -167,7 +167,7 @@ function TreinoPage() {
   const removeCurrentScript = () => {
     if (!currentScriptId) return;
     confirmThen(
-      { title: "Excluir script", description: "Excluir este script de treinamento?", confirmText: "Excluir", variant: "destructive" },
+      { title: "Excluir script", description: "Excluir este script de treinamento?", confirmText: "Excluir" },
       async () => {
         try {
           await deleteScript({ data: { id: currentScriptId } });
