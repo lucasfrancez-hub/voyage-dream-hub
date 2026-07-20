@@ -486,13 +486,18 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
               {editing.id ? "Editar pacote" : "Novo pacote"}
             </h2>
           </div>
-          <button
-            onClick={() => setEditing(null)}
-            aria-label="Fechar"
-            className="rounded-lg p-2 hover:bg-muted transition text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <PackageImportButton
+              onImported={(patch) => setEditing((prev) => ({ ...(prev ?? {}), ...patch }))}
+            />
+            <button
+              onClick={() => setEditing(null)}
+              aria-label="Fechar"
+              className="rounded-lg p-2 hover:bg-muted transition text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
