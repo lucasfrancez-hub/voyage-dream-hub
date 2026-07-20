@@ -168,6 +168,7 @@ export type OrderPassenger = {
   cpf: string | null;
   document: string | null;
   ticket_number: string | null;
+  tickets: Record<string, string>;
   sort_order: number;
   doc_type: "cpf" | "passport";
   passport_number: string | null;
