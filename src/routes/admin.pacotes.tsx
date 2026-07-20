@@ -401,8 +401,8 @@ function AdminPackages() {
           if (sourcePhotos.length === 0) continue;
           const saved = await persistHotelPhotosFn({ data: { packageId: r.id, photos: sourcePhotos.slice(0, 5) } });
           if (saved.photos.length === 0) continue;
-          const rating = full.rating ?? best.rating ?? null;
-          const cls = full.hotel_class ?? null;
+          const rating = full?.rating ?? best?.rating ?? null;
+          const cls = full?.hotel_class ?? null;
           const stars = rating != null
             ? Math.min(5, Math.max(1, Math.round(rating)))
             : cls != null
@@ -411,11 +411,11 @@ function AdminPackages() {
           const { error: upErr } = await supabase
             .from("packages")
             .update({
-              hotel_name: full.name || best.name || r.hotel_name,
+              hotel_name: full?.name || best?.name || r.hotel_name,
               hotel_stars: stars,
-              tripadvisor_location_id: String(best.location_id),
-              tripadvisor_url: full.tripadvisor_url ?? best.tripadvisor_url ?? null,
-              tripadvisor_address: full.address ?? best.address ?? null,
+              tripadvisor_location_id: best?.location_id ? String(best.location_id) : r.tripadvisor_location_id,
+              tripadvisor_url: full?.tripadvisor_url ?? best?.tripadvisor_url ?? null,
+              tripadvisor_address: full?.address ?? best?.address ?? null,
               tripadvisor_photos: saved.photos,
             })
             .eq("id", r.id);

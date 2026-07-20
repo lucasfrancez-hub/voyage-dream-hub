@@ -24,12 +24,6 @@ function isStoredPhoto(url: string) {
   return url.includes(`/api/public/package-hotel-photo/`);
 }
 
-async function assertAdmin(
-  supabase: Parameters<Parameters<typeof requireSupabaseAuth.options.server>[0]>[0] extends never ? never : unknown,
-) {
-  void supabase;
-}
-
 export const persistPackageHotelPhotos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => persistSchema.parse(input))
