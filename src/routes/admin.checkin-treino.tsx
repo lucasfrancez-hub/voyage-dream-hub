@@ -727,8 +727,27 @@ function TreinoPage() {
             <Button size="sm" variant="outline" disabled={busy || !sessionId} onClick={() => addManualStep({ action: "scroll", dy: 400 }, "Scroll ↓400")}>
               <ArrowUp className="h-3 w-3 mr-1 rotate-180" /> Scroll ↓400
             </Button>
+            <Button size="sm" variant="outline" disabled={busy || !sessionId} onClick={() => addManualStep({ action: "wait", ms: 8000 }, "Esperar carregar 8s")}>
+              <Clock className="h-3 w-3 mr-1" /> Esperar carregar 8s
+            </Button>
           </div>
         </Card>
+
+        {pdfs.length > 0 && (
+          <Card className="col-span-12 p-4">
+            <div className="text-xs font-medium mb-2">PDFs capturados nesta sessão</div>
+            <ul className="space-y-1 text-xs">
+              {pdfs.map((p, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{p.sizeKb} KB</span>
+                  <a href={p.url} target="_blank" rel="noreferrer" className="text-brand-orange underline truncate flex-1">
+                    {p.path}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
 
         {/* Logs */}
         {logs.length > 0 && (
