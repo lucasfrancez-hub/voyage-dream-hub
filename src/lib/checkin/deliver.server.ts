@@ -80,15 +80,45 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
   const flightNum = ci.flight_number ?? "";
   const locator = ci.locator ?? "";
 
-  // Busca destino / cidade a partir do order_item (details.to_city / to_iata).
+  // Busca destino / cidade a partir do order_item.
+  // Se a reserva tem conexões (mesmo locator, múltiplos trechos), usa o destino
+  // do ÚLTIMO trecho (destino final da viagem) — ex.: GRU→PTY→CUR → mostra CUR.
   let destino = "";
   if (ci.order_item_id) {
-    const { data: it } = await supabaseAdmin
+    // Busca o item ancorado e, se houver locator, todos os irmãos do mesmo locator no pedido
+    const { data: anchor } = await supabaseAdmin
       .from("order_items")
-      .select("details")
+      .select("id, order_id, details, supplier_locator")
       .eq("id", ci.order_item_id)
       .maybeSingle();
-    const d = (it?.details ?? {}) as Record<string, any>;
+    let finalDetails: Record<string, any> = (anchor?.details ?? {}) as Record<string, any>;
+    const anchorLocator = String(
+      (anchor as any)?.supplier_locator ||
+      finalDetails.carrier_locator ||
+      finalDetails.locator ||
+      ci.locator || "",
+    ).trim().toUpperCase();
+    if (anchor?.order_id && anchorLocator) {
+      const { data: siblings } = await supabaseAdmin
+        .from("order_items")
+        .select("id, details, supplier_locator")
+        .eq("order_id", anchor.order_id)
+        .eq("kind", "flight");
+      const chain = (siblings ?? [])
+        .filter((s: any) => {
+          const loc = String(
+            s.supplier_locator || s.details?.carrier_locator || s.details?.locator || "",
+          ).trim().toUpperCase();
+          return loc === anchorLocator;
+        })
+        .sort((a: any, b: any) => {
+          const da = new Date(a.details?.depart_at || a.details?.departure_at || 0).getTime();
+          const db = new Date(b.details?.depart_at || b.details?.departure_at || 0).getTime();
+          return da - db;
+        });
+      if (chain.length > 0) finalDetails = (chain[chain.length - 1].details ?? finalDetails) as Record<string, any>;
+    }
+    const d = finalDetails;
     const genericDestination = String(d.to || d.destination || "").trim();
     const iata = String(
       d.to_iata ||
@@ -102,8 +132,6 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
       const re = new RegExp(`\\b${airport.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "ig");
       rawCity = rawCity.replace(re, "").replace(/\s+/g, " ").trim();
     }
-    // Importações antigas podem trazer somente o IATA ou esvaziar a cidade
-    // ao remover o nome do aeroporto. Nesses casos, resolve a cidade pelo IATA.
     if (!rawCity || rawCity.toUpperCase() === iata) rawCity = iataCity(iata) ?? rawCity;
     const small = new Set(["de", "da", "do", "das", "dos", "e"]);
     const city = rawCity

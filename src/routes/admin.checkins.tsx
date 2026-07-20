@@ -246,21 +246,48 @@ function CheckinsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {current.flatMap((g) =>
-              g.segments.map((seg: any) => (
-                <SegmentCard
-                  key={`${tab}-${g.key}-${seg.order_item_id}`}
-                  group={g}
-                  seg={seg}
-                  variant={tab}
-                  busyKey={busyKey}
-                  sendingId={sendingId}
-                  onUpload={handleUpload}
-                  onRemove={handleRemove}
-                  onSend={handleSend}
-                />
-              )),
-            )}
+            {current.flatMap((g) => {
+              // Une trechos em conexão (dest[i] == origin[i+1]) num único card.
+              // O card ancora no primeiro trecho (upload e checkin ficam nele),
+              // mas exibe origem do primeiro e destino do último.
+              const segs = [...g.segments].sort(
+                (a: any, b: any) => new Date(a.departure_at || 0).getTime() - new Date(b.departure_at || 0).getTime(),
+              );
+              const journeys: any[] = [];
+              let cur: any[] = [];
+              for (const s of segs) {
+                if (cur.length === 0) { cur.push(s); continue; }
+                const prev = cur[cur.length - 1];
+                const sameChain =
+                  prev.destination && s.origin &&
+                  String(prev.destination).toUpperCase() === String(s.origin).toUpperCase();
+                if (sameChain) cur.push(s);
+                else { journeys.push(cur); cur = [s]; }
+              }
+              if (cur.length) journeys.push(cur);
+              return journeys.map((chain) => {
+                const first = chain[0];
+                const last = chain[chain.length - 1];
+                const merged = {
+                  ...first,
+                  destination: last.destination,
+                  connections: chain.length > 1 ? chain.slice(1).map((s: any) => s.origin) : [],
+                };
+                return (
+                  <SegmentCard
+                    key={`${tab}-${g.key}-${first.order_item_id}`}
+                    group={g}
+                    seg={merged}
+                    variant={tab}
+                    busyKey={busyKey}
+                    sendingId={sendingId}
+                    onUpload={handleUpload}
+                    onRemove={handleRemove}
+                    onSend={handleSend}
+                  />
+                );
+              });
+            })}
           </div>
         )}
 
@@ -359,12 +386,22 @@ function SegmentCard({
                   Enviado
                 </span>
               )}
+              {seg.connections && seg.connections.length > 0 && (
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500/10 text-amber-500">
+                  {seg.connections.length} conexão{seg.connections.length > 1 ? "es" : ""}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-3 mb-1 min-w-0">
               <span className="text-xl font-bold text-foreground truncate">{seg.origin ?? "?"}</span>
               <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="text-xl font-bold text-foreground truncate">{seg.destination ?? "?"}</span>
             </div>
+            {seg.connections && seg.connections.length > 0 && (
+              <div className="text-[11px] text-muted-foreground mb-1">
+                via {seg.connections.join(" · ")}
+              </div>
+            )}
             <div className="text-xs text-muted-foreground font-medium">
               {(seg.airline_label || seg.airline || "Voo")} {seg.flight_number || ""}
               {dep && (
