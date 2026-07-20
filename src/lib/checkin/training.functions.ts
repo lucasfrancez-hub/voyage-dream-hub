@@ -208,17 +208,19 @@ export const openTrainingSession = createServerFn({ method: "POST" })
       const result = await openLiveSession({ userId: context.userId, ...data });
       return { ok: true as const, ...result };
     } catch (error) {
-      console.error(error);
+      console.error("openTrainingSession failed:", error);
       const detail = error instanceof Error ? error.message : String(error);
+      const short = detail.slice(0, 400);
       const message = /LATAM_NAVIGATION_BLOCKED|ERR_HTTP2_PROTOCOL_ERROR|ERR_QUIC_PROTOCOL_ERROR/i.test(detail)
         ? data.useResidentialProxy
           ? "A LATAM bloqueou também a conexão residencial. Aguarde um pouco e tente abrir uma nova sessão."
           : "A LATAM bloqueou a conexão direta. Ative ‘Usar proxy residencial BR’ e abra uma nova sessão."
         : /408|timed out|timeout|aborted/i.test(detail)
-          ? "A LATAM demorou demais para abrir. A tentativa foi encerrada sem travar a tela; tente novamente."
-          : "Não foi possível abrir a sessão protegida da LATAM agora.";
+          ? `A LATAM demorou demais para abrir. Detalhe: ${short}`
+          : `Não foi possível abrir a sessão protegida da LATAM: ${short}`;
       return { ok: false as const, error: message };
     }
+
   });
 
 const RunStepInput = z.object({
