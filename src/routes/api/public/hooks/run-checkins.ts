@@ -150,6 +150,7 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
               status: "success",
               boarding_pass_path: path,
               boarding_pass_url: signed.data?.signedUrl ?? null,
+              error: null,
               completed_at: new Date().toISOString(),
             }).eq("id", ci.id);
 
