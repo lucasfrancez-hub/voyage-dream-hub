@@ -97,23 +97,34 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
     onError: (e: any) => toast.error(`Falha ao enviar: ${e?.message ?? "erro"}`),
   });
 
-  // Agrupa voos LATAM da mesma reserva (mesmo supplier_locator). Segmentos
+  // Agrupa voos da mesma reserva (mesmo supplier_locator). Segmentos
   // sem locator caem em grupos individuais (fallback pelo próprio id).
+  // Janela: 48h para doméstico (BR→BR) e 24h para internacional.
   const groups = useMemo<ReservationGroup[]>(() => {
     const now = Date.now();
-    const WINDOW_MS = 48 * 60 * 60 * 1000;
-
-    const latamItems = flightItems.filter(
-      (it) => detectAirline({ airline: it.details?.airline, flight_number: it.details?.flight_number }) === "LATAM",
-    );
 
     const bucket = new Map<string, Segment[]>();
-    for (const it of latamItems) {
+    for (const it of flightItems) {
       const ci = (checkins as any[]).find((c) => c.order_item_id === it.id) ?? null;
       const key = (it.supplier_locator || "").trim().toUpperCase() || `__solo:${it.id}`;
       if (!bucket.has(key)) bucket.set(key, []);
       bucket.get(key)!.push({ item: it, checkin: ci });
     }
+
+    // Detecta se algum trecho é internacional (fora do Brasil) para escolher a janela.
+    // Usa src/lib/iata-cities.json em runtime dinâmico só quando existir.
+    const isBRIata = (iata?: string | null) => {
+      if (!iata) return true; // sem info, assume doméstico
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const table = require("@/lib/iata-cities.json") as Record<string, { co?: string }>;
+        const rec = table[iata.toUpperCase()];
+        if (!rec?.co) return true;
+        return rec.co.toLowerCase().startsWith("bras");
+      } catch {
+        return true;
+      }
+    };
 
     const result: ReservationGroup[] = [];
     for (const [key, segsAll] of bucket) {
@@ -123,8 +134,13 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
         return da - db;
       });
 
-      // Dentro da reserva, oculta trechos que ainda não entraram no prazo de
-      // check-in (48h) — a menos que já tenham um check-in iniciado/feito.
+      const isIntl = segsAll.some(
+        (s) => !isBRIata(s.item.details?.from_iata) || !isBRIata(s.item.details?.to_iata),
+      );
+      const WINDOW_MS = (isIntl ? 24 : 48) * 60 * 60 * 1000;
+
+      // Dentro da reserva, oculta trechos que ainda não entraram na janela — a
+      // menos que já tenham um check-in iniciado/feito.
       const segs = segsAll.filter((s) => {
         if (s.checkin) return true;
         const dep = new Date((s.item.details?.depart_at ?? s.item.details?.departure_at) || 0).getTime();
@@ -157,6 +173,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
     result.sort((a, b) => (a.firstDep ?? 0) - (b.firstDep ?? 0));
     return result;
   }, [flightItems, checkins]);
+
 
   if (groups.length === 0) return null;
 
