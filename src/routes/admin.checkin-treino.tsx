@@ -419,7 +419,7 @@ function TreinoPage() {
           ) : (
             <Badge variant="outline">Sem sessão</Badge>
           )}
-          <Badge variant="outline">LATAM</Badge>
+          <Badge variant="outline">{airline}</Badge>
         </div>
       </div>
 
