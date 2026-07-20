@@ -89,27 +89,41 @@ function buildClientMessage(r: {
   newArriveAt: string | null;
   newStatus: string | null;
   customerName: string;
+  severity?: string;
 }) {
   const first = (r.customerName || "").split(/\s+/)[0] || "";
+  const isMinor = r.severity === "minor";
   const lines: string[] = [];
-  lines.push(`Olá${first ? `, ${first}` : ""}! 👋`);
+  lines.push(`Olá, ${first || "tudo bem"}! 👋`);
   lines.push("");
-  lines.push(`Informamos uma atualização no seu voo *${r.flightNumber}*${r.locator ? ` (localizador *${r.locator}*)` : ""}:`);
+  lines.push(`*Informamos uma atualização no seu voo ${r.flightNumber}.*`);
   lines.push("");
-  if (r.oldDepartAt) lines.push(`🕓 Saída anterior: ${fmtDateTime(r.oldDepartAt)}`);
-  if (r.newDepartAt) lines.push(`🆕 Nova saída: ${fmtDateTime(r.newDepartAt)}`);
-  if (r.oldArriveAt || r.newArriveAt) lines.push("");
-  if (r.oldArriveAt) lines.push(`🛬 Chegada anterior: ${fmtDateTime(r.oldArriveAt)}`);
-  if (r.newArriveAt) lines.push(`🆕 Nova chegada: ${fmtDateTime(r.newArriveAt)}`);
+  if (r.locator) {
+    lines.push(`🎫 *Localizador*: ${r.locator}`);
+    lines.push("");
+  }
+  lines.push(`🕓 *Horário de saída*`);
+  lines.push(`• *Anterior*: ${fmtDateTime(r.oldDepartAt)}`);
+  lines.push(`• *Atual*: ${fmtDateTime(r.newDepartAt)}`);
+  lines.push("");
+  lines.push(`🛬 *Horário de chegada*`);
+  lines.push(`• *Anterior*: ${fmtDateTime(r.oldArriveAt)}`);
+  lines.push(`• *Atual*: ${fmtDateTime(r.newArriveAt)}`);
+  if (isMinor) {
+    lines.push("");
+    lines.push(`ℹ️ _Esta alteração foi inferior a 30 minutos. Sua reserva permanece confirmada e não é necessário realizar nenhuma ação. Esta mensagem é apenas para mantê-lo(a) informado(a)._`);
+  }
   if (r.newStatus && r.newStatus.toLowerCase() !== "expected") {
     lines.push("");
     lines.push(`ℹ️ Status: ${r.newStatus}`);
   }
   lines.push("");
-  lines.push("Qualquer dúvida estamos à disposição. ✈️💛");
-  lines.push("— Equipe VIA AIR");
+  lines.push("Em caso de dúvidas, estamos à disposição. ✈️💛");
+  lines.push("");
+  lines.push("- _Equipe VIA AIR_");
   return lines.join("\n");
 }
+
 
 type AlertRow = {
   id: string;
