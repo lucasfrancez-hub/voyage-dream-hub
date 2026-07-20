@@ -116,16 +116,26 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
             }).eq("id", ci.id);
 
             // Só rodamos via script salvo no treinador. Autopilot antigo foi removido.
+            // Conta os passageiros da reserva pra escolher o script (1 pax, 2 pax, …).
+            const paxCountRes = await supabaseAdmin
+              .from("order_passengers")
+              .select("id", { count: "exact", head: true })
+              .eq("order_id", ci.order_id);
+            const paxCount = (paxCountRes as any).count ?? null;
             const { data: scriptRows } = await supabaseAdmin
               .from("checkin_training_scripts")
-              .select("id, initial_url, steps, viewport_width, viewport_height")
+              .select("id, initial_url, steps, viewport_width, viewport_height, pax_count")
               .eq("airline", "LATAM")
-              .order("updated_at", { ascending: false })
-              .limit(1);
-            const script = (scriptRows ?? [])[0] as any;
+              .order("updated_at", { ascending: false });
+            const allScripts = (scriptRows ?? []) as any[];
+            const script =
+              (paxCount != null && allScripts.find((s) => Number(s.pax_count) === Number(paxCount))) ||
+              allScripts.find((s) => s.pax_count == null) ||
+              allScripts[0];
             if (!script || !Array.isArray(script.steps) || script.steps.length === 0) {
               throw new Error("Nenhum script de treinador salvo para LATAM. Grave um em /admin/checkin-treino.");
             }
+
             const runUrl = rebuildInitialUrlForOrder(script.initial_url, ci.locator, ci.pnr_surname);
             const result = await runScriptInLiveSession({
               userId: `cron:${ci.id}`,
