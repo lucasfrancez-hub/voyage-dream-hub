@@ -130,6 +130,13 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     parts.push(`- nome_do_cliente: não informado. Pergunte como pode chamar antes de continuar.`);
   }
   parts.push(`- Protocolo ATIVO: ${protocolo.numero} (uso interno — NÃO mencione o número ao cliente na abertura nem no meio da conversa; ele só aparece na mensagem automática de encerramento).`);
+  parts.push(
+    `- Mensagens marcadas com "[sistema · <tipo>]" no histórico são AÇÕES AUTOMÁTICAS que a VIA AIR já enviou pra esse cliente (check-in, alerta/cancelamento de voo, voucher, recibo, contrato). ` +
+    `Elas trazem localizador, número do voo, pedido, data, passageiro e outros dados. ` +
+    `Se o cliente responder algo ligado a esse assunto (ex.: "remarcar voo", "quero reembolso", "não recebi o cartão", "quando é o voo?"), ` +
+    `USE ESSES DADOS DIRETO — jamais peça localizador/CPF/número do pedido pra localizar algo que já está no [sistema · ...]. ` +
+    `Assuma que o pedido está identificado por esse localizador e siga o atendimento.`
+  );
 
   if (conv.identity_verified_at) {
     parts.push(`- Identidade JÁ VERIFICADA. Pode falar de dados financeiros/pedidos.`);
