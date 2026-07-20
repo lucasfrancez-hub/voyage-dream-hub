@@ -91,6 +91,262 @@ export const listUpcomingFlights = createServerFn({ method: "GET" })
   });
 
 /**
+ * Fluxo MANUAL: agrupa próximos voos LATAM (7 dias) por localizador, com
+ * segmentos, passageiros e o registro atual de flight_checkins de cada
+ * segmento. O admin baixa o cartão de cada passageiro pelo link da LATAM,
+ * anexa e envia via WhatsApp.
+ */
+export const listManualQueue = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = context.supabase as any;
+    const now = new Date();
+    const in7d = new Date(now.getTime() + 7 * 24 * 3600 * 1000).toISOString();
+    const nowIso = now.toISOString();
+
+    const { data: items } = await sb
+      .from("order_items")
+      .select("id, order_id, details, supplier_locator, order:orders(id, order_number, full_name, deleted_at)")
+      .eq("kind", "flight")
+      .or(`and(details->>depart_at.gte.${nowIso},details->>depart_at.lte.${in7d}),and(details->>departure_at.gte.${nowIso},details->>departure_at.lte.${in7d})`)
+      .limit(500);
+
+    const flightItems = ((items ?? []) as any[])
+      .filter((it) => !it.order?.deleted_at)
+      .filter((it) => detectAirline({ airline: it.details?.airline, flight_number: it.details?.flight_number }) === "LATAM")
+      .map((it) => {
+        const url = String(it.details?.airline_checkin_url || "");
+        let latamOrderId = "";
+        try { latamOrderId = new URL(url).searchParams.get("orderId")?.trim().toUpperCase() || ""; } catch { /* noop */ }
+        const locator = (
+          latamOrderId ||
+          it.details?.purchase_order ||
+          it.details?.order_id ||
+          it.supplier_locator ||
+          it.details?.locator ||
+          ""
+        ).toString().trim().toUpperCase();
+        return {
+          id: it.id as string,
+          order_id: it.order_id as string,
+          order: it.order,
+          locator,
+          flight_number: it.details?.flight_number ?? null,
+          departure_at: it.details?.depart_at ?? it.details?.departure_at ?? null,
+          origin: it.details?.from_iata ?? it.details?.origin ?? null,
+          destination: it.details?.to_iata ?? it.details?.destination ?? null,
+        };
+      })
+      .filter((it) => it.locator);
+
+    const orderIds = Array.from(new Set(flightItems.map((it) => it.order_id)));
+    const itemIds = flightItems.map((it) => it.id);
+
+    const [{ data: pax }, { data: ci }] = await Promise.all([
+      orderIds.length
+        ? sb.from("order_passengers")
+            .select("id, order_id, full_name, passenger_type, sort_order, whatsapp")
+            .in("order_id", orderIds)
+            .order("sort_order", { ascending: true })
+        : Promise.resolve({ data: [] as any[] }),
+      itemIds.length
+        ? sb.from("flight_checkins")
+            .select("id, order_item_id, status, boarding_passes, delivered_wa_at, boarding_pass_path")
+            .in("order_item_id", itemIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const paxByOrder = new Map<string, any[]>();
+    for (const p of (pax ?? []) as any[]) {
+      const arr = paxByOrder.get(p.order_id) ?? [];
+      arr.push(p);
+      paxByOrder.set(p.order_id, arr);
+    }
+    const ciByItem = new Map<string, any>();
+    for (const c of (ci ?? []) as any[]) ciByItem.set(c.order_item_id, c);
+
+    // Agrupa por (order_id + locator) — cada reserva é um card
+    const groups = new Map<string, any>();
+    for (const it of flightItems) {
+      const key = `${it.order_id}::${it.locator}`;
+      let g = groups.get(key);
+      if (!g) {
+        const passengers = (paxByOrder.get(it.order_id) ?? []).map((p, i) => {
+          const type = (p.passenger_type ?? "ADT") as "ADT" | "CHD" | "INF";
+          return { id: p.id, index: i + 1, full_name: p.full_name, passenger_type: type, whatsapp: p.whatsapp };
+        });
+        // tripPassengerId da LATAM é sequencial por tipo (ADT_1, ADT_2, CHD_1…).
+        const perTypeCount: Record<string, number> = {};
+        for (const p of passengers) {
+          perTypeCount[p.passenger_type] = (perTypeCount[p.passenger_type] ?? 0) + 1;
+          (p as any).trip_passenger_id = `${p.passenger_type}_${perTypeCount[p.passenger_type]}`;
+        }
+        const surname = passengers[0]?.full_name?.split(/\s+/).slice(-1)[0]?.toLowerCase() ?? "";
+        g = {
+          key,
+          order: it.order,
+          locator: it.locator,
+          surname,
+          passengers,
+          segments: [] as any[],
+        };
+        groups.set(key, g);
+      }
+      const checkin = ciByItem.get(it.id) ?? null;
+      g.segments.push({
+        order_item_id: it.id,
+        flight_number: it.flight_number,
+        departure_at: it.departure_at,
+        origin: it.origin,
+        destination: it.destination,
+        checkin,
+      });
+    }
+
+    // Ordena segmentos por horário e injeta segment_index
+    const list = Array.from(groups.values()).map((g) => {
+      g.segments.sort((a: any, b: any) => new Date(a.departure_at || 0).getTime() - new Date(b.departure_at || 0).getTime());
+      g.segments.forEach((s: any, i: number) => { s.segment_index = i; });
+      return g;
+    });
+    list.sort((a, b) => {
+      const da = new Date(a.segments[0]?.departure_at || 0).getTime();
+      const db = new Date(b.segments[0]?.departure_at || 0).getTime();
+      return da - db;
+    });
+    return list;
+  });
+
+/**
+ * Upload MANUAL: admin anexa o cartão baixado da LATAM para um passageiro
+ * específico de um segmento. Cria o registro de flight_checkins se não existir
+ * e adiciona/substitui o cartão no array `boarding_passes` no índice do pax.
+ */
+export const uploadManualBoardingPass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: {
+    orderItemId: string;
+    passengerIndex: number;
+    fileBase64: string;
+    ext: "pdf" | "png" | "jpg";
+    contentType: string;
+  }) => data)
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    const { userId } = context as { userId: string };
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isStaff } = await sb.rpc("has_role", { _user_id: userId, _role: "user" });
+    if (!isAdmin && !isStaff) throw new Error("Sem permissão");
+
+    const { data: item } = await sb
+      .from("order_items")
+      .select("id, order_id, details, supplier_locator")
+      .eq("id", data.orderItemId)
+      .maybeSingle();
+    if (!item) throw new Error("Item não encontrado");
+
+    const airline = detectAirline({ airline: item.details?.airline, flight_number: item.details?.flight_number });
+    const url = String(item.details?.airline_checkin_url || "");
+    let latamOrderId = "";
+    try { latamOrderId = new URL(url).searchParams.get("orderId")?.trim().toUpperCase() || ""; } catch { /* noop */ }
+    const locator = (
+      latamOrderId || item.details?.purchase_order || item.details?.order_id ||
+      item.supplier_locator || item.details?.locator || ""
+    ).toString().trim().toUpperCase();
+
+    const { data: paxRow } = await sb
+      .from("order_passengers")
+      .select("full_name")
+      .eq("order_id", item.order_id)
+      .order("sort_order", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const surname = paxRow?.full_name?.split(/\s+/).slice(-1)[0] ?? "";
+
+    // upsert do check-in (passenger_id NULL: registro único por segmento)
+    let { data: existing } = await sb
+      .from("flight_checkins")
+      .select("id, boarding_passes")
+      .eq("order_item_id", data.orderItemId)
+      .is("passenger_id", null)
+      .maybeSingle();
+
+    if (!existing) {
+      const ins = await sb.from("flight_checkins").insert({
+        order_id: item.order_id,
+        order_item_id: item.id,
+        passenger_id: null,
+        cia: airline ?? "LATAM",
+        locator: locator || "MANUAL",
+        pnr_surname: surname,
+        flight_number: item.details?.flight_number ?? null,
+        departure_at: item.details?.depart_at ?? item.details?.departure_at ?? null,
+        status: "pending",
+        mode: "code",
+      }).select("id, boarding_passes").single();
+      if (ins.error) throw new Error(ins.error.message);
+      existing = ins.data as any;
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const bytes = Uint8Array.from(atob(data.fileBase64), (c) => c.charCodeAt(0));
+    const path = `manual/${item.order_id}/${existing.id}/pax-${data.passengerIndex}.${data.ext}`;
+    const up = await supabaseAdmin.storage.from("boarding-passes")
+      .upload(path, bytes, { contentType: data.contentType, upsert: true });
+    if (up.error) throw new Error(`Storage: ${up.error.message}`);
+
+    const currentArr: Array<{ path: string; url: string | null; passenger_index: number }> =
+      Array.isArray(existing.boarding_passes) ? (existing.boarding_passes as any) : [];
+    const filtered = currentArr.filter((p) => p.passenger_index !== data.passengerIndex);
+    filtered.push({ path, url: null, passenger_index: data.passengerIndex });
+    filtered.sort((a, b) => a.passenger_index - b.passenger_index);
+
+    await sb.from("flight_checkins").update({
+      boarding_passes: filtered,
+      boarding_pass_path: filtered[0]?.path ?? path,
+      status: "success",
+      error: null,
+      completed_at: new Date().toISOString(),
+    }).eq("id", existing.id);
+
+    return { ok: true, checkinId: existing.id, count: filtered.length };
+  });
+
+/**
+ * Remove o cartão de um passageiro específico do check-in manual.
+ */
+export const removeManualBoardingPass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { checkinId: string; passengerIndex: number }) => data)
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    const { userId } = context as { userId: string };
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isStaff } = await sb.rpc("has_role", { _user_id: userId, _role: "user" });
+    if (!isAdmin && !isStaff) throw new Error("Sem permissão");
+
+    const { data: row } = await sb.from("flight_checkins")
+      .select("id, boarding_passes")
+      .eq("id", data.checkinId).maybeSingle();
+    if (!row) throw new Error("Check-in não encontrado");
+    const arr: Array<{ path: string; passenger_index: number }> =
+      Array.isArray(row.boarding_passes) ? (row.boarding_passes as any) : [];
+    const removed = arr.find((p) => p.passenger_index === data.passengerIndex);
+    const remaining = arr.filter((p) => p.passenger_index !== data.passengerIndex);
+    if (removed) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.storage.from("boarding-passes").remove([removed.path]);
+    }
+    await sb.from("flight_checkins").update({
+      boarding_passes: remaining,
+      boarding_pass_path: remaining[0]?.path ?? null,
+      status: remaining.length > 0 ? "success" : "pending",
+      delivered_wa_at: remaining.length > 0 ? null : null,
+    }).eq("id", data.checkinId);
+    return { ok: true, count: remaining.length };
+  });
+
+/**
  * Reenvia o cartão de embarque para o(s) WhatsApp(s) dos passageiros.
  */
 export const resendBoardingPass = createServerFn({ method: "POST" })
