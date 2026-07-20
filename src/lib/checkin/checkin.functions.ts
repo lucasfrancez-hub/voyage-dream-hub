@@ -169,7 +169,7 @@ export const listManualQueue = createServerFn({ method: "GET" })
         : Promise.resolve({ data: [] as any[] }),
       itemIds.length
         ? sb.from("flight_checkins")
-            .select("id, order_item_id, status, boarding_passes, delivered_wa_at, boarding_pass_path")
+            .select("id, order_item_id, passenger_id, status, boarding_passes, delivered_wa_at, boarding_pass_path, updated_at")
             .in("order_item_id", itemIds)
         : Promise.resolve({ data: [] as any[] }),
     ]);
@@ -181,7 +181,17 @@ export const listManualQueue = createServerFn({ method: "GET" })
       paxByOrder.set(p.order_id, arr);
     }
     const ciByItem = new Map<string, any>();
-    for (const c of (ci ?? []) as any[]) ciByItem.set(c.order_item_id, c);
+    for (const c of (ci ?? []) as any[]) {
+      const current = ciByItem.get(c.order_item_id);
+      const score = (row: any) => {
+        const passCount = Array.isArray(row?.boarding_passes) ? row.boarding_passes.length : 0;
+        const isManualJourney = row?.passenger_id == null ? 1 : 0;
+        return isManualJourney * 1_000_000 + passCount * 10_000 + new Date(row?.updated_at || 0).getTime() / 1e13;
+      };
+      // Pode existir um registro legado por passageiro no mesmo trecho. Na fila
+      // manual, o registro consolidado (passenger_id nulo) e com anexos é canônico.
+      if (!current || score(c) > score(current)) ciByItem.set(c.order_item_id, c);
+    }
 
     // Agrupa por (order_id + locator) — cada reserva é um card
     const groups = new Map<string, any>();
@@ -323,15 +333,25 @@ export const uploadManualBoardingPass = createServerFn({ method: "POST" })
     filtered.push({ path, url: null, passenger_index: data.passengerIndex });
     filtered.sort((a, b) => a.passenger_index - b.passenger_index);
 
-    await sb.from("flight_checkins").update({
+    // A autorização já foi validada com o cliente do usuário. Persistimos com o
+    // cliente administrativo para que o arquivo e seu vínculo sejam atômicos e
+    // não dependam de variações de políticas antigas desta tabela.
+    const persisted = await supabaseAdmin.from("flight_checkins").update({
       boarding_passes: filtered,
       boarding_pass_path: filtered[0]?.path ?? path,
       status: "success",
       error: null,
       completed_at: new Date().toISOString(),
-    }).eq("id", existing.id);
+    }).eq("id", existing.id).select("id, boarding_passes").single();
+    if (persisted.error) {
+      await supabaseAdmin.storage.from("boarding-passes").remove([path]);
+      throw new Error(`Não foi possível fixar o anexo: ${persisted.error.message}`);
+    }
 
-    return { ok: true, checkinId: existing.id, count: filtered.length };
+    const savedPasses = Array.isArray(persisted.data?.boarding_passes)
+      ? persisted.data.boarding_passes
+      : filtered;
+    return { ok: true, checkinId: existing.id, count: savedPasses.length };
   });
 
 /**
