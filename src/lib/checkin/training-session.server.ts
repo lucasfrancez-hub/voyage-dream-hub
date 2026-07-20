@@ -38,7 +38,9 @@ interface StoredSession {
   createdAt: number;
   lastUsed: number;
   viewport: { width: number; height: number };
+  stealthApplied?: boolean;
 }
+
 
 // Cache no globalThis pra sobreviver a HMR/reimports do módulo dentro do
 // mesmo isolate. Cloudflare pode reciclar o isolate entre requests — quando
@@ -105,9 +107,13 @@ async function withConnection<T>(
         deviceScaleFactor: 1,
       })
       .catch(() => {});
-    // Reforço stealth: UA/idioma/timezone/geo BR + máscara de webdriver.
-    await applyStealth(page).catch(() => {});
+    // Reforço stealth: só na primeira conexão (evita reload em branco).
+    if (!session.stealthApplied) {
+      await applyStealth(page).catch(() => {});
+      session.stealthApplied = true;
+    }
     await page.bringToFront().catch(() => {});
+
     const result = await fn(page, browser);
 
     // `reconnect(timeout)` vale a partir do momento em que foi solicitado.
@@ -154,7 +160,7 @@ async function applyStealth(page: Page) {
   try {
     const cdp = await page.createCDPSession();
     await cdp.send("Emulation.setTimezoneOverride" as never, { timezoneId: "America/Sao_Paulo" } as never).catch(() => {});
-    await cdp.send("Emulation.setLocaleOverride" as never, { locale: "pt-BR" } as never).catch(() => {});
+    // NOTA: não usar Emulation.setLocaleOverride — força reload em branco.
     await cdp
       .send("Emulation.setGeolocationOverride" as never, {
         latitude: -23.5505,
