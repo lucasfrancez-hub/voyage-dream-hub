@@ -5,7 +5,7 @@
  */
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendWhatsAppDocument } from "@/lib/whatsapp/send.server";
+import { sendWhatsAppDocumentBytes } from "@/lib/whatsapp/send.server";
 
 function normalizePhone(raw: string | null | undefined): string {
   return (raw ?? "").replace(/\D/g, "");
@@ -34,17 +34,32 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
     .maybeSingle();
   if (!ci) return report;
 
-  // Gera URL assinada fresca (24h) direto do storage — evita depender de publish
-  // do endpoint /api/public/bp/:id e evita usar uma URL antiga expirada.
+  // Carrega o PDF diretamente do storage. Além de evitar URLs assinadas no
+  // envio à UazAPI, isso detecta registros antigos cujo arquivo foi apagado.
   let url = ci.boarding_pass_url ?? "";
+  let pdfBytes: Uint8Array | null = null;
   if (ci.boarding_pass_path) {
+    const downloaded = await supabaseAdmin.storage
+      .from("boarding-passes")
+      .download(ci.boarding_pass_path);
+    if (downloaded.error || !downloaded.data) {
+      const error = "PDF não encontrado no armazenamento. Clique em “Regerar cartão” antes de enviar.";
+      await supabaseAdmin
+        .from("flight_checkins")
+        .update({ status: "failed", error, boarding_pass_path: null, boarding_pass_url: null })
+        .eq("id", checkinId);
+      report.failed.push({ name: "—", error });
+      return report;
+    }
+    pdfBytes = new Uint8Array(await downloaded.data.arrayBuffer());
+
     const signed = await supabaseAdmin.storage
       .from("boarding-passes")
       .createSignedUrl(ci.boarding_pass_path, 60 * 60 * 24);
     if (signed.data?.signedUrl) url = signed.data.signedUrl;
   }
-  if (!url) {
-    report.failed.push({ name: "—", error: "cartão de embarque sem URL/arquivo" });
+  if (!pdfBytes) {
+    report.failed.push({ name: "—", error: "PDF não encontrado no armazenamento. Clique em “Regerar cartão” antes de enviar." });
     return report;
   }
   const flightNum = ci.flight_number ?? "";
@@ -108,7 +123,13 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
     const first = (pax.full_name ?? "").split(/\s+/)[0] || "";
     const caption = `✈️ *Cartão de embarque LATAM* ${flightNum}\n\nOlá, ${first}! Fizemos seu check-in. Aqui está seu cartão de embarque em PDF. Bom voo! 💛`;
     try {
-      const r = await sendWhatsAppDocument(phone, url, `cartao-embarque-${flightNum || pax.id.slice(0, 6)}.pdf`, caption);
+      const r = await sendWhatsAppDocumentBytes(
+        phone,
+        pdfBytes,
+        `cartao-embarque-${flightNum || pax.id.slice(0, 6)}.pdf`,
+        caption,
+        url || undefined,
+      );
       if (r.id) {
         report.delivered++;
       } else {

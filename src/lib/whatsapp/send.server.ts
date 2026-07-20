@@ -109,6 +109,31 @@ async function uazSendMedia(
   });
 }
 
+async function uazSendMediaBytes(
+  to: string,
+  type: "image" | "document" | "video" | "audio",
+  bytes: Uint8Array,
+  opts: { caption?: string | null; filename?: string } = {},
+): Promise<{ id: string | null; error?: string }> {
+  if (bytes.byteLength === 0) return { id: null, error: "arquivo vazio" };
+
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  const mime = mimeForType(type, opts.filename);
+  const dataUri = `data:${mime};base64,${btoa(bin)}`;
+
+  return uazPost("/send/media", {
+    number: normalizePhone(to),
+    type,
+    file: dataUri,
+    ...(opts.caption ? { text: opts.caption.slice(0, 1024) } : {}),
+    ...(opts.filename ? { docName: opts.filename.slice(0, 240) } : {}),
+  });
+}
+
 // ================== Meta (fallback) ==================
 
 async function metaSendText(to: string, body: string): Promise<{ id: string | null; error?: string }> {
@@ -268,5 +293,30 @@ export async function sendWhatsAppDocument(
   return metaSendMedia(to, {
     type: "document",
     document: { link, filename: filename.slice(0, 240), ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+  });
+}
+
+/**
+ * Envia um documento já carregado pelo servidor. Evita URLs assinadas e
+ * permite que a entrega de cartões use diretamente os bytes do storage.
+ */
+export async function sendWhatsAppDocumentBytes(
+  to: string,
+  bytes: Uint8Array,
+  filename: string,
+  caption?: string | null,
+  fallbackLink?: string,
+): Promise<{ id: string | null; error?: string }> {
+  if (uazConfigured()) {
+    return uazSendMediaBytes(to, "document", bytes, { caption, filename });
+  }
+  if (!fallbackLink) return { id: null, error: "URL do documento ausente" };
+  return metaSendMedia(to, {
+    type: "document",
+    document: {
+      link: fallbackLink,
+      filename: filename.slice(0, 240),
+      ...(caption ? { caption: caption.slice(0, 1024) } : {}),
+    },
   });
 }
