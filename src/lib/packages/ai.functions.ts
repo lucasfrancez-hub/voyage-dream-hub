@@ -238,6 +238,65 @@ async function fetchOpenverse(query: string, page: number): Promise<CoverImage[]
   }
 }
 
+async function fetchPexels(query: string, page: number): Promise<CoverImage[]> {
+  const key = process.env.PEXELS_API_KEY;
+  if (!key) return [];
+  try {
+    const url = new URL("https://api.pexels.com/v1/search");
+    url.searchParams.set("query", query);
+    url.searchParams.set("per_page", "30");
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("orientation", "landscape");
+    url.searchParams.set("size", "large");
+    const resp = await fetch(url.toString(), { headers: { Authorization: key } });
+    if (!resp.ok) return [];
+    const json = (await resp.json()) as any;
+    const results = Array.isArray(json?.photos) ? json.photos : [];
+    return results
+      .map((r: any) => ({
+        thumb: (r?.src?.medium as string) || (r?.src?.small as string) || "",
+        url: (r?.src?.large2x as string) || (r?.src?.large as string) || (r?.src?.original as string) || "",
+        title: (r?.alt as string) || query,
+        source: "Pexels",
+        author: (r?.photographer as string) || "",
+      }))
+      .filter((x: CoverImage) => !!x.url);
+  } catch {
+    return [];
+  }
+}
+
+async function fetchUnsplash(query: string, page: number): Promise<CoverImage[]> {
+  const key = process.env.UNSPLASH_ACCESS_KEY;
+  if (!key) return [];
+  try {
+    const url = new URL("https://api.unsplash.com/search/photos");
+    url.searchParams.set("query", query);
+    url.searchParams.set("per_page", "30");
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("orientation", "landscape");
+    url.searchParams.set("content_filter", "high");
+    const resp = await fetch(url.toString(), {
+      headers: { Authorization: `Client-ID ${key}`, "Accept-Version": "v1" },
+    });
+    if (!resp.ok) return [];
+    const json = (await resp.json()) as any;
+    const results = Array.isArray(json?.results) ? json.results : [];
+    return results
+      .map((r: any) => ({
+        thumb: (r?.urls?.small as string) || (r?.urls?.thumb as string) || "",
+        url: (r?.urls?.regular as string) || (r?.urls?.full as string) || "",
+        title: (r?.description as string) || (r?.alt_description as string) || query,
+        source: "Unsplash",
+        author: (r?.user?.name as string) || "",
+      }))
+      .filter((x: CoverImage) => !!x.url);
+  } catch {
+    return [];
+  }
+}
+
+
 export const searchCoverImages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
