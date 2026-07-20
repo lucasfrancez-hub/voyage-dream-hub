@@ -230,7 +230,7 @@ function AdminPackages() {
       const n = numbering.number;
       normalized.title = normalized.title.replace(/\s*#\d+\s*$/, "").trim();
       const cleanSlug = normalized.slug.replace(/[-#]\d+$/, "");
-      normalized.slug = `${cleanSlug}#${n}`;
+      normalized.slug = `${cleanSlug}-${n}`;
     }
 
 
@@ -798,10 +798,10 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     if (!editing.title && derived.title) patch.title = derived.title;
     const currentSlug = editing.slug || derived.slug || "";
     if (currentSlug) {
-      const needsNumber = !editing.id && nextNumber && !/#\d+$/.test(currentSlug);
+      const needsNumber = !editing.id && nextNumber && !/-\d+$/.test(currentSlug) && !/#\d+$/.test(currentSlug);
       if (needsNumber) {
         const base = currentSlug.replace(/[-#]\d+$/, "");
-        patch.slug = `${base}#${nextNumber}`;
+        patch.slug = `${base}-${nextNumber}`;
       } else if (!editing.slug && derived.slug) {
         patch.slug = derived.slug;
       }

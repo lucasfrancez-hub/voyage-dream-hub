@@ -1,0 +1,1 @@
+UPDATE public.packages SET slug = REPLACE(slug, '#', '-') WHERE slug LIKE '%#%';
