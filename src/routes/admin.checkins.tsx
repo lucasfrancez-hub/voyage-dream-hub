@@ -373,7 +373,7 @@ function BookingCard({
               <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
                 <div>
                   <div className="font-semibold text-sm">
-                    LATAM {seg.flight_number || ""} · {seg.origin ?? "?"} → {seg.destination ?? "?"}
+                    {seg.airline_label || seg.airline || "Voo"} {seg.flight_number || ""} · {seg.origin ?? "?"} → {seg.destination ?? "?"}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {dep ? dep.toLocaleString("pt-BR", { timeZone: "UTC", dateStyle: "short", timeStyle: "short" }) : "Sem horário"}
