@@ -1,0 +1,2 @@
+alter table public.flight_checkins add column if not exists boarding_passes jsonb not null default '[]'::jsonb;
+comment on column public.flight_checkins.boarding_passes is 'Array de {path,url,passenger_index,passenger_id,filename} — 1 item por passageiro capturado no treinador. boarding_pass_path/url continua sendo o primário (retrocompat).';
