@@ -370,6 +370,7 @@ function TreinoPage() {
         if (region?.signedUrl) {
           setPdfs((prev) => [{ url: region.signedUrl!, path: region.path, sizeKb: region.sizeKb, source: result.currentUrl, kind: "png" }, ...prev]);
         }
+      }
       setShot(latest);
       setLogs(executionLogs);
       toast.success(`Validado: ${latest.title || latest.url}`);
