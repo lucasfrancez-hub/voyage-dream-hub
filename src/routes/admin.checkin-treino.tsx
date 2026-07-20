@@ -19,19 +19,32 @@ import {
   heartbeatTrainingSession,
   closeTrainingSession,
   captureTrainingPdf,
+  listTrainingScripts,
+  getTrainingScript,
+  saveTrainingScript,
+  deleteTrainingScript,
   type TrainingStep,
 } from "@/lib/checkin/training.functions";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/admin/checkin-treino")({
   head: () => ({ meta: [{ title: "Treinador de Check-in — VIA AIR" }] }),
   component: TreinoPage,
 });
 
+type Airline = "LATAM" | "GOL" | "AZUL";
 type VisionTarget = { label: string; x: number; y: number; w: number; h: number; confidence?: number };
 type VisionParsed = { reasoning?: string; targets?: VisionTarget[]; notes?: string; raw?: string };
 type Shot = { b64: string; w: number; h: number; url: string; title: string };
+type SavedScript = { id: string; airline: Airline; name: string; initial_url: string; viewport_width: number; viewport_height: number; updated_at: string };
 
-const DEFAULT_URL = "https://www.latamairlines.com/br/pt/check-in/status?orderId=LA9571886LWKG&lastName=pereira";
+const DEFAULT_URL_BY_AIRLINE: Record<Airline, string> = {
+  LATAM: "https://www.latamairlines.com/br/pt/check-in/status?orderId=LA9571886LWKG&lastName=pereira",
+  GOL: "https://www.voegol.com.br/checkin",
+  AZUL: "https://www.voeazul.com.br/br/pt/home/check-in",
+};
 const DEFAULT_QUESTION =
   "Identifique os campos para iniciar check-in por localizador (código de reserva) e sobrenome, e o botão para continuar. Retorne cada elemento em 'targets' com coordenadas do centro e tamanho.";
 const SESSION_STORAGE_KEY = "via_training_session_id";
