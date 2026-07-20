@@ -237,15 +237,32 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                       Enviar cartão
                     </Button>
                   )}
-                  {!allSuccess && (
-                    <a
-                      href="/admin/checkins"
-                      className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
-                      title="Abrir a fila manual de check-in"
-                    >
-                      Anexar cartão
-                    </a>
-                  )}
+                  {!allSuccess && (() => {
+                    const hasSome = group.segments.some((s) => s.checkin?.id);
+                    return (
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          if (hasSome) {
+                            e.preventDefault();
+                            const ok = await confirm({
+                              title: "Cartão já anexado",
+                              description: "Já existe cartão anexado nesta reserva. Deseja abrir a fila para adicionar/substituir?",
+                              confirmText: "Abrir fila",
+                              cancelText: "Cancelar",
+                            });
+                            if (!ok) return;
+                          }
+                          window.location.href = "/admin/checkins";
+                        }}
+                        className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                        title="Abrir a fila manual de check-in"
+                      >
+                        Anexar cartão
+                      </button>
+                    );
+                  })()}
+
 
 
                 </div>
