@@ -509,31 +509,50 @@ function SegmentCard({
         <div className="p-5 md:w-72 shrink-0 bg-card/30 md:border-r border-border/60 flex flex-col justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${pillCls}`}>
-                {status.text}
-              </span>
+              {variant === "done" ? (
+                <span
+                  title="Concluído"
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-500"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </span>
+              ) : variant === "upcoming" ? (
+                <span
+                  title={status.text}
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted text-muted-foreground"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                </span>
+              ) : (
+                <span
+                  title="Janela aberta"
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-brand-orange/15 text-brand-orange"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                </span>
+              )}
               {alreadySent && (
-                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-sky-500/10 text-sky-500">
-                  Enviado
+                <span
+                  title="Enviado no WhatsApp"
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-sky-500/15 text-sky-500"
+                >
+                  <Send className="w-3 h-3" />
                 </span>
               )}
               {group.direction && (
                 <span
-                  className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${
-                    group.direction === "outbound"
-                      ? "bg-sky-500/10 text-sky-500"
-                      : "bg-fuchsia-500/10 text-fuchsia-500"
+                  className={`text-[10px] font-bold uppercase tracking-widest ${
+                    group.direction === "outbound" ? "text-sky-500" : "text-fuchsia-500"
                   }`}
                 >
                   {group.direction === "outbound" ? "Ida" : "Volta"}
                 </span>
               )}
               {seg.connections && seg.connections.length > 0 && (
-                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500/10 text-amber-500">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500">
                   {seg.connections.length} conexão{seg.connections.length > 1 ? "es" : ""}
                 </span>
               )}
-
             </div>
             <div className="flex items-center gap-3 mb-1 min-w-0">
               <span className="text-xl font-bold text-foreground truncate">{seg.origin ?? "?"}</span>
