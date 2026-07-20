@@ -55,9 +55,13 @@ function pickAddress(addresses: Array<Record<string, unknown>> | undefined) {
 function extractRating(obj: Record<string, unknown>): number | null {
   const candidates: unknown[] = [
     (obj.overall_rating as { rating?: unknown } | undefined)?.rating,
+    obj.overall_rating,
     obj.rating,
     (obj as { review_rating?: { rating?: unknown } }).review_rating?.rating,
     (obj as { ratings?: { overall?: { rating?: unknown } } }).ratings?.overall?.rating,
+    (obj as { review_summary?: { rating?: unknown } }).review_summary?.rating,
+    (obj as { data?: { rating?: unknown; overall_rating?: unknown } }).data?.rating,
+    (obj as { data?: { rating?: unknown; overall_rating?: unknown } }).data?.overall_rating,
   ];
   for (const c of candidates) {
     if (c == null) continue;
@@ -127,7 +131,11 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
       const body = await rDet.text().catch(() => "");
       throw new Error(`TripAdvisor details ${rDet.status}: ${body.slice(0, 200)}`);
     }
-    const det = (await rDet.json()) as Record<string, unknown>;
+    const rawDet = (await rDet.json()) as Record<string, unknown>;
+    // Algumas versões da API envolvem os detalhes em `data` ou `location`.
+    const det = ((rawDet.data as Record<string, unknown> | undefined)
+      ?? (rawDet.location as Record<string, unknown> | undefined)
+      ?? rawDet);
     const addr = pickAddress(det.addresses as Array<Record<string, unknown>> | undefined);
     const coords = (det.coordinates as { latitude?: number; longitude?: number } | undefined) || undefined;
     const rating = extractRating(det);
