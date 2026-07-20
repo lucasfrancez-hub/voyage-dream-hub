@@ -8,9 +8,9 @@ import { toast } from "sonner";
 import {
   listCheckins,
   runCheckinGroup,
-  detectAirline,
   resendBoardingPass,
 } from "@/lib/checkin/checkin.functions";
+
 
 type FlightItem = {
   id: string;
@@ -97,23 +97,34 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
     onError: (e: any) => toast.error(`Falha ao enviar: ${e?.message ?? "erro"}`),
   });
 
-  // Agrupa voos LATAM da mesma reserva (mesmo supplier_locator). Segmentos
+  // Agrupa voos da mesma reserva (mesmo supplier_locator). Segmentos
   // sem locator caem em grupos individuais (fallback pelo próprio id).
+  // Janela: 48h para doméstico (BR→BR) e 24h para internacional.
   const groups = useMemo<ReservationGroup[]>(() => {
     const now = Date.now();
-    const WINDOW_MS = 48 * 60 * 60 * 1000;
-
-    const latamItems = flightItems.filter(
-      (it) => detectAirline({ airline: it.details?.airline, flight_number: it.details?.flight_number }) === "LATAM",
-    );
 
     const bucket = new Map<string, Segment[]>();
-    for (const it of latamItems) {
+    for (const it of flightItems) {
       const ci = (checkins as any[]).find((c) => c.order_item_id === it.id) ?? null;
       const key = (it.supplier_locator || "").trim().toUpperCase() || `__solo:${it.id}`;
       if (!bucket.has(key)) bucket.set(key, []);
       bucket.get(key)!.push({ item: it, checkin: ci });
     }
+
+    // Detecta se algum trecho é internacional (fora do Brasil) para escolher a janela.
+    // Usa src/lib/iata-cities.json em runtime dinâmico só quando existir.
+    const isBRIata = (iata?: string | null) => {
+      if (!iata) return true; // sem info, assume doméstico
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const table = require("@/lib/iata-cities.json") as Record<string, { co?: string }>;
+        const rec = table[iata.toUpperCase()];
+        if (!rec?.co) return true;
+        return rec.co.toLowerCase().startsWith("bras");
+      } catch {
+        return true;
+      }
+    };
 
     const result: ReservationGroup[] = [];
     for (const [key, segsAll] of bucket) {
@@ -123,8 +134,13 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
         return da - db;
       });
 
-      // Dentro da reserva, oculta trechos que ainda não entraram no prazo de
-      // check-in (48h) — a menos que já tenham um check-in iniciado/feito.
+      const isIntl = segsAll.some(
+        (s) => !isBRIata(s.item.details?.from_iata) || !isBRIata(s.item.details?.to_iata),
+      );
+      const WINDOW_MS = (isIntl ? 24 : 48) * 60 * 60 * 1000;
+
+      // Dentro da reserva, oculta trechos que ainda não entraram na janela — a
+      // menos que já tenham um check-in iniciado/feito.
       const segs = segsAll.filter((s) => {
         if (s.checkin) return true;
         const dep = new Date((s.item.details?.depart_at ?? s.item.details?.departure_at) || 0).getTime();
@@ -158,14 +174,14 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
     return result;
   }, [flightItems, checkins]);
 
+
   if (groups.length === 0) return null;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-center gap-2 mb-3">
         <Plane className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold">Check-in automático LATAM</h3>
-        <Badge variant="outline" className="text-[10px]">Beta</Badge>
+        <h3 className="text-sm font-semibold">Check-in pendente</h3>
       </div>
       <div className="space-y-3">
         {groups.map((group) => {
@@ -175,6 +191,8 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
           const canRun = lastDep != null
             ? lastDep - now <= WINDOW_MS && lastDep - now > 0
             : false;
+
+
           const allSuccess = group.segments.every((s) => s.checkin?.status === "success");
           const anyRunning = group.segments.some((s) => s.checkin?.status === "running");
           const orderItemIds = group.segments.map((s) => s.item.id);
@@ -306,10 +324,8 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
           );
         })}
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        O robô roda automaticamente entre 48h e 1h antes do último trecho e envia todos os cartões da reserva por WhatsApp. Contato de emergência é sempre recusado.
-      </p>
     </div>
+
   );
 }
 
