@@ -284,6 +284,7 @@ async function capture(cdp: CdpClient, fallbackUrl?: string) {
   const shot = await cdp.send<{ data: string }>("Page.captureScreenshot", {
     format: "jpeg",
     quality: 60,
+    fromSurface: true,
     captureBeyondViewport: false,
   });
   const currentUrl = (await evalExpr<string>(cdp, "location.href")) || "";
@@ -324,17 +325,6 @@ async function pressKey(cdp: CdpClient, key: string) {
   await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key, ...k });
 }
 
-async function configureViewport(cdp: CdpClient, viewport: { width: number; height: number }) {
-  await cdp
-    .send("Emulation.setDeviceMetricsOverride", {
-      width: viewport.width,
-      height: viewport.height,
-      deviceScaleFactor: 1,
-      mobile: false,
-    })
-    .catch(() => {});
-}
-
 async function withConnection<T>(
   session: StoredSession,
   fn: (cdp: CdpClient) => Promise<T>,
@@ -350,10 +340,6 @@ async function withConnection<T>(
   }
   try {
     await cdp.attachToPage();
-    // O endpoint /stealth/bql já prepara a identidade do navegador. Aqui só
-    // fixamos o viewport; sobrescrever UA/navigator depois do carregamento
-    // produz uma página inconsistente e, em alguns casos, totalmente branca.
-    await configureViewport(cdp, session.viewport).catch(() => {});
 
     const result = await fn(cdp);
 
@@ -425,6 +411,12 @@ export async function openLiveSession(opts: OpenSessionOpts) {
 
   const query = `
     mutation OpenLive($url: String!) {
+      viewport(
+        width: ${opts.viewportWidth}
+        height: ${opts.viewportHeight}
+        deviceScaleFactor: 1
+        mobile: false
+      ) { width height }
       goto(url: $url, waitUntil: domContentLoaded, timeout: 35000) { status }
       reconnect(timeout: ${SESSION_RECONNECT_MS}) { browserWSEndpoint }
     }
