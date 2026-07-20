@@ -102,7 +102,7 @@ function TreinoPage() {
     (async () => {
       try {
         const r = await listScripts({ data: { airline } });
-        if (!cancelled && r.ok) setSavedScripts(r.scripts as SavedScript[]);
+        if (!cancelled && r.ok) setSavedScripts(r.scripts as unknown as SavedScript[]);
       } catch { /* silencioso */ }
     })();
     return () => { cancelled = true; };
@@ -156,7 +156,7 @@ function TreinoPage() {
       if (!r.ok) return;
       setCurrentScriptId(r.id);
       const list = await listScripts({ data: { airline } });
-      if (list.ok) setSavedScripts(list.scripts as SavedScript[]);
+      if (list.ok) setSavedScripts(list.scripts as unknown as SavedScript[]);
       toast.success("Script salvo");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar");
