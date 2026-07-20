@@ -284,6 +284,7 @@ const CaptureRegionInput = z.object({
   width: z.number(),
   height: z.number(),
   filename: z.string().optional(),
+  passenger_index: z.number().int().min(0).max(20).optional(),
 });
 
 export const captureTrainingRegion = createServerFn({ method: "POST" })
