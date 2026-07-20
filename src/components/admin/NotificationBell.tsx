@@ -447,10 +447,9 @@ export function AdminNotificationBell() {
                     disabled={sending}
                     title={selected.autoSent ? "Reenviar via WhatsApp" : "Enviar via WhatsApp"}
                     aria-label={selected.autoSent ? "Reenviar via WhatsApp" : "Enviar via WhatsApp"}
-                    className="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-brand-orange hover:bg-[#ff7a2e] text-white text-xs font-semibold transition active:scale-95 shadow-[0_6px_18px_-6px_rgba(242,107,31,0.6)] disabled:opacity-60"
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-orange hover:bg-[#ff7a2e] text-white transition active:scale-95 shadow-[0_6px_18px_-6px_rgba(242,107,31,0.6)] disabled:opacity-60"
                   >
                     <Send className="w-4 h-4" />
-                    {selected.autoSent ? "Reenviar" : "Enviar"}
                   </button>
                 </div>
               </div>
