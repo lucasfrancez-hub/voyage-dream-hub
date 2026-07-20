@@ -805,6 +805,9 @@ function TreinoPage() {
                   onPointerUp={() => {
                     if (!regionMode) return;
                     regionDragRef.current = null;
+                    // Captura automática assim que solta o mouse — sem
+                    // depender de encontrar outro botão.
+                    void doCaptureRegion();
                   }}
                   onClick={async (e) => {
                     if (regionMode) return;
