@@ -322,7 +322,7 @@ PDFs capturados até agora: \${pdfCaptures.length}\`;
   };
   const { runBrowserlessFunction } = await import("./browserless.server");
   const browserContext = {
-    checkinUrl: input.checkinUrl,
+    checkinUrl: directUrl,
     goal,
     aiKey,
     maxSteps: input.maxSteps ?? 25,
