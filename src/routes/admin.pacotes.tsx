@@ -183,7 +183,18 @@ function AdminPackages() {
     },
   });
 
-  async function persistPackage(pkg: Partial<PackageRow>): Promise<void> {
+  async function nextPackageBaseNumber(): Promise<number> {
+    const { count, error } = await supabase
+      .from("packages")
+      .select("*", { count: "exact", head: true });
+    if (error) throw error;
+    return (count ?? 0) + 1;
+  }
+
+  async function persistPackage(
+    pkg: Partial<PackageRow>,
+    numbering?: { number: number },
+  ): Promise<void> {
     const derived = deriveFromFlights(pkg);
     const normalized = {
       ...pkg,
@@ -195,6 +206,17 @@ function AdminPackages() {
     if (!normalized.slug || !normalized.title || !normalized.destination) {
       throw new Error(`Preencha slug, título e destino${pkg.title ? ` (${pkg.title})` : ""}.`);
     }
+
+    // Global hashtag numbering: applied ONLY to new packages (no id).
+    if (!pkg.id && numbering) {
+      const n = numbering.number;
+      // strip any existing " #N" from title and trailing "-N" from slug
+      const cleanTitle = normalized.title.replace(/\s*#\d+\s*$/, "").trim();
+      const cleanSlug = normalized.slug.replace(/-\d+$/, "");
+      normalized.title = `${cleanTitle} #${n}`;
+      normalized.slug = `${cleanSlug}-${n}`;
+    }
+
     const baseSlug = normalized.slug;
     const { data: existingSlugs, error: slugLookupError } = await supabase
       .from("packages")
@@ -256,7 +278,10 @@ function AdminPackages() {
     if (!editing) return;
     setSaving(true);
     try {
-      await persistPackage(editing);
+      const numbering = editing.id
+        ? undefined
+        : { number: await nextPackageBaseNumber() };
+      await persistPackage(editing, numbering);
       toast.success(editing.id ? "Pacote atualizado" : "Pacote criado");
       if (drafts && drafts.length > 1) {
         closeCurrentDraft();
@@ -282,9 +307,15 @@ function AdminPackages() {
     let ok = 0;
     const errors: string[] = [];
     try {
+      const base = await nextPackageBaseNumber();
+      let newIdx = 0;
       for (let i = 0; i < list.length; i++) {
         try {
-          await persistPackage(list[i]);
+          const numbering = list[i].id
+            ? undefined
+            : { number: base + newIdx };
+          if (!list[i].id) newIdx += 1;
+          await persistPackage(list[i], numbering);
           ok += 1;
         } catch (e) {
           const msg = e instanceof Error ? e.message : "Erro";
@@ -304,6 +335,7 @@ function AdminPackages() {
       setSaving(false);
     }
   }
+
 
 
   async function toggleActive(p: PackageRow) {
