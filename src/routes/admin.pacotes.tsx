@@ -2,7 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks, Sparkles, Image as ImageIcon, Search, Wand2 } from "lucide-react";
+import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks, Sparkles, Image as ImageIcon, Search, Wand2, Link as LinkIcon, Download } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
@@ -578,6 +585,38 @@ function AdminPackages() {
                   {p.is_active ? "Ativo" : "Oculto"}
                 </button>
                 <div className="flex items-center gap-4">
+
+                  <a
+                    href={`/pacotes/${p.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-brand-orange transition-colors"
+                    title="Abrir página do pacote"
+                  >
+                    <LinkIcon className="h-[18px] w-[18px]" strokeWidth={2} />
+                  </a>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="text-muted-foreground hover:text-brand-orange transition-colors"
+                        title="Baixar arte para redes sociais"
+                      >
+                        <Download className="h-[18px] w-[18px]" strokeWidth={2} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => toast.info("Envie a capa para gerar a arte de Story (em breve).")}
+                      >
+                        Story (1080×1920)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => toast.info("Envie a capa para gerar a arte de Feed (em breve).")}
+                      >
+                        Feed (1080×1080)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <button
                     onClick={() => setEditing(p)}
                     className="text-muted-foreground hover:text-foreground transition-colors"
@@ -598,6 +637,7 @@ function AdminPackages() {
           </div>
         ))}
       </div>
+
 
       {(() => {
         const total = packages?.length ?? 0;
