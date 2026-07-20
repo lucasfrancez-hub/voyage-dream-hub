@@ -94,6 +94,7 @@ function TreinoPage() {
   const [savedScripts, setSavedScripts] = useState<SavedScript[]>([]);
   const [currentScriptId, setCurrentScriptId] = useState<string | null>(null);
   const [scriptName, setScriptName] = useState("");
+  const [scriptPaxCount, setScriptPaxCount] = useState<number | "">("");
   const imgRef = useRef<HTMLImageElement>(null);
 
 
