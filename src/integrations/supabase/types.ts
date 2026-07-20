@@ -979,6 +979,7 @@ export type Database = {
           passport_number: string | null
           sort_order: number
           ticket_number: string | null
+          tickets: Json
           updated_at: string
           whatsapp: string | null
         }
@@ -997,6 +998,7 @@ export type Database = {
           passport_number?: string | null
           sort_order?: number
           ticket_number?: string | null
+          tickets?: Json
           updated_at?: string
           whatsapp?: string | null
         }
@@ -1015,6 +1017,7 @@ export type Database = {
           passport_number?: string | null
           sort_order?: number
           ticket_number?: string | null
+          tickets?: Json
           updated_at?: string
           whatsapp?: string | null
         }
