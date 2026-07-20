@@ -681,18 +681,70 @@ export const extractMultiplePackagesFromDocument = createServerFn({ method: "POS
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
 
-    const system = `Você extrai MÚLTIPLOS pacotes turísticos de um único documento (PDF ou imagem).
+    const isPdf = data.mime_type.includes("pdf");
+    const fileBlock = isPdf
+      ? {
+          type: "file" as const,
+          file: { filename: data.filename, file_data: `data:${data.mime_type};base64,${data.file_base64}` },
+        }
+      : {
+          type: "image_url" as const,
+          image_url: { url: `data:${data.mime_type};base64,${data.file_base64}` },
+        };
+
+    const callGemini = async (systemMsg: string, userText: string, maxTokens = 60000) => {
+      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          messages: [
+            { role: "system", content: systemMsg },
+            { role: "user", content: [{ type: "text", text: userText }, fileBlock] },
+          ],
+          response_format: { type: "json_object" },
+          max_completion_tokens: maxTokens,
+        }),
+      });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => "");
+        throw new Error(`Falha IA (${resp.status}): ${txt.slice(0, 200)}`);
+      }
+      const json = (await resp.json()) as any;
+      let text = String(json?.choices?.[0]?.message?.content ?? "").trim();
+      text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start === -1 || end === -1) throw new Error("IA não retornou JSON");
+      return JSON.parse(text.slice(start, end + 1));
+    };
+
+    // Passo 1: contar quantos orçamentos existem no documento
+    let totalCount = 0;
+    try {
+      const countRes = await callGemini(
+        `Você conta blocos de orçamento em um documento de operadora turística. Cada bloco começa com um cabeçalho no padrão "Orcamento N:" ou "Orçamento N:" (ex.: "Orcamento 1: 617381", "Orcamento 7: 617387"). Retorne APENAS JSON no formato { "count": <número>, "numbers": [1,2,3,...] } onde "numbers" lista TODOS os N encontrados, em ordem. Se só houver um único orçamento sem cabeçalho numerado, retorne { "count": 1, "numbers": [1] }.`,
+        "Conte TODOS os cabeçalhos 'Orcamento N' presentes no documento e liste os números N. Não pule nenhum.",
+        4000,
+      );
+      totalCount = Number(countRes?.count ?? (Array.isArray(countRes?.numbers) ? countRes.numbers.length : 0)) || 0;
+    } catch {
+      totalCount = 0;
+    }
+
+    const extractSystem = `Você extrai MÚLTIPLOS pacotes turísticos de um único documento (PDF ou imagem).
 O documento normalmente é um arquivo de operadora (Visual Turismo / Infotera / CVC / Azul Viagens / Flytour) que contém vários orçamentos concatenados.
 
 Cada orçamento começa com um cabeçalho no padrão "Orcamento N: <número>" ou "Orçamento N: <número>" (ex.: "Orcamento 1: 617381", "Orcamento 2: 617381"). Cada bloco tem sua própria hospedagem, datas, valores, ida e volta com conexões — até o próximo cabeçalho "Orcamento (N+1)".
 
 Devolva APENAS um JSON válido (sem markdown):
-{ "packages": [ { ...pacote 1... }, { ...pacote 2... }, ... ] }
+{ "packages": [ { "index": N, ...pacote N... }, ... ] }
 
-A ordem dos itens deve ser a mesma do documento. Não invente pacotes; se só houver um, retorne array com 1 item.
+Onde "index" = número do cabeçalho "Orcamento N". A ordem deve ser a mesma do documento. Não invente pacotes.
 
 Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invente):
 {
+  "index": 1,
   "destination": "Porto Seguro",
   "origin": "Maringá",
   "going_date": "YYYY-MM-DD",
@@ -703,86 +755,81 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
   "taxes": 167.50,
   "hotel_name": "BOSQUE DO PORTO PRAIA HOTEL",
   "hotel_stars": 4,
-  "meal_plan": "Café da manhã | \"\"",
+  "meal_plan": "Café da manhã",
   "room_type": "Standard",
   "room_category": "Standard",
-  "bed_type": "Casal | Solteiro | Duplo",
+  "bed_type": "Casal",
   "supplier_name": "Visual Turismo",
   "outbound_flight": { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T13:05","duration":"04h45","cabin_class":"Econômica","carry_on":true,"checked_bag":false,"personal_item":true,"segments":[ { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"CGH","to_city":"São Paulo","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T09:45","duration":"01h25","layover":"01h20 em São Paulo" }, { "airline":"GOL","flight_number":"1502","from_iata":"CGH","from_city":"São Paulo","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T11:05","arrive_at":"2026-12-21T13:05","duration":"02h00" } ] },
   "return_flight": { ...mesma estrutura, sentido inverso }
 }
 
 Regras (aplicar em CADA pacote):
-- VALORES: pegue o TOTAL COM TAXAS INCLUSAS (ex.: "Total com taxas — R$ 7.138,10") e o valor das taxas (ex.: "Taxas R$ 167,50"). price_per_person = TOTAL_COM_TAXAS / base_occupancy. taxes = valor exato das taxas.
-- flight_number: SOMENTE dígitos, todos preservados (ex.: "1137", não "7", não "G3-1137").
-- depart_at / arrive_at: ISO "YYYY-MM-DDTHH:MM". Meses PT: jan=01…dez=12.
-- Conexões: segments em ordem; depart_at agregado = 1º segmento; arrive_at = último; from_city/to_city agregado = origem 1º / destino final.
-- meal_plan: procure ATIVAMENTE em cada bloco. Indicadores comuns em orçamentos BR: "Café da Manhã", "com café", "c/ café", "café incluso", "ACM"/"APT c/ café" → "Café da manhã"; "Meia Pensão"/"MAP" → "Meia pensão"; "Pensão Completa"/"FAP" → "Pensão completa"; "All Inclusive"/"Tudo Incluso"/"AI" → "All inclusive"; "Sem refeição"/"Só hospedagem"/"SC"/"Room Only" → "Sem refeição". Só use "" se REALMENTE não houver nenhuma menção ao regime.
-- checked_bag/carry_on/personal_item: true apenas se o bloco indicar explicitamente. Caso contrário false.
+- VALORES: pegue o TOTAL COM TAXAS INCLUSAS (ex.: "Total com taxas — R$ 7.138,10") e o valor das taxas. price_per_person = TOTAL_COM_TAXAS / base_occupancy. taxes = valor das taxas.
+- flight_number: SOMENTE dígitos.
+- depart_at / arrive_at: ISO "YYYY-MM-DDTHH:MM".
+- Conexões: segments em ordem.
+- meal_plan: ACM/APT c/ café/"com café"/"c/ café" → "Café da manhã"; MAP/"Meia Pensão" → "Meia pensão"; FAP/"Pensão Completa" → "Pensão completa"; AI/"All Inclusive"/"Tudo Incluso" → "All inclusive"; SC/"Só hospedagem"/"Room Only" → "Sem refeição". Só use "" se não houver menção.
+- checked_bag/carry_on/personal_item: true apenas se explicitamente indicado.
 - hotel_stars: inteiro 1-5.
-- supplier_name: operadora emissora (nunca a agência revendedora VIA AIR).
-- Cidade em português (São Paulo).
+- supplier_name: operadora emissora (nunca VIA AIR).
+- Cidade em português.
 
 Retorne SÓ o JSON.`;
 
-    const userContent: any[] = [
-      {
-        type: "text",
-        text: "Este documento contém MÚLTIPLOS orçamentos separados por 'Orcamento 1', 'Orcamento 2', 'Orcamento 3'… (pode ter 2, 5, 7 ou mais). Extraia TODOS os orçamentos presentes, sem pular nenhum. O array 'packages' deve ter EXATAMENTE o mesmo número de itens que os cabeçalhos 'Orcamento N' no documento. Cada bloco tem seu próprio hotel, valores, ida e volta.",
-      },
-    ];
-    const isPdf = data.mime_type.includes("pdf");
-    if (isPdf) {
-      userContent.push({
-        type: "file",
-        file: { filename: data.filename, file_data: `data:${data.mime_type};base64,${data.file_base64}` },
-      });
+    const extractBatch = async (from: number, to: number) => {
+      const userText =
+        totalCount > 0
+          ? `Este documento contém ${totalCount} orçamentos. Extraia APENAS os orçamentos com index de ${from} até ${to} (inclusive), na ordem. Cada item deve ter "index" correspondente ao cabeçalho "Orcamento N". Não pule nenhum e não retorne fora dessa faixa.`
+          : `Este documento contém MÚLTIPLOS orçamentos separados por 'Orcamento 1', 'Orcamento 2'… (pode ter 2, 5, 10 ou mais). Extraia TODOS os orçamentos presentes, sem pular nenhum. Cada item deve ter "index" = N do cabeçalho.`;
+      const parsed = await callGemini(extractSystem, userText, 60000);
+      const arr: any[] = Array.isArray(parsed?.packages)
+        ? parsed.packages
+        : Array.isArray(parsed)
+          ? parsed
+          : parsed && typeof parsed === "object"
+            ? [parsed]
+            : [];
+      return arr;
+    };
+
+    // Passo 2: extrair em lotes de 4 (quando totalCount conhecido) para evitar truncamento
+    const BATCH_SIZE = 4;
+    const collected = new Map<number, any>();
+    if (totalCount > 0) {
+      for (let from = 1; from <= totalCount; from += BATCH_SIZE) {
+        const to = Math.min(from + BATCH_SIZE - 1, totalCount);
+        const arr = await extractBatch(from, to);
+        for (const pkg of arr) {
+          if (!pkg || typeof pkg !== "object") continue;
+          const idx = Number(pkg.index);
+          const key = Number.isFinite(idx) && idx > 0 ? idx : collected.size + 1;
+          if (!collected.has(key)) collected.set(key, pkg);
+        }
+      }
+      // Retry para os que faltaram
+      const missing: number[] = [];
+      for (let i = 1; i <= totalCount; i++) if (!collected.has(i)) missing.push(i);
+      for (const i of missing) {
+        try {
+          const arr = await extractBatch(i, i);
+          for (const pkg of arr) {
+            if (!pkg || typeof pkg !== "object") continue;
+            const idx = Number(pkg.index) || i;
+            if (!collected.has(idx)) collected.set(idx, pkg);
+          }
+        } catch {}
+      }
     } else {
-      userContent.push({
-        type: "image_url",
-        image_url: { url: `data:${data.mime_type};base64,${data.file_base64}` },
+      const arr = await extractBatch(1, 999);
+      arr.forEach((pkg, i) => {
+        if (!pkg || typeof pkg !== "object") return;
+        const idx = Number(pkg.index) || i + 1;
+        collected.set(idx, pkg);
       });
     }
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: userContent },
-        ],
-        response_format: { type: "json_object" },
-        max_completion_tokens: 60000,
-      }),
-
-    });
-
-    if (!resp.ok) {
-      const txt = await resp.text().catch(() => "");
-      throw new Error(`Falha IA (${resp.status}): ${txt.slice(0, 200)}`);
-    }
-    const json = (await resp.json()) as any;
-    let text = String(json?.choices?.[0]?.message?.content ?? "").trim();
-    text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    if (start === -1 || end === -1) throw new Error("IA não retornou JSON");
-    let parsed: any;
-    try {
-      parsed = JSON.parse(text.slice(start, end + 1));
-    } catch {
-      throw new Error("JSON inválido retornado pela IA");
-    }
-
-    const arr: any[] = Array.isArray(parsed?.packages)
-      ? parsed.packages
-      : Array.isArray(parsed)
-        ? parsed
-        : parsed && typeof parsed === "object"
-          ? [parsed]
-          : [];
+    const arr = [...collected.entries()].sort((a, b) => a[0] - b[0]).map(([, v]) => v);
 
     const cleanNo = (v: any): string | undefined => {
       if (v == null) return undefined;
@@ -802,6 +849,7 @@ Retorne SÓ o JSON.`;
     };
     for (const pkg of arr) {
       if (!pkg || typeof pkg !== "object") continue;
+      delete (pkg as any).index;
       sanitizeFlight(pkg.outbound_flight);
       sanitizeFlight(pkg.return_flight);
       if (pkg.hotel_stars != null) {
@@ -812,3 +860,4 @@ Retorne SÓ o JSON.`;
 
     return { packages: arr };
   });
+
