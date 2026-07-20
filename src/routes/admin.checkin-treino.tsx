@@ -16,6 +16,7 @@ import {
   askVisionAboutScreenshot,
   openTrainingSession,
   runLiveTrainingStep,
+  runTrainingScript,
   screenshotTrainingSession,
   heartbeatTrainingSession,
   closeTrainingSession,
@@ -55,6 +56,7 @@ function TreinoPage() {
   const askVision = useServerFn(askVisionAboutScreenshot);
   const openSession = useServerFn(openTrainingSession);
   const runStep = useServerFn(runLiveTrainingStep);
+  const runScript = useServerFn(runTrainingScript);
   const shotSession = useServerFn(screenshotTrainingSession);
   const heartbeatSession = useServerFn(heartbeatTrainingSession);
   const closeSession = useServerFn(closeTrainingSession);
@@ -385,7 +387,38 @@ function TreinoPage() {
 
   const removeStep = (i: number) => setSteps((prev) => prev.filter((_, idx) => idx !== i));
 
-  const executeAndAppend = async (step: TrainingStep, label: string, hint?: string) => {
+  const runFullScript = async () => {
+    if (!steps.length) return;
+    setBusy(true);
+    try {
+      toast.info("Rodando o script do zero — pode levar até 3 min.");
+      const r = await runScript({
+        data: { url, steps, viewportWidth: 1280, viewportHeight: 900, locator: pnr, surname },
+      });
+      setShot({ b64: r.screenshot, w: r.width, h: r.height, url: r.currentUrl, title: r.title });
+      setLogs(r.logs ?? []);
+      const failed = (r.logs ?? []).find((l) => l && (l as { ok?: boolean }).ok === false);
+      if (failed) {
+        const f = failed as { i?: number; step?: string; err?: string };
+        toast.error(`Passo ${f.i ?? f.step} falhou: ${f.err ?? "erro"}`);
+      } else {
+        toast.success("Script rodou até o fim. Confira a tela final.");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao executar script");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Executa `step` no navegador remoto agora, mas persiste `persistStep`
+  // (com placeholders `{{locator}}` / `{{surname}}`) no script salvo.
+  const executeAndAppend = async (
+    step: TrainingStep,
+    label: string,
+    hint?: string,
+    persistStep?: TrainingStep,
+  ) => {
     if (!sessionId) {
       toast.error("Abra uma sessão primeiro.");
       return;
@@ -394,15 +427,14 @@ function TreinoPage() {
     setVision(null);
     setSelectedTarget(null);
     const urlBefore = shot?.url ?? "";
+    const stepToSave = persistStep ?? step;
     try {
       const r = await runStep({ data: { sessionId, step } });
       if (!r.ok) {
         handleSessionError(new Error(r.error));
         return;
       }
-      setSteps((prev) => [...prev, step]);
-      // Annotate the screenshot the action was taken ON (urlBefore), so the label sticks
-      // to the field the user marked, not to the next screen.
+      setSteps((prev) => [...prev, stepToSave]);
       if ((step.action === "type" || step.action === "click") && hint && urlBefore) {
         setAnnotations((prev) => [
           ...prev,
@@ -512,6 +544,18 @@ function TreinoPage() {
               </Button>
             )}
           </div>
+          {steps.length > 0 && (
+            <Button
+              size="sm"
+              variant="default"
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              disabled={busy || !pnr || !surname}
+              onClick={() => void runFullScript()}
+              title="Roda todos os passos do zero, substituindo {{locator}} e {{surname}} pelos valores acima. Serve pra validar antes de plugar no check-in automático."
+            >
+              <Play className="h-4 w-4 mr-1" /> Executar script salvo (fim-a-fim)
+            </Button>
+          )}
 
           <div>
             <label className="text-xs font-medium">URL inicial</label>
@@ -682,6 +726,7 @@ function TreinoPage() {
                         { action: "type", x: lastClick.x, y: lastClick.y, text: pnr, clearFirst: true },
                         `Preencheu localizador (${pnr})`,
                         hint,
+                        { action: "type", x: lastClick.x, y: lastClick.y, text: "{{locator}}", clearFirst: true },
                       );
                     }}
                   >
@@ -699,6 +744,7 @@ function TreinoPage() {
                         { action: "type", x: lastClick.x, y: lastClick.y, text: surname, clearFirst: true },
                         `Preencheu sobrenome (${surname})`,
                         hint,
+                        { action: "type", x: lastClick.x, y: lastClick.y, text: "{{surname}}", clearFirst: true },
                       );
                     }}
                   >
@@ -749,20 +795,25 @@ function TreinoPage() {
                 </div>
               )}
               {regionMode && (
-                <div className="mb-2 rounded border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
-                  Arraste um retângulo na imagem em volta do cartão de embarque.
-                  A captura é feita e salva automaticamente quando você soltar o mouse.
-                  {regionDraft && regionDraft.w >= 20 && regionDraft.h >= 20 && (
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="ml-3"
-                      disabled={busy || !sessionId}
-                      onClick={() => void doCaptureRegion()}
-                    >
-                      Capturar agora
-                    </Button>
-                  )}
+                <div className="mb-2 flex flex-wrap items-center gap-2 rounded border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
+                  <span className="flex-1 min-w-[220px]">
+                    Arraste um retângulo em volta do cartão de embarque. Depois
+                    clique em <b>Finalizar seleção</b> pra ver como ele fica.
+                    {regionDraft && (
+                      <span className="ml-2 opacity-70">
+                        ({regionDraft.w}×{regionDraft.h}px)
+                      </span>
+                    )}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="bg-orange-600 hover:bg-orange-700"
+                    disabled={busy || !sessionId || !regionDraft || regionDraft.w < 20 || regionDraft.h < 20}
+                    onClick={() => void doCaptureRegion()}
+                  >
+                    Finalizar seleção · ver cartão
+                  </Button>
                 </div>
               )}
               <div className="relative inline-block border rounded overflow-hidden bg-black/5">
@@ -805,9 +856,8 @@ function TreinoPage() {
                   onPointerUp={() => {
                     if (!regionMode) return;
                     regionDragRef.current = null;
-                    // Captura automática assim que solta o mouse — sem
-                    // depender de encontrar outro botão.
-                    void doCaptureRegion();
+                    // NÃO captura automaticamente — o usuário revisa o
+                    // retângulo e clica em "Finalizar seleção".
                   }}
                   onClick={async (e) => {
                     if (regionMode) return;

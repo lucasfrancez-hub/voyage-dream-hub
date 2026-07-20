@@ -24,6 +24,9 @@ const RunInput = z.object({
   steps: z.array(StepSchema).default([]),
   viewportWidth: z.number().int().min(320).max(1920).default(1280),
   viewportHeight: z.number().int().min(400).max(2000).default(900),
+  // Substitui {{locator}} / {{surname}} nos steps `type` do script salvo.
+  locator: z.string().optional(),
+  surname: z.string().optional(),
 });
 
 export const runTrainingScript = createServerFn({ method: "POST" })
@@ -35,6 +38,18 @@ export const runTrainingScript = createServerFn({ method: "POST" })
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Forbidden: apenas admin");
+
+    // Aplica placeholders antes de mandar pro Browserless.
+    const locator = (data.locator || "").trim();
+    const surname = (data.surname || "").trim();
+    const resolvedSteps = data.steps.map((s) => {
+      if (s.action !== "type") return s;
+      const text = s.text
+        .replaceAll("{{locator}}", locator)
+        .replaceAll("{{surname}}", surname);
+      return { ...s, text };
+    });
+    const payload = { ...data, steps: resolvedSteps };
     const code = `
 export default async ({ page, browser, context }) => {
   const { url, steps, viewportWidth, viewportHeight } = context;
@@ -162,7 +177,7 @@ export default async ({ page, browser, context }) => {
     let lastError: unknown;
     for (const strategy of strategies) {
       try {
-        const result = await runBrowserlessFunction<TrainingResult>(code, data, {
+        const result = await runBrowserlessFunction<TrainingResult>(code, payload, {
           timeoutMs: 180_000,
           launch: {
             headless: true,
