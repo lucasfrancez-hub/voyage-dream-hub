@@ -640,9 +640,10 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
             data: { brief: `Escreva um resumo de ${dest} para pacote de viagens, para vender pacote de viagens` },
           });
           setEditing({ ...editing, summary: text });
-        } catch {
-          /* silencioso — botão manual ainda funciona */
+        } catch (err) {
+          console.warn("[auto-summary] falhou", err);
         } finally {
+
           setAiLoading(false);
         }
       })();
