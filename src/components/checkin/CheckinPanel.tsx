@@ -5,6 +5,7 @@ import { Loader2, Plane, CheckCircle2, XCircle, Clock, Download, Send, Bot } fro
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { confirm } from "@/lib/confirm";
 import {
   listCheckins,
   runCheckinGroup,
