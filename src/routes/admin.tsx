@@ -472,6 +472,15 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
         </DropdownMenuItem>
         {showUsuarios && (
           <DropdownMenuItem asChild>
+            <Link to="/admin/checkin-treino" className="flex flex-col items-start gap-0.5">
+              <span className="text-sm font-medium">Treinador de check-in</span>
+              <span className="text-xs text-muted-foreground">Ensinar IA passo a passo (admin)</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
+
+        {showUsuarios && (
+          <DropdownMenuItem asChild>
             <Link to="/admin/usuarios" className="flex flex-col items-start gap-0.5">
               <span className="text-sm font-medium flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" /> Usuários
