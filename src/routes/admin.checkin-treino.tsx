@@ -404,12 +404,19 @@ function TreinoPage() {
       });
       setShot({ b64: r.screenshot, w: r.width, h: r.height, url: r.currentUrl, title: r.title });
       setLogs(r.logs ?? []);
+      const ups = (r as { uploads?: Array<{ path: string; signedUrl: string | null; sizeKb: number; index: number }> }).uploads ?? [];
+      if (ups.length > 0) {
+        setPdfs((prev) => [
+          ...ups.filter((u) => u.signedUrl).map((u) => ({ url: u.signedUrl!, path: u.path, sizeKb: u.sizeKb, source: r.currentUrl, kind: "png" as const })),
+          ...prev,
+        ]);
+      }
       const failed = (r.logs ?? []).find((l) => l && (l as { ok?: boolean }).ok === false);
       if (failed) {
         const f = failed as { i?: number; step?: string; err?: string };
         toast.error(`Passo ${f.i ?? f.step} falhou: ${f.err ?? "erro"}`);
       } else {
-        toast.success("Script rodou até o fim. Confira a tela final.");
+        toast.success(`Script rodou até o fim${ups.length ? ` — ${ups.length} região(ões) salvas` : ""}.`);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao executar script");
