@@ -152,7 +152,6 @@ export default async ({ page, browser, context }) => {
     type LogEntry = { i?: number; step?: string; action?: string; url?: string; ok: boolean; err?: string };
     type TrainingResult = { screenshot: string; currentUrl: string; title: string; logs: LogEntry[]; width: number; height: number };
     const strategies = [
-      { proxy: undefined, proxyCountry: undefined, proxySticky: undefined },
       { proxy: "residential" as const, proxyCountry: "br", proxySticky: true },
     ];
     let lastError: unknown;
