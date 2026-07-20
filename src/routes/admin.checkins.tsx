@@ -15,6 +15,8 @@ import {
   FileUp,
   Loader2,
   Send,
+  Search,
+
   Trash2,
   ArrowRight,
   Lock,
@@ -74,6 +76,8 @@ function CheckinsPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("todo");
+  const [search, setSearch] = useState("");
+
 
   const q = useQuery({
     queryKey: ["manual-checkins"],
@@ -315,11 +319,35 @@ function CheckinsPage() {
     }
   }
 
-  const current = tab === "todo" ? aFazer : tab === "upcoming" ? proximos : prontos;
+  const currentRaw = tab === "todo" ? aFazer : tab === "upcoming" ? proximos : prontos;
+  const current = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    if (!s) return currentRaw;
+    return currentRaw.filter((g: any) => {
+      const seg = g.segments?.[0] ?? {};
+      const locator = String(seg.locator ?? g.locator ?? "").toLowerCase();
+      const orderNum = String(g.order_number ?? "").toLowerCase();
+      const trip = String(g.trip_title ?? "").toLowerCase();
+      const paxNames = (g.passengers ?? [])
+        .map((p: any) => String(p.full_name ?? "").toLowerCase())
+        .join(" | ");
+      const route = `${seg.origin ?? ""} ${seg.destination ?? ""}`.toLowerCase();
+      return (
+        locator.includes(s) ||
+        orderNum.includes(s) ||
+        trip.includes(s) ||
+        paxNames.includes(s) ||
+        route.includes(s)
+      );
+    });
+  }, [currentRaw, search]);
   const emptyLabel =
-    tab === "todo" ? "Nada pendente na janela. 🎉"
-    : tab === "upcoming" ? "Nenhum voo previsto nos próximos 7 dias."
-    : "Nada concluído ainda.";
+    search.trim()
+      ? "Nenhum resultado para a busca."
+      : tab === "todo" ? "Nada pendente na janela. 🎉"
+      : tab === "upcoming" ? "Nenhum voo previsto nos próximos 7 dias."
+      : "Nada concluído ainda.";
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -339,6 +367,27 @@ function CheckinsPage() {
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} label="Concluídos" count={prontos.length} />
           </nav>
         </div>
+
+        {/* Search */}
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-border/60 bg-card/40 px-3 py-2">
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome do passageiro, localizador, pedido, rota (GRU, CWB…)"
+            className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="text-xs text-muted-foreground hover:text-foreground"
+              aria-label="Limpar busca"
+            >
+              Limpar
+            </button>
+          )}
+        </div>
+
 
         {/* Content */}
         {q.isLoading ? (
