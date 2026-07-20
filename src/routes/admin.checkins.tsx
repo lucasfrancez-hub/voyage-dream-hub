@@ -100,18 +100,19 @@ function CheckinsPage() {
       if (regenerate) {
         await regen({ data: { checkinId: id } });
       }
-      const result = await run({ data: { checkinId: id, mode } });
+      const result = await run({ data: { checkinId: id, mode: runMode } });
       if (!result.ok) {
         toast.error(result.error);
         await q.refetch();
         return;
       }
-      const modeLabel = mode === "vision" ? "Visão IA" : "Código";
+      const modeLabel = runMode === "vision" ? "Visão IA" : "Código";
       toast.success(
         regenerate
           ? `Cartão regerado (${modeLabel}) e enviado`
           : `Check-in (${modeLabel}) concluído`,
       );
+
       q.refetch();
     } catch (e: any) {
       toast.error(e?.message ?? "Falhou");
