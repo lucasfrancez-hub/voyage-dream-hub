@@ -14,6 +14,7 @@ import { findAirline } from "@/lib/airlines";
 import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { generatePackageSummary, searchCoverImages, extractFlightFromImage, extractPackageFromDocument } from "@/lib/packages/ai.functions";
+import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
 import { FileUp, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pacotes")({
