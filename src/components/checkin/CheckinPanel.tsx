@@ -231,6 +231,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                   <Button
                     size="sm"
                     variant={allSuccess ? "outline" : "default"}
+                    className={allSuccess ? undefined : "bg-emerald-600 hover:bg-emerald-700 text-white"}
                     disabled={isRunning || anyRunning || (!canRun && !allSuccess)}
                     onClick={() =>
                       runMut.mutate({
@@ -241,7 +242,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                     title={
                       !canRun && !allSuccess
                         ? "Disponível a partir de 48h antes do último trecho"
-                        : "Piloto automático — IA olha a tela, decide e baixa o cartão"
+                        : "Robô usa o script salvo do treinador (com fallback pra IA por visão)"
                     }
                   >
                     {isRunning
@@ -249,6 +250,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                       : <Bot className="h-3.5 w-3.5 mr-1" />}
                     {allSuccess ? "Regerar cartão" : "Fazer check-in"}
                   </Button>
+
                 </div>
               </div>
 
