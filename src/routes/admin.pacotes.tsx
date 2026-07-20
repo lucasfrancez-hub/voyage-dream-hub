@@ -149,8 +149,27 @@ function AdminPackages() {
     }
     setSaving(true);
     try {
+      const baseSlug = normalized.slug;
+      const { data: existingSlugs, error: slugLookupError } = await supabase
+        .from("packages")
+        .select("id, slug")
+        .like("slug", `${baseSlug}%`);
+      if (slugLookupError) throw slugLookupError;
+
+      const usedSlugs = new Set(
+        (existingSlugs ?? [])
+          .filter((row) => row.id !== editing.id)
+          .map((row) => row.slug),
+      );
+      let availableSlug = baseSlug;
+      let suffix = 2;
+      while (usedSlugs.has(availableSlug)) {
+        availableSlug = `${baseSlug}-${suffix}`;
+        suffix += 1;
+      }
+
       const payload = {
-        slug: normalized.slug,
+        slug: availableSlug,
         title: normalized.title,
         destination: normalized.destination,
         origin: normalized.origin || null,
@@ -192,7 +211,12 @@ function AdminPackages() {
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
       qc.invalidateQueries({ queryKey: ["packages"] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
+      const message = err instanceof Error
+        ? err.message
+        : typeof err === "object" && err && "message" in err
+          ? String(err.message)
+          : "Erro ao salvar";
+      toast.error(message);
     } finally {
       setSaving(false);
     }
