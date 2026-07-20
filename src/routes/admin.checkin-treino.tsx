@@ -387,6 +387,30 @@ function TreinoPage() {
 
   const removeStep = (i: number) => setSteps((prev) => prev.filter((_, idx) => idx !== i));
 
+  const runFullScript = async () => {
+    if (!steps.length) return;
+    setBusy(true);
+    try {
+      toast.info("Rodando o script do zero — pode levar até 3 min.");
+      const r = await runScript({
+        data: { url, steps, viewportWidth: 1280, viewportHeight: 900, locator: pnr, surname },
+      });
+      setShot({ b64: r.screenshot, w: r.width, h: r.height, url: r.currentUrl, title: r.title });
+      setLogs(r.logs ?? []);
+      const failed = (r.logs ?? []).find((l) => l && (l as { ok?: boolean }).ok === false);
+      if (failed) {
+        const f = failed as { i?: number; step?: string; err?: string };
+        toast.error(`Passo ${f.i ?? f.step} falhou: ${f.err ?? "erro"}`);
+      } else {
+        toast.success("Script rodou até o fim. Confira a tela final.");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao executar script");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // Executa `step` no navegador remoto agora, mas persiste `persistStep`
   // (com placeholders `{{locator}}` / `{{surname}}`) no script salvo.
   const executeAndAppend = async (
