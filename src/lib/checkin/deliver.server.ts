@@ -5,6 +5,7 @@
  */
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { iataCity } from "@/lib/iata-lookup";
 import { sendWhatsAppDocumentBytes, sendWhatsAppImageBytes } from "@/lib/whatsapp/send.server";
 
 function normalizePhone(raw: string | null | undefined): string {
@@ -79,14 +80,22 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
       .eq("id", ci.order_item_id)
       .maybeSingle();
     const d = (it?.details ?? {}) as Record<string, any>;
-    let rawCity = String(d.to_city || d.destination_city || d.to || d.destination || "").trim();
+    const genericDestination = String(d.to || d.destination || "").trim();
+    const iata = String(
+      d.to_iata ||
+      d.arrival_iata ||
+      (/^[A-Za-z]{3}$/.test(genericDestination) ? genericDestination : ""),
+    ).trim().toUpperCase();
+    let rawCity = String(d.to_city || d.destination_city || "").trim();
+    if (!rawCity && genericDestination.toUpperCase() !== iata) rawCity = genericDestination;
     const airport = String(d.to_airport || "").trim();
     if (airport && rawCity) {
       const re = new RegExp(`\\b${airport.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "ig");
-      const stripped = rawCity.replace(re, "").replace(/\s+/g, " ").trim();
-      if (stripped) rawCity = stripped; // mantém a cidade original se ficou vazio
+      rawCity = rawCity.replace(re, "").replace(/\s+/g, " ").trim();
     }
-    const iata = String(d.to_iata || d.arrival_iata || "").trim().toUpperCase();
+    // Importações antigas podem trazer somente o IATA ou esvaziar a cidade
+    // ao remover o nome do aeroporto. Nesses casos, resolve a cidade pelo IATA.
+    if (!rawCity || rawCity.toUpperCase() === iata) rawCity = iataCity(iata) ?? rawCity;
     const small = new Set(["de", "da", "do", "das", "dos", "e"]);
     const city = rawCity
       .toLocaleLowerCase("pt-BR")
