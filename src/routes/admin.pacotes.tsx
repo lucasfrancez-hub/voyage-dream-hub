@@ -711,58 +711,67 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
         </div>
 
         {drafts && drafts.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto border-b border-border bg-muted/20 px-6 sm:px-8 py-2.5 shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mr-2 shrink-0">
+          <div className="flex items-center gap-2 border-b border-border bg-muted/20 px-3 sm:px-4 py-2.5 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground shrink-0 hidden md:inline">
               Importação múltipla
             </span>
-            {drafts.map((d, i) => {
-              const active = i === draftIndex;
-              const label = d.destination?.trim() || d.title?.trim() || `Pacote ${i + 1}`;
-              return (
-                <div key={i} className="flex items-center shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => switchDraft?.(i)}
-                    className={`px-3 py-1.5 rounded-l-lg text-[11px] font-bold uppercase tracking-wider transition ${
-                      active
-                        ? "bg-brand-orange text-white"
-                        : "bg-background hover:bg-muted text-foreground/70 border border-border"
-                    }`}
-                  >
-                    <span className="opacity-70 mr-1.5">#{i + 1}</span>
-                    <span className="truncate max-w-[160px] inline-block align-bottom">{label}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (i === draftIndex) closeCurrentDraft?.();
-                      else {
-                        // remove non-active draft directly
-                        const remaining = drafts.filter((_, idx) => idx !== i);
-                        // switch to active accounting for shift
-                        const newActive = i < draftIndex ? draftIndex - 1 : draftIndex;
-                        switchDraft?.(newActive);
-                        // trigger a state update by editing current same value (no-op)
-                        // then update drafts via parent-provided closeCurrentDraft is not possible;
-                        // fallback: only allow closing the active tab via X.
-                      }
-                    }}
-                    aria-label={`Descartar pacote ${i + 1}`}
-                    title={active ? "Descartar este pacote" : "Selecione para descartar"}
-                    className={`px-1.5 py-1.5 rounded-r-lg text-[11px] transition ${
-                      active
-                        ? "bg-brand-orange/80 hover:bg-brand-orange text-white"
-                        : "bg-background hover:bg-muted text-foreground/40 border border-l-0 border-border cursor-not-allowed opacity-60"
-                    }`}
-                    disabled={!active}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              );
-            })}
+            <button
+              type="button"
+              onClick={() => draftsScrollRef.current?.scrollBy({ left: -240, behavior: "smooth" })}
+              aria-label="Rolar abas para a esquerda"
+              className="shrink-0 grid place-items-center h-7 w-7 rounded-full border border-border bg-background hover:bg-muted text-foreground/70 transition"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div ref={draftsScrollRef} className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin flex-1">
+              {drafts.map((d, i) => {
+                const active = i === draftIndex;
+                const label = d.destination?.trim() || d.title?.trim() || `Pacote ${i + 1}`;
+                return (
+                  <div key={i} className="flex items-center shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => switchDraft?.(i)}
+                      className={`px-3 py-1.5 rounded-l-lg text-[11px] font-bold uppercase tracking-wider transition ${
+                        active
+                          ? "bg-brand-orange text-white"
+                          : "bg-background hover:bg-muted text-foreground/70 border border-border"
+                      }`}
+                    >
+                      <span className="opacity-70 mr-1.5">#{i + 1}</span>
+                      <span className="truncate max-w-[160px] inline-block align-bottom">{label}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (i === draftIndex) closeCurrentDraft?.();
+                      }}
+                      aria-label={`Descartar pacote ${i + 1}`}
+                      title={active ? "Descartar este pacote" : "Selecione para descartar"}
+                      className={`px-1.5 py-1.5 rounded-r-lg text-[11px] transition ${
+                        active
+                          ? "bg-brand-orange/80 hover:bg-brand-orange text-white"
+                          : "bg-background hover:bg-muted text-foreground/40 border border-l-0 border-border cursor-not-allowed opacity-60"
+                      }`}
+                      disabled={!active}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => draftsScrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
+              aria-label="Rolar abas para a direita"
+              className="shrink-0 grid place-items-center h-7 w-7 rounded-full border border-border bg-background hover:bg-muted text-foreground/70 transition"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         )}
+
 
 
 
