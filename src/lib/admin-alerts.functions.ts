@@ -20,7 +20,7 @@ export const listFlightAlerts = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("flight_change_alerts")
       .select(
-        "id, order_id, order_item_id, flight_number, old_depart_at, new_depart_at, new_status, severity, summary, admin_seen_at, admin_email_sent_at, response, responded_at, wa_phone, created_at, orders!inner(order_number, full_name, payer_full_name)",
+        "id, order_id, order_item_id, flight_number, old_depart_at, new_depart_at, old_arrive_at, new_arrive_at, new_status, severity, summary, admin_seen_at, admin_email_sent_at, response, responded_at, wa_phone, created_at, orders!inner(order_number, full_name, payer_full_name)",
       )
       .gte("created_at", since)
       .order("created_at", { ascending: false })
@@ -37,6 +37,8 @@ export const listFlightAlerts = createServerFn({ method: "GET" })
       summary: (r.summary ?? `Voo ${r.flight_number}`) as string,
       oldDepartAt: r.old_depart_at as string | null,
       newDepartAt: r.new_depart_at as string | null,
+      oldArriveAt: r.old_arrive_at as string | null,
+      newArriveAt: r.new_arrive_at as string | null,
       newStatus: r.new_status as string | null,
       response: r.response as string | null,
       respondedAt: r.responded_at as string | null,
