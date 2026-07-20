@@ -76,8 +76,8 @@ export default async ({ page, browser, context }) => {
     for (let attempt = 0; attempt < 3; attempt++) {
       const candidate = await resolveActivePage(attempt > 0);
       try {
-        await new Promise((r) => setTimeout(r, 500 + attempt * 500));
-        return await candidate.screenshot({ type: "jpeg", quality: 70, encoding: "base64", fullPage: false });
+        await new Promise((r) => setTimeout(r, 250 + attempt * 400));
+        return await candidate.screenshot({ type: "jpeg", quality: 60, encoding: "base64", fullPage: false });
       } catch (error) {
         lastError = error;
         const message = String(error && error.message || error);
@@ -94,9 +94,9 @@ export default async ({ page, browser, context }) => {
   await configurePage(activePage);
 
   try {
-    await activePage.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await activePage.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
     logs.push({ step: "goto", url, ok: true });
-    await new Promise((r) => setTimeout(r, 2500));
+    await new Promise((r) => setTimeout(r, 900));
   } catch (e) {
     logs.push({ step: "goto", url, ok: false, err: String(e && e.message || e) });
   }
