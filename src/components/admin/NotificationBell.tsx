@@ -173,6 +173,7 @@ export function AdminNotificationBell() {
   };
 
   const info = selected ? diffInfo(selected.oldDepartAt, selected.newDepartAt) : null;
+  const arriveInfo = selected ? diffInfo(selected.oldArriveAt, selected.newArriveAt) : null;
 
   return (
     <>
