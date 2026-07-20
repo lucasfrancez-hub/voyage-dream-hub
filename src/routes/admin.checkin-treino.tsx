@@ -57,8 +57,13 @@ function TreinoPage() {
   const heartbeatSession = useServerFn(heartbeatTrainingSession);
   const closeSession = useServerFn(closeTrainingSession);
   const capturePdf = useServerFn(captureTrainingPdf);
+  const listScripts = useServerFn(listTrainingScripts);
+  const getScript = useServerFn(getTrainingScript);
+  const saveScript = useServerFn(saveTrainingScript);
+  const deleteScript = useServerFn(deleteTrainingScript);
 
-  const [url, setUrl] = useState(DEFAULT_URL);
+  const [airline, setAirline] = useState<Airline>("LATAM");
+  const [url, setUrl] = useState(DEFAULT_URL_BY_AIRLINE.LATAM);
   const [pnr, setPnr] = useState("LA9571886LWKG");
   const [surname, setSurname] = useState("PEREIRA");
   const [steps, setSteps] = useState<TrainingStep[]>([]);
@@ -77,6 +82,9 @@ function TreinoPage() {
   const [hintBuffer, setHintBuffer] = useState("");
   const [annotations, setAnnotations] = useState<{ x: number; y: number; label: string; kind: "type" | "click"; url: string }[]>([]);
   const [pdfs, setPdfs] = useState<{ url: string; path: string; sizeKb: number; source: string }[]>([]);
+  const [savedScripts, setSavedScripts] = useState<SavedScript[]>([]);
+  const [currentScriptId, setCurrentScriptId] = useState<string | null>(null);
+  const [scriptName, setScriptName] = useState("");
   const imgRef = useRef<HTMLImageElement>(null);
 
 
