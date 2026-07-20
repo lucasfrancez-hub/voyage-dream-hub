@@ -261,6 +261,14 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
         : await sendWhatsAppDocumentBytes(phone, pass.bytes, filename, caption, pass.url || undefined);
       if (r.id) {
         report.delivered++;
+        const { logSystemOutbound } = await import("@/lib/whatsapp/log-system-outbound.server");
+        await logSystemOutbound({
+          wa_phone: phone,
+          kind: "checkin_boarding_pass",
+          summary: `Cartão de embarque enviado para ${label} (voo ${flightNum || "?"} · ${destino || "?"} · ${dataVoo || "?"} ${horaVoo || ""}).`,
+          wa_message_id: r.id,
+          meta: { locator, flight: flightNum, destino, data: dataVoo, hora: horaVoo, passageiro: label },
+        });
       } else {
         report.failed.push({ name: label, error: r.error ?? "erro desconhecido" });
         console.error(`[checkin] wa send falhou p/ ${label}:`, r.error);
