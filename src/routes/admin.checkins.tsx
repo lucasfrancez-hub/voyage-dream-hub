@@ -264,7 +264,17 @@ function CheckinsPage() {
     }
   }
 
-  async function handleRemove(checkinId: string, passengerIndex: number) {
+  async function handleRemove(checkinId: string, passengerIndex: number, passengerName?: string) {
+    const ok = await confirm({
+      title: "Remover cartão anexado?",
+      description: passengerName
+        ? `O cartão de embarque de ${passengerName} já está anexado. Deseja realmente removê-lo?`
+        : "Este cartão de embarque já está anexado. Deseja removê-lo?",
+      confirmText: "Remover",
+      cancelText: "Manter",
+      destructive: true,
+    });
+    if (!ok) return;
     const key = `${checkinId}:${passengerIndex}:rm`;
     setBusyKey(key);
     try {
