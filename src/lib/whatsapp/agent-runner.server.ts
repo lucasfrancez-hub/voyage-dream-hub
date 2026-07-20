@@ -152,7 +152,9 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   }
 
   const agents = await loadAgents();
-  const agent = pickAgent(agents, conv.agent_slug ?? null);
+  const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
+  const agent = pickAgent(agents, stickySlug);
+
 
 
   if (!agent) {
