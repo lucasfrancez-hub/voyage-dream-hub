@@ -10,7 +10,6 @@ import {
   runCheckinGroup,
   detectAirline,
   resendBoardingPass,
-  regenerateBoardingPass,
 } from "@/lib/checkin/checkin.functions";
 
 type FlightItem = {
@@ -51,7 +50,6 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   const list = useServerFn(listCheckins);
   const runGroup = useServerFn(runCheckinGroup);
   const resend = useServerFn(resendBoardingPass);
-  const regen = useServerFn(regenerateBoardingPass);
 
   const { data: checkins = [] } = useQuery({
     queryKey: ["flight-checkins", orderId],
@@ -59,12 +57,8 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   });
 
   const runMut = useMutation({
-    mutationFn: async (args: { orderItemIds: string[]; regenCheckinIds?: string[] }) => {
-      for (const id of args.regenCheckinIds ?? []) {
-        await regen({ data: { checkinId: id } });
-      }
-      return runGroup({ data: { orderItemIds: args.orderItemIds } });
-    },
+    mutationFn: async (args: { orderItemIds: string[] }) =>
+      runGroup({ data: { orderItemIds: args.orderItemIds } }),
     onSuccess: (result: any) => {
       qc.invalidateQueries({ queryKey: ["flight-checkins", orderId] });
       if (!result.ok) {
@@ -184,9 +178,6 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
           const allSuccess = group.segments.every((s) => s.checkin?.status === "success");
           const anyRunning = group.segments.some((s) => s.checkin?.status === "running");
           const orderItemIds = group.segments.map((s) => s.item.id);
-          const regenIds = group.segments
-            .filter((s) => s.checkin?.status === "success")
-            .map((s) => s.checkin.id as string);
           const isRunning = runMut.isPending &&
             JSON.stringify(runMut.variables?.orderItemIds ?? []) === JSON.stringify(orderItemIds);
 
@@ -228,28 +219,25 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                       Enviar cartão
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    variant={allSuccess ? "outline" : "default"}
-                    className={allSuccess ? undefined : "bg-emerald-600 hover:bg-emerald-700 text-white"}
-                    disabled={isRunning || anyRunning || (!canRun && !allSuccess)}
-                    onClick={() =>
-                      runMut.mutate({
-                        orderItemIds,
-                        regenCheckinIds: allSuccess ? regenIds : undefined,
-                      })
-                    }
-                    title={
-                      !canRun && !allSuccess
-                        ? "Disponível a partir de 48h antes do último trecho"
-                        : "Robô usa o script salvo do treinador (com fallback pra IA por visão)"
-                    }
-                  >
-                    {isRunning
-                      ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      : <Bot className="h-3.5 w-3.5 mr-1" />}
-                    {allSuccess ? "Regerar cartão" : "Fazer check-in"}
-                  </Button>
+                  {!allSuccess && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      disabled={isRunning || anyRunning || !canRun}
+                      onClick={() => runMut.mutate({ orderItemIds })}
+                      title={
+                        !canRun
+                          ? "Disponível a partir de 48h antes do último trecho"
+                          : "Robô usa o script salvo do treinador"
+                      }
+                    >
+                      {isRunning
+                        ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        : <Bot className="h-3.5 w-3.5 mr-1" />}
+                      Fazer check-in
+                    </Button>
+                  )}
 
                 </div>
               </div>
@@ -288,9 +276,9 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                           </Badge>
                         )}
                         {checkin?.id && (checkin?.boarding_pass_url || checkin?.boarding_pass_path) && (
-                          <a href={`/api/public/bp/${checkin.id}`} target="_blank" rel="noreferrer">
+                          <a href={`/api/public/bp/${checkin.id}`} download>
                             <Button size="sm" variant="outline" className="h-7">
-                              <Download className="h-3.5 w-3.5 mr-1" />PDF
+                              <Download className="h-3.5 w-3.5 mr-1" />Baixar cartão
                             </Button>
                           </a>
                         )}

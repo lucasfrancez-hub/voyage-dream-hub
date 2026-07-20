@@ -6,8 +6,6 @@ import {
   listUpcomingFlights,
   runCheckin,
   resendBoardingPass,
-  regenerateBoardingPass,
-  regenerateAllBoardingPasses,
 } from "@/lib/checkin/checkin.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,14 +19,12 @@ import {
   Hourglass,
   Loader2,
   PlaneTakeoff,
-  RefreshCw,
   Send,
   TimerReset,
   XCircle,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { confirm } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/checkins")({
   head: () => ({ meta: [{ title: "Check-ins — VIA AIR" }] }),
@@ -42,11 +38,8 @@ function CheckinsPage() {
   const loadUpcoming = useServerFn(listUpcomingFlights);
   const run = useServerFn(runCheckin);
   const resend = useServerFn(resendBoardingPass);
-  const regen = useServerFn(regenerateBoardingPass);
-  const regenAll = useServerFn(regenerateAllBoardingPasses);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
-  const [bulkBusy, setBulkBusy] = useState(false);
 
 
   const q = useQuery({
@@ -90,44 +83,21 @@ function CheckinsPage() {
     });
   }, [upcoming]);
 
-  async function handleRun(id: string, regenerate = false) {
+  async function handleRun(id: string) {
     setBusyId(id);
     try {
-      if (regenerate) {
-        await regen({ data: { checkinId: id } });
-      }
       const result = await run({ data: { checkinId: id } });
       if (!result.ok) {
         toast.error(result.error);
         await q.refetch();
         return;
       }
-      toast.success(regenerate ? "Cartão regerado e enviado" : "Check-in concluído");
+      toast.success("Check-in concluído");
       q.refetch();
     } catch (e: any) {
       toast.error(e?.message ?? "Falhou");
     } finally {
       setBusyId(null);
-    }
-  }
-
-  async function handleRegenAll() {
-    const ok = await confirm({
-      title: "Regerar todos os cartões?",
-      description:
-        "Vai apagar os PDFs atuais e rodar o check-in de novo para todos os voos com status Concluído. Útil quando os cartões saíram em branco.",
-      confirmText: "Regerar todos",
-    });
-    if (!ok) return;
-    setBulkBusy(true);
-    try {
-      const res = await regenAll();
-      toast.success(`${(res as any).count ?? 0} cartões marcados para regerar. O robô vai processar em segundos.`);
-      q.refetch();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Falhou");
-    } finally {
-      setBulkBusy(false);
     }
   }
 
@@ -167,10 +137,6 @@ function CheckinsPage() {
           <PlaneTakeoff className="h-6 w-6 text-brand-orange" />
           <h1 className="text-2xl font-bold tracking-tight">Check-ins de voo</h1>
         </div>
-        <Button size="sm" variant="outline" disabled={bulkBusy} onClick={handleRegenAll}>
-          {bulkBusy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
-          Regerar todos os cartões
-        </Button>
       </header>
 
       <p className="text-sm text-muted-foreground mb-6 max-w-2xl">
@@ -346,7 +312,7 @@ function CheckinRow({
           </Button>
         )}
         {hasPdf && (
-          <a href={`/api/public/bp/${r.id}`} target="_blank" rel="noreferrer" title="PDF">
+          <a href={`/api/public/bp/${r.id}`} download title="Baixar cartão de embarque">
             <Button size="sm" variant="ghost" className="h-9 w-9 p-0"><Download className="h-4 w-4" /></Button>
           </a>
         )}
@@ -364,18 +330,17 @@ function CheckinRow({
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Processando check-in…
           </div>
-        ) : (
+        ) : r.status !== "success" ? (
           <Button
             size="sm"
-            variant={r.status === "success" ? "outline" : "default"}
-            className={r.status === "success" ? "h-9" : "h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"}
-            onClick={() => onRun(r.id, r.status === "success")}
-            title={r.status === "success" ? "Apaga o PDF atual e roda o check-in de novo" : ""}
+            variant="default"
+            className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
+            onClick={() => onRun(r.id)}
           >
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-            {r.status === "success" ? "Regerar cartão" : "Fazer check-in"}
+            <PlaneTakeoff className="h-3.5 w-3.5 mr-1.5" />
+            Fazer check-in
           </Button>
-        )}
+        ) : null}
       </div>
 
     </Card>
