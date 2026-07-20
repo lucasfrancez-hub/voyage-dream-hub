@@ -183,28 +183,95 @@ function TreinoPage() {
                   className="block w-full h-auto"
                   alt="screenshot"
                 />
-                {vision?.targets?.map((t, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedTarget(i)}
-                    className={`absolute border-2 transition ${
-                      selectedTarget === i
-                        ? "border-brand-orange bg-brand-orange/20"
-                        : "border-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20"
-                    }`}
-                    style={{
-                      left: `${((t.x - t.w / 2) / shot.w) * 100}%`,
-                      top: `${((t.y - t.h / 2) / shot.h) * 100}%`,
-                      width: `${(t.w / shot.w) * 100}%`,
-                      height: `${(t.h / shot.h) * 100}%`,
-                    }}
-                    title={t.label}
-                  >
-                    <span className="absolute -top-5 left-0 text-[10px] font-mono bg-emerald-600 text-white px-1 rounded whitespace-nowrap">
-                      {i + 1}. {t.label}
-                    </span>
-                  </button>
-                ))}
+                {vision?.targets?.map((t, i) => {
+                  const isSel = selectedTarget === i;
+                  const startDrag = (
+                    e: React.PointerEvent,
+                    mode: "move" | "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw"
+                  ) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setSelectedTarget(i);
+                    const img = imgRef.current;
+                    if (!img || !shot) return;
+                    const rect = img.getBoundingClientRect();
+                    const sx = shot.w / rect.width;
+                    const sy = shot.h / rect.height;
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const orig = { x: t.x, y: t.y, w: t.w, h: t.h };
+                    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+                    const onMove = (ev: PointerEvent) => {
+                      const dx = (ev.clientX - startX) * sx;
+                      const dy = (ev.clientY - startY) * sy;
+                      let { x, y, w, h } = orig;
+                      if (mode === "move") {
+                        x += dx;
+                        y += dy;
+                      } else {
+                        if (mode.includes("e")) w = Math.max(10, orig.w + dx);
+                        if (mode.includes("w")) {
+                          w = Math.max(10, orig.w - dx);
+                          x = orig.x + dx / 2;
+                        }
+                        if (mode.includes("s")) h = Math.max(10, orig.h + dy);
+                        if (mode.includes("n")) {
+                          h = Math.max(10, orig.h - dy);
+                          y = orig.y + dy / 2;
+                        }
+                      }
+                      setVision((prev) => {
+                        if (!prev?.targets) return prev;
+                        const next = [...prev.targets];
+                        next[i] = { ...next[i], x, y, w, h };
+                        return { ...prev, targets: next };
+                      });
+                    };
+                    const onUp = () => {
+                      window.removeEventListener("pointermove", onMove);
+                      window.removeEventListener("pointerup", onUp);
+                    };
+                    window.addEventListener("pointermove", onMove);
+                    window.addEventListener("pointerup", onUp);
+                  };
+                  const handleCls =
+                    "absolute w-3 h-3 bg-white border-2 border-brand-orange rounded-sm";
+                  return (
+                    <div
+                      key={i}
+                      onPointerDown={(e) => startDrag(e, "move")}
+                      onClick={() => setSelectedTarget(i)}
+                      className={`absolute border-2 cursor-move ${
+                        isSel
+                          ? "border-brand-orange bg-brand-orange/20"
+                          : "border-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20"
+                      }`}
+                      style={{
+                        left: `${((t.x - t.w / 2) / shot.w) * 100}%`,
+                        top: `${((t.y - t.h / 2) / shot.h) * 100}%`,
+                        width: `${(t.w / shot.w) * 100}%`,
+                        height: `${(t.h / shot.h) * 100}%`,
+                      }}
+                      title={t.label}
+                    >
+                      <span className="absolute -top-5 left-0 text-[10px] font-mono bg-emerald-600 text-white px-1 rounded whitespace-nowrap pointer-events-none">
+                        {i + 1}. {t.label}
+                      </span>
+                      {isSel && (
+                        <>
+                          <div onPointerDown={(e) => startDrag(e, "nw")} className={`${handleCls} -left-1.5 -top-1.5 cursor-nwse-resize`} />
+                          <div onPointerDown={(e) => startDrag(e, "ne")} className={`${handleCls} -right-1.5 -top-1.5 cursor-nesw-resize`} />
+                          <div onPointerDown={(e) => startDrag(e, "sw")} className={`${handleCls} -left-1.5 -bottom-1.5 cursor-nesw-resize`} />
+                          <div onPointerDown={(e) => startDrag(e, "se")} className={`${handleCls} -right-1.5 -bottom-1.5 cursor-nwse-resize`} />
+                          <div onPointerDown={(e) => startDrag(e, "n")} className={`${handleCls} left-1/2 -top-1.5 -ml-1.5 cursor-ns-resize`} />
+                          <div onPointerDown={(e) => startDrag(e, "s")} className={`${handleCls} left-1/2 -bottom-1.5 -ml-1.5 cursor-ns-resize`} />
+                          <div onPointerDown={(e) => startDrag(e, "w")} className={`${handleCls} -left-1.5 top-1/2 -mt-1.5 cursor-ew-resize`} />
+                          <div onPointerDown={(e) => startDrag(e, "e")} className={`${handleCls} -right-1.5 top-1/2 -mt-1.5 cursor-ew-resize`} />
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
