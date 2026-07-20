@@ -3137,7 +3137,8 @@ function ItemDialog({
                     return seg.id || from || to;
                   })
                   .map((seg, idx) => {
-                    const cd = buildClean(seg.details);
+                    const preserved = seg.id ? (preservedSiblingExtrasRef.current[seg.id] ?? {}) : {};
+                    const cd = { ...preserved, ...buildClean(seg.details) };
                     return {
                       id: seg.id,
                       title: segmentTitle(seg.details),
