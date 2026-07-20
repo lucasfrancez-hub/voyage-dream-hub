@@ -102,26 +102,49 @@ function CheckinsPage() {
     return hoursTo <= windowHoursFor(seg) && hoursTo > -6;
   }
 
+  // Divide segmento-a-segmento: cada trecho é avaliado pela sua própria janela.
+  // Mesma reserva pode aparecer em "A fazer" (só trechos abertos) e em
+  // "Próximos check-ins" (só trechos que ainda não abriram).
   const [aFazer, proximos, prontos] = useMemo(() => {
     const todo: any[] = [];
     const upcoming: any[] = [];
     const done: any[] = [];
+    const SEVEN_DAYS = 7 * 24 * HOUR;
+    const now = Date.now();
     for (const g of groups) {
       const paxCount = g.passengers.length;
       const isReady = g.segments.every((s: any) =>
         s.checkin?.boarding_passes && (s.checkin.boarding_passes as any[]).length >= paxCount,
       );
       if (isReady) { done.push(g); continue; }
-      // "A fazer" = pelo menos um segmento dentro da janela (ou já iniciado)
-      const anyOpen = g.segments.some((s: any) => s.checkin || isWithinWindow(s));
-      if (anyOpen) todo.push(g); else upcoming.push(g);
+      const openSegs: any[] = [];
+      const upcomingSegs: any[] = [];
+      for (const s of g.segments) {
+        const paxDone =
+          Array.isArray(s.checkin?.boarding_passes) &&
+          (s.checkin.boarding_passes as any[]).length >= paxCount;
+        if (paxDone) continue; // trecho já pronto some das listas pendentes
+        if (s.checkin || isWithinWindow(s)) { openSegs.push(s); continue; }
+        const dep = s.departure_at ? new Date(s.departure_at).getTime() : 0;
+        if (dep && dep - now <= SEVEN_DAYS && dep - now > 0) upcomingSegs.push(s);
+      }
+      if (openSegs.length > 0) todo.push({ ...g, segments: openSegs });
+      if (upcomingSegs.length > 0) upcoming.push({ ...g, segments: upcomingSegs });
     }
     return [todo, upcoming, done];
   }, [groups]);
 
   const totalToUpload = useMemo(() => {
     let n = 0;
-    for (const g of aFazer) n += g.segments.length * g.passengers.length;
+    for (const g of aFazer) {
+      for (const s of g.segments) {
+        const done =
+          Array.isArray(s.checkin?.boarding_passes)
+            ? (s.checkin.boarding_passes as any[]).length
+            : 0;
+        n += Math.max(0, g.passengers.length - done);
+      }
+    }
     return n;
   }, [aFazer]);
 
@@ -207,15 +230,11 @@ function CheckinsPage() {
         </div>
       </header>
 
-      <p className="text-sm text-muted-foreground mb-6 max-w-2xl">
-        Fluxo manual passo a passo. Para cada reserva próxima, abra o cartão de embarque de cada
-        passageiro no site da companhia, baixe o PDF/imagem, anexe aqui e envie para o WhatsApp do cliente.
-      </p>
 
       <div className="grid grid-cols-3 gap-3 mb-8">
-        <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Reservas a fazer" value={aFazer.length} tone="warning" />
+        <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Na janela" value={aFazer.length} tone="warning" />
         <StatCard icon={<FileUp className="h-4 w-4" />} label="Cartões faltando" value={totalToUpload} tone="muted" />
-        <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Prontos p/ enviar" value={prontos.length} tone="success" />
+        <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Concluídos" value={prontos.length} tone="success" />
       </div>
 
       {q.isLoading && <div className="text-sm text-muted-foreground">Carregando…</div>}
@@ -224,14 +243,14 @@ function CheckinsPage() {
 
 
         <Section
-          title="A fazer"
-          subtitle="Reservas com pelo menos um trecho já na janela de check-in (48h nacional, 24h LATAM/GOL/AZUL e internacional)."
+          title="A fazer agora"
+          subtitle="Trechos dentro da janela de check-in — anexe o cartão de cada passageiro."
           empty="Nada pendente na janela. 🎉"
           count={aFazer.length}
         >
           {aFazer.map((g) => (
             <BookingCard
-              key={g.key}
+              key={`todo-${g.key}`}
               group={g}
               busyKey={busyKey}
               sendingId={sendingId}
@@ -244,13 +263,13 @@ function CheckinsPage() {
 
         <Section
           title="Próximos check-ins"
-          subtitle="Reservas dos próximos 7 dias que ainda não entraram na janela de check-in."
+          subtitle="Trechos dos próximos 7 dias, ainda fora da janela."
           empty="Nada previsto."
           count={proximos.length}
         >
           {proximos.map((g) => (
             <BookingCard
-              key={g.key}
+              key={`up-${g.key}`}
               group={g}
               busyKey={busyKey}
               sendingId={sendingId}
@@ -262,14 +281,13 @@ function CheckinsPage() {
         </Section>
 
         <Section
-          title="Prontos"
-          subtitle="Cartões anexados. Clique em enviar para disparar no WhatsApp dos passageiros."
+          title="Concluídos"
+          subtitle="Cartões anexados e enviados."
           empty="Nada por aqui ainda."
           count={prontos.length}
-        >
-          {prontos.map((g) => (
+        >{prontos.map((g) => (
             <BookingCard
-              key={g.key}
+              key={`done-${g.key}`}
               group={g}
               busyKey={busyKey}
               sendingId={sendingId}
