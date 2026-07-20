@@ -38,21 +38,26 @@ export async function runLatamAutopilot(input: AutopilotInput): Promise<Autopilo
   if (!token) throw new Error("BROWSERLESS_TOKEN ausente");
   if (!aiKey) throw new Error("LOVABLE_API_KEY ausente");
 
+  // Sempre abre o deep-link da LATAM já preenchido — pula o formulário de busca.
+  const directUrl = `https://www.latamairlines.com/br/pt/check-in/status?orderId=${encodeURIComponent(input.locator.trim().toUpperCase())}&lastName=${encodeURIComponent(input.surname.trim().toLowerCase())}`;
+
   const goal = `Fazer o check-in online da LATAM e baixar o cartão de embarque em PDF, exatamente como um humano faria.
 
 DADOS DO PEDIDO (use SEMPRE estes valores — não invente, não altere):
 - Localizador da reserva (PNR / código de 6 caracteres): ${input.locator}
 - Sobrenome do passageiro (o mesmo que está na reserva): ${input.surname}
 
-COMO OS CAMPOS SE MAPEIAM (é assim que você preenche, igual eu faria clicando):
-1. Campo "Código da reserva" / "Localizador" / "Booking code" / "PNR" → digite: ${input.locator}
-2. Campo "Sobrenome" / "Last name" / "Apellido" → digite: ${input.surname}
-3. Botão "Buscar" / "Continuar" / "Search" → clique.
-4. Se pedir pra escolher passageiros, marque TODOS os checkboxes.
-5. Se pedir aceite de termos / condições / bagagem, marque TODOS os checkboxes de aceite.
-6. Se aparecer tela de assento (mapa de assentos), procure "Pular", "Continuar sem selecionar", "Escolher depois", "Skip", "Não, obrigado" — clique nele. NUNCA selecione um assento pago.
-7. Se aparecer tela de bagagem despachada / bagagem extra / upgrade / seguro, procure "Pular" / "Continuar" / "Não, obrigado" — clique. NUNCA compre bagagem, upgrade, seguro ou qualquer extra.
-8. Na tela final, procure o botão "Baixar cartão de embarque" / "Baixar PDF" / "Download boarding pass" / "Imprimir" — clique nele. Depois disso, responda { "action": "done" }.
+IMPORTANTE: A página já abre DIRETO na tela de status/passageiros do check-in (URL com orderId + lastName). Você NÃO precisa digitar localizador nem sobrenome — a LATAM já reconheceu a reserva pela URL. Se por acaso cair no formulário de busca, aí sim preencha:
+- Campo "Código da reserva" / "Localizador" / "PNR" → ${input.locator}
+- Campo "Sobrenome" / "Last name" → ${input.surname}
+- Botão "Buscar" / "Continuar" → clique.
+
+Fluxo esperado a partir da tela inicial:
+1. Se pedir pra escolher passageiros, marque TODOS os checkboxes e clique "Continuar".
+2. Se pedir aceite de termos / condições / bagagem, marque TODOS os checkboxes de aceite.
+3. Tela de assento → procure "Pular" / "Continuar sem selecionar" / "Escolher depois" / "Skip". NUNCA selecione assento pago.
+4. Tela de bagagem / upgrade / seguro → "Pular" / "Não, obrigado". NUNCA compre extras.
+5. Tela final → botão "Baixar cartão de embarque" / "Baixar PDF" / "Download boarding pass" — clique e responda { "action": "done" }.
 
 REGRAS DE OURO:
 - Trabalhe SEMPRE com base no que está visível no screenshot atual. Não tente adivinhar a próxima tela.
