@@ -457,8 +457,9 @@ export function buildCamilaTools(conversation: WaConversation) {
         await supabaseAdmin
           .from("wa_conversations")
           .update({
-            // IMPORTANTE: NÃO trocamos mode pra "human" automaticamente.
-            // A IA segue respondendo até um operador assumir manualmente pelo painel.
+            // Ao escalar, transfere de fato pra humano: a IA para de responder
+            // e a conversa aparece no painel como "aguardando atendimento".
+            mode: "human",
             priority: prioridade ?? "normal",
             tags: newTags,
           })
@@ -475,7 +476,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         await recordHandoff({
           conversation_id: conversation.id,
           from_mode: "ai",
-          to_mode: "ai", // marcado como pendente de humano, mas IA segue ativa
+          to_mode: "human",
           reason: motivo,
           briefing,
         });
@@ -483,7 +484,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         return {
           ok: true,
           instrucao:
-            "Avise ao cliente que já sinalizou pro time comercial assumir e siga ajudando normalmente com o que puder — dúvidas, informações, contexto. Não fique em silêncio. Quando um humano assumir, o sistema te desativa automaticamente.",
+            "Envie UMA mensagem curta avisando que já passou pro time humano assumir daqui, agradeça a paciência e encerre por aqui — NÃO faça mais perguntas nem siga respondendo, o atendente humano vai continuar.",
         };
       },
     }),
