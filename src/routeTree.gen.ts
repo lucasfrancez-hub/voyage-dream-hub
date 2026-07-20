@@ -73,6 +73,7 @@ import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/a
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
+import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
 import { Route as ApiPublicUazapiWebhookSplatRouteImport } from './routes/api/public/uazapi-webhook.$'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -408,6 +409,12 @@ const ApiPublicHooksRunCheckinsRoute =
     path: '/api/public/hooks/run-checkins',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPackageHotelPhotoSplatRoute =
+  ApiPublicPackageHotelPhotoSplatRouteImport.update({
+    id: '/api/public/package-hotel-photo/$',
+    path: '/api/public/package-hotel-photo/$',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicUazapiWebhookSplatRoute =
   ApiPublicUazapiWebhookSplatRouteImport.update({
     id: '/$',
@@ -508,6 +515,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/api/public/uazapi-webhook/$': typeof ApiPublicUazapiWebhookSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -579,6 +587,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/api/public/uazapi-webhook/$': typeof ApiPublicUazapiWebhookSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -652,6 +661,7 @@ export interface FileRoutesById {
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/api/public/uazapi-webhook/$': typeof ApiPublicUazapiWebhookSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -726,6 +736,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/package-hotel-photo/$'
     | '/api/public/uazapi-webhook/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -797,6 +808,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/package-hotel-photo/$'
     | '/api/public/uazapi-webhook/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -869,6 +881,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/package-hotel-photo/$'
     | '/api/public/uazapi-webhook/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -908,6 +921,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
+  ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -1365,6 +1379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRunCheckinsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/package-hotel-photo/$': {
+      id: '/api/public/package-hotel-photo/$'
+      path: '/api/public/package-hotel-photo/$'
+      fullPath: '/api/public/package-hotel-photo/$'
+      preLoaderRoute: typeof ApiPublicPackageHotelPhotoSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/uazapi-webhook/$': {
       id: '/api/public/uazapi-webhook/$'
       path: '/$'
@@ -1560,6 +1581,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksDispatchAiDebouncedRoute:
     ApiPublicHooksDispatchAiDebouncedRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
+  ApiPublicPackageHotelPhotoSplatRoute: ApiPublicPackageHotelPhotoSplatRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
