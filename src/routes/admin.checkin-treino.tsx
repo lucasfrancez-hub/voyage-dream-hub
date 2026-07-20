@@ -41,7 +41,7 @@ type Airline = "LATAM" | "GOL" | "AZUL";
 type VisionTarget = { label: string; x: number; y: number; w: number; h: number; confidence?: number };
 type VisionParsed = { reasoning?: string; targets?: VisionTarget[]; notes?: string; raw?: string };
 type Shot = { b64: string; w: number; h: number; url: string; title: string };
-type SavedScript = { id: string; airline: Airline; name: string; initial_url: string; viewport_width: number; viewport_height: number; updated_at: string };
+type SavedScript = { id: string; airline: Airline; name: string; initial_url: string; viewport_width: number; viewport_height: number; pax_count: number | null; updated_at: string };
 
 const DEFAULT_URL_BY_AIRLINE: Record<Airline, string> = {
   LATAM: "https://www.latamairlines.com/br/pt/check-in/status?orderId=LA9571886LWKG&lastName=pereira",
