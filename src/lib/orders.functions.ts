@@ -168,6 +168,7 @@ export type OrderPassenger = {
   cpf: string | null;
   document: string | null;
   ticket_number: string | null;
+  tickets: Record<string, string>;
   sort_order: number;
   doc_type: "cpf" | "passport";
   passport_number: string | null;
@@ -510,6 +511,7 @@ export const upsertPassenger = createServerFn({ method: "POST" })
       cpf: data.cpf ?? null,
       document: data.document ?? null,
       ticket_number: data.ticket_number ?? null,
+      tickets: (data as any).tickets ?? {},
       sort_order: data.sort_order ?? 0,
       doc_type: data.doc_type ?? "cpf",
       passport_number: data.passport_number ?? null,

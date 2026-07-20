@@ -1100,9 +1100,25 @@ function PassengerRow({
         </div>
       </td>
       <td className="px-3 py-3 w-[140px]">
-        <InlineText value={effectiveTicket ?? ""} placeholder="Adicionar bilhete" className="text-xs tabular-nums w-full"
-          onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
+        {(() => {
+          const map = (passenger.tickets ?? {}) as Record<string, string>;
+          const list = Object.entries(map).filter(([, v]) => !!v && String(v).trim());
+          if (list.length > 0) {
+            return (
+              <div className="text-[10px] font-mono tabular-nums text-brand-orange space-y-0.5" title="Editar dentro de cada reserva">
+                {list.map(([loc, t]) => (
+                  <div key={loc}><span className="text-muted-foreground">{loc === "_" ? "" : loc + ": "}</span>{t}</div>
+                ))}
+              </div>
+            );
+          }
+          return (
+            <InlineText value={effectiveTicket ?? ""} placeholder="—" className="text-xs tabular-nums w-full"
+              onCommit={(v) => (v || null) !== passenger.ticket_number && onPatch({ ticket_number: v || null })} />
+          );
+        })()}
       </td>
+
       <td className="px-3 py-3 w-[180px]">
         <InlineText value={(passenger as any).whatsapp ?? ""} placeholder="+55 48 9…" className="text-xs tabular-nums w-full"
           onCommit={(v) => (v || null) !== ((passenger as any).whatsapp ?? null) && onPatch({ whatsapp: v || null })} />
@@ -1291,6 +1307,29 @@ function ItemsTab({
   const recalculateTotal = useServerFn(recalculateOrderTotal);
   const linkFn = useServerFn(linkPassengerToItem);
   const unlinkFn = useServerFn(unlinkPassengerFromItem);
+  const upsertPax = useServerFn(upsertPassenger);
+  const patchPassengerTicket = async (passenger: OrderPassenger, locator: string, ticket: string) => {
+    const key = (locator || "").toUpperCase().trim() || "_";
+    const currentTickets: Record<string, string> = { ...(passenger.tickets ?? {}) };
+    const t = ticket.trim();
+    if (t) currentTickets[key] = t; else delete currentTickets[key];
+    await upsertPax({ data: {
+      id: passenger.id,
+      order_id: passenger.order_id,
+      full_name: passenger.full_name,
+      passenger_type: passenger.passenger_type,
+      birth_date: passenger.birth_date,
+      cpf: passenger.cpf,
+      ticket_number: passenger.ticket_number,
+      tickets: currentTickets,
+      sort_order: passenger.sort_order,
+      doc_type: passenger.doc_type,
+      passport_number: passenger.passport_number,
+      passport_issue_date: passenger.passport_issue_date,
+      passport_expiry_date: passenger.passport_expiry_date,
+    } as any });
+    onChange();
+  };
   const [editing, setEditing] = useState<OrderItem | null>(null);
   const [open, setOpen] = useState(false);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(() => new Set());
@@ -1457,6 +1496,8 @@ function ItemsTab({
               onCancelMany={(its) => confirmThen(`Cancelar toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => cancel.mutate(it.id)))}
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
+              onPatchPassengerTicket={patchPassengerTicket}
+
             />
           ))}
           {visibleItems.filter((i) => i.kind === "hotel").map((it) => (
@@ -1507,6 +1548,8 @@ function ItemsTab({
               onCancelMany={(its) => confirmThen(`Cancelar toda a reserva (${its.length} ${its.length === 1 ? "trecho" : "trechos"})?`, () => its.forEach((it) => cancel.mutate(it.id)))}
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
+              onPatchPassengerTicket={patchPassengerTicket}
+
             />
           ))}
         </div>
@@ -1845,7 +1888,7 @@ function AddPassengerMenu({
 }
 
 function FlightReservationCard({
-  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onDeleteMany, onCancelMany, onLink, onUnlink,
+  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onDeleteMany, onCancelMany, onLink, onUnlink, onPatchPassengerTicket,
 }: {
   locator: string | null;
   segments: OrderItem[];
@@ -1860,6 +1903,7 @@ function FlightReservationCard({
   onCancelMany?: (its: OrderItem[]) => void;
   onLink?: (passengerId: string, segmentIds: string[]) => void;
   onUnlink?: (passengerId: string, segmentIds: string[]) => void;
+  onPatchPassengerTicket?: (passenger: OrderPassenger, locator: string, ticket: string) => void | Promise<void>;
 }) {
   const allCancelled = segments.every((s) => s.status === "cancelled");
   const first = segments[0];
@@ -2079,10 +2123,9 @@ function FlightReservationCard({
             {passengers.map((p) => {
               const isPassport = p.doc_type === "passport";
               const docNum = isPassport ? p.passport_number : p.cpf;
-              const segTicket = segments
-                .map((s) => String(((s.details ?? {}) as Record<string, unknown>).ticket_number ?? "").trim())
-                .find(Boolean) ?? "";
-              const ticket = p.ticket_number || segTicket;
+              const locKey = ((locator ?? first?.supplier_locator ?? "") || "").toUpperCase().trim() || "_";
+              const perLocTicket = (p.tickets ?? {})[locKey] ?? "";
+              const ticketValue = perLocTicket || (p.ticket_number ?? "");
               return (
                 <li key={p.id} className="text-xs">
                   <div className="flex items-start justify-between gap-1">
@@ -2097,11 +2140,25 @@ function FlightReservationCard({
                           {isPassport ? "Passaporte" : "CPF"}: <span className="font-mono text-foreground">{docNum}</span>
                         </div>
                       )}
-                      {ticket && (
-                        <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
-                          <Hash className="inline h-2.5 w-2.5" /> {ticket}
+                      {onPatchPassengerTicket ? (
+                        <div className="mt-1 flex items-center gap-1">
+                          <Hash className="h-2.5 w-2.5 text-brand-orange shrink-0" />
+                          <InlineText
+                            value={ticketValue}
+                            placeholder="Nº do bilhete"
+                            className="text-[10px] font-mono tabular-nums w-full"
+                            onCommit={(v) => {
+                              if ((v || "").trim() !== (perLocTicket || "").trim()) {
+                                onPatchPassengerTicket(p, locKey, v);
+                              }
+                            }}
+                          />
                         </div>
-                      )}
+                      ) : ticketValue ? (
+                        <div className="mt-0.5 font-mono text-[10px] text-brand-orange">
+                          <Hash className="inline h-2.5 w-2.5" /> {ticketValue}
+                        </div>
+                      ) : null}
                     </div>
                     {onUnlink && (
                       <UnlinkButton onClick={() => onUnlink(p.id, segments.map((s) => s.id))} />
@@ -2110,6 +2167,7 @@ function FlightReservationCard({
                 </li>
               );
             })}
+
 
           </ul>
           {onLink && allPassengers && (

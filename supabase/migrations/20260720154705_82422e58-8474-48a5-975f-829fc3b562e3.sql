@@ -1,0 +1,1 @@
+ALTER TABLE public.order_passengers ADD COLUMN IF NOT EXISTS tickets JSONB NOT NULL DEFAULT '{}'::jsonb;

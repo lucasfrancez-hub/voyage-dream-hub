@@ -829,7 +829,7 @@ const passengerTypeLabel = (t: ReturnType<typeof T>, kind: string): string => {
   return t.adulto;
 };
 
-const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
+const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservationLocator: string | null = null) => {
   if (!passengers.length) return;
   const t = T(ctx);
   const rowH = 16;
@@ -842,8 +842,14 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
   const innerX = MARGIN + 20;
   const innerW = CONTENT_W - 40;
 
+  const locKey = ((reservationLocator ?? "") || "").toUpperCase().trim() || "_";
+  const ticketFor = (p: OrderPassenger): string => {
+    const map = ((p as unknown as { tickets?: Record<string, string> }).tickets) ?? {};
+    return (map[locKey] ?? p.ticket_number ?? "").trim();
+  };
   // Só mostra a coluna Bilhete se pelo menos um passageiro tem número de bilhete
-  const showTicket = passengers.some((p) => ((p.ticket_number ?? "").trim().length > 0));
+  const showTicket = passengers.some((p) => ticketFor(p).length > 0);
+
 
   const weights = showTicket ? [2.2, 0.9, 1.6, 1.1, 1.3] : [2.4, 1.0, 1.8, 1.2];
   const units = weights.reduce((a, b) => a + b, 0);
@@ -879,8 +885,9 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[]) => {
       : (p.cpf ? `CPF ${p.cpf}` : (p.document ?? "-"));
     const tipo = passengerTypeLabel(t, p.passenger_type ?? "ADT");
     const dob = p.birth_date ? fmtDateBR(p.birth_date) : "-";
-    const rawTicket = (p.ticket_number ?? "").trim();
+    const rawTicket = ticketFor(p);
     const ticketFmt = formatTicketNumber(rawTicket);
+
     const cells = showTicket
       ? [name || "-", tipo, doc, dob, ticketFmt || "-"]
       : [name || "-", tipo, doc, dob];
@@ -2239,10 +2246,11 @@ export async function generateVoucher(
     // quando os passageiros não foram atrelados via order_item_passengers).
     return s.size === 0 ? new Set(allPassengerIds) : s;
   };
-  const drawPaxForIds = (ids: Set<string>) => {
+  const drawPaxForIds = (ids: Set<string>, locator?: string | null) => {
     const list = detail.passengers.filter((p) => ids.has(p.id));
-    if (list.length > 0) drawPassengersSection(ctx, list);
+    if (list.length > 0) drawPassengersSection(ctx, list, locator ?? null);
   };
+
   const paxSignature = (ids: Set<string>) => [...ids].sort().join("|");
   const passengerSetsAlreadyShown = new Set<string>();
 
@@ -2251,9 +2259,11 @@ export async function generateVoucher(
     const g = groups.get(key)!;
     await drawAereoSection(ctx, g.outbound, g.returning);
     const ids = paxSetForItems([...g.outbound, ...g.returning]);
-    drawPaxForIds(ids);
+    const grpLoc = pickAereoLocator([...g.outbound, ...g.returning]);
+    drawPaxForIds(ids, grpLoc);
     passengerSetsAlreadyShown.add(paxSignature(ids));
   }
+
 
 
   // Monta string de hóspedes a partir dos passageiros (ex.: "2 adultos, 1 criança, 1 bebê")
