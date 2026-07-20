@@ -119,6 +119,9 @@ function AdminPackages() {
   const qc = useQueryClient();
   const [editing, setEditingState] = useState<Partial<PackageRow> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+  const searchHotelsFn = useServerFn(searchTripAdvisorHotels);
+  const hotelDetailsFn = useServerFn(getTripAdvisorHotelDetails);
   // Multi-import drafts: array of partial packages open in tabs
   const [drafts, setDrafts] = useState<Partial<PackageRow>[] | null>(null);
   const [draftIndex, setDraftIndex] = useState(0);
