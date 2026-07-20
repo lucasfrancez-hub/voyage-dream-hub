@@ -293,7 +293,7 @@ export const runCheckin = createServerFn({ method: "POST" })
         airline: "LATAM",
         locator: checkin.locator,
         surname: checkin.pnr_surname,
-      }).catch((e) => { console.warn("[checkin] saved script failed", e); return null; });
+      }).catch((e: unknown) => { console.warn("[checkin] saved script failed", e); return null; });
       if (!result) {
         const { runLatamAutopilot } = await import("./latam-autopilot.server");
         result = await runLatamAutopilot({ locator: checkin.locator, surname: checkin.pnr_surname, checkinUrl: airlineCheckinUrl });
