@@ -152,7 +152,8 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   }
 
   const agents = await loadAgents();
-  const agent = pickAgent(agents);
+  const agent = pickAgent(agents, conv.agent_slug ?? null);
+
 
   if (!agent) {
     const msg =
