@@ -59,7 +59,10 @@ function TreinoPage() {
   const [interactive, setInteractive] = useState(true);
   const [lastClick, setLastClick] = useState<{ x: number; y: number } | null>(null);
   const [typeBuffer, setTypeBuffer] = useState("");
+  const [hintBuffer, setHintBuffer] = useState("");
+  const [annotations, setAnnotations] = useState<{ x: number; y: number; label: string; kind: "type" | "click"; url: string }[]>([]);
   const imgRef = useRef<HTMLImageElement>(null);
+
 
 
   useEffect(() => {
@@ -184,7 +187,7 @@ function TreinoPage() {
 
   const removeStep = (i: number) => setSteps((prev) => prev.filter((_, idx) => idx !== i));
 
-  const executeAndAppend = async (step: TrainingStep, label: string) => {
+  const executeAndAppend = async (step: TrainingStep, label: string, hint?: string) => {
     if (!sessionId) {
       toast.error("Abra uma sessão primeiro.");
       return;
@@ -192,9 +195,18 @@ function TreinoPage() {
     setBusy(true);
     setVision(null);
     setSelectedTarget(null);
+    const urlBefore = shot?.url ?? "";
     try {
       const r = await runStep({ data: { sessionId, step } });
       setSteps((prev) => [...prev, step]);
+      // Annotate the screenshot the action was taken ON (urlBefore), so the label sticks
+      // to the field the user marked, not to the next screen.
+      if ((step.action === "type" || step.action === "click") && hint && urlBefore) {
+        setAnnotations((prev) => [
+          ...prev,
+          { x: step.x, y: step.y, label: hint, kind: step.action, url: urlBefore },
+        ]);
+      }
       setShot((prev) => ({ b64: r.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: r.currentUrl, title: r.title }));
       toast.success(`${label} · executado`);
     } catch (e) {
@@ -204,13 +216,19 @@ function TreinoPage() {
     }
   };
 
+
   const clickTargetAsStep = async (t: VisionTarget, mode: "click" | "type", text = "") => {
     const step: TrainingStep =
       mode === "click"
         ? { action: "click", x: Math.round(t.x), y: Math.round(t.y) }
         : { action: "type", x: Math.round(t.x), y: Math.round(t.y), text, clearFirst: true };
-    await executeAndAppend(step, `${mode === "click" ? "Clique" : "Digitação"} em ${t.label}`);
+    const hint =
+      mode === "type"
+        ? `digite aqui: ${text || t.label}`
+        : `clique aqui: ${t.label}`;
+    await executeAndAppend(step, `${mode === "click" ? "Clique" : "Digitação"} em ${t.label}`, hint);
   };
+
 
   const addManualStep = (s: TrainingStep, label: string) => executeAndAppend(s, label);
 
@@ -349,24 +367,34 @@ function TreinoPage() {
                 </label>
               </div>
               {interactive && (
-                <div className="mb-2 flex items-center gap-2 text-xs">
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
                   <span className="text-muted-foreground">
                     {lastClick ? `Último clique: ${lastClick.x},${lastClick.y}` : "Clique na imagem pra clicar na página."}
                   </span>
                   <input
                     type="text"
+                    value={hintBuffer}
+                    onChange={(e) => setHintBuffer(e.target.value)}
+                    placeholder='rótulo do campo (ex: "aqui vai o localizador")'
+                    className="flex-1 min-w-[180px] border rounded px-2 py-1"
+                  />
+                  <input
+                    type="text"
                     value={typeBuffer}
                     onChange={(e) => setTypeBuffer(e.target.value)}
                     placeholder="digitar no último clique + Enter"
-                    className="flex-1 border rounded px-2 py-1"
+                    className="flex-1 min-w-[180px] border rounded px-2 py-1"
                     onKeyDown={async (e) => {
                       if (e.key !== "Enter" || !lastClick || !typeBuffer || busy) return;
                       e.preventDefault();
                       const text = typeBuffer;
+                      const hint = hintBuffer.trim() || `digite aqui: ${text}`;
                       setTypeBuffer("");
+                      setHintBuffer("");
                       await executeAndAppend(
                         { action: "type", x: lastClick.x, y: lastClick.y, text, clearFirst: true },
-                        `Digitou "${text}"`
+                        `Digitou "${text}"`,
+                        hint,
                       );
                     }}
                   />
@@ -386,9 +414,36 @@ function TreinoPage() {
                     const x = Math.round(((e.clientX - rect.left) / rect.width) * shot.w);
                     const y = Math.round(((e.clientY - rect.top) / rect.height) * shot.h);
                     setLastClick({ x, y });
-                    await executeAndAppend({ action: "click", x, y }, `Clique ${x},${y}`);
+                    const hint = hintBuffer.trim();
+                    if (hint) setHintBuffer("");
+                    await executeAndAppend(
+                      { action: "click", x, y },
+                      `Clique ${x},${y}`,
+                      hint || undefined,
+                    );
                   }}
                 />
+
+                {annotations
+                  .filter((a) => a.url === shot.url)
+                  .map((a, i) => {
+                    const left = (a.x / shot.w) * 100;
+                    const top = (a.y / shot.h) * 100;
+                    const color = a.kind === "type" ? "bg-emerald-500" : "bg-sky-500";
+                    return (
+                      <div
+                        key={`ann-${i}`}
+                        className="absolute pointer-events-none"
+                        style={{ left: `${left}%`, top: `${top}%`, transform: "translate(-50%, -50%)" }}
+                      >
+                        <div className={`h-3 w-3 rounded-full ${color} ring-2 ring-white shadow`} />
+                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-[10px] font-medium text-white ${color} px-1.5 py-0.5 rounded shadow`}>
+                          {a.label}
+                        </div>
+                      </div>
+                    );
+                  })}
+
 
                 {vision?.targets?.map((t, i) => {
                   const isSel = selectedTarget === i;
