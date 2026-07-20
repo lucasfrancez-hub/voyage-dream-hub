@@ -224,6 +224,26 @@ export const Route = createFileRoute("/api/public/hooks/check-flight-changes")({
               .from("flight_change_alerts")
               .update({ wa_button_message_id: sent.id })
               .eq("id", alert.id);
+
+            const { logSystemOutbound } = await import("@/lib/whatsapp/log-system-outbound.server");
+            await logSystemOutbound({
+              wa_phone: phone,
+              kind: cancelled ? "flight_cancel_alert" : "flight_change_alert",
+              summary: cancelled
+                ? `Aviso automático de CANCELAMENTO enviado (voo ${flightNumber} · localizador ${order?.airline_locator ?? "?"}). Cliente pode responder "Remarcar voo" ou "Solicitar reembolso".`
+                : `Aviso automático de alteração de voo enviado (voo ${flightNumber} · localizador ${order?.airline_locator ?? "?"} · partida ${departAt} → ${newDepart || "?"}). Cliente pode responder ${minorChange ? '"Ok, ciente".' : '"Remarcar voo" ou "Solicitar reembolso".'}`,
+              wa_message_id: sent.id,
+              meta: {
+                alert_id: alert.id,
+                order_id: item.order_id,
+                locator: order?.airline_locator,
+                flight: flightNumber,
+                old_depart: departAt,
+                new_depart: newDepart,
+                cancelled,
+                minorChange,
+              },
+            });
           }
 
           // E-mail para o admin (não bloqueia o loop se falhar)
