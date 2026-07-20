@@ -748,14 +748,15 @@ Retorne SÓ o JSON.`;
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: "openai/gpt-5.5",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: system },
           { role: "user", content: userContent },
         ],
         response_format: { type: "json_object" },
-        max_completion_tokens: 32000,
+        max_completion_tokens: 60000,
       }),
+
     });
 
     if (!resp.ok) {
