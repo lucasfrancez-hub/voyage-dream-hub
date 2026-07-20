@@ -457,6 +457,40 @@ function TreinoPage() {
                       );
                     }}
                   />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy || !sessionId || !lastClick || !pnr}
+                    onClick={async () => {
+                      if (!lastClick || !pnr) return;
+                      const hint = hintBuffer.trim() || `aqui vai o localizador: ${pnr}`;
+                      setHintBuffer("");
+                      await executeAndAppend(
+                        { action: "type", x: lastClick.x, y: lastClick.y, text: pnr, clearFirst: true },
+                        `Preencheu localizador (${pnr})`,
+                        hint,
+                      );
+                    }}
+                  >
+                    Preencher localizador
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy || !sessionId || !lastClick || !surname}
+                    onClick={async () => {
+                      if (!lastClick || !surname) return;
+                      const hint = hintBuffer.trim() || `aqui vai o sobrenome: ${surname}`;
+                      setHintBuffer("");
+                      await executeAndAppend(
+                        { action: "type", x: lastClick.x, y: lastClick.y, text: surname, clearFirst: true },
+                        `Preencheu sobrenome (${surname})`,
+                        hint,
+                      );
+                    }}
+                  >
+                    Preencher sobrenome
+                  </Button>
                 </div>
               )}
               <div className="relative inline-block border rounded overflow-hidden bg-black/5">
