@@ -122,6 +122,9 @@ function AdminPackages() {
   // Multi-import drafts: array of partial packages open in tabs
   const [drafts, setDrafts] = useState<Partial<PackageRow>[] | null>(null);
   const [draftIndex, setDraftIndex] = useState(0);
+  // Global hashtag number(s) reserved for the currently-open new package(s)
+  const [pendingNumbers, setPendingNumbers] = useState<number[] | null>(null);
+
 
   // Wrap setEditing to keep the drafts array in sync with edits
   const setEditing = (v: Partial<PackageRow> | null) => {
@@ -368,8 +371,14 @@ function AdminPackages() {
         </div>
         <div className="flex items-center gap-2">
           <MultiPackageImportButton
-            onExtracted={(list) => {
+            onExtracted={async (list) => {
               if (!list.length) return;
+              try {
+                const base = await nextPackageBaseNumber();
+                setPendingNumbers(list.map((_, i) => base + i));
+              } catch {
+                setPendingNumbers(null);
+              }
               setDrafts(list);
               setDraftIndex(0);
               setEditingState(list[0]);
@@ -377,11 +386,20 @@ function AdminPackages() {
           />
 
           <button
-            onClick={() => setEditing({ ...emptyForm })}
+            onClick={async () => {
+              try {
+                const base = await nextPackageBaseNumber();
+                setPendingNumbers([base]);
+              } catch {
+                setPendingNumbers(null);
+              }
+              setEditing({ ...emptyForm });
+            }}
             className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
           >
             <Plus className="h-5 w-5" strokeWidth={3} /> Novo Pacote
           </button>
+
         </div>
       </div>
 
@@ -493,9 +511,11 @@ function AdminPackages() {
           draftIndex={draftIndex}
           switchDraft={switchDraft}
           closeCurrentDraft={closeCurrentDraft}
+          nextNumber={pendingNumbers?.[draftIndex] ?? pendingNumbers?.[0] ?? null}
         />
 
       )}
+
 
     </div>
   );
@@ -521,7 +541,9 @@ type PackageEditorModalProps = {
   draftIndex?: number;
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
+  nextNumber?: number | null;
 };
+
 
 
 
@@ -560,7 +582,7 @@ function deriveFromFlights(editing: Partial<PackageRow>): { originCity?: string;
   return { originCity, destCity, title, slug };
 }
 
-function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts, draftIndex = 0, switchDraft, closeCurrentDraft }: PackageEditorModalProps) {
+function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts, draftIndex = 0, switchDraft, closeCurrentDraft, nextNumber }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
   const [aiLoading, setAiLoading] = useState(false);
@@ -585,10 +607,14 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     if (!editing.destination && derived.destCity) patch.destination = derived.destCity;
     if (!editing.origin && derived.originCity) patch.origin = derived.originCity;
     if (!editing.title && derived.title) patch.title = derived.title;
-    if (!editing.slug && derived.slug) patch.slug = derived.slug;
+    if (!editing.slug && derived.slug) {
+      const base = derived.slug.replace(/-\d+$/, "");
+      patch.slug = !editing.id && nextNumber ? `${base}-${nextNumber}` : derived.slug;
+    }
     if (Object.keys(patch).length) setEditing({ ...editing, ...patch });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [derived.destCity, derived.originCity, derived.title, derived.slug]);
+  }, [derived.destCity, derived.originCity, derived.title, derived.slug, nextNumber]);
+
 
   // Montar "O que inclui" a partir dos campos efetivamente preenchidos/marcados.
   const derivedIncludes = useMemo(() => {
@@ -653,17 +679,11 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   }
 
   // Auto-gerar resumo assim que houver destino e o resumo estiver vazio.
-  const autoSummaryDoneRef = (function useAutoSummaryRef() {
-    // usa useMemo pra manter uma ref estável entre renders sem importar useRef aqui.
-    const box = useMemo(() => ({ destKey: "" as string }), []);
-    return box;
-  })();
+  // Dispara também em cada troca de draft (pacote diferente com destino igual).
   useEffect(() => {
     const dest = (editing.destination ?? "").trim();
     const summary = (editing.summary ?? "").trim();
     if (!dest || summary || aiLoading) return;
-    if (autoSummaryDoneRef.destKey === dest) return;
-    autoSummaryDoneRef.destKey = dest;
     const t = setTimeout(() => {
       if ((editing.summary ?? "").trim()) return;
       void (async () => {
@@ -676,14 +696,14 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
         } catch (err) {
           console.warn("[auto-summary] falhou", err);
         } finally {
-
           setAiLoading(false);
         }
       })();
     }, 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing.destination]);
+  }, [editing.destination, editing.slug, draftIndex]);
+
 
   async function handleSearchImages(nextPage = 1) {
     const q = imgQuery.trim() || editing.destination?.trim() || "";
@@ -2224,7 +2244,7 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           bed_type: p.bed_type || "",
           supplier_name: p.supplier_name || "",
           includes: [],
-          is_active: false,
+          is_active: true,
           sort_order: 0,
           image_url: "",
           summary: "",
