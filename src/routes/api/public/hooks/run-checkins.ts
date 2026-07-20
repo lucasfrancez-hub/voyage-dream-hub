@@ -103,7 +103,7 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
           .order("scheduled_for", { ascending: true })
           .limit(5);
 
-        const { runLatamCheckin } = await import("@/lib/checkin/latam.server");
+        const { runLatamAutopilot } = await import("@/lib/checkin/latam-autopilot.server");
         const { deliverBoardingPass } = await import("@/lib/checkin/deliver.server");
 
         for (const ci of (scheduled ?? []) as Array<any>) {
@@ -116,7 +116,7 @@ export const Route = createFileRoute("/api/public/hooks/run-checkins")({
             }).eq("id", ci.id);
 
             const { data: sourceItem } = await supabaseAdmin.from("order_items").select("details").eq("id", ci.order_item_id).maybeSingle();
-            const result = await runLatamCheckin({ locator: ci.locator, surname: ci.pnr_surname, checkinUrl: String((sourceItem as any)?.details?.airline_checkin_url || "") });
+            const result = await runLatamAutopilot({ locator: ci.locator, surname: ci.pnr_surname, checkinUrl: String((sourceItem as any)?.details?.airline_checkin_url || "") });
             const path = `${ci.order_id}/${ci.id}.pdf`;
             const pdfBytes = Uint8Array.from(atob(result.boardingPassBase64), (c) => c.charCodeAt(0));
             const up = await supabaseAdmin.storage.from("boarding-passes")

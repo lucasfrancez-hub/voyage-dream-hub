@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plane, CheckCircle2, XCircle, Clock, Download, Send, Code2, Eye } from "lucide-react";
+import { Loader2, Plane, CheckCircle2, XCircle, Clock, Download, Send, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -59,13 +59,13 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
   });
 
   const runMut = useMutation({
-    mutationFn: async (args: { orderItemIds: string[]; regenCheckinIds?: string[]; mode: "code" | "vision" }) => {
+    mutationFn: async (args: { orderItemIds: string[]; regenCheckinIds?: string[] }) => {
       for (const id of args.regenCheckinIds ?? []) {
         await regen({ data: { checkinId: id } });
       }
-      return runGroup({ data: { orderItemIds: args.orderItemIds, mode: args.mode } });
+      return runGroup({ data: { orderItemIds: args.orderItemIds } });
     },
-    onSuccess: (result: any, vars) => {
+    onSuccess: (result: any) => {
       qc.invalidateQueries({ queryKey: ["flight-checkins", orderId] });
       if (!result.ok) {
         toast.error(result.error || "Falha no check-in");
@@ -73,8 +73,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
       }
       const okCount = (result.results ?? []).filter((r: any) => r.ok).length;
       const total = (result.results ?? []).length;
-      const modeLabel = vars.mode === "vision" ? "Visão IA" : "Código";
-      toast.success(`Check-in (${modeLabel}) concluído — ${okCount}/${total} cartões.`);
+      toast.success(`Check-in concluído — ${okCount}/${total} cartões.`);
     },
     onError: (e: any) => toast.error(`Falha no check-in: ${e?.message ?? "erro"}`),
   });
@@ -237,42 +236,18 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                       runMut.mutate({
                         orderItemIds,
                         regenCheckinIds: allSuccess ? regenIds : undefined,
-                        mode: "code",
                       })
                     }
                     title={
                       !canRun && !allSuccess
                         ? "Disponível a partir de 48h antes do último trecho"
-                        : "Robô com seletores HTML — rápido e grátis"
+                        : "Piloto automático — IA olha a tela, decide e baixa o cartão"
                     }
                   >
-                    {isRunning && runMut.variables?.mode === "code"
+                    {isRunning
                       ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      : <Code2 className="h-3.5 w-3.5 mr-1" />}
-                    {allSuccess ? "Regerar (código)" : "Rodar (código)"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={isRunning || anyRunning || (!canRun && !allSuccess)}
-                    onClick={() =>
-                      runMut.mutate({
-                        orderItemIds,
-                        regenCheckinIds: allSuccess ? regenIds : undefined,
-                        mode: "vision",
-                      })
-                    }
-                    title={
-                      !canRun && !allSuccess
-                        ? "Disponível a partir de 48h antes do último trecho"
-                        : "Robô com visão IA — mais resiliente, ~R$ 0,05/check-in"
-                    }
-                    className="border-purple-400/50 text-purple-600 dark:text-purple-300 hover:bg-purple-500/10"
-                  >
-                    {isRunning && runMut.variables?.mode === "vision"
-                      ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      : <Eye className="h-3.5 w-3.5 mr-1" />}
-                    {allSuccess ? "Regerar (Visão IA)" : "Rodar (Visão IA)"}
+                      : <Bot className="h-3.5 w-3.5 mr-1" />}
+                    {allSuccess ? "Regerar cartão" : "Fazer check-in"}
                   </Button>
                 </div>
               </div>
@@ -299,12 +274,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                         {checkin?.mode && (
                           <Badge
                             variant="outline"
-                            className={
-                              "text-[10px] " +
-                              (checkin.mode === "vision"
-                                ? "border-purple-400/50 text-purple-600 dark:text-purple-300"
-                                : "border-border text-muted-foreground")
-                            }
+                            className="text-[10px] border-border text-muted-foreground"
                             title={
                               checkin.run_duration_ms
                                 ? `${(checkin.run_duration_ms / 1000).toFixed(1)}s` +
@@ -312,9 +282,7 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
                                 : undefined
                             }
                           >
-                            {checkin.mode === "vision"
-                              ? <><Eye className="h-3 w-3 mr-1" />Visão IA</>
-                              : <><Code2 className="h-3 w-3 mr-1" />Código</>}
+                            <Bot className="h-3 w-3 mr-1" />Piloto
                           </Badge>
                         )}
                         {checkin?.id && (checkin?.boarding_pass_url || checkin?.boarding_pass_path) && (
