@@ -11,20 +11,44 @@ async function assertAdmin(supabase: any, userId: string) {
 export const generatePackageSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({ brief: z.string().min(2).max(500) }).parse(data),
+    z.object({
+      brief: z.string().min(2).max(500),
+      destination: z.string().max(200).optional(),
+      angle: z.string().max(80).optional(),
+    }).parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
 
-    const system = `Você é copywriter da agência de viagens VIA AIR. Escreva um RESUMO CURTO e envolvente para um pacote turístico, em português do Brasil.
-Regras:
+    const angles = [
+      "praias, mar e orla",
+      "gastronomia e vida local",
+      "cultura, história e arquitetura",
+      "natureza, trilhas e paisagens",
+      "vida noturna, bares e música",
+      "bairros e passeios imperdíveis",
+      "experiências ao ar livre e esportes",
+      "artesanato, feiras e tradições",
+    ];
+    const angle = data.angle || angles[Math.floor(Math.random() * angles.length)];
+    const dest = (data.destination || "").trim();
+
+    const system = `Você é copywriter da agência de viagens VIA AIR. Escreva um RESUMO CURTO e envolvente sobre o DESTINO de um pacote turístico, em português do Brasil.
+Regras rígidas:
 - 2 a 3 frases, no máximo 350 caracteres.
-- Tom aspiracional, elegante, sem exageros nem clichês ("paraíso", "imperdível", "único").
+- Fale ESPECIFICAMENTE sobre o lugar: cite pelo menos 2 elementos concretos e reconhecíveis do destino (praias, bairros, pratos típicos, pontos históricos, natureza, cultura local). Nada genérico.
+- PROIBIDO usar frases-clichê como "central de espera para suas férias", "destino perfeito", "experiência inesquecível", "paraíso", "único", "imperdível", "escapada dos sonhos", "cenário deslumbrante", "encanta a todos".
+- PROIBIDO falar do pacote, do preço, de hotel, de companhia aérea, de datas ou da agência.
+- Foco autoral: descreva o LUGAR como um guia local descreveria — concreto, sensorial, específico.
+- Ângulo desta versão: ${angle}. Priorize esse recorte, mas mantenha a fluidez.
 - Sem emojis, sem hashtags, sem markdown, sem aspas.
-- Fale do destino, atmosfera, experiências marcantes. Não invente preços, datas, hotel ou companhia aérea.
-- Responda APENAS com o texto final do resumo.`;
+- Responda APENAS com o texto final, sem rótulos.`;
+
+    const userMsg = dest
+      ? `Destino: ${dest}\nBriefing/contexto: ${data.brief}\nEscreva o resumo sobre ${dest}, com foco em ${angle}.`
+      : data.brief;
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -34,9 +58,11 @@ Regras:
       },
       body: JSON.stringify({
         model: "google/gemini-3.5-flash",
+        temperature: 1.05,
+        top_p: 0.95,
         messages: [
           { role: "system", content: system },
-          { role: "user", content: data.brief },
+          { role: "user", content: userMsg },
         ],
       }),
     });
@@ -50,6 +76,7 @@ Regras:
     if (!text) throw new Error("IA não retornou texto");
     return { text };
   });
+
 
 // Busca de imagens livres — combina múltiplas fontes de alta qualidade:
 // 1) Categoria do destino no Wikimedia Commons (galeria curada com centenas
