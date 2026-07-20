@@ -90,6 +90,14 @@ function extractText(m: UazMessage): string | null {
   );
 }
 
+function matchFlightAlertButton(text: string): "reschedule" | "refund" | "ack" | null {
+  const t = text.trim().toLowerCase();
+  if (t === "remarcar voo") return "reschedule";
+  if (t === "solicitar reembolso") return "refund";
+  if (t === "ok, ciente" || t === "ok ciente") return "ack";
+  return null;
+}
+
 async function processUaz(payload: UazPayload) {
   const event = (payload.event ?? payload.EventType ?? "").toLowerCase();
   // Aceita "messages", "messages.upsert", "message", "onmessage" etc.
@@ -152,6 +160,33 @@ async function processUaz(payload: UazPayload) {
       wa_message_id,
     });
     if (!saved) continue;
+
+    // Detecta resposta de botão do robô de alertas de voo (títulos fixos).
+    // UazAPI não preserva IDs de botão — mapeamos pelo texto e casamos com o
+    // alerta pendente mais recente pra esse telefone.
+    const buttonAction = matchFlightAlertButton(content);
+    if (buttonAction) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: pending } = await supabaseAdmin
+        .from("flight_change_alerts")
+        .select("id")
+        .eq("wa_phone", phone)
+        .is("response", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (pending?.id) {
+        const { handleFlightAlertReply } = await import("@/lib/whatsapp/flight-alert-reply.server");
+        await handleFlightAlertReply({
+          conversation_id: conv.id,
+          wa_phone: phone,
+          button_id: `flight_alert:${pending.id}:${buttonAction}`,
+        });
+        continue;
+      }
+    }
+
+
 
     // Mesma lógica de debounce adaptativo do webhook Meta.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

@@ -62,19 +62,24 @@ export const Route = createFileRoute("/api/public/test-flight-alert")({
           ];
         }
 
+        const provider = uazConfiguredCheck() ? "uazapi" : "meta";
         let sent: { id: string | null; error?: string };
         let via: string;
         try {
           sent = await sendWhatsAppButtons({ to: phone, body: text, buttons });
-          via = "meta-buttons";
+          via = `${provider}-buttons`;
           if (!sent.id) throw new Error(sent.error ?? "no id");
         } catch (err) {
           sent = await sendWhatsAppText(phone, text);
-          via = "uazapi-text";
+          via = `${provider}-text-fallback`;
         }
 
-        return Response.json({ ok: !!sent.id, id: sent.id, error: sent.error, via, phone, scenario });
+        return Response.json({ ok: !!sent.id, id: sent.id, error: sent.error, via, provider, phone, scenario });
       },
     },
   },
 });
+
+function uazConfiguredCheck(): boolean {
+  return !!(process.env.UAZAPI_URL && process.env.UAZAPI_TOKEN);
+}
