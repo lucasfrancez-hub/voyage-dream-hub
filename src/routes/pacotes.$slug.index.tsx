@@ -23,10 +23,13 @@ export const Route = createFileRoute("/pacotes/$slug/")({
     preview: s.preview === "1" || s.preview === 1 || s.preview === true ? true : undefined,
   }),
   loader: async ({ params }) => {
+    const slugs = params.slug.includes("#")
+      ? [params.slug, params.slug.replace(/#/g, "-")]
+      : [params.slug];
     const { data } = await supabase
       .from("packages")
       .select("title,destination,origin,summary,image_url,nights,price_per_person,base_occupancy")
-      .eq("slug", params.slug)
+      .in("slug", slugs)
       .eq("is_active", true)
       .maybeSingle();
     return { pkg: data };
@@ -98,7 +101,8 @@ function PackageDetails() {
   const { data: pkg, isLoading } = useQuery({
     queryKey: ["package", slug, preview ? "preview" : "public"],
     queryFn: async () => {
-      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos").eq("slug", slug);
+      const slugs = slug.includes("#") ? [slug, slug.replace(/#/g, "-")] : [slug];
+      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos").in("slug", slugs);
       if (!preview) query = query.eq("is_active", true);
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
