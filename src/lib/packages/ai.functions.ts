@@ -51,6 +51,86 @@ Regras:
     return { text };
   });
 
+// Busca de imagens livres — combina Wikimedia Commons (bom p/ destinos/marcos
+// turísticos) com Openverse (fotos gerais Flickr/etc). Ambas gratuitas, sem key.
+type CoverImage = {
+  thumb: string;
+  url: string;
+  title: string;
+  source: string;
+  author: string;
+};
+
+async function fetchWikimedia(query: string): Promise<CoverImage[]> {
+  const url = new URL("https://commons.wikimedia.org/w/api.php");
+  url.searchParams.set("action", "query");
+  url.searchParams.set("format", "json");
+  url.searchParams.set("origin", "*");
+  url.searchParams.set("generator", "search");
+  url.searchParams.set("gsrsearch", `${query} filetype:bitmap|drawing -fileres:0`);
+  url.searchParams.set("gsrlimit", "18");
+  url.searchParams.set("gsrnamespace", "6");
+  url.searchParams.set("prop", "imageinfo");
+  url.searchParams.set("iiprop", "url|extmetadata|size|mime");
+  url.searchParams.set("iiurlwidth", "1200");
+
+  const resp = await fetch(url.toString(), {
+    headers: { "User-Agent": "VIA-AIR/1.0 (packages cover picker; contato@viaair.tur.br)" },
+  });
+  if (!resp.ok) return [];
+  const json = (await resp.json()) as any;
+  const pages = json?.query?.pages ? Object.values(json.query.pages) : [];
+  const out: CoverImage[] = [];
+  for (const p of pages as any[]) {
+    const info = p?.imageinfo?.[0];
+    if (!info) continue;
+    const mime = String(info.mime || "");
+    if (!mime.startsWith("image/") || mime.includes("svg")) continue;
+    const w = Number(info.width || 0);
+    const h = Number(info.height || 0);
+    if (w < 800 || h < 500) continue;
+    if (h > w) continue; // preferir paisagem
+    const meta = info.extmetadata || {};
+    out.push({
+      thumb: info.thumburl || info.url,
+      url: info.url,
+      title: String(p.title || "").replace(/^File:/, "").replace(/\.[a-z]+$/i, ""),
+      source: "Wikimedia Commons",
+      author: String(meta?.Artist?.value || "").replace(/<[^>]+>/g, "").trim(),
+    });
+  }
+  return out;
+}
+
+async function fetchOpenverse(query: string): Promise<CoverImage[]> {
+  try {
+    const url = new URL("https://api.openverse.org/v1/images/");
+    url.searchParams.set("q", query);
+    url.searchParams.set("page_size", "18");
+    url.searchParams.set("aspect_ratio", "wide");
+    url.searchParams.set("size", "large");
+    url.searchParams.set("license_type", "commercial");
+    url.searchParams.set("mature", "false");
+    const resp = await fetch(url.toString(), {
+      headers: { "User-Agent": "VIA-AIR/1.0 (packages cover picker)" },
+    });
+    if (!resp.ok) return [];
+    const json = (await resp.json()) as any;
+    const results = Array.isArray(json?.results) ? json.results : [];
+    return results
+      .map((r: any) => ({
+        thumb: (r?.thumbnail as string) || (r?.url as string) || "",
+        url: (r?.url as string) || "",
+        title: (r?.title as string) || "",
+        source: "Openverse",
+        author: (r?.creator as string) || "",
+      }))
+      .filter((x: CoverImage) => !!x.url);
+  } catch {
+    return [];
+  }
+}
+
 export const searchCoverImages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
@@ -59,31 +139,25 @@ export const searchCoverImages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
 
-    const url = new URL("https://api.openverse.org/v1/images/");
-    url.searchParams.set("q", data.query);
-    url.searchParams.set("page_size", "24");
-    url.searchParams.set("aspect_ratio", "wide");
-    url.searchParams.set("size", "large");
-    url.searchParams.set("license_type", "commercial");
-    url.searchParams.set("mature", "false");
+    // Enriquecer a busca com termos turísticos p/ trazer paisagens e marcos.
+    const base = data.query.trim();
+    const enriched = `${base} (praia OR paisagem OR turismo OR cidade OR skyline)`;
 
-    const resp = await fetch(url.toString(), {
-      headers: { "User-Agent": "VIA-AIR/1.0 (packages cover picker)" },
-    });
-    if (!resp.ok) {
-      const txt = await resp.text().catch(() => "");
-      throw new Error(`Openverse ${resp.status}: ${txt.slice(0, 200)}`);
+    const [wm, ov] = await Promise.all([
+      fetchWikimedia(enriched).catch(() => [] as CoverImage[]),
+      fetchOpenverse(base).catch(() => [] as CoverImage[]),
+    ]);
+
+    // Intercalar Wikimedia + Openverse, remover duplicatas por URL.
+    const seen = new Set<string>();
+    const images: CoverImage[] = [];
+    const max = Math.max(wm.length, ov.length);
+    for (let i = 0; i < max; i++) {
+      for (const src of [wm[i], ov[i]]) {
+        if (!src || seen.has(src.url)) continue;
+        seen.add(src.url);
+        images.push(src);
+      }
     }
-    const json = (await resp.json()) as any;
-    const results = Array.isArray(json?.results) ? json.results : [];
-    const images = results
-      .map((r: any) => ({
-        thumb: (r?.thumbnail as string) || (r?.url as string) || "",
-        url: (r?.url as string) || "",
-        title: (r?.title as string) || "",
-        source: (r?.source as string) || "",
-        author: (r?.creator as string) || "",
-      }))
-      .filter((x: any) => x.url);
-    return { images };
+    return { images: images.slice(0, 30) };
   });
