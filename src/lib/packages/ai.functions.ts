@@ -661,3 +661,151 @@ Regras:
 
     return { pkg: parsed };
   });
+
+
+// Extrai VÁRIOS pacotes de um único PDF/imagem, separados por
+// "Orcamento 1", "Orçamento 2", "Orcamento 3"… (padrão Infotera/Visual).
+export const extractMultiplePackagesFromDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        file_base64: z.string().min(100),
+        mime_type: z.string().default("application/pdf"),
+        filename: z.string().default("orcamentos.pdf"),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
+
+    const system = `Você extrai MÚLTIPLOS pacotes turísticos de um único documento (PDF ou imagem).
+O documento normalmente é um arquivo de operadora (Visual Turismo / Infotera / CVC / Azul Viagens / Flytour) que contém vários orçamentos concatenados.
+
+Cada orçamento começa com um cabeçalho no padrão "Orcamento N: <número>" ou "Orçamento N: <número>" (ex.: "Orcamento 1: 617381", "Orcamento 2: 617381"). Cada bloco tem sua própria hospedagem, datas, valores, ida e volta com conexões — até o próximo cabeçalho "Orcamento (N+1)".
+
+Devolva APENAS um JSON válido (sem markdown):
+{ "packages": [ { ...pacote 1... }, { ...pacote 2... }, ... ] }
+
+A ordem dos itens deve ser a mesma do documento. Não invente pacotes; se só houver um, retorne array com 1 item.
+
+Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invente):
+{
+  "destination": "Porto Seguro",
+  "origin": "Maringá",
+  "going_date": "YYYY-MM-DD",
+  "return_date": "YYYY-MM-DD",
+  "nights": 6,
+  "base_occupancy": 2,
+  "price_per_person": 2705.89,
+  "taxes": 167.50,
+  "hotel_name": "BOSQUE DO PORTO PRAIA HOTEL",
+  "hotel_stars": 4,
+  "meal_plan": "Café da manhã | \"\"",
+  "room_type": "Standard",
+  "room_category": "Standard",
+  "bed_type": "Casal | Solteiro | Duplo",
+  "supplier_name": "Visual Turismo",
+  "outbound_flight": { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T13:05","duration":"04h45","cabin_class":"Econômica","carry_on":true,"checked_bag":false,"personal_item":true,"segments":[ { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"CGH","to_city":"São Paulo","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T09:45","duration":"01h25","layover":"01h20 em São Paulo" }, { "airline":"GOL","flight_number":"1502","from_iata":"CGH","from_city":"São Paulo","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T11:05","arrive_at":"2026-12-21T13:05","duration":"02h00" } ] },
+  "return_flight": { ...mesma estrutura, sentido inverso }
+}
+
+Regras (aplicar em CADA pacote):
+- VALORES: pegue o TOTAL COM TAXAS INCLUSAS (ex.: "Total com taxas — R$ 7.138,10") e o valor das taxas (ex.: "Taxas R$ 167,50"). price_per_person = TOTAL_COM_TAXAS / base_occupancy. taxes = valor exato das taxas.
+- flight_number: SOMENTE dígitos, todos preservados (ex.: "1137", não "7", não "G3-1137").
+- depart_at / arrive_at: ISO "YYYY-MM-DDTHH:MM". Meses PT: jan=01…dez=12.
+- Conexões: segments em ordem; depart_at agregado = 1º segmento; arrive_at = último; from_city/to_city agregado = origem 1º / destino final.
+- meal_plan: SOMENTE se explicitamente mencionado. Senão "".
+- checked_bag/carry_on/personal_item: true apenas se o bloco indicar explicitamente. Caso contrário false.
+- hotel_stars: inteiro 1-5.
+- supplier_name: operadora emissora (nunca a agência revendedora VIA AIR).
+- Cidade em português (São Paulo).
+
+Retorne SÓ o JSON.`;
+
+    const userContent: any[] = [
+      {
+        type: "text",
+        text: "Este documento contém múltiplos orçamentos separados por 'Orcamento 1', 'Orcamento 2', etc. Extraia cada um como um item de 'packages', na ordem em que aparecem. Separe corretamente os blocos: cada orçamento tem seu próprio hotel, valores, ida e volta.",
+      },
+    ];
+    const isPdf = data.mime_type.includes("pdf");
+    if (isPdf) {
+      userContent.push({
+        type: "file",
+        file: { filename: data.filename, file_data: `data:${data.mime_type};base64,${data.file_base64}` },
+      });
+    } else {
+      userContent.push({
+        type: "image_url",
+        image_url: { url: `data:${data.mime_type};base64,${data.file_base64}` },
+      });
+    }
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "openai/gpt-5.5",
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: userContent },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => "");
+      throw new Error(`Falha IA (${resp.status}): ${txt.slice(0, 200)}`);
+    }
+    const json = (await resp.json()) as any;
+    let text = String(json?.choices?.[0]?.message?.content ?? "").trim();
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start === -1 || end === -1) throw new Error("IA não retornou JSON");
+    let parsed: any;
+    try {
+      parsed = JSON.parse(text.slice(start, end + 1));
+    } catch {
+      throw new Error("JSON inválido retornado pela IA");
+    }
+
+    const arr: any[] = Array.isArray(parsed?.packages)
+      ? parsed.packages
+      : Array.isArray(parsed)
+        ? parsed
+        : parsed && typeof parsed === "object"
+          ? [parsed]
+          : [];
+
+    const cleanNo = (v: any): string | undefined => {
+      if (v == null) return undefined;
+      const digits = String(v).replace(/[^0-9]/g, "");
+      return digits || undefined;
+    };
+    const sanitizeFlight = (f: any) => {
+      if (!f || typeof f !== "object") return f;
+      if (f.flight_number !== undefined) f.flight_number = cleanNo(f.flight_number);
+      if (Array.isArray(f.segments)) {
+        f.segments = f.segments.map((s: any) => ({
+          ...s,
+          flight_number: s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
+        }));
+      }
+      return f;
+    };
+    for (const pkg of arr) {
+      if (!pkg || typeof pkg !== "object") continue;
+      sanitizeFlight(pkg.outbound_flight);
+      sanitizeFlight(pkg.return_flight);
+      if (pkg.hotel_stars != null) {
+        const n = Math.round(Number(pkg.hotel_stars));
+        pkg.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
+      }
+    }
+
+    return { packages: arr };
+  });
