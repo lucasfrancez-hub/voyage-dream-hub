@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   CalendarClock,
   CheckCircle2,
@@ -48,6 +50,8 @@ function CheckinsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [mode, setMode] = useState<"code" | "vision">("code");
+
 
   const q = useQuery({
     queryKey: ["all-checkins"],
@@ -90,24 +94,25 @@ function CheckinsPage() {
     });
   }, [upcoming]);
 
-  async function handleRun(id: string, regenerate = false, mode: "code" | "vision" = "code") {
+  async function handleRun(id: string, regenerate = false, runMode: "code" | "vision" = mode) {
     setBusyId(id);
     try {
       if (regenerate) {
         await regen({ data: { checkinId: id } });
       }
-      const result = await run({ data: { checkinId: id, mode } });
+      const result = await run({ data: { checkinId: id, mode: runMode } });
       if (!result.ok) {
         toast.error(result.error);
         await q.refetch();
         return;
       }
-      const modeLabel = mode === "vision" ? "Visão IA" : "Código";
+      const modeLabel = runMode === "vision" ? "Visão IA" : "Código";
       toast.success(
         regenerate
           ? `Cartão regerado (${modeLabel}) e enviado`
           : `Check-in (${modeLabel}) concluído`,
       );
+
       q.refetch();
     } catch (e: any) {
       toast.error(e?.message ?? "Falhou");
