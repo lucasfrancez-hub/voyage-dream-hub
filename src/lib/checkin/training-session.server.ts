@@ -270,7 +270,12 @@ export async function runLiveStep(opts: {
     } else if (s.action === "click") {
       await page.mouse.move(s.x, s.y, { steps: 8 });
       await page.mouse.click(s.x, s.y, { delay: 60 });
-      await new Promise((r) => setTimeout(r, 1200));
+      await new Promise((r) => setTimeout(r, 800));
+      // Aguarda spinners/rede terminarem (ex: botão "procurar" da LATAM).
+      await (page as unknown as { waitForNetworkIdle?: (o: { idleTime: number; timeout: number }) => Promise<void> })
+        .waitForNetworkIdle?.({ idleTime: 700, timeout: 15000 })
+        .catch(() => {});
+      await new Promise((r) => setTimeout(r, 400));
     } else if (s.action === "type") {
       await page.mouse.click(s.x, s.y, { delay: 60 });
       if (s.clearFirst) {
