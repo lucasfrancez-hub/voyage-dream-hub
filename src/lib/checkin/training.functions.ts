@@ -177,7 +177,7 @@ export default async ({ page, browser, context }) => {
     let lastError: unknown;
     for (const strategy of strategies) {
       try {
-        const result = await runBrowserlessFunction<TrainingResult>(code, data, {
+        const result = await runBrowserlessFunction<TrainingResult>(code, payload, {
           timeoutMs: 180_000,
           launch: {
             headless: true,
