@@ -11,8 +11,8 @@ import {
   Loader2, Play, Eye, Trash2, Type as TypeIcon, MousePointer2, Clock, ArrowUp,
   Power, PowerOff, ArrowLeft, Camera, RotateCcw,
 } from "lucide-react";
+import { confirmThen } from "@/lib/confirm";
 import {
-  askVisionAboutScreenshot,
   openTrainingSession,
   runLiveTrainingStep,
   screenshotTrainingSession,
