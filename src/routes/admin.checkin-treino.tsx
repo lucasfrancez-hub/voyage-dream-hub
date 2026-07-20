@@ -89,6 +89,7 @@ function TreinoPage() {
   const [pdfs, setPdfs] = useState<{ url: string; path: string; sizeKb: number; source: string; kind?: "pdf" | "png" }[]>([]);
   const [regionMode, setRegionMode] = useState(false);
   const [regionDraft, setRegionDraft] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [regionPaxIndex, setRegionPaxIndex] = useState<number>(1);
   const regionDragRef = useRef<{ startX: number; startY: number; sx: number; sy: number } | null>(null);
   const [savedScripts, setSavedScripts] = useState<SavedScript[]>([]);
   const [currentScriptId, setCurrentScriptId] = useState<string | null>(null);
