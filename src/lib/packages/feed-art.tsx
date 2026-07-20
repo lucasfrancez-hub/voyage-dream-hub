@@ -147,34 +147,35 @@ export async function generatePackageFeedArt(pkg: {
   try {
     await new Promise<void>((resolve) => {
       root.render(<PackageFeedArt data={data} />);
-      // aguarda pintura + carregamento da logo
-      requestAnimationFrame(() => setTimeout(resolve, 250));
+      requestAnimationFrame(() => setTimeout(resolve, 120));
     });
 
-    // Aguarda todas as <img> internas
+    // Aguarda todas as <img> internas (logo é a única remota; bg é data URL)
     const imgs = Array.from(host.querySelectorAll("img"));
     await Promise.all(
       imgs.map(
         (img) =>
           new Promise<void>((res) => {
-            if ((img as HTMLImageElement).complete) return res();
+            if ((img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0) return res();
             img.addEventListener("load", () => res(), { once: true });
             img.addEventListener("error", () => res(), { once: true });
           }),
       ),
     );
-    await new Promise((r) => setTimeout(r, 150));
 
     const stage = host.querySelector<HTMLDivElement>(".stage");
     if (!stage) throw new Error("Falha ao montar a arte");
 
+    // cacheBust:false + skipFonts:true evita refetch pesado e enumeração de webfonts,
+    // que é o principal gargalo do html-to-image em árvores grandes com backdrop-filter.
     const dataUrl = await toPng(stage, {
       width: 1080,
       height: 1440,
       canvasWidth: 1080,
       canvasHeight: 1440,
       pixelRatio: 1,
-      cacheBust: true,
+      cacheBust: false,
+      skipFonts: true,
       backgroundColor: "#0a1a22",
     });
 
