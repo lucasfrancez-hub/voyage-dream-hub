@@ -29,7 +29,7 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
   };
   const { data: ci } = await supabaseAdmin
     .from("flight_checkins")
-    .select("id, order_id, order_item_id, passenger_id, flight_number, boarding_pass_path, boarding_pass_url")
+    .select("id, order_id, order_item_id, passenger_id, flight_number, locator, departure_at, boarding_pass_path, boarding_pass_url")
     .eq("id", checkinId)
     .maybeSingle();
   if (!ci) return report;
@@ -68,6 +68,30 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
   const isImage = isPng || isJpg;
   const ext = isPng ? "png" : isJpg ? "jpg" : "pdf";
   const flightNum = ci.flight_number ?? "";
+  const locator = ci.locator ?? "";
+
+  // Busca destino / cidade a partir do order_item (details.to_city / to_iata / destination).
+  let destino = "";
+  if (ci.order_item_id) {
+    const { data: it } = await supabaseAdmin
+      .from("order_items")
+      .select("details")
+      .eq("id", ci.order_item_id)
+      .maybeSingle();
+    const d = (it?.details ?? {}) as Record<string, any>;
+    destino = d.to_city || d.destination_city || d.to || d.destination || d.to_iata || d.arrival_iata || "";
+  }
+
+  // Formata data/horário do voo em pt-BR.
+  let dataVoo = "";
+  let horaVoo = "";
+  if (ci.departure_at) {
+    const dt = new Date(ci.departure_at);
+    if (!isNaN(dt.getTime())) {
+      dataVoo = dt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+      horaVoo = dt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+    }
+  }
 
   let passengers: Array<{ id: string; full_name: string | null; whatsapp: string | null }> = [];
   if (ci.passenger_id) {
@@ -126,8 +150,21 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
     }
     report.attempted++;
     const first = (pax.full_name ?? "").split(/\s+/)[0] || "";
-    const mediaLabel = isImage ? "imagem" : "PDF";
-    const caption = `✈️ *Cartão de embarque LATAM* ${flightNum}\n\nOlá, ${first}! Fizemos seu check-in. Aqui está seu cartão de embarque em ${mediaLabel}. Bom voo! 💛`;
+    const nomeCliente = first || (pax.full_name ?? "");
+    const caption =
+      `Olá, ${nomeCliente}! ✈️\n\n` +
+      `*Boas notícias! Seu check-in já foi realizado com sucesso.*\n\n` +
+      `Você não precisa fazer mais nada. Basta se apresentar ao aeroporto no horário recomendado para embarcar.\n\n` +
+      `Segue seu cartão de embarque para a sua viagem:\n\n` +
+      `*Destino*: ${destino || "—"}\n` +
+      `*Data*: ${dataVoo || "—"}\n` +
+      `*Voo*: ${flightNum || "—"}\n` +
+      `*Horário*: ${horaVoo || "—"}\n` +
+      `*Localizador*: ${locator || "—"}\n\n` +
+      `📎 _Seu cartão de embarque está anexado a esta mensagem._\n\n` +
+      `_Esta é uma mensagem automática. Em caso de dúvidas, basta responder esta mensagem e um dos nossos atendentes irá atendê-lo(a) o mais breve possível._\n\n` +
+      `Desejamos uma excelente viagem! 💙\n\n` +
+      `_Equipe Via Air_`;
     const filename = `cartao-embarque-${flightNum || pax.id.slice(0, 6)}.${ext}`;
     try {
       const r = isImage
