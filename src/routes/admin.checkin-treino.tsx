@@ -31,7 +31,7 @@ type VisionTarget = { label: string; x: number; y: number; w: number; h: number;
 type VisionParsed = { reasoning?: string; targets?: VisionTarget[]; notes?: string; raw?: string };
 type Shot = { b64: string; w: number; h: number; url: string; title: string };
 
-const DEFAULT_URL = "https://www.latamairlines.com/br/pt/check-in";
+const DEFAULT_URL = "https://www.latamairlines.com/br/pt/check-in/status?orderId=LA9571886LWKG&lastName=pereira";
 const DEFAULT_QUESTION =
   "Identifique os campos para iniciar check-in por localizador (código de reserva) e sobrenome, e o botão para continuar. Retorne cada elemento em 'targets' com coordenadas do centro e tamanho.";
 const SESSION_STORAGE_KEY = "via_training_session_id";
