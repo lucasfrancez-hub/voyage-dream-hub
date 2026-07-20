@@ -870,6 +870,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                 <FormField label="Hotel" wide>
                   <HotelAutocomplete
                     value={editing.hotel_name ?? ""}
+                    initialMode={editing.tripadvisor_location_id ? "live" : (editing.hotel_name ? "manual" : null)}
                     onChangeText={(v) => setEditing({ ...editing, hotel_name: v })}
                     onSelect={(h) => {
                       const automaticStars = h.rating != null
