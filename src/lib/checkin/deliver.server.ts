@@ -130,33 +130,25 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
     }
   }
 
+  // Sempre buscamos TODOS os passageiros do pedido ordenados por sort_order —
+  // o passenger_index dos cartões (1-based) casa com essa ordem.
   let passengers: Array<{ id: string; full_name: string | null; whatsapp: string | null }> = [];
-  if (ci.passenger_id) {
+  {
     const { data } = await supabaseAdmin
       .from("order_passengers")
-      .select("id, full_name, whatsapp")
-      .eq("id", ci.passenger_id);
-    passengers = data ?? [];
-  } else if (ci.order_item_id) {
+      .select("id, full_name, whatsapp, sort_order")
+      .eq("order_id", ci.order_id)
+      .order("sort_order", { ascending: true });
+    passengers = (data ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name, whatsapp: p.whatsapp }));
+  }
+  // Se o cartão está atrelado a um order_item específico, restringimos aos pax daquele item.
+  if (ci.order_item_id) {
     const { data: links } = await supabaseAdmin
       .from("order_item_passengers")
       .select("passenger_id")
       .eq("order_item_id", ci.order_item_id);
-    const ids = (links ?? []).map((l: any) => l.passenger_id).filter(Boolean);
-    if (ids.length) {
-      const { data } = await supabaseAdmin
-        .from("order_passengers")
-        .select("id, full_name, whatsapp")
-        .in("id", ids);
-      passengers = data ?? [];
-    }
-  }
-  if (passengers.length === 0) {
-    const { data } = await supabaseAdmin
-      .from("order_passengers")
-      .select("id, full_name, whatsapp")
-      .eq("order_id", ci.order_id);
-    passengers = data ?? [];
+    const ids = new Set((links ?? []).map((l: any) => l.passenger_id).filter(Boolean));
+    if (ids.size > 0) passengers = passengers.filter((p) => ids.has(p.id));
   }
 
   // Fallback: se nenhum passageiro tem WhatsApp válido, usa o telefone do
@@ -177,12 +169,22 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
     }
   }
 
-  for (const pax of passengers) {
+  for (let i = 0; i < passengers.length; i += 1) {
+    const pax = passengers[i];
+    const paxOrdinal = i + 1; // 1-based, alinhado com passenger_index
     const phone = normalizePhone(pax.whatsapp);
     const label = pax.full_name ?? pax.id;
     if (!phone) {
       report.skippedNoPhone.push({ name: label });
       console.warn(`[checkin] passageiro sem WhatsApp: ${label}`);
+      continue;
+    }
+    // Escolhe o cartão específico deste pax; se só existe um (voo simples/legado),
+    // usamos o mesmo pra todos. Caso contrário, tenta casar pelo passenger_index.
+    let pass = passes.find((p) => p.passenger_index === paxOrdinal);
+    if (!pass && passes.length === 1) pass = passes[0];
+    if (!pass) {
+      report.failed.push({ name: label, error: `Sem cartão capturado pro passageiro ${paxOrdinal}. Recapture no treinador.` });
       continue;
     }
     report.attempted++;
@@ -202,11 +204,11 @@ export async function deliverBoardingPass(checkinId: string): Promise<DeliverRep
       `_*Esta é uma mensagem automática. Em caso de dúvidas, basta responder esta mensagem e um dos nossos atendentes irá atendê-lo(a) o mais breve possível.*_\n\n` +
       `Desejamos uma excelente viagem! 💙\n\n` +
       `_Equipe Via Air_`;
-    const filename = `cartao-embarque-${flightNum || pax.id.slice(0, 6)}.${ext}`;
+    const filename = `cartao-embarque-${flightNum || pax.id.slice(0, 6)}-pax${paxOrdinal}.${pass.ext}`;
     try {
-      const r = isImage
-        ? await sendWhatsAppImageBytes(phone, fileBytes, filename, caption, url || undefined)
-        : await sendWhatsAppDocumentBytes(phone, fileBytes, filename, caption, url || undefined);
+      const r = pass.isImage
+        ? await sendWhatsAppImageBytes(phone, pass.bytes, filename, caption, pass.url || undefined)
+        : await sendWhatsAppDocumentBytes(phone, pass.bytes, filename, caption, pass.url || undefined);
       if (r.id) {
         report.delivered++;
       } else {
