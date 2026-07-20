@@ -170,7 +170,9 @@ function AuthPage() {
                   <label className="block text-xs text-muted-foreground mb-1.5">E-mail</label>
                   <input
                     required
+                    name="email"
                     type="email"
+                    autoComplete="username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
@@ -181,7 +183,9 @@ function AuthPage() {
                   <label className="block text-xs text-muted-foreground mb-1.5">Senha</label>
                   <input
                     required
+                    name="password"
                     type="password"
+                    autoComplete="current-password"
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
