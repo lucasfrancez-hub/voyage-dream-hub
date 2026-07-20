@@ -79,15 +79,22 @@ async function loadAgents(): Promise<Agent[]> {
   return (data ?? []) as unknown as Agent[];
 }
 
-function pickAgent(agents: Agent[]): Agent | null {
+function pickAgent(agents: Agent[], stickySlug?: string | null): Agent | null {
   if (!agents.length) return null;
   const now = currentHourInSaoPaulo();
-  const match = agents.find((a) =>
+  const inWindow = agents.filter((a) =>
     isInWindow(now, hmToDecimal(a.horario_inicio), hmToDecimal(a.horario_fim)),
   );
-  // Fora de qualquer janela ativa → retorna null para disparar mensagem de ausência.
-  return match ?? null;
+  if (!inWindow.length) return null;
+  // stickiness: se o agente que já atendeu essa conversa ainda está em janela, reusa.
+  if (stickySlug) {
+    const kept = inWindow.find((a) => a.slug === stickySlug);
+    if (kept) return kept;
+  }
+  // senão, escolhe aleatório entre os disponíveis (rotativo, "primeiro que atende").
+  return inWindow[Math.floor(Math.random() * inWindow.length)];
 }
+
 
 function firstAvailableAusencia(agents: Agent[]): string | null {
   for (const a of agents) if (a.mensagem_ausencia) return a.mensagem_ausencia;
