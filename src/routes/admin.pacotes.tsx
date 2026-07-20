@@ -887,8 +887,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
         setAiLoading(true);
         try {
           const { text } = await genSummary({
-            data: { brief: `Escreva um resumo de ${dest} para pacote de viagens, para vender pacote de viagens` },
+            data: { brief: `Resumo autoral sobre ${dest}, focado no que torna o lugar único.`, destination: dest },
           });
+
           setEditing({ ...editing, summary: text });
         } catch (err) {
           console.warn("[auto-summary] falhou", err);
