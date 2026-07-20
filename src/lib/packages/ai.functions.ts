@@ -571,7 +571,8 @@ Regras:
 - Meses PT: jan=01, fev=02, mar=03, abr=04, mai=05, jun=06, jul=07, ago=08, set=09, out=10, nov=11, dez=12.
 - Se houver conexões, preencha "segments" na ordem e defina depart_at do voo agregado = do primeiro segmento, arrive_at = do último.
 - Cidade em português (São Paulo, não Sao Paulo). from_city/to_city do voo agregado = origem do primeiro trecho / destino final.
-- meal_plan: se "Café da Manhã" → "Café da manhã"; "All inclusive"/"Tudo incluído" → "All inclusive"; senão o que aparecer.
+- meal_plan: SOMENTE se o documento mencionar explicitamente refeição. "Café da Manhã" → "Café da manhã"; "All inclusive"/"Tudo incluído" → "All inclusive"; se NÃO houver menção → "" (string vazia). Não assuma café da manhã por padrão.
+- checked_bag/carry_on/personal_item: true APENAS se o documento indicar explicitamente (ícone ativo, texto "1 bagagem despachada", "23kg" etc.). Se não houver menção clara → false. Não assuma bagagem despachada por padrão.
 - hotel_stars: número inteiro de 1 a 5 (conte as estrelas ou pegue a classificação).
 - includes: liste os itens da seção "Incluso" do documento.
 - supplier_name: identifique a OPERADORA/FORNECEDOR emissor do orçamento. Procure o LOGO ou nome no cabeçalho/rodapé/topo do documento. Regras: se aparecer "Visual" (com losango azul) → "Visual Turismo"; "CVC" → "CVC"; "Azul Viagens" → "Azul Viagens"; "Flytour" → "Flytour"; "Nascimento" → "Nascimento Turismo". Nunca coloque o nome da agência revendedora (ex.: VIA AIR), só da OPERADORA emissora.
