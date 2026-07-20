@@ -360,6 +360,66 @@ function AdminPackages() {
     qc.invalidateQueries({ queryKey: ["admin", "packages"] });
   }
 
+  async function backfillHotelPhotos() {
+    if (backfilling) return;
+    setBackfilling(true);
+    try {
+      const { data: rows, error } = await supabase
+        .from("packages")
+        .select("id,hotel_name,destination,hotel_stars,tripadvisor_photos,tripadvisor_location_id")
+        .not("hotel_name", "is", null);
+      if (error) throw error;
+      const targets = (rows ?? []).filter((r: any) => {
+        const photos = r.tripadvisor_photos;
+        const has = Array.isArray(photos) ? photos.length > 0 : !!photos;
+        return r.hotel_name && !has;
+      });
+      if (targets.length === 0) {
+        toast.info("Nenhum pacote precisa de atualização.");
+        return;
+      }
+      toast.info(`Atualizando fotos de ${targets.length} pacote(s)…`);
+      let ok = 0;
+      for (const r of targets as any[]) {
+        try {
+          const q = r.destination ? `${r.hotel_name} ${r.destination}` : r.hotel_name;
+          const results = await searchHotelsFn({ data: { query: q } });
+          const best = results?.[0];
+          if (!best) continue;
+          const full = await hotelDetailsFn({ data: { locationId: best.location_id, photoLimit: 5 } });
+          if (!full.photos || full.photos.length === 0) continue;
+          const rating = full.rating ?? best.rating ?? null;
+          const cls = full.hotel_class ?? null;
+          const stars = rating != null
+            ? Math.min(5, Math.max(1, Math.round(rating)))
+            : cls != null
+              ? Math.min(5, Math.max(1, Math.round(cls)))
+              : r.hotel_stars ?? 3;
+          const { error: upErr } = await supabase
+            .from("packages")
+            .update({
+              hotel_name: full.name || best.name || r.hotel_name,
+              hotel_stars: stars,
+              tripadvisor_location_id: String(best.location_id),
+              tripadvisor_url: full.tripadvisor_url ?? best.tripadvisor_url ?? null,
+              tripadvisor_address: full.address ?? best.address ?? null,
+              tripadvisor_photos: full.photos,
+            })
+            .eq("id", r.id);
+          if (!upErr) ok++;
+        } catch (err) {
+          console.warn("[backfill] falhou", r.id, err);
+        }
+      }
+      toast.success(`Fotos atualizadas em ${ok}/${targets.length} pacote(s).`);
+      qc.invalidateQueries({ queryKey: ["admin", "packages"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao atualizar fotos");
+    } finally {
+      setBackfilling(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-3 sm:px-6 py-6 sm:py-10 text-[0.95em] selection:bg-brand-orange/30">
       {/* Command Center header */}
