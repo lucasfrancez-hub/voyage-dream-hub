@@ -16,6 +16,7 @@ import {
   askVisionAboutScreenshot,
   openTrainingSession,
   runLiveTrainingStep,
+  runTrainingScript,
   screenshotTrainingSession,
   heartbeatTrainingSession,
   closeTrainingSession,
