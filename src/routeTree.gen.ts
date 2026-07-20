@@ -71,6 +71,7 @@ import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/a
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
+import { Route as ApiPublicUazapiWebhookSplatRouteImport } from './routes/api/public/uazapi-webhook.$'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -394,6 +395,12 @@ const ApiPublicHooksRunCheckinsRoute =
     path: '/api/public/hooks/run-checkins',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicUazapiWebhookSplatRoute =
+  ApiPublicUazapiWebhookSplatRouteImport.update({
+    id: '/$',
+    path: '/$',
+    getParentRoute: () => ApiPublicUazapiWebhookRoute,
+  } as any)
 const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   id: '/lovable/email/auth/preview',
   path: '/lovable/email/auth/preview',
@@ -474,7 +481,7 @@ export interface FileRoutesByFullPath {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
-  '/api/public/uazapi-webhook': typeof ApiPublicUazapiWebhookRoute
+  '/api/public/uazapi-webhook': typeof ApiPublicUazapiWebhookRouteWithChildren
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -486,6 +493,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/uazapi-webhook/$': typeof ApiPublicUazapiWebhookSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -542,7 +550,7 @@ export interface FileRoutesByTo {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
-  '/api/public/uazapi-webhook': typeof ApiPublicUazapiWebhookRoute
+  '/api/public/uazapi-webhook': typeof ApiPublicUazapiWebhookRouteWithChildren
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -554,6 +562,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/uazapi-webhook/$': typeof ApiPublicUazapiWebhookSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -612,7 +621,7 @@ export interface FileRoutesById {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
-  '/api/public/uazapi-webhook': typeof ApiPublicUazapiWebhookRoute
+  '/api/public/uazapi-webhook': typeof ApiPublicUazapiWebhookRouteWithChildren
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -624,6 +633,7 @@ export interface FileRoutesById {
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/uazapi-webhook/$': typeof ApiPublicUazapiWebhookSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -695,6 +705,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/uazapi-webhook/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -763,6 +774,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/uazapi-webhook/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -832,6 +844,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/uazapi-webhook/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -860,7 +873,7 @@ export interface RootRouteChildren {
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   ApiPublicNfseAtendenetTestRoute: typeof ApiPublicNfseAtendenetTestRoute
-  ApiPublicUazapiWebhookRoute: typeof ApiPublicUazapiWebhookRoute
+  ApiPublicUazapiWebhookRoute: typeof ApiPublicUazapiWebhookRouteWithChildren
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -1312,6 +1325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRunCheckinsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/uazapi-webhook/$': {
+      id: '/api/public/uazapi-webhook/$'
+      path: '/$'
+      fullPath: '/api/public/uazapi-webhook/$'
+      preLoaderRoute: typeof ApiPublicUazapiWebhookSplatRouteImport
+      parentRoute: typeof ApiPublicUazapiWebhookRoute
+    }
     '/lovable/email/auth/preview': {
       id: '/lovable/email/auth/preview'
       path: '/lovable/email/auth/preview'
@@ -1451,6 +1471,20 @@ const PacotesRouteChildren: PacotesRouteChildren = {
 const PacotesRouteWithChildren =
   PacotesRoute._addFileChildren(PacotesRouteChildren)
 
+interface ApiPublicUazapiWebhookRouteChildren {
+  ApiPublicUazapiWebhookSplatRoute: typeof ApiPublicUazapiWebhookSplatRoute
+}
+
+const ApiPublicUazapiWebhookRouteChildren: ApiPublicUazapiWebhookRouteChildren =
+  {
+    ApiPublicUazapiWebhookSplatRoute: ApiPublicUazapiWebhookSplatRoute,
+  }
+
+const ApiPublicUazapiWebhookRouteWithChildren =
+  ApiPublicUazapiWebhookRoute._addFileChildren(
+    ApiPublicUazapiWebhookRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -1472,7 +1506,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   ApiPublicNfseAtendenetTestRoute: ApiPublicNfseAtendenetTestRoute,
-  ApiPublicUazapiWebhookRoute: ApiPublicUazapiWebhookRoute,
+  ApiPublicUazapiWebhookRoute: ApiPublicUazapiWebhookRouteWithChildren,
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
