@@ -15,6 +15,7 @@ import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { generatePackageSummary, searchCoverImages, extractFlightFromImage, extractPackageFromDocument, extractMultiplePackagesFromDocument } from "@/lib/packages/ai.functions";
 import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
+import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions";
 import { FileUp, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pacotes")({
@@ -122,6 +123,7 @@ function AdminPackages() {
   const [backfilling, setBackfilling] = useState(false);
   const searchHotelsFn = useServerFn(searchTripAdvisorHotels);
   const hotelDetailsFn = useServerFn(getTripAdvisorHotelDetails);
+  const persistHotelPhotosFn = useServerFn(persistPackageHotelPhotos);
   // Multi-import drafts: array of partial packages open in tabs
   const [drafts, setDrafts] = useState<Partial<PackageRow>[] | null>(null);
   const [draftIndex, setDraftIndex] = useState(0);
@@ -276,10 +278,20 @@ function AdminPackages() {
       tripadvisor_address: pkg.tripadvisor_address || null,
       tripadvisor_photos: pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
     };
-    const { error } = pkg.id
-      ? await supabase.from("packages").update(payload).eq("id", pkg.id)
-      : await supabase.from("packages").insert(payload);
+    const savedPackage = pkg.id
+      ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
+      : await supabase.from("packages").insert(payload).select("id").single();
+    const { error } = savedPackage;
     if (error) throw error;
+    const sourcePhotos = payload.tripadvisor_photos ?? [];
+    if (sourcePhotos.length > 0 && sourcePhotos.some((url) => !url.includes("/api/public/package-hotel-photo/"))) {
+      const persisted = await persistHotelPhotosFn({
+        data: { packageId: savedPackage.data.id, photos: sourcePhotos.slice(0, 5) },
+      });
+      if (persisted.photos.length === 0) {
+        console.warn("[packages] não foi possível criar a cópia permanente das fotos do hotel");
+      }
+    }
   }
 
   async function save() {
@@ -372,11 +384,7 @@ function AdminPackages() {
         .select("id,hotel_name,destination,hotel_stars,tripadvisor_photos,tripadvisor_location_id")
         .not("hotel_name", "is", null);
       if (error) throw error;
-      const targets = (rows ?? []).filter((r: any) => {
-        const photos = r.tripadvisor_photos;
-        const has = Array.isArray(photos) ? photos.length > 0 : !!photos;
-        return r.hotel_name && !has;
-      });
+      const targets = (rows ?? []).filter((r: any) => r.hotel_name);
       if (targets.length === 0) {
         toast.info("Nenhum pacote precisa de atualização.");
         return;
@@ -385,14 +393,29 @@ function AdminPackages() {
       let ok = 0;
       for (const r of targets as any[]) {
         try {
-          const q = r.destination ? `${r.hotel_name} ${r.destination}` : r.hotel_name;
-          const results = await searchHotelsFn({ data: { query: q } });
-          const best = results?.[0];
-          if (!best) continue;
-          const full = await hotelDetailsFn({ data: { locationId: best.location_id, photoLimit: 5 } });
-          if (!full.photos || full.photos.length === 0) continue;
-          const rating = full.rating ?? best.rating ?? null;
-          const cls = full.hotel_class ?? null;
+          const existing = Array.isArray(r.tripadvisor_photos) ? r.tripadvisor_photos.filter(Boolean) : [];
+          const alreadyStored = existing.length > 0 && existing.every((url: string) => url.includes("/api/public/package-hotel-photo/"));
+          if (alreadyStored) { ok++; continue; }
+
+          let best: Awaited<ReturnType<typeof searchHotelsFn>>[number] | undefined;
+          let full: Awaited<ReturnType<typeof hotelDetailsFn>> | undefined;
+          let sourcePhotos = existing;
+          if (sourcePhotos.length === 0) {
+            const q = r.destination ? `${r.hotel_name} ${r.destination}` : r.hotel_name;
+            let results = await searchHotelsFn({ data: { query: q } });
+            if (!results?.length && q !== r.hotel_name) {
+              results = await searchHotelsFn({ data: { query: r.hotel_name } });
+            }
+            best = results?.[0];
+            if (!best) continue;
+            full = await hotelDetailsFn({ data: { locationId: best.location_id, photoLimit: 5 } });
+            sourcePhotos = full.photos ?? [];
+          }
+          if (sourcePhotos.length === 0) continue;
+          const saved = await persistHotelPhotosFn({ data: { packageId: r.id, photos: sourcePhotos.slice(0, 5) } });
+          if (saved.photos.length === 0) continue;
+          const rating = full?.rating ?? best?.rating ?? null;
+          const cls = full?.hotel_class ?? null;
           const stars = rating != null
             ? Math.min(5, Math.max(1, Math.round(rating)))
             : cls != null
@@ -401,12 +424,12 @@ function AdminPackages() {
           const { error: upErr } = await supabase
             .from("packages")
             .update({
-              hotel_name: full.name || best.name || r.hotel_name,
+              hotel_name: full?.name || best?.name || r.hotel_name,
               hotel_stars: stars,
-              tripadvisor_location_id: String(best.location_id),
-              tripadvisor_url: full.tripadvisor_url ?? best.tripadvisor_url ?? null,
-              tripadvisor_address: full.address ?? best.address ?? null,
-              tripadvisor_photos: full.photos,
+              tripadvisor_location_id: best?.location_id ? String(best.location_id) : r.tripadvisor_location_id,
+              tripadvisor_url: full?.tripadvisor_url ?? best?.tripadvisor_url ?? null,
+              tripadvisor_address: full?.address ?? best?.address ?? null,
+              tripadvisor_photos: saved.photos,
             })
             .eq("id", r.id);
           if (!upErr) ok++;
