@@ -26,8 +26,9 @@ async function generateContextualReply(input: {
   const locLine = input.locator ? ` Já localizei sua reserva pelo localizador *${input.locator}*.` : "";
   const fallback =
     input.intent === "ack"
-      ? `${greet} Aqui é a Camila, consultora da VIA AIR. Recebi sua confirmação sobre a alteração do voo${input.flightNumber ? ` *${input.flightNumber}*` : ""} — como a mudança foi pequena, sua reserva segue confirmada e não é preciso fazer nada.\n\n_Equipe VIA AIR_`
-      : `${greet} Aqui é a Camila, consultora da VIA AIR. Vi que seu voo${input.flightNumber ? ` *${input.flightNumber}*` : ""} teve ${input.cancelled ? "*cancelamento*" : "*alteração significativa*"} e você pediu *${input.intent === "refund" ? "reembolso" : "remarcação sem custo"}*.${locLine} Já estou transferindo pro nosso time operacional, que dá sequência por aqui em instantes.\n\n_Equipe VIA AIR_`;
+      ? `${greet} Aqui é a Camila, consultora da VIA AIR. Recebi sua confirmação sobre a alteração do voo${input.flightNumber ? ` *${input.flightNumber}*` : ""} — como a mudança foi pequena, sua reserva segue confirmada e não é preciso fazer nada.\n\n_Camila · VIA AIR_`
+      : `${greet} Aqui é a Camila, consultora da VIA AIR. Vi que seu voo${input.flightNumber ? ` *${input.flightNumber}*` : ""} teve ${input.cancelled ? "*cancelamento*" : "*alteração significativa*"} e você pediu *${input.intent === "refund" ? "reembolso" : "remarcação sem custo"}*.${locLine} Já estou transferindo pro nosso time operacional, que dá sequência por aqui em instantes.\n\n_Camila · VIA AIR_`;
+
 
   if (!key) return fallback;
 
@@ -49,7 +50,7 @@ async function generateContextualReply(input: {
       "Você é a Camila, consultora VIA AIR no WhatsApp. Escreva UMA única mensagem curta (3–5 linhas), em pt-BR, tom empático e humano, SEM emojis exagerados.\n\n" +
       "Contexto: o sistema acabou de enviar um aviso automático sobre alteração/cancelamento de voo ao cliente (marcado como [sistema · ...] no histórico). O cliente respondeu clicando num botão — a intenção dele já está clara. Você JÁ TEM em mãos: nome, voo e LOCALIZADOR da reserva (informados abaixo). O pedido está atrelado ao localizador no sistema; NÃO precisa pedir NADA.\n\n" +
       "REGRAS OBRIGATÓRIAS:\n" +
-      "- PRIMEIRA linha OBRIGATÓRIA (mesmo que já tenha se apresentado antes no histórico — este é um NOVO assunto): cumprimente pelo primeiro nome + se apresente. Formato exato: 'Oi, <Nome>! Aqui é a Camila, consultora da VIA AIR.'\n" +
+      "- PRIMEIRA linha OBRIGATÓRIA (mesmo que já tenha se apresentado antes no histórico — este é um NOVO assunto): cumprimente pelo primeiro nome EXATO informado abaixo (NÃO invente, NÃO troque, NÃO abrevie) + se apresente. Formato exato: 'Oi, <PrimeiroNomeExato>! Aqui é a Camila, consultora da VIA AIR.'\n" +
       "- SEGUNDA linha: demonstre que entendeu a situação específica (alteração ou cancelamento do voo).\n" +
       (input.intent === "ack"
         ? "- TERCEIRA linha: explique que, como a mudança foi pequena, a reserva segue confirmada e não é preciso fazer nada.\n"
@@ -57,7 +58,9 @@ async function generateContextualReply(input: {
           "- QUARTA linha: diga que já localizou a reserva pelo localizador e está TRANSFERINDO pro nosso time operacional, que dá sequência por aqui em instantes.\n") +
       "- PROIBIDO pedir CPF, número de pedido, localizador, e-mail, data de nascimento ou QUALQUER dado do cliente — todas essas informações já estão com a gente.\n" +
       "- PROIBIDO inventar prazos, valores, nomes de consultor operacional ou detalhes.\n" +
-      "- Finalize com '_Equipe VIA AIR_' em linha própria.";
+      "- PROIBIDO assinar como 'Equipe VIA AIR', 'Time VIA AIR' ou qualquer variação de equipe/time — a mensagem é da Camila, pessoa.\n" +
+      "- Finalize OBRIGATORIAMENTE com '_Camila · VIA AIR_' em linha própria (exatamente assim, com o separador ·).";
+
 
     const user =
       `Cliente: ${input.firstName ?? "(sem nome)"}\n` +
@@ -72,8 +75,19 @@ async function generateContextualReply(input: {
       system,
       messages: [...messages, { role: "user", content: user }],
     });
-    const clean = (text ?? "").trim();
-    return clean || fallback;
+    let clean = (text ?? "").trim();
+    if (!clean) return fallback;
+    // Normaliza assinatura — nunca "Equipe/Time VIA AIR"
+    clean = clean.replace(/_?(Equipe|Time)\s+VIA\s*AIR_?\.?$/gim, "_Camila · VIA AIR_");
+    if (!/Camila\s*·\s*VIA\s*AIR/i.test(clean)) {
+      clean = `${clean}\n\n_Camila · VIA AIR_`;
+    }
+    // Se a IA errou o nome do cliente, cai no fallback (que usa o firstName correto)
+    if (input.firstName && !new RegExp(`\\b${input.firstName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(clean)) {
+      return fallback;
+    }
+    return clean;
+
   } catch (err) {
     console.warn("[flight-alert-reply] IA falhou, usando fallback:", err instanceof Error ? err.message : err);
     return fallback;
