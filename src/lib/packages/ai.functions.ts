@@ -564,7 +564,7 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
   "return_flight": { ...mesma estrutura, no sentido inverso }
 }
 Regras:
-- Se o documento mostra VALOR TOTAL para N pessoas, calcule price_per_person = (produtos ou (total - taxas)) / base_occupancy. taxes é o total das taxas (não por pessoa). Se só houver total, divida por base_occupancy e deixe taxes = 0.
+- VALORES: use SEMPRE o TOTAL COM TAXAS INCLUSAS do documento (ex.: "Total com taxas — R$ 5.579,27"). price_per_person = TOTAL_COM_TAXAS / base_occupancy. taxes = 0 (as taxas já estão embutidas no preço por pessoa). NUNCA use "Produtos" isolado nem some/subtraia taxas — pegue o total final e divida pelo número de passageiros.
 - flight_number: SOMENTE dígitos, todos preservados (ex.: "1137", não "7").
 - depart_at/arrive_at: sempre ISO "YYYY-MM-DDTHH:MM". Combine a data do trecho (ex.: "06 nov 2026") com o horário HH:MM.
 - Meses PT: jan=01, fev=02, mar=03, abr=04, mai=05, jun=06, jul=07, ago=08, set=09, out=10, nov=11, dez=12.
