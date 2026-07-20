@@ -19,12 +19,17 @@ export async function handleFlightAlertReply(input: {
   const action = parts[2];
   if (!alertId || !action) return;
 
-  // Busca alerta pra usar nas mensagens/briefing
+  // Busca alerta + nome do cliente pra usar nas mensagens/briefing
   const { data: alert } = await supabaseAdmin
     .from("flight_change_alerts")
-    .select("id, order_id, flight_number, old_depart_at, new_depart_at, new_status")
+    .select("id, order_id, flight_number, old_depart_at, new_depart_at, new_status, orders!inner(full_name, payer_full_name, airline_locator)")
     .eq("id", alertId)
     .maybeSingle();
+
+  const orderRow = (alert as { orders?: { full_name?: string | null; payer_full_name?: string | null; airline_locator?: string | null } } | null)?.orders ?? null;
+  const fullName = orderRow?.full_name ?? orderRow?.payer_full_name ?? null;
+  const firstName = fullName ? fullName.trim().split(/\s+/)[0] : null;
+  const greet = firstName ? `${firstName}` : "";
 
   const responseMap: Record<string, "accepted" | "rejected" | null> = {
     accept: "accepted",
