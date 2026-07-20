@@ -49,14 +49,26 @@ function AuthPage() {
     navigate({ to: "/admin" });
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Lê direto do form pra pegar valor de autofill do navegador,
+    // mesmo se o onChange do React não disparou.
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const emailValue = String(fd.get("email") ?? email ?? "").trim();
+    const passwordValue = String(fd.get("password") ?? password ?? "");
+    if (!emailValue || !passwordValue) {
+      toast.error("Informe e-mail e senha.");
+      return;
+    }
+    setEmail(emailValue);
+    setPassword(passwordValue);
     setLoading(true);
     try {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: emailValue,
+          password: passwordValue,
           options: { emailRedirectTo: `${window.location.origin}/admin` },
         });
         if (error) throw error;
@@ -64,7 +76,10 @@ function AuthPage() {
         navigate({ to: "/admin" });
         return;
       }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      // Limpa qualquer sessão residual (ex.: MFA anterior que falhou) antes
+      // de gerar tokens novos — evita 'session_not_found' no challenge/verify.
+      try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+      const { error } = await supabase.auth.signInWithPassword({ email: emailValue, password: passwordValue });
       if (error) throw error;
       await ensureMfaOrEnter();
     } catch (err) {
