@@ -2104,6 +2104,157 @@ export type Database = {
           },
         ]
       }
+      wa_disparo_config: {
+        Row: {
+          connected_number: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          instance_name: string
+          last_qr_at: string | null
+          last_qr_base64: string | null
+          last_status_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          connected_number?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          instance_name: string
+          last_qr_at?: string | null
+          last_qr_base64?: string | null
+          last_status_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          connected_number?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          instance_name?: string
+          last_qr_at?: string | null
+          last_qr_base64?: string | null
+          last_status_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wa_disparo_envios: {
+        Row: {
+          bulk_batch_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          media_filename: string | null
+          media_kind: string | null
+          media_url: string | null
+          message: string
+          order_id: string | null
+          passenger_id: string | null
+          provider_message_id: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          template_id: string | null
+          to_name: string | null
+          to_number: string
+        }
+        Insert: {
+          bulk_batch_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          media_filename?: string | null
+          media_kind?: string | null
+          media_url?: string | null
+          message: string
+          order_id?: string | null
+          passenger_id?: string | null
+          provider_message_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          template_id?: string | null
+          to_name?: string | null
+          to_number: string
+        }
+        Update: {
+          bulk_batch_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          media_filename?: string | null
+          media_kind?: string | null
+          media_url?: string | null
+          message?: string
+          order_id?: string | null
+          passenger_id?: string | null
+          provider_message_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          template_id?: string | null
+          to_name?: string | null
+          to_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_disparo_envios_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_disparo_envios_passenger_id_fkey"
+            columns: ["passenger_id"]
+            isOneToOne: false
+            referencedRelation: "order_passengers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_disparo_envios_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "wa_disparo_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_disparo_templates: {
+        Row: {
+          body: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wa_handoff_events: {
         Row: {
           actor: string | null

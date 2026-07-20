@@ -1,78 +1,53 @@
+## O que vai ser construído
 
-# Robô LATAM — modo A/B: Código vs Visão IA
+Um segundo canal de WhatsApp **só pra disparo administrativo**, totalmente separado do WhatsApp Meta que roda a IA/protocolos. Baseado em **Evolution API** (não-oficial, QR Code), sem janela de 24h e sem templates.
 
-Objetivo: rodar os dois robôs lado a lado dentro do painel de check-in pra ver qual finaliza o cartão mais rápido e com mais confiança.
-
-## O que muda pra você (UI)
-
-Em cada linha de check-in (aba **Check-in** do pedido e página `/admin/checkins`):
-
-- **Dois botões separados** onde hoje só tem "Fazer check-in":
-  - `⚙️ Rodar (código)` — robô atual, seletores de HTML
-  - `👁 Rodar (Visão IA)` — robô novo, print + Gemini decide onde clicar
-- **Badge do modo usado** na linha: `Código` (cinza) ou `Visão IA` (roxo)
-- **Tempo de execução** e **custo estimado** (só na Visão) aparecem depois que roda
-- Uma nova mini-tabela no topo de `/admin/checkins`: **Comparativo A/B** com contagem de sucessos, falhas e tempo médio de cada modo dos últimos 30 dias
-
-Nada do que já funciona é removido — o robô "código" continua idêntico. Cron automático continua usando o modo código (mais barato).
-
-## Como o robô de Visão IA funciona
-
-Ciclo por passo (Playwright/Browserless + Gemini 3.5 Flash Vision):
+## Fluxo
 
 ```text
-[screenshot da tela]
-     │
-     ▼
-[Gemini Vision + prompt do passo atual]
-"Aqui está a tela da LATAM. Preciso clicar no campo
- 'Código da reserva'. Devolva JSON: {x, y, action, text?}"
-     │
-     ▼
-[page.mouse.move → click → keyboard.type]
-     │
-     ▼
-[aguarda 1s → próximo passo]
+Admin → /admin/whatsapp-disparo
+        ├── Conectar (QR Code da Evolution)
+        ├── Templates salvos (CRUD com variáveis {{nome}}, {{pedido}}, ...)
+        └── Enviar
+             ├── Individual: botão "WhatsApp (disparo)" no pedido/passageiro
+             └── Em massa: seleção por filtro/lista de pedidos → fila
 ```
-
-Passos roteirizados (o mesmo fluxo que o robô código faz hoje):
-1. Aceitar cookies (se aparecer)
-2. Digitar código de reserva
-3. Digitar sobrenome
-4. Clicar "Continuar"
-5. Escolher trecho elegível (ignora "Voo realizado")
-6. Clicar "Fazer check-in"
-7. Recusar contato de emergência → Salvar
-8. Dispensar aviso "Entendi" (elementos perigosos)
-9. Clicar "Baixar PDF" e capturar
-
-Se algum passo não encontrar o elemento em 3 tentativas → falha registrada com screenshot pra debug.
 
 ## Backend
 
-**Migração:**
-- `flight_checkins.mode` (`'code' | 'vision'`, default `'code'`)
-- `flight_checkins.run_duration_ms` (int)
-- `flight_checkins.vision_cost_cents` (int, null pro modo código)
+- **Tabelas novas** (schema `public`, com GRANTs + RLS admin-only):
+  - `wa_disparo_config` — URL da instância Evolution, nome, status (conectado/desconectado), last_qr.
+  - `wa_disparo_templates` — nome, corpo com `{{variáveis}}`, categoria.
+  - `wa_disparo_envios` — histórico (destinatário, mensagem, anexo, status, erro, order_id opcional).
+- **Server functions** (`src/lib/wa-disparo.functions.ts`, admin-only via `has_role`):
+  - `getDisparoStatus` / `connectDisparoQR` (retorna QR base64)
+  - `listTemplates` / `saveTemplate` / `deleteTemplate`
+  - `sendDisparo({ to, message, mediaUrl?, orderId? })` — chama `POST {url}/message/sendText` ou `/sendMedia` da Evolution
+  - `sendDisparoBulk({ recipients[], templateId, variables })` — enfileira envios com throttle 3s
+- **Secrets**: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE_NAME` — pedidos via `add_secret` depois do plano aprovado.
 
-**Arquivos novos:**
-- `src/lib/checkin/latam-vision.server.ts` — robô novo (screenshot → Gemini → mouse)
-- `src/lib/checkin/vision-decide.server.ts` — chamada ao Lovable AI Gateway (Gemini 3.5 Flash Vision), com prompt e parser JSON
-- `runCheckinVision` em `checkin.functions.ts` — mirror do `runCheckin`, chama o robô novo e salva `mode='vision'`
-- `listCheckinModeStats` — retorna o comparativo pra dashboard
+## Frontend
 
-**Nenhum arquivo do robô atual é alterado.** Cron `run-checkins.ts` continua chamando `runCheckin` (modo código).
+- **Nova rota** `src/routes/_authenticated/admin.whatsapp-disparo.tsx`:
+  - Card de conexão (status + botão "Gerar QR Code" que abre modal com QR)
+  - Aba **Templates**: lista + editor com preview de variáveis
+  - Aba **Histórico**: últimos envios com filtro por status
+- **Botão de disparo individual** em `OrderDetailDialog` e ficha do passageiro: modal com seleção de template, edição do texto, campo pra anexar PDF (reusa `boarding-passes`/`order-documents`), pré-visualização.
+- **Envio em massa**: na lista de pedidos, checkbox por linha + botão "Disparar WhatsApp" → modal com template + confirmação (`confirmThen`).
 
-## Custos e tempo esperados
+## Regras
 
-| Modo | Tempo médio | Custo por check-in | Quebra se LATAM mudar HTML? |
-|------|-------------|--------------------|-----------------------------|
-| Código | 40-50s (após corte de sleeps) | R$ 0,00 (só Browserless) | Sim |
-| Visão IA | 60-90s | ~R$ 0,05 (6-9 chamadas Gemini) | Não |
+- Zero acoplamento com `wa_conversations` / IA / protocolos existentes.
+- Números normalizados pra E.164 (55 + DDD + número).
+- Anexos: upload pro bucket `order-documents`, gera signed URL de 1h, envia via `/sendMedia`.
+- Throttle no bulk (3s entre envios) pra não derrubar a instância.
+- Botões usam `confirm`/`confirmThen` de `@/lib/confirm` (nunca `window.confirm`).
 
-## Fora de escopo desta fase
-- Modo híbrido automático (fallback código → visão)
-- Trocar o cron pra usar visão
-- Debug UI mostrando cada screenshot que a IA analisou (fica só nos logs por enquanto)
+## Ordem de entrega
 
-Vou salvar cada tentativa da Visão com um `debug_log` (array de passos + coordenadas retornadas) na coluna `error` quando falhar, pra você conseguir ver o que a IA "enxergou" errado.
+1. Migração (3 tabelas + GRANTs + RLS admin).
+2. `add_secret` pra credenciais Evolution.
+3. Server functions + integração HTTP com Evolution.
+4. Rota `/admin/whatsapp-disparo` com conexão, templates e histórico.
+5. Botão de disparo individual no pedido + passageiro.
+6. Seleção múltipla e disparo em massa na lista de pedidos.
