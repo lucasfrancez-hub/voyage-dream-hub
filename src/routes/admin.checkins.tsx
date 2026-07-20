@@ -256,49 +256,24 @@ function CheckinsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {current.flatMap((g) => {
-              // Une trechos em conexão (dest[i] == origin[i+1]) num único card.
-              // O card ancora no primeiro trecho (upload e checkin ficam nele),
-              // mas exibe origem do primeiro e destino do último.
-              const segs = [...g.segments].sort(
-                (a: any, b: any) => new Date(a.departure_at || 0).getTime() - new Date(b.departure_at || 0).getTime(),
+            {current.map((g) => {
+              const seg = g.segments[0]; // já é o âncora com destino final + connections
+              return (
+                <SegmentCard
+                  key={`${tab}-${g.key}`}
+                  group={g}
+                  seg={seg}
+                  variant={tab}
+                  busyKey={busyKey}
+                  sendingId={sendingId}
+                  onUpload={handleUpload}
+                  onRemove={handleRemove}
+                  onSend={handleSend}
+                />
               );
-              const journeys: any[] = [];
-              let cur: any[] = [];
-              for (const s of segs) {
-                if (cur.length === 0) { cur.push(s); continue; }
-                const prev = cur[cur.length - 1];
-                const sameChain =
-                  prev.destination && s.origin &&
-                  String(prev.destination).toUpperCase() === String(s.origin).toUpperCase();
-                if (sameChain) cur.push(s);
-                else { journeys.push(cur); cur = [s]; }
-              }
-              if (cur.length) journeys.push(cur);
-              return journeys.map((chain) => {
-                const first = chain[0];
-                const last = chain[chain.length - 1];
-                const merged = {
-                  ...first,
-                  destination: last.destination,
-                  connections: chain.length > 1 ? chain.slice(1).map((s: any) => s.origin) : [],
-                };
-                return (
-                  <SegmentCard
-                    key={`${tab}-${g.key}-${first.order_item_id}`}
-                    group={g}
-                    seg={merged}
-                    variant={tab}
-                    busyKey={busyKey}
-                    sendingId={sendingId}
-                    onUpload={handleUpload}
-                    onRemove={handleRemove}
-                    onSend={handleSend}
-                  />
-                );
-              });
             })}
           </div>
+
         )}
 
         {/* Footer stats */}
