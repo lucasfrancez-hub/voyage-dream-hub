@@ -583,13 +583,29 @@ function TreinoPage() {
               </Select>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             <Input
               value={scriptName}
               onChange={(e) => setScriptName(e.target.value)}
-              placeholder="Nome da sessão (ex: LATAM padrão)"
-              className="flex-1"
+              placeholder="Nome da sessão (ex: LATAM 2 pax)"
+              className="flex-1 min-w-[220px]"
             />
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Qtde pax</span>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={scriptPaxCount}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setScriptPaxCount(v === "" ? "" : Math.max(1, Math.min(20, Math.round(Number(v) || 1))));
+                }}
+                placeholder="qualquer"
+                className="w-24"
+                title="Qtde de passageiros da reserva que esse script atende. Deixe em branco para usar como fallback."
+              />
+            </div>
             <Button size="sm" variant="secondary" onClick={saveCurrentScript} disabled={!scriptName.trim()}>
               Salvar
             </Button>
@@ -599,6 +615,7 @@ function TreinoPage() {
               </Button>
             )}
           </div>
+
           {steps.length > 0 && (
             <Button
               size="sm"
