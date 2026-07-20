@@ -339,7 +339,11 @@ function SegmentCard({
   const uploadedIdx = new Set(uploaded.map((p) => p.passenger_index));
   const ready = uploadedIdx.size >= paxCount;
   const alreadySent = !!seg.checkin?.delivered_wa_at;
-  const dep = seg.departure_at ? new Date(seg.departure_at) : null;
+  // Datas vindas do importador chegam sem timezone (ex: "2026-07-21T09:11").
+  // Tratamos como UTC para renderizar exatamente o horário de partida do voo.
+  const depRaw: string | null = seg.departure_at ?? null;
+  const depIso = depRaw ? (/[zZ]|[+-]\d\d:?\d\d$/.test(depRaw) ? depRaw : `${depRaw}Z`) : null;
+  const dep = depIso ? new Date(depIso) : null;
   const hoursTo = dep ? Math.round((dep.getTime() - Date.now()) / HOUR) : null;
 
   const status =
