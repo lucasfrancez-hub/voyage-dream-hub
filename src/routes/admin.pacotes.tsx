@@ -127,6 +127,9 @@ function AdminPackages() {
   const [draftIndex, setDraftIndex] = useState(0);
   // Global hashtag number(s) reserved for the currently-open new package(s)
   const [pendingNumbers, setPendingNumbers] = useState<number[] | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+
 
 
   // Wrap setEditing to keep the drafts array in sync with edits
