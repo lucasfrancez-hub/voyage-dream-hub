@@ -403,7 +403,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
   const genSummary = useServerFn(generatePackageSummary);
   const searchImages = useServerFn(searchCoverImages);
 
-  const derived = useMemo(() => deriveFromFlights(editing), [editing.outbound_flight, editing.going_date]);
+  const derived = useMemo(() => deriveFromFlights(editing), [editing.outbound_flight, editing.going_date, editing.destination, editing.origin]);
 
   // Auto-fill empty fields when derived values become available
   useEffect(() => {
