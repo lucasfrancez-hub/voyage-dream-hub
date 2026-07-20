@@ -2125,7 +2125,8 @@ function FlightReservationCard({
               const docNum = isPassport ? p.passport_number : p.cpf;
               const locKey = ((locator ?? first?.supplier_locator ?? "") || "").toUpperCase().trim() || "_";
               const perLocTicket = (p.tickets ?? {})[locKey] ?? "";
-              const ticketValue = perLocTicket || (p.ticket_number ?? "");
+              const ticketValue = perLocTicket;
+
               return (
                 <li key={p.id} className="text-xs">
                   <div className="flex items-start justify-between gap-1">
