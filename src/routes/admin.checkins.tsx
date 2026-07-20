@@ -96,12 +96,24 @@ function CheckinsPage() {
       if (segs.length <= 1) { out.push(g); continue; }
       const journeys: any[][] = [];
       let cur: any[] = [];
+      // Uma conexão real tem: destino_anterior == origem_atual, gap curto
+      // (< 12h típico de layover) e sem revisitar aeroporto já usado como
+      // origem (o retorno pra casa vira nova jornada).
+      const MAX_LAYOVER_MS = 12 * HOUR;
       for (const s of segs) {
         if (cur.length === 0) { cur.push(s); continue; }
         const prev = cur[cur.length - 1];
-        if (prev.destination && s.origin && prev.destination === s.origin) cur.push(s);
+        const chained = prev.destination && s.origin && prev.destination === s.origin;
+        const prevArr = prev.arrival_at || prev.departure_at;
+        const curDep = s.departure_at;
+        const gap = prevArr && curDep ? new Date(curDep).getTime() - new Date(prevArr).getTime() : 0;
+        const shortLayover = gap > 0 && gap <= MAX_LAYOVER_MS;
+        const origins = new Set(cur.map((x: any) => x.origin));
+        const revisits = origins.has(s.destination);
+        if (chained && shortLayover && !revisits) cur.push(s);
         else { journeys.push(cur); cur = [s]; }
       }
+
       if (cur.length) journeys.push(cur);
       journeys.forEach((jSegs, idx) => {
         out.push({ ...g, key: `${g.key}::j${idx}`, segments: jSegs });
