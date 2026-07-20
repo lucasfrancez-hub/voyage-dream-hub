@@ -749,20 +749,25 @@ function TreinoPage() {
                 </div>
               )}
               {regionMode && (
-                <div className="mb-2 rounded border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
-                  Arraste um retângulo na imagem em volta do cartão de embarque.
-                  A captura é feita e salva automaticamente quando você soltar o mouse.
-                  {regionDraft && regionDraft.w >= 20 && regionDraft.h >= 20 && (
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="ml-3"
-                      disabled={busy || !sessionId}
-                      onClick={() => void doCaptureRegion()}
-                    >
-                      Capturar agora
-                    </Button>
-                  )}
+                <div className="mb-2 flex flex-wrap items-center gap-2 rounded border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
+                  <span className="flex-1 min-w-[220px]">
+                    Arraste um retângulo em volta do cartão de embarque. Depois
+                    clique em <b>Finalizar seleção</b> pra ver como ele fica.
+                    {regionDraft && (
+                      <span className="ml-2 opacity-70">
+                        ({regionDraft.w}×{regionDraft.h}px)
+                      </span>
+                    )}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="bg-orange-600 hover:bg-orange-700"
+                    disabled={busy || !sessionId || !regionDraft || regionDraft.w < 20 || regionDraft.h < 20}
+                    onClick={() => void doCaptureRegion()}
+                  >
+                    Finalizar seleção · ver cartão
+                  </Button>
                 </div>
               )}
               <div className="relative inline-block border rounded overflow-hidden bg-black/5">
