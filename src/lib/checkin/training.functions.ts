@@ -182,13 +182,15 @@ export default async ({ page, browser, context }) => {
  * SESSÃO VIVA — abre a página uma vez e executa cada passo na hora
  * ========================================================================== */
 
-async function ensureAdmin(context: { supabase: { rpc: (fn: string, args: unknown) => Promise<{ data: unknown }> }; userId: string }) {
-  const { data: isAdmin } = await context.supabase.rpc("has_role", {
+async function ensureAdmin(context: { supabase: unknown; userId: string }) {
+  const supa = context.supabase as { rpc: (fn: "has_role", args: { _user_id: string; _role: "admin" }) => Promise<{ data: unknown }> };
+  const { data: isAdmin } = await supa.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
   });
   if (!isAdmin) throw new Error("Forbidden: apenas admin");
 }
+
 
 const OpenSessionInput = z.object({
   url: z.string().url(),
