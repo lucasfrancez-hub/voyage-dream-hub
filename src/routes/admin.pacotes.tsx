@@ -135,17 +135,25 @@ function AdminPackages() {
 
   async function save() {
     if (!editing) return;
-    if (!editing.slug || !editing.title || !editing.destination) {
+    const derived = deriveFromFlights(editing);
+    const normalized = {
+      ...editing,
+      destination: editing.destination?.trim() || derived.destCity || "",
+      origin: editing.origin?.trim() || derived.originCity || "",
+      title: editing.title?.trim() || derived.title || "",
+      slug: editing.slug?.trim() || derived.slug || "",
+    };
+    if (!normalized.slug || !normalized.title || !normalized.destination) {
       toast.error("Preencha slug, título e destino.");
       return;
     }
     setSaving(true);
     try {
       const payload = {
-        slug: editing.slug!,
-        title: editing.title!,
-        destination: editing.destination!,
-        origin: editing.origin || null,
+        slug: normalized.slug,
+        title: normalized.title,
+        destination: normalized.destination,
+        origin: normalized.origin || null,
         image_url: editing.image_url || null,
         summary: editing.summary || null,
         itinerary: editing.itinerary || null,
@@ -416,8 +424,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derived.destCity, derived.originCity, derived.title, derived.slug]);
 
-  // Auto-preencher "O que inclui" a partir dos dados: passagem ida/volta, hospedagem,
-  // café da manhã (se meal_plan indicar) e bagagem despachada (se algum voo tiver).
+  // Montar "O que inclui" a partir dos campos efetivamente preenchidos/marcados.
   const derivedIncludes = useMemo(() => {
     const list: string[] = [];
     const hasOutbound = !!editing.outbound_flight;
@@ -434,22 +441,14 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
     return list;
   }, [editing.outbound_flight, editing.return_flight, editing.hotel_name, editing.tripadvisor_location_id, editing.meal_plan]);
 
-  useEffect(() => {
-    if (derivedIncludes.length === 0) return;
-    const current = Array.isArray(editing.includes)
-      ? editing.includes
-      : typeof editing.includes === "string"
-        ? (editing.includes as string).split("\n").map((s) => s.trim()).filter(Boolean)
-        : [];
-    // Auto-preenche apenas se estiver vazio OU se contiver só itens do conjunto auto anterior.
-    const autoRe = /^(passagem\s+a[eé]rea(\s+de\s+ida(\s+e\s+volta)?)?|a[eé]reo|hospedagem|caf[eé]\s+da\s+manh[aã]|bagagem\s+despachada)$/i;
-    const isAutoOnly = current.every((s) => autoRe.test(s.trim()));
-    if (current.length === 0 || isAutoOnly) {
-      const same = current.length === derivedIncludes.length && current.every((v, i) => v === derivedIncludes[i]);
-      if (!same) setEditing({ ...editing, includes: derivedIncludes });
+  function handleGenerateIncludes() {
+    setEditing({ ...editing, includes: derivedIncludes });
+    if (derivedIncludes.length === 0) {
+      toast.error("Preencha os aéreos e a hospedagem antes de gerar");
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [derivedIncludes.join("|")]);
+    toast.success("Itens inclusos gerados a partir do pacote");
+  }
 
   function applyAuto() {
     const d = deriveFromFlights(editing);
@@ -619,17 +618,17 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                 <FormField label="Título (auto)" wide>
                   <input
                     className={inp}
-                    value={editing.title ?? ""}
+                    value={editing.title || derived.title || ""}
                     onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                    placeholder={derived.title ?? "Ex: Aracaju - Saída de São Paulo"}
+                    placeholder="Ex: Aracaju - Saída de São Paulo"
                   />
                 </FormField>
                 <FormField label="Slug (URL, auto)">
                   <input
                     className={inp}
-                    value={editing.slug ?? ""}
+                    value={editing.slug || derived.slug || ""}
                     onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
-                    placeholder={derived.slug ?? "aracaju-abril-2027"}
+                    placeholder="aracaju-abril-2027"
                   />
                 </FormField>
                 <FormField label="Ordem de exibição">
@@ -1035,7 +1034,17 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                     onChange={(e) => setEditing({ ...editing, itinerary: e.target.value })}
                   />
                 </FormField>
-                <FormField label="O que inclui (um por linha)" wide>
+                <div className="sm:col-span-2">
+                  <div className="mb-1 flex items-center justify-between gap-3">
+                    <span className="text-xs text-muted-foreground">O que inclui (um por linha)</span>
+                    <button
+                      type="button"
+                      onClick={handleGenerateIncludes}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-semibold text-brand-orange transition hover:bg-brand-orange/20"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" /> Gerar
+                    </button>
+                  </div>
                   <textarea
                     className={`${inp} min-h-[140px]`}
                     value={
@@ -1045,7 +1054,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                     }
                     onChange={(e) => setEditing({ ...editing, includes: e.target.value as unknown as string[] })}
                   />
-                </FormField>
+                </div>
               </div>
             )}
           </main>
