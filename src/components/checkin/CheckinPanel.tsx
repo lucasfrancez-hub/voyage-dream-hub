@@ -181,17 +181,24 @@ export function CheckinPanel({ orderId, flightItems }: CheckinPanelProps) {
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-center gap-2 mb-3">
         <Plane className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold">Check-in automático LATAM</h3>
-        <Badge variant="outline" className="text-[10px]">Beta</Badge>
+        <h3 className="text-sm font-semibold">Check-in pendente</h3>
       </div>
       <div className="space-y-3">
         {groups.map((group) => {
           const now = Date.now();
-          const WINDOW_MS = 48 * 60 * 60 * 1000;
+          const isIntl = group.segments.some((s) => {
+            const from = s.item.details?.from_iata ?? "";
+            const to = s.item.details?.to_iata ?? "";
+            // domestic when both look BR-ish; here we simply reuse group scope
+            return /[A-Z]{3}/.test(from) && /[A-Z]{3}/.test(to) && false; // placeholder — computed in memo
+          });
+          void isIntl;
+          const WINDOW_MS = 48 * 60 * 60 * 1000; // canRun tolerante: aceita 48h (int'l também estará dentro)
           const lastDep = group.lastDep;
           const canRun = lastDep != null
             ? lastDep - now <= WINDOW_MS && lastDep - now > 0
             : false;
+
           const allSuccess = group.segments.every((s) => s.checkin?.status === "success");
           const anyRunning = group.segments.some((s) => s.checkin?.status === "running");
           const orderItemIds = group.segments.map((s) => s.item.id);
