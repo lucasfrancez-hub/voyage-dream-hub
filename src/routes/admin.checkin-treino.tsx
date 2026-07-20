@@ -367,24 +367,34 @@ function TreinoPage() {
                 </label>
               </div>
               {interactive && (
-                <div className="mb-2 flex items-center gap-2 text-xs">
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
                   <span className="text-muted-foreground">
                     {lastClick ? `Último clique: ${lastClick.x},${lastClick.y}` : "Clique na imagem pra clicar na página."}
                   </span>
                   <input
                     type="text"
+                    value={hintBuffer}
+                    onChange={(e) => setHintBuffer(e.target.value)}
+                    placeholder='rótulo do campo (ex: "aqui vai o localizador")'
+                    className="flex-1 min-w-[180px] border rounded px-2 py-1"
+                  />
+                  <input
+                    type="text"
                     value={typeBuffer}
                     onChange={(e) => setTypeBuffer(e.target.value)}
                     placeholder="digitar no último clique + Enter"
-                    className="flex-1 border rounded px-2 py-1"
+                    className="flex-1 min-w-[180px] border rounded px-2 py-1"
                     onKeyDown={async (e) => {
                       if (e.key !== "Enter" || !lastClick || !typeBuffer || busy) return;
                       e.preventDefault();
                       const text = typeBuffer;
+                      const hint = hintBuffer.trim() || `digite aqui: ${text}`;
                       setTypeBuffer("");
+                      setHintBuffer("");
                       await executeAndAppend(
                         { action: "type", x: lastClick.x, y: lastClick.y, text, clearFirst: true },
-                        `Digitou "${text}"`
+                        `Digitou "${text}"`,
+                        hint,
                       );
                     }}
                   />
@@ -404,9 +414,36 @@ function TreinoPage() {
                     const x = Math.round(((e.clientX - rect.left) / rect.width) * shot.w);
                     const y = Math.round(((e.clientY - rect.top) / rect.height) * shot.h);
                     setLastClick({ x, y });
-                    await executeAndAppend({ action: "click", x, y }, `Clique ${x},${y}`);
+                    const hint = hintBuffer.trim();
+                    if (hint) setHintBuffer("");
+                    await executeAndAppend(
+                      { action: "click", x, y },
+                      `Clique ${x},${y}`,
+                      hint || undefined,
+                    );
                   }}
                 />
+
+                {annotations
+                  .filter((a) => a.url === shot.url)
+                  .map((a, i) => {
+                    const left = (a.x / shot.w) * 100;
+                    const top = (a.y / shot.h) * 100;
+                    const color = a.kind === "type" ? "bg-emerald-500" : "bg-sky-500";
+                    return (
+                      <div
+                        key={`ann-${i}`}
+                        className="absolute pointer-events-none"
+                        style={{ left: `${left}%`, top: `${top}%`, transform: "translate(-50%, -50%)" }}
+                      >
+                        <div className={`h-3 w-3 rounded-full ${color} ring-2 ring-white shadow`} />
+                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-[10px] font-medium text-white ${color} px-1.5 py-0.5 rounded shadow`}>
+                          {a.label}
+                        </div>
+                      </div>
+                    );
+                  })}
+
 
                 {vision?.targets?.map((t, i) => {
                   const isSel = selectedTarget === i;
