@@ -303,7 +303,7 @@ export function AdminNotificationBell() {
       </DropdownMenu>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-[440px] p-0 overflow-hidden bg-[#0A0A0A] border border-white/10 rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]">
+        <DialogContent className="max-w-[560px] p-0 overflow-hidden bg-[#0A0A0A] border border-white/10 rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]">
           {selected && (
             <div>
               {/* Header */}
