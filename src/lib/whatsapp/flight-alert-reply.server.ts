@@ -22,10 +22,12 @@ async function generateContextualReply(input: {
   cancelled: boolean;
 }): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
+  const greet = input.firstName ? `Oi, ${input.firstName}!` : "Olá!";
+  const locLine = input.locator ? ` Já localizei sua reserva pelo localizador *${input.locator}*.` : "";
   const fallback =
     input.intent === "ack"
-      ? `${input.firstName ? `Oi, ${input.firstName}! ` : ""}recebi sua confirmação, obrigado! ✅ Como a mudança foi pequena, sua reserva segue confirmada. Qualquer coisa é só chamar. 💛`
-      : `${input.firstName ? `Oi, ${input.firstName}! ` : ""}recebi sua solicitação de ${input.intent === "refund" ? "reembolso" : "remarcação"}. 📩 Já estou transferindo pro nosso time operacional, que vai continuar por aqui em instantes. ✈️💛`;
+      ? `${greet} Aqui é a Camila, consultora da VIA AIR. Recebi sua confirmação sobre a alteração do voo${input.flightNumber ? ` *${input.flightNumber}*` : ""} — como a mudança foi pequena, sua reserva segue confirmada e não é preciso fazer nada.\n\n_Equipe VIA AIR_`
+      : `${greet} Aqui é a Camila, consultora da VIA AIR. Vi que seu voo${input.flightNumber ? ` *${input.flightNumber}*` : ""} teve ${input.cancelled ? "*cancelamento*" : "*alteração significativa*"} e você pediu *${input.intent === "refund" ? "reembolso" : "remarcação sem custo"}*.${locLine} Já estou transferindo pro nosso time operacional, que dá sequência por aqui em instantes.\n\n_Equipe VIA AIR_`;
 
   if (!key) return fallback;
 
@@ -44,23 +46,25 @@ async function generateContextualReply(input: {
           : (input.cancelled ? "solicitou REMARCAÇÃO após o voo ser CANCELADO pela companhia" : "solicitou REMARCAÇÃO SEM CUSTO após alteração significativa de voo");
 
     const system =
-      "Você é Camila, consultora VIA AIR no WhatsApp. Escreva UMA única mensagem curta (máx. 3 linhas), em pt-BR, tom empático e humano, sem emojis exagerados.\n\n" +
-      "Contexto: acabamos de enviar um aviso automático ao cliente sobre alteração/cancelamento de voo (mensagens marcadas com [sistema · ...] no histórico). O cliente clicou num botão respondendo.\n\n" +
-      "REGRAS:\n" +
-      "- Comece cumprimentando pelo primeiro nome quando houver.\n" +
-      "- Demonstre que entendeu a situação (ex.: 'que chato saber que seu voo foi alterado' / 'poxa, sabemos que cancelamento atrapalha').\n" +
-      "- Diga que recebeu a solicitação específica dele (remarcação sem custo, reembolso, ou apenas confirmação).\n" +
+      "Você é a Camila, consultora VIA AIR no WhatsApp. Escreva UMA única mensagem curta (3–5 linhas), em pt-BR, tom empático e humano, SEM emojis exagerados.\n\n" +
+      "Contexto: o sistema acabou de enviar um aviso automático sobre alteração/cancelamento de voo ao cliente (marcado como [sistema · ...] no histórico). O cliente respondeu clicando num botão — a intenção dele já está clara. Você JÁ TEM em mãos: nome, voo e LOCALIZADOR da reserva (informados abaixo). O pedido está atrelado ao localizador no sistema; NÃO precisa pedir NADA.\n\n" +
+      "REGRAS OBRIGATÓRIAS:\n" +
+      "- PRIMEIRA linha OBRIGATÓRIA (mesmo que já tenha se apresentado antes no histórico — este é um NOVO assunto): cumprimente pelo primeiro nome + se apresente. Formato exato: 'Oi, <Nome>! Aqui é a Camila, consultora da VIA AIR.'\n" +
+      "- SEGUNDA linha: demonstre que entendeu a situação específica (alteração ou cancelamento do voo).\n" +
       (input.intent === "ack"
-        ? "- Explique brevemente que como a mudança foi pequena a reserva segue confirmada e não precisa fazer nada.\n"
-        : "- Diga que está TRANSFERINDO pro time operacional que vai dar sequência por aqui mesmo em instantes.\n") +
-      "- NÃO invente prazos, valores, nomes de consultor ou detalhes que não estão no histórico.\n" +
-      "- NÃO peça CPF, localizador nem nenhum dado (a gente já tem).\n" +
-      "- Finalize com uma linha curta ex.: '_Equipe VIA AIR_'.";
+        ? "- TERCEIRA linha: explique que, como a mudança foi pequena, a reserva segue confirmada e não é preciso fazer nada.\n"
+        : "- TERCEIRA linha: confirme a solicitação específica dele (remarcação sem custo OU reembolso).\n" +
+          "- QUARTA linha: diga que já localizou a reserva pelo localizador e está TRANSFERINDO pro nosso time operacional, que dá sequência por aqui em instantes.\n") +
+      "- PROIBIDO pedir CPF, número de pedido, localizador, e-mail, data de nascimento ou QUALQUER dado do cliente — todas essas informações já estão com a gente.\n" +
+      "- PROIBIDO inventar prazos, valores, nomes de consultor operacional ou detalhes.\n" +
+      "- Finalize com '_Equipe VIA AIR_' em linha própria.";
 
     const user =
-      `Cliente ${input.firstName ?? "(sem nome)"} ${intentText}.\n` +
-      `Voo: ${input.flightNumber ?? "?"}${input.locator ? ` · Localizador: ${input.locator}` : ""}.\n` +
-      `Gere a mensagem de resposta agora.`;
+      `Cliente: ${input.firstName ?? "(sem nome)"}\n` +
+      `Intenção: ${intentText}\n` +
+      `Voo: ${input.flightNumber ?? "?"}\n` +
+      `Localizador (já vinculado ao pedido no sistema): ${input.locator ?? "?"}\n` +
+      `Gere a mensagem de resposta agora, seguindo as regras.`;
 
     const gateway = createLovableAiGatewayProvider(key);
     const { text } = await generateText({
