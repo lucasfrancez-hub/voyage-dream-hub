@@ -55,6 +55,22 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
           return (count ?? 0) === 0;
         }
 
+        // Só encerra/avisa se a bola estiver com o cliente (última mensagem foi
+        // nossa e ele não respondeu). Se a última mensagem for do cliente
+        // esperando resposta nossa, NÃO encerra — deixa aberto até respondermos.
+        async function lastMessageFromUs(conversationId: string): Promise<boolean> {
+          const { data: last } = await supabaseAdmin
+            .from("wa_messages")
+            .select("direction")
+            .eq("conversation_id", conversationId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (!last) return false;
+          return last.direction === "outbound";
+        }
+
+
         // ============ 1) AVISO (60min sem resposta) ============
         const { data: toWarn, error: warnErr } = await supabaseAdmin
           .from("wa_protocolos")
