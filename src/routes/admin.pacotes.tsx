@@ -13,7 +13,7 @@ import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { findAirline } from "@/lib/airlines";
 import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
-import { generatePackageSummary, searchCoverImages } from "@/lib/packages/ai.functions";
+import { generatePackageSummary, searchCoverImages, extractFlightFromImage } from "@/lib/packages/ai.functions";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
