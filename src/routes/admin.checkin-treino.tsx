@@ -187,6 +187,7 @@ function TreinoPage() {
           annotations,
           viewport_width: 1280,
           viewport_height: 900,
+          pax_count: typeof scriptPaxCount === "number" ? scriptPaxCount : null,
         },
       });
       if (!r.ok) return;
