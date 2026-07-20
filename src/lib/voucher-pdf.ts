@@ -1874,6 +1874,34 @@ const drawHotelSection = async (
     }
   });
 
+  // Segunda linha: Tipo de cama + Café da manhã (quando informados)
+  const bedTypeRaw = String(d.bed_type ?? "").trim();
+  const breakfastRaw = String(d.breakfast ?? "").trim();
+  const breakfastLabel = (() => {
+    if (!breakfastRaw) return "";
+    const low = breakfastRaw.toLowerCase();
+    if (/(n[aã]o|nao\s*incluso|not\s*included|no)/.test(low)) return t.cafeNaoIncluso;
+    if (/(incluso|sim|yes|included|s[íi]m)/.test(low)) return t.cafeIncluso;
+    return breakfastRaw;
+  })();
+  const row2: Array<{ label: string; value: string; icon: IconKind }> = [];
+  if (bedTypeRaw) row2.push({ label: t.tipoCama, value: bedTypeRaw, icon: "bed" });
+  if (breakfastLabel) row2.push({ label: t.cafeManha, value: breakfastLabel, icon: "coffee" });
+  const row2Y = infoY - 32;
+  if (row2.length) {
+    const col2W = midW / 2;
+    row2.forEach((c, i) => {
+      const x = midX + i * col2W;
+      drawIcon(ctx.page, c.icon, x, row2Y + 14, 10, COLOR_NAVY);
+      ctx.page.drawText(sanitize(c.label), {
+        x: x + 14, y: row2Y + 16, size: 7, font: ctx.fontBold, color: COLOR_MUTED,
+      });
+      ctx.page.drawText(sanitize(c.value), {
+        x, y: row2Y, size: 10, font: ctx.fontBold, color: COLOR_TEXT,
+      });
+    });
+  }
+
   // QR (direita)
   const qrTopY = headerBottom - 16;
   const qrX = innerX + innerW - qrSize - 10;
@@ -1895,7 +1923,8 @@ const drawHotelSection = async (
     }
   }
 
-  cy = Math.min(infoY - 18, qrY - 26) - notesGap;
+  const bottomInfoY = row2.length ? row2Y : infoY;
+  cy = Math.min(bottomInfoY - 18, qrY - 26) - notesGap;
 
   // Política de cancelamento + Observações (dois blocos empilhados, em tópicos)
   const drawBulletBox = (title: string, items: string[][], topY: number): number => {
