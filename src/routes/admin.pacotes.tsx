@@ -251,12 +251,20 @@ function AdminPackages() {
             {packages?.length ?? 0} pacote(s) cadastrados no sistema via air
           </p>
         </div>
-        <button
-          onClick={() => setEditing({ ...emptyForm })}
-          className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
-        >
-          <Plus className="h-5 w-5" strokeWidth={3} /> Novo Pacote
-        </button>
+        <div className="flex items-center gap-2">
+          <MultiPackageImportButton
+            onDone={() => {
+              qc.invalidateQueries({ queryKey: ["admin", "packages"] });
+              qc.invalidateQueries({ queryKey: ["packages"] });
+            }}
+          />
+          <button
+            onClick={() => setEditing({ ...emptyForm })}
+            className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
+          >
+            <Plus className="h-5 w-5" strokeWidth={3} /> Novo Pacote
+          </button>
+        </div>
       </div>
 
       {/* Row Header */}
