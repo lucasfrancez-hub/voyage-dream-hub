@@ -407,7 +407,7 @@ Analise a imagem e devolva APENAS um JSON válido, sem markdown, sem comentário
 }
 Regras:
 - Retorne SÓ o JSON, começando com { e terminando com }.
-- flight_number: SOMENTE DÍGITOS. NUNCA inclua o código da cia (LA, G3, AD, etc.) e NUNCA inclua hífen. "G3 -1137" ou "G3-1137" na tela → devolva "1137". "LA 3531" → devolva "3531". Preserve TODOS os dígitos que aparecem (não trunque).
+- flight_number: SOMENTE DÍGITOS, EXATAMENTE como aparecem depois do código da cia. Ex.: "G3 - 1137" → "1137" (quatro dígitos, NÃO "7"). "LA 3531" → "3531". "AD  4022" → "4022". SEMPRE preserve TODOS os dígitos (tipicamente 3 ou 4). NUNCA devolva só o último dígito. NUNCA inclua a sigla da cia nem hífen.
 - depart_at / arrive_at: SEMPRE em ISO local "YYYY-MM-DDTHH:MM". Combine a DATA visível na imagem (ex.: "Sex 06 Nov", "sex 6 nov 2026", "6 de novembro de 2026") com o horário HH:MM. Se o ano não estiver explícito, use o ano do cabeçalho/contexto (ex.: "IDA - sex 6 nov 2026"). Meses PT: jan=01, fev=02, mar=03, abr=04, mai=05, jun=06, jul=07, ago=08, set=09, out=10, nov=11, dez=12.
 - Cada segmento DEVE ter depart_at e arrive_at completos (data + hora). Se o próximo trecho passa da meia-noite, incremente a data.
 - Se um campo realmente não estiver visível, omita-o (não invente).
