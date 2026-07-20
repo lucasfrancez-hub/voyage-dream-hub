@@ -250,76 +250,102 @@ export function AdminNotificationBell() {
       </DropdownMenu>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-md p-0 overflow-hidden">
+        <DialogContent className="max-w-[440px] p-0 overflow-hidden bg-[#0A0A0A] border border-white/10 rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]">
           {selected && (
             <div>
-              <DialogHeader className="px-5 pt-5 pb-3 bg-gradient-to-br from-brand-orange/10 to-transparent border-b border-border">
-                <div className="flex items-center gap-2">
-                  <span className={`h-2.5 w-2.5 rounded-full ${severityColor(selected.severity)}`} />
-                  <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+              {/* Header */}
+              <DialogHeader className="p-8 pb-6 space-y-0">
+                <div className="flex items-center gap-2 mb-5">
+                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${severityColor(selected.severity)}`} />
+                  <span className="text-[10px] font-bold tracking-[0.15em] text-brand-orange uppercase">
                     {severityLabel(selected.severity)}
                   </span>
                 </div>
-                <DialogTitle className="flex items-center gap-2 text-lg">
-                  <Plane className="h-5 w-5 text-brand-orange" />
-                  Voo {selected.flightNumber}
-                </DialogTitle>
-                <p className="text-xs text-muted-foreground">
-                  Pedido{" "}
-                  <Link
-                    to="/admin/pedidos/$id"
-                    params={{ id: selected.orderId }}
-                    className="text-brand-orange hover:underline font-medium"
-                    onClick={() => setSelected(null)}
-                  >
-                    #{selected.orderNumber || selected.orderId.slice(0, 8)}
-                  </Link>{" "}
-                  · {selected.customerName}
-                </p>
+                <div className="flex items-center gap-4">
+                  <div className="bg-brand-orange/10 p-2.5 rounded-xl border border-brand-orange/20 shrink-0">
+                    <Plane className="w-6 h-6 text-brand-orange" />
+                  </div>
+                  <div className="min-w-0 text-left">
+                    <DialogTitle className="text-2xl font-bold text-white tracking-tight leading-tight">
+                      Voo {selected.flightNumber}
+                    </DialogTitle>
+                    <p className="text-[13px] text-zinc-500 mt-0.5 truncate">
+                      Pedido{" "}
+                      <Link
+                        to="/admin/pedidos/$id"
+                        params={{ id: selected.orderId }}
+                        className="text-brand-orange/90 font-semibold hover:underline"
+                        onClick={() => setSelected(null)}
+                      >
+                        #{selected.orderNumber || selected.orderId.slice(0, 8)}
+                      </Link>{" "}
+                      • {selected.customerName}
+                    </p>
+                  </div>
+                </div>
               </DialogHeader>
 
-              <div className="p-5 space-y-4">
-                <p className="text-sm text-foreground leading-relaxed">{selected.summary}</p>
+              {/* Body */}
+              <div className="px-8 space-y-6">
+                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                  <p className="text-[13px] leading-relaxed text-zinc-400">{selected.summary}</p>
+                </div>
 
-                <div className="rounded-lg border border-border bg-muted/30 divide-y divide-border">
-                  <div className="p-3">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                <div className="relative space-y-2">
+                  {/* Voo anterior */}
+                  <div className="p-4 bg-white/[0.01] border border-white/5 rounded-2xl">
+                    <span className="text-[9px] font-bold tracking-widest text-zinc-600 uppercase block mb-1.5">
                       Voo anterior
-                    </div>
-                    <div className="text-sm font-medium line-through decoration-muted-foreground/60 text-muted-foreground">
+                    </span>
+                    <p className="text-sm text-zinc-500 line-through decoration-zinc-700">
                       {fmtDateTime(selected.oldDepartAt)}
+                    </p>
+                  </div>
+
+                  {/* Connector */}
+                  <div className="absolute left-8 top-1/2 -translate-y-1/2 z-10">
+                    <div className="bg-[#0A0A0A] p-1 rounded-full border border-white/10">
+                      <ArrowRight className="w-3 h-3 text-brand-orange rotate-90" />
                     </div>
                   </div>
-                  <div className="flex justify-center py-1 bg-muted/40">
-                    <ArrowRight className="h-3.5 w-3.5 text-brand-orange rotate-90" />
-                  </div>
-                  <div className="p-3 bg-brand-orange/[0.06]">
-                    <div className="text-[10px] uppercase tracking-wider text-brand-orange mb-1 font-semibold">
-                      Voo novo
-                    </div>
-                    <div className="text-sm font-bold text-foreground">
-                      {fmtDateTime(selected.newDepartAt)}
-                    </div>
-                    {info && info.label !== "sem alteração de horário" && (
-                      <div className={`mt-1 text-[11px] font-semibold ${info.positive ? "text-orange-500" : "text-emerald-500"}`}>
-                        {info.label}
+
+                  {/* Voo novo */}
+                  <div className="p-4 bg-brand-orange/[0.03] border border-brand-orange/20 rounded-2xl shadow-[inset_0_1px_1px_rgba(242,107,31,0.1)]">
+                    <div className="flex justify-between items-center gap-3">
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-bold tracking-widest text-brand-orange uppercase block mb-1.5">
+                          Voo novo
+                        </span>
+                        <p className="text-sm font-semibold text-white">{fmtDateTime(selected.newDepartAt)}</p>
                       </div>
-                    )}
+                      {info && info.label !== "sem alteração de horário" && (
+                        <span className="shrink-0 px-2 py-1 bg-brand-orange/10 border border-brand-orange/20 rounded-lg text-[10px] font-bold text-brand-orange whitespace-nowrap">
+                          {info.label}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {selected.newStatus && selected.newStatus.toLowerCase() !== "expected" && (
-                  <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs">
-                    <span className="text-muted-foreground">Status</span>
-                    <span className="font-medium">{selected.newStatus}</span>
+                  <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
+                    <span className="text-[10px] font-bold tracking-widest text-zinc-600 uppercase">Status</span>
+                    <span className="text-sm font-semibold text-white">{selected.newStatus}</span>
                   </div>
                 )}
+              </div>
 
+              {/* Footer */}
+              <div className="p-8 mt-2">
                 <button
                   onClick={() => handleCopy(selected)}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-brand-orange text-white text-sm font-medium py-2.5 hover:bg-brand-orange/90 transition"
+                  className="w-full group relative overflow-hidden bg-brand-orange hover:bg-[#ff7a2e] text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-[0_8px_24px_-8px_rgba(242,107,31,0.5)] active:scale-[0.98]"
                 >
-                  <Copy className="h-4 w-4" /> Copiar mensagem pro cliente
+                  <div className="flex items-center justify-center gap-3">
+                    <Copy className="w-5 h-5 text-white/90 group-hover:scale-110 transition-transform" />
+                    <span className="text-[15px] tracking-tight">Copiar mensagem pro cliente</span>
+                  </div>
+                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                 </button>
               </div>
             </div>
