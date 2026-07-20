@@ -55,7 +55,7 @@ function TreinoPage() {
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [useProxy, setUseProxy] = useState(false);
+  const [useProxy, setUseProxy] = useState(true);
   const [interactive, setInteractive] = useState(true);
   const [lastClick, setLastClick] = useState<{ x: number; y: number } | null>(null);
   const [typeBuffer, setTypeBuffer] = useState("");
@@ -328,15 +328,7 @@ function TreinoPage() {
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-xs">
-            <input
-              type="checkbox"
-              checked={useProxy}
-              onChange={(e) => setUseProxy(e.target.checked)}
-              disabled={!!sessionId}
-            />
-            Usar proxy residencial BR (mais lento, use só se a LATAM bloquear)
-          </label>
+          {/* Proxy residencial BR sempre ativo — LATAM bloqueia conexões diretas de datacenter */}
 
           <div className="flex gap-2 pt-1">
             {!sessionId ? (
