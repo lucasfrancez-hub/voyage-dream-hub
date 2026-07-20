@@ -32,10 +32,10 @@ interface StoredSession {
   id: string;
   userId: string;
   wsEndpoint: string;
+  initialUrl: string;
   createdAt: number;
   lastUsed: number;
   viewport: { width: number; height: number };
-  stealthApplied?: boolean;
 }
 
 const g = globalThis as unknown as { __viaTrainingSessions?: Map<string, StoredSession> };
@@ -144,11 +144,12 @@ class CdpClient {
     // eventos não usados por enquanto
   }
 
-  async send<T = unknown>(method: string, params: Record<string, unknown> = {}, sessionId?: string): Promise<T> {
+  async send<T = unknown>(method: string, params: Record<string, unknown> = {}, sessionId?: string | null): Promise<T> {
     if (this.closed) throw new Error("CDP fechado");
     const id = this.nextId++;
     const msg: Record<string, unknown> = { id, method, params };
-    const sid = sessionId ?? this.sessionId;
+    // `null` força comando no navegador; `undefined` usa a sessão da aba.
+    const sid = sessionId === null ? undefined : sessionId ?? this.sessionId;
     if (sid) msg.sessionId = sid;
     return new Promise<T>((resolve, reject) => {
       this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject });
@@ -218,11 +219,72 @@ async function evalExpr<T>(cdp: CdpClient, expression: string): Promise<T | null
   return res?.result?.value ?? null;
 }
 
-async function capture(cdp: CdpClient) {
-  await new Promise((r) => setTimeout(r, 300));
+type RenderState = {
+  href: string;
+  title: string;
+  readyState: string;
+  bodyHtmlLength: number;
+  elementCount: number;
+};
+
+async function readRenderState(cdp: CdpClient): Promise<RenderState | null> {
+  return evalExpr<RenderState>(
+    cdp,
+    `(() => ({
+      href: location.href,
+      title: document.title || '',
+      readyState: document.readyState,
+      bodyHtmlLength: document.body?.innerHTML?.length || 0,
+      elementCount: document.body?.getElementsByTagName('*')?.length || 0
+    }))()`,
+  );
+}
+
+async function waitForRenderablePage(cdp: CdpClient, fallbackUrl?: string) {
+  const waitUntilReady = async (timeoutMs: number) => {
+    const started = Date.now();
+    let state: RenderState | null = null;
+    while (Date.now() - started < timeoutMs) {
+      state = await readRenderState(cdp);
+      if (
+        state &&
+        state.href !== "about:blank" &&
+        state.readyState !== "loading" &&
+        state.bodyHtmlLength > 300 &&
+        state.elementCount > 3
+      ) {
+        await evalExpr(
+          cdp,
+          "new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))",
+        );
+        return state;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+    return state;
+  };
+
+  let state = await waitUntilReady(8_000);
+  if (
+    fallbackUrl &&
+    (!state || state.href === "about:blank" || state.bodyHtmlLength <= 300 || state.elementCount <= 3)
+  ) {
+    await cdp.send("Page.navigate", { url: fallbackUrl });
+    state = await waitUntilReady(12_000);
+  }
+  if (!state || state.href === "about:blank" || state.bodyHtmlLength <= 300 || state.elementCount <= 3) {
+    throw new Error(
+      `LATAM_EMPTY_PAGE: url=${state?.href || "indisponível"}; estado=${state?.readyState || "indisponível"}`,
+    );
+  }
+}
+
+async function capture(cdp: CdpClient, fallbackUrl?: string) {
+  await waitForRenderablePage(cdp, fallbackUrl);
   const shot = await cdp.send<{ data: string }>("Page.captureScreenshot", {
     format: "jpeg",
     quality: 60,
+    fromSurface: true,
     captureBeyondViewport: false,
   });
   const currentUrl = (await evalExpr<string>(cdp, "location.href")) || "";
@@ -263,56 +325,6 @@ async function pressKey(cdp: CdpClient, key: string) {
   await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key, ...k });
 }
 
-async function applyStealth(cdp: CdpClient, viewport: { width: number; height: number }) {
-  const UA =
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
-  await cdp
-    .send("Emulation.setUserAgentOverride", {
-      userAgent: UA,
-      acceptLanguage: "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-      platform: "MacIntel",
-    })
-    .catch(() => {});
-  await cdp
-    .send("Emulation.setDeviceMetricsOverride", {
-      width: viewport.width,
-      height: viewport.height,
-      deviceScaleFactor: 1,
-      mobile: false,
-    })
-    .catch(() => {});
-  await cdp
-    .send("Emulation.setTimezoneOverride", { timezoneId: "America/Sao_Paulo" })
-    .catch(() => {});
-  await cdp
-    .send("Emulation.setGeolocationOverride", {
-      latitude: -23.5505,
-      longitude: -46.6333,
-      accuracy: 80,
-    })
-    .catch(() => {});
-  const script = `
-    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR','pt','en-US','en'] });
-    Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' });
-    Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
-    Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
-    Object.defineProperty(navigator, 'plugins', { get: () => [
-      { name: 'PDF Viewer' }, { name: 'Chrome PDF Viewer' }, { name: 'Chromium PDF Viewer' }
-    ]});
-    try {
-      const gp = WebGLRenderingContext.prototype.getParameter;
-      WebGLRenderingContext.prototype.getParameter = function(p){
-        if (p === 37445) return 'Intel Inc.';
-        if (p === 37446) return 'Intel Iris OpenGL Engine';
-        return gp.call(this, p);
-      };
-    } catch {}
-    window.chrome = { runtime: {} };
-  `;
-  await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: script }).catch(() => {});
-}
-
 async function withConnection<T>(
   session: StoredSession,
   fn: (cdp: CdpClient) => Promise<T>,
@@ -328,10 +340,6 @@ async function withConnection<T>(
   }
   try {
     await cdp.attachToPage();
-    if (!session.stealthApplied) {
-      await applyStealth(cdp, session.viewport).catch(() => {});
-      session.stealthApplied = true;
-    }
 
     const result = await fn(cdp);
 
@@ -341,7 +349,7 @@ async function withConnection<T>(
       const renewed = await cdp.send<{ browserWSEndpoint?: string }>(
         "Browserless.reconnect",
         { timeout: SESSION_RECONNECT_MS },
-        undefined,
+        null,
       );
       if (renewed.browserWSEndpoint) {
         const token = process.env.BROWSERLESS_TOKEN;
@@ -403,6 +411,12 @@ export async function openLiveSession(opts: OpenSessionOpts) {
 
   const query = `
     mutation OpenLive($url: String!) {
+      viewport(
+        width: ${opts.viewportWidth}
+        height: ${opts.viewportHeight}
+        deviceScaleFactor: 1
+        mobile: false
+      ) { width height }
       goto(url: $url, waitUntil: domContentLoaded, timeout: 35000) { status }
       reconnect(timeout: ${SESSION_RECONNECT_MS}) { browserWSEndpoint }
     }
@@ -441,6 +455,7 @@ export async function openLiveSession(opts: OpenSessionOpts) {
     id: randomUUID(),
     userId: opts.userId,
     wsEndpoint,
+    initialUrl: opts.url,
     createdAt: Date.now(),
     lastUsed: Date.now(),
     viewport: { width: opts.viewportWidth, height: opts.viewportHeight },
@@ -449,7 +464,7 @@ export async function openLiveSession(opts: OpenSessionOpts) {
 
   let shot: Awaited<ReturnType<typeof capture>>;
   try {
-    shot = await withConnection(session, (cdp) => capture(cdp));
+    shot = await withConnection(session, (cdp) => capture(cdp, session.initialUrl));
   } catch (error) {
     sessions.delete(session.id);
     await closeRemote(session.wsEndpoint).catch(() => {});
@@ -507,13 +522,13 @@ export async function runLiveStep(opts: {
       await evalExpr(cdp, "history.back()");
       await new Promise((r) => setTimeout(r, 800));
     }
-    return capture(cdp);
+    return capture(cdp, session.initialUrl);
   });
 }
 
 export async function screenshotLiveSession(opts: { userId: string; sessionId: string }) {
   const session = requireSession(opts.sessionId, opts.userId);
-  return withConnection(session, (cdp) => capture(cdp));
+  return withConnection(session, (cdp) => capture(cdp, session.initialUrl));
 }
 
 export async function heartbeatLiveSession(opts: { userId: string; sessionId: string }) {

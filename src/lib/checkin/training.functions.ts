@@ -215,6 +215,8 @@ export const openTrainingSession = createServerFn({ method: "POST" })
         ? data.useResidentialProxy
           ? "A LATAM bloqueou também a conexão residencial. Aguarde um pouco e tente abrir uma nova sessão."
           : "A LATAM bloqueou a conexão direta. Ative ‘Usar proxy residencial BR’ e abra uma nova sessão."
+        : /LATAM_EMPTY_PAGE/i.test(detail)
+          ? "A sessão abriu sem renderizar a LATAM. Feche a sessão e abra novamente para trocar a conexão residencial."
         : /408|timed out|timeout|aborted/i.test(detail)
           ? `A LATAM demorou demais para abrir. Detalhe: ${short}`
           : `Não foi possível abrir a sessão protegida da LATAM: ${short}`;
