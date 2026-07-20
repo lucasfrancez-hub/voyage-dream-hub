@@ -254,6 +254,7 @@ function SpotlightDialog({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
