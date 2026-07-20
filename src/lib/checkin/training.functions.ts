@@ -178,6 +178,83 @@ export default async ({ page, browser, context }) => {
     throw new Error(`Não foi possível abrir a LATAM no navegador protegido: ${detail}`);
   });
 
+/* ==========================================================================
+ * SESSÃO VIVA — abre a página uma vez e executa cada passo na hora
+ * ========================================================================== */
+
+async function ensureAdmin(context: { supabase: { rpc: (fn: string, args: unknown) => Promise<{ data: unknown }> }; userId: string }) {
+  const { data: isAdmin } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (!isAdmin) throw new Error("Forbidden: apenas admin");
+}
+
+const OpenSessionInput = z.object({
+  url: z.string().url(),
+  viewportWidth: z.number().int().min(320).max(1920).default(1280),
+  viewportHeight: z.number().int().min(400).max(2000).default(900),
+  useResidentialProxy: z.boolean().optional(),
+});
+
+export const openTrainingSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => OpenSessionInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { openLiveSession } = await import("@/lib/checkin/training-session.server");
+    return openLiveSession({ userId: context.userId, ...data });
+  });
+
+const RunStepInput = z.object({
+  sessionId: z.string().min(4),
+  step: StepSchema.or(z.object({ action: z.literal("back") })),
+});
+
+export const runLiveTrainingStep = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RunStepInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    try {
+      const { runLiveStep } = await import("@/lib/checkin/training-session.server");
+      return await runLiveStep({ userId: context.userId, sessionId: data.sessionId, step: data.step as never });
+    } catch (e) {
+      const code = (e as { code?: string })?.code;
+      if (code === "SESSION_EXPIRED") {
+        throw new Error("SESSION_EXPIRED");
+      }
+      throw e;
+    }
+  });
+
+const SessionIdInput = z.object({ sessionId: z.string().min(4) });
+
+export const screenshotTrainingSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SessionIdInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    try {
+      const { screenshotLiveSession } = await import("@/lib/checkin/training-session.server");
+      return await screenshotLiveSession({ userId: context.userId, sessionId: data.sessionId });
+    } catch (e) {
+      const code = (e as { code?: string })?.code;
+      if (code === "SESSION_EXPIRED") throw new Error("SESSION_EXPIRED");
+      throw e;
+    }
+  });
+
+export const closeTrainingSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SessionIdInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { closeLiveSession } = await import("@/lib/checkin/training-session.server");
+    return closeLiveSession({ userId: context.userId, sessionId: data.sessionId });
+  });
+
+
 const AskInput = z.object({
   imageBase64: z.string().min(100),
   question: z.string().min(3),
