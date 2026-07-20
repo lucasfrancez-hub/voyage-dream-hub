@@ -1872,7 +1872,7 @@ function AddPassengerMenu({
 }
 
 function FlightReservationCard({
-  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onDeleteMany, onCancelMany, onLink, onUnlink,
+  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onDeleteMany, onCancelMany, onLink, onUnlink, onPatchPassengerTicket,
 }: {
   locator: string | null;
   segments: OrderItem[];
@@ -1887,6 +1887,7 @@ function FlightReservationCard({
   onCancelMany?: (its: OrderItem[]) => void;
   onLink?: (passengerId: string, segmentIds: string[]) => void;
   onUnlink?: (passengerId: string, segmentIds: string[]) => void;
+  onPatchPassengerTicket?: (passenger: OrderPassenger, locator: string, ticket: string) => void | Promise<void>;
 }) {
   const allCancelled = segments.every((s) => s.status === "cancelled");
   const first = segments[0];
