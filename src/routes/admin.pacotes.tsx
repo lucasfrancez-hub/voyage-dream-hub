@@ -485,11 +485,13 @@ type PackageEditorModalProps = {
   setEditing: (v: Partial<PackageRow> | null) => void;
   saving: boolean;
   save: () => void;
+  saveAll?: () => void;
   drafts?: Partial<PackageRow>[] | null;
   draftIndex?: number;
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
 };
+
 
 
 type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
