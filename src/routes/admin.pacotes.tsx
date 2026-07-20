@@ -618,17 +618,17 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                 <FormField label="Título (auto)" wide>
                   <input
                     className={inp}
-                    value={editing.title ?? ""}
+                    value={editing.title || derived.title || ""}
                     onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                    placeholder={derived.title ?? "Ex: Aracaju - Saída de São Paulo"}
+                    placeholder="Ex: Aracaju - Saída de São Paulo"
                   />
                 </FormField>
                 <FormField label="Slug (URL, auto)">
                   <input
                     className={inp}
-                    value={editing.slug ?? ""}
+                    value={editing.slug || derived.slug || ""}
                     onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
-                    placeholder={derived.slug ?? "aracaju-abril-2027"}
+                    placeholder="aracaju-abril-2027"
                   />
                 </FormField>
                 <FormField label="Ordem de exibição">
@@ -1034,7 +1034,7 @@ function PackageEditorModal({ editing, setEditing, saving, save }: PackageEditor
                     onChange={(e) => setEditing({ ...editing, itinerary: e.target.value })}
                   />
                 </FormField>
-                <div>
+                <div className="sm:col-span-2">
                   <div className="mb-1 flex items-center justify-between gap-3">
                     <span className="text-xs text-muted-foreground">O que inclui (um por linha)</span>
                     <button
