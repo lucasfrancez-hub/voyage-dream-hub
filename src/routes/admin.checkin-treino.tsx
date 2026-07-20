@@ -18,6 +18,7 @@ import {
   screenshotTrainingSession,
   heartbeatTrainingSession,
   closeTrainingSession,
+  captureTrainingPdf,
   type TrainingStep,
 } from "@/lib/checkin/training.functions";
 
@@ -42,6 +43,7 @@ function TreinoPage() {
   const shotSession = useServerFn(screenshotTrainingSession);
   const heartbeatSession = useServerFn(heartbeatTrainingSession);
   const closeSession = useServerFn(closeTrainingSession);
+  const capturePdf = useServerFn(captureTrainingPdf);
 
   const [url, setUrl] = useState(DEFAULT_URL);
   const [pnr, setPnr] = useState("LA9571886LWKG");
@@ -61,6 +63,7 @@ function TreinoPage() {
   const [typeBuffer, setTypeBuffer] = useState("");
   const [hintBuffer, setHintBuffer] = useState("");
   const [annotations, setAnnotations] = useState<{ x: number; y: number; label: string; kind: "type" | "click"; url: string }[]>([]);
+  const [pdfs, setPdfs] = useState<{ url: string; path: string; sizeKb: number; source: string }[]>([]);
   const imgRef = useRef<HTMLImageElement>(null);
 
 
@@ -483,6 +486,39 @@ function TreinoPage() {
                   >
                     Preencher sobrenome
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    disabled={busy || !sessionId || !lastClick}
+                    onClick={async () => {
+                      if (!lastClick || !sessionId) return;
+                      setBusy(true);
+                      try {
+                        const filename = `${pnr || "reserva"}-${surname || "pax"}.pdf`;
+                        const r = await capturePdf({ data: { sessionId, x: lastClick.x, y: lastClick.y, filename } });
+                        if (!r.ok) {
+                          handleSessionError(new Error(r.error));
+                          return;
+                        }
+                        if (r.signedUrl) {
+                          setPdfs((prev) => [{ url: r.signedUrl!, path: r.path, sizeKb: r.sizeKb, source: r.sourceUrl }, ...prev]);
+                          toast.success(`PDF salvo (${r.sizeKb} KB)`);
+                        } else {
+                          toast.success("PDF capturado, mas sem URL assinada.");
+                        }
+                        // atualiza o screenshot pós-clique
+                        const s = await shotSession({ data: { sessionId } });
+                        if (s.ok) setShot((prev) => ({ b64: s.screenshot, w: prev?.w ?? 1280, h: prev?.h ?? 900, url: s.currentUrl, title: s.title }));
+                      } catch (e) {
+                        handleSessionError(e);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                    title="Clica no botão de baixar PDF marcado como Último clique e salva o arquivo na base"
+                  >
+                    Capturar PDF
+                  </Button>
                 </div>
               )}
               <div className="relative inline-block border rounded overflow-hidden bg-black/5">
@@ -691,8 +727,27 @@ function TreinoPage() {
             <Button size="sm" variant="outline" disabled={busy || !sessionId} onClick={() => addManualStep({ action: "scroll", dy: 400 }, "Scroll ↓400")}>
               <ArrowUp className="h-3 w-3 mr-1 rotate-180" /> Scroll ↓400
             </Button>
+            <Button size="sm" variant="outline" disabled={busy || !sessionId} onClick={() => addManualStep({ action: "wait", ms: 8000 }, "Esperar carregar 8s")}>
+              <Clock className="h-3 w-3 mr-1" /> Esperar carregar 8s
+            </Button>
           </div>
         </Card>
+
+        {pdfs.length > 0 && (
+          <Card className="col-span-12 p-4">
+            <div className="text-xs font-medium mb-2">PDFs capturados nesta sessão</div>
+            <ul className="space-y-1 text-xs">
+              {pdfs.map((p, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{p.sizeKb} KB</span>
+                  <a href={p.url} target="_blank" rel="noreferrer" className="text-brand-orange underline truncate flex-1">
+                    {p.path}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
 
         {/* Logs */}
         {logs.length > 0 && (

@@ -270,7 +270,12 @@ export async function runLiveStep(opts: {
     } else if (s.action === "click") {
       await page.mouse.move(s.x, s.y, { steps: 8 });
       await page.mouse.click(s.x, s.y, { delay: 60 });
-      await new Promise((r) => setTimeout(r, 1200));
+      await new Promise((r) => setTimeout(r, 800));
+      // Aguarda spinners/rede terminarem (ex: botão "procurar" da LATAM).
+      await (page as unknown as { waitForNetworkIdle?: (o: { idleTime: number; timeout: number }) => Promise<void> })
+        .waitForNetworkIdle?.({ idleTime: 700, timeout: 15000 })
+        .catch(() => {});
+      await new Promise((r) => setTimeout(r, 400));
     } else if (s.action === "type") {
       await page.mouse.click(s.x, s.y, { delay: 60 });
       if (s.clearFirst) {
@@ -311,6 +316,90 @@ export async function closeLiveSession(opts: { userId: string; sessionId: string
   sessions.delete(opts.sessionId);
   await closeRemote(session.wsEndpoint).catch(() => {});
   return { ok: true };
+}
+
+/**
+ * Clica numa coordenada e aguarda o PRÓXIMO PDF que a página baixar/renderizar,
+ * seja como resposta HTTP (application/pdf) ou download em nova aba.
+ * Devolve o buffer base64 do PDF pra o caller salvar em storage.
+ */
+export async function captureNextPdfFromClick(opts: {
+  userId: string;
+  sessionId: string;
+  x: number;
+  y: number;
+  timeoutMs?: number;
+}): Promise<{ pdfBase64: string; sourceUrl: string }> {
+  const session = requireSession(opts.sessionId, opts.userId);
+  const timeout = opts.timeoutMs ?? 45_000;
+  return withConnection(session, async (page, browser) => {
+    let resolveFn: ((v: { pdfBase64: string; sourceUrl: string }) => void) | null = null;
+    let rejectFn: ((e: Error) => void) | null = null;
+    const pdfPromise = new Promise<{ pdfBase64: string; sourceUrl: string }>((res, rej) => {
+      resolveFn = res;
+      rejectFn = rej;
+    });
+
+    const looksLikePdf = (contentType: string | undefined, url: string) => {
+      if (contentType && /application\/pdf|application\/octet-stream/i.test(contentType)) return true;
+      return /\.pdf(\?|#|$)/i.test(url);
+    };
+
+    const attachToPage = (p: Page) => {
+      p.on("response", async (resp) => {
+        try {
+          const ct = resp.headers()["content-type"];
+          const url = resp.url();
+          if (!looksLikePdf(ct, url)) return;
+          const buf = await resp.buffer();
+          if (!buf || buf.length < 500) return;
+          const b64 = buf.toString("base64");
+          resolveFn?.({ pdfBase64: b64, sourceUrl: url });
+        } catch {
+          /* ignore individual response errors */
+        }
+      });
+    };
+
+    attachToPage(page);
+    const onTarget = async (target: { type: () => string; page: () => Promise<Page | null> }) => {
+      if (target.type() !== "page") return;
+      const p = await target.page().catch(() => null);
+      if (p) attachToPage(p);
+    };
+    (browser as unknown as { on: (ev: string, fn: (t: unknown) => void) => void }).on(
+      "targetcreated",
+      onTarget as unknown as (t: unknown) => void,
+    );
+
+    // Habilita download como evento CDP (Browserless salva em /tmp remotamente,
+    // mas nosso listener acima já resolve via response quando o navegador baixa).
+    try {
+      const cdp = await page.createCDPSession();
+      await cdp.send("Browser.setDownloadBehavior" as never, {
+        behavior: "allow",
+        downloadPath: "/tmp",
+        eventsEnabled: true,
+      } as never).catch(() => {});
+      await cdp.detach().catch(() => {});
+    } catch {
+      /* ignore */
+    }
+
+    await page.mouse.move(opts.x, opts.y, { steps: 8 });
+    await page.mouse.click(opts.x, opts.y, { delay: 60 });
+
+    const timer = setTimeout(() => {
+      rejectFn?.(new Error("Nenhum PDF foi capturado no tempo esperado — verifique se o clique foi no botão certo."));
+    }, timeout);
+
+    try {
+      const result = await pdfPromise;
+      return result;
+    } finally {
+      clearTimeout(timer);
+    }
+  });
 }
 
 async function closeRemote(wsEndpoint: string) {
