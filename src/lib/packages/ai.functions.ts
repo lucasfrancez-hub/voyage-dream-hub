@@ -459,5 +459,23 @@ Regras:
     } catch {
       throw new Error("JSON inválido retornado pela IA");
     }
+
+    // Saneamento defensivo: garantir flight_number só-dígitos (remove prefixo cia + hífen)
+    const cleanNo = (v: any): string | undefined => {
+      if (v == null) return undefined;
+      const s = String(v).trim();
+      const digits = s.replace(/[^0-9]/g, "");
+      return digits || undefined;
+    };
+    if (parsed && typeof parsed === "object") {
+      if (parsed.flight_number !== undefined) parsed.flight_number = cleanNo(parsed.flight_number);
+      if (Array.isArray(parsed.segments)) {
+        parsed.segments = parsed.segments.map((s: any) => ({
+          ...s,
+          flight_number: s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
+        }));
+      }
+    }
+
     return { flight: parsed };
   });
