@@ -1412,3 +1412,76 @@ export const deleteAllOrderPassengers = createServerFn({ method: "POST" })
   });
 
 
+
+// --------- Global search (pesquisa universal por localizador/nome/pedido) ---------
+export const searchOrders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { q: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) {
+      const { data: isPartner } = await supabase.rpc("has_role", { _user_id: userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
+    const q = (data.q || "").trim();
+    if (q.length < 2) return [] as Array<{ id: string; order_number: string | null; full_name: string | null; trip_title: string | null; supplier_order_number: string | null; payer_full_name: string | null; matched: string }>;
+    const like = `%${q}%`;
+    const results = new Map<string, any>();
+
+    // 1) Busca direta em orders (nome/número/título/localizador do fornecedor/pagador)
+    const { data: direct } = await supabase
+      .from("orders")
+      .select("id, order_number, full_name, trip_title, supplier_order_number, payer_full_name, created_at")
+      .or(
+        [
+          `full_name.ilike.${like}`,
+          `order_number.ilike.${like}`,
+          `trip_title.ilike.${like}`,
+          `supplier_order_number.ilike.${like}`,
+          `payer_full_name.ilike.${like}`,
+        ].join(","),
+      )
+      .order("created_at", { ascending: false })
+      .limit(20);
+    for (const r of direct ?? []) results.set((r as any).id, { ...(r as any), matched: "pedido" });
+
+    // 2) Busca por passageiros (nome / cpf / passaporte / doc)
+    const { data: pax } = await supabase
+      .from("order_passengers")
+      .select("order_id, full_name, cpf, passport_number, document")
+      .or(
+        [
+          `full_name.ilike.${like}`,
+          `cpf.ilike.${like}`,
+          `passport_number.ilike.${like}`,
+          `document.ilike.${like}`,
+        ].join(","),
+      )
+      .limit(30);
+    const missingIds = Array.from(new Set((pax ?? []).map((p: any) => p.order_id).filter((id: string) => !results.has(id))));
+    if (missingIds.length) {
+      const { data: ords } = await supabase
+        .from("orders")
+        .select("id, order_number, full_name, trip_title, supplier_order_number, payer_full_name, created_at")
+        .in("id", missingIds);
+      for (const r of ords ?? []) results.set((r as any).id, { ...(r as any), matched: "passageiro" });
+    }
+
+    // 3) Busca por localizador em order_items (record_locator jsonb/text)
+    const { data: items } = await supabase
+      .from("order_items")
+      .select("order_id, record_locator")
+      .ilike("record_locator", like)
+      .limit(30);
+    const itemIds = Array.from(new Set((items ?? []).map((p: any) => p.order_id).filter((id: string) => !results.has(id))));
+    if (itemIds.length) {
+      const { data: ords } = await supabase
+        .from("orders")
+        .select("id, order_number, full_name, trip_title, supplier_order_number, payer_full_name, created_at")
+        .in("id", itemIds);
+      for (const r of ords ?? []) results.set((r as any).id, { ...(r as any), matched: "localizador" });
+    }
+
+    return Array.from(results.values()).slice(0, 30);
+  });
