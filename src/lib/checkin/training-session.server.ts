@@ -530,7 +530,7 @@ export async function runLiveStep(opts: {
       await evalExpr(cdp, "history.back()");
       await new Promise((r) => setTimeout(r, 800));
     }
-    return capture(cdp);
+    return capture(cdp, session.initialUrl);
   });
 }
 
