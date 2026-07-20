@@ -8,9 +8,9 @@ import { toast } from "sonner";
 import {
   listCheckins,
   runCheckinGroup,
-  detectAirline,
   resendBoardingPass,
 } from "@/lib/checkin/checkin.functions";
+
 
 type FlightItem = {
   id: string;
