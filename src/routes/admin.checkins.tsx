@@ -81,7 +81,34 @@ function CheckinsPage() {
     refetchInterval: 60_000,
   });
 
-  const groups = (q.data ?? []) as Array<any>;
+  const rawGroups = (q.data ?? []) as Array<any>;
+
+  // Uma mesma reserva pode conter IDA + VOLTA (mesmo localizador). Dividimos
+  // em jornadas separadas quando há quebra de encadeamento (destino do
+  // segmento anterior != origem do próximo). Assim cada card do check-in
+  // mostra a origem real e o destino FINAL daquela perna.
+  const groups = useMemo(() => {
+    const out: any[] = [];
+    for (const g of rawGroups) {
+      const segs = [...(g.segments ?? [])].sort(
+        (a: any, b: any) => new Date(a.departure_at || 0).getTime() - new Date(b.departure_at || 0).getTime(),
+      );
+      if (segs.length <= 1) { out.push(g); continue; }
+      const journeys: any[][] = [];
+      let cur: any[] = [];
+      for (const s of segs) {
+        if (cur.length === 0) { cur.push(s); continue; }
+        const prev = cur[cur.length - 1];
+        if (prev.destination && s.origin && prev.destination === s.origin) cur.push(s);
+        else { journeys.push(cur); cur = [s]; }
+      }
+      if (cur.length) journeys.push(cur);
+      journeys.forEach((jSegs, idx) => {
+        out.push({ ...g, key: `${g.key}::j${idx}`, segments: jSegs });
+      });
+    }
+    return out;
+  }, [rawGroups]);
 
   function windowHoursFor(seg: any): number {
     const airline = String(seg.airline || "").toUpperCase();
