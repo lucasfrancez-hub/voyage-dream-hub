@@ -97,6 +97,13 @@ function PacotesList() {
   }, [packages]);
 
   const filteredPackages = useMemo(() => {
+    const rangeFrom = dateRange?.from ? new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate()).getTime() : null;
+    const rangeTo = dateRange?.to
+      ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59).getTime()
+      : rangeFrom !== null
+        ? new Date(dateRange!.from!.getFullYear(), dateRange!.from!.getMonth(), dateRange!.from!.getDate(), 23, 59, 59).getTime()
+        : null;
+
     const filtered = (packages || []).filter((p) => {
       const originMatch = originFilter === "all" || p.origin === originFilter;
       const destinationMatch = destinationFilter === "all" || p.destination === destinationFilter;
@@ -109,7 +116,19 @@ function PacotesList() {
           monthMatch = key === monthFilter;
         }
       }
-      return originMatch && destinationMatch && monthMatch;
+      let rangeMatch = true;
+      if (rangeFrom !== null && rangeTo !== null) {
+        if (!p.going_date) rangeMatch = false;
+        else {
+          const goingTs = new Date(String(p.going_date) + "T12:00:00").getTime();
+          const returnTs = p.return_date
+            ? new Date(String(p.return_date) + "T12:00:00").getTime()
+            : goingTs;
+          // Pacote deve caber inteiro dentro do intervalo (ida >= from e volta <= to)
+          rangeMatch = goingTs >= rangeFrom && returnTs <= rangeTo;
+        }
+      }
+      return originMatch && destinationMatch && monthMatch && rangeMatch;
     });
 
     const sorted = [...filtered];
@@ -150,24 +169,26 @@ function PacotesList() {
         break;
     }
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, sortBy]);
+  }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy]);
 
   const hasActiveFilters =
     originFilter !== "all" ||
     destinationFilter !== "all" ||
     monthFilter !== "all" ||
+    !!dateRange?.from ||
     sortBy !== "sort_order";
 
   const clearFilters = () => {
     setOriginFilter("all");
     setDestinationFilter("all");
     setMonthFilter("all");
+    setDateRange(undefined);
     setSortBy("sort_order");
   };
 
   useEffect(() => {
     setPage(1);
-  }, [originFilter, destinationFilter, monthFilter, sortBy]);
+  }, [originFilter, destinationFilter, monthFilter, dateRange, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
