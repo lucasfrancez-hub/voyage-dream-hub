@@ -184,10 +184,10 @@ export const getProtocoloDetail = createServerFn({ method: "POST" })
         if (!contact_name && conv.person_id) {
           const { data: person } = await context.supabase
             .from("people")
-            .select("full_name")
+            .select("name")
             .eq("id", conv.person_id)
             .maybeSingle();
-          contact_name = person?.full_name ?? null;
+          contact_name = person?.name ?? null;
         }
       }
     }
