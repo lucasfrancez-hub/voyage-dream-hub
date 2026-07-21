@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, Send } from "lucide-react";
+import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy } from "@/lib/packages/curate.functions";
