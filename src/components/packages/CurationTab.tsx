@@ -583,6 +583,19 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
               <div className="text-[10px] font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
                 <Wand2 className="h-3 w-3" />
                 Texto para {output.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
+                {cache[pkg.id]?.[output.channel] && (
+                  <span className="ml-1 text-[9px] text-slate-500 normal-case tracking-normal">· salvo</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleGenerate(output.channel)}
+                  disabled={loading !== null}
+                  className="ml-1 inline-flex items-center gap-1 rounded-md border border-white/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-slate-400 hover:text-brand-orange hover:border-brand-orange/40 disabled:opacity-60"
+                  title="Regerar com a IA"
+                >
+                  {loading === output.channel ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                  Regerar
+                </button>
               </div>
               <div className="flex items-center gap-2">
                 {shareFile && (
