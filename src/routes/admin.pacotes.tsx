@@ -1890,6 +1890,28 @@ function autoFareFromBags(f: FlightInfo, patch: Partial<FlightInfo>): Partial<Fl
   return patch;
 }
 
+// Normaliza um voo vindo da IA: garante booleans de bagagem definidos e
+// auto-preenche fare_class (LIGHT/STANDARD) quando a IA não trouxer código.
+function normalizeExtractedFlight(f: any): any {
+  if (!f || typeof f !== "object") return f;
+  const personal = f.personal_item === true;
+  const carry = f.carry_on === true;
+  const checked = f.checked_bag === true;
+  const currentFare = String(f.fare_class ?? "").trim().toUpperCase();
+  let fare_class = f.fare_class;
+  if (!currentFare || currentFare === "LIGHT" || currentFare === "STANDARD") {
+    fare_class = checked ? "STANDARD" : "LIGHT";
+  }
+  return {
+    ...f,
+    personal_item: personal,
+    carry_on: carry,
+    checked_bag: checked,
+    fare_class,
+  };
+}
+
+
 function FlightFieldset({
   title,
   value,
