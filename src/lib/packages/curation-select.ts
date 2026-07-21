@@ -202,3 +202,87 @@ export function selectCuratedPackages<T extends CurationPkg>(packages: T[]): T[]
   }
   return out;
 }
+
+/**
+ * Seleção "mesclada" pra vitrines externas (widget WordPress):
+ * metade Brasil (priorizando feriados e datas próximas) + metade
+ * internacional — ambos ordenados pelos MENORES preços totais.
+ * Intercalado BR/INTL pra dar variedade visual no carrossel.
+ */
+export function selectMixedFeatured<T extends CurationPkg>(
+  packages: T[],
+  total = 12,
+): T[] {
+  const active = (packages || []).filter((p) => p.is_active !== false);
+  if (!active.length) return [];
+
+  const half = Math.ceil(total / 2);
+
+  const isHoliday = (p: T) =>
+    HOLIDAY_WINDOWS.some((w) => withinWindow(p.going_date, w.from, w.to));
+  const upcomingScore = (p: T) => {
+    const d = daysUntil(p.going_date);
+    if (d === null || d < 0) return 9999;
+    return d;
+  };
+
+  // Brasil: feriados primeiro (por preço), depois próximas datas (0-90d por preço), depois resto por preço
+  const brAll = active.filter((p) => isBrazilian(p.destination));
+  const brHolidays = brAll
+    .filter(isHoliday)
+    .sort((a, b) => totalPrice(a) - totalPrice(b));
+  const brUpcoming = brAll
+    .filter((p) => !isHoliday(p))
+    .filter((p) => {
+      const d = daysUntil(p.going_date);
+      return d !== null && d >= 0 && d <= 90;
+    })
+    .sort((a, b) => {
+      const dp = upcomingScore(a) - upcomingScore(b);
+      return dp !== 0 ? dp : totalPrice(a) - totalPrice(b);
+    });
+  const brRest = brAll.sort((a, b) => totalPrice(a) - totalPrice(b));
+  const brSeen = new Set<string>();
+  const brPool: T[] = [];
+  for (const arr of [brHolidays, brUpcoming, brRest]) {
+    for (const p of arr) {
+      if (brSeen.has(p.id)) continue;
+      brSeen.add(p.id);
+      brPool.push(p);
+      if (brPool.length >= half) break;
+    }
+    if (brPool.length >= half) break;
+  }
+
+  // Internacional: puramente pelos menores preços totais
+  const intlPool = active
+    .filter((p) => !isBrazilian(p.destination) && matchesAny(p.destination, INTERNATIONAL_KEYWORDS))
+    .sort((a, b) => totalPrice(a) - totalPrice(b))
+    .slice(0, half);
+
+  // Intercala BR/INTL pra dar variedade no carrossel
+  const out: T[] = [];
+  const seen = new Set<string>();
+  const push = (p?: T) => {
+    if (!p || seen.has(p.id)) return;
+    seen.add(p.id);
+    out.push(p);
+  };
+  const maxLen = Math.max(brPool.length, intlPool.length);
+  for (let i = 0; i < maxLen && out.length < total; i++) {
+    push(brPool[i]);
+    if (out.length >= total) break;
+    push(intlPool[i]);
+  }
+  // Se ainda faltar, completa com o resto ativo mais barato
+  if (out.length < total) {
+    const filler = active
+      .filter((p) => !seen.has(p.id))
+      .sort((a, b) => totalPrice(a) - totalPrice(b));
+    for (const p of filler) {
+      push(p);
+      if (out.length >= total) break;
+    }
+  }
+  return out;
+}
