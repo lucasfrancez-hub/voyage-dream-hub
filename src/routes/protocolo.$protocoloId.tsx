@@ -90,6 +90,8 @@ function ProtocoloPrintView() {
   const necessidade = (detail?.assunto_resumo ?? "").trim();
   const resumo = (detail?.resumo_conversa ?? "").trim();
   const numero = detail?.numero ?? protocoloId.slice(0, 8);
+  const contactName = (detail?.contact_name ?? "").trim() || fmtPhone(detail?.contact_phone) || "Contato";
+  const contactPhone = fmtPhone(detail?.contact_phone);
 
   const grouped = useMemo(() => {
     const out: { date: string; items: typeof messages }[] = [];
@@ -101,6 +103,27 @@ function ProtocoloPrintView() {
     }
     return out;
   }, [messages]);
+
+  // Autenticação: hash SHA-256 determinístico do conteúdo + timestamp de geração.
+  const [authHash, setAuthHash] = useState<string>("");
+  const [generatedAt] = useState<string>(() => new Date().toISOString());
+  const [generatedBy, setGeneratedBy] = useState<string>("");
+  useEffect(() => {
+    setGeneratedBy(session?.user?.email ?? session?.user?.id ?? "sistema");
+  }, [session]);
+  useEffect(() => {
+    if (!messages.length && !detail) return;
+    const payload = JSON.stringify({
+      p: protocoloId,
+      n: detail?.numero ?? null,
+      o: detail?.opened_at ?? null,
+      c: detail?.closed_at ?? null,
+      ph: detail?.contact_phone ?? null,
+      nm: detail?.contact_name ?? null,
+      m: messages.map((m) => ({ t: m.created_at, d: m.direction, s: m.sender, c: m.content })),
+    });
+    sha256Hex(payload).then(setAuthHash).catch(() => {});
+  }, [protocoloId, detail, messages]);
 
   if (session === undefined || (session && (msgsLoading || detailLoading))) {
     return (
