@@ -36,6 +36,8 @@ function PeoplePage() {
 
   const [term, setTerm] = useState("");
   const [kind, setKind] = useState<"all" | "PF" | "PJ">("all");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [editingId, setEditingId] = useState<string | null>(search.edit ?? null);
 
   // sync from URL (?edit=id)
