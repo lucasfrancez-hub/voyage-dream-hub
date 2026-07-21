@@ -649,12 +649,15 @@ Regras:
 - Se houver conexões, preencha "segments" na ordem e defina depart_at do voo agregado = do primeiro segmento, arrive_at = do último.
 - Cidade em português (São Paulo, não Sao Paulo). from_city/to_city do voo agregado = origem do primeiro trecho / destino final.
 - meal_plan: procure ATIVAMENTE. Indicadores BR: "Café da Manhã"/"com café"/"c/ café"/"café incluso"/"ACM"/"APT c/ café" → "Café da manhã"; "Meia Pensão"/"MAP" → "Meia pensão"; "Pensão Completa"/"FAP" → "Pensão completa"; "All Inclusive"/"Tudo Incluso"/"AI" → "All inclusive"; "Sem refeição"/"SC"/"Room Only" → "Sem refeição". "" só se realmente não houver menção.
-- BAGAGEM (obrigatório analisar com atenção — não pule): procure ícones de mochila (item pessoal), bagagem de mão e mala despachada. Para CADA voo:
-  * personal_item: true se houver ícone/menção a "item pessoal", "mochila", "personal item".
-  * carry_on: true se houver "bagagem de mão", "10kg", "carry on", ícone de mochila grande/mala pequena ativo.
-  * checked_bag: true APENAS com menção explícita ("1 bagagem despachada", "23kg", "1 peça 23kg", ícone de mala grande ativo/colorido). Ícone cinza/riscado/tachado = false.
-  * fare_class: se só houver item pessoal + mão (sem despachada) → "LIGHT". Se houver bagagem despachada → "STANDARD". Se o documento mostrar código explícito diferente (ex.: "FULL", "PLUS", "TOP", "BLOQ"), use o código como está.
-  Se de fato não conseguir determinar bagagem, marque false, mas releia o documento antes.
+- BAGAGEM (CRÍTICO — analise CADA voo separadamente, ida e volta podem ter regras diferentes; NÃO copie a bagagem da ida para a volta):
+  * Para CADA voo (outbound_flight e return_flight), procure o bloco de bagagens PRÓXIMO àquele voo específico. Companhias como GOL/LATAM/Azul mostram os três ícones (mochila / bagagem de mão / mala despachada) em cada trecho, e é comum que só a IDA tenha despachada e a VOLTA não (ou vice-versa).
+  * personal_item: true se houver ícone/menção a "item pessoal", "mochila", "personal item", "1 objeto pessoal".
+  * carry_on: true se houver "bagagem de mão", "10kg", "carry on", ícone de mochila grande/mala pequena ATIVO/colorido.
+  * checked_bag: true APENAS com menção explícita a bagagem despachada ("1 bagagem despachada", "23kg", "1 peça 23kg", "1 bag 23kg", ícone de mala grande ATIVO/colorido/preenchido). Ícone cinza/riscado/tachado/com X = false.
+  * SEMPRE devolva os três campos (personal_item, carry_on, checked_bag) como true/false — NUNCA omita. Se o documento realmente não tiver essa informação para o voo, marque como false (e não copie do outro voo).
+  * fare_class: se só houver item pessoal + mão (sem despachada) → "LIGHT". Se houver bagagem despachada → "STANDARD". Se o documento mostrar código explícito diferente (ex.: "FULL", "PLUS", "TOP", "BLOQ", "PROMO", "MAX"), use o código como está. SEMPRE preencha fare_class — nunca deixe em branco.
+  * Antes de fechar o JSON, RELEIA o bloco de bagagens de cada voo e confirme dígito a dígito se marcou certo cada um dos três ícones para IDA e para VOLTA.
+
 - hotel_stars: número inteiro de 1 a 5 (conte as estrelas ou pegue a classificação).
 - includes: liste os itens da seção "Incluso" do documento.
 - supplier_name: identifique a OPERADORA/FORNECEDOR emissor do orçamento. Procure o LOGO ou nome no cabeçalho/rodapé/topo do documento. Regras: se aparecer "Visual" (com losango azul) → "Visual Turismo"; "CVC" → "CVC"; "Azul Viagens" → "Azul Viagens"; "Flytour" → "Flytour"; "Nascimento" → "Nascimento Turismo". Nunca coloque o nome da agência revendedora (ex.: VIA AIR), só da OPERADORA emissora.
