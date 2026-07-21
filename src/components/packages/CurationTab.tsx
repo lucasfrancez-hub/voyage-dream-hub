@@ -217,6 +217,34 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
   const [filter, setFilter] = useState<string>("all");
   const visibleGroups = filter === "all" ? groups : groups.filter((g) => g.key === filter);
 
+  const [cache, setCache] = useState<CopyCache>({});
+  const listCopiesFn = useServerFn(listPackageCopies);
+  useEffect(() => {
+    let cancelled = false;
+    listCopiesFn({})
+      .then((res) => {
+        if (cancelled) return;
+        const next: CopyCache = {};
+        for (const r of res.rows) {
+          if (!next[r.package_id]) next[r.package_id] = {};
+          next[r.package_id][r.channel] = { text: r.text, updated_at: r.updated_at };
+        }
+        setCache(next);
+      })
+      .catch(() => { /* silencioso — só desabilita o preload */ });
+    return () => { cancelled = true; };
+  }, [listCopiesFn]);
+
+  const setEntry = (pkgId: string, channel: "whatsapp" | "instagram", entry: CachedCopy | null) => {
+    setCache((prev) => {
+      const next = { ...prev };
+      const cur = { ...(next[pkgId] || {}) };
+      if (entry) cur[channel] = entry; else delete cur[channel];
+      next[pkgId] = cur;
+      return next;
+    });
+  };
+
   if (!active.length) {
     return (
       <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8 text-center text-sm text-muted-foreground">
@@ -226,6 +254,8 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
   }
 
   return (
+    <CopyCacheContext.Provider value={{ cache, setEntry }}>
+
     <div className="space-y-8">
       {/* Chips de filtro */}
       {groups.length > 1 && (
