@@ -406,7 +406,7 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                   Nenhum pedido encontrado.
                 </td></tr>
               )}
-              {filtered.map((o) => {
+              {paged.map((o) => {
                 const snap = (o.package_snapshot ?? {}) as {
                   order_number?: string;
                   title?: string;
