@@ -356,12 +356,18 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
         // fall through to wa.me
       }
     }
-    // Fallback: open WhatsApp with the text only (image needs to be attached manually)
+    // Fallback: copy text and open WhatsApp Web (wa.me redirects to api.whatsapp.com,
+    // which browsers/iframes bloqueiam com ERR_BLOCKED_BY_RESPONSE).
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    const encoded = encodeURIComponent(text);
+    const webUrl = `https://web.whatsapp.com/send?text=${encoded}`;
+    const opened = window.open(webUrl, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      // Popup bloqueado — tenta protocolo do app nativo
+      window.location.href = `whatsapp://send?text=${encoded}`;
+    }
     toast.message("WhatsApp aberto", {
-      description: "Texto copiado. Anexe a imagem do pacote manualmente se precisar.",
+      description: "Texto copiado. Escolha o contato e anexe a imagem do pacote se precisar.",
     });
   }
 
