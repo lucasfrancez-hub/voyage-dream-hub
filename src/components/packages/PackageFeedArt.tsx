@@ -267,8 +267,7 @@ const CSS = `
 .vfeed-outer{width:1080px;height:1440px;position:relative;background:#000;overflow:hidden;--brand-orange:#ff7f00}
 .vfeed-outer *{box-sizing:border-box}
 .vfeed-inner{width:768px;height:1024px;position:absolute;top:0;left:0;transform:scale(1.40625);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden;border-radius:0}
-.vfeed-bg{position:absolute;inset:0;z-index:0}
-.vfeed-bg img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+.vfeed-bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center top;background-repeat:no-repeat}
 .vfeed-bg-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.60) 0%,rgba(0,0,0,0) 45%,rgba(0,0,0,.95) 100%)}
 .vfeed-content{position:relative;z-index:10;width:100%;height:100%;padding:40px;display:flex;flex-direction:column;justify-content:space-between}
 .vfeed-top{display:flex;flex-direction:column}
@@ -281,9 +280,10 @@ const CSS = `
 .vfeed-tag-text{color:var(--brand-orange);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:14px;line-height:1}
 .vfeed-dest{font-size:100px;font-weight:900;line-height:.9;letter-spacing:-.04em;margin:0;text-shadow:0 4px 12px rgba(0,0,0,.55), 0 8px 24px rgba(0,0,0,.45), 0 2px 4px rgba(0,0,0,.35);text-transform:uppercase;color:#fff}
 .vfeed-dest span{color:var(--brand-orange)}
-.vfeed-sub-wrap{position:relative;display:inline-block;align-self:flex-start;margin-top:8px;margin-bottom:40px}
-.vfeed-sub{font-family:'Dancing Script','Brush Script MT',cursive;font-size:48px;line-height:1;margin:0;padding-right:16px;position:relative;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+.vfeed-sub-wrap{position:relative;display:inline-block;align-self:flex-start;margin-top:8px;margin-bottom:40px;max-width:100%}
+.vfeed-sub{font-family:'Dancing Script','Brush Script MT',cursive;font-size:44px;line-height:1;margin:0;padding-right:16px;position:relative;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.4);white-space:nowrap}
 .vfeed-swoosh{position:absolute;width:100%;height:16px;bottom:-4px;left:0;color:var(--brand-orange)}
+
 .vfeed-bottom{display:flex;flex-direction:column;gap:16px}
 .glass-panel{background:rgba(0,0,0,.30);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.30);border-radius:16px}
 .glass-panel-dark{background:rgba(15,15,15,.55);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);border-radius:16px}
