@@ -183,6 +183,13 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
   const [mondeOpen, setMondeOpen] = useState(false);
   const [mondeSaleOpen, setMondeSaleOpen] = useState(false);
 
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  useEffect(() => { if (page > totalPages) setPage(1); }, [page, totalPages]);
+  useEffect(() => { setPage(1); }, [q, statusFilter, showDeleted]);
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
