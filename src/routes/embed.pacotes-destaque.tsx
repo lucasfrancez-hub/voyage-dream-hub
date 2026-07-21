@@ -42,7 +42,10 @@ function EmbedFeatured() {
   });
 
   return (
-    <div style={{ background: "transparent" }} className="w-full p-0">
+    <div style={{ background: "rgb(5, 20, 27)" }} className="w-full p-0">
+      <style>{`html,body,#root{background:rgb(5,20,27) !important;margin:0;padding:0;}`}</style>
+
+
       {isLoading && (
         <div className="rounded-2xl border border-white/5 bg-[#0a1622] p-6 text-center text-sm text-muted-foreground">
           Carregando pacotes…
