@@ -652,13 +652,26 @@ export const importMondeSale = createServerFn({ method: "POST" })
       const details: Record<string, any> = { source: "monde", monde: it.raw };
       if (it.kind === "flight") {
         const seg = it.raw?.__segment ?? it.raw?.segments?.[0] ?? {};
+        const airlineCode = String(seg.airline_code ?? "").trim().toUpperCase();
+        const flightNo = seg.flight_number ? String(seg.flight_number).replace(/\s+/g, "") : "";
+        const flightFull = airlineCode && flightNo && !flightNo.startsWith(airlineCode)
+          ? `${airlineCode}${flightNo}` : flightNo || airlineCode;
+        const aero = await enrichFlightFromAero(flightFull, seg.departure_date);
         details.from_iata = seg.origin ?? null;
         details.to_iata = seg.destination ?? null;
-        details.airline = seg.airline_code ?? it.raw?.supplier?.name ?? null;
-        details.flight_number = seg.flight_number ?? null;
+        details.from_city = aero?.fromCity ?? null;
+        details.to_city = aero?.toCity ?? null;
+        details.from_airport = aero?.fromAirport ?? null;
+        details.to_airport = aero?.toAirport ?? null;
+        details.airline = aero?.airline ?? seg.airline_code ?? it.raw?.supplier?.name ?? null;
+        details.airline_iata = aero?.airlineIata ?? airlineCode ?? null;
+        details.flight_number = airlineCode && flightNo ? `${airlineCode} ${flightNo.replace(new RegExp("^" + airlineCode), "")}` : (seg.flight_number ?? null);
         details.booking_class = (seg.class ?? "").trim() || null;
-        details.departure_at = seg.departure_date ?? null;
-        details.arrival_at = seg.arrival_date ?? null;
+        // Salva ambos os nomes de campo pra compatibilidade com o renderer (depart_at/arrive_at).
+        details.depart_at = aero?.departAt ?? seg.departure_date ?? null;
+        details.arrive_at = aero?.arriveAt ?? seg.arrival_date ?? null;
+        details.departure_at = details.depart_at;
+        details.arrival_at = details.arrive_at;
         details.segment_index = it.raw?.__segment_index ?? 0;
         details.segment_count = it.raw?.__segment_count ?? 1;
         details.direction = (it.raw?.__segment_index ?? 0) === 0 ? "outbound" : "connection";
