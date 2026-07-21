@@ -101,6 +101,7 @@ export function FeaturedCarousel({
   linkBaseUrl,
   hideBrandHeader = false,
   viewAllUrl,
+  mixMode = false,
 }: {
   packages: PkgLite[];
   linkBaseUrl?: string;
@@ -108,6 +109,8 @@ export function FeaturedCarousel({
   hideBrandHeader?: boolean;
   /** Se setado, mostra botão "Ver todos os pacotes" no topo (abre nova aba). */
   viewAllUrl?: string;
+  /** Vitrine mesclada: metade BR (feriados/próximos) + metade internacional, por menor preço. */
+  mixMode?: boolean;
 }) {
 
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
@@ -148,9 +151,11 @@ export function FeaturedCarousel({
   }, []);
 
   const featured = useMemo(() => {
-    // Mesma seleção da aba "Curadoria de IA" — grupos e prioridade idênticos.
-    const curated = selectCuratedPackages(packages || []);
-    // Fallback: se por algum motivo a curadoria vier vazia, cai pra sort_order.
+    // mixMode: vitrine mesclada BR + internacional (widget WordPress).
+    // Caso contrário, mesma seleção da aba "Curadoria de IA".
+    const curated = mixMode
+      ? selectMixedFeatured(packages || [], 12)
+      : selectCuratedPackages(packages || []);
     const base = curated.length
       ? curated
       : (packages || []).filter((p) => p.is_active).sort(
