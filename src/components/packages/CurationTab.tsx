@@ -384,6 +384,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       const res = await generateFn({
         data: {
           channel, groupTitle, groupReason,
+          packageId: pkg.id,
           packages: [{
             title: pkg.title, destination: pkg.destination, origin: pkg.origin,
             going_date: pkg.going_date, return_date: pkg.return_date, nights: pkg.nights,
@@ -396,6 +397,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       const preparedFile = await prepareShareFile();
       setShareFile(preparedFile);
       setOutput({ channel, text: res.text });
+      setEntry(pkg.id, channel, { text: res.text, updated_at: new Date().toISOString() });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao gerar texto");
     } finally {
