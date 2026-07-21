@@ -860,7 +860,7 @@ Retorne SÓ o JSON.`;
         totalCount > 0
           ? `Este documento contém ${totalCount} orçamentos. Extraia APENAS os orçamentos com index de ${from} até ${to} (inclusive), na ordem. Cada item deve ter "index" correspondente ao cabeçalho "Orcamento N". Não pule nenhum e não retorne fora dessa faixa.`
           : `Este documento contém MÚLTIPLOS orçamentos separados por 'Orcamento 1', 'Orcamento 2'… (pode ter 2, 5, 10 ou mais). Extraia TODOS os orçamentos presentes, sem pular nenhum. Cada item deve ter "index" = N do cabeçalho.`;
-      const parsed = await callGemini(extractSystem, userText, 60000);
+      const parsed = await callGemini(extractSystem, userText, 24000);
       const arr: any[] = Array.isArray(parsed?.packages)
         ? parsed.packages
         : Array.isArray(parsed)
@@ -871,8 +871,9 @@ Retorne SÓ o JSON.`;
       return arr;
     };
 
-    // Passo 2: extrair em lotes de 4 (quando totalCount conhecido) para evitar truncamento
-    const BATCH_SIZE = 4;
+    // Passo 2: extrair em lotes pequenos (evita timeout 524 do gateway em PDFs grandes)
+    const BATCH_SIZE = 2;
+
     const collected = new Map<number, any>();
     if (totalCount > 0) {
       for (let from = 1; from <= totalCount; from += BATCH_SIZE) {
