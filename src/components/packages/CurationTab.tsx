@@ -360,24 +360,31 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     if (!output) return;
     const text = output.text;
 
+    // Abre a janela IMEDIATAMENTE (dentro do gesto do clique) pra não ser
+    // bloqueada por popup-blocker. Só depois disso fazemos trabalho async.
+    const webUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    const popup = window.open(webUrl, "_blank", "noopener,noreferrer");
+
     // Mobile / PWA: compartilhamento nativo com imagem + texto num passo só.
     if (shareFile && typeof navigator.share === "function") {
       try {
         const shareData: ShareData = { files: [shareFile], text };
         if (!navigator.canShare || navigator.canShare(shareData)) {
+          try { popup?.close(); } catch { /* noop */ }
           await navigator.share(shareData);
           return;
         }
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError") {
+          try { popup?.close(); } catch { /* noop */ }
+          return;
+        }
         // cai pro fluxo desktop abaixo
       }
     }
 
-    // Desktop: tenta copiar imagem + texto num ClipboardItem só (para colar
-    // no WhatsApp Web depois de escolher o contato) e abre o WhatsApp Web
-    // numa nova aba de nível superior — assim o usuário vê a lista de contatos
-    // igual ao fluxo do orçamento web da operadora.
+    // Desktop: copia imagem + texto num ClipboardItem só (para colar no
+    // WhatsApp Web depois de escolher o contato).
     let clipboardMsg = "Texto copiado. Escolha o contato no WhatsApp e cole (Cmd/Ctrl+V).";
     try {
       if (shareFile) {
@@ -405,20 +412,14 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       try { await navigator.clipboard.writeText(text); } catch { /* noop */ }
     }
 
-    // Abre o WhatsApp nativo (app) — mostra o seletor de contatos direto,
-    // sem número pré-definido. Se o protocolo não estiver disponível, cai
-    // para api.whatsapp.com/send (página "Compartilhar no WhatsApp").
-    const nativeUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
-    const webUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    let opened = false;
-    try {
-      const win = window.open(nativeUrl, "_blank");
-      opened = !!win;
-    } catch { /* noop */ }
-    if (!opened) window.open(webUrl, "_blank", "noopener,noreferrer");
+    // Se o popup foi bloqueado, tenta reabrir (pode falhar sem gesto — nesse
+    // caso o usuário vê o aviso pra desbloquear popups).
+    if (!popup || popup.closed) {
+      window.open(webUrl, "_blank", "noopener,noreferrer");
+    }
     toast.success("WhatsApp aberto — escolha o contato", { description: clipboardMsg, duration: 8000 });
-
   }
+
 
 
   async function downloadArt(kind: "feed" | "story") {
