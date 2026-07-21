@@ -102,6 +102,7 @@ export function FeaturedCarousel({
   hideBrandHeader = false,
   viewAllUrl,
   mixMode = false,
+  cardAspect = "4/5",
 }: {
   packages: PkgLite[];
   linkBaseUrl?: string;
@@ -111,6 +112,8 @@ export function FeaturedCarousel({
   viewAllUrl?: string;
   /** Vitrine mesclada: metade BR (feriados/próximos) + metade internacional, por menor preço. */
   mixMode?: boolean;
+  /** Proporção do card. "3/4" gera cards mais altos (usado no embed 496px). */
+  cardAspect?: "4/5" | "3/4";
 }) {
 
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
