@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, Calendar, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket, Compass } from "lucide-react";
+import { MapPin, Calendar as CalendarIcon, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket, Compass } from "lucide-react";
+import type { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { whatsappUrl } from "@/lib/checkout-config";
@@ -9,6 +10,8 @@ import { whatsappUrl } from "@/lib/checkout-config";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
