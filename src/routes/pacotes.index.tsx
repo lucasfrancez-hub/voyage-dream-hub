@@ -97,7 +97,10 @@ function PacotesList() {
   }, [packages]);
 
   const filteredPackages = useMemo(() => {
-    const rangeFrom = dateRange?.from ? new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate()).getTime() : null;
+    const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+    const rangeFrom = dateRange?.from
+      ? new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate()).getTime()
+      : null;
     const rangeTo = dateRange?.to
       ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59).getTime()
       : null;
@@ -123,17 +126,20 @@ function PacotesList() {
             ? new Date(String(p.return_date) + "T12:00:00").getTime()
             : goingTs;
           if (rangeTo !== null) {
-            // Intervalo completo: pacote deve caber dentro (ida >= from e volta <= to)
-            rangeMatch = goingTs >= rangeFrom && returnTs <= rangeTo;
+            // Ida + volta: pacote com ida dentro de ±7d do "from" E volta dentro de ±7d do "to"
+            const goingOk = goingTs >= rangeFrom - ONE_WEEK && goingTs <= rangeFrom + ONE_WEEK;
+            const returnOk = returnTs >= rangeTo - ONE_WEEK && returnTs <= rangeTo + ONE_WEEK;
+            rangeMatch = goingOk && returnOk;
           } else {
-            // Só data inicial: "A partir de" — ida deve ser >= from (aberto)
-            rangeMatch = goingTs >= rangeFrom;
+            // Só data inicial: janela de +7 dias a partir do "from"
+            rangeMatch = goingTs >= rangeFrom && goingTs <= rangeFrom + ONE_WEEK;
           }
         }
       }
 
       return originMatch && destinationMatch && monthMatch && rangeMatch;
     });
+
 
     const sorted = [...filtered];
     switch (sortBy) {
