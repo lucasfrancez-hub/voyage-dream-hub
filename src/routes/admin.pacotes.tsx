@@ -640,7 +640,7 @@ function AdminPackages() {
             <Loader2 className="inline h-4 w-4 animate-spin mr-2" /> Carregando…
           </div>
         )}
-        {packages?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((p) => (
+        {displayPackages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((p, idx) => (
           <div
             key={p.id}
             className="group bg-card/60 border border-border/60 rounded-2xl hover:border-brand-orange/50 transition-all"
