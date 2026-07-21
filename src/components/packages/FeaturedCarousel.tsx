@@ -113,44 +113,56 @@ export function FeaturedCarousel({ packages }: { packages: PkgLite[] }) {
     return scored.slice(0, 12).map((s) => s.p);
   }, [packages, userCoords]);
 
-  // Auto-scroll suave: avança 1 card a cada 3.5s.
+  // Auto-scroll contínuo (marquee) via requestAnimationFrame. Pausa no hover
+  // e enquanto o usuário arrasta com prev/next. Lista é duplicada pra loop
+  // sem "salto" visível.
   useEffect(() => {
-    if (paused || featured.length <= 2) return;
     const el = scrollerRef.current;
-    if (!el) return;
-    const id = window.setInterval(() => {
-      if (!el) return;
-      const step = el.querySelector<HTMLElement>("[data-card]")?.offsetWidth ?? 220;
-      const gap = 12;
-      const next = el.scrollLeft + step + gap;
-      const max = el.scrollWidth - el.clientWidth - 4;
-      el.scrollTo({ left: next >= max ? 0 : next, behavior: "smooth" });
-    }, 3500);
-    return () => window.clearInterval(id);
+    if (!el || featured.length === 0) return;
+    let raf = 0;
+    let last = performance.now();
+    const SPEED = 28; // px por segundo — bem suave, contínuo
+
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      if (!paused) {
+        const half = el.scrollWidth / 2;
+        let next = el.scrollLeft + SPEED * dt;
+        if (next >= half) next -= half;
+        el.scrollLeft = next;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [paused, featured.length]);
 
   if (featured.length === 0) return null;
+
+  // Duplica os cards pra formar um loop visualmente contínuo.
+  const loop = [...featured, ...featured];
 
   const scrollBy = (dir: 1 | -1) => {
     const el = scrollerRef.current;
     if (!el) return;
     const step = el.querySelector<HTMLElement>("[data-card]")?.offsetWidth ?? 220;
-    el.scrollBy({ left: dir * (step + 12) * 2, behavior: "smooth" });
+    el.scrollBy({ left: dir * (step + 14) * 2, behavior: "smooth" });
   };
 
   return (
     <div
-      className="mb-6 rounded-2xl border border-white/5 bg-gradient-to-br from-[#12202f] to-[#0a1622] p-4 shadow-lg"
+      className="mb-6 overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-[#12202f] to-[#0a1622] p-4 shadow-lg"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-orange/20">
-            <Sparkles className="h-3.5 w-3.5 text-brand-orange" />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange/20">
+            <Sparkles className="h-4 w-4 text-brand-orange" />
           </div>
           <div>
-            <div className="text-xs font-bold uppercase tracking-widest text-brand-orange">
+            <div className="text-[13px] font-bold uppercase tracking-[0.18em] text-brand-orange">
               Pacotes em destaque
             </div>
             {nearestOrigin && (
@@ -161,11 +173,11 @@ export function FeaturedCarousel({ packages }: { packages: PkgLite[] }) {
             )}
           </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           <button
             type="button"
             onClick={() => scrollBy(-1)}
-            className="rounded-full border border-white/10 bg-white/5 p-1.5 text-muted-foreground hover:border-brand-orange/60 hover:text-brand-orange"
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-muted-foreground transition hover:border-brand-orange/60 hover:text-brand-orange"
             aria-label="Anterior"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -173,7 +185,7 @@ export function FeaturedCarousel({ packages }: { packages: PkgLite[] }) {
           <button
             type="button"
             onClick={() => scrollBy(1)}
-            className="rounded-full border border-white/10 bg-white/5 p-1.5 text-muted-foreground hover:border-brand-orange/60 hover:text-brand-orange"
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-muted-foreground transition hover:border-brand-orange/60 hover:text-brand-orange"
             aria-label="Próximo"
           >
             <ChevronRight className="h-4 w-4" />
@@ -181,56 +193,79 @@ export function FeaturedCarousel({ packages }: { packages: PkgLite[] }) {
         </div>
       </div>
 
+      {/* Máscara nas bordas pra dar sensação de fluxo contínuo */}
       <div
-        ref={scrollerRef}
-        className="flex gap-3 overflow-x-auto scroll-smooth pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        className="relative"
+        style={{
+          maskImage:
+            "linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent)",
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent)",
+        }}
       >
-        {featured.map((p) => {
-          const total = Number(p.price_per_person) * (p.base_occupancy ?? 2);
-          return (
-            <Link
-              key={p.id}
-              to="/pacotes/$slug"
-              params={{ slug: p.slug }}
-              data-card
-              className="group relative w-[210px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#0f1a26] transition hover:border-brand-orange/60"
-            >
-              <div className="relative aspect-[4/5] overflow-hidden">
-                {p.image_url ? (
-                  <img
-                    src={p.image_url}
-                    alt={p.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-muted" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-                <div className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                  <MapPin className="h-2.5 w-2.5" />
-                  {p.destination}
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                  <div className="line-clamp-2 text-[12px] font-semibold text-white leading-snug">
-                    {p.title}
-                  </div>
-                  {p.origin && (
-                    <div className="mt-0.5 text-[10px] text-white/70">
-                      Saindo de {p.origin}
-                    </div>
+        <div
+          ref={scrollerRef}
+          className="flex gap-3.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {loop.map((p, i) => {
+            const total = Number(p.price_per_person) * (p.base_occupancy ?? 2);
+            return (
+              <Link
+                key={`${p.id}-${i}`}
+                to="/pacotes/$slug"
+                params={{ slug: p.slug }}
+                data-card
+                className="group relative w-[230px] shrink-0 overflow-hidden rounded-2xl bg-[#0f1a26] ring-1 ring-white/10 transition duration-300 hover:-translate-y-0.5 hover:ring-brand-orange/60"
+              >
+                <div className="relative aspect-[4/5] overflow-hidden">
+                  {p.image_url ? (
+                    <img
+                      src={p.image_url}
+                      alt={p.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.08]"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-muted" />
                   )}
-                  <div className="mt-1.5 text-[10px] text-white/60">a partir de</div>
-                  <div className="text-sm font-bold text-brand-orange leading-none">
-                    {formatBRL(total)}
+                  {/* Gradient forte no rodapé pra dar contraste ao texto */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+
+                  {/* Chip destino — glass, discreto */}
+                  <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-md ring-1 ring-white/15">
+                    <MapPin className="h-2.5 w-2.5 text-brand-orange" />
+                    {p.destination}
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                    <div
+                      className="line-clamp-2 text-[15px] font-bold text-white leading-tight tracking-[-0.01em]"
+                      style={{ textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}
+                    >
+                      {p.title}
+                    </div>
+                    {p.origin && (
+                      <div className="mt-1 text-[11px] font-medium text-white/85">
+                        Saindo de {p.origin}
+                      </div>
+                    )}
+                    <div className="mt-2.5 flex items-baseline gap-1.5">
+                      <span className="text-[10px] uppercase tracking-wider text-white/55">
+                        a partir de
+                      </span>
+                    </div>
+                    <div className="text-[17px] font-extrabold text-brand-orange leading-none tracking-tight">
+                      {formatBRL(total)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          );
-        })}
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
+
