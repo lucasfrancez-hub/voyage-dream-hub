@@ -179,8 +179,8 @@ export const listPeople = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("people")
       .select("*")
-      .order("created_at", { ascending: false })
-      .limit(1000);
+      .order("name", { ascending: true })
+      .limit(5000);
     if (error) throw new Error(error.message);
     return (data ?? []) as PersonRow[];
   });
