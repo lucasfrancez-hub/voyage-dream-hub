@@ -55,7 +55,7 @@ function EmbedFeatured() {
           hideBrandHeader
           viewAllUrl={`${PUBLIC_SITE_URL}/pacotes`}
           mixMode
-          cardAspect="3/4"
+          cardAspect="3/5"
         />
       )}
     </div>
