@@ -71,11 +71,10 @@ export const verifyProtocolHash = createServerFn({ method: "POST" })
         },
       },
     );
-    const { data: row, error } = await supabase
-      .from("protocol_verifications")
-      .select("hash, numero, contact_name, contact_phone, message_count, opened_at, closed_at, generated_at, generated_by")
-      .eq("hash", hash)
-      .maybeSingle();
+    const { data: rows, error } = await supabase.rpc("verify_protocol_hash", {
+      _hash: hash,
+    });
+    const row = Array.isArray(rows) ? rows[0] : null;
     if (error || !row) return { valid: false as const };
     // Mascarar telefone (mostra últimos 4 dígitos)
     const phone = (row.contact_phone ?? "").replace(/\D/g, "");
