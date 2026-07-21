@@ -66,6 +66,22 @@ function normalizeFlightBaggage(flight: any): any {
   };
 }
 
+function normalizePackageFlights(pkg: any): any {
+  if (!pkg || typeof pkg !== "object") return pkg;
+  let outbound = normalizeFlightBaggage(pkg.outbound_flight);
+  let inbound = normalizeFlightBaggage(pkg.return_flight);
+  const sharedBaggage = String(pkg.baggage_scope ?? "").toLowerCase() === "shared";
+
+  if (sharedBaggage && outbound && inbound) {
+    const sharedChecked = !!(outbound.checked_bag || inbound.checked_bag);
+    outbound = normalizeFlightBaggage({ ...outbound, checked_bag: sharedChecked });
+    inbound = normalizeFlightBaggage({ ...inbound, checked_bag: sharedChecked });
+  }
+
+  const { baggage_scope: _baggageScope, ...rest } = pkg;
+  return { ...rest, outbound_flight: outbound, return_flight: inbound };
+}
+
 export const generatePackageSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
@@ -658,6 +674,7 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
   "bed_type": "Casal | Solteiro | Duplo",
   "includes": ["Hospedagem", "Aéreo", "Traslados", "Passeios"],
   "supplier_name": "Visual Turismo",
+  "baggage_scope": "shared | per_flight",
   "outbound_flight": {
     "airline": "GOL",
     "flight_number": "1137",
@@ -709,6 +726,7 @@ Regras:
 - Cidade em português (São Paulo, não Sao Paulo). from_city/to_city do voo agregado = origem do primeiro trecho / destino final.
 - meal_plan: procure ATIVAMENTE. Indicadores BR: "Café da Manhã"/"com café"/"c/ café"/"café incluso"/"ACM"/"APT c/ café" → "Café da manhã"; "Meia Pensão"/"MAP" → "Meia pensão"; "Pensão Completa"/"FAP" → "Pensão completa"; "All Inclusive"/"Tudo Incluso"/"AI" → "All inclusive"; "Sem refeição"/"SC"/"Room Only" → "Sem refeição". "" só se realmente não houver menção.
 - BAGAGEM (CRÍTICO — analise CADA voo separadamente, ida e volta podem ter regras diferentes; NÃO copie a bagagem da ida para a volta):
+  * baggage_scope é OBRIGATÓRIO: use "shared" quando o documento mostra uma única regra/bloco de bagagem para todo o aéreo de ida e volta; use "per_flight" somente quando mostra regras/blocos separados por direção.
   * Primeiro determine se o documento mostra bagagem separada por voo ou uma única regra comum ao pacote. Se houver blocos separados, analise CADA voo individualmente. Se houver UM ÚNICO bloco/linha de bagagem para o aéreo de ida e volta, aplique essa mesma regra a outbound_flight e return_flight — não marque a volta como false apenas porque o bloco comum apareceu uma vez.
   * personal_item: use true por padrão; confirme também por "item pessoal", "mochila", "personal item", "1 objeto pessoal".
   * carry_on: use true por padrão; confirme também por "bagagem de mão", "10kg", "carry on", ícone de mochila grande/mala pequena ATIVO/colorido.
@@ -795,8 +813,9 @@ Regras:
       return f;
     };
     if (parsed && typeof parsed === "object") {
-      parsed.outbound_flight = normalizeFlightBaggage(sanitizeFlight(parsed.outbound_flight));
-      parsed.return_flight = normalizeFlightBaggage(sanitizeFlight(parsed.return_flight));
+      parsed.outbound_flight = sanitizeFlight(parsed.outbound_flight);
+      parsed.return_flight = sanitizeFlight(parsed.return_flight);
+      parsed = normalizePackageFlights(parsed);
       if (parsed.hotel_stars != null) {
         const n = Math.round(Number(parsed.hotel_stars));
         parsed.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
@@ -905,6 +924,7 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
   "room_category": "Standard",
   "bed_type": "Casal",
   "supplier_name": "Visual Turismo",
+  "baggage_scope": "shared | per_flight",
   "outbound_flight": { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T13:05","duration":"04h45","cabin_class":"Econômica","fare_class":"LIGHT","carry_on":true,"checked_bag":false,"personal_item":true,"segments":[ { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"CGH","to_city":"São Paulo","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T09:45","duration":"01h25","layover":"01h20 em São Paulo" }, { "airline":"GOL","flight_number":"1502","from_iata":"CGH","from_city":"São Paulo","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T11:05","arrive_at":"2026-12-21T13:05","duration":"02h00" } ] },
   "return_flight": { ...mesma estrutura, sentido inverso }
 }
@@ -916,6 +936,7 @@ Regras (aplicar em CADA pacote):
 - Conexões: segments em ordem.
 - meal_plan: ACM/APT c/ café/"com café"/"c/ café" → "Café da manhã"; MAP/"Meia Pensão" → "Meia pensão"; FAP/"Pensão Completa" → "Pensão completa"; AI/"All Inclusive"/"Tudo Incluso" → "All inclusive"; SC/"Só hospedagem"/"Room Only" → "Sem refeição". Só use "" se não houver menção.
 - BAGAGEM E TARIFA (OBRIGATÓRIO EM outbound_flight E return_flight): sempre devolva personal_item=true e carry_on=true. checked_bag=true quando houver ícone ativo, "1 bagagem", "1 peça", "1 PC" ou "23 kg"; false para ícone riscado/cinza, "0 PC" ou "sem bagagem despachada". Se a informação aparecer UMA VEZ como regra comum do aéreo/pacote, aplique-a tanto à ida quanto à volta. Só trate diferente quando houver blocos claramente separados por direção. fare_class nunca pode ficar vazio: checked_bag=true → "STANDARD"; checked_bag=false → "LIGHT"; preserve outro nome somente quando estiver escrito explicitamente no documento.
+- baggage_scope é OBRIGATÓRIO em cada pacote: "shared" quando existe uma única regra/bloco de bagagem para todo o aéreo; "per_flight" somente quando existem blocos separados e claramente associados à ida e à volta.
 - hotel_stars: inteiro 1-5.
 - supplier_name: operadora emissora (nunca VIA AIR).
 - Cidade em português.
@@ -1027,8 +1048,9 @@ Retorne SÓ o JSON.`;
     for (const pkg of arr) {
       if (!pkg || typeof pkg !== "object") continue;
       delete (pkg as any).index;
-      pkg.outbound_flight = normalizeFlightBaggage(sanitizeFlight(pkg.outbound_flight));
-      pkg.return_flight = normalizeFlightBaggage(sanitizeFlight(pkg.return_flight));
+      pkg.outbound_flight = sanitizeFlight(pkg.outbound_flight);
+      pkg.return_flight = sanitizeFlight(pkg.return_flight);
+      Object.assign(pkg, normalizePackageFlights(pkg));
       if (pkg.hotel_stars != null) {
         const n = Math.round(Number(pkg.hotel_stars));
         pkg.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
