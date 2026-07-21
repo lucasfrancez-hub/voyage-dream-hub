@@ -59,6 +59,7 @@ function PacotesList() {
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [sortBy, setSortBy] = useState<
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("price_asc");
