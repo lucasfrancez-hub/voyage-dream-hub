@@ -1,9 +1,17 @@
-import { useMemo, useState } from "react";
-import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone } from "lucide-react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { generateCurationCopy } from "@/lib/packages/curate.functions";
+import { generateCurationCopy, listPackageCopies } from "@/lib/packages/curate.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
+
+type CachedCopy = { text: string; updated_at: string };
+type CopyCache = Record<string, { whatsapp?: CachedCopy; instagram?: CachedCopy }>;
+const CopyCacheContext = createContext<{
+  cache: CopyCache;
+  setEntry: (pkgId: string, channel: "whatsapp" | "instagram", entry: CachedCopy | null) => void;
+}>({ cache: {}, setEntry: () => {} });
+
 
 type Pkg = {
   id: string;
