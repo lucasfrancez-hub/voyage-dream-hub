@@ -769,12 +769,12 @@ export const extractMultiplePackagesFromDocument = createServerFn({ method: "POS
           image_url: { url: `data:${data.mime_type};base64,${data.file_base64}` },
         };
 
-    const callGemini = async (systemMsg: string, userText: string, maxTokens = 60000) => {
+    const callGemini = async (systemMsg: string, userText: string, maxTokens = 24000, model = "google/gemini-2.5-flash") => {
       const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model,
           messages: [
             { role: "system", content: systemMsg },
             { role: "user", content: [{ type: "text", text: userText }, fileBlock] },
@@ -783,6 +783,7 @@ export const extractMultiplePackagesFromDocument = createServerFn({ method: "POS
           max_completion_tokens: maxTokens,
         }),
       });
+
       if (!resp.ok) {
         const txt = await resp.text().catch(() => "");
         throw new Error(`Falha IA (${resp.status}): ${txt.slice(0, 200)}`);
