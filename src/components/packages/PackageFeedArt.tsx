@@ -118,10 +118,13 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
       <div className="vfeed-outer">
         <div className="vfeed-inner">
           {/* Background */}
-          <div className="vfeed-bg">
-            <img src={data.backgroundDataUrl} alt="" crossOrigin="anonymous" />
+          <div
+            className="vfeed-bg"
+            style={{ backgroundImage: `url("${data.backgroundDataUrl}")` }}
+          >
             <div className="vfeed-bg-grad" />
           </div>
+
 
           {/* Conteúdo */}
           <div className="vfeed-content">
