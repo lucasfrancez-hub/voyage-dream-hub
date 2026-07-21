@@ -216,8 +216,11 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
             >
               <Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">Recalcular</span> títulos
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setMondeSaleOpen(true)} className="gap-2 flex-1 sm:flex-none">
+              <Cloud className="h-4 w-4" /> <span>Importar venda Monde</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setMondeOpen(true)} className="gap-2 flex-1 sm:flex-none">
-              <Cloud className="h-4 w-4" /> <span>Importar do Monde</span>
+              <Cloud className="h-4 w-4" /> <span className="hidden sm:inline">Pessoa</span> Monde
             </Button>
             <Button size="sm" onClick={() => setNewOpen(true)} className="gap-2 flex-1 sm:flex-none">
               <Plus className="h-4 w-4" /> Cadastrar<span className="hidden sm:inline"> pedido</span>
