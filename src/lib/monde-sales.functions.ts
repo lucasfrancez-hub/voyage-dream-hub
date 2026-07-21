@@ -141,19 +141,39 @@ function summarizeItems(sale: MondeSale): ItemSummary[] {
   const num = (v: any) => (typeof v === "number" ? v : Number(v ?? 0)) || 0;
 
   for (const t of sale.airline_tickets ?? []) {
-    const seg0 = t.segments?.[0];
-    const segN = t.segments?.[t.segments?.length - 1];
-    const route = seg0 ? `${seg0.origin ?? ""}→${segN?.destination ?? ""}` : "";
-    out.push({
-      kind: "flight",
-      title: `Aéreo ${t.supplier?.name ?? ""} ${route}`.trim(),
-      locator: t.locator ?? null,
-      supplier: t.supplier?.name ?? null,
-      begin: seg0?.departure_date ?? null,
-      end: segN?.arrival_date ?? null,
-      customer_amount: num(t.totals?.customer_amount ?? t.totals?.amount),
-      fees: num(t.totals?.fees) + num(t.totals?.du_fee),
-      raw: t,
+    const segs: any[] = Array.isArray(t.segments) ? t.segments : [];
+    const totalCustomer = num(t.totals?.customer_amount ?? t.totals?.amount);
+    const totalFees = num(t.totals?.fees) + num(t.totals?.du_fee);
+    if (segs.length === 0) {
+      out.push({
+        kind: "flight",
+        title: `Aéreo ${t.supplier?.name ?? ""}`.trim(),
+        locator: t.locator ?? null,
+        supplier: t.supplier?.name ?? null,
+        begin: null,
+        end: null,
+        customer_amount: totalCustomer,
+        fees: totalFees,
+        raw: t,
+      });
+      continue;
+    }
+    segs.forEach((seg, idx) => {
+      const airline = (seg.airline_code || t.supplier?.name || "").trim();
+      const flightNo = seg.flight_number ? ` ${seg.flight_number}` : "";
+      const route = `${seg.origin ?? ""}→${seg.destination ?? ""}`;
+      out.push({
+        kind: "flight",
+        title: `Voo ${airline}${flightNo} ${route}`.trim(),
+        locator: t.locator ?? null,
+        supplier: t.supplier?.name ?? null,
+        begin: seg.departure_date ?? null,
+        end: seg.arrival_date ?? null,
+        // Financeiro só no primeiro segmento pra não duplicar
+        customer_amount: idx === 0 ? totalCustomer : 0,
+        fees: idx === 0 ? totalFees : 0,
+        raw: { ...t, __segment: seg, __segment_index: idx, __segment_count: segs.length },
+      });
     });
   }
   for (const h of sale.hotels ?? []) {
@@ -580,13 +600,17 @@ export const importMondeSale = createServerFn({ method: "POST" })
     for (const it of items) {
       const details: Record<string, any> = { source: "monde", monde: it.raw };
       if (it.kind === "flight") {
-        const seg0 = it.raw.segments?.[0];
-        const segN = it.raw.segments?.[it.raw.segments?.length - 1];
-        details.from_iata = seg0?.origin ?? null;
-        details.to_iata = segN?.destination ?? null;
-        details.airline = it.raw.supplier?.name ?? null;
-        details.departure_at = seg0?.departure_date ?? null;
-        details.arrival_at = segN?.arrival_date ?? null;
+        const seg = it.raw?.__segment ?? it.raw?.segments?.[0] ?? {};
+        details.from_iata = seg.origin ?? null;
+        details.to_iata = seg.destination ?? null;
+        details.airline = seg.airline_code ?? it.raw?.supplier?.name ?? null;
+        details.flight_number = seg.flight_number ?? null;
+        details.booking_class = (seg.class ?? "").trim() || null;
+        details.departure_at = seg.departure_date ?? null;
+        details.arrival_at = seg.arrival_date ?? null;
+        details.segment_index = it.raw?.__segment_index ?? 0;
+        details.segment_count = it.raw?.__segment_count ?? 1;
+        details.direction = (it.raw?.__segment_index ?? 0) === 0 ? "outbound" : "connection";
       } else if (it.kind === "hotel") {
         details.hotel_name = it.raw.supplier?.name ?? null;
         details.check_in = it.raw.check_in ?? null;
@@ -611,20 +635,23 @@ export const importMondeSale = createServerFn({ method: "POST" })
       if (iErr || !itemRow) continue;
       const itemId = (itemRow as any).id as string;
 
-      // Financeiro
+      // Financeiro — só no primeiro segmento do bilhete (evita duplicar valor)
       const raw = it.raw as any;
-      await context.supabase.from("order_item_financials").insert({
-        order_item_id: itemId,
-        supplier_name: it.supplier,
-        sale_value: raw.totals?.products ?? raw.totals?.amount ?? it.customer_amount,
-        tax_value: raw.totals?.fees ?? 0,
-        discount_value: raw.totals?.discount ?? 0,
-        commission_value: raw.commission_amount ?? 0,
-        commission_pct: raw.commission_percentage ?? 0,
-        rav_value: raw.totals?.rav_fee ?? 0,
-        total: it.customer_amount,
-        is_commissionable: true,
-      });
+      const isConnectionSegment = it.kind === "flight" && (raw.__segment_index ?? 0) > 0;
+      if (!isConnectionSegment) {
+        await context.supabase.from("order_item_financials").insert({
+          order_item_id: itemId,
+          supplier_name: it.supplier,
+          sale_value: raw.totals?.products ?? raw.totals?.amount ?? it.customer_amount,
+          tax_value: raw.totals?.fees ?? 0,
+          discount_value: raw.totals?.discount ?? 0,
+          commission_value: raw.commission_amount ?? 0,
+          commission_pct: raw.commission_percentage ?? 0,
+          rav_value: raw.totals?.rav_fee ?? 0,
+          total: it.customer_amount,
+          is_commissionable: true,
+        });
+      }
 
       // Vincula passageiros deste item
       for (const paxItem of raw.passengers ?? []) {
