@@ -134,11 +134,12 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
       if (rDet.status === 429 || rDet.status >= 500) {
         return {
           location_id: id,
-          name: null, address: null, city: null, country: null,
+          name: "", address: null, city: null, country: null,
           latitude: null, longitude: null, rating: null,
           tripadvisor_url: null, phone: null, website: null,
           photos: [], description: null, hotel_class: null,
-        } as TAHotelDetails;
+        };
+
       }
       throw new Error(`TripAdvisor details ${rDet.status}: ${body.slice(0, 200)}`);
     }
