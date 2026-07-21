@@ -285,6 +285,7 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
         />
       ))}
     </div>
+    </CopyCacheContext.Provider>
   );
 }
 
