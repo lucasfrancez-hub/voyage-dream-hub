@@ -319,12 +319,6 @@ function ProtocoloPrintView() {
             garantindo a integridade do registro. A autenticidade pode ser verificada publicamente pelo link acima,
             sem necessidade de login. Este protocolo é válido como prova de atendimento realizado via WhatsApp.
           </div>
-
-          <div className="mt-2 text-[10px] leading-relaxed text-slate-500">
-            Documento gerado eletronicamente pelo sistema <strong>VIA AIR</strong>. O código acima é um resumo criptográfico
-            (hash) do conteúdo desta conversa — qualquer alteração no texto original produz um código diferente,
-            garantindo a integridade do registro. Este protocolo é válido como prova de atendimento realizado via WhatsApp.
-          </div>
         </div>
       </div>
     </div>
