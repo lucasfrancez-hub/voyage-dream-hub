@@ -84,7 +84,9 @@ function deriveState(destination: string, address?: string | null) {
 
 function formatDateBR(iso: string | null) {
   if (!iso) return "";
-  const d = new Date(iso);
+  // Parse YYYY-MM-DD como data local pra evitar shift de fuso (UTC → BRT tira 1 dia)
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
