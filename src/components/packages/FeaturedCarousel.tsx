@@ -107,7 +107,7 @@ export function FeaturedCarousel({
   const [nearestOrigin, setNearestOrigin] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const pauseUntilRef = useRef(0);
-  const [hover, setHover] = useState(false);
+
 
 
   // Solicita geolocalização silenciosamente (o navegador pede permissão).
