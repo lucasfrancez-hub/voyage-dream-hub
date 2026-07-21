@@ -600,13 +600,17 @@ export const importMondeSale = createServerFn({ method: "POST" })
     for (const it of items) {
       const details: Record<string, any> = { source: "monde", monde: it.raw };
       if (it.kind === "flight") {
-        const seg0 = it.raw.segments?.[0];
-        const segN = it.raw.segments?.[it.raw.segments?.length - 1];
-        details.from_iata = seg0?.origin ?? null;
-        details.to_iata = segN?.destination ?? null;
-        details.airline = it.raw.supplier?.name ?? null;
-        details.departure_at = seg0?.departure_date ?? null;
-        details.arrival_at = segN?.arrival_date ?? null;
+        const seg = it.raw?.__segment ?? it.raw?.segments?.[0] ?? {};
+        details.from_iata = seg.origin ?? null;
+        details.to_iata = seg.destination ?? null;
+        details.airline = seg.airline_code ?? it.raw?.supplier?.name ?? null;
+        details.flight_number = seg.flight_number ?? null;
+        details.booking_class = (seg.class ?? "").trim() || null;
+        details.departure_at = seg.departure_date ?? null;
+        details.arrival_at = seg.arrival_date ?? null;
+        details.segment_index = it.raw?.__segment_index ?? 0;
+        details.segment_count = it.raw?.__segment_count ?? 1;
+        details.direction = (it.raw?.__segment_index ?? 0) === 0 ? "outbound" : "connection";
       } else if (it.kind === "hotel") {
         details.hotel_name = it.raw.supplier?.name ?? null;
         details.check_in = it.raw.check_in ?? null;
