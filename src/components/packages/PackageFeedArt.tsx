@@ -141,13 +141,15 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
               ) : null}
 
               <h2 className="vfeed-dest">
-                {top}
                 {bottom ? (
                   <>
+                    {top}
                     <br />
                     <span>{bottom}</span>
                   </>
-                ) : null}
+                ) : (
+                  <span>{top}</span>
+                )}
               </h2>
 
               <div className="vfeed-sub-wrap">
