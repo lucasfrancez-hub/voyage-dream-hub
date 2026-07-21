@@ -51,6 +51,13 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
     };
 
+    const daysUntil = (s?: string | null) => {
+      if (!s) return null;
+      const t = new Date(String(s) + "T12:00:00").getTime();
+      if (isNaN(t)) return null;
+      return Math.round((t - Date.now()) / 86400000);
+    };
+
     const items = data.packages.map((p) => {
       const occ = p.base_occupancy ?? 2;
       const total = Number(p.price_per_person) * occ;
@@ -58,6 +65,8 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         ? `${fmtDate(p.going_date)}${p.return_date ? " a " + fmtDate(p.return_date) : ""}`
         : "";
       const stars = p.hotel_stars ? "★".repeat(Math.min(5, Math.max(1, p.hotel_stars))) : "";
+      const d = daysUntil(p.going_date);
+      const boleto_ate_data_viagem = d !== null && d >= 60;
       return {
         title: p.title,
         destination: p.destination,
@@ -70,8 +79,11 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         total_price: fmtBRL(total),
         occupancy: occ,
         url: `${baseUrl}/pacotes/${p.slug}`,
+        days_until_departure: d,
+        boleto_ate_data_viagem,
       };
     });
+
 
     const channel = data.channel;
     const system =
