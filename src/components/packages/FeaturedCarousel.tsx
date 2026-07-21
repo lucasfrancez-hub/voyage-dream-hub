@@ -143,6 +143,8 @@ export function FeaturedCarousel({
 
   // Auto-scroll contínuo baseado em scrollLeft (permite controle manual).
   // Pausa quando hover ou quando o usuário clicou prev/next (por 4s).
+  // Usa refs (não state) pra não reiniciar o rAF a cada mudança de hover.
+  const hoverRef = useRef(false);
   useEffect(() => {
     const el = viewportRef.current;
     if (!el || featured.length === 0) return;
@@ -150,9 +152,9 @@ export function FeaturedCarousel({
     let last = performance.now();
     const speed = 32; // px/s
     const tick = (now: number) => {
-      const dt = (now - last) / 1000;
+      const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
-      if (!hover && now > pauseUntilRef.current) {
+      if (!hoverRef.current && now > pauseUntilRef.current) {
         el.scrollLeft += speed * dt;
         const half = el.scrollWidth / 2;
         if (half > 0 && el.scrollLeft >= half) el.scrollLeft -= half;
@@ -161,7 +163,7 @@ export function FeaturedCarousel({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [featured.length, hover]);
+  }, [featured.length]);
 
   const nudge = (dir: 1 | -1) => {
     const el = viewportRef.current;
@@ -174,7 +176,8 @@ export function FeaturedCarousel({
   if (featured.length === 0) return null;
 
   return (
-    <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-white/5 bg-[#0B1218] p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] sm:p-8">
+    <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-white/5 bg-[#0B1218] p-6 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)] sm:p-8">
+
       {/* Auras laranjas decorativas nas quinas — glow bem sutil */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-brand-orange/[0.07] blur-[100px]" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-brand-orange/[0.07] blur-[100px]" />
