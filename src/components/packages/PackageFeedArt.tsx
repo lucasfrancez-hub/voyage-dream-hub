@@ -171,8 +171,8 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                   {data.noites ? <p className="vfeed-info-small">{data.noites} noites</p> : null}
                 </div>
                 <div className="vfeed-info-div" />
-                <div className="vfeed-info-col">
-                  <div className="vfeed-info-icon">{I.planeTakeoff}</div>
+                <div className="vfeed-info-col vfeed-info-col-plane">
+                  <div className="vfeed-info-icon">{I.plane}</div>
                   <p className="vfeed-info-mid">Saída de</p>
                   <p className="vfeed-info-strong">{data.origem}</p>
                 </div>
