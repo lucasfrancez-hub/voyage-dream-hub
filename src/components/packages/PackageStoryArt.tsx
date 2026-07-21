@@ -93,12 +93,11 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
       <div className="vstory-outer">
         <div className="vstory-inner">
           {/* Background */}
-          <div
-            className="vstory-bg"
-            style={{ backgroundImage: `url("${data.backgroundDataUrl}")` }}
-          >
+          <div className="vstory-bg">
+            <img src={data.backgroundDataUrl} alt="" />
             <div className="vstory-bg-grad" />
           </div>
+
 
 
           {/* Content */}
@@ -228,7 +227,9 @@ const CSS = `
 .vstory-outer{width:1080px;height:1920px;position:relative;background:#000;overflow:hidden;--brand-orange:#ff7f00}
 .vstory-outer *{box-sizing:border-box}
 .vstory-inner{width:540px;height:960px;position:absolute;top:0;left:0;transform:scale(2);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden}
-.vstory-bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center top;background-repeat:no-repeat}
+.vstory-bg{position:absolute;inset:0;z-index:0}
+.vstory-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+
 .vstory-bg-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 40%,rgba(0,0,0,.95) 100%)}
 .vstory-content{position:relative;z-index:10;width:100%;height:100%;padding:28px 28px 20px;display:flex;flex-direction:column;justify-content:space-between}
 .vstory-top{display:flex;flex-direction:column;margin-top:8px}
