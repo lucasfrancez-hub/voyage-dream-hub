@@ -1876,6 +1876,20 @@ function hasSegmentData(segment: FlightSegment): boolean {
   return Object.values(segment).some((value) => value !== "" && value !== null && value !== undefined);
 }
 
+// Auto-preenche fare_class a partir das bagagens: sem despachada = LIGHT, com despachada = STANDARD.
+// Só sobrescreve se o usuário ainda não editou manualmente (fare_class_manual).
+function autoFareFromBags(f: FlightInfo, patch: Partial<FlightInfo>): Partial<FlightInfo> {
+  const next = { ...f, ...patch } as FlightInfo & { fare_class_manual?: boolean };
+  if (next.fare_class_manual) return patch;
+  const hasChecked = !!next.checked_bag;
+  const desired = hasChecked ? "STANDARD" : "LIGHT";
+  const current = String(next.fare_class ?? "").toUpperCase();
+  if (current === "" || current === "LIGHT" || current === "STANDARD") {
+    return { ...patch, fare_class: desired };
+  }
+  return patch;
+}
+
 function FlightFieldset({
   title,
   value,
