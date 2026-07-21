@@ -271,9 +271,31 @@ export function FeaturedCarousel({
                     </div>
                   </div>
                 </div>
+            );
+            return linkBaseUrl ? (
+              <a
+                key={cardKey}
+                href={`${linkBaseUrl.replace(/\/$/, "")}/pacotes/${p.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-card
+                className={cardClass}
+              >
+                {CardInner}
+              </a>
+            ) : (
+              <Link
+                key={cardKey}
+                to="/pacotes/$slug"
+                params={{ slug: p.slug }}
+                data-card
+                className={cardClass}
+              >
+                {CardInner}
               </Link>
             );
           })}
+
         </div>
       </div>
     </div>
