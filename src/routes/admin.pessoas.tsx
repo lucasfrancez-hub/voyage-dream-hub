@@ -126,6 +126,17 @@ function PeoplePage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={() => runFullSync(false)}
+            disabled={syncing}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2.5 text-sm font-semibold hover:bg-muted disabled:opacity-60"
+          >
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
+            {syncing && syncProgress
+              ? `Sincronizando ${syncProgress.done}/${syncProgress.total}`
+              : "Sincronizar Monde"}
+          </button>
+          <button
+            type="button"
             onClick={() => openEditor("novo")}
             className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
