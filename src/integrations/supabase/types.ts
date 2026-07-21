@@ -532,6 +532,42 @@ export type Database = {
           },
         ]
       }
+      monde_sync_state: {
+        Row: {
+          error: string | null
+          id: string
+          imported_count: number
+          last_page: number | null
+          last_synced_at: string | null
+          status: string
+          total_records: number | null
+          updated_at: string
+          updated_count: number
+        }
+        Insert: {
+          error?: string | null
+          id: string
+          imported_count?: number
+          last_page?: number | null
+          last_synced_at?: string | null
+          status?: string
+          total_records?: number | null
+          updated_at?: string
+          updated_count?: number
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          imported_count?: number
+          last_page?: number | null
+          last_synced_at?: string | null
+          status?: string
+          total_records?: number | null
+          updated_at?: string
+          updated_count?: number
+        }
+        Relationships: []
+      }
       nfse_config: {
         Row: {
           aliquota_iss: number

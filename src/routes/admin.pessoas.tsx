@@ -3,8 +3,9 @@ import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, Plus, Search, User, Building2, Mail, Phone, Loader2, Trash2 } from "lucide-react";
+import { Users, Plus, Search, User, Building2, Mail, Phone, Loader2, Trash2, Cloud, RefreshCw } from "lucide-react";
 import { listPeople, deletePerson, type PersonRow } from "@/lib/people.functions";
+import { syncMondePeopleBatch, getMondeSyncState } from "@/lib/monde-v3.functions";
 import { confirm } from "@/lib/confirm";
 import { PersonEditorDialog } from "@/components/PersonEditorDialog";
 
@@ -42,6 +43,40 @@ function PeoplePage() {
     if (search.edit && search.edit !== editingId) setEditingId(search.edit);
   }, [search.edit]);
 
+  // ── Sincronização com o Monde ──────────────────────────────────────────
+  const syncFn = useServerFn(syncMondePeopleBatch);
+  const stateFn = useServerFn(getMondeSyncState);
+  const stateQ = useQuery({ queryKey: ["monde-sync-state"], queryFn: () => stateFn() });
+  const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{ done: number; total: number } | null>(null);
+
+  async function runFullSync(reset: boolean) {
+    if (syncing) return;
+    setSyncing(true);
+    setSyncProgress({ done: 0, total: 0 });
+    let page = reset ? 1 : (stateQ.data?.last_page ?? 1);
+    try {
+      let firstCall = true;
+      while (true) {
+        const res = await syncFn({ data: { start_page: page, reset: firstCall && reset } });
+        firstCall = false;
+        setSyncProgress({
+          done: Math.min(res.page * 50, res.total_records),
+          total: res.total_records,
+        });
+        if (res.done) break;
+        page = res.page + 1;
+      }
+      toast.success("Sincronização com o Monde concluída");
+      qc.invalidateQueries({ queryKey: ["admin-people"] });
+      qc.invalidateQueries({ queryKey: ["monde-sync-state"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro na sincronização");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   function openEditor(id: string | null) {
     setEditingId(id);
     navigate({ search: (s: any) => ({ ...s, edit: id ?? undefined }), replace: true });
@@ -78,14 +113,46 @@ function PeoplePage() {
             Base única de clientes e passageiros — PF e PJ.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => openEditor("novo")}
-          className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" /> Novo cadastro
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => runFullSync(false)}
+            disabled={syncing}
+            title={
+              stateQ.data?.last_synced_at
+                ? `Última sincronização: ${new Date(stateQ.data.last_synced_at).toLocaleString("pt-BR")}`
+                : "Sincronizar todas as pessoas do Monde"
+            }
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-60"
+          >
+            {syncing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {syncProgress && syncProgress.total > 0
+                  ? `Sincronizando… ${syncProgress.done}/${syncProgress.total}`
+                  : "Sincronizando…"}
+              </>
+            ) : (
+              <>
+                <Cloud className="h-4 w-4" />
+                Sincronizar Monde
+                {stateQ.data?.last_page ? (
+                  <RefreshCw className="h-3 w-3 text-brand-orange" />
+                ) : null}
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => openEditor("novo")}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" /> Novo cadastro
+          </button>
+        </div>
       </div>
+
+
 
       <div className="mt-6 rounded-2xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-center gap-3">
