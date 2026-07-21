@@ -1330,6 +1330,38 @@ export type Database = {
           },
         ]
       }
+      package_ai_copy: {
+        Row: {
+          channel: string
+          package_id: string
+          text: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          channel: string
+          package_id: string
+          text: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          channel?: string
+          package_id?: string
+          text?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_ai_copy_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       packages: {
         Row: {
           base_occupancy: number
