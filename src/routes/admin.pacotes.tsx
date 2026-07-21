@@ -1950,7 +1950,7 @@ function FlightFieldset({
         <FormField label="Classe tarifária">
           <ClassSelect
             value={f.fare_class ?? ""}
-            onChange={(v) => patch({ fare_class: v })}
+            onChange={(v) => patch({ fare_class: v, fare_class_manual: true } as any)}
             options={fareClassesFor(findAirline(f.airline)?.iata)}
           />
         </FormField>
@@ -1960,7 +1960,7 @@ function FlightFieldset({
               <input
                 type="checkbox"
                 checked={!!f.personal_item}
-                onChange={(e) => patch({ personal_item: e.target.checked })}
+                onChange={(e) => patch(autoFareFromBags(f, { personal_item: e.target.checked }))}
               />
               Item pessoal
             </label>
@@ -1968,7 +1968,7 @@ function FlightFieldset({
               <input
                 type="checkbox"
                 checked={!!f.carry_on}
-                onChange={(e) => patch({ carry_on: e.target.checked })}
+                onChange={(e) => patch(autoFareFromBags(f, { carry_on: e.target.checked }))}
               />
               Bagagem de mão
             </label>
@@ -1976,7 +1976,7 @@ function FlightFieldset({
               <input
                 type="checkbox"
                 checked={!!f.checked_bag}
-                onChange={(e) => patch({ checked_bag: e.target.checked })}
+                onChange={(e) => patch(autoFareFromBags(f, { checked_bag: e.target.checked }))}
               />
               Bagagem despachada
             </label>
