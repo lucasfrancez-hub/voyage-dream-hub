@@ -236,8 +236,9 @@ export function FeaturedCarousel({
 
       <div
         ref={viewportRef}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
+        onMouseEnter={() => { hoverRef.current = true; }}
+        onMouseLeave={() => { hoverRef.current = false; }}
+
         className="vfc-viewport relative overflow-x-auto overflow-y-hidden"
         style={{
           maskImage:
