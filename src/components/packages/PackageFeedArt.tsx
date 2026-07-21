@@ -229,7 +229,7 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                   </div>
                   <div className="vfeed-price-pay">
                     <div className="vfeed-inc-icon">{I.card}</div>
-                    <p>No cartão e boleto bancário sem juros</p>
+                    <p>No cartão e boleto bancário sem juros<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
                   </div>
                 </div>
 
