@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, Printer } from "lucide-react";
+import { Loader2, Printer, ShieldCheck, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { listProtocoloMessages, ensureProtocoloResumo, getProtocoloDetail } from "@/lib/chat/queries.functions";
 import { cn } from "@/lib/utils";
