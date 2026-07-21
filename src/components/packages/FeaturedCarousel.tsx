@@ -98,9 +98,15 @@ function fmtShortDate(iso?: string | null): string | null {
 export function FeaturedCarousel({
   packages,
   linkBaseUrl,
+  hideBrandHeader = false,
+  viewAllUrl,
 }: {
   packages: PkgLite[];
   linkBaseUrl?: string;
+  /** Esconde o badge/título "Pacotes em destaque" — usado no embed WordPress. */
+  hideBrandHeader?: boolean;
+  /** Se setado, mostra botão "Ver todos os pacotes" no topo (abre nova aba). */
+  viewAllUrl?: string;
 }) {
 
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
