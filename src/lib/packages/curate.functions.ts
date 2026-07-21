@@ -103,7 +103,7 @@ FORMATO OBRIGATÓRIO (copie exatamente, incluindo asteriscos do WhatsApp para ne
 👩🏻‍💻 Assessoria completa
 
 *FORMAS DE PAGAMENTO:*
-🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S)
+🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S) _(5% de desconto já aplicado)_
 💳 *Cartão de crédito:* 10x de {valor por parcela do total cheio}
 📄 *Boleto bancário:* até 10x mediante aprovação
 {SE E SOMENTE SE o item tiver "boleto_ate_data_viagem": true, adicione esta linha extra logo abaixo:}
