@@ -307,7 +307,7 @@ export function FeaturedCarousel({
             const retStr = fmtShortDate(p.return_date);
             const dateLabel = goStr && retStr ? `${goStr} — ${retStr}` : goStr || retStr;
             const cardClass =
-              "group relative w-[230px] shrink-0 overflow-hidden rounded-2xl bg-[#0f1a26] ring-1 ring-white/10 transition duration-300 hover:-translate-y-0.5 hover:ring-brand-orange/60";
+              "group relative shrink-0 overflow-hidden rounded-2xl bg-[#0f1a26] ring-1 ring-white/10 transition duration-300 hover:-translate-y-0.5 hover:ring-brand-orange/60";
             const cardKey = `${p.id}-${i}`;
             const CardInner = (
               <div className="relative aspect-[4/5] overflow-hidden">
