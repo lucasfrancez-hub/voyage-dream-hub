@@ -113,7 +113,7 @@ export function FeaturedCarousel({
   /** Vitrine mesclada: metade BR (feriados/próximos) + metade internacional, por menor preço. */
   mixMode?: boolean;
   /** Proporção do card. "3/4" gera cards mais altos (usado no embed 496px). */
-  cardAspect?: "4/5" | "3/4";
+  cardAspect?: "4/5" | "3/4" | "2/3" | "3/5";
 }) {
 
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
@@ -324,7 +324,7 @@ export function FeaturedCarousel({
               "group relative shrink-0 overflow-hidden rounded-2xl bg-[#0f1a26] ring-1 ring-white/10 transition duration-300 hover:-translate-y-0.5 hover:ring-brand-orange/60";
             const cardKey = `${p.id}-${i}`;
             const CardInner = (
-              <div className={`relative ${cardAspect === "3/4" ? "aspect-[3/4]" : "aspect-[4/5]"} overflow-hidden`}>
+              <div className={`relative ${cardAspect === "3/5" ? "aspect-[3/5]" : cardAspect === "2/3" ? "aspect-[2/3]" : cardAspect === "3/4" ? "aspect-[3/4]" : "aspect-[4/5]"} overflow-hidden`}>
 
                   {p.image_url ? (
                     <img
