@@ -82,7 +82,14 @@ function haversineKm(a: [number, number], b: [number, number]) {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-export function FeaturedCarousel({ packages }: { packages: PkgLite[] }) {
+export function FeaturedCarousel({
+  packages,
+  linkBaseUrl,
+}: {
+  packages: PkgLite[];
+  linkBaseUrl?: string;
+}) {
+
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [nearestOrigin, setNearestOrigin] = useState<string | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
