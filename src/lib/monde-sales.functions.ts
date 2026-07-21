@@ -641,21 +641,6 @@ export const importMondeSale = createServerFn({ method: "POST" })
           sort_order: sortP++,
         })
         .select("id").single();
-      const { data: paxRow, error: paxErr } = await context.supabase
-        .from("order_passengers")
-        .insert({
-          order_id: orderId,
-          full_name: p.name,
-          cpf: p.cpf,
-          birth_date: p.birth_date,
-          passport_number: p.passport,
-          passport_expiry_date: p.passport_expiry,
-          whatsapp: p.phone,
-          ticket_number: tickets[0]?.ticket_number ?? null,
-          tickets: tickets.length ? tickets : null,
-          sort_order: sortP++,
-        })
-        .select("id").single();
       if (!paxErr && paxRow) {
         paxIdByKey.set(key, (paxRow as any).id);
       }
