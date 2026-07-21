@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks, Sparkles, Image as ImageIcon, Search, Wand2, Link as LinkIcon, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks, Sparkles, Image as ImageIcon, Search, Wand2, Link as LinkIcon, Download, SlidersHorizontal, ArrowUp, ArrowDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -138,6 +139,10 @@ function AdminPackages() {
   const [pendingNumbers, setPendingNumbers] = useState<number[] | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
+  const [originFilter, setOriginFilter] = useState<string>("all");
+  const [destinationFilter, setDestinationFilter] = useState<string>("all");
+  const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
 
 
@@ -200,6 +205,56 @@ function AdminPackages() {
       return data as PackageRow[];
     },
   });
+
+  const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const origins = useMemo(
+    () => Array.from(new Set((packages || []).map(p => p.origin).filter(Boolean) as string[])).sort(),
+    [packages],
+  );
+  const destinations = useMemo(
+    () => Array.from(new Set((packages || []).map(p => p.destination).filter(Boolean) as string[])).sort(),
+    [packages],
+  );
+  const monthOptions = useMemo(() => {
+    const keys = new Set<string>();
+    for (const p of packages || []) {
+      if (!p.going_date) continue;
+      const d = new Date(String(p.going_date) + "T12:00:00");
+      if (isNaN(d.getTime())) continue;
+      keys.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return Array.from(keys).sort().map(k => {
+      const [y, m] = k.split("-");
+      return { value: k, label: `${MONTH_NAMES[Number(m) - 1]} ${y}` };
+    });
+  }, [packages]);
+
+  const displayPackages = useMemo(() => {
+    const filtered = (packages || []).filter(p => {
+      if (originFilter !== "all" && p.origin !== originFilter) return false;
+      if (destinationFilter !== "all" && p.destination !== destinationFilter) return false;
+      if (monthFilter !== "all") {
+        if (!p.going_date) return false;
+        const d = new Date(String(p.going_date) + "T12:00:00");
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (key !== monthFilter) return false;
+      }
+      return true;
+    });
+    const sorted = [...filtered].sort((a, b) => {
+      const av = a.sort_order ?? 0;
+      const bv = b.sort_order ?? 0;
+      if (av !== bv) return sortDir === "asc" ? av - bv : bv - av;
+      const ac = (a as any).created_at ? new Date((a as any).created_at).getTime() : 0;
+      const bc = (b as any).created_at ? new Date((b as any).created_at).getTime() : 0;
+      return sortDir === "asc" ? bc - ac : ac - bc;
+    });
+    return sorted;
+  }, [packages, originFilter, destinationFilter, monthFilter, sortDir]);
+
+  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all" || monthFilter !== "all";
+
+  useEffect(() => { setPage(1); }, [originFilter, destinationFilter, monthFilter, sortDir]);
 
   async function nextPackageBaseNumber(): Promise<number> {
     const { count, error } = await supabase
@@ -509,6 +564,67 @@ function AdminPackages() {
         </div>
       </div>
 
+      {/* Filters */}
+      <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:pb-2.5">
+          <SlidersHorizontal className="h-3.5 w-3.5 text-brand-orange" /> Filtrar
+        </div>
+        <div className="flex-1">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Origem</label>
+          <Select value={originFilter} onValueChange={setOriginFilter}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Todas as origens" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as origens</SelectItem>
+              {origins.map(o => (<SelectItem key={o} value={o}>{o}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Destino</label>
+          <Select value={destinationFilter} onValueChange={setDestinationFilter}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Todos os destinos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os destinos</SelectItem>
+              {destinations.map(d => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Data da viagem</label>
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Todos os meses" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os meses</SelectItem>
+              {monthOptions.map(m => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <button
+          type="button"
+          onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+          title={sortDir === "asc" ? "Ordem crescente (1 → N). Clique para inverter." : "Ordem decrescente (N → 1). Clique para inverter."}
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold uppercase tracking-wider text-foreground hover:border-brand-orange"
+        >
+          {sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5 text-brand-orange" /> : <ArrowDown className="h-3.5 w-3.5 text-brand-orange" />}
+          {sortDir === "asc" ? "Crescente" : "Decrescente"}
+        </button>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={() => { setOriginFilter("all"); setDestinationFilter("all"); setMonthFilter("all"); }}
+            className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
+            aria-label="Limpar filtros"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      {hasActiveFilters && (
+        <div className="mb-2 text-[11px] uppercase tracking-widest text-muted-foreground">
+          {displayPackages.length} de {packages?.length ?? 0} pacote(s)
+        </div>
+      )}
+
       {/* Row Header */}
       <div className="hidden md:grid grid-cols-12 px-8 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60">
         <div className="col-span-5">Identificação do Pacote</div>
@@ -524,7 +640,7 @@ function AdminPackages() {
             <Loader2 className="inline h-4 w-4 animate-spin mr-2" /> Carregando…
           </div>
         )}
-        {packages?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((p) => (
+        {displayPackages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((p, idx) => (
           <div
             key={p.id}
             className="group bg-card/60 border border-border/60 rounded-2xl hover:border-brand-orange/50 transition-all"
@@ -533,12 +649,17 @@ function AdminPackages() {
               {/* Info */}
               <div className="col-span-1 md:col-span-5 space-y-0.5 min-w-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-sm bg-brand-orange shrink-0" />
+                  <span
+                    className="inline-flex h-6 min-w-[26px] items-center justify-center rounded-md border border-brand-orange/30 bg-brand-orange/10 px-1.5 text-[11px] font-bold tabular-nums text-brand-orange shrink-0"
+                    title="Posição na lista"
+                  >
+                    {(page - 1) * PAGE_SIZE + idx + 1}
+                  </span>
                   <h3 className="text-sm sm:text-[15px] font-bold text-foreground group-hover:text-brand-orange transition-colors truncate">
                     {p.title}
                   </h3>
                 </div>
-                <div className="flex items-center gap-2 pl-4 text-[10px] text-muted-foreground uppercase min-w-0">
+                <div className="flex items-center gap-2 pl-[34px] text-[10px] text-muted-foreground uppercase min-w-0">
                   <span className="truncate">/{p.slug}</span>
                   <span className="text-muted-foreground/40 shrink-0">•</span>
                   <span className="text-muted-foreground/90 italic truncate">{p.destination}</span>
@@ -658,7 +779,7 @@ function AdminPackages() {
 
 
       {(() => {
-        const total = packages?.length ?? 0;
+        const total = displayPackages.length;
         const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
         const current = Math.min(page, totalPages);
         if (total <= PAGE_SIZE) return null;
