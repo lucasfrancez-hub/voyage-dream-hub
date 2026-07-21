@@ -137,8 +137,8 @@ function ProtocoloPrintView() {
   return (
     <div className="min-h-screen bg-slate-100 py-6 print:bg-white print:py-0">
       <div className="mx-auto max-w-3xl px-4 print:max-w-none print:px-0">
-        {/* Cabeçalho */}
-        <div className="mb-4 flex items-start justify-between gap-3 print:mb-3">
+        {/* Cabeçalho: identificação do protocolo + botão imprimir */}
+        <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <div className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Protocolo VIA AIR</div>
             <h1 className="font-mono text-xl font-semibold text-slate-800">#{numero}</h1>
@@ -156,6 +156,20 @@ function ProtocoloPrintView() {
           >
             <Printer className="h-3.5 w-3.5" /> Imprimir / Salvar PDF
           </button>
+        </div>
+
+        {/* Barra de contato estilo WhatsApp */}
+        <div className="mb-4 flex items-center gap-3 rounded-t-lg border border-b-0 border-slate-300 bg-[#075E54] px-3 py-2 text-white shadow-sm print:rounded-none">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold">
+            {initials(contactName)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold leading-tight">{contactName}</div>
+            <div className="truncate text-[11px] font-mono text-white/80">{contactPhone || "—"}</div>
+          </div>
+          <div className="hidden shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-white/90 sm:flex">
+            <User className="h-3 w-3" /> WhatsApp
+          </div>
         </div>
 
         {/* Bloco de resumo pela IA */}
