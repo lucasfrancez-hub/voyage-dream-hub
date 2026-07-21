@@ -7,7 +7,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { MapPin, Flame, Navigation } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 
 
