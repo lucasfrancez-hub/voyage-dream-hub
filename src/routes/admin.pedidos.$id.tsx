@@ -1103,9 +1103,11 @@ function PassengerRow({
       <td className="px-3 py-3 w-[140px]">
         {(() => {
           const map = (passenger.tickets ?? {}) as Record<string, string>;
-          const entries = Object.entries(map).filter(([, v]) => !!v && String(v).trim());
-          const legacy = (passenger.ticket_number ?? "").trim();
-          const legacyInMap = entries.some(([, v]) => v.trim() === legacy);
+          const entries = Object.entries(map)
+            .map(([k, v]) => [k, String(v ?? "").trim()] as [string, string])
+            .filter(([, v]) => !!v);
+          const legacy = String(passenger.ticket_number ?? "").trim();
+          const legacyInMap = entries.some(([, v]) => v === legacy);
           const list: Array<[string, string]> = [...entries];
           if (legacy && !legacyInMap) list.push(["_", legacy]);
           if (list.length > 0) {
