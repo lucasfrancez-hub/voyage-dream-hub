@@ -245,8 +245,8 @@ function AdminPackages() {
       const av = a.sort_order ?? 0;
       const bv = b.sort_order ?? 0;
       if (av !== bv) return sortDir === "asc" ? av - bv : bv - av;
-      const ac = a.created_at ? new Date((a as any).created_at).getTime() : 0;
-      const bc = b.created_at ? new Date((b as any).created_at).getTime() : 0;
+      const ac = (a as any).created_at ? new Date((a as any).created_at).getTime() : 0;
+      const bc = (b as any).created_at ? new Date((b as any).created_at).getTime() : 0;
       return sortDir === "asc" ? bc - ac : ac - bc;
     });
     return sorted;
