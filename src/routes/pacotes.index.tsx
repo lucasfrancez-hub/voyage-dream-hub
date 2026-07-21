@@ -280,25 +280,92 @@ function PacotesList() {
 
           <div className="flex-1">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Data da viagem
+              Período da viagem
             </label>
-            <Select value={monthFilter} onValueChange={setMonthFilter}>
-              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-3.5 w-3.5 text-brand-orange" />
-                  <SelectValue placeholder="Todos os meses" />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start font-normal focus:ring-brand-orange focus:border-brand-orange"
+                >
+                  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-brand-orange" />
+                  {dateRange?.from ? (
+                    dateRange.to && dateRange.to.getTime() !== dateRange.from.getTime() ? (
+                      <span className="truncate">
+                        {dateRange.from.toLocaleDateString("pt-BR")} → {dateRange.to.toLocaleDateString("pt-BR")}
+                      </span>
+                    ) : (
+                      <span className="truncate">
+                        A partir de {dateRange.from.toLocaleDateString("pt-BR")}
+                      </span>
+                    )
+                  ) : monthFilter !== "all" ? (
+                    <span className="truncate">
+                      {months.find((m) => m.value === monthFilter)?.label}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Qualquer data</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-auto p-0">
+                <div className="border-b border-border p-3">
+                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                    Filtrar por mês
+                  </div>
+                  <Select
+                    value={monthFilter}
+                    onValueChange={(v) => {
+                      setMonthFilter(v);
+                      if (v !== "all") setDateRange(undefined);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Todos os meses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os meses</SelectItem>
+                      {months.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os meses</SelectItem>
-                {months.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <div className="p-3">
+                  <div className="mb-2 text-xs font-medium text-muted-foreground">
+                    Ou selecione o intervalo (ida → volta)
+                  </div>
+                  <Calendar
+                    mode="range"
+                    numberOfMonths={2}
+                    selected={dateRange}
+                    onSelect={(r) => {
+                      setDateRange(r);
+                      if (r?.from) setMonthFilter("all");
+                    }}
+                    disabled={{ before: new Date() }}
+                    defaultMonth={dateRange?.from ?? new Date()}
+                  />
+                  {dateRange?.from && (
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDateRange(undefined)}
+                      >
+                        Limpar período
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
+
 
           <div className="flex-1">
 
