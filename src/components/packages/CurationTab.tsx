@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, Loader2, Sparkles, ExternalLink, Wand2, Instagram, MessageCircle, ImageDown, Smartphone } from "lucide-react";
+import { Copy, Loader2, Sparkles, ExternalLink, Wand2, ImageDown, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy } from "@/lib/packages/curate.functions";
@@ -19,7 +19,6 @@ type Pkg = {
   hotel_stars: number | null;
   meal_plan: string | null;
   is_active: boolean;
-  // Campos usados pelo gerador de arte (Feed 3:4 e Story 9:16)
   image_url?: string | null;
   includes?: string[] | null;
   room_type?: string | null;
@@ -30,13 +29,26 @@ type Group = {
   key: string;
   title: string;
   reason: string;
+  emoji: string;
   packages: Pkg[];
 };
 
-/**
- * Feriados prolongados (Brasil). Cada janela é uma faixa contínua onde a
- * data de ida do pacote deve cair. Cobre 2026-2028.
- */
+// ─── Ícones brand ──────────────────────────────────────────────────────────
+function WhatsAppIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M19.11 17.205c-.372 0-1.088 1.39-1.518 1.39a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.143-.73-2.09-.832-2.335-.143-.372-.214-.487-.6-.487-.187 0-.36-.043-.53-.043-.302 0-.53.115-.746.315-.688.645-1.032 1.318-1.06 2.264v.114c-.015.99.472 1.977 1.017 2.78 1.23 1.82 2.506 3.41 4.554 4.34.616.287 2.035.888 2.722.888.817 0 2.15-.515 2.478-1.318.13-.32.244-.66.244-1.005 0-.717-1.777-1.688-2.708-1.688zm-2.24 7.463h-.02a9.87 9.87 0 0 1-5.03-1.376l-.36-.214-3.75.98 1-3.65-.235-.375a9.86 9.86 0 0 1-1.512-5.26c.003-5.454 4.44-9.89 9.9-9.89 2.64 0 5.128 1.03 6.994 2.898a9.83 9.83 0 0 1 2.895 6.99c-.002 5.456-4.44 9.897-9.892 9.897zM26.72 5.281A13.19 13.19 0 0 0 16.876 1.2C9.62 1.2 3.712 7.104 3.708 14.362a13.147 13.147 0 0 0 1.756 6.578L3.6 27.75l6.977-1.83a13.157 13.157 0 0 0 6.294 1.603h.006c7.253 0 13.164-5.906 13.167-13.16A13.086 13.086 0 0 0 26.72 5.28z" />
+    </svg>
+  );
+}
+function InstagramIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M12 2.2c3.2 0 3.6 0 4.85.07 1.17.05 1.8.25 2.23.42.56.22.96.48 1.38.9.42.42.68.82.9 1.38.17.42.37 1.06.42 2.23.06 1.26.07 1.64.07 4.85s-.01 3.6-.07 4.85c-.05 1.17-.25 1.8-.42 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.17-1.06.37-2.23.42-1.26.06-1.64.07-4.85.07s-3.6-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.42a3.72 3.72 0 0 1-1.38-.9 3.72 3.72 0 0 1-.9-1.38c-.17-.42-.37-1.06-.42-2.23C2.2 15.6 2.2 15.2 2.2 12s.01-3.6.07-4.85c.05-1.17.25-1.8.42-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.17 1.06-.37 2.23-.42C8.4 2.2 8.8 2.2 12 2.2M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63a5.9 5.9 0 0 0-2.13 1.38A5.9 5.9 0 0 0 .63 4.14C.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.13.67.67 1.34 1.08 2.13 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.9 5.9 0 0 0 2.13-1.38 5.9 5.9 0 0 0 1.38-2.13c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.9 5.9 0 0 0-1.38-2.13A5.9 5.9 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.4-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" />
+    </svg>
+  );
+}
+
 const HOLIDAY_WINDOWS: Array<{ theme: string; from: string; to: string; label: string }> = [
   { theme: "natal", from: "2026-12-19", to: "2026-12-27", label: "Natal 2026" },
   { theme: "reveillon", from: "2026-12-27", to: "2027-01-04", label: "Réveillon 2026/27" },
@@ -46,7 +58,6 @@ const HOLIDAY_WINDOWS: Array<{ theme: string; from: string; to: string; label: s
   { theme: "reveillon", from: "2027-12-27", to: "2028-01-04", label: "Réveillon 2027/28" },
   { theme: "carnaval", from: "2028-02-24", to: "2028-03-02", label: "Carnaval 2028" },
   { theme: "pascoa", from: "2028-04-12", to: "2028-04-17", label: "Páscoa 2028" },
-  // Feriados prolongados (janela ±3 dias)
   { theme: "prolongado", from: "2026-04-18", to: "2026-04-25", label: "Feriado de Tiradentes" },
   { theme: "prolongado", from: "2026-06-01", to: "2026-06-07", label: "Corpus Christi" },
   { theme: "prolongado", from: "2026-09-04", to: "2026-09-09", label: "7 de Setembro" },
@@ -57,21 +68,70 @@ const HOLIDAY_WINDOWS: Array<{ theme: string; from: string; to: string; label: s
   { theme: "prolongado", from: "2027-09-04", to: "2027-09-09", label: "7 de Setembro 2027" },
 ];
 
+// Cidades/países internacionais (heurística por nome do destino)
+const INTERNATIONAL_KEYWORDS = [
+  "bariloche", "buenos aires", "mendoza", "el calafate", "ushuaia", "salta", "córdoba argentina",
+  "santiago", "santiago do chile", "chile", "valparaíso", "atacama", "puerto varas",
+  "montevidéu", "montevideo", "punta del este",
+  "cancún", "cancun", "playa del carmen", "cozumel", "riviera maya", "cidade do méxico", "méxico",
+  "punta cana", "havana", "cuba", "aruba", "curaçao", "curacao", "bahamas", "jamaica",
+  "orlando", "miami", "nova york", "new york", "las vegas", "los angeles", "san francisco", "chicago",
+  "estados unidos", "eua", "usa",
+  "paris", "lisboa", "porto", "madrid", "barcelona", "roma", "milão", "milano", "veneza", "florença",
+  "londres", "amsterdam", "amsterdã", "berlim", "berlin", "praga", "viena", "atenas", "santorini",
+  "dubai", "abu dhabi", "istambul", "cairo", "marrakech",
+  "tóquio", "toquio", "kyoto", "seul", "bangkok", "bali", "phuket", "singapura", "hong kong",
+  "cape town", "cidade do cabo",
+  "cartagena", "medellín", "medellin", "bogotá", "bogota", "lima", "cusco", "machu picchu",
+  "quito", "galápagos", "galapagos",
+];
+
+// Destinos "de neve/frio" — bom pra inverno
+const WINTER_KEYWORDS = [
+  "bariloche", "ushuaia", "el calafate", "valle nevado", "portillo", "san martín de los andes",
+  "campos do jordão", "campos do jordao", "gramado", "canela", "monte verde", "urubici",
+  "são joaquim", "sao joaquim", "serra gaúcha", "serra catarinense", "aspen", "whistler",
+];
+
+// Destinos praianos brasileiros — bom pra verão
+const SUMMER_BR_KEYWORDS = [
+  "porto seguro", "arraial d'ajuda", "trancoso", "morro de são paulo", "morro de sao paulo",
+  "salvador", "praia do forte", "maragogi", "porto de galinhas", "maceió", "maceio", "japaratinga",
+  "recife", "natal", "pipa", "fortaleza", "jericoacoara", "canoa quebrada", "aracaju",
+  "florianópolis", "florianopolis", "balneário camboriú", "balneario camboriu", "bombinhas",
+  "búzios", "buzios", "cabo frio", "arraial do cabo", "angra dos reis", "ilha grande", "paraty",
+  "ubatuba", "ilhabela", "guarujá", "guaruja", "ilhéus", "ilheus", "itacaré", "itacare",
+  "fernando de noronha", "alter do chão", "alter do chao",
+];
+
+function normalize(s: string | null | undefined): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+function matchesAny(dest: string, keywords: string[]): boolean {
+  const n = normalize(dest);
+  return keywords.some((k) => n.includes(normalize(k)));
+}
+
 function withinWindow(dateStr: string | null, from: string, to: string): boolean {
   if (!dateStr) return false;
   return dateStr >= from && dateStr <= to;
 }
-
 function totalPrice(p: Pkg): number {
   return Number(p.price_per_person) * (p.base_occupancy ?? 2);
 }
-
 function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null;
   const d = new Date(String(dateStr) + "T12:00:00").getTime();
   if (isNaN(d)) return null;
-  const diff = d - Date.now();
-  return Math.round(diff / (1000 * 60 * 60 * 24));
+  return Math.round((d - Date.now()) / 86400000);
+}
+function monthOf(dateStr: string | null): number | null {
+  if (!dateStr) return null;
+  const m = Number(dateStr.slice(5, 7));
+  return isNaN(m) ? null : m;
 }
 
 export function CurationTab({ packages }: { packages: Pkg[] }) {
@@ -82,19 +142,71 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
     if (!active.length) return list;
 
     // 1. Melhores preços
-    const cheapest = [...active]
-      .sort((a, b) => totalPrice(a) - totalPrice(b))
-      .slice(0, 5);
+    const cheapest = [...active].sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 5);
     if (cheapest.length) {
       list.push({
         key: "menor-preco",
+        emoji: "💰",
         title: "Melhores preços do momento",
-        reason: "Pacotes com menor valor total no cadastro ativo.",
+        reason: "Ranking dos 5 pacotes com menor valor total no cadastro ativo.",
         packages: cheapest,
       });
     }
 
-    // 2. Datas próximas (próximos 60 dias)
+    // 2. Destinos internacionais (ordenado por preço)
+    const intl = active
+      .filter((p) => matchesAny(p.destination, INTERNATIONAL_KEYWORDS))
+      .sort((a, b) => totalPrice(a) - totalPrice(b))
+      .slice(0, 6);
+    if (intl.length) {
+      list.push({
+        key: "internacional",
+        emoji: "🌎",
+        title: "Destaques internacionais",
+        reason: "Pacotes fora do Brasil, ordenados do mais barato ao mais caro.",
+        packages: intl,
+      });
+    }
+
+    // 3. Inverno na neve (jun-ago, destinos frios)
+    const winter = active
+      .filter((p) => {
+        const m = monthOf(p.going_date);
+        return m !== null && m >= 6 && m <= 8 && matchesAny(p.destination, WINTER_KEYWORDS);
+      })
+      .sort((a, b) => totalPrice(a) - totalPrice(b))
+      .slice(0, 6);
+    if (winter.length) {
+      list.push({
+        key: "inverno-neve",
+        emoji: "❄️",
+        title: "Temporada de inverno — neve e frio",
+        reason: "Saídas entre junho e agosto para destinos de neve e serra (Bariloche, Gramado, Campos do Jordão…).",
+        packages: winter,
+      });
+    }
+
+    // 4. Verão no Brasil (dez-mar, destinos praianos)
+    const summer = active
+      .filter((p) => {
+        const m = monthOf(p.going_date);
+        if (m === null) return false;
+        const isSummerMonth = m === 12 || m === 1 || m === 2 || m === 3;
+        return isSummerMonth && matchesAny(p.destination, SUMMER_BR_KEYWORDS);
+      })
+      .sort((a, b) => totalPrice(a) - totalPrice(b))
+      .slice(0, 6);
+    if (summer.length) {
+      list.push({
+        key: "verao-brasil",
+        emoji: "🏖️",
+        title: "Verão no Brasil — sol e praia",
+        reason: "Saídas de dezembro a março para praias brasileiras.",
+        packages: summer,
+      });
+    }
+
+    // 5. Datas próximas (60 dias)
     const upcoming = active
       .filter((p) => {
         const d = daysUntil(p.going_date);
@@ -105,13 +217,14 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
     if (upcoming.length) {
       list.push({
         key: "proximos",
+        emoji: "⏱️",
         title: "Saídas nos próximos 60 dias",
         reason: "Embarques próximos — bom apelo de urgência.",
         packages: upcoming,
       });
     }
 
-    // 3. Feriados temáticos
+    // 6. Feriados temáticos
     const byTheme = new Map<string, Pkg[]>();
     for (const p of active) {
       for (const w of HOLIDAY_WINDOWS) {
@@ -124,19 +237,12 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
       }
     }
     const themeOrder = ["natal", "reveillon", "carnaval", "pascoa", "prolongado"];
-    const themeTitles: Record<string, string> = {
-      natal: "Pacotes para o Natal",
-      reveillon: "Pacotes para o Réveillon",
-      carnaval: "Pacotes para o Carnaval",
-      pascoa: "Pacotes para a Páscoa",
-      prolongado: "Pacotes em feriados prolongados",
-    };
-    const themeReasons: Record<string, string> = {
-      natal: "Datas alinhadas ao Natal — alta procura, ideal para divulgar.",
-      reveillon: "Saídas na virada — bom para venda antecipada.",
-      carnaval: "Saídas na semana do Carnaval — feriado longo.",
-      pascoa: "Feriado de Páscoa com viagem inclusa.",
-      prolongado: "Feriados nacionais prolongados — bom para escapadas curtas.",
+    const themeMeta: Record<string, { title: string; reason: string; emoji: string }> = {
+      natal: { title: "Pacotes para o Natal", reason: "Datas alinhadas ao Natal — alta procura, ideal para divulgar.", emoji: "🎄" },
+      reveillon: { title: "Pacotes para o Réveillon", reason: "Saídas na virada — bom para venda antecipada.", emoji: "🎆" },
+      carnaval: { title: "Pacotes para o Carnaval", reason: "Saídas na semana do Carnaval — feriado longo.", emoji: "🎭" },
+      pascoa: { title: "Pacotes para a Páscoa", reason: "Feriado de Páscoa com viagem inclusa.", emoji: "🐣" },
+      prolongado: { title: "Pacotes em feriados prolongados", reason: "Feriados nacionais prolongados — bom para escapadas curtas.", emoji: "🗓️" },
     };
     for (const theme of themeOrder) {
       const merged: Pkg[] = [];
@@ -147,20 +253,24 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
         merged.push(...arr);
       }
       if (!merged.length) continue;
-      // Dedup por id, ordenar por preço
       const seen = new Set<string>();
       const unique = merged.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
       unique.sort((a, b) => totalPrice(a) - totalPrice(b));
+      const meta = themeMeta[theme];
       list.push({
         key: `feriado-${theme}`,
-        title: themeTitles[theme],
-        reason: `${themeReasons[theme]} ${labels.length ? `(${labels.join(", ")})` : ""}`.trim(),
+        emoji: meta.emoji,
+        title: meta.title,
+        reason: `${meta.reason} ${labels.length ? `(${labels.join(", ")})` : ""}`.trim(),
         packages: unique.slice(0, 6),
       });
     }
 
     return list;
   }, [active]);
+
+  const [filter, setFilter] = useState<string>("all");
+  const visibleGroups = filter === "all" ? groups : groups.filter((g) => g.key === filter);
 
   if (!active.length) {
     return (
@@ -171,41 +281,93 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-brand-orange/30 bg-brand-orange/5 p-4 flex items-start gap-3">
-        <Sparkles className="h-5 w-5 text-brand-orange shrink-0 mt-0.5" />
-        <div className="text-sm text-foreground">
-          <div className="font-semibold">Curadoria automática</div>
-          <div className="text-muted-foreground text-xs mt-1">
-            A IA agrupa seus pacotes por menor preço, datas próximas e feriados
-            (Natal, Réveillon, Carnaval, Páscoa e prolongados). Clique em <b>Gerar</b> para
-            criar a mensagem pronta pro WhatsApp ou Instagram.
+    <div className="space-y-5">
+      {/* Cabeçalho didático */}
+      <div className="rounded-2xl border border-brand-orange/30 bg-gradient-to-br from-brand-orange/10 to-transparent p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-brand-orange/15 p-2">
+            <Sparkles className="h-5 w-5 text-brand-orange" />
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-bold text-foreground">Curadoria automática</div>
+            <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              A IA agrupa os pacotes ativos em <b>coleções prontas para divulgar</b>: melhor preço,
+              destinos internacionais, temporada (inverno / verão), saídas próximas e feriados.
+              Em cada pacote, clique nos círculos <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full bg-[#25D366]" /> WhatsApp</span> ou
+              {" "}<span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF]" /> Instagram</span> para gerar a legenda pronta,
+              e nos ícones <b>Feed</b> ou <b>Story</b> para baixar a arte.
+            </div>
           </div>
         </div>
       </div>
 
-      {groups.length === 0 && (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          Nenhum grupo destacado no momento. Cadastre pacotes com datas em feriados ou
-          próximas dos próximos 60 dias.
+      {/* Filtro rápido por coleção */}
+      {groups.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="Todas" emoji="✨" count={groups.length} />
+          {groups.map((g) => (
+            <FilterChip
+              key={g.key}
+              active={filter === g.key}
+              onClick={() => setFilter(g.key)}
+              label={g.title.replace(/^Pacotes (para o|em|para a) /i, "")}
+              emoji={g.emoji}
+              count={g.packages.length}
+            />
+          ))}
         </div>
       )}
 
-      {groups.map((g) => (
+      {visibleGroups.length === 0 && (
+        <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          Nenhum grupo destacado. Cadastre pacotes com datas em feriados ou próximas.
+        </div>
+      )}
+
+      {visibleGroups.map((g) => (
         <GroupCard key={g.key} group={g} />
       ))}
     </div>
   );
 }
 
+function FilterChip({
+  active, onClick, label, emoji, count,
+}: {
+  active: boolean; onClick: () => void; label: string; emoji: string; count: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition " +
+        (active
+          ? "border-brand-orange bg-brand-orange text-white shadow-sm"
+          : "border-border bg-card text-foreground hover:border-brand-orange/60 hover:text-brand-orange")
+      }
+    >
+      <span>{emoji}</span>
+      <span>{label}</span>
+      <span className={"rounded-full px-1.5 text-[10px] " + (active ? "bg-white/20" : "bg-muted text-muted-foreground")}>{count}</span>
+    </button>
+  );
+}
+
 function GroupCard({ group }: { group: Group }) {
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="p-4 border-b border-border">
-        <h3 className="text-base font-black uppercase tracking-tight text-foreground">
-          {group.title}
-        </h3>
-        <p className="text-xs text-muted-foreground mt-1">{group.reason}</p>
+      <div className="p-4 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-2">
+          <span className="text-lg leading-none">{group.emoji}</span>
+          <h3 className="text-sm font-black uppercase tracking-tight text-foreground">
+            {group.title}
+          </h3>
+          <span className="ml-auto text-[10px] font-semibold text-muted-foreground bg-background border border-border rounded-full px-2 py-0.5">
+            {group.packages.length} {group.packages.length === 1 ? "pacote" : "pacotes"}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1.5">{group.reason}</p>
       </div>
 
       <div className="divide-y divide-border">
@@ -337,47 +499,53 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
         </a>
       </div>
 
-      <div className="mt-2.5 flex flex-wrap gap-1.5">
-        <button
-          type="button"
+      {/* Ações — círculos com logo */}
+      <div className="mt-3 flex items-center gap-2">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mr-1">Gerar:</span>
+        <CircleButton
+          title="Gerar legenda para WhatsApp"
           onClick={() => handleGenerate("whatsapp")}
           disabled={loading !== null}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#25D366] hover:bg-[#1fb457] disabled:opacity-60 text-white px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition"
+          loading={loading === "whatsapp"}
+          className="bg-[#25D366] hover:bg-[#1fb457] text-white"
         >
-          {loading === "whatsapp" ? <Loader2 className="h-3 w-3 animate-spin" /> : <MessageCircle className="h-3 w-3" />}
-          WhatsApp
-        </button>
-        <button
-          type="button"
+          <WhatsAppIcon />
+        </CircleButton>
+        <CircleButton
+          title="Gerar legenda para Instagram"
           onClick={() => handleGenerate("instagram")}
           disabled={loading !== null}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] hover:opacity-90 disabled:opacity-60 text-white px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition"
+          loading={loading === "instagram"}
+          className="bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] hover:opacity-90 text-white"
         >
-          {loading === "instagram" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Instagram className="h-3 w-3" />}
-          Instagram
-        </button>
-        <button
-          type="button"
+          <InstagramIcon />
+        </CircleButton>
+
+        <span className="mx-1 h-6 w-px bg-border" />
+
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mr-1">Baixar arte:</span>
+        <CircleButton
+          title="Baixar arte Feed 3:4"
           onClick={() => downloadArt("feed")}
           disabled={loading !== null}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:border-brand-orange hover:text-brand-orange disabled:opacity-60 text-foreground px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition"
+          loading={loading === "feed"}
+          className="bg-card border border-border text-foreground hover:border-brand-orange hover:text-brand-orange"
         >
-          {loading === "feed" ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImageDown className="h-3 w-3" />}
-          Feed 3:4
-        </button>
-        <button
-          type="button"
+          <ImageDown className="h-4 w-4" />
+        </CircleButton>
+        <CircleButton
+          title="Baixar arte Story 9:16"
           onClick={() => downloadArt("story")}
           disabled={loading !== null}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:border-brand-orange hover:text-brand-orange disabled:opacity-60 text-foreground px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition"
+          loading={loading === "story"}
+          className="bg-card border border-border text-foreground hover:border-brand-orange hover:text-brand-orange"
         >
-          {loading === "story" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Smartphone className="h-3 w-3" />}
-          Story 9:16
-        </button>
+          <Smartphone className="h-4 w-4" />
+        </CircleButton>
       </div>
 
       {output && (
-        <div className="mt-2.5 rounded-lg border border-border bg-background/50 p-3">
+        <div className="mt-3 rounded-lg border border-border bg-background/50 p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
               <Wand2 className="h-3 w-3" />
@@ -399,5 +567,32 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
         </div>
       )}
     </div>
+  );
+}
+
+function CircleButton({
+  children, onClick, disabled, loading, title, className = "",
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  title: string;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={title}
+      className={
+        "inline-flex h-9 w-9 items-center justify-center rounded-full shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed " +
+        className
+      }
+    >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : children}
+    </button>
   );
 }
