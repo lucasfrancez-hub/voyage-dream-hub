@@ -283,7 +283,7 @@ const CSS = `
 .vfeed-swoosh{position:absolute;width:100%;height:16px;bottom:-4px;left:0;color:var(--brand-orange)}
 .vfeed-bottom{display:flex;flex-direction:column;gap:16px}
 .glass-panel{background:rgba(0,0,0,.30);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.30);border-radius:16px}
-.glass-panel-dark{background:rgba(0,0,0,.45);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.18);border-radius:16px}
+.glass-panel-dark{background:rgba(20,20,20,.35);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.18);border-radius:16px}
 .vfeed-info{display:inline-flex;align-self:flex-start;padding:20px 24px;align-items:center;gap:20px}
 .vfeed-info-col{display:flex;flex-direction:column;align-items:center;text-align:center;flex-shrink:0}
 .vfeed-info-col-plane{width:110px}
