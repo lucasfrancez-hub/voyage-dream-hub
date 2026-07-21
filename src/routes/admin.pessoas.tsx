@@ -209,7 +209,7 @@ function PeoplePage() {
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {filtered.map((p) => (
+            {paged.map((p) => (
               <li key={p.id} className="relative group">
                 <button
                   type="button"
