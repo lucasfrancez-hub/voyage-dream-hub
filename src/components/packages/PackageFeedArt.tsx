@@ -279,6 +279,11 @@ const CSS = `
 .vfeed-dest{font-size:100px;font-weight:900;line-height:.9;letter-spacing:-.04em;margin:0;text-shadow:2px 2px 0 rgba(0,0,0,.95), 4px 4px 6px rgba(0,0,0,.9), 0 2px 2px rgba(0,0,0,.95);text-transform:uppercase;color:#fff}
 .vfeed-dest span{color:var(--brand-orange)}
 .vfeed-sub-wrap{position:relative;display:inline-block;align-self:flex-start;margin-top:8px;margin-bottom:40px}
+.vfeed-sub{font-family:'Dancing Script','Brush Script MT',cursive;font-size:48px;line-height:1;margin:0;padding-right:16px;position:relative;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+.vfeed-swoosh{position:absolute;width:100%;height:16px;bottom:-4px;left:0;color:var(--brand-orange)}
+.vfeed-bottom{display:flex;flex-direction:column;gap:16px}
+.glass-panel{background:rgba(0,0,0,.30);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.30);border-radius:16px}
+.glass-panel-dark{background:rgba(0,0,0,.70);backdrop-filter:blur(16px);border:1px solid #374151;border-radius:16px}
 .vfeed-info{display:inline-flex;align-self:flex-start;padding:20px 24px;align-items:center;gap:20px}
 .vfeed-info-col{display:flex;flex-direction:column;align-items:center;text-align:center;flex-shrink:0}
 .vfeed-info-col-plane{width:110px}
