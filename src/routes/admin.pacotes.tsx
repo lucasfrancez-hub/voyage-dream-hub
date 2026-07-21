@@ -24,7 +24,8 @@ import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { generatePackageSummary, searchCoverImages, extractFlightFromImage, extractPackageFromDocument, extractMultiplePackagesFromDocument } from "@/lib/packages/ai.functions";
 import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
 import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions";
-import { FileUp, Upload, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileUp, Upload, ChevronLeft, ChevronRight, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
+import { CurationTab } from "@/components/packages/CurationTab";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
@@ -143,6 +144,8 @@ function AdminPackages() {
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortMode, setSortMode] = useState<"manual" | "price_asc" | "price_desc" | "date_asc" | "date_desc">("manual");
+  const [view, setView] = useState<"list" | "curadoria">("list");
 
 
 
@@ -242,6 +245,16 @@ function AdminPackages() {
       return true;
     });
     const sorted = [...filtered].sort((a, b) => {
+      if (sortMode === "price_asc" || sortMode === "price_desc") {
+        const at = Number(a.price_per_person) * (a.base_occupancy ?? 2);
+        const bt = Number(b.price_per_person) * (b.base_occupancy ?? 2);
+        return sortMode === "price_asc" ? at - bt : bt - at;
+      }
+      if (sortMode === "date_asc" || sortMode === "date_desc") {
+        const ad = a.going_date ? new Date(String(a.going_date) + "T12:00:00").getTime() : Number.POSITIVE_INFINITY;
+        const bd = b.going_date ? new Date(String(b.going_date) + "T12:00:00").getTime() : Number.POSITIVE_INFINITY;
+        return sortMode === "date_asc" ? ad - bd : bd - ad;
+      }
       const av = a.sort_order ?? 0;
       const bv = b.sort_order ?? 0;
       if (av !== bv) return sortDir === "asc" ? av - bv : bv - av;
@@ -250,11 +263,11 @@ function AdminPackages() {
       return sortDir === "asc" ? bc - ac : ac - bc;
     });
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, sortDir]);
+  }, [packages, originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
 
-  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all" || monthFilter !== "all";
+  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all" || monthFilter !== "all" || sortMode !== "manual";
 
-  useEffect(() => { setPage(1); }, [originFilter, destinationFilter, monthFilter, sortDir]);
+  useEffect(() => { setPage(1); }, [originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
 
   async function nextPackageBaseNumber(): Promise<number> {
     const { count, error } = await supabase
@@ -564,6 +577,28 @@ function AdminPackages() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="mb-4 inline-flex rounded-xl border border-border bg-card p-1">
+        <button
+          type="button"
+          onClick={() => setView("list")}
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${view === "list" ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          <ListIcon className="h-3.5 w-3.5" /> Pacotes
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("curadoria")}
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${view === "curadoria" ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          <SparklesIcon className="h-3.5 w-3.5" /> Curadoria IA
+        </button>
+      </div>
+
+      {view === "curadoria" ? (
+        <CurationTab packages={(packages || []) as any} />
+      ) : (
+      <>
       {/* Filters */}
       <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:pb-2.5">
@@ -596,6 +631,19 @@ function AdminPackages() {
             <SelectContent>
               <SelectItem value="all">Todos os meses</SelectItem>
               {monthOptions.map(m => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ordenar por</label>
+          <Select value={sortMode} onValueChange={(v) => setSortMode(v as typeof sortMode)}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Ordem manual" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="manual">Ordem manual (#)</SelectItem>
+              <SelectItem value="price_asc">Menor preço</SelectItem>
+              <SelectItem value="price_desc">Maior preço</SelectItem>
+              <SelectItem value="date_asc">Data mais próxima</SelectItem>
+              <SelectItem value="date_desc">Data mais distante</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -826,7 +874,8 @@ function AdminPackages() {
           </div>
         );
       })()}
-
+      </>
+      )}
 
       {editing && (
         <PackageEditorModal
