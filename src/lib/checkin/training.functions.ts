@@ -363,7 +363,7 @@ Responda SEMPRE em JSON válido, sem markdown, com este formato:
 As coordenadas devem estar dentro de 0..${data.width} e 0..${data.height}.`;
 
     const body = {
-      model: "google/gemini-3.5-flash",
+      model: "google/gemini-3.1-flash-lite",
       messages: [
         { role: "system", content: systemPrompt },
         {
