@@ -240,7 +240,7 @@ export function FeaturedCarousel({
 
       <div className="relative z-10 mb-6 flex items-center justify-between gap-4">
         {hideBrandHeader ? (
-          <div className="min-w-0 order-1 mr-auto">
+          <div className="min-w-0 order-2 ml-auto">
             {viewAllUrl && (
               <a
                 href={viewAllUrl}
@@ -280,8 +280,8 @@ export function FeaturedCarousel({
           </div>
         )}
 
-        {/* Controles manuais — pausam o auto-play por 4s (direita) */}
-        <div className="flex shrink-0 gap-2 order-2">
+        {/* Controles manuais — pausam o auto-play por 4s */}
+        <div className={`flex shrink-0 gap-2 ${hideBrandHeader ? "order-1 mr-auto" : "order-2"}`}>
           <button
             type="button"
             aria-label="Anterior"
@@ -299,6 +299,7 @@ export function FeaturedCarousel({
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
+
       </div>
 
       <div
