@@ -26,6 +26,7 @@ import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripa
 import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions";
 import { FileUp, Upload, ChevronLeft, ChevronRight, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
 import { CurationTab } from "@/components/packages/CurationTab";
+import { confirm } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
@@ -300,6 +301,35 @@ function AdminPackages() {
       const cleanSlug = normalized.slug.replace(/[-#]\d+$/, "");
       normalized.slug = `${cleanSlug}-${n}`;
     }
+
+    // Duplicate detection: same destination + going_date + return_date (and hotel_name, when informado).
+    // Só dispara pra pacotes com data preenchida.
+    if (pkg.going_date && pkg.return_date && normalized.destination) {
+      const { data: dupRows } = await supabase
+        .from("packages")
+        .select("id, title, hotel_name, going_date, return_date, destination")
+        .ilike("destination", normalized.destination.trim())
+        .eq("going_date", pkg.going_date)
+        .eq("return_date", pkg.return_date);
+      const hotelTrim = (pkg.hotel_name || "").trim().toLowerCase();
+      const matches = (dupRows ?? []).filter((r: any) => {
+        if (pkg.id && r.id === pkg.id) return false;
+        if (!hotelTrim) return true;
+        return (r.hotel_name || "").trim().toLowerCase() === hotelTrim;
+      });
+      if (matches.length > 0) {
+        const list = matches.slice(0, 3).map((r: any) => `• ${r.title}${r.hotel_name ? ` — ${r.hotel_name}` : ""}`).join("\n");
+        const proceed = await confirm({
+          title: "Pacote duplicado?",
+          description: `Já existe ${matches.length === 1 ? "1 pacote" : `${matches.length} pacotes`} com o mesmo destino, datas${hotelTrim ? " e hotel" : ""}:\n\n${list}\n\nSalvar mesmo assim?`,
+          confirmText: "Salvar mesmo assim",
+          cancelText: "Cancelar",
+          destructive: true,
+        });
+        if (!proceed) throw new Error("Duplicado — salvamento cancelado");
+      }
+    }
+
 
 
     const baseSlug = normalized.slug;
