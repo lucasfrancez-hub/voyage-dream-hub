@@ -2865,53 +2865,87 @@ function UnlinkedHotelsAlert({
     [packages],
   );
   if (dismissed || unlinked.length === 0) return null;
-  return (
-    <div className="mb-3 rounded-full border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/40 data-[open=true]:rounded-2xl transition-all" data-open={expanded}>
-      <div className="flex items-center gap-2 px-3 py-1.5">
-        <Info className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+
+  if (!expanded) {
+    return (
+      <div className="mb-3 flex items-center gap-2 bg-[#1C252E] border border-slate-800 rounded-full pl-2 pr-2 py-1.5 shadow-xl shadow-black/20">
         <button
           type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="flex-1 min-w-0 text-left flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 hover:opacity-80"
+          onClick={() => setExpanded(true)}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left"
         >
-          <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px]">
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shrink-0">
             {unlinked.length}
           </span>
-          <span className="truncate">hotel(is) sem vínculo com TripAdvisor</span>
-          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase truncate">
+            Hotel(is) sem vínculo com TripAdvisor
+          </span>
+          <ChevronDown className="w-4 h-4 text-slate-500 hover:text-white transition-colors shrink-0" />
         </button>
         <button
           type="button"
           onClick={() => setDismissed(true)}
-          className="text-amber-700 hover:text-amber-900 dark:text-amber-300"
+          className="p-1 hover:bg-slate-700/50 rounded-full transition-colors"
           title="Ocultar"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="w-3.5 h-3.5 text-slate-500" />
         </button>
       </div>
-      {expanded && (
-        <div className="px-3 pb-3">
-          <div className="text-[11px] text-amber-800/80 dark:text-amber-200/80 mb-2">
-            Cadastrados manualmente. Abra e reconecte para puxar fotos, estrelas e endereço oficial.
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {unlinked.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => onOpen(p)}
-                className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white dark:bg-amber-900/30 px-2 py-1 text-[11px] font-semibold text-amber-900 dark:text-amber-100 hover:border-amber-500"
-                title={`${p.hotel_name} — ${p.destination}`}
-              >
-                <Building2 className="h-3 w-3" />
-                <span className="max-w-[180px] truncate">{p.hotel_name}</span>
-                <span className="text-amber-600">· {p.destination}</span>
-              </button>
-            ))}
-          </div>
+    );
+  }
+
+  return (
+    <div className="mb-3 bg-[#1C252E] border border-slate-800 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
+      <div className="flex items-center justify-between p-4 pb-2">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="flex items-center gap-3 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shadow-lg shadow-[#F26B1F]/20">
+            {unlinked.length}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase">
+            Hotel(is) sem vínculo com TripAdvisor
+          </span>
+          <ChevronDown className="w-4 h-4 text-[#F26B1F] rotate-180 transition-transform" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-4 h-4 text-slate-500" />
+        </button>
+      </div>
+      <div className="px-4 pb-5 space-y-4">
+        <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+          Cadastrados manualmente. Abra e reconecte para puxar fotos, estrelas e endereço oficial.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {unlinked.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onOpen(p)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all cursor-pointer group"
+              title={`${p.hotel_name} — ${p.destination}`}
+            >
+              <Building2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#F26B1F]" />
+              <span className="text-[11px] font-medium text-slate-300 max-w-[220px] truncate">
+                {p.hotel_name}
+              </span>
+              <span className="text-slate-600">·</span>
+              <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
+                {p.destination}
+              </span>
+            </button>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
+
 
