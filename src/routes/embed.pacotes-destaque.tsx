@@ -30,7 +30,7 @@ function EmbedFeatured() {
       const { data, error } = await supabase
         .from("packages")
         .select(
-          "id,slug,title,destination,origin,price_per_person,image_url,is_active,sort_order,base_occupancy,going_date",
+          "id,slug,title,destination,origin,price_per_person,image_url,is_active,sort_order,base_occupancy,going_date,return_date",
         )
         .eq("is_active", true)
         .or(`going_date.is.null,going_date.gte.${today}`)
