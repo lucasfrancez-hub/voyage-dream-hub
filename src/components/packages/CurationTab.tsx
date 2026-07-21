@@ -302,10 +302,27 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
   const fetchImageFn = useServerFn(fetchProxiedImage);
   const [loading, setLoading] = useState<"whatsapp" | "instagram" | "feed" | "story" | null>(null);
   const [output, setOutput] = useState<{ channel: "whatsapp" | "instagram"; text: string } | null>(null);
+  const [shareFile, setShareFile] = useState<File | null>(null);
 
   const total = Number(pkg.price_per_person) * (pkg.base_occupancy ?? 2);
   const dfmt = (s: string | null) =>
     s ? new Date(String(s) + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "";
+
+  async function prepareShareFile() {
+    if (!pkg.image_url) return null;
+    try {
+      const image = await fetchImageFn({ data: { url: pkg.image_url } });
+      if (!image.ok) return null;
+      const mime = image.contentType.split(";")[0] || "image/jpeg";
+      const binary = atob(image.base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      const extension = mime === "image/jpeg" ? "jpg" : (mime.split("/")[1] || "jpg").split("+")[0];
+      return new File([bytes], `${pkg.slug}.${extension}`, { type: mime });
+    } catch {
+      return null;
+    }
+  }
 
   async function handleGenerate(channel: "whatsapp" | "instagram") {
     setLoading(channel);
@@ -323,6 +340,8 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
           baseUrl,
         },
       });
+      const preparedFile = channel === "whatsapp" ? await prepareShareFile() : null;
+      setShareFile(preparedFile);
       setOutput({ channel, text: res.text });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao gerar texto");
@@ -340,33 +359,16 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
   async function sendToWhatsApp() {
     if (!output) return;
     const text = output.text;
-
-    // Busca a imagem pelo servidor para não depender do CORS do provedor da foto.
-    let file: File | null = null;
-    if (pkg.image_url) {
-      try {
-        const image = await fetchImageFn({ data: { url: pkg.image_url } });
-        if (image.ok) {
-          const mime = image.contentType.split(";")[0] || "image/jpeg";
-          const binary = atob(image.base64);
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-          const extension = mime === "image/jpeg" ? "jpg" : (mime.split("/")[1] || "jpg").split("+")[0];
-          file = new File([bytes], `${pkg.slug}.${extension}`, { type: mime });
-        }
-      } catch { /* ignora — segue sem imagem */ }
-    }
-
-    if (!file) {
+    if (!shareFile) {
       toast.error("Não foi possível preparar a imagem do pacote para o envio.");
       return;
     }
 
-    // O compartilhamento nativo é a única API do navegador que entrega o
-    // arquivo e a legenda juntos ao WhatsApp, sem download intermediário.
+    // A imagem já está pronta antes do clique para preservar a autorização
+    // do navegador e abrir o compartilhamento nativo imediatamente.
     if (typeof navigator.share === "function") {
       try {
-        const shareData: ShareData = { files: [file], text };
+        const shareData: ShareData = { files: [shareFile], text };
         if (!navigator.canShare || navigator.canShare(shareData)) {
           await navigator.share(shareData);
           return;
@@ -378,7 +380,12 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       }
     }
 
-    toast.error("Este navegador não permite enviar imagem e texto juntos. Abra pelo celular ou instale o app como PWA.");
+    // Alguns navegadores no Mac não oferecem arquivos no menu nativo. Nesse
+    // caso, abre o WhatsApp instalado imediatamente, sem baixar a imagem.
+    window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
+    toast.message("WhatsApp aberto com o texto", {
+      description: "Este navegador do Mac não permite anexar a imagem automaticamente. No celular, imagem e texto seguem juntos.",
+    });
   }
 
 
