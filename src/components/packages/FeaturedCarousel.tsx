@@ -94,8 +94,8 @@ export function FeaturedCarousel({
 
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [nearestOrigin, setNearestOrigin] = useState<string | null>(null);
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const [paused, setPaused] = useState(false);
+
+
 
   // Solicita geolocalização silenciosamente (o navegador pede permissão).
   useEffect(() => {
