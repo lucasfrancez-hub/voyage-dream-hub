@@ -113,14 +113,46 @@ function PeoplePage() {
             Base única de clientes e passageiros — PF e PJ.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => openEditor("novo")}
-          className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" /> Novo cadastro
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => runFullSync(false)}
+            disabled={syncing}
+            title={
+              stateQ.data?.last_synced_at
+                ? `Última sincronização: ${new Date(stateQ.data.last_synced_at).toLocaleString("pt-BR")}`
+                : "Sincronizar todas as pessoas do Monde"
+            }
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-60"
+          >
+            {syncing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {syncProgress && syncProgress.total > 0
+                  ? `Sincronizando… ${syncProgress.done}/${syncProgress.total}`
+                  : "Sincronizando…"}
+              </>
+            ) : (
+              <>
+                <Cloud className="h-4 w-4" />
+                Sincronizar Monde
+                {stateQ.data?.last_page ? (
+                  <RefreshCw className="h-3 w-3 text-brand-orange" />
+                ) : null}
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => openEditor("novo")}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" /> Novo cadastro
+          </button>
+        </div>
       </div>
+
+
 
       <div className="mt-6 rounded-2xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-center gap-3">
