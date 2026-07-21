@@ -1,30 +1,29 @@
 /**
- * Renderiza a arte 3:4 do pacote em um container invisível, aguarda as
- * imagens carregarem, converte para PNG (1080x1440) e dispara o download.
- * Chamado pelo menu "Feed" no admin de pacotes.
+ * Renderiza a arte 9:16 (Story 1080x1920) do pacote em um container
+ * invisível, aguarda imagens/fontes carregarem, converte para PNG e dispara
+ * o download. Chamado pelo menu "Story" no admin de pacotes.
+ * Reutiliza a lógica de derivação de dados de feed-art.tsx via generatePackageFeedData.
  */
 import { createRoot } from "react-dom/client";
 import { toPng } from "html-to-image";
-import { PackageFeedArt } from "@/components/packages/PackageFeedArt";
+import { PackageStoryArt } from "@/components/packages/PackageStoryArt";
 import { buildFeedArtData, ensureFonts, type FeedInputPkg } from "@/lib/packages/feed-art-data";
 
-export async function generatePackageFeedArt(pkg: FeedInputPkg) {
+export async function generatePackageStoryArt(pkg: FeedInputPkg) {
   const data = await buildFeedArtData(pkg);
   await ensureFonts();
 
-  // Container invisível fora da tela — 1080x1440 exatos
   const host = document.createElement("div");
-  host.style.cssText = "position:fixed;left:-99999px;top:0;width:1080px;height:1440px;pointer-events:none;";
+  host.style.cssText = "position:fixed;left:-99999px;top:0;width:1080px;height:1920px;pointer-events:none;";
   document.body.appendChild(host);
   const root = createRoot(host);
 
   try {
     await new Promise<void>((resolve) => {
-      root.render(<PackageFeedArt data={data} />);
+      root.render(<PackageStoryArt data={data} />);
       requestAnimationFrame(() => setTimeout(resolve, 120));
     });
 
-    // Aguarda todas as <img> internas (logo é a única remota; bg é data URL)
     const imgs = Array.from(host.querySelectorAll("img"));
     await Promise.all(
       imgs.map(
@@ -36,20 +35,16 @@ export async function generatePackageFeedArt(pkg: FeedInputPkg) {
           }),
       ),
     );
-
-    // Garante que as webfonts terminaram de carregar antes do snapshot
     try { await (document as any).fonts?.ready; } catch { /* noop */ }
 
-    const stage = host.querySelector<HTMLDivElement>(".vfeed-outer");
+    const stage = host.querySelector<HTMLDivElement>(".vstory-outer");
     if (!stage) throw new Error("Falha ao montar a arte");
 
-    // cacheBust:false + skipFonts:true evita refetch pesado e enumeração de webfonts,
-    // que é o principal gargalo do html-to-image em árvores grandes com backdrop-filter.
     const dataUrl = await toPng(stage, {
       width: 1080,
-      height: 1440,
+      height: 1920,
       canvasWidth: 1080,
-      canvasHeight: 1440,
+      canvasHeight: 1920,
       pixelRatio: 1,
       cacheBust: false,
       skipFonts: true,
@@ -58,7 +53,7 @@ export async function generatePackageFeedArt(pkg: FeedInputPkg) {
 
     const a = document.createElement("a");
     a.href = dataUrl;
-    a.download = `viaair-${pkg.slug}-feed.png`;
+    a.download = `viaair-${pkg.slug}-story.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();

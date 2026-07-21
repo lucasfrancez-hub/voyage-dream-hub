@@ -606,7 +606,16 @@ function AdminPackages() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onClick={() => toast.info("Envie a capa para gerar a arte de Story (em breve).")}
+                        onClick={async () => {
+                          const t = toast.loading("Gerando arte do story…");
+                          try {
+                            const { generatePackageStoryArt } = await import("@/lib/packages/story-art");
+                            await generatePackageStoryArt(p);
+                            toast.success("Arte pronta!", { id: t });
+                          } catch (e) {
+                            toast.error(e instanceof Error ? e.message : "Falha ao gerar arte", { id: t });
+                          }
+                        }}
                       >
                         Story (1080×1920)
                       </DropdownMenuItem>
