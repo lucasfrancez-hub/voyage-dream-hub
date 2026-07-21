@@ -112,6 +112,7 @@ function ProtocoloPrintView() {
   useEffect(() => {
     setGeneratedBy(session?.user?.email ?? session?.user?.id ?? "sistema");
   }, [session]);
+  const registerFn = useServerFn(registerProtocolHash);
   useEffect(() => {
     if (!messages.length && !detail) return;
     const payload = JSON.stringify({
@@ -123,8 +124,29 @@ function ProtocoloPrintView() {
       nm: detail?.contact_name ?? null,
       m: messages.map((m) => ({ t: m.created_at, d: m.direction, s: m.sender, c: m.content })),
     });
-    sha256Hex(payload).then(setAuthHash).catch(() => {});
-  }, [protocoloId, detail, messages]);
+    sha256Hex(payload).then((h) => {
+      setAuthHash(h);
+      // Registra o hash no backend para permitir validação pública em /validacao
+      registerFn({
+        data: {
+          hash: h,
+          protocolo_id: protocoloId,
+          numero: detail?.numero ?? null,
+          contact_name: detail?.contact_name ?? null,
+          contact_phone: detail?.contact_phone ?? null,
+          message_count: messages.length,
+          opened_at: detail?.opened_at ?? null,
+          closed_at: detail?.closed_at ?? null,
+          generated_at: generatedAt,
+        },
+      }).catch(() => {});
+    }).catch(() => {});
+  }, [protocoloId, detail, messages, generatedAt, registerFn]);
+
+  const validationUrl = authHash
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/validacao?codigo=${authHash}`
+    : "";
+
 
   if (session === undefined || (session && (msgsLoading || detailLoading))) {
     return (
