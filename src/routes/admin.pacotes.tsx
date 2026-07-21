@@ -1004,6 +1004,16 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   const [hotelMode, setHotelMode] = useState<"live" | "manual" | null>(
     editing.tripadvisor_location_id ? "live" : (editing.hotel_name ? "manual" : null)
   );
+  // Sincroniza o modo do hotel sempre que o pacote em edição muda (ex.: abrir
+  // pacote salvo, importar por IA, etc.) — evita "voltar pro manual" após picar TA.
+  useEffect(() => {
+    if (editing.tripadvisor_location_id) {
+      if (hotelMode !== "live") setHotelMode("live");
+    } else if (editing.hotel_name && hotelMode === null) {
+      setHotelMode("manual");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing.tripadvisor_location_id, editing.id]);
 
 
   const genSummary = useServerFn(generatePackageSummary);
