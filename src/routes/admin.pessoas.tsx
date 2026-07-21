@@ -109,7 +109,7 @@ function PeoplePage() {
     () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
     [filtered, currentPage],
   );
-  React.useEffect(() => { setPage(1); }, [term, kind]);
+  useEffect(() => { setPage(1); }, [term, kind]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
