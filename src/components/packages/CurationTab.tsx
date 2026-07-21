@@ -127,12 +127,34 @@ const monthOf = (s: string | null) => {
   return isNaN(m) ? null : m;
 };
 
-export function CurationTab({ packages }: { packages: Pkg[] }) {
-  const active = useMemo(() => (packages || []).filter((p) => p.is_active), [packages]);
+export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefresh?: () => void | Promise<void> }) {
+  const activeAll = useMemo(() => (packages || []).filter((p) => p.is_active), [packages]);
+  const originOptions = useMemo(
+    () => Array.from(new Set(activeAll.map((p) => (p.origin || "").trim()).filter(Boolean))).sort(),
+    [activeAll],
+  );
+  const [originFilter, setOriginFilter] = useState<string>("all");
+  const active = useMemo(
+    () => (originFilter === "all" ? activeAll : activeAll.filter((p) => (p.origin || "").trim() === originFilter)),
+    [activeAll, originFilter],
+  );
+  const [refreshing, setRefreshing] = useState(false);
+  const doRefresh = async () => {
+    if (!onRefresh) return;
+    setRefreshing(true);
+    try { await onRefresh(); } finally { setRefreshing(false); }
+  };
+  // Auto-refresh a cada 2h
+  useEffect(() => {
+    if (!onRefresh) return;
+    const t = setInterval(() => { onRefresh(); }, 2 * 60 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [onRefresh]);
 
   const groups = useMemo<Group[]>(() => {
     const list: Group[] = [];
     if (!active.length) return list;
+
 
     const cheapest = [...active].sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 5);
     if (cheapest.length) list.push({
@@ -257,6 +279,34 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
     <CopyCacheContext.Provider value={{ cache, setEntry }}>
 
     <div className="space-y-8">
+      {/* Barra de origem + refresh */}
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Origem</label>
+        <select
+          value={originFilter}
+          onChange={(e) => setOriginFilter(e.target.value)}
+          className="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-orange"
+        >
+          <option value="all">Todas as origens ({activeAll.length})</option>
+          {originOptions.map((o) => {
+            const n = activeAll.filter((p) => (p.origin || "").trim() === o).length;
+            return <option key={o} value={o}>{o} ({n})</option>;
+          })}
+        </select>
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={doRefresh}
+            disabled={refreshing}
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 disabled:opacity-50"
+          >
+            <RefreshCw className={"h-3.5 w-3.5 " + (refreshing ? "animate-spin" : "")} />
+            Atualizar
+          </button>
+        )}
+        <span className="text-[10px] text-slate-500">Auto-atualiza a cada 2h</span>
+      </div>
+
       {/* Chips de filtro */}
       {groups.length > 1 && (
         <div className="flex flex-wrap gap-2 pb-6 border-b border-white/5">

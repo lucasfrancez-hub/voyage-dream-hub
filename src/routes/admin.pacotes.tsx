@@ -626,7 +626,7 @@ function AdminPackages() {
       </div>
 
       {view === "curadoria" ? (
-        <CurationTab packages={(packages || []) as any} />
+        <CurationTab packages={(packages || []) as any} onRefresh={() => qc.invalidateQueries({ queryKey: ["admin", "packages"] })} />
       ) : (
       <>
       {/* Filters */}
@@ -1004,6 +1004,16 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   const [hotelMode, setHotelMode] = useState<"live" | "manual" | null>(
     editing.tripadvisor_location_id ? "live" : (editing.hotel_name ? "manual" : null)
   );
+  // Sincroniza o modo do hotel sempre que o pacote em edição muda (ex.: abrir
+  // pacote salvo, importar por IA, etc.) — evita "voltar pro manual" após picar TA.
+  useEffect(() => {
+    if (editing.tripadvisor_location_id) {
+      if (hotelMode !== "live") setHotelMode("live");
+    } else if (editing.hotel_name && hotelMode === null) {
+      setHotelMode("manual");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing.tripadvisor_location_id, editing.id]);
 
 
   const genSummary = useServerFn(generatePackageSummary);
@@ -1866,6 +1876,20 @@ function hasSegmentData(segment: FlightSegment): boolean {
   return Object.values(segment).some((value) => value !== "" && value !== null && value !== undefined);
 }
 
+// Auto-preenche fare_class a partir das bagagens: sem despachada = LIGHT, com despachada = STANDARD.
+// Só sobrescreve se o usuário ainda não editou manualmente (fare_class_manual).
+function autoFareFromBags(f: FlightInfo, patch: Partial<FlightInfo>): Partial<FlightInfo> {
+  const next = { ...f, ...patch } as FlightInfo & { fare_class_manual?: boolean };
+  if (next.fare_class_manual) return patch;
+  const hasChecked = !!next.checked_bag;
+  const desired = hasChecked ? "STANDARD" : "LIGHT";
+  const current = String(next.fare_class ?? "").toUpperCase();
+  if (current === "" || current === "LIGHT" || current === "STANDARD") {
+    return { ...patch, fare_class: desired };
+  }
+  return patch;
+}
+
 function FlightFieldset({
   title,
   value,
@@ -1940,7 +1964,7 @@ function FlightFieldset({
         <FormField label="Classe tarifária">
           <ClassSelect
             value={f.fare_class ?? ""}
-            onChange={(v) => patch({ fare_class: v })}
+            onChange={(v) => patch({ fare_class: v, fare_class_manual: true } as any)}
             options={fareClassesFor(findAirline(f.airline)?.iata)}
           />
         </FormField>
@@ -1950,7 +1974,7 @@ function FlightFieldset({
               <input
                 type="checkbox"
                 checked={!!f.personal_item}
-                onChange={(e) => patch({ personal_item: e.target.checked })}
+                onChange={(e) => patch(autoFareFromBags(f, { personal_item: e.target.checked }))}
               />
               Item pessoal
             </label>
@@ -1958,7 +1982,7 @@ function FlightFieldset({
               <input
                 type="checkbox"
                 checked={!!f.carry_on}
-                onChange={(e) => patch({ carry_on: e.target.checked })}
+                onChange={(e) => patch(autoFareFromBags(f, { carry_on: e.target.checked }))}
               />
               Bagagem de mão
             </label>
@@ -1966,7 +1990,7 @@ function FlightFieldset({
               <input
                 type="checkbox"
                 checked={!!f.checked_bag}
-                onChange={(e) => patch({ checked_bag: e.target.checked })}
+                onChange={(e) => patch(autoFareFromBags(f, { checked_bag: e.target.checked }))}
               />
               Bagagem despachada
             </label>

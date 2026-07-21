@@ -488,7 +488,7 @@ Regras:
 - depart_at / arrive_at: SEMPRE em ISO local "YYYY-MM-DDTHH:MM". Combine a DATA visível na imagem (ex.: "Sex 06 Nov", "sex 6 nov 2026", "6 de novembro de 2026") com o horário HH:MM. Se o ano não estiver explícito, use o ano do cabeçalho/contexto (ex.: "IDA - sex 6 nov 2026"). Meses PT: jan=01, fev=02, mar=03, abr=04, mai=05, jun=06, jul=07, ago=08, set=09, out=10, nov=11, dez=12.
 - Cada segmento DEVE ter depart_at e arrive_at completos (data + hora). Se o próximo trecho passa da meia-noite, incremente a data.
 - Se um campo realmente não estiver visível, omita-o (não invente).
-- carry_on/checked_bag/personal_item: ícone colorido/ativo = true; ícone cinza/riscado = false.
+- BAGAGEM (analise com muita atenção): personal_item/carry_on/checked_bag = true SÓ com ícone ativo/colorido ou texto claro. Se só houver mochila + bagagem de mão (sem despachada), preencha fare_class="LIGHT". Se houver bagagem despachada, fare_class="STANDARD" (a menos que o print mostre outro código explícito como FULL/PLUS/TOP/BLOQ). Ícone cinza/riscado = false.
 - Cidade sempre em português quando comum (São Paulo, não Sao Paulo).
 - Se houver várias paradas, preencha "segments" na ordem; "layover" só nos intermediários (ex.: "01h20 em São Paulo").
 - Antes de finalizar, RELEIA a imagem e confirme: (a) números de voo só com dígitos, todos presentes; (b) TODOS os depart_at/arrive_at com data completa YYYY-MM-DDTHH:MM.`;
@@ -649,7 +649,12 @@ Regras:
 - Se houver conexões, preencha "segments" na ordem e defina depart_at do voo agregado = do primeiro segmento, arrive_at = do último.
 - Cidade em português (São Paulo, não Sao Paulo). from_city/to_city do voo agregado = origem do primeiro trecho / destino final.
 - meal_plan: procure ATIVAMENTE. Indicadores BR: "Café da Manhã"/"com café"/"c/ café"/"café incluso"/"ACM"/"APT c/ café" → "Café da manhã"; "Meia Pensão"/"MAP" → "Meia pensão"; "Pensão Completa"/"FAP" → "Pensão completa"; "All Inclusive"/"Tudo Incluso"/"AI" → "All inclusive"; "Sem refeição"/"SC"/"Room Only" → "Sem refeição". "" só se realmente não houver menção.
-- checked_bag/carry_on/personal_item: true APENAS se o documento indicar explicitamente (ícone ativo, texto "1 bagagem despachada", "23kg" etc.). Se não houver menção clara → false. Não assuma bagagem despachada por padrão.
+- BAGAGEM (obrigatório analisar com atenção — não pule): procure ícones de mochila (item pessoal), bagagem de mão e mala despachada. Para CADA voo:
+  * personal_item: true se houver ícone/menção a "item pessoal", "mochila", "personal item".
+  * carry_on: true se houver "bagagem de mão", "10kg", "carry on", ícone de mochila grande/mala pequena ativo.
+  * checked_bag: true APENAS com menção explícita ("1 bagagem despachada", "23kg", "1 peça 23kg", ícone de mala grande ativo/colorido). Ícone cinza/riscado/tachado = false.
+  * fare_class: se só houver item pessoal + mão (sem despachada) → "LIGHT". Se houver bagagem despachada → "STANDARD". Se o documento mostrar código explícito diferente (ex.: "FULL", "PLUS", "TOP", "BLOQ"), use o código como está.
+  Se de fato não conseguir determinar bagagem, marque false, mas releia o documento antes.
 - hotel_stars: número inteiro de 1 a 5 (conte as estrelas ou pegue a classificação).
 - includes: liste os itens da seção "Incluso" do documento.
 - supplier_name: identifique a OPERADORA/FORNECEDOR emissor do orçamento. Procure o LOGO ou nome no cabeçalho/rodapé/topo do documento. Regras: se aparecer "Visual" (com losango azul) → "Visual Turismo"; "CVC" → "CVC"; "Azul Viagens" → "Azul Viagens"; "Flytour" → "Flytour"; "Nascimento" → "Nascimento Turismo". Nunca coloque o nome da agência revendedora (ex.: VIA AIR), só da OPERADORA emissora.
