@@ -42,10 +42,7 @@ function EmbedFeatured() {
   });
 
   return (
-    <div
-      style={{ background: "transparent" }}
-      className="min-h-[420px] w-full p-2"
-    >
+    <div style={{ background: "transparent" }} className="w-full p-0">
       {isLoading && (
         <div className="rounded-2xl border border-white/5 bg-[#0a1622] p-6 text-center text-sm text-muted-foreground">
           Carregando pacotes…
@@ -58,8 +55,8 @@ function EmbedFeatured() {
           hideBrandHeader
           viewAllUrl={`${PUBLIC_SITE_URL}/pacotes`}
           mixMode
+          cardAspect="3/4"
         />
-
       )}
     </div>
   );

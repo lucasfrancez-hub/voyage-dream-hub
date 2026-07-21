@@ -25,7 +25,7 @@ function EmbedTestePage() {
 
   const snippet = `<iframe
   src="${embedUrl}"
-  style="width:100%;max-width:1320px;height:560px;border:0;display:block;margin:0 auto;background:#0a1622;border-radius:16px;"
+  style="width:100%;max-width:1320px;height:496px;border:0;display:block;margin:0 auto;background:#0a1622;border-radius:16px;"
   loading="lazy"
   referrerpolicy="no-referrer-when-downgrade"
   title="Pacotes em destaque VIA AIR"
@@ -58,7 +58,7 @@ function EmbedTestePage() {
             style={{
               width: "100%",
               maxWidth: 1320,
-              height: 560,
+              height: 496,
               border: 0,
               display: "block",
               margin: "0 auto",
