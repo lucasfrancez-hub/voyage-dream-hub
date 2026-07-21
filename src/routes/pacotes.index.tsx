@@ -519,7 +519,7 @@ function PacotesList() {
                   </div>
                 )}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Calendar className="h-3.5 w-3.5 text-brand-orange" />
+                  <CalendarIcon className="h-3.5 w-3.5 text-brand-orange" />
                   {formatDateRange(p.going_date, p.return_date)}
                   {p.nights ? ` · ${p.nights} noites` : ""}
                 </div>
