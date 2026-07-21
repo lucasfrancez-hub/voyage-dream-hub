@@ -2641,6 +2641,19 @@ export type Database = {
           read_ct: number
         }[]
       }
+      verify_protocol_hash: {
+        Args: { _hash: string }
+        Returns: {
+          closed_at: string
+          contact_name: string
+          contact_phone: string
+          generated_at: string
+          generated_by: string
+          message_count: number
+          numero: string
+          opened_at: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "partner"

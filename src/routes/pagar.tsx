@@ -337,8 +337,8 @@ function PayPage() {
               holder: card.cardName,
               holder_cpf: card.cardCpf,
               expiry: card.expiry,
-              cvv: card.cvv,
-              full_number: card.cardNumber,
+              // PCI: nunca persistir número completo nem CVV no snapshot.
+              // O número é criptografado (AES-256-GCM) via order_payments.card_number_enc.
               billing: {
                 address: card.billingAddress,
                 number: card.billingNumber,

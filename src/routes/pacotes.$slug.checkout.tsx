@@ -225,8 +225,8 @@ function Checkout() {
                   holder_cpf: card.cardCpf,
                   holder_birth_date: card.cardBirthDate,
                   expiry: card.expiry,
-                  cvv: card.cvv,
-                  full_number: card.cardNumber,
+                  // PCI: nunca persistir número completo nem CVV no snapshot.
+                  // O número é criptografado (AES-256-GCM) via order_payments.card_number_enc.
                   installments,
                   billing: {
                     address: card.billingAddress,
