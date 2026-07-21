@@ -40,7 +40,7 @@ import {
   linkPassengerToItem, unlinkPassengerFromItem, getMySellerInfo, deleteAllOrderPassengers,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
-import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
+import { PeopleSearchDialog } from "@/components/people/PeopleSearchDialog";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { AirlineLogo } from "@/components/AirlineLogo";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
