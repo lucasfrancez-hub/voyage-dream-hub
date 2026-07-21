@@ -25,7 +25,7 @@ import { generatePackageSummary, searchCoverImages, extractFlightFromImage, extr
 import { normalizeFlightBaggage } from "@/lib/packages/flight-baggage";
 import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
 import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions";
-import { FileUp, Upload, ChevronLeft, ChevronRight, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
+import { FileUp, Upload, ChevronLeft, ChevronRight, ChevronDown, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 
@@ -2856,6 +2856,7 @@ function UnlinkedHotelsAlert({
   onOpen: (p: PackageRow) => void;
 }) {
   const [dismissed, setDismissed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const unlinked = useMemo(
     () =>
       (packages || []).filter(
@@ -2865,48 +2866,52 @@ function UnlinkedHotelsAlert({
   );
   if (dismissed || unlinked.length === 0) return null;
   return (
-    <div className="mb-3 rounded-2xl border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/40 p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2 min-w-0">
-          <Info className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
-          <div className="min-w-0">
-            <div className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200">
-              {unlinked.length} hotel(is) sem vínculo com TripAdvisor
-            </div>
-            <div className="mt-0.5 text-[11px] text-amber-800/80 dark:text-amber-200/80">
-              Cadastrados manualmente. Abra e reconecte para puxar fotos, estrelas e endereço oficial.
-            </div>
-          </div>
-        </div>
+    <div className="mb-3 rounded-full border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/40 data-[open=true]:rounded-2xl transition-all" data-open={expanded}>
+      <div className="flex items-center gap-2 px-3 py-1.5">
+        <Info className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex-1 min-w-0 text-left flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 hover:opacity-80"
+        >
+          <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px]">
+            {unlinked.length}
+          </span>
+          <span className="truncate">hotel(is) sem vínculo com TripAdvisor</span>
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        </button>
         <button
           type="button"
           onClick={() => setDismissed(true)}
           className="text-amber-700 hover:text-amber-900 dark:text-amber-300"
           title="Ocultar"
         >
-          <X className="h-4 w-4" />
+          <X className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {unlinked.slice(0, 12).map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => onOpen(p)}
-            className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white dark:bg-amber-900/30 px-2 py-1 text-[11px] font-semibold text-amber-900 dark:text-amber-100 hover:border-amber-500"
-            title={`${p.hotel_name} — ${p.destination}`}
-          >
-            <Building2 className="h-3 w-3" />
-            <span className="max-w-[180px] truncate">{p.hotel_name}</span>
-            <span className="text-amber-600">· {p.destination}</span>
-          </button>
-        ))}
-        {unlinked.length > 12 && (
-          <span className="text-[11px] text-amber-800/80 self-center">
-            +{unlinked.length - 12} outros
-          </span>
-        )}
-      </div>
+      {expanded && (
+        <div className="px-3 pb-3">
+          <div className="text-[11px] text-amber-800/80 dark:text-amber-200/80 mb-2">
+            Cadastrados manualmente. Abra e reconecte para puxar fotos, estrelas e endereço oficial.
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {unlinked.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onOpen(p)}
+                className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white dark:bg-amber-900/30 px-2 py-1 text-[11px] font-semibold text-amber-900 dark:text-amber-100 hover:border-amber-500"
+                title={`${p.hotel_name} — ${p.destination}`}
+              >
+                <Building2 className="h-3 w-3" />
+                <span className="max-w-[180px] truncate">{p.hotel_name}</span>
+                <span className="text-amber-600">· {p.destination}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
