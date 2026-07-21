@@ -248,7 +248,7 @@ function PacotesList() {
         </div>
 
         <div className="mt-8">
-          <FeaturedCarousel packages={(packages || []) as any} />
+          <FeaturedCarousel packages={(packages || []) as any} mixMode />
         </div>
 
         <div className="mt-2 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
