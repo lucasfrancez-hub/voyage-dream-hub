@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, Loader2, Sparkles, ExternalLink, Wand2, Instagram, MessageCircle } from "lucide-react";
+import { Copy, Loader2, Sparkles, ExternalLink, Wand2, Instagram, MessageCircle, ImageDown, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy } from "@/lib/packages/curate.functions";
@@ -19,6 +19,11 @@ type Pkg = {
   hotel_stars: number | null;
   meal_plan: string | null;
   is_active: boolean;
+  // Campos usados pelo gerador de arte (Feed 3:4 e Story 9:16)
+  image_url?: string | null;
+  includes?: string[] | null;
+  room_type?: string | null;
+  tripadvisor_address?: string | null;
 };
 
 type Group = {
