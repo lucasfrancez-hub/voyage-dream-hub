@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks, Sparkles, Image as ImageIcon, Search, Wand2, Link as LinkIcon, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks, Sparkles, Image as ImageIcon, Search, Wand2, Link as LinkIcon, Download, SlidersHorizontal, ArrowUp, ArrowDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
