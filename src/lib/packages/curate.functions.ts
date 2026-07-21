@@ -51,6 +51,13 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
     };
 
+    const daysUntil = (s?: string | null) => {
+      if (!s) return null;
+      const t = new Date(String(s) + "T12:00:00").getTime();
+      if (isNaN(t)) return null;
+      return Math.round((t - Date.now()) / 86400000);
+    };
+
     const items = data.packages.map((p) => {
       const occ = p.base_occupancy ?? 2;
       const total = Number(p.price_per_person) * occ;
@@ -58,6 +65,8 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         ? `${fmtDate(p.going_date)}${p.return_date ? " a " + fmtDate(p.return_date) : ""}`
         : "";
       const stars = p.hotel_stars ? "★".repeat(Math.min(5, Math.max(1, p.hotel_stars))) : "";
+      const d = daysUntil(p.going_date);
+      const boleto_ate_data_viagem = d !== null && d >= 60;
       return {
         title: p.title,
         destination: p.destination,
@@ -70,8 +79,11 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         total_price: fmtBRL(total),
         occupancy: occ,
         url: `${baseUrl}/pacotes/${p.slug}`,
+        days_until_departure: d,
+        boleto_ate_data_viagem,
       };
     });
+
 
     const channel = data.channel;
     const system =
@@ -94,7 +106,10 @@ FORMATO OBRIGATÓRIO (copie exatamente, incluindo asteriscos do WhatsApp para ne
 🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S)
 💳 *Cartão de crédito:* 10x de {valor por parcela do total cheio}
 📄 *Boleto bancário:* até 10x mediante aprovação
-*sem juros em qualquer forma de pagamento e boleto sem análise até a data da viagem*
+{SE E SOMENTE SE o item tiver "boleto_ate_data_viagem": true, adicione esta linha extra logo abaixo:}
+📄 *Boleto parcelado:* até a data da viagem (sem análise de crédito)
+{SE "boleto_ate_data_viagem" for false, NÃO inclua a linha acima.}
+*sem juros em qualquer forma de pagamento*
 
 ✨ Para mais informações me chame aqui 📲 4499826-1137
 {link do pacote}
@@ -106,7 +121,9 @@ REGRAS FIRMES:
 - Nunca invente dados; use SÓ os fornecidos.
 - Mês em CAIXA ALTA (JANEIRO, FEVEREIRO…). Data no formato "15 a 22/SETEMBRO".
 - Valor do PIX = total x 0,95 (5% off). Cartão = total / 10.
+- A linha "Boleto parcelado até a data da viagem" só aparece quando "boleto_ate_data_viagem" do item for true (antecedência mínima de 60 dias). Nunca inclua se for false.
 - Se houver mais de 1 pacote, gere um bloco por pacote separado por uma linha em branco, e repita a assinatura "✨ Para mais informações…" só UMA vez no fim.`
+
         : `Você é copywriter da VIA AIR. Escreva UMA legenda pronta para post do Instagram apresentando um bloco de pacotes selecionados para o tema "${data.groupTitle}".
 Regras:
 - Português do Brasil, tom inspirador mas objetivo.

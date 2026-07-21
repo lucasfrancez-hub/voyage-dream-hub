@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone } from "lucide-react";
+import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy } from "@/lib/packages/curate.functions";
@@ -335,6 +335,37 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     catch { toast.error("Não foi possível copiar"); }
   }
 
+  async function sendToWhatsApp() {
+    if (!output) return;
+    const text = output.text;
+    // Try native share with image file (mobile / PWA)
+    if (pkg.image_url && typeof navigator !== "undefined" && (navigator as any).canShare) {
+      try {
+        const resp = await fetch(pkg.image_url, { mode: "cors" });
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
+          const file = new File([blob], `${pkg.slug}.${ext}`, { type: blob.type || "image/jpeg" });
+          const shareData: any = { files: [file], text };
+          if ((navigator as any).canShare(shareData)) {
+            await (navigator as any).share(shareData);
+            return;
+          }
+        }
+      } catch {
+        // fall through to wa.me
+      }
+    }
+    // Fallback: open WhatsApp with the text only (image needs to be attached manually)
+    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast.message("WhatsApp aberto", {
+      description: "Texto copiado. Anexe a imagem do pacote manualmente se precisar.",
+    });
+  }
+
+
   async function downloadArt(kind: "feed" | "story") {
     if (!pkg.image_url) { toast.error("Cadastre a URL da imagem de capa do pacote antes de gerar a arte."); return; }
     setLoading(kind);
@@ -483,13 +514,26 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
                 <Wand2 className="h-3 w-3" />
                 Texto para {output.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
               </div>
-              <button
-                type="button"
-                onClick={copyText}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-200 hover:border-brand-orange hover:text-brand-orange"
-              >
-                <Copy className="h-3 w-3" /> Copiar
-              </button>
+              <div className="flex items-center gap-2">
+                {output.channel === "whatsapp" && (
+                  <button
+                    type="button"
+                    onClick={sendToWhatsApp}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#25D366]/40 bg-[#25D366]/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#25D366] hover:bg-[#25D366] hover:text-white transition-colors"
+                    title="Enviar no WhatsApp (com imagem quando suportado)"
+                  >
+                    <Send className="h-3 w-3" /> Enviar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={copyText}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-200 hover:border-brand-orange hover:text-brand-orange"
+                >
+                  <Copy className="h-3 w-3" /> Copiar
+                </button>
+              </div>
+
             </div>
             <textarea
               readOnly
