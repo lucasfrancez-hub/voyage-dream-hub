@@ -366,6 +366,7 @@ export function FeaturedCarousel({
                 rel="noopener noreferrer"
                 data-card
                 className={cardClass}
+                style={{ width: cardW }}
               >
                 {CardInner}
               </a>
@@ -376,6 +377,7 @@ export function FeaturedCarousel({
                 params={{ slug: p.slug }}
                 data-card
                 className={cardClass}
+                style={{ width: cardW }}
               >
                 {CardInner}
               </Link>
