@@ -1,0 +1,236 @@
+/**
+ * Carrossel de "Pacotes em destaque" para a página pública /pacotes.
+ * - Auto-play (pausa no hover)
+ * - Botões prev/next
+ * - Se o usuário permitir geolocalização, reordena priorizando os pacotes
+ *   cuja origem esteja mais próxima da posição atual.
+ */
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { ChevronLeft, ChevronRight, MapPin, Sparkles, Navigation } from "lucide-react";
+import { formatBRL } from "@/lib/format";
+
+type PkgLite = {
+  id: string;
+  slug: string;
+  title: string;
+  destination: string;
+  origin: string | null;
+  price_per_person: number | string;
+  base_occupancy: number | null;
+  image_url: string | null;
+  sort_order: number | null;
+  is_active: boolean;
+};
+
+/** Coordenadas aproximadas das cidades de origem que usamos nos pacotes. */
+const ORIGIN_COORDS: Record<string, [number, number]> = {
+  maringa: [-23.4205, -51.9331],
+  londrina: [-23.3103, -51.1628],
+  curitiba: [-25.4284, -49.2733],
+  foz: [-25.5163, -54.5854],
+  cascavel: [-24.9578, -53.4595],
+  "sao paulo": [-23.5505, -46.6333],
+  guarulhos: [-23.4356, -46.4731],
+  campinas: [-22.9099, -47.0626],
+  "rio de janeiro": [-22.9068, -43.1729],
+  "belo horizonte": [-19.9167, -43.9345],
+  brasilia: [-15.7939, -47.8828],
+  salvador: [-12.9714, -38.5014],
+  recife: [-8.0476, -34.8770],
+  fortaleza: [-3.7319, -38.5267],
+  "porto alegre": [-30.0346, -51.2177],
+  florianopolis: [-27.5949, -48.5482],
+  goiania: [-16.6864, -49.2643],
+  cuiaba: [-15.6014, -56.0979],
+  manaus: [-3.1190, -60.0217],
+  belem: [-1.4558, -48.5039],
+  navegantes: [-26.8797, -48.6516],
+  joinville: [-26.3044, -48.8487],
+  chapeco: [-27.1000, -52.6152],
+};
+
+function norm(s: string) {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+function coordsFor(origin: string | null | undefined): [number, number] | null {
+  if (!origin) return null;
+  const key = norm(origin);
+  if (ORIGIN_COORDS[key]) return ORIGIN_COORDS[key];
+  for (const k of Object.keys(ORIGIN_COORDS)) {
+    if (key.includes(k) || k.includes(key)) return ORIGIN_COORDS[k];
+  }
+  return null;
+}
+
+function haversineKm(a: [number, number], b: [number, number]) {
+  const R = 6371;
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const dLat = toRad(b[0] - a[0]);
+  const dLon = toRad(b[1] - a[1]);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+export function FeaturedCarousel({ packages }: { packages: PkgLite[] }) {
+  const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
+  const [nearestOrigin, setNearestOrigin] = useState<string | null>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [paused, setPaused] = useState(false);
+
+  // Solicita geolocalização silenciosamente (o navegador pede permissão).
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserCoords([pos.coords.latitude, pos.coords.longitude]),
+      () => {},
+      { maximumAge: 10 * 60 * 1000, timeout: 4000, enableHighAccuracy: false },
+    );
+  }, []);
+
+  const featured = useMemo(() => {
+    const active = (packages || []).filter((p) => p.is_active);
+    // "Destaques" = os de menor sort_order (mais no topo do admin).
+    const base = [...active].sort(
+      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
+    );
+
+    if (!userCoords) return base.slice(0, 12);
+
+    // Ranking por proximidade: cada pacote recebe a distância da origem
+    // até o usuário; sem origem conhecida ficam no fim.
+    const scored = base.map((p) => {
+      const c = coordsFor(p.origin);
+      const dist = c ? haversineKm(userCoords, c) : Number.POSITIVE_INFINITY;
+      return { p, dist };
+    });
+    scored.sort((a, b) => a.dist - b.dist);
+    const nearest = scored.find((s) => Number.isFinite(s.dist));
+    if (nearest) setNearestOrigin(nearest.p.origin ?? null);
+    return scored.slice(0, 12).map((s) => s.p);
+  }, [packages, userCoords]);
+
+  // Auto-scroll suave: avança 1 card a cada 3.5s.
+  useEffect(() => {
+    if (paused || featured.length <= 2) return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    const id = window.setInterval(() => {
+      if (!el) return;
+      const step = el.querySelector<HTMLElement>("[data-card]")?.offsetWidth ?? 220;
+      const gap = 12;
+      const next = el.scrollLeft + step + gap;
+      const max = el.scrollWidth - el.clientWidth - 4;
+      el.scrollTo({ left: next >= max ? 0 : next, behavior: "smooth" });
+    }, 3500);
+    return () => window.clearInterval(id);
+  }, [paused, featured.length]);
+
+  if (featured.length === 0) return null;
+
+  const scrollBy = (dir: 1 | -1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const step = el.querySelector<HTMLElement>("[data-card]")?.offsetWidth ?? 220;
+    el.scrollBy({ left: dir * (step + 12) * 2, behavior: "smooth" });
+  };
+
+  return (
+    <div
+      className="mb-6 rounded-2xl border border-white/5 bg-gradient-to-br from-[#12202f] to-[#0a1622] p-4 shadow-lg"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-orange/20">
+            <Sparkles className="h-3.5 w-3.5 text-brand-orange" />
+          </div>
+          <div>
+            <div className="text-xs font-bold uppercase tracking-widest text-brand-orange">
+              Pacotes em destaque
+            </div>
+            {nearestOrigin && (
+              <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Navigation className="h-3 w-3" />
+                Priorizando saídas próximas de você · {nearestOrigin}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => scrollBy(-1)}
+            className="rounded-full border border-white/10 bg-white/5 p-1.5 text-muted-foreground hover:border-brand-orange/60 hover:text-brand-orange"
+            aria-label="Anterior"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollBy(1)}
+            className="rounded-full border border-white/10 bg-white/5 p-1.5 text-muted-foreground hover:border-brand-orange/60 hover:text-brand-orange"
+            aria-label="Próximo"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={scrollerRef}
+        className="flex gap-3 overflow-x-auto scroll-smooth pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {featured.map((p) => {
+          const total = Number(p.price_per_person) * (p.base_occupancy ?? 2);
+          return (
+            <Link
+              key={p.id}
+              to="/pacotes/$slug"
+              params={{ slug: p.slug }}
+              data-card
+              className="group relative w-[210px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#0f1a26] transition hover:border-brand-orange/60"
+            >
+              <div className="relative aspect-[4/5] overflow-hidden">
+                {p.image_url ? (
+                  <img
+                    src={p.image_url}
+                    alt={p.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-muted" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                <div className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                  <MapPin className="h-2.5 w-2.5" />
+                  {p.destination}
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                  <div className="line-clamp-2 text-[12px] font-semibold text-white leading-snug">
+                    {p.title}
+                  </div>
+                  {p.origin && (
+                    <div className="mt-0.5 text-[10px] text-white/70">
+                      Saindo de {p.origin}
+                    </div>
+                  )}
+                  <div className="mt-1.5 text-[10px] text-white/60">a partir de</div>
+                  <div className="text-sm font-bold text-brand-orange leading-none">
+                    {formatBRL(total)}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
