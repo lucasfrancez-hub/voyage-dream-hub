@@ -299,7 +299,27 @@ function ProtocoloPrintView() {
             <div className="mt-0.5 break-all font-mono text-[10px] leading-snug text-slate-700">
               {authHash || "calculando…"}
             </div>
+            {validationUrl && (
+              <div className="mt-2 rounded-md bg-slate-50 px-2 py-1.5 text-[10px] leading-snug text-slate-600">
+                Valide este documento em:{" "}
+                <a
+                  href={validationUrl}
+                  className="break-all font-medium text-[#F26B1F] underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {validationUrl}
+                </a>
+              </div>
+            )}
           </div>
+          <div className="mt-2 text-[10px] leading-relaxed text-slate-500">
+            Documento gerado eletronicamente pelo sistema <strong>VIA AIR</strong>. O código acima é um resumo criptográfico
+            (hash) do conteúdo desta conversa — qualquer alteração no texto original produz um código diferente,
+            garantindo a integridade do registro. A autenticidade pode ser verificada publicamente pelo link acima,
+            sem necessidade de login. Este protocolo é válido como prova de atendimento realizado via WhatsApp.
+          </div>
+
           <div className="mt-2 text-[10px] leading-relaxed text-slate-500">
             Documento gerado eletronicamente pelo sistema <strong>VIA AIR</strong>. O código acima é um resumo criptográfico
             (hash) do conteúdo desta conversa — qualquer alteração no texto original produz um código diferente,
