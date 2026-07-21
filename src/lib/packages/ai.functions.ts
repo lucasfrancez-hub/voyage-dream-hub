@@ -8,6 +8,64 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Sem permissão");
 }
 
+function normalizeFlightBaggage(flight: any): any {
+  if (!flight || typeof flight !== "object") return flight;
+
+  const asBoolean = (value: unknown): boolean | undefined => {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value > 0;
+    if (typeof value !== "string") return undefined;
+    const normalized = value.trim().toLowerCase();
+    if (/^(true|sim|yes|included|inclus[ao]|1)$/.test(normalized)) return true;
+    if (/^(false|nao|não|no|not included|0)$/.test(normalized)) return false;
+    return undefined;
+  };
+
+  const baggageText = [
+    flight.baggage_allowance,
+    flight.baggage,
+    flight.bags,
+    flight.baggage_info,
+    flight.baggage_details,
+    flight.checked_baggage,
+  ]
+    .filter((value) => value != null)
+    .map(String)
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const fare = String(flight.fare_class ?? "").trim();
+  const fareUpper = fare.toUpperCase();
+  const hasCheckedEvidence =
+    /(?:^|\b)(?:[1-9]\s*(?:pc|peca|bag)|23\s*kg|bagagem\s*despachada|mala\s*despachada|checked\s*bag|baggage\s*included)(?:\b|$)/i.test(baggageText) ||
+    /^(STANDARD|FULL|TOP|MAX|PLUS|SEAT\s*\+\s*BAG)$/.test(fareUpper);
+  const noCheckedEvidence =
+    /(?:0\s*(?:pc|peca|bag)|sem\s+bagagem\s+despachada|nao\s+inclui\s+bagagem|no\s+checked\s+bag)/i.test(baggageText) ||
+    /^(LIGHT|BASIC|ZERO|DISCOUNT)$/.test(fareUpper);
+  const checkedValue = asBoolean(
+    flight.checked_bag ?? flight.checked_baggage ?? flight.baggage_included,
+  );
+  const checked = hasCheckedEvidence ? true : noCheckedEvidence ? false : (checkedValue ?? false);
+  const explicitPersonal = asBoolean(flight.personal_item ?? flight.personalItem);
+  const explicitCarry = asBoolean(flight.carry_on ?? flight.carryOn ?? flight.hand_baggage);
+
+  return {
+    ...flight,
+    // Regra comercial VIA AIR: todo aéreo do pacote inclui item pessoal e
+    // bagagem de mão; a mala despachada diferencia LIGHT de STANDARD.
+    personal_item: explicitPersonal ?? true,
+    carry_on: explicitCarry ?? true,
+    checked_bag: checked,
+    fare_class:
+      !fareUpper || fareUpper === "LIGHT" || fareUpper === "STANDARD"
+        ? checked
+          ? "STANDARD"
+          : "LIGHT"
+        : fare,
+  };
+}
+
 export const generatePackageSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
@@ -488,7 +546,7 @@ Regras:
 - depart_at / arrive_at: SEMPRE em ISO local "YYYY-MM-DDTHH:MM". Combine a DATA visível na imagem (ex.: "Sex 06 Nov", "sex 6 nov 2026", "6 de novembro de 2026") com o horário HH:MM. Se o ano não estiver explícito, use o ano do cabeçalho/contexto (ex.: "IDA - sex 6 nov 2026"). Meses PT: jan=01, fev=02, mar=03, abr=04, mai=05, jun=06, jul=07, ago=08, set=09, out=10, nov=11, dez=12.
 - Cada segmento DEVE ter depart_at e arrive_at completos (data + hora). Se o próximo trecho passa da meia-noite, incremente a data.
 - Se um campo realmente não estiver visível, omita-o (não invente).
-- BAGAGEM (analise com muita atenção): personal_item/carry_on/checked_bag = true SÓ com ícone ativo/colorido ou texto claro. Se só houver mochila + bagagem de mão (sem despachada), preencha fare_class="LIGHT". Se houver bagagem despachada, fare_class="STANDARD" (a menos que o print mostre outro código explícito como FULL/PLUS/TOP/BLOQ). Ícone cinza/riscado = false.
+- BAGAGEM (analise com muita atenção): personal_item e carry_on devem ser true por padrão nos aéreos destes pacotes. checked_bag = true com ícone ativo/colorido, "1 bagagem", "1 peça", "1 PC" ou "23 kg"; ícone cinza/riscado, "0 PC" ou "sem bagagem despachada" = false. Se não houver despachada, fare_class="LIGHT". Se houver despachada, fare_class="STANDARD" (a menos que o print mostre outro código explícito como FULL/PLUS/TOP/BLOQ). NUNCA deixe fare_class vazio.
 - Cidade sempre em português quando comum (São Paulo, não Sao Paulo).
 - Se houver várias paradas, preencha "segments" na ordem; "layover" só nos intermediários (ex.: "01h20 em São Paulo").
 - Antes de finalizar, RELEIA a imagem e confirme: (a) números de voo só com dígitos, todos presentes; (b) TODOS os depart_at/arrive_at com data completa YYYY-MM-DDTHH:MM.`;
@@ -555,6 +613,7 @@ Regras:
           flight_number: s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
         }));
       }
+      parsed = normalizeFlightBaggage(parsed);
     }
 
     return { flight: parsed };
@@ -650,11 +709,11 @@ Regras:
 - Cidade em português (São Paulo, não Sao Paulo). from_city/to_city do voo agregado = origem do primeiro trecho / destino final.
 - meal_plan: procure ATIVAMENTE. Indicadores BR: "Café da Manhã"/"com café"/"c/ café"/"café incluso"/"ACM"/"APT c/ café" → "Café da manhã"; "Meia Pensão"/"MAP" → "Meia pensão"; "Pensão Completa"/"FAP" → "Pensão completa"; "All Inclusive"/"Tudo Incluso"/"AI" → "All inclusive"; "Sem refeição"/"SC"/"Room Only" → "Sem refeição". "" só se realmente não houver menção.
 - BAGAGEM (CRÍTICO — analise CADA voo separadamente, ida e volta podem ter regras diferentes; NÃO copie a bagagem da ida para a volta):
-  * Para CADA voo (outbound_flight e return_flight), procure o bloco de bagagens PRÓXIMO àquele voo específico. Companhias como GOL/LATAM/Azul mostram os três ícones (mochila / bagagem de mão / mala despachada) em cada trecho, e é comum que só a IDA tenha despachada e a VOLTA não (ou vice-versa).
-  * personal_item: true se houver ícone/menção a "item pessoal", "mochila", "personal item", "1 objeto pessoal".
-  * carry_on: true se houver "bagagem de mão", "10kg", "carry on", ícone de mochila grande/mala pequena ATIVO/colorido.
+  * Primeiro determine se o documento mostra bagagem separada por voo ou uma única regra comum ao pacote. Se houver blocos separados, analise CADA voo individualmente. Se houver UM ÚNICO bloco/linha de bagagem para o aéreo de ida e volta, aplique essa mesma regra a outbound_flight e return_flight — não marque a volta como false apenas porque o bloco comum apareceu uma vez.
+  * personal_item: use true por padrão; confirme também por "item pessoal", "mochila", "personal item", "1 objeto pessoal".
+  * carry_on: use true por padrão; confirme também por "bagagem de mão", "10kg", "carry on", ícone de mochila grande/mala pequena ATIVO/colorido.
   * checked_bag: true APENAS com menção explícita a bagagem despachada ("1 bagagem despachada", "23kg", "1 peça 23kg", "1 bag 23kg", ícone de mala grande ATIVO/colorido/preenchido). Ícone cinza/riscado/tachado/com X = false.
-  * SEMPRE devolva os três campos (personal_item, carry_on, checked_bag) como true/false — NUNCA omita. Se o documento realmente não tiver essa informação para o voo, marque como false (e não copie do outro voo).
+  * SEMPRE devolva os três campos (personal_item, carry_on, checked_bag) como true/false — NUNCA omita. Não confunda ausência de um segundo bloco com ausência de bagagem: uma regra comum vale para os dois voos.
   * fare_class: se só houver item pessoal + mão (sem despachada) → "LIGHT". Se houver bagagem despachada → "STANDARD". Se o documento mostrar código explícito diferente (ex.: "FULL", "PLUS", "TOP", "BLOQ", "PROMO", "MAX"), use o código como está. SEMPRE preencha fare_class — nunca deixe em branco.
   * Antes de fechar o JSON, RELEIA o bloco de bagagens de cada voo e confirme dígito a dígito se marcou certo cada um dos três ícones para IDA e para VOLTA.
 
@@ -736,8 +795,8 @@ Regras:
       return f;
     };
     if (parsed && typeof parsed === "object") {
-      sanitizeFlight(parsed.outbound_flight);
-      sanitizeFlight(parsed.return_flight);
+      parsed.outbound_flight = normalizeFlightBaggage(sanitizeFlight(parsed.outbound_flight));
+      parsed.return_flight = normalizeFlightBaggage(sanitizeFlight(parsed.return_flight));
       if (parsed.hotel_stars != null) {
         const n = Math.round(Number(parsed.hotel_stars));
         parsed.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
@@ -846,7 +905,7 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
   "room_category": "Standard",
   "bed_type": "Casal",
   "supplier_name": "Visual Turismo",
-  "outbound_flight": { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T13:05","duration":"04h45","cabin_class":"Econômica","carry_on":true,"checked_bag":false,"personal_item":true,"segments":[ { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"CGH","to_city":"São Paulo","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T09:45","duration":"01h25","layover":"01h20 em São Paulo" }, { "airline":"GOL","flight_number":"1502","from_iata":"CGH","from_city":"São Paulo","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T11:05","arrive_at":"2026-12-21T13:05","duration":"02h00" } ] },
+  "outbound_flight": { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T13:05","duration":"04h45","cabin_class":"Econômica","fare_class":"LIGHT","carry_on":true,"checked_bag":false,"personal_item":true,"segments":[ { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"CGH","to_city":"São Paulo","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T09:45","duration":"01h25","layover":"01h20 em São Paulo" }, { "airline":"GOL","flight_number":"1502","from_iata":"CGH","from_city":"São Paulo","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T11:05","arrive_at":"2026-12-21T13:05","duration":"02h00" } ] },
   "return_flight": { ...mesma estrutura, sentido inverso }
 }
 
@@ -856,7 +915,7 @@ Regras (aplicar em CADA pacote):
 - depart_at / arrive_at: ISO "YYYY-MM-DDTHH:MM".
 - Conexões: segments em ordem.
 - meal_plan: ACM/APT c/ café/"com café"/"c/ café" → "Café da manhã"; MAP/"Meia Pensão" → "Meia pensão"; FAP/"Pensão Completa" → "Pensão completa"; AI/"All Inclusive"/"Tudo Incluso" → "All inclusive"; SC/"Só hospedagem"/"Room Only" → "Sem refeição". Só use "" se não houver menção.
-- checked_bag/carry_on/personal_item: true apenas se explicitamente indicado.
+- BAGAGEM E TARIFA (OBRIGATÓRIO EM outbound_flight E return_flight): sempre devolva personal_item=true e carry_on=true. checked_bag=true quando houver ícone ativo, "1 bagagem", "1 peça", "1 PC" ou "23 kg"; false para ícone riscado/cinza, "0 PC" ou "sem bagagem despachada". Se a informação aparecer UMA VEZ como regra comum do aéreo/pacote, aplique-a tanto à ida quanto à volta. Só trate diferente quando houver blocos claramente separados por direção. fare_class nunca pode ficar vazio: checked_bag=true → "STANDARD"; checked_bag=false → "LIGHT"; preserve outro nome somente quando estiver escrito explicitamente no documento.
 - hotel_stars: inteiro 1-5.
 - supplier_name: operadora emissora (nunca VIA AIR).
 - Cidade em português.
@@ -968,8 +1027,8 @@ Retorne SÓ o JSON.`;
     for (const pkg of arr) {
       if (!pkg || typeof pkg !== "object") continue;
       delete (pkg as any).index;
-      sanitizeFlight(pkg.outbound_flight);
-      sanitizeFlight(pkg.return_flight);
+      pkg.outbound_flight = normalizeFlightBaggage(sanitizeFlight(pkg.outbound_flight));
+      pkg.return_flight = normalizeFlightBaggage(sanitizeFlight(pkg.return_flight));
       if (pkg.hotel_stars != null) {
         const n = Math.round(Number(pkg.hotel_stars));
         pkg.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
