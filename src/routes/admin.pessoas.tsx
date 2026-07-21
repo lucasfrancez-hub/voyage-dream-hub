@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -36,6 +36,8 @@ function PeoplePage() {
 
   const [term, setTerm] = useState("");
   const [kind, setKind] = useState<"all" | "PF" | "PJ">("all");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [editingId, setEditingId] = useState<string | null>(search.edit ?? null);
 
   // sync from URL (?edit=id)
@@ -100,6 +102,14 @@ function PeoplePage() {
       return false;
     });
   }, [q.data, term, kind]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+  useEffect(() => { setPage(1); }, [term, kind]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
@@ -199,7 +209,7 @@ function PeoplePage() {
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {filtered.map((p) => (
+            {paged.map((p) => (
               <li key={p.id} className="relative group">
                 <button
                   type="button"
@@ -255,6 +265,19 @@ function PeoplePage() {
               </li>
             ))}
           </ul>
+        )}
+        {filtered.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-border text-xs text-muted-foreground">
+            <div>
+              Página {currentPage} de {totalPages} · {filtered.length} pessoa(s)
+            </div>
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => setPage(1)} disabled={currentPage === 1} className="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40">«</button>
+              <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40">‹</button>
+              <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40">›</button>
+              <button type="button" onClick={() => setPage(totalPages)} disabled={currentPage === totalPages} className="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40">»</button>
+            </div>
+          </div>
         )}
       </div>
 
