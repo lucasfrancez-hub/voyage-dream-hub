@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, Calendar, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket, Compass } from "lucide-react";
+import { MapPin, Calendar as CalendarIcon, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket, Compass } from "lucide-react";
+import type { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { whatsappUrl } from "@/lib/checkout-config";
@@ -9,6 +10,8 @@ import { whatsappUrl } from "@/lib/checkout-config";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -56,6 +59,7 @@ function PacotesList() {
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [sortBy, setSortBy] = useState<
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("price_asc");
@@ -93,6 +97,13 @@ function PacotesList() {
   }, [packages]);
 
   const filteredPackages = useMemo(() => {
+    const rangeFrom = dateRange?.from ? new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate()).getTime() : null;
+    const rangeTo = dateRange?.to
+      ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59).getTime()
+      : rangeFrom !== null
+        ? new Date(dateRange!.from!.getFullYear(), dateRange!.from!.getMonth(), dateRange!.from!.getDate(), 23, 59, 59).getTime()
+        : null;
+
     const filtered = (packages || []).filter((p) => {
       const originMatch = originFilter === "all" || p.origin === originFilter;
       const destinationMatch = destinationFilter === "all" || p.destination === destinationFilter;
@@ -105,7 +116,19 @@ function PacotesList() {
           monthMatch = key === monthFilter;
         }
       }
-      return originMatch && destinationMatch && monthMatch;
+      let rangeMatch = true;
+      if (rangeFrom !== null && rangeTo !== null) {
+        if (!p.going_date) rangeMatch = false;
+        else {
+          const goingTs = new Date(String(p.going_date) + "T12:00:00").getTime();
+          const returnTs = p.return_date
+            ? new Date(String(p.return_date) + "T12:00:00").getTime()
+            : goingTs;
+          // Pacote deve caber inteiro dentro do intervalo (ida >= from e volta <= to)
+          rangeMatch = goingTs >= rangeFrom && returnTs <= rangeTo;
+        }
+      }
+      return originMatch && destinationMatch && monthMatch && rangeMatch;
     });
 
     const sorted = [...filtered];
@@ -146,24 +169,26 @@ function PacotesList() {
         break;
     }
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, sortBy]);
+  }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy]);
 
   const hasActiveFilters =
     originFilter !== "all" ||
     destinationFilter !== "all" ||
     monthFilter !== "all" ||
+    !!dateRange?.from ||
     sortBy !== "sort_order";
 
   const clearFilters = () => {
     setOriginFilter("all");
     setDestinationFilter("all");
     setMonthFilter("all");
+    setDateRange(undefined);
     setSortBy("sort_order");
   };
 
   useEffect(() => {
     setPage(1);
-  }, [originFilter, destinationFilter, monthFilter, sortBy]);
+  }, [originFilter, destinationFilter, monthFilter, dateRange, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -255,25 +280,92 @@ function PacotesList() {
 
           <div className="flex-1">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Data da viagem
+              Período da viagem
             </label>
-            <Select value={monthFilter} onValueChange={setMonthFilter}>
-              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-3.5 w-3.5 text-brand-orange" />
-                  <SelectValue placeholder="Todos os meses" />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start font-normal focus:ring-brand-orange focus:border-brand-orange"
+                >
+                  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-brand-orange" />
+                  {dateRange?.from ? (
+                    dateRange.to && dateRange.to.getTime() !== dateRange.from.getTime() ? (
+                      <span className="truncate">
+                        {dateRange.from.toLocaleDateString("pt-BR")} → {dateRange.to.toLocaleDateString("pt-BR")}
+                      </span>
+                    ) : (
+                      <span className="truncate">
+                        A partir de {dateRange.from.toLocaleDateString("pt-BR")}
+                      </span>
+                    )
+                  ) : monthFilter !== "all" ? (
+                    <span className="truncate">
+                      {months.find((m) => m.value === monthFilter)?.label}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Qualquer data</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-auto p-0">
+                <div className="border-b border-border p-3">
+                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                    Filtrar por mês
+                  </div>
+                  <Select
+                    value={monthFilter}
+                    onValueChange={(v) => {
+                      setMonthFilter(v);
+                      if (v !== "all") setDateRange(undefined);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Todos os meses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os meses</SelectItem>
+                      {months.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os meses</SelectItem>
-                {months.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <div className="p-3">
+                  <div className="mb-2 text-xs font-medium text-muted-foreground">
+                    Ou selecione o intervalo (ida → volta)
+                  </div>
+                  <Calendar
+                    mode="range"
+                    numberOfMonths={2}
+                    selected={dateRange}
+                    onSelect={(r) => {
+                      setDateRange(r);
+                      if (r?.from) setMonthFilter("all");
+                    }}
+                    disabled={{ before: new Date() }}
+                    defaultMonth={dateRange?.from ?? new Date()}
+                  />
+                  {dateRange?.from && (
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDateRange(undefined)}
+                      >
+                        Limpar período
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
+
 
           <div className="flex-1">
 
@@ -427,7 +519,7 @@ function PacotesList() {
                   </div>
                 )}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Calendar className="h-3.5 w-3.5 text-brand-orange" />
+                  <CalendarIcon className="h-3.5 w-3.5 text-brand-orange" />
                   {formatDateRange(p.going_date, p.return_date)}
                   {p.nights ? ` · ${p.nights} noites` : ""}
                 </div>
