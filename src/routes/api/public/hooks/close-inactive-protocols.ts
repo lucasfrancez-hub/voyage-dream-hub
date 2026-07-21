@@ -230,7 +230,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
                 const controller = new AbortController();
                 const t = setTimeout(() => controller.abort(), 20_000);
                 const { text } = await generateText({
-                  model: gateway("openai/gpt-5.5"),
+                  model: gateway("google/gemini-3.1-flash-lite"),
                   abortSignal: controller.signal,
                   prompt:
                     "Resuma a conversa abaixo entre um cliente da VIA AIR e o atendimento (IA/humano). " +

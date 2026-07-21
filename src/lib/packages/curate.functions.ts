@@ -146,7 +146,7 @@ Regras:
         "Lovable-API-Key": apiKey,
       },
       body: JSON.stringify({
-        model: "google/gemini-3.5-flash",
+        model: "google/gemini-3.1-flash-lite",
         temperature: 0.85,
         messages: [
           { role: "system", content: system },
