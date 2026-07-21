@@ -335,6 +335,37 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     catch { toast.error("Não foi possível copiar"); }
   }
 
+  async function sendToWhatsApp() {
+    if (!output) return;
+    const text = output.text;
+    // Try native share with image file (mobile / PWA)
+    if (pkg.image_url && typeof navigator !== "undefined" && (navigator as any).canShare) {
+      try {
+        const resp = await fetch(pkg.image_url, { mode: "cors" });
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
+          const file = new File([blob], `${pkg.slug}.${ext}`, { type: blob.type || "image/jpeg" });
+          const shareData: any = { files: [file], text };
+          if ((navigator as any).canShare(shareData)) {
+            await (navigator as any).share(shareData);
+            return;
+          }
+        }
+      } catch {
+        // fall through to wa.me
+      }
+    }
+    // Fallback: open WhatsApp with the text only (image needs to be attached manually)
+    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast.message("WhatsApp aberto", {
+      description: "Texto copiado. Anexe a imagem do pacote manualmente se precisar.",
+    });
+  }
+
+
   async function downloadArt(kind: "feed" | "story") {
     if (!pkg.image_url) { toast.error("Cadastre a URL da imagem de capa do pacote antes de gerar a arte."); return; }
     setLoading(kind);
