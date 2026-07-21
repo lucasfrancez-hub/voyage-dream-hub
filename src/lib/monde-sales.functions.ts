@@ -141,19 +141,39 @@ function summarizeItems(sale: MondeSale): ItemSummary[] {
   const num = (v: any) => (typeof v === "number" ? v : Number(v ?? 0)) || 0;
 
   for (const t of sale.airline_tickets ?? []) {
-    const seg0 = t.segments?.[0];
-    const segN = t.segments?.[t.segments?.length - 1];
-    const route = seg0 ? `${seg0.origin ?? ""}→${segN?.destination ?? ""}` : "";
-    out.push({
-      kind: "flight",
-      title: `Aéreo ${t.supplier?.name ?? ""} ${route}`.trim(),
-      locator: t.locator ?? null,
-      supplier: t.supplier?.name ?? null,
-      begin: seg0?.departure_date ?? null,
-      end: segN?.arrival_date ?? null,
-      customer_amount: num(t.totals?.customer_amount ?? t.totals?.amount),
-      fees: num(t.totals?.fees) + num(t.totals?.du_fee),
-      raw: t,
+    const segs: any[] = Array.isArray(t.segments) ? t.segments : [];
+    const totalCustomer = num(t.totals?.customer_amount ?? t.totals?.amount);
+    const totalFees = num(t.totals?.fees) + num(t.totals?.du_fee);
+    if (segs.length === 0) {
+      out.push({
+        kind: "flight",
+        title: `Aéreo ${t.supplier?.name ?? ""}`.trim(),
+        locator: t.locator ?? null,
+        supplier: t.supplier?.name ?? null,
+        begin: null,
+        end: null,
+        customer_amount: totalCustomer,
+        fees: totalFees,
+        raw: t,
+      });
+      continue;
+    }
+    segs.forEach((seg, idx) => {
+      const airline = (seg.airline_code || t.supplier?.name || "").trim();
+      const flightNo = seg.flight_number ? ` ${seg.flight_number}` : "";
+      const route = `${seg.origin ?? ""}→${seg.destination ?? ""}`;
+      out.push({
+        kind: "flight",
+        title: `Voo ${airline}${flightNo} ${route}`.trim(),
+        locator: t.locator ?? null,
+        supplier: t.supplier?.name ?? null,
+        begin: seg.departure_date ?? null,
+        end: seg.arrival_date ?? null,
+        // Financeiro só no primeiro segmento pra não duplicar
+        customer_amount: idx === 0 ? totalCustomer : 0,
+        fees: idx === 0 ? totalFees : 0,
+        raw: { ...t, __segment: seg, __segment_index: idx, __segment_count: segs.length },
+      });
     });
   }
   for (const h of sale.hotels ?? []) {
