@@ -307,7 +307,7 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
           {!isLoading && filtered.length === 0 && (
             <div className="text-center py-10 text-muted-foreground text-sm">Nenhum pedido encontrado.</div>
           )}
-          {filtered.map((o) => {
+          {paged.map((o) => {
             const snap = (o.package_snapshot ?? {}) as {
               order_number?: string; title?: string; destination?: string; reference?: string;
             };
