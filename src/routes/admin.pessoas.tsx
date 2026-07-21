@@ -266,6 +266,19 @@ function PeoplePage() {
             ))}
           </ul>
         )}
+        {filtered.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-border text-xs text-muted-foreground">
+            <div>
+              Página {currentPage} de {totalPages} · {filtered.length} pessoa(s)
+            </div>
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => setPage(1)} disabled={currentPage === 1} className="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40">«</button>
+              <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40">‹</button>
+              <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40">›</button>
+              <button type="button" onClick={() => setPage(totalPages)} disabled={currentPage === totalPages} className="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40">»</button>
+            </div>
+          </div>
+        )}
       </div>
 
       <PersonEditorDialog
