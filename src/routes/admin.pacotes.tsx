@@ -245,6 +245,16 @@ function AdminPackages() {
       return true;
     });
     const sorted = [...filtered].sort((a, b) => {
+      if (sortMode === "price_asc" || sortMode === "price_desc") {
+        const at = Number(a.price_per_person) * (a.base_occupancy ?? 2);
+        const bt = Number(b.price_per_person) * (b.base_occupancy ?? 2);
+        return sortMode === "price_asc" ? at - bt : bt - at;
+      }
+      if (sortMode === "date_asc" || sortMode === "date_desc") {
+        const ad = a.going_date ? new Date(String(a.going_date) + "T12:00:00").getTime() : Number.POSITIVE_INFINITY;
+        const bd = b.going_date ? new Date(String(b.going_date) + "T12:00:00").getTime() : Number.POSITIVE_INFINITY;
+        return sortMode === "date_asc" ? ad - bd : bd - ad;
+      }
       const av = a.sort_order ?? 0;
       const bv = b.sort_order ?? 0;
       if (av !== bv) return sortDir === "asc" ? av - bv : bv - av;
@@ -253,11 +263,11 @@ function AdminPackages() {
       return sortDir === "asc" ? bc - ac : ac - bc;
     });
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, sortDir]);
+  }, [packages, originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
 
-  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all" || monthFilter !== "all";
+  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all" || monthFilter !== "all" || sortMode !== "manual";
 
-  useEffect(() => { setPage(1); }, [originFilter, destinationFilter, monthFilter, sortDir]);
+  useEffect(() => { setPage(1); }, [originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
 
   async function nextPackageBaseNumber(): Promise<number> {
     const { count, error } = await supabase
