@@ -630,7 +630,11 @@ function AdminPackages() {
         <CurationTab packages={(packages || []) as any} onRefresh={() => qc.invalidateQueries({ queryKey: ["admin", "packages"] })} />
       ) : (
       <>
-      {/* Filters */}
+      <UnlinkedHotelsAlert
+        packages={(packages || []) as PackageRow[]}
+        onOpen={(p) => setEditingState(p)}
+      />
+
       <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:pb-2.5">
           <SlidersHorizontal className="h-3.5 w-3.5 text-brand-orange" /> Filtrar
