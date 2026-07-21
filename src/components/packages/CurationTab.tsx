@@ -339,9 +339,23 @@ function GroupSection({ group, index }: { group: Group; index: number }) {
 function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: string; groupReason: string }) {
   const generateFn = useServerFn(generateCurationCopy);
   const fetchImageFn = useServerFn(fetchProxiedImage);
+  const { cache, setEntry } = useContext(CopyCacheContext);
   const [loading, setLoading] = useState<"whatsapp" | "instagram" | "feed" | "story" | null>(null);
   const [output, setOutput] = useState<{ channel: "whatsapp" | "instagram"; text: string } | null>(null);
   const [shareFile, setShareFile] = useState<File | null>(null);
+
+  // Ao carregar cache, se este pacote já tem um WhatsApp salvo, mostra por padrão
+  useEffect(() => {
+    if (output) return;
+    const saved = cache[pkg.id];
+    if (!saved) return;
+    const pick = saved.whatsapp ?? saved.instagram;
+    if (!pick) return;
+    const channel: "whatsapp" | "instagram" = saved.whatsapp ? "whatsapp" : "instagram";
+    setOutput({ channel, text: pick.text });
+    prepareShareFile().then(setShareFile).catch(() => {});
+  }, [cache, pkg.id]);
+
 
   const total = Number(pkg.price_per_person) * (pkg.base_occupancy ?? 2);
   const dfmt = (s: string | null) =>
