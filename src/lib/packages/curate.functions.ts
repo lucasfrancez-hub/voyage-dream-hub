@@ -95,7 +95,14 @@ FORMATO OBRIGATÓRIO (copie exatamente, incluindo asteriscos do WhatsApp para ne
 
 *DESTINO EM CAIXA ALTA* {1-2 emojis do país/vibe}
 
-_{Gancho de UMA linha começando com "Já imaginou…" — conectado ao tema "${data.groupTitle}". Ex.: "Já imaginou passar o Réveillon com pé na areia?", "Já imaginou fugir do frio numa das melhores ofertas ativas?", "Já imaginou aproveitar essa data especial a um preço redondo?". SEMPRE envolva a frase inteira em underscores para itálico no WhatsApp: _frase_.}_
+_{Gancho de UMA linha, CRIATIVO E ORIGINAL, 100% conectado ao destino específico "{destino}" e ao clima/vibe do tema "${data.groupTitle}". VARIE MUITO a abertura — NÃO comece sempre com "Já imaginou". Alterne livremente entre estas famílias (escolha aleatoriamente uma diferente a cada pacote, e nunca repita a mesma abertura no mesmo lote):
+ • Pergunta sensorial ("Sente o cheiro do mar chegando?", "Que tal acordar com vista pra montanha?")
+ • Provocação/curiosidade ("Poucos sabem, mas ${"{destino}"} em NOVEMBRO fica quase deserto…", "Existe um jeito de conhecer ${"{destino}"} gastando menos do que você imagina.")
+ • Cena viva ("Pé na areia branca, drink na mão, sem pressa nenhuma.", "Manhã fria, café quentinho, vista das serras pela janela.")
+ • Fato/dado do destino ("${"{destino}"} tem 90km de praias — e a gente escolheu a melhor pra você.")
+ • Convite direto e curto ("Bora fugir da rotina em ${"{destino}"}?", "Tá na hora de tirar esse ${"{destino}"} da lista.")
+ • Contagem/urgência sutil ("Faltam poucos meses pra ${"{tema}"} — e os melhores hotéis já estão sumindo.")
+Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("preço redondo", "oportunidade imperdível", "não perca"), sem emoji dentro do gancho, sem repetir o nome do destino se ele já apareceu no título acima. SEMPRE envolva a frase inteira em underscores para itálico no WhatsApp: _frase_.}_
 
 ✈️ Saindo de {origem}
 🗓️ {DD a DD/MÊS EM CAIXA ALTA} ({N noites})
