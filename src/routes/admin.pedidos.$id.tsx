@@ -40,7 +40,7 @@ import {
   linkPassengerToItem, unlinkPassengerFromItem, getMySellerInfo, deleteAllOrderPassengers,
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
-import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
+import { PeopleSearchDialog } from "@/components/people/PeopleSearchDialog";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { AirlineLogo } from "@/components/AirlineLogo";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
@@ -877,7 +877,7 @@ function PassengersSection({
             className="h-9 gap-2 text-muted-foreground border-border/60 hover:text-foreground"
             onClick={() => setMondeOpen(true)}
           >
-            <Cloud className="h-4 w-4" /> Importar do Monde
+            <Search className="h-4 w-4" /> Buscar
           </Button>
 
 
@@ -984,22 +984,23 @@ function PassengersSection({
         onSave={(payload) => save.mutate({ ...payload, order_id: orderId, id: editing?.id })}
       />
 
-      <MondePersonSearchDialog
+      <PeopleSearchDialog
         open={mondeOpen}
         onOpenChange={setMondeOpen}
         onPick={(person) => {
           const hasCpf = !!(person.cpf && person.cpf.replace(/\D+/g, "").length >= 11);
+          const phone = person.mobile_phone ?? person.phone ?? null;
           save.mutate({
             order_id: orderId,
             full_name: person.name,
             passenger_type: "ADT",
-            birth_date: person.birthDate,
+            birth_date: person.birth_date,
             cpf: hasCpf ? person.cpf : null,
-            doc_type: hasCpf ? "cpf" : (person.passportNumber ? "passport" : "cpf"),
-            passport_number: person.passportNumber,
-            passport_expiry_date: person.passportExpiration,
+            doc_type: hasCpf ? "cpf" : (person.passport_number ? "passport" : "cpf"),
+            passport_number: person.passport_number ?? null,
+            whatsapp: phone,
             sort_order: passengers.length,
-          } as Partial<OrderPassenger> & { order_id: string; full_name: string });
+          } as Partial<OrderPassenger> & { order_id: string; full_name: string; whatsapp?: string | null });
         }}
       />
     </div>
