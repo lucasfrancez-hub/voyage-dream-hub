@@ -33,6 +33,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         groupReason: z.string().max(240).optional(),
         packages: z.array(PackageBrief).min(1).max(8),
         baseUrl: z.string().url().optional(),
+        packageId: z.string().uuid().optional(),
       })
       .parse(data),
   )
@@ -170,5 +171,43 @@ Regras:
     const json = (await resp.json()) as any;
     const text = String(json?.choices?.[0]?.message?.content ?? "").trim();
     if (!text) throw new Error("IA não retornou texto");
+
+    if (data.packageId) {
+      await context.supabase.from("package_ai_copy").upsert({
+        package_id: data.packageId,
+        channel: data.channel,
+        text,
+        updated_by: context.userId,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
     return { text };
+  });
+
+export const listPackageCopies = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("package_ai_copy")
+      .select("package_id, channel, text, updated_at");
+    if (error) throw new Error(error.message);
+    return { rows: (data ?? []) as Array<{ package_id: string; channel: "whatsapp" | "instagram"; text: string; updated_at: string }> };
+  });
+
+export const deletePackageCopy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ packageId: z.string().uuid(), channel: z.enum(["whatsapp", "instagram"]) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("package_ai_copy")
+      .delete()
+      .eq("package_id", data.packageId)
+      .eq("channel", data.channel);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

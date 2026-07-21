@@ -1,9 +1,17 @@
-import { useMemo, useState } from "react";
-import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone } from "lucide-react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { generateCurationCopy } from "@/lib/packages/curate.functions";
+import { generateCurationCopy, listPackageCopies } from "@/lib/packages/curate.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
+
+type CachedCopy = { text: string; updated_at: string };
+type CopyCache = Record<string, { whatsapp?: CachedCopy; instagram?: CachedCopy }>;
+const CopyCacheContext = createContext<{
+  cache: CopyCache;
+  setEntry: (pkgId: string, channel: "whatsapp" | "instagram", entry: CachedCopy | null) => void;
+}>({ cache: {}, setEntry: () => {} });
+
 
 type Pkg = {
   id: string;
@@ -209,6 +217,34 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
   const [filter, setFilter] = useState<string>("all");
   const visibleGroups = filter === "all" ? groups : groups.filter((g) => g.key === filter);
 
+  const [cache, setCache] = useState<CopyCache>({});
+  const listCopiesFn = useServerFn(listPackageCopies);
+  useEffect(() => {
+    let cancelled = false;
+    listCopiesFn({})
+      .then((res) => {
+        if (cancelled) return;
+        const next: CopyCache = {};
+        for (const r of res.rows) {
+          if (!next[r.package_id]) next[r.package_id] = {};
+          next[r.package_id][r.channel] = { text: r.text, updated_at: r.updated_at };
+        }
+        setCache(next);
+      })
+      .catch(() => { /* silencioso — só desabilita o preload */ });
+    return () => { cancelled = true; };
+  }, [listCopiesFn]);
+
+  const setEntry = (pkgId: string, channel: "whatsapp" | "instagram", entry: CachedCopy | null) => {
+    setCache((prev) => {
+      const next = { ...prev };
+      const cur = { ...(next[pkgId] || {}) };
+      if (entry) cur[channel] = entry; else delete cur[channel];
+      next[pkgId] = cur;
+      return next;
+    });
+  };
+
   if (!active.length) {
     return (
       <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8 text-center text-sm text-muted-foreground">
@@ -218,6 +254,8 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
   }
 
   return (
+    <CopyCacheContext.Provider value={{ cache, setEntry }}>
+
     <div className="space-y-8">
       {/* Chips de filtro */}
       {groups.length > 1 && (
@@ -247,6 +285,7 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
         />
       ))}
     </div>
+    </CopyCacheContext.Provider>
   );
 }
 
@@ -300,9 +339,23 @@ function GroupSection({ group, index }: { group: Group; index: number }) {
 function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: string; groupReason: string }) {
   const generateFn = useServerFn(generateCurationCopy);
   const fetchImageFn = useServerFn(fetchProxiedImage);
+  const { cache, setEntry } = useContext(CopyCacheContext);
   const [loading, setLoading] = useState<"whatsapp" | "instagram" | "feed" | "story" | null>(null);
   const [output, setOutput] = useState<{ channel: "whatsapp" | "instagram"; text: string } | null>(null);
   const [shareFile, setShareFile] = useState<File | null>(null);
+
+  // Ao carregar cache, se este pacote já tem um WhatsApp salvo, mostra por padrão
+  useEffect(() => {
+    if (output) return;
+    const saved = cache[pkg.id];
+    if (!saved) return;
+    const pick = saved.whatsapp ?? saved.instagram;
+    if (!pick) return;
+    const channel: "whatsapp" | "instagram" = saved.whatsapp ? "whatsapp" : "instagram";
+    setOutput({ channel, text: pick.text });
+    prepareShareFile().then(setShareFile).catch(() => {});
+  }, [cache, pkg.id]);
+
 
   const total = Number(pkg.price_per_person) * (pkg.base_occupancy ?? 2);
   const dfmt = (s: string | null) =>
@@ -331,6 +384,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       const res = await generateFn({
         data: {
           channel, groupTitle, groupReason,
+          packageId: pkg.id,
           packages: [{
             title: pkg.title, destination: pkg.destination, origin: pkg.origin,
             going_date: pkg.going_date, return_date: pkg.return_date, nights: pkg.nights,
@@ -343,6 +397,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       const preparedFile = await prepareShareFile();
       setShareFile(preparedFile);
       setOutput({ channel, text: res.text });
+      setEntry(pkg.id, channel, { text: res.text, updated_at: new Date().toISOString() });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao gerar texto");
     } finally {
@@ -528,6 +583,19 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
               <div className="text-[10px] font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
                 <Wand2 className="h-3 w-3" />
                 Texto para {output.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
+                {cache[pkg.id]?.[output.channel] && (
+                  <span className="ml-1 text-[9px] text-slate-500 normal-case tracking-normal">· salvo</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleGenerate(output.channel)}
+                  disabled={loading !== null}
+                  className="ml-1 inline-flex items-center gap-1 rounded-md border border-white/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-slate-400 hover:text-brand-orange hover:border-brand-orange/40 disabled:opacity-60"
+                  title="Regerar com a IA"
+                >
+                  {loading === output.channel ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                  Regerar
+                </button>
               </div>
               <div className="flex items-center gap-2">
                 {shareFile && (
