@@ -195,7 +195,7 @@ function ProtocoloPrintView() {
         </div>
 
         {/* Conversa completa em balões */}
-        <div className="rounded-lg border border-slate-200 bg-[#ECE5DD] p-4 shadow-sm print:bg-white print:border-slate-300">
+        <div className="rounded-b-lg border border-slate-300 bg-[#ECE5DD] p-4 shadow-sm print:bg-white print:rounded-none">
           <div className="mb-2 text-center text-[10px] font-medium uppercase tracking-wider text-slate-600">
             Conversa completa
           </div>
@@ -212,7 +212,7 @@ function ProtocoloPrintView() {
                   </div>
                   {g.items.map((m) => {
                     const who = m.direction === "inbound"
-                      ? "Cliente"
+                      ? (contactName || "Cliente")
                       : m.sender === "system"
                         ? "Sistema"
                         : m.sender === "human"
@@ -243,6 +243,42 @@ function ProtocoloPrintView() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Bloco de autenticação / verificação */}
+        <div className="mt-4 rounded-lg border border-slate-300 bg-white p-3 text-[11px] text-slate-700 shadow-sm print:mt-3">
+          <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+            <ShieldCheck className="h-3.5 w-3.5 text-[#F26B1F]" /> Autenticação do documento
+          </div>
+          <div className="grid gap-1 sm:grid-cols-2">
+            <div>
+              <span className="text-slate-500">Gerado em:</span>{" "}
+              <span className="font-medium">{fmtDateTime(generatedAt)}</span>
+            </div>
+            <div>
+              <span className="text-slate-500">Gerado por:</span>{" "}
+              <span className="font-medium">{generatedBy}</span>
+            </div>
+            <div>
+              <span className="text-slate-500">Protocolo:</span>{" "}
+              <span className="font-mono">#{numero}</span>
+            </div>
+            <div>
+              <span className="text-slate-500">Mensagens:</span>{" "}
+              <span className="font-medium">{messages.length}</span>
+            </div>
+          </div>
+          <div className="mt-2 border-t border-slate-200 pt-2">
+            <div className="text-[10px] uppercase tracking-wider text-slate-500">Código de verificação (SHA-256)</div>
+            <div className="mt-0.5 break-all font-mono text-[10px] leading-snug text-slate-700">
+              {authHash || "calculando…"}
+            </div>
+          </div>
+          <div className="mt-2 text-[10px] leading-relaxed text-slate-500">
+            Documento gerado eletronicamente pelo sistema <strong>VIA AIR</strong>. O código acima é um resumo criptográfico
+            (hash) do conteúdo desta conversa — qualquer alteração no texto original produz um código diferente,
+            garantindo a integridade do registro. Este protocolo é válido como prova de atendimento realizado via WhatsApp.
+          </div>
         </div>
       </div>
     </div>
