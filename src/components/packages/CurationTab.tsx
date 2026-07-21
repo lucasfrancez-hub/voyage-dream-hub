@@ -368,9 +368,11 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     appLink.target = "_top";
     appLink.click();
 
-    // Desktop: copia imagem + texto num ClipboardItem só (para colar no
-    // WhatsApp Web depois de escolher o contato).
-    let clipboardMsg = "Texto copiado. Escolha o contato no WhatsApp e cole (Cmd/Ctrl+V).";
+    // Copia imagem + texto na mesma entrada da área de transferência.
+    // A maioria dos navegadores aceita image/png + text/plain no mesmo
+    // ClipboardItem, então o Cmd/Ctrl+V no WhatsApp anexa a imagem e o
+    // botão "Copiar legenda" no toast reescreve só o texto para colar na legenda.
+    let copiedBoth = false;
     try {
       if (shareFile) {
         const pngBlob = await (async () => {
@@ -389,7 +391,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
             "text/plain": new Blob([text], { type: "text/plain" }),
           }),
         ]);
-        clipboardMsg = "Imagem e texto copiados. No contato, cole (Cmd/Ctrl+V) a imagem e cole novamente na legenda.";
+        copiedBoth = true;
       } else {
         await navigator.clipboard.writeText(text);
       }
@@ -397,8 +399,24 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       try { await navigator.clipboard.writeText(text); } catch { /* noop */ }
     }
 
-    toast.success("Abrindo o aplicativo do WhatsApp", { description: clipboardMsg, duration: 8000 });
+    toast.success("Abrindo o WhatsApp", {
+      description: copiedBoth
+        ? "Imagem + texto copiados. Cole (Cmd/Ctrl+V) no contato para anexar a imagem. Depois clique em 'Copiar legenda' e cole na legenda."
+        : "Texto copiado. Escolha o contato e cole (Cmd/Ctrl+V).",
+      duration: 12000,
+      action: copiedBoth
+        ? {
+            label: "Copiar legenda",
+            onClick: () => {
+              navigator.clipboard.writeText(text)
+                .then(() => toast.success("Legenda copiada — cole no campo de legenda do WhatsApp"))
+                .catch(() => toast.error("Não foi possível copiar a legenda"));
+            },
+          }
+        : undefined,
+    });
   }
+
 
 
 
