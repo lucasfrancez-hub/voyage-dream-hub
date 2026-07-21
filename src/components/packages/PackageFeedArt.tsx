@@ -331,5 +331,5 @@ const CSS = `
 .vfeed-side-icon svg{width:30px;height:30px}
 .vfeed-side-card p{margin:0;font-size:14px;font-weight:500;line-height:1.2}
 .vfeed-side-small{font-size:12px !important;color:rgba(255,255,255,.8)}
-.vfeed-note{text-align:center;font-size:10px;color:rgba(255,255,255,.4);margin:4px 0 0}
+.vfeed-note{text-align:center;font-size:12px;color:rgba(255,255,255,.95);margin:4px 0 0;position:relative;z-index:20;text-shadow:0 1px 3px rgba(0,0,0,.9),0 2px 6px rgba(0,0,0,.7);font-weight:500}
 `;
