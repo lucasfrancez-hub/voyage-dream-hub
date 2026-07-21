@@ -3,8 +3,9 @@ import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, Plus, Search, User, Building2, Mail, Phone, Loader2, Trash2 } from "lucide-react";
+import { Users, Plus, Search, User, Building2, Mail, Phone, Loader2, Trash2, Cloud, RefreshCw } from "lucide-react";
 import { listPeople, deletePerson, type PersonRow } from "@/lib/people.functions";
+import { syncMondePeopleBatch, getMondeSyncState } from "@/lib/monde-v3.functions";
 import { confirm } from "@/lib/confirm";
 import { PersonEditorDialog } from "@/components/PersonEditorDialog";
 
