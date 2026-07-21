@@ -11,6 +11,7 @@ import { whatsappUrl } from "@/lib/checkout-config";
 
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
+import { FeaturedCarousel } from "@/components/packages/FeaturedCarousel";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -246,7 +247,11 @@ function PacotesList() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
+        <div className="mt-8">
+          <FeaturedCarousel packages={(packages || []) as any} />
+        </div>
+
+        <div className="mt-2 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground sm:pb-2.5">
             <SlidersHorizontal className="h-4 w-4 text-brand-orange" />
             Filtrar por
