@@ -114,6 +114,26 @@ export function FeaturedCarousel({
   const [nearestOrigin, setNearestOrigin] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const pauseUntilRef = useRef(0);
+  // Largura de card calculada pra caber exatamente 5 por vez.
+  const [cardW, setCardW] = useState<number>(240);
+
+  // Mede a largura do viewport e reparte pra 5 cards + 4 gaps (14px cada).
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const GAP = 14;
+    const VISIBLE = 5;
+    const recalc = () => {
+      const w = el.clientWidth;
+      if (!w) return;
+      const next = Math.max(180, Math.floor((w - GAP * (VISIBLE - 1)) / VISIBLE));
+      setCardW(next);
+    };
+    recalc();
+    const ro = new ResizeObserver(recalc);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
 
 
