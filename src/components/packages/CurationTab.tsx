@@ -340,7 +340,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
           baseUrl,
         },
       });
-      const preparedFile = channel === "whatsapp" ? await prepareShareFile() : null;
+      const preparedFile = await prepareShareFile();
       setShareFile(preparedFile);
       setOutput({ channel, text: res.text });
     } catch (err) {
