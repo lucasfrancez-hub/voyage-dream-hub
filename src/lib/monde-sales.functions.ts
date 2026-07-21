@@ -667,5 +667,167 @@ export const importMondeSale = createServerFn({ method: "POST" })
       }
     }
 
+    // Formas de pagamento vindas do Monde
+    const paymentRows = mapMondePayments(sale, payer?.name ?? null);
+    if (paymentRows.length) {
+      const withOrder = paymentRows.map((p) => ({ ...p, order_id: orderId }));
+      await context.supabase.from("order_payments").insert(withOrder);
+    }
+
     return { order_id: orderId, order_number: orderNumber };
   });
+
+type PaymentInsert = {
+  status: string;
+  method: string;
+  amount: number;
+  installments: number | null;
+  installment_amount: number | null;
+  card_last4: string | null;
+  card_brand: string | null;
+  authorization_code: string | null;
+  proposal_number: string | null;
+  paid_at: string | null;
+  description: string | null;
+  added_by_name: string | null;
+  notes: string | null;
+};
+
+function mapMondePayments(sale: MondeSale, payerName: string | null): PaymentInsert[] {
+  const list: PaymentInsert[] = [];
+  const payments: any[] = Array.isArray((sale as any).payments) ? (sale as any).payments : [];
+
+  const toIso = (d: any): string | null => {
+    if (!d || typeof d !== "string") return null;
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T12:00:00-03:00` : d;
+  };
+
+  const push = (row: Partial<PaymentInsert> & { method: string; amount: number }) => {
+    if (!row.amount || Math.abs(row.amount) < 0.005) return;
+    list.push({
+      status: row.status ?? (row.paid_at ? "paid" : "pending"),
+      method: row.method,
+      amount: row.amount,
+      installments: row.installments ?? null,
+      installment_amount:
+        row.installment_amount ??
+        (row.installments && row.installments > 0 ? row.amount / row.installments : null),
+      card_last4: row.card_last4 ?? null,
+      card_brand: row.card_brand ?? null,
+      authorization_code: row.authorization_code ?? null,
+      proposal_number: row.proposal_number ?? null,
+      paid_at: row.paid_at ?? null,
+      description: row.description ?? null,
+      added_by_name: payerName,
+      notes: "Importado do Monde",
+    });
+  };
+
+  for (const p of payments) {
+    const agency = p?.agency ?? {};
+    const vendor = p?.vendor ?? {};
+
+    if (agency.credit_card) {
+      const c = agency.credit_card;
+      push({
+        method: "credit_card",
+        amount: Number(c.amount) || 0,
+        installments: c.installments ?? null,
+        card_last4: c.card_last_digits ?? null,
+        card_brand: c.card_brand ?? null,
+        authorization_code: c.authorization ?? null,
+        paid_at: toIso(c.settlement_date),
+        description: `Cartão ${c.card_brand ?? ""} final ${c.card_last_digits ?? ""}`.trim(),
+      });
+    }
+    if (agency.bank_slip) {
+      const b = agency.bank_slip;
+      push({
+        method: "boleto",
+        amount: Number(b.amount) || 0,
+        proposal_number: b.bank_slip_number ? String(b.bank_slip_number) : null,
+        paid_at: toIso(b.settlement_date),
+        description: b.bank_account?.description ? `Boleto — ${b.bank_account.description}` : "Boleto",
+      });
+    }
+    if (agency.bank_deposit) {
+      const b = agency.bank_deposit;
+      push({
+        method: "bank_transfer",
+        amount: Number(b.amount) || 0,
+        paid_at: toIso(b.settlement_date),
+        description:
+          [b.bank_account?.description, b.observations].filter(Boolean).join(" — ") || "Depósito",
+      });
+    }
+    if (agency.custom) {
+      const c = agency.custom;
+      const name = (c.payment_method_name || "").toLowerCase();
+      const method = name.includes("pix") ? "pix" : name.includes("dinheiro") ? "cash" : "other";
+      push({
+        method,
+        amount: Number(c.amount) || 0,
+        paid_at: toIso(c.settlement_date),
+        description: c.payment_method_name ?? null,
+      });
+    }
+    if (agency.others) {
+      const o = agency.others;
+      const details = (o.details || "").toLowerCase();
+      const method = details.includes("pix") ? "pix" : "other";
+      push({
+        method,
+        amount: Number(o.amount) || 0,
+        paid_at: toIso(o.settlement_date),
+        description: (o.details || "").trim() || null,
+      });
+    }
+    if (agency.invoice) {
+      push({
+        method: "invoice",
+        amount: Number(agency.invoice.amount) || 0,
+        paid_at: toIso(agency.invoice.settlement_date),
+        description: "Faturado",
+      });
+    }
+    if (agency.credit) {
+      push({
+        method: "credit_note",
+        amount: Number(agency.credit.amount) || 0,
+        paid_at: toIso(agency.credit.due_date),
+        description: agency.credit.document ? `Crédito ${agency.credit.document}` : "Crédito",
+      });
+    }
+    if (agency.refund) {
+      push({
+        method: "refund",
+        amount: Number(agency.refund.amount) || 0,
+        paid_at: toIso(agency.refund.settlement_date),
+        description: agency.refund.description ?? "Reembolso",
+      });
+    }
+
+    // Sem bloco "agency" mas com "vendor.credit_card" (cartão direto ao fornecedor) → registra.
+    if (!Object.keys(agency).length && vendor.credit_card) {
+      const c = vendor.credit_card;
+      const amount =
+        Number(c.amount) ||
+        (Array.isArray(c.products)
+          ? c.products.reduce((s: number, x: any) => s + (Number(x.payment_amount) || 0), 0)
+          : 0);
+      push({
+        method: "credit_card",
+        amount,
+        installments: c.installments ?? null,
+        card_last4: c.card_last_digits ?? null,
+        card_brand: c.card_brand ?? null,
+        authorization_code: c.authorization ?? null,
+        paid_at: toIso(c.due_date),
+        description: `Cartão fornecedor final ${c.card_last_digits ?? ""}`.trim(),
+        status: "paid",
+      });
+    }
+  }
+
+  return list;
+}
