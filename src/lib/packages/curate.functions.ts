@@ -33,6 +33,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         groupReason: z.string().max(240).optional(),
         packages: z.array(PackageBrief).min(1).max(8),
         baseUrl: z.string().url().optional(),
+        packageId: z.string().uuid().optional(),
       })
       .parse(data),
   )
