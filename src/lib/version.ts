@@ -1,5 +1,6 @@
-// Versão do sistema admin VIA AIR.
-// A versão reflete o total acumulado de iterações/atualizações feitas no projeto.
-// Incrementar APP_VERSION a cada nova atualização relevante.
-export const APP_VERSION = "1.3.0";
+// Versão do sistema admin VIA AIR (formato MAJOR.MINOR.PATCH).
+// Regra: PATCH sempre com 2 dígitos (01..99). Ao chegar em 99,
+// próxima atualização vira MINOR+1 e PATCH volta pra 00.
+// Ex.: 1.0.99 -> 1.1.00 -> 1.1.01 ... 1.1.99 -> 1.2.00
+export const APP_VERSION = "1.0.15";
 export const APP_BUILD_DATE = "2026-07-21";
