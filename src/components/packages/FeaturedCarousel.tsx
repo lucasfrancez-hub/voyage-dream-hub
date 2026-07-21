@@ -173,7 +173,7 @@ export function FeaturedCarousel({
     const nearest = scored.find((s) => Number.isFinite(s.dist));
     if (nearest) setNearestOrigin(nearest.p.origin ?? null);
     return scored.slice(0, 12).map((s) => s.p);
-  }, [packages, userCoords]);
+  }, [packages, userCoords, mixMode]);
 
   const loop = useMemo(() => [...featured, ...featured], [featured]);
 
