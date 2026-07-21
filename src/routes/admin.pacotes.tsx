@@ -1001,6 +1001,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   const [imgSource, setImgSource] = useState("");
   const [imgResults, setImgResults] = useState<Array<{ thumb: string; url: string; title: string; source: string; author: string }>>([]);
   const draftsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [hotelMode, setHotelMode] = useState<"live" | "manual" | null>(
+    editing.tripadvisor_location_id ? "live" : (editing.hotel_name ? "manual" : null)
+  );
 
 
   const genSummary = useServerFn(generatePackageSummary);
