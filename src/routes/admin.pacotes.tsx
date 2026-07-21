@@ -206,6 +206,56 @@ function AdminPackages() {
     },
   });
 
+  const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const origins = useMemo(
+    () => Array.from(new Set((packages || []).map(p => p.origin).filter(Boolean) as string[])).sort(),
+    [packages],
+  );
+  const destinations = useMemo(
+    () => Array.from(new Set((packages || []).map(p => p.destination).filter(Boolean) as string[])).sort(),
+    [packages],
+  );
+  const monthOptions = useMemo(() => {
+    const keys = new Set<string>();
+    for (const p of packages || []) {
+      if (!p.going_date) continue;
+      const d = new Date(String(p.going_date) + "T12:00:00");
+      if (isNaN(d.getTime())) continue;
+      keys.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return Array.from(keys).sort().map(k => {
+      const [y, m] = k.split("-");
+      return { value: k, label: `${MONTH_NAMES[Number(m) - 1]} ${y}` };
+    });
+  }, [packages]);
+
+  const displayPackages = useMemo(() => {
+    const filtered = (packages || []).filter(p => {
+      if (originFilter !== "all" && p.origin !== originFilter) return false;
+      if (destinationFilter !== "all" && p.destination !== destinationFilter) return false;
+      if (monthFilter !== "all") {
+        if (!p.going_date) return false;
+        const d = new Date(String(p.going_date) + "T12:00:00");
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (key !== monthFilter) return false;
+      }
+      return true;
+    });
+    const sorted = [...filtered].sort((a, b) => {
+      const av = a.sort_order ?? 0;
+      const bv = b.sort_order ?? 0;
+      if (av !== bv) return sortDir === "asc" ? av - bv : bv - av;
+      const ac = a.created_at ? new Date((a as any).created_at).getTime() : 0;
+      const bc = b.created_at ? new Date((b as any).created_at).getTime() : 0;
+      return sortDir === "asc" ? bc - ac : ac - bc;
+    });
+    return sorted;
+  }, [packages, originFilter, destinationFilter, monthFilter, sortDir]);
+
+  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all" || monthFilter !== "all";
+
+  useEffect(() => { setPage(1); }, [originFilter, destinationFilter, monthFilter, sortDir]);
+
   async function nextPackageBaseNumber(): Promise<number> {
     const { count, error } = await supabase
       .from("packages")
