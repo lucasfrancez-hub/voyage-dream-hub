@@ -530,14 +530,14 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
                 Texto para {output.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
               </div>
               <div className="flex items-center gap-2">
-                {output.channel === "whatsapp" && (
+                {shareFile && (
                   <button
                     type="button"
-                    onClick={sendToWhatsApp}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#25D366]/40 bg-[#25D366]/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#25D366] hover:bg-[#25D366] hover:text-white transition-colors"
-                    title="Enviar no WhatsApp (com imagem quando suportado)"
+                    onClick={copyImage}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-200 hover:border-brand-orange hover:text-brand-orange"
+                    title="Copiar foto do pacote"
                   >
-                    <Send className="h-3 w-3" /> Enviar
+                    <ImageDown className="h-3 w-3" /> Copiar foto
                   </button>
                 )}
                 <button
@@ -545,7 +545,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
                   onClick={copyText}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-200 hover:border-brand-orange hover:text-brand-orange"
                 >
-                  <Copy className="h-3 w-3" /> Copiar
+                  <Copy className="h-3 w-3" /> Copiar texto
                 </button>
               </div>
 
