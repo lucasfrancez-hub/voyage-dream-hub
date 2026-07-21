@@ -25,7 +25,7 @@ import { generatePackageSummary, searchCoverImages, extractFlightFromImage, extr
 import { normalizeFlightBaggage } from "@/lib/packages/flight-baggage";
 import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
 import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions";
-import { FileUp, Upload, ChevronLeft, ChevronRight, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
+import { FileUp, Upload, ChevronLeft, ChevronRight, ChevronDown, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 
