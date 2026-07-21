@@ -207,23 +207,6 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
         </div>
         {scope === "mine" && (
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 flex-1 sm:flex-none"
-              onClick={async () => {
-                const t = toast.loading("Recalculando títulos…");
-                try {
-                  const r = await backfillAutoTitles();
-                  toast.success(`Títulos atualizados em ${r.updated}/${r.total} pedidos.`, { id: t });
-                  qc.invalidateQueries({ queryKey: ["orders"] });
-                } catch (e) {
-                  toast.error("Falha ao recalcular títulos", { id: t, description: (e as Error).message });
-                }
-              }}
-            >
-              <Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">Recalcular</span> títulos
-            </Button>
             <Button variant="outline" size="sm" onClick={() => setMondeSaleOpen(true)} className="gap-2 flex-1 sm:flex-none">
               <Cloud className="h-4 w-4" /> <span>Importar venda Monde</span>
             </Button>
