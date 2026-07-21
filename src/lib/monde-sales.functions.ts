@@ -635,20 +635,23 @@ export const importMondeSale = createServerFn({ method: "POST" })
       if (iErr || !itemRow) continue;
       const itemId = (itemRow as any).id as string;
 
-      // Financeiro
+      // Financeiro — só no primeiro segmento do bilhete (evita duplicar valor)
       const raw = it.raw as any;
-      await context.supabase.from("order_item_financials").insert({
-        order_item_id: itemId,
-        supplier_name: it.supplier,
-        sale_value: raw.totals?.products ?? raw.totals?.amount ?? it.customer_amount,
-        tax_value: raw.totals?.fees ?? 0,
-        discount_value: raw.totals?.discount ?? 0,
-        commission_value: raw.commission_amount ?? 0,
-        commission_pct: raw.commission_percentage ?? 0,
-        rav_value: raw.totals?.rav_fee ?? 0,
-        total: it.customer_amount,
-        is_commissionable: true,
-      });
+      const isConnectionSegment = it.kind === "flight" && (raw.__segment_index ?? 0) > 0;
+      if (!isConnectionSegment) {
+        await context.supabase.from("order_item_financials").insert({
+          order_item_id: itemId,
+          supplier_name: it.supplier,
+          sale_value: raw.totals?.products ?? raw.totals?.amount ?? it.customer_amount,
+          tax_value: raw.totals?.fees ?? 0,
+          discount_value: raw.totals?.discount ?? 0,
+          commission_value: raw.commission_amount ?? 0,
+          commission_pct: raw.commission_percentage ?? 0,
+          rav_value: raw.totals?.rav_fee ?? 0,
+          total: it.customer_amount,
+          is_commissionable: true,
+        });
+      }
 
       // Vincula passageiros deste item
       for (const paxItem of raw.passengers ?? []) {
