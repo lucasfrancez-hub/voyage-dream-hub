@@ -7,8 +7,10 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, MapPin, Sparkles, Navigation } from "lucide-react";
+import { MapPin, Flame, Navigation } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+
+
 
 /**
  * Quando `linkBaseUrl` é passado, os cards viram <a target="_blank"> apontando
