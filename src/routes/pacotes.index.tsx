@@ -100,9 +100,7 @@ function PacotesList() {
     const rangeFrom = dateRange?.from ? new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate()).getTime() : null;
     const rangeTo = dateRange?.to
       ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59).getTime()
-      : rangeFrom !== null
-        ? new Date(dateRange!.from!.getFullYear(), dateRange!.from!.getMonth(), dateRange!.from!.getDate(), 23, 59, 59).getTime()
-        : null;
+      : null;
 
     const filtered = (packages || []).filter((p) => {
       const originMatch = originFilter === "all" || p.origin === originFilter;
@@ -117,17 +115,23 @@ function PacotesList() {
         }
       }
       let rangeMatch = true;
-      if (rangeFrom !== null && rangeTo !== null) {
+      if (rangeFrom !== null) {
         if (!p.going_date) rangeMatch = false;
         else {
           const goingTs = new Date(String(p.going_date) + "T12:00:00").getTime();
           const returnTs = p.return_date
             ? new Date(String(p.return_date) + "T12:00:00").getTime()
             : goingTs;
-          // Pacote deve caber inteiro dentro do intervalo (ida >= from e volta <= to)
-          rangeMatch = goingTs >= rangeFrom && returnTs <= rangeTo;
+          if (rangeTo !== null) {
+            // Intervalo completo: pacote deve caber dentro (ida >= from e volta <= to)
+            rangeMatch = goingTs >= rangeFrom && returnTs <= rangeTo;
+          } else {
+            // Só data inicial: "A partir de" — ida deve ser >= from (aberto)
+            rangeMatch = goingTs >= rangeFrom;
+          }
         }
       }
+
       return originMatch && destinationMatch && monthMatch && rangeMatch;
     });
 
