@@ -290,7 +290,10 @@ function AdminLayout() {
         <div className="mx-auto max-w-7xl px-3 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <img src={viaAirLogo.url} alt="VIA AIR" className="h-5 w-auto opacity-80" />
-            <span>Sistema produzido por <span className="font-medium text-foreground">VIA AIR</span></span>
+            <span>
+              Sistema produzido por <span className="font-medium text-foreground">VIA AIR</span>
+              <span className="opacity-60"> · © {new Date().getFullYear()} Todos os direitos reservados</span>
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span>Versão <span className="font-mono text-foreground">{APP_VERSION}</span></span>
