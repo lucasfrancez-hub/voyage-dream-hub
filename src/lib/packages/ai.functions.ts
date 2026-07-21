@@ -908,7 +908,38 @@ Retorne SÓ o JSON.`;
       });
     }
 
+    // Safety sweep: garante que nenhum orçamento entre 1..max(totalCount,10) seja
+    // esquecido — cobre casos em que a contagem inicial errou pra menos.
+    const targetMax = Math.max(totalCount || 0, 10);
+    const stillMissing: number[] = [];
+    for (let i = 1; i <= targetMax; i++) if (!collected.has(i)) stillMissing.push(i);
+    if (stillMissing.length > 0) {
+      try {
+        const sweep = await extractBatch(1, targetMax);
+        for (const pkg of sweep) {
+          if (!pkg || typeof pkg !== "object") continue;
+          const idx = Number(pkg.index);
+          if (!Number.isFinite(idx) || idx <= 0) continue;
+          if (!collected.has(idx)) collected.set(idx, pkg);
+        }
+      } catch {}
+      // Tenta individualmente os que ainda faltarem (até 10)
+      for (const i of stillMissing) {
+        if (collected.has(i)) continue;
+        if (collected.size >= 10) break;
+        try {
+          const arr = await extractBatch(i, i);
+          for (const pkg of arr) {
+            if (!pkg || typeof pkg !== "object") continue;
+            const idx = Number(pkg.index) || i;
+            if (!collected.has(idx)) collected.set(idx, pkg);
+          }
+        } catch {}
+      }
+    }
+
     const arr = [...collected.entries()].sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+
 
     const cleanNo = (v: any): string | undefined => {
       if (v == null) return undefined;
