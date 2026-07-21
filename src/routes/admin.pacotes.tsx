@@ -24,7 +24,8 @@ import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { generatePackageSummary, searchCoverImages, extractFlightFromImage, extractPackageFromDocument, extractMultiplePackagesFromDocument } from "@/lib/packages/ai.functions";
 import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
 import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions";
-import { FileUp, Upload, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileUp, Upload, ChevronLeft, ChevronRight, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
+import { CurationTab } from "@/components/packages/CurationTab";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
