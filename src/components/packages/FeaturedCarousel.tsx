@@ -86,6 +86,15 @@ function haversineKm(a: [number, number], b: [number, number]) {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
+/** Formata "2026-03-14" → "14 mar" (pt-BR, curto, sem timezone shift). */
+function fmtShortDate(iso?: string | null): string | null {
+  if (!iso) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return null;
+  const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  return `${m[3]} ${months[Number(m[2]) - 1]}`;
+}
+
 export function FeaturedCarousel({
   packages,
   linkBaseUrl,
@@ -96,7 +105,9 @@ export function FeaturedCarousel({
 
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [nearestOrigin, setNearestOrigin] = useState<string | null>(null);
-
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const pauseUntilRef = useRef(0);
+  const [hover, setHover] = useState(false);
 
 
   // Solicita geolocalização silenciosamente (o navegador pede permissão).
@@ -111,15 +122,12 @@ export function FeaturedCarousel({
 
   const featured = useMemo(() => {
     const active = (packages || []).filter((p) => p.is_active);
-    // "Destaques" = os de menor sort_order (mais no topo do admin).
     const base = [...active].sort(
       (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
     );
 
     if (!userCoords) return base.slice(0, 12);
 
-    // Ranking por proximidade: cada pacote recebe a distância da origem
-    // até o usuário; sem origem conhecida ficam no fim.
     const scored = base.map((p) => {
       const c = coordsFor(p.origin);
       const dist = c ? haversineKm(userCoords, c) : Number.POSITIVE_INFINITY;
@@ -131,12 +139,39 @@ export function FeaturedCarousel({
     return scored.slice(0, 12).map((s) => s.p);
   }, [packages, userCoords]);
 
-  // Marquee 100% CSS — mais confiável que rAF. A trilha (`.vfc-track`) tem
-  // 2x a lista (loop) e desliza -50% em N segundos, infinito e linear. No
-  // hover, pausa via `animation-play-state`.
+  const loop = useMemo(() => [...featured, ...featured], [featured]);
+
+  // Auto-scroll contínuo baseado em scrollLeft (permite controle manual).
+  // Pausa quando hover ou quando o usuário clicou prev/next (por 4s).
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el || featured.length === 0) return;
+    let raf = 0;
+    let last = performance.now();
+    const speed = 32; // px/s
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      if (!hover && now > pauseUntilRef.current) {
+        el.scrollLeft += speed * dt;
+        const half = el.scrollWidth / 2;
+        if (half > 0 && el.scrollLeft >= half) el.scrollLeft -= half;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [featured.length, hover]);
+
+  const nudge = (dir: 1 | -1) => {
+    const el = viewportRef.current;
+    if (!el) return;
+    // Pausa o auto-play por 4s após qualquer interação manual.
+    pauseUntilRef.current = performance.now() + 4000;
+    el.scrollBy({ left: dir * 260, behavior: "smooth" });
+  };
+
   if (featured.length === 0) return null;
-  const loop = [...featured, ...featured];
-  const durationSec = Math.max(30, featured.length * 4.5);
 
   return (
     <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-white/5 bg-[#0B1218] p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] sm:p-8">
@@ -145,46 +180,62 @@ export function FeaturedCarousel({
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-brand-orange/[0.07] blur-[100px]" />
 
       <style>{`
-        @keyframes vfc-marquee {
-          from { transform: translate3d(0, 0, 0); }
-          to   { transform: translate3d(-50%, 0, 0); }
-        }
-        .vfc-track {
-          animation: vfc-marquee ${durationSec}s linear infinite;
-          will-change: transform;
-        }
-        .vfc-viewport:hover .vfc-track { animation-play-state: paused; }
+        .vfc-viewport::-webkit-scrollbar { display: none; }
+        .vfc-viewport { scrollbar-width: none; -ms-overflow-style: none; }
       `}</style>
 
-      <div className="relative z-10 mb-6 flex items-center gap-4">
-        {/* Badge do ícone com glow laranja atrás */}
-        <div className="relative shrink-0">
-          <div className="absolute inset-0 rounded-2xl bg-brand-orange opacity-25 blur-xl" />
-          <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-orange shadow-[0_8px_16px_rgba(242,107,31,0.25)]">
-            <MapPin className="h-5 w-5 text-white" strokeWidth={2.4} />
+      <div className="relative z-10 mb-6 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          {/* Badge do ícone com glow laranja atrás */}
+          <div className="relative shrink-0">
+            <div className="absolute inset-0 rounded-2xl bg-brand-orange opacity-25 blur-xl" />
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-orange shadow-[0_8px_16px_rgba(242,107,31,0.25)]">
+              <MapPin className="h-5 w-5 text-white" strokeWidth={2.4} />
+            </div>
+          </div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-extrabold uppercase tracking-[0.2em] text-brand-orange">
+              Pacotes em destaque
+            </div>
+            {nearestOrigin ? (
+              <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-white/40">
+                <Navigation className="h-3 w-3" />
+                Priorizando saídas próximas de você
+              </div>
+            ) : (
+              <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
+                Ofertas escolhidas a dedo pra sua próxima viagem
+              </div>
+            )}
           </div>
         </div>
-        <div className="min-w-0">
-          <div className="text-[13px] font-extrabold uppercase tracking-[0.2em] text-brand-orange">
-            Pacotes em destaque
-          </div>
-          {nearestOrigin ? (
-            <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-white/40">
-              <Navigation className="h-3 w-3" />
-              Priorizando saídas próximas de você
-            </div>
-          ) : (
-            <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
-              Ofertas escolhidas a dedo pra sua próxima viagem
-            </div>
-          )}
+
+        {/* Controles manuais — pausam o auto-play por 4s */}
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            aria-label="Anterior"
+            onClick={() => nudge(-1)}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/60 transition hover:border-brand-orange/60 hover:bg-white/5 hover:text-white"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            aria-label="Próximo"
+            onClick={() => nudge(1)}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/60 transition hover:border-brand-orange/60 hover:bg-white/5 hover:text-white"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
-
-
       <div
-        className="vfc-viewport relative overflow-hidden"
+        ref={viewportRef}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        className="vfc-viewport relative overflow-x-auto overflow-y-hidden"
         style={{
           maskImage:
             "linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent)",
@@ -192,10 +243,13 @@ export function FeaturedCarousel({
             "linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent)",
         }}
       >
-        <div className="vfc-track flex w-max gap-3.5 pb-1">
+        <div className="flex w-max gap-3.5 pb-1">
 
           {loop.map((p, i) => {
             const total = Number(p.price_per_person) * (p.base_occupancy ?? 2);
+            const goStr = fmtShortDate(p.going_date);
+            const retStr = fmtShortDate(p.return_date);
+            const dateLabel = goStr && retStr ? `${goStr} — ${retStr}` : goStr || retStr;
             const cardClass =
               "group relative w-[230px] shrink-0 overflow-hidden rounded-2xl bg-[#0f1a26] ring-1 ring-white/10 transition duration-300 hover:-translate-y-0.5 hover:ring-brand-orange/60";
             const cardKey = `${p.id}-${i}`;
@@ -221,6 +275,14 @@ export function FeaturedCarousel({
                     <MapPin className="h-2.5 w-2.5 text-white" />
                     {p.destination}
                   </div>
+
+                  {/* Chip datas — canto superior direito */}
+                  {dateLabel && (
+                    <div className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white shadow-lg shadow-black/40 ring-1 ring-white/15 backdrop-blur-sm">
+                      <CalendarDays className="h-2.5 w-2.5 text-white/85" />
+                      {dateLabel}
+                    </div>
+                  )}
 
 
                   <div className="absolute bottom-0 left-0 right-0 p-3.5">
@@ -275,4 +337,5 @@ export function FeaturedCarousel({
     </div>
   );
 }
+
 
