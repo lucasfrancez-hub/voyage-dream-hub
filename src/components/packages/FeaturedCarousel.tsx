@@ -114,6 +114,26 @@ export function FeaturedCarousel({
   const [nearestOrigin, setNearestOrigin] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const pauseUntilRef = useRef(0);
+  // Largura de card calculada pra caber exatamente 5 por vez.
+  const [cardW, setCardW] = useState<number>(240);
+
+  // Mede a largura do viewport e reparte pra 5 cards + 4 gaps (14px cada).
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const GAP = 14;
+    const VISIBLE = 5;
+    const recalc = () => {
+      const w = el.clientWidth;
+      if (!w) return;
+      const next = Math.max(180, Math.floor((w - GAP * (VISIBLE - 1)) / VISIBLE));
+      setCardW(next);
+    };
+    recalc();
+    const ro = new ResizeObserver(recalc);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
 
 
@@ -187,7 +207,7 @@ export function FeaturedCarousel({
     if (!el) return;
     // Pausa o auto-play por 4s após qualquer interação manual.
     pauseUntilRef.current = performance.now() + 4000;
-    el.scrollBy({ left: dir * 260, behavior: "smooth" });
+    el.scrollBy({ left: dir * (cardW + 14), behavior: "smooth" });
   };
 
   if (featured.length === 0) return null;
@@ -205,49 +225,8 @@ export function FeaturedCarousel({
       `}</style>
 
       <div className="relative z-10 mb-6 flex items-center justify-between gap-4">
-        {hideBrandHeader ? (
-          <div className="min-w-0">
-            {viewAllUrl && (
-              <a
-                href={viewAllUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-[12px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_8px_20px_rgba(242,107,31,0.35)] transition hover:brightness-110"
-              >
-                Ver todos os pacotes
-                <span aria-hidden>→</span>
-              </a>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-4 min-w-0">
-            {/* Badge do ícone com glow laranja atrás */}
-            <div className="relative shrink-0">
-              <div className="absolute inset-0 rounded-2xl bg-brand-orange opacity-25 blur-xl" />
-              <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-orange shadow-[0_8px_16px_rgba(242,107,31,0.25)]">
-                <MapPin className="h-5 w-5 text-white" strokeWidth={2.4} />
-              </div>
-            </div>
-            <div className="min-w-0">
-              <div className="text-[13px] font-extrabold uppercase tracking-[0.2em] text-brand-orange">
-                Pacotes em destaque
-              </div>
-              {nearestOrigin ? (
-                <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-white/40">
-                  <Navigation className="h-3 w-3" />
-                  Priorizando saídas próximas de você
-                </div>
-              ) : (
-                <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
-                  Ofertas escolhidas a dedo pra sua próxima viagem
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Controles manuais — pausam o auto-play por 4s */}
-        <div className="flex shrink-0 gap-2">
+        {/* Controles manuais — pausam o auto-play por 4s (esquerda) */}
+        <div className="flex shrink-0 gap-2 order-1">
           <button
             type="button"
             aria-label="Anterior"
@@ -265,6 +244,47 @@ export function FeaturedCarousel({
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
+
+        {hideBrandHeader ? (
+          <div className="min-w-0 order-2 ml-auto">
+            {viewAllUrl && (
+              <a
+                href={viewAllUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-[12px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_8px_20px_rgba(242,107,31,0.35)] transition hover:brightness-110"
+              >
+                Ver todos os pacotes
+                <span aria-hidden>→</span>
+              </a>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 min-w-0 order-2 ml-auto">
+            {/* Badge do ícone com glow laranja atrás */}
+            <div className="relative shrink-0">
+              <div className="absolute inset-0 rounded-2xl bg-brand-orange opacity-25 blur-xl" />
+              <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-orange shadow-[0_8px_16px_rgba(242,107,31,0.25)]">
+                <MapPin className="h-5 w-5 text-white" strokeWidth={2.4} />
+              </div>
+            </div>
+            <div className="min-w-0 text-right">
+              <div className="text-[13px] font-extrabold uppercase tracking-[0.2em] text-brand-orange">
+                Pacotes em destaque
+              </div>
+              {nearestOrigin ? (
+                <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-white/40 justify-end">
+                  <Navigation className="h-3 w-3" />
+                  Priorizando saídas próximas de você
+                </div>
+              ) : (
+                <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
+                  Ofertas escolhidas a dedo pra sua próxima viagem
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div
@@ -287,7 +307,7 @@ export function FeaturedCarousel({
             const retStr = fmtShortDate(p.return_date);
             const dateLabel = goStr && retStr ? `${goStr} — ${retStr}` : goStr || retStr;
             const cardClass =
-              "group relative w-[230px] shrink-0 overflow-hidden rounded-2xl bg-[#0f1a26] ring-1 ring-white/10 transition duration-300 hover:-translate-y-0.5 hover:ring-brand-orange/60";
+              "group relative shrink-0 overflow-hidden rounded-2xl bg-[#0f1a26] ring-1 ring-white/10 transition duration-300 hover:-translate-y-0.5 hover:ring-brand-orange/60";
             const cardKey = `${p.id}-${i}`;
             const CardInner = (
               <div className="relative aspect-[4/5] overflow-hidden">
@@ -346,6 +366,7 @@ export function FeaturedCarousel({
                 rel="noopener noreferrer"
                 data-card
                 className={cardClass}
+                style={{ width: cardW }}
               >
                 {CardInner}
               </a>
@@ -356,6 +377,7 @@ export function FeaturedCarousel({
                 params={{ slug: p.slug }}
                 data-card
                 className={cardClass}
+                style={{ width: cardW }}
               >
                 {CardInner}
               </Link>
