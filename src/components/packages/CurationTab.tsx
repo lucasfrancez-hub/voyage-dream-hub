@@ -364,7 +364,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     }
 
     // 2) Desktop: baixa a imagem no computador do usuário e copia o texto.
-    //    Ele solta a imagem no WhatsApp Web e cola o texto na legenda.
+    //    Ele anexa a imagem no aplicativo do WhatsApp e cola o texto na legenda.
     if (file) {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(file);
@@ -376,16 +376,19 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     }
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
 
-    // 3) Abre WhatsApp Web sem passar o texto na URL (evita a prévia do link do preview).
-    //    O usuário escolhe o contato e cola o texto (já está no clipboard).
-    const webUrl = "https://web.whatsapp.com/";
-    const opened = window.open(webUrl, "_blank", "noopener,noreferrer");
-    if (!opened) window.location.href = "whatsapp://";
+    // 3) Abre diretamente o aplicativo instalado. Links web externos são bloqueados
+    //    pelo preview incorporado e, por isso, não são usados como fallback.
+    const appLink = document.createElement("a");
+    appLink.href = "whatsapp://send";
+    appLink.style.display = "none";
+    document.body.appendChild(appLink);
+    appLink.click();
+    appLink.remove();
 
     toast.message(file ? "Imagem baixada e texto copiado" : "Texto copiado", {
       description: file
-        ? "No WhatsApp Web, escolha o contato, arraste a imagem baixada e cole (Cmd/Ctrl+V) a legenda."
-        : "Escolha o contato no WhatsApp Web e cole (Cmd/Ctrl+V) a mensagem.",
+        ? "No aplicativo do WhatsApp, escolha o contato, anexe a imagem baixada e cole (Cmd/Ctrl+V) a legenda."
+        : "No aplicativo do WhatsApp, escolha o contato e cole (Cmd/Ctrl+V) a mensagem.",
     });
   }
 
