@@ -13,6 +13,51 @@ const BASE_URL = "https://web.monde.com.br/api/v3";
 const PAGE_SIZE = 50;
 const MAX_PAGES = 40; // 40 × 50 = 2000 vendas cobertas na busca
 
+/** Enriquecimento de voo via AeroDataBox — cidades, aeroportos e horários locais. */
+type AeroInfo = {
+  fromCity?: string; toCity?: string;
+  fromAirport?: string; toAirport?: string;
+  departAt?: string; arriveAt?: string;
+  airline?: string; airlineIata?: string;
+};
+const AERO_CACHE = new Map<string, AeroInfo | null>();
+async function enrichFlightFromAero(flightNumber: string | null | undefined, date: string | null | undefined): Promise<AeroInfo | null> {
+  const apiKey = process.env.RAPIDAPI_AERODATABOX_KEY;
+  if (!apiKey || !flightNumber || !date) return null;
+  const num = String(flightNumber).replace(/\s+/g, "").toUpperCase();
+  const day = String(date).slice(0, 10);
+  if (!/^[A-Z0-9]{3,10}$/.test(num) || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const cacheKey = `${num}|${day}`;
+  if (AERO_CACHE.has(cacheKey)) return AERO_CACHE.get(cacheKey) ?? null;
+  try {
+    const resp = await fetch(
+      `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(num)}/${day}?withAircraftImage=false&withLocation=false`,
+      { headers: { "x-rapidapi-key": apiKey, "x-rapidapi-host": "aerodatabox.p.rapidapi.com" } },
+    );
+    if (!resp.ok) { AERO_CACHE.set(cacheKey, null); return null; }
+    const raw = (await resp.json().catch(() => null)) as any[] | null;
+    const f = Array.isArray(raw) ? raw[0] : null;
+    if (!f) { AERO_CACHE.set(cacheKey, null); return null; }
+    const toLocal = (v?: string) => {
+      if (!v) return undefined;
+      const m = v.replace(" ", "T").match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+      return m ? `${m[1]}T${m[2]}` : undefined;
+    };
+    const info: AeroInfo = {
+      fromCity: f.departure?.airport?.municipalityName,
+      toCity: f.arrival?.airport?.municipalityName,
+      fromAirport: f.departure?.airport?.name,
+      toAirport: f.arrival?.airport?.name,
+      departAt: toLocal(f.departure?.scheduledTime?.local),
+      arriveAt: toLocal(f.arrival?.scheduledTime?.local),
+      airline: f.airline?.name,
+      airlineIata: f.airline?.iata,
+    };
+    AERO_CACHE.set(cacheKey, info);
+    return info;
+  } catch { AERO_CACHE.set(cacheKey, null); return null; }
+}
+
 async function ensureAdmin(ctx: { supabase: any; userId: string }) {
   const { data } = await ctx.supabase
     .from("user_roles")
