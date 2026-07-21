@@ -779,7 +779,7 @@ function AdminPackages() {
 
 
       {(() => {
-        const total = packages?.length ?? 0;
+        const total = displayPackages.length;
         const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
         const current = Math.min(page, totalPages);
         if (total <= PAGE_SIZE) return null;
