@@ -496,7 +496,8 @@ export const importMondeSale = createServerFn({ method: "POST" })
     const payerId = payer ? await upsertPerson(context, payer) : null;
     const cpfClean = (payer.cpf_cnpj ?? "").replace(/\D+/g, "");
     const totalPrice = sale.totals?.final_value ?? sale.totals?.payments ?? 0;
-    const passengers = extractPassengers(sale);
+    const passengers = await enrichPassengers(extractPassengers(sale));
+    const ticketsByPax = collectTicketsByPassenger(sale);
     const items = summarizeItems(sale);
 
     // primeira locator de aéreo, se houver
