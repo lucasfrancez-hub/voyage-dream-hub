@@ -13,6 +13,8 @@ import {
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { AdminNotificationBell } from "@/components/admin/NotificationBell";
 import { GlobalSearchButton } from "@/components/admin/GlobalSearch";
+import { APP_VERSION, APP_BUILD_DATE } from "@/lib/version";
+
 
 
 export const Route = createFileRoute("/admin")({
