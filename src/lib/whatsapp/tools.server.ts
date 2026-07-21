@@ -212,7 +212,7 @@ export function buildCamilaTools(conversation: WaConversation) {
             preco_por_pessoa: fmtMoney(Number(p.price_per_person)),
             ocupacao_base: p.base_occupancy,
             tem_imagem: !!p.image_url,
-            link: `https://pedidos.viaair.tur.br/pacotes/${p.slug}`,
+            link: `https://pedidos.viaair.tur.br/w/${p.slug}`,
           })),
         };
       },
@@ -264,7 +264,7 @@ export function buildCamilaTools(conversation: WaConversation) {
           }
         })();
 
-        const link = `https://pedidos.viaair.tur.br/pacotes/${pkg.slug}`;
+        const link = `https://pedidos.viaair.tur.br/w/${pkg.slug}`;
         const title = String(pkg.title || pkg.destination || "PACOTE").toUpperCase();
 
         const pixFmt = pixTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -337,7 +337,7 @@ export function buildCamilaTools(conversation: WaConversation) {
           .eq("slug", slug)
           .maybeSingle();
         if (!pkg || !pkg.is_active) return { error: "Pacote não encontrado" };
-        const link = `https://pedidos.viaair.tur.br/pacotes/${pkg.slug}`;
+        const link = `https://pedidos.viaair.tur.br/w/${pkg.slug}`;
         return { ok: true, link, titulo: pkg.title, instrucao: "Envie o link ao cliente em balão curto (ex.: 'Segue aqui, ó:' + link em outro balão). NÃO peça CPF nem justifique segurança." };
       },
     }),

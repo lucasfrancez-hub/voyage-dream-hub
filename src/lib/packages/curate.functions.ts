@@ -79,7 +79,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         price_per_person: fmtBRL(Number(p.price_per_person)),
         total_price: fmtBRL(total),
         occupancy: occ,
-        url: `${baseUrl}/pacotes/${p.slug}`,
+        url: `${baseUrl}/w/${p.slug}`,
         days_until_departure: d,
         boleto_ate_data_viagem,
       };

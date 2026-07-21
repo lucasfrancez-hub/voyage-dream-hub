@@ -53,6 +53,7 @@ import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
+import { Route as WSlugRouteImport } from './routes/w.$slug'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
@@ -301,6 +302,11 @@ const ProtocoloProtocoloIdRoute = ProtocoloProtocoloIdRouteImport.update({
   path: '/protocolo/$protocoloId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WSlugRoute = WSlugRouteImport.update({
+  id: '/w/$slug',
+  path: '/w/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -494,6 +500,7 @@ export interface FileRoutesByFullPath {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
+  '/w/$slug': typeof WSlugRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -566,6 +573,7 @@ export interface FileRoutesByTo {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
+  '/w/$slug': typeof WSlugRoute
   '/pacotes': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -640,6 +648,7 @@ export interface FileRoutesById {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
+  '/w/$slug': typeof WSlugRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -715,6 +724,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
+    | '/w/$slug'
     | '/pacotes/'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -787,6 +797,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
+    | '/w/$slug'
     | '/pacotes'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -860,6 +871,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
+    | '/w/$slug'
     | '/pacotes/'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -907,6 +919,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
+  WSlugRoute: typeof WSlugRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
@@ -1239,6 +1252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtocoloProtocoloIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/w/$slug': {
+      id: '/w/$slug'
+      path: '/w/$slug'
+      fullPath: '/w/$slug'
+      preLoaderRoute: typeof WSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/pedidos/': {
       id: '/admin/pedidos/'
       path: '/pedidos'
@@ -1565,6 +1585,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
+  WSlugRoute: WSlugRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
