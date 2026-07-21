@@ -202,11 +202,12 @@ export function FeaturedCarousel({
                   {/* Gradient forte no rodapé pra dar contraste ao texto */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
 
-                  {/* Chip destino — glass, discreto */}
-                  <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-md ring-1 ring-white/15">
-                    <MapPin className="h-2.5 w-2.5 text-brand-orange" />
+                  {/* Chip destino — laranja da marca */}
+                  <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-brand-orange px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-black/30 ring-1 ring-white/20">
+                    <MapPin className="h-2.5 w-2.5 text-white" />
                     {p.destination}
                   </div>
+
 
                   <div className="absolute bottom-0 left-0 right-0 p-3.5">
                     <div
