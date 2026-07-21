@@ -6,6 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import { Loader2, Printer, ShieldCheck, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { listProtocoloMessages, ensureProtocoloResumo, getProtocoloDetail } from "@/lib/chat/queries.functions";
+import { registerProtocolHash } from "@/lib/protocolo-verify.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/protocolo/$protocoloId")({

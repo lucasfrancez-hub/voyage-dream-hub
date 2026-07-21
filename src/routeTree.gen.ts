@@ -22,6 +22,7 @@ import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
+import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as AdminCheckinTreinoRouteImport } from './routes/admin.checkin-treino'
 import { Route as AdminCheckinsRouteImport } from './routes/admin.checkins'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
@@ -145,6 +146,11 @@ const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
   path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ValidacaoRoute = ValidacaoRouteImport.update({
+  id: '/validacao',
+  path: '/validacao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminCheckinTreinoRoute = AdminCheckinTreinoRouteImport.update({
@@ -470,6 +476,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/validacao': typeof ValidacaoRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -543,6 +550,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/validacao': typeof ValidacaoRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -618,6 +626,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/validacao': typeof ValidacaoRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -694,6 +703,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
+    | '/validacao'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -767,6 +777,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
+    | '/validacao'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -841,6 +852,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
+    | '/validacao'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -916,6 +928,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosDeUsoRoute: typeof TermosDeUsoRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  ValidacaoRoute: typeof ValidacaoRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
@@ -1033,6 +1046,13 @@ declare module '@tanstack/react-router' {
       path: '/unsubscribe'
       fullPath: '/unsubscribe'
       preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/validacao': {
+      id: '/validacao'
+      path: '/validacao'
+      fullPath: '/validacao'
+      preLoaderRoute: typeof ValidacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/checkin-treino': {
@@ -1582,6 +1602,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosDeUsoRoute: TermosDeUsoRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  ValidacaoRoute: ValidacaoRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
