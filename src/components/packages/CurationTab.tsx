@@ -279,6 +279,34 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
     <CopyCacheContext.Provider value={{ cache, setEntry }}>
 
     <div className="space-y-8">
+      {/* Barra de origem + refresh */}
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Origem</label>
+        <select
+          value={originFilter}
+          onChange={(e) => setOriginFilter(e.target.value)}
+          className="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-orange"
+        >
+          <option value="all">Todas as origens ({activeAll.length})</option>
+          {originOptions.map((o) => {
+            const n = activeAll.filter((p) => (p.origin || "").trim() === o).length;
+            return <option key={o} value={o}>{o} ({n})</option>;
+          })}
+        </select>
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={doRefresh}
+            disabled={refreshing}
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 disabled:opacity-50"
+          >
+            <RefreshCw className={"h-3.5 w-3.5 " + (refreshing ? "animate-spin" : "")} />
+            Atualizar
+          </button>
+        )}
+        <span className="text-[10px] text-slate-500">Auto-atualiza a cada 2h</span>
+      </div>
+
       {/* Chips de filtro */}
       {groups.length > 1 && (
         <div className="flex flex-wrap gap-2 pb-6 border-b border-white/5">
