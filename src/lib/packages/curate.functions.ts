@@ -95,8 +95,6 @@ NUNCA cumprimente, NUNCA se apresente ("Olá, aqui é a Camila…" está PROIBID
 FORMATO OBRIGATÓRIO (copie exatamente, incluindo asteriscos do WhatsApp para negrito):
 
 *DESTINO EM CAIXA ALTA* {1-2 emojis do país/vibe}
-
-
 _{Gancho de UMA linha, CRIATIVO E ORIGINAL, 100% conectado ao destino específico "{destino}" e ao clima/vibe do tema "${data.groupTitle}". VARIE MUITO a abertura — NÃO comece sempre com "Já imaginou". Alterne livremente entre estas famílias (escolha aleatoriamente uma diferente a cada pacote, e nunca repita a mesma abertura no mesmo lote):
  • Pergunta sensorial ("Sente o cheiro do mar chegando?", "Que tal acordar com vista pra montanha?")
  • Provocação/curiosidade ("Poucos sabem, mas ${"{destino}"} em NOVEMBRO fica quase deserto…", "Existe um jeito de conhecer ${"{destino}"} gastando menos do que você imagina.")
