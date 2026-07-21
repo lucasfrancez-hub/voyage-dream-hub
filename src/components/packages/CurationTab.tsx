@@ -338,36 +338,54 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
   async function sendToWhatsApp() {
     if (!output) return;
     const text = output.text;
-    // Try native share with image file (mobile / PWA)
-    if (pkg.image_url && typeof navigator !== "undefined" && (navigator as any).canShare) {
+
+    // Tenta buscar a imagem do pacote (usada nas 3 vias abaixo).
+    let file: File | null = null;
+    if (pkg.image_url) {
       try {
         const resp = await fetch(pkg.image_url, { mode: "cors" });
         if (resp.ok) {
           const blob = await resp.blob();
           const ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
-          const file = new File([blob], `${pkg.slug}.${ext}`, { type: blob.type || "image/jpeg" });
-          const shareData: any = { files: [file], text };
-          if ((navigator as any).canShare(shareData)) {
-            await (navigator as any).share(shareData);
-            return;
-          }
+          file = new File([blob], `${pkg.slug}.${ext}`, { type: blob.type || "image/jpeg" });
         }
-      } catch {
-        // fall through to wa.me
-      }
+      } catch { /* ignora — segue sem imagem */ }
     }
-    // Fallback: copy text and open WhatsApp Web (wa.me redirects to api.whatsapp.com,
-    // which browsers/iframes bloqueiam com ERR_BLOCKED_BY_RESPONSE).
+
+    // 1) Mobile / PWA / Chrome desktop com share sheet — envia imagem + texto de uma vez.
+    if (file && typeof navigator !== "undefined" && (navigator as any).canShare) {
+      try {
+        const shareData: any = { files: [file], text };
+        if ((navigator as any).canShare(shareData)) {
+          await (navigator as any).share(shareData);
+          return;
+        }
+      } catch { /* fallback abaixo */ }
+    }
+
+    // 2) Desktop: baixa a imagem no computador do usuário e copia o texto.
+    //    Ele solta a imagem no WhatsApp Web e cola o texto na legenda.
+    if (file) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(file);
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5_000);
+    }
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
-    const encoded = encodeURIComponent(text);
-    const webUrl = `https://web.whatsapp.com/send?text=${encoded}`;
+
+    // 3) Abre WhatsApp Web sem passar o texto na URL (evita a prévia do link do preview).
+    //    O usuário escolhe o contato e cola o texto (já está no clipboard).
+    const webUrl = "https://web.whatsapp.com/";
     const opened = window.open(webUrl, "_blank", "noopener,noreferrer");
-    if (!opened) {
-      // Popup bloqueado — tenta protocolo do app nativo
-      window.location.href = `whatsapp://send?text=${encoded}`;
-    }
-    toast.message("WhatsApp aberto", {
-      description: "Texto copiado. Escolha o contato e anexe a imagem do pacote se precisar.",
+    if (!opened) window.location.href = "whatsapp://";
+
+    toast.message(file ? "Imagem baixada e texto copiado" : "Texto copiado", {
+      description: file
+        ? "No WhatsApp Web, escolha o contato, arraste a imagem baixada e cole (Cmd/Ctrl+V) a legenda."
+        : "Escolha o contato no WhatsApp Web e cole (Cmd/Ctrl+V) a mensagem.",
     });
   }
 
