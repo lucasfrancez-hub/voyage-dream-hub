@@ -5,7 +5,7 @@
  * - Se o usuário permitir geolocalização, reordena priorizando os pacotes
  *   cuja origem esteja mais próxima da posição atual.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { MapPin, Flame, Navigation } from "lucide-react";
 import { formatBRL } from "@/lib/format";
