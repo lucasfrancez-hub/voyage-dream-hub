@@ -620,6 +620,27 @@ export const importMondeSale = createServerFn({ method: "POST" })
     for (const p of passengers) {
       const key = p.external_id ?? p.cpf ?? p.name;
       const tickets = ticketsByPax.get(key) ?? [];
+      // Salva como mapa { [locator]: ticket_number } — o renderer espera Record<string,string>.
+      const ticketsMap: Record<string, string> = {};
+      for (const t of tickets) {
+        const k = t.locator || `_${Object.keys(ticketsMap).length + 1}`;
+        ticketsMap[k] = t.ticket_number;
+      }
+      const { data: paxRow, error: paxErr } = await context.supabase
+        .from("order_passengers")
+        .insert({
+          order_id: orderId,
+          full_name: p.name,
+          cpf: p.cpf,
+          birth_date: p.birth_date,
+          passport_number: p.passport,
+          passport_expiry_date: p.passport_expiry,
+          whatsapp: p.phone,
+          ticket_number: tickets[0]?.ticket_number ?? null,
+          tickets: tickets.length ? ticketsMap : null,
+          sort_order: sortP++,
+        })
+        .select("id").single();
       const { data: paxRow, error: paxErr } = await context.supabase
         .from("order_passengers")
         .insert({
