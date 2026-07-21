@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { MapPin, Navigation, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { selectCuratedPackages } from "@/lib/packages/curation-select";
 
 
 
