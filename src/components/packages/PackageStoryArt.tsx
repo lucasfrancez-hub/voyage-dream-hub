@@ -93,10 +93,13 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
       <div className="vstory-outer">
         <div className="vstory-inner">
           {/* Background */}
-          <div className="vstory-bg">
-            <img src={data.backgroundDataUrl} alt="" crossOrigin="anonymous" />
+          <div
+            className="vstory-bg"
+            style={{ backgroundImage: `url("${data.backgroundDataUrl}")` }}
+          >
             <div className="vstory-bg-grad" />
           </div>
+
 
           {/* Content */}
           <div className="vstory-content">
