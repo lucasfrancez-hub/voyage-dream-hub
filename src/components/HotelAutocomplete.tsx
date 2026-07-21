@@ -17,12 +17,20 @@ type Props = {
   disabled?: boolean;
   /** Modo inicial. Padrão: null (usuário escolhe antes de digitar). */
   initialMode?: Mode | null;
+  /** Modo controlado (opcional). Se informado, sobrepõe o estado interno. */
+  mode?: Mode | null;
+  onModeChange?: (mode: Mode | null) => void;
 };
 
-export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, photoLimit = 5, disabled, initialMode = null }: Props) {
+export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, photoLimit = 5, disabled, initialMode = null, mode: modeProp, onModeChange }: Props) {
   const search = useServerFn(searchTripAdvisorHotels);
   const details = useServerFn(getTripAdvisorHotelDetails);
-  const [mode, setMode] = useState<Mode | null>(initialMode ?? (value?.trim() ? "manual" : null));
+  const [internalMode, setInternalMode] = useState<Mode | null>(initialMode ?? (value?.trim() ? "manual" : null));
+  const mode = modeProp !== undefined ? modeProp : internalMode;
+  const setMode = (m: Mode | null) => {
+    if (modeProp === undefined) setInternalMode(m);
+    onModeChange?.(m);
+  };
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<TAHotelSuggestion[]>([]);
