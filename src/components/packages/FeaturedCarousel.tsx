@@ -10,6 +10,13 @@ import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, MapPin, Sparkles, Navigation } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 
+/**
+ * Quando `linkBaseUrl` é passado, os cards viram <a target="_blank"> apontando
+ * pra {linkBaseUrl}/pacotes/{slug} — usado no embed que roda em iframe fora
+ * da SPA (WordPress etc).
+ */
+
+
 type PkgLite = {
   id: string;
   slug: string;
