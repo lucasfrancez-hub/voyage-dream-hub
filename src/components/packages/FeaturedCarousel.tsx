@@ -150,14 +150,20 @@ export function FeaturedCarousel({
     if (!el || featured.length === 0) return;
     let raf = 0;
     let last = performance.now();
-    const speed = 32; // px/s
+    let acc = 0; // acumulador fracionário (scrollLeft é inteiro)
+    const speed = 36; // px/s
     const tick = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
       if (!hoverRef.current && now > pauseUntilRef.current) {
-        el.scrollLeft += speed * dt;
-        const half = el.scrollWidth / 2;
-        if (half > 0 && el.scrollLeft >= half) el.scrollLeft -= half;
+        acc += speed * dt;
+        if (acc >= 1) {
+          const step = Math.floor(acc);
+          acc -= step;
+          el.scrollLeft += step;
+          const half = el.scrollWidth / 2;
+          if (half > 0 && el.scrollLeft >= half) el.scrollLeft -= half;
+        }
       }
       raf = requestAnimationFrame(tick);
     };
@@ -176,7 +182,7 @@ export function FeaturedCarousel({
   if (featured.length === 0) return null;
 
   return (
-    <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-white/5 bg-[#0B1218] p-6 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)] sm:p-8">
+    <div className="relative mb-4 overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-[0_12px_30px_-14px_rgba(0,0,0,0.45)] sm:p-8">
 
       {/* Auras laranjas decorativas nas quinas — glow bem sutil */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-brand-orange/[0.07] blur-[100px]" />
