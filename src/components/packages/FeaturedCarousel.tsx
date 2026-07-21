@@ -137,7 +137,11 @@ export function FeaturedCarousel({
   const durationSec = Math.max(30, featured.length * 4.5);
 
   return (
-    <div className="mb-6 overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-[#12202f] to-[#0a1622] p-4 shadow-lg">
+    <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-white/5 bg-[#0B1218] p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] sm:p-8">
+      {/* Auras laranjas decorativas nas quinas — glow bem sutil */}
+      <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-brand-orange/[0.07] blur-[100px]" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-brand-orange/[0.07] blur-[100px]" />
+
       <style>{`
         @keyframes vfc-marquee {
           from { transform: translate3d(0, 0, 0); }
@@ -150,24 +154,32 @@ export function FeaturedCarousel({
         .vfc-viewport:hover .vfc-track { animation-play-state: paused; }
       `}</style>
 
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange">
-            <Flame className="h-4 w-4 text-white" />
-          </div>
-          <div>
-            <div className="text-[13px] font-bold uppercase tracking-[0.18em] text-brand-orange">
-              Pacotes em destaque
-            </div>
-            {nearestOrigin && (
-              <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                <Navigation className="h-3 w-3" />
-                Priorizando saídas próximas de você · {nearestOrigin}
-              </div>
-            )}
+      <div className="relative z-10 mb-6 flex items-center gap-4">
+        {/* Badge do ícone com glow laranja atrás */}
+        <div className="relative shrink-0">
+          <div className="absolute inset-0 rounded-2xl bg-brand-orange opacity-25 blur-xl" />
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-orange shadow-[0_8px_16px_rgba(242,107,31,0.25)]">
+            <MapPin className="h-5 w-5 text-white" strokeWidth={2.4} />
           </div>
         </div>
+        <div className="min-w-0">
+          <div className="text-[13px] font-extrabold uppercase tracking-[0.2em] text-brand-orange">
+            Pacotes em destaque
+          </div>
+          {nearestOrigin ? (
+            <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-white/40">
+              <Navigation className="h-3 w-3" />
+              Priorizando saídas próximas de você
+            </div>
+          ) : (
+            <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
+              Ofertas escolhidas a dedo pra sua próxima viagem
+            </div>
+          )}
+        </div>
       </div>
+
+
 
       <div
         className="vfc-viewport relative overflow-hidden"
