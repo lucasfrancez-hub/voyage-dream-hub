@@ -164,15 +164,21 @@ export function FeaturedCarousel({
 
     if (!userCoords) return base.slice(0, 12);
 
+    // Raio de priorização: só considera "próximo" origens até 250 km
+    // (ex.: em Paranavaí pega Maringá ~75km e Londrina ~150km, mas não Curitiba ~450km).
+    const RADIUS_KM = 250;
     const scored = base.map((p) => {
       const c = coordsFor(p.origin);
       const dist = c ? haversineKm(userCoords, c) : Number.POSITIVE_INFINITY;
       return { p, dist };
     });
-    scored.sort((a, b) => a.dist - b.dist);
-    const nearest = scored.find((s) => Number.isFinite(s.dist));
+    const near = scored.filter((s) => s.dist <= RADIUS_KM).sort((a, b) => a.dist - b.dist);
+    const far = scored.filter((s) => s.dist > RADIUS_KM); // mantém ordem original (curadoria)
+    const ordered = [...near, ...far];
+    const nearest = near[0];
     if (nearest) setNearestOrigin(nearest.p.origin ?? null);
-    return scored.slice(0, 12).map((s) => s.p);
+    else setNearestOrigin(null);
+    return ordered.slice(0, 12).map((s) => s.p);
   }, [packages, userCoords, mixMode]);
 
   const loop = useMemo(() => [...featured, ...featured], [featured]);
