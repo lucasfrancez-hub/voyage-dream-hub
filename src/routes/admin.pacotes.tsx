@@ -649,12 +649,17 @@ function AdminPackages() {
               {/* Info */}
               <div className="col-span-1 md:col-span-5 space-y-0.5 min-w-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-sm bg-brand-orange shrink-0" />
+                  <span
+                    className="inline-flex h-6 min-w-[26px] items-center justify-center rounded-md border border-brand-orange/30 bg-brand-orange/10 px-1.5 text-[11px] font-bold tabular-nums text-brand-orange shrink-0"
+                    title="Posição na lista"
+                  >
+                    {(page - 1) * PAGE_SIZE + idx + 1}
+                  </span>
                   <h3 className="text-sm sm:text-[15px] font-bold text-foreground group-hover:text-brand-orange transition-colors truncate">
                     {p.title}
                   </h3>
                 </div>
-                <div className="flex items-center gap-2 pl-4 text-[10px] text-muted-foreground uppercase min-w-0">
+                <div className="flex items-center gap-2 pl-[34px] text-[10px] text-muted-foreground uppercase min-w-0">
                   <span className="truncate">/{p.slug}</span>
                   <span className="text-muted-foreground/40 shrink-0">•</span>
                   <span className="text-muted-foreground/90 italic truncate">{p.destination}</span>
