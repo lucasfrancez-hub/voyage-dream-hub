@@ -405,14 +405,19 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       try { await navigator.clipboard.writeText(text); } catch { /* noop */ }
     }
 
-    // Abre em nova aba de nível superior — não é bloqueado como iframe.
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    const win = window.open(url, "_blank", "noopener,noreferrer");
-    if (!win) {
-      // Popup bloqueado: cai pro protocolo nativo.
-      window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
-    }
-    toast.success("WhatsApp aberto!", { description: clipboardMsg, duration: 8000 });
+    // Abre o WhatsApp nativo (app) — mostra o seletor de contatos direto,
+    // sem número pré-definido. Se o protocolo não estiver disponível, cai
+    // para api.whatsapp.com/send (página "Compartilhar no WhatsApp").
+    const nativeUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
+    const webUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    let opened = false;
+    try {
+      const win = window.open(nativeUrl, "_blank");
+      opened = !!win;
+    } catch { /* noop */ }
+    if (!opened) window.open(webUrl, "_blank", "noopener,noreferrer");
+    toast.success("WhatsApp aberto — escolha o contato", { description: clipboardMsg, duration: 8000 });
+
   }
 
 
