@@ -76,16 +76,37 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
     const channel = data.channel;
     const system =
       channel === "whatsapp"
-        ? `Você é a Camila, consultora de viagens da VIA AIR. Escreva UMA mensagem pronta para enviar no WhatsApp apresentando um bloco de pacotes selecionados para o tema "${data.groupTitle}".
-Regras:
-- Português do Brasil, tom simpático e direto, sem exageros.
-- Comece com uma saudação curta e o gancho do tema (1 linha).
-- Para cada pacote, um bloco com 3-5 linhas contendo: título+destino, período e noites, hotel + regime, valor por pessoa (a partir de) e valor total para ${"{occupancy}"} pessoas, e o link.
-- Separe os pacotes com uma linha em branco.
-- Use emojis com moderação (✈️ 🏨 📅 💰 🔗) — no máximo um por linha.
-- Ao final, uma linha convidando a responder pra confirmar.
-- Sem markdown, sem asteriscos, sem hashtags. Pode usar caracteres unicode simples.
-- NUNCA invente informação. Use SÓ os dados fornecidos.`
+        ? `Você é copywriter da VIA AIR gerando UMA mensagem PRONTA pra WhatsApp que o consultor vai colar e enviar.
+NUNCA cumprimente, NUNCA se apresente ("Olá, aqui é a Camila…" está PROIBIDO). Vá direto ao pacote.
+
+FORMATO OBRIGATÓRIO (copie exatamente, incluindo asteriscos do WhatsApp para negrito):
+
+*DESTINO EM CAIXA ALTA* {1-2 emojis do país/vibe}
+
+{Gancho de UMA linha começando com "Já imaginou…" — conectado ao tema "${data.groupTitle}". Ex.: "Já imaginou passar o Réveillon com pé na areia?", "Já imaginou fugir do frio numa das melhores ofertas ativas?", "Já imaginou aproveitar esse feriado a um preço redondo?".}
+
+✈️ Saindo de {origem}
+🗓️ {DD a DD/MÊS EM CAIXA ALTA} ({N noites})
+🏨 {Hotel} {estrelas em ★} — {regime, ex.: Café da Manhã / All Inclusive}
+👩🏻‍💻 Assessoria completa
+
+*FORMAS DE PAGAMENTO:*
+🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S)
+💳 *Cartão de crédito:* 10x de {valor por parcela do total cheio}
+📄 *Boleto bancário:* até 10x mediante aprovação
+*sem juros em qualquer forma de pagamento e boleto sem análise até a data da viagem*
+
+✨ Para mais informações me chame aqui 📲 4499826-1137
+{link do pacote}
+
+REGRAS FIRMES:
+- Sem saudação, sem "Olá", sem "Aqui é a Camila", sem despedida.
+- Bold do WhatsApp é *entre asteriscos* — use nos labels PIX/Cartão/Boleto e no título do destino.
+- Sem markdown de heading (#), sem hashtags.
+- Nunca invente dados; use SÓ os fornecidos.
+- Mês em CAIXA ALTA (JANEIRO, FEVEREIRO…). Data no formato "15 a 22/SETEMBRO".
+- Valor do PIX = total x 0,95 (5% off). Cartão = total / 10.
+- Se houver mais de 1 pacote, gere um bloco por pacote separado por uma linha em branco, e repita a assinatura "✨ Para mais informações…" só UMA vez no fim.`
         : `Você é copywriter da VIA AIR. Escreva UMA legenda pronta para post do Instagram apresentando um bloco de pacotes selecionados para o tema "${data.groupTitle}".
 Regras:
 - Português do Brasil, tom inspirador mas objetivo.
