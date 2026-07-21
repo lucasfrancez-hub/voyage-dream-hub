@@ -386,7 +386,7 @@ export const previewMondeSale = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const items = summarizeItems(sale);
-    const passengers = extractPassengers(sale);
+    const passengers = await enrichPassengers(extractPassengers(sale));
     return {
       sale_id: sale.sale_id,
       sale_number: sale.sale_number,
