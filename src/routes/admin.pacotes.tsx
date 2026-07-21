@@ -2847,3 +2847,66 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
 
 
 
+
+function UnlinkedHotelsAlert({
+  packages,
+  onOpen,
+}: {
+  packages: PackageRow[];
+  onOpen: (p: PackageRow) => void;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  const unlinked = useMemo(
+    () =>
+      (packages || []).filter(
+        (p) => p.is_active && !!p.hotel_name && !p.tripadvisor_location_id,
+      ),
+    [packages],
+  );
+  if (dismissed || unlinked.length === 0) return null;
+  return (
+    <div className="mb-3 rounded-2xl border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/40 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2 min-w-0">
+          <Info className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+          <div className="min-w-0">
+            <div className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+              {unlinked.length} hotel(is) sem vínculo com TripAdvisor
+            </div>
+            <div className="mt-0.5 text-[11px] text-amber-800/80 dark:text-amber-200/80">
+              Cadastrados manualmente. Abra e reconecte para puxar fotos, estrelas e endereço oficial.
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="text-amber-700 hover:text-amber-900 dark:text-amber-300"
+          title="Ocultar"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {unlinked.slice(0, 12).map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onOpen(p)}
+            className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white dark:bg-amber-900/30 px-2 py-1 text-[11px] font-semibold text-amber-900 dark:text-amber-100 hover:border-amber-500"
+            title={`${p.hotel_name} — ${p.destination}`}
+          >
+            <Building2 className="h-3 w-3" />
+            <span className="max-w-[180px] truncate">{p.hotel_name}</span>
+            <span className="text-amber-600">· {p.destination}</span>
+          </button>
+        ))}
+        {unlinked.length > 12 && (
+          <span className="text-[11px] text-amber-800/80 self-center">
+            +{unlinked.length - 12} outros
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
