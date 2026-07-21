@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, Loader2, Sparkles, ExternalLink, Wand2, Instagram, MessageCircle } from "lucide-react";
+import { Copy, Loader2, Sparkles, ExternalLink, Wand2, Instagram, MessageCircle, ImageDown, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy } from "@/lib/packages/curate.functions";
@@ -19,6 +19,11 @@ type Pkg = {
   hotel_stars: number | null;
   meal_plan: string | null;
   is_active: boolean;
+  // Campos usados pelo gerador de arte (Feed 3:4 e Story 9:16)
+  image_url?: string | null;
+  includes?: string[] | null;
+  room_type?: string | null;
+  tripadvisor_address?: string | null;
 };
 
 type Group = {
@@ -194,9 +199,32 @@ export function CurationTab({ packages }: { packages: Pkg[] }) {
 }
 
 function GroupCard({ group }: { group: Group }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="p-4 border-b border-border">
+        <h3 className="text-base font-black uppercase tracking-tight text-foreground">
+          {group.title}
+        </h3>
+        <p className="text-xs text-muted-foreground mt-1">{group.reason}</p>
+      </div>
+
+      <div className="divide-y divide-border">
+        {group.packages.map((p) => (
+          <PackageRow key={p.id} pkg={p} groupTitle={group.title} groupReason={group.reason} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: string; groupReason: string }) {
   const generateFn = useServerFn(generateCurationCopy);
-  const [loading, setLoading] = useState<"whatsapp" | "instagram" | null>(null);
+  const [loading, setLoading] = useState<"whatsapp" | "instagram" | "feed" | "story" | null>(null);
   const [output, setOutput] = useState<{ channel: "whatsapp" | "instagram"; text: string } | null>(null);
+
+  const total = Number(pkg.price_per_person) * (pkg.base_occupancy ?? 2);
+  const dfmt = (s: string | null) =>
+    s ? new Date(String(s) + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "";
 
   async function handleGenerate(channel: "whatsapp" | "instagram") {
     setLoading(channel);
@@ -205,22 +233,22 @@ function GroupCard({ group }: { group: Group }) {
       const res = await generateFn({
         data: {
           channel,
-          groupTitle: group.title,
-          groupReason: group.reason,
-          packages: group.packages.map((p) => ({
-            title: p.title,
-            destination: p.destination,
-            origin: p.origin,
-            going_date: p.going_date,
-            return_date: p.return_date,
-            nights: p.nights,
-            price_per_person: Number(p.price_per_person),
-            base_occupancy: p.base_occupancy ?? 2,
-            hotel_name: p.hotel_name,
-            hotel_stars: p.hotel_stars,
-            meal_plan: p.meal_plan,
-            slug: p.slug,
-          })),
+          groupTitle,
+          groupReason,
+          packages: [{
+            title: pkg.title,
+            destination: pkg.destination,
+            origin: pkg.origin,
+            going_date: pkg.going_date,
+            return_date: pkg.return_date,
+            nights: pkg.nights,
+            price_per_person: Number(pkg.price_per_person),
+            base_occupancy: pkg.base_occupancy ?? 2,
+            hotel_name: pkg.hotel_name,
+            hotel_stars: pkg.hotel_stars,
+            meal_plan: pkg.meal_plan,
+            slug: pkg.slug,
+          }],
           baseUrl,
         },
       });
@@ -242,84 +270,123 @@ function GroupCard({ group }: { group: Group }) {
     }
   }
 
+  async function downloadArt(kind: "feed" | "story") {
+    if (!pkg.image_url) {
+      toast.error("Cadastre a URL da imagem de capa do pacote antes de gerar a arte.");
+      return;
+    }
+    setLoading(kind);
+    try {
+      const input = {
+        slug: pkg.slug,
+        destination: pkg.destination,
+        origin: pkg.origin,
+        going_date: pkg.going_date,
+        return_date: pkg.return_date,
+        nights: pkg.nights,
+        price_per_person: Number(pkg.price_per_person),
+        image_url: pkg.image_url,
+        includes: pkg.includes ?? null,
+        hotel_name: pkg.hotel_name,
+        hotel_stars: pkg.hotel_stars,
+        room_type: pkg.room_type ?? null,
+        base_occupancy: pkg.base_occupancy ?? 2,
+        tripadvisor_address: pkg.tripadvisor_address ?? null,
+      };
+      if (kind === "feed") {
+        const { generatePackageFeedArt } = await import("@/lib/packages/feed-art");
+        await generatePackageFeedArt(input);
+      } else {
+        const { generatePackageStoryArt } = await import("@/lib/packages/story-art");
+        await generatePackageStoryArt(input);
+      }
+      toast.success(kind === "feed" ? "Arte Feed (3:4) baixada!" : "Arte Story (9:16) baixada!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao gerar a arte");
+    } finally {
+      setLoading(null);
+    }
+  }
+
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="flex items-start justify-between gap-3 p-4 border-b border-border">
-        <div className="min-w-0">
-          <h3 className="text-base font-black uppercase tracking-tight text-foreground">
-            {group.title}
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1">{group.reason}</p>
+    <div className="px-4 py-3 text-xs">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-foreground truncate">{pkg.title}</div>
+          <div className="text-muted-foreground mt-0.5">
+            {pkg.destination}
+            {pkg.going_date && <> · {dfmt(pkg.going_date)}{pkg.return_date ? ` a ${dfmt(pkg.return_date)}` : ""}</>}
+            {pkg.nights ? ` · ${pkg.nights}n` : ""}
+            {pkg.hotel_name ? ` · ${pkg.hotel_name}` : ""}
+          </div>
         </div>
-        <div className="flex gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => handleGenerate("whatsapp")}
-            disabled={loading !== null}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#25D366] hover:bg-[#1fb457] disabled:opacity-60 text-white px-3 py-2 text-xs font-bold uppercase tracking-wider transition"
-          >
-            {loading === "whatsapp" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageCircle className="h-3.5 w-3.5" />}
-            WhatsApp
-          </button>
-          <button
-            type="button"
-            onClick={() => handleGenerate("instagram")}
-            disabled={loading !== null}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] hover:opacity-90 disabled:opacity-60 text-white px-3 py-2 text-xs font-bold uppercase tracking-wider transition"
-          >
-            {loading === "instagram" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Instagram className="h-3.5 w-3.5" />}
-            Instagram
-          </button>
+        <div className="text-right shrink-0">
+          <div className="text-[10px] text-muted-foreground uppercase">Total ({pkg.base_occupancy ?? 2}p)</div>
+          <div className="font-black tabular-nums text-foreground">
+            {total.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </div>
         </div>
+        <a
+          href={`/pacotes/${pkg.slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 rounded-lg border border-border p-1.5 text-muted-foreground hover:text-brand-orange hover:border-brand-orange"
+          aria-label="Abrir pacote"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
       </div>
 
-      <div className="divide-y divide-border">
-        {group.packages.map((p) => {
-          const total = totalPrice(p);
-          const dfmt = (s: string | null) =>
-            s ? new Date(String(s) + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "";
-          return (
-            <div key={p.id} className="flex items-center gap-3 px-4 py-2.5 text-xs">
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-foreground truncate">{p.title}</div>
-                <div className="text-muted-foreground mt-0.5">
-                  {p.destination}
-                  {p.going_date && <> · {dfmt(p.going_date)}{p.return_date ? ` a ${dfmt(p.return_date)}` : ""}</>}
-                  {p.nights ? ` · ${p.nights}n` : ""}
-                  {p.hotel_name ? ` · ${p.hotel_name}` : ""}
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="text-[10px] text-muted-foreground uppercase">Total ({p.base_occupancy ?? 2}p)</div>
-                <div className="font-black tabular-nums text-foreground">
-                  {total.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                </div>
-              </div>
-              <a
-                href={`/pacotes/${p.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 rounded-lg border border-border p-1.5 text-muted-foreground hover:text-brand-orange hover:border-brand-orange"
-                aria-label="Abrir pacote"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            </div>
-          );
-        })}
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => handleGenerate("whatsapp")}
+          disabled={loading !== null}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-[#25D366] hover:bg-[#1fb457] disabled:opacity-60 text-white px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition"
+        >
+          {loading === "whatsapp" ? <Loader2 className="h-3 w-3 animate-spin" /> : <MessageCircle className="h-3 w-3" />}
+          WhatsApp
+        </button>
+        <button
+          type="button"
+          onClick={() => handleGenerate("instagram")}
+          disabled={loading !== null}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] hover:opacity-90 disabled:opacity-60 text-white px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition"
+        >
+          {loading === "instagram" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Instagram className="h-3 w-3" />}
+          Instagram
+        </button>
+        <button
+          type="button"
+          onClick={() => downloadArt("feed")}
+          disabled={loading !== null}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:border-brand-orange hover:text-brand-orange disabled:opacity-60 text-foreground px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition"
+        >
+          {loading === "feed" ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImageDown className="h-3 w-3" />}
+          Feed 3:4
+        </button>
+        <button
+          type="button"
+          onClick={() => downloadArt("story")}
+          disabled={loading !== null}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card hover:border-brand-orange hover:text-brand-orange disabled:opacity-60 text-foreground px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition"
+        >
+          {loading === "story" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Smartphone className="h-3 w-3" />}
+          Story 9:16
+        </button>
       </div>
 
       {output && (
-        <div className="border-t border-border bg-background/50 p-4">
+        <div className="mt-2.5 rounded-lg border border-border bg-background/50 p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
               <Wand2 className="h-3 w-3" />
-              Texto gerado para {output.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
+              Texto para {output.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
             </div>
             <button
               type="button"
               onClick={copyText}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-semibold text-foreground hover:border-brand-orange hover:text-brand-orange"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1 text-[10px] font-semibold text-foreground hover:border-brand-orange hover:text-brand-orange"
             >
               <Copy className="h-3 w-3" /> Copiar
             </button>
@@ -327,7 +394,7 @@ function GroupCard({ group }: { group: Group }) {
           <textarea
             readOnly
             value={output.text}
-            className="w-full min-h-[220px] rounded-lg border border-border bg-background p-3 text-xs font-mono text-foreground leading-relaxed"
+            className="w-full min-h-[180px] rounded-lg border border-border bg-background p-2.5 text-[11px] font-mono text-foreground leading-relaxed"
           />
         </div>
       )}
