@@ -107,7 +107,7 @@ export function FeaturedCarousel({
   const [nearestOrigin, setNearestOrigin] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const pauseUntilRef = useRef(0);
-  const [hover, setHover] = useState(false);
+
 
 
   // Solicita geolocalização silenciosamente (o navegador pede permissão).
@@ -143,6 +143,8 @@ export function FeaturedCarousel({
 
   // Auto-scroll contínuo baseado em scrollLeft (permite controle manual).
   // Pausa quando hover ou quando o usuário clicou prev/next (por 4s).
+  // Usa refs (não state) pra não reiniciar o rAF a cada mudança de hover.
+  const hoverRef = useRef(false);
   useEffect(() => {
     const el = viewportRef.current;
     if (!el || featured.length === 0) return;
@@ -150,9 +152,9 @@ export function FeaturedCarousel({
     let last = performance.now();
     const speed = 32; // px/s
     const tick = (now: number) => {
-      const dt = (now - last) / 1000;
+      const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
-      if (!hover && now > pauseUntilRef.current) {
+      if (!hoverRef.current && now > pauseUntilRef.current) {
         el.scrollLeft += speed * dt;
         const half = el.scrollWidth / 2;
         if (half > 0 && el.scrollLeft >= half) el.scrollLeft -= half;
@@ -161,7 +163,7 @@ export function FeaturedCarousel({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [featured.length, hover]);
+  }, [featured.length]);
 
   const nudge = (dir: 1 | -1) => {
     const el = viewportRef.current;
@@ -174,7 +176,8 @@ export function FeaturedCarousel({
   if (featured.length === 0) return null;
 
   return (
-    <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-white/5 bg-[#0B1218] p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] sm:p-8">
+    <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-white/5 bg-[#0B1218] p-6 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)] sm:p-8">
+
       {/* Auras laranjas decorativas nas quinas — glow bem sutil */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-brand-orange/[0.07] blur-[100px]" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-brand-orange/[0.07] blur-[100px]" />
@@ -233,8 +236,9 @@ export function FeaturedCarousel({
 
       <div
         ref={viewportRef}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
+        onMouseEnter={() => { hoverRef.current = true; }}
+        onMouseLeave={() => { hoverRef.current = false; }}
+
         className="vfc-viewport relative overflow-x-auto overflow-y-hidden"
         style={{
           maskImage:
@@ -270,19 +274,11 @@ export function FeaturedCarousel({
                   {/* Gradient forte no rodapé pra dar contraste ao texto */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
 
-                  {/* Chip destino — laranja da marca */}
+                  {/* Chip destino — laranja da marca (canto superior esquerdo) */}
                   <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-brand-orange px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-black/30 ring-1 ring-white/20">
                     <MapPin className="h-2.5 w-2.5 text-white" />
                     {p.destination}
                   </div>
-
-                  {/* Chip datas — canto superior direito */}
-                  {dateLabel && (
-                    <div className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white shadow-lg shadow-black/40 ring-1 ring-white/15 backdrop-blur-sm">
-                      <CalendarDays className="h-2.5 w-2.5 text-white/85" />
-                      {dateLabel}
-                    </div>
-                  )}
 
 
                   <div className="absolute bottom-0 left-0 right-0 p-3.5">
@@ -292,9 +288,10 @@ export function FeaturedCarousel({
                     >
                       {p.title}
                     </div>
-                    {p.origin && (
-                      <div className="mt-1 text-[11px] font-medium text-white/85">
-                        Saindo de {p.origin}
+                    {dateLabel && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#0f1a24]/85 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-white shadow-md shadow-black/30 ring-1 ring-white/10 backdrop-blur-md">
+                        <CalendarDays className="h-3 w-3 text-brand-orange" />
+                        {dateLabel}
                       </div>
                     )}
                     <div className="mt-2.5 flex items-baseline gap-1.5">
@@ -307,6 +304,7 @@ export function FeaturedCarousel({
                     </div>
                   </div>
                 </div>
+
             );
             return linkBaseUrl ? (
               <a
