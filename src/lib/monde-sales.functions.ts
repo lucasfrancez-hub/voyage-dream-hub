@@ -1,0 +1,594 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+/**
+ * Importação manual de vendas do Monde (v3).
+ * O usuário digita o número da venda, o sistema busca em /sales
+ * (a API v3 não expõe filtro por número — paginamos até achar),
+ * gera um preview e depois cria um pedido local.
+ */
+
+const BASE_URL = "https://web.monde.com.br/api/v3";
+const PAGE_SIZE = 50;
+const MAX_PAGES = 40; // 40 × 50 = 2000 vendas cobertas na busca
+
+async function ensureAdmin(ctx: { supabase: any; userId: string }) {
+  const { data } = await ctx.supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", ctx.userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!data) throw new Error("Apenas administradores podem importar vendas do Monde.");
+}
+
+async function mondeGet(path: string, query?: Record<string, string>) {
+  const basic = process.env.MONDE_V3_BASIC;
+  if (!basic) throw new Error("MONDE_V3_BASIC não configurado.");
+  const qs = query ? "?" + new URLSearchParams(query).toString() : "";
+  const res = await fetch(`${BASE_URL}${path}${qs}`, {
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      res.status === 401
+        ? "Credencial do Monde inválida (401)."
+        : `Monde v3 HTTP ${res.status}: ${text.slice(0, 300)}`,
+    );
+  }
+  return res.json();
+}
+
+type MondePersonRef = {
+  external_id?: string | null;
+  person_kind?: "individual" | "company" | null;
+  name?: string | null;
+  legal_name?: string | null;
+  gender?: string | null;
+  birthdate?: string | null;
+  cpf_cnpj?: string | null;
+  cpf?: string | null;
+  cnpj?: string | null;
+  rg?: string | null;
+  rg_ie?: string | null;
+  passport_number?: string | null;
+  passport_expiration_date?: string | null;
+  foreigner?: boolean | null;
+  email?: string | null;
+  phone_number?: string | null;
+  mobile_number?: string | null;
+  address?: {
+    postal_code?: string | null;
+    street?: string | null;
+    street_number?: string | null;
+    additional_info?: string | null;
+    neighborhood?: string | null;
+    city_name?: string | null;
+    state_code?: string | null;
+    country_code?: string | null;
+  } | null;
+};
+
+type MondeSale = {
+  sale_id: string;
+  sale_number: number;
+  sale_date: string;
+  status: string;
+  observations?: string | null;
+  registered_at?: string | null;
+  travel_agent?: { name?: string | null; cpf?: string | null } | null;
+  payer?: MondePersonRef | null;
+  requester?: MondePersonRef | null;
+  airline_tickets?: any[];
+  hotels?: any[];
+  cruises?: any[];
+  insurances?: any[];
+  train_tickets?: any[];
+  ground_transportations?: any[];
+  car_rentals?: any[];
+  travel_packages?: any[];
+  totals?: {
+    products?: number;
+    fees?: number;
+    discount?: number;
+    payments?: number;
+    balance?: number;
+    final_value?: number;
+  } | null;
+};
+
+async function findSaleByNumber(
+  saleNumber: number,
+  onProgress?: (page: number, totalPages: number) => void,
+): Promise<{ sale: MondeSale | null; pagesScanned: number; totalPages: number }> {
+  let totalPages = 1;
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const json = await mondeGet("/sales", {
+      page: String(page),
+      size: String(PAGE_SIZE),
+      status: "opened,closed,canceled",
+    });
+    totalPages = Number(json?.pagination?.total_pages ?? 1);
+    onProgress?.(page, totalPages);
+    const rows: MondeSale[] = Array.isArray(json?.data) ? json.data : [];
+    const found = rows.find((r) => Number(r.sale_number) === saleNumber);
+    if (found) return { sale: found, pagesScanned: page, totalPages };
+    if (page >= totalPages) break;
+  }
+  return { sale: null, pagesScanned: Math.min(MAX_PAGES, totalPages), totalPages };
+}
+
+type ItemSummary = {
+  kind: "flight" | "hotel" | "cruise" | "insurance" | "train" | "ground" | "car" | "package";
+  title: string;
+  locator: string | null;
+  supplier: string | null;
+  begin: string | null;
+  end: string | null;
+  customer_amount: number;
+  fees: number;
+  raw: any;
+};
+
+function summarizeItems(sale: MondeSale): ItemSummary[] {
+  const out: ItemSummary[] = [];
+  const num = (v: any) => (typeof v === "number" ? v : Number(v ?? 0)) || 0;
+
+  for (const t of sale.airline_tickets ?? []) {
+    const seg0 = t.segments?.[0];
+    const segN = t.segments?.[t.segments?.length - 1];
+    const route = seg0 ? `${seg0.origin ?? ""}→${segN?.destination ?? ""}` : "";
+    out.push({
+      kind: "flight",
+      title: `Aéreo ${t.supplier?.name ?? ""} ${route}`.trim(),
+      locator: t.locator ?? null,
+      supplier: t.supplier?.name ?? null,
+      begin: seg0?.departure_date ?? null,
+      end: segN?.arrival_date ?? null,
+      customer_amount: num(t.totals?.customer_amount ?? t.totals?.amount),
+      fees: num(t.totals?.fees) + num(t.totals?.du_fee),
+      raw: t,
+    });
+  }
+  for (const h of sale.hotels ?? []) {
+    out.push({
+      kind: "hotel",
+      title: `Hotel ${h.supplier?.name ?? ""} (${h.nights ?? "?"} noites)`.trim(),
+      locator: h.booking_number ?? null,
+      supplier: h.supplier?.name ?? null,
+      begin: h.check_in ?? null,
+      end: h.check_out ?? null,
+      customer_amount: num(h.totals?.customer_amount ?? h.totals?.amount),
+      fees: num(h.totals?.fees),
+      raw: h,
+    });
+  }
+  for (const c of sale.cruises ?? []) {
+    out.push({
+      kind: "cruise",
+      title: `Cruzeiro ${c.ship_name ?? ""} — ${c.cruise_destination ?? ""}`.trim(),
+      locator: c.booking_number ?? null,
+      supplier: c.supplier?.name ?? null,
+      begin: c.departure_date ?? null,
+      end: c.arrival_date ?? null,
+      customer_amount: num(c.totals?.customer_amount ?? c.totals?.amount),
+      fees: num(c.totals?.fees),
+      raw: c,
+    });
+  }
+  for (const ins of sale.insurances ?? []) {
+    out.push({
+      kind: "insurance",
+      title: `Seguro ${ins.supplier?.name ?? ""} (${ins.destination ?? ""})`.trim(),
+      locator: ins.voucher_code ?? null,
+      supplier: ins.supplier?.name ?? null,
+      begin: ins.begin_date ?? null,
+      end: ins.end_date ?? null,
+      customer_amount: num(ins.totals?.customer_amount ?? ins.totals?.amount),
+      fees: num(ins.totals?.fees),
+      raw: ins,
+    });
+  }
+  for (const t of sale.train_tickets ?? []) {
+    out.push({
+      kind: "train",
+      title: `Trem ${t.locator ?? ""}`.trim(),
+      locator: t.locator ?? null,
+      supplier: t.supplier?.name ?? null,
+      begin: t.departure_date ?? null,
+      end: t.arrival_date ?? null,
+      customer_amount: num(t.totals?.customer_amount ?? t.totals?.amount),
+      fees: num(t.totals?.fees),
+      raw: t,
+    });
+  }
+  for (const g of sale.ground_transportations ?? []) {
+    out.push({
+      kind: "ground",
+      title: `Transfer ${g.locator ?? ""}`.trim(),
+      locator: g.locator ?? null,
+      supplier: g.supplier?.name ?? null,
+      begin: g.departure_date ?? null,
+      end: g.arrival_date ?? null,
+      customer_amount: num(g.totals?.customer_amount ?? g.totals?.amount),
+      fees: num(g.totals?.fees),
+      raw: g,
+    });
+  }
+  for (const c of sale.car_rentals ?? []) {
+    out.push({
+      kind: "car",
+      title: `Carro ${c.vehicle_category ?? ""} (${c.rental_days ?? "?"}d)`.trim(),
+      locator: c.booking_number ?? null,
+      supplier: c.supplier?.name ?? null,
+      begin: c.pickup_date ?? null,
+      end: c.dropoff_date ?? null,
+      customer_amount: num(c.totals?.customer_amount ?? c.totals?.amount),
+      fees: num(c.totals?.fees),
+      raw: c,
+    });
+  }
+  for (const p of sale.travel_packages ?? []) {
+    out.push({
+      kind: "package",
+      title: `Pacote ${p.package_name ?? ""}`.trim(),
+      locator: p.booking_number ?? null,
+      supplier: p.supplier?.name ?? null,
+      begin: p.begin_date ?? null,
+      end: p.end_date ?? null,
+      customer_amount: num(p.totals?.customer_amount ?? p.totals?.amount),
+      fees: num(p.totals?.fees),
+      raw: p,
+    });
+  }
+  return out;
+}
+
+type PassengerSummary = {
+  external_id: string | null;
+  name: string;
+  cpf: string | null;
+  birth_date: string | null;
+  email: string | null;
+  phone: string | null;
+  passport: string | null;
+  passport_expiry: string | null;
+  raw: MondePersonRef;
+};
+
+function extractPassengers(sale: MondeSale): PassengerSummary[] {
+  const map = new Map<string, PassengerSummary>();
+  const push = (person?: MondePersonRef | null) => {
+    if (!person || !person.name) return;
+    const cpfClean = (person.cpf ?? person.cpf_cnpj ?? "").replace(/\D+/g, "");
+    const key = person.external_id ?? (cpfClean.length >= 11 ? cpfClean : person.name);
+    if (map.has(key)) return;
+    map.set(key, {
+      external_id: person.external_id ?? null,
+      name: person.name!,
+      cpf: cpfClean.length === 11 ? cpfClean : null,
+      birth_date: person.birthdate ?? null,
+      email: person.email ?? null,
+      phone: person.mobile_number ?? person.phone_number ?? null,
+      passport: person.passport_number ?? null,
+      passport_expiry: person.passport_expiration_date ?? null,
+      raw: person,
+    });
+  };
+  const groups: any[][] = [
+    sale.airline_tickets ?? [], sale.hotels ?? [], sale.cruises ?? [],
+    sale.insurances ?? [], sale.train_tickets ?? [], sale.ground_transportations ?? [],
+    sale.car_rentals ?? [], sale.travel_packages ?? [],
+  ];
+  for (const g of groups) {
+    for (const item of g) {
+      for (const pax of item.passengers ?? []) push(pax.person);
+    }
+  }
+  return Array.from(map.values());
+}
+
+export type MondeSalePreview = {
+  sale_id: string;
+  sale_number: number;
+  sale_date: string;
+  status: string;
+  observations: string | null;
+  travel_agent_name: string | null;
+  payer: {
+    name: string | null;
+    cpf_cnpj: string | null;
+    email: string | null;
+    phone: string | null;
+  };
+  items: ItemSummary[];
+  passengers: PassengerSummary[];
+  totals: {
+    products: number;
+    fees: number;
+    discount: number;
+    final_value: number;
+  };
+  pages_scanned: number;
+  total_pages: number;
+  already_imported_order_id: string | null;
+};
+
+export const previewMondeSale = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ sale_number: z.number().int().min(1) }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<MondeSalePreview> => {
+    await ensureAdmin(context);
+    const { sale, pagesScanned, totalPages } = await findSaleByNumber(data.sale_number);
+    if (!sale) {
+      throw new Error(
+        `Venda #${data.sale_number} não encontrada nas últimas ${pagesScanned * PAGE_SIZE} vendas do Monde.`,
+      );
+    }
+    const { data: existing } = await context.supabase
+      .from("orders")
+      .select("id")
+      .eq("monde_sale_id", sale.sale_id)
+      .maybeSingle();
+
+    const items = summarizeItems(sale);
+    const passengers = extractPassengers(sale);
+    return {
+      sale_id: sale.sale_id,
+      sale_number: sale.sale_number,
+      sale_date: sale.sale_date,
+      status: sale.status,
+      observations: sale.observations ?? null,
+      travel_agent_name: sale.travel_agent?.name ?? null,
+      payer: {
+        name: sale.payer?.name ?? null,
+        cpf_cnpj: sale.payer?.cpf_cnpj ?? null,
+        email: sale.payer?.email ?? null,
+        phone: sale.payer?.mobile_number ?? sale.payer?.phone_number ?? null,
+      },
+      items,
+      passengers,
+      totals: {
+        products: sale.totals?.products ?? 0,
+        fees: sale.totals?.fees ?? 0,
+        discount: sale.totals?.discount ?? 0,
+        final_value: sale.totals?.final_value ?? sale.totals?.payments ?? 0,
+      },
+      pages_scanned: pagesScanned,
+      total_pages: totalPages,
+      already_imported_order_id: (existing as any)?.id ?? null,
+    };
+  });
+
+async function upsertPerson(
+  ctx: { supabase: any },
+  person: MondePersonRef,
+): Promise<string | null> {
+  if (!person.name) return null;
+  const isCompany = person.person_kind === "company";
+  const cpfCnpj = (person.cpf ?? person.cpf_cnpj ?? "").replace(/\D+/g, "");
+  const addr = person.address ?? null;
+  const row: Record<string, any> = {
+    monde_id: person.external_id ?? null,
+    kind: isCompany ? "PJ" : "PF",
+    name: person.name,
+    gender: person.gender ?? null,
+    birth_date: !isCompany ? person.birthdate ?? null : null,
+    cpf: !isCompany && cpfCnpj.length === 11 ? cpfCnpj : null,
+    cnpj: isCompany && cpfCnpj.length === 14 ? cpfCnpj : null,
+    rg: person.rg ?? person.rg_ie ?? null,
+    passport_number: person.passport_number ?? null,
+    passport_expiration: person.passport_expiration_date ?? null,
+    email: person.email ?? null,
+    phone: person.phone_number ?? null,
+    mobile_phone: person.mobile_number ?? null,
+    zip: addr?.postal_code ?? null,
+    address: addr?.street ?? null,
+    number: addr?.street_number ?? null,
+    complement: addr?.additional_info ?? null,
+    district: addr?.neighborhood ?? null,
+    city: addr?.city_name ?? null,
+    state: addr?.state_code ?? null,
+    country: addr?.country_code ?? null,
+    is_foreign: !!person.foreigner,
+  };
+
+  // Tenta por monde_id → cpf → cnpj
+  if (row.monde_id) {
+    const { data: byMonde } = await ctx.supabase
+      .from("people")
+      .select("id")
+      .eq("monde_id", row.monde_id)
+      .maybeSingle();
+    if ((byMonde as any)?.id) {
+      await ctx.supabase.from("people").update(row).eq("id", (byMonde as any).id);
+      return (byMonde as any).id;
+    }
+  }
+  if (row.cpf) {
+    const { data: byCpf } = await ctx.supabase
+      .from("people").select("id").eq("cpf", row.cpf).maybeSingle();
+    if ((byCpf as any)?.id) return (byCpf as any).id;
+  }
+  if (row.cnpj) {
+    const { data: byCnpj } = await ctx.supabase
+      .from("people").select("id").eq("cnpj", row.cnpj).maybeSingle();
+    if ((byCnpj as any)?.id) return (byCnpj as any).id;
+  }
+  const { data: inserted, error } = await ctx.supabase
+    .from("people").insert(row).select("id").single();
+  if (error) return null;
+  return (inserted as any)?.id ?? null;
+}
+
+export const importMondeSale = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ sale_number: z.number().int().min(1) }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ order_id: string; order_number: string }> => {
+    await ensureAdmin(context);
+    const { sale } = await findSaleByNumber(data.sale_number);
+    if (!sale) throw new Error(`Venda #${data.sale_number} não encontrada.`);
+
+    // Idempotência: já importada?
+    const { data: existing } = await context.supabase
+      .from("orders").select("id, order_number").eq("monde_sale_id", sale.sale_id).maybeSingle();
+    if (existing) {
+      return { order_id: (existing as any).id, order_number: (existing as any).order_number };
+    }
+
+    const payer = sale.payer ?? {};
+    const payerId = payer ? await upsertPerson(context, payer) : null;
+    const cpfClean = (payer.cpf_cnpj ?? "").replace(/\D+/g, "");
+    const totalPrice = sale.totals?.final_value ?? sale.totals?.payments ?? 0;
+    const passengers = extractPassengers(sale);
+    const items = summarizeItems(sale);
+
+    // primeira locator de aéreo, se houver
+    const firstFlight = items.find((i) => i.kind === "flight");
+    const firstSupplier = items[0]?.supplier ?? null;
+
+    const orderPayload: Record<string, any> = {
+      full_name: payer.name ?? passengers[0]?.name ?? "Passageiro Monde",
+      email: payer.email ?? null,
+      phone: payer.mobile_number ?? payer.phone_number ?? null,
+      cpf: cpfClean.length === 11 ? cpfClean : null,
+      cnpj: cpfClean.length === 14 ? cpfClean : null,
+      birth_date: payer.birthdate ?? null,
+      person_id: payerId,
+      payment_method: "monde",
+      total_price: totalPrice,
+      adults: passengers.length || 1,
+      children: 0,
+      status: "pending",
+      supplier_name: firstSupplier,
+      airline_locator: firstFlight?.locator ?? null,
+      monde_sale_id: sale.sale_id,
+      supplier_order_number: String(sale.sale_number),
+      notes: sale.observations ?? null,
+      payer_full_name: payer.name ?? null,
+      payer_cpf: cpfClean.length === 11 ? cpfClean : null,
+      payer_cnpj: cpfClean.length === 14 ? cpfClean : null,
+      payer_email: payer.email ?? null,
+      payer_phone: payer.mobile_number ?? payer.phone_number ?? null,
+      payer_zip: payer.address?.postal_code ?? null,
+      payer_address: payer.address?.street ?? null,
+      payer_number: payer.address?.street_number ?? null,
+      payer_district: payer.address?.neighborhood ?? null,
+      payer_city: payer.address?.city_name ?? null,
+      payer_state: payer.address?.state_code ?? null,
+      package_snapshot: {
+        manual: true,
+        source: "monde_v3_sale",
+        sale_number: sale.sale_number,
+        sale_id: sale.sale_id,
+        sale_date: sale.sale_date,
+        raw: sale,
+      },
+    };
+
+    const { data: created, error } = await context.supabase
+      .from("orders").insert(orderPayload).select("id, order_number").single();
+    if (error) throw new Error(`Erro criando pedido: ${error.message}`);
+    const orderId = (created as any).id as string;
+    const orderNumber = (created as any).order_number as string;
+
+    // Passageiros
+    const paxIdByKey = new Map<string, string>();
+    let sortP = 0;
+    for (const p of passengers) {
+      const { data: paxRow, error: paxErr } = await context.supabase
+        .from("order_passengers")
+        .insert({
+          order_id: orderId,
+          full_name: p.name,
+          cpf: p.cpf,
+          birth_date: p.birth_date,
+          passport_number: p.passport,
+          passport_expiry_date: p.passport_expiry,
+          whatsapp: p.phone,
+          sort_order: sortP++,
+        })
+        .select("id").single();
+      if (!paxErr && paxRow) {
+        const key = p.external_id ?? p.cpf ?? p.name;
+        paxIdByKey.set(key, (paxRow as any).id);
+      }
+    }
+
+    // Itens + financeiro
+    let sortI = 0;
+    for (const it of items) {
+      const details: Record<string, any> = { source: "monde", monde: it.raw };
+      if (it.kind === "flight") {
+        const seg0 = it.raw.segments?.[0];
+        const segN = it.raw.segments?.[it.raw.segments?.length - 1];
+        details.from_iata = seg0?.origin ?? null;
+        details.to_iata = segN?.destination ?? null;
+        details.airline = it.raw.supplier?.name ?? null;
+        details.departure_at = seg0?.departure_date ?? null;
+        details.arrival_at = segN?.arrival_date ?? null;
+      } else if (it.kind === "hotel") {
+        details.hotel_name = it.raw.supplier?.name ?? null;
+        details.check_in = it.raw.check_in ?? null;
+        details.check_out = it.raw.check_out ?? null;
+        details.nights = it.raw.nights ?? null;
+        details.meal_plan = it.raw.meal_plan ?? null;
+        details.room_category = it.raw.room_category ?? null;
+      }
+
+      const { data: itemRow, error: iErr } = await context.supabase
+        .from("order_items")
+        .insert({
+          order_id: orderId,
+          kind: it.kind,
+          status: "pending",
+          title: it.title || `${it.kind} Monde`,
+          supplier_locator: it.locator,
+          details,
+          sort_order: sortI++,
+        })
+        .select("id").single();
+      if (iErr || !itemRow) continue;
+      const itemId = (itemRow as any).id as string;
+
+      // Financeiro
+      const raw = it.raw as any;
+      await context.supabase.from("order_item_financials").insert({
+        order_item_id: itemId,
+        supplier_name: it.supplier,
+        sale_value: raw.totals?.products ?? raw.totals?.amount ?? it.customer_amount,
+        tax_value: raw.totals?.fees ?? 0,
+        discount_value: raw.totals?.discount ?? 0,
+        commission_value: raw.commission_amount ?? 0,
+        commission_pct: raw.commission_percentage ?? 0,
+        rav_value: raw.totals?.rav_fee ?? 0,
+        total: it.customer_amount,
+        is_commissionable: true,
+      });
+
+      // Vincula passageiros deste item
+      for (const paxItem of raw.passengers ?? []) {
+        const pkey = paxItem.person?.external_id ?? (paxItem.person?.cpf ?? "").replace(/\D+/g, "") ?? paxItem.person?.name;
+        const paxId = paxIdByKey.get(pkey);
+        if (paxId) {
+          await context.supabase.from("order_item_passengers").upsert({
+            order_id: orderId,
+            order_item_id: itemId,
+            passenger_id: paxId,
+          }, { onConflict: "order_item_id,passenger_id", ignoreDuplicates: true });
+        }
+      }
+    }
+
+    return { order_id: orderId, order_number: orderNumber };
+  });
