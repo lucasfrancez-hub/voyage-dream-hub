@@ -564,6 +564,67 @@ function AdminPackages() {
         </div>
       </div>
 
+      {/* Filters */}
+      <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:pb-2.5">
+          <SlidersHorizontal className="h-3.5 w-3.5 text-brand-orange" /> Filtrar
+        </div>
+        <div className="flex-1">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Origem</label>
+          <Select value={originFilter} onValueChange={setOriginFilter}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Todas as origens" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as origens</SelectItem>
+              {origins.map(o => (<SelectItem key={o} value={o}>{o}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Destino</label>
+          <Select value={destinationFilter} onValueChange={setDestinationFilter}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Todos os destinos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os destinos</SelectItem>
+              {destinations.map(d => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Data da viagem</label>
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Todos os meses" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os meses</SelectItem>
+              {monthOptions.map(m => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <button
+          type="button"
+          onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+          title={sortDir === "asc" ? "Ordem crescente (1 → N). Clique para inverter." : "Ordem decrescente (N → 1). Clique para inverter."}
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold uppercase tracking-wider text-foreground hover:border-brand-orange"
+        >
+          {sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5 text-brand-orange" /> : <ArrowDown className="h-3.5 w-3.5 text-brand-orange" />}
+          {sortDir === "asc" ? "Crescente" : "Decrescente"}
+        </button>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={() => { setOriginFilter("all"); setDestinationFilter("all"); setMonthFilter("all"); }}
+            className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
+            aria-label="Limpar filtros"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      {hasActiveFilters && (
+        <div className="mb-2 text-[11px] uppercase tracking-widest text-muted-foreground">
+          {displayPackages.length} de {packages?.length ?? 0} pacote(s)
+        </div>
+      )}
+
       {/* Row Header */}
       <div className="hidden md:grid grid-cols-12 px-8 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60">
         <div className="col-span-5">Identificação do Pacote</div>
