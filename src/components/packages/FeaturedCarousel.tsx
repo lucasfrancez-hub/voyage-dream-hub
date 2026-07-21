@@ -261,6 +261,19 @@ export function FeaturedCarousel({
           </button>
         </div>
       </div>
+
+      <div
+        ref={viewportRef}
+        onMouseEnter={() => { hoverRef.current = true; }}
+        onMouseLeave={() => { hoverRef.current = false; }}
+        className="vfc-viewport relative overflow-x-auto overflow-y-hidden"
+        style={{
+          maskImage:
+            "linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent)",
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent)",
+        }}
+      >
         <div className="flex w-max gap-3.5 pb-1">
 
           {loop.map((p, i) => {
