@@ -227,7 +227,7 @@ const CSS = `
 .vstory-inner{width:540px;height:960px;position:absolute;top:0;left:0;transform:scale(2);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden}
 .vstory-bg{position:absolute;inset:0;z-index:0}
 .vstory-bg img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
-.vstory-bg-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 40%,rgba(0,0,0,.95) 100%)}
+.vstory-bg-grad{position:absolute;inset:0;background:transparent}
 .vstory-content{position:relative;z-index:10;width:100%;height:100%;padding:28px 28px 20px;display:flex;flex-direction:column;justify-content:space-between}
 .vstory-top{display:flex;flex-direction:column;margin-top:8px}
 .vstory-logo-wrap{display:flex;align-items:center;margin-bottom:24px;height:44px}

@@ -266,7 +266,7 @@ const CSS = `
 .vfeed-inner{width:768px;height:1024px;position:absolute;top:0;left:0;transform:scale(1.40625);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden;border-radius:0}
 .vfeed-bg{position:absolute;inset:0;z-index:0}
 .vfeed-bg img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
-.vfeed-bg-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.60) 0%,rgba(0,0,0,0) 45%,rgba(0,0,0,.95) 100%)}
+.vfeed-bg-grad{position:absolute;inset:0;background:transparent}
 .vfeed-content{position:relative;z-index:10;width:100%;height:100%;padding:40px;display:flex;flex-direction:column;justify-content:space-between}
 .vfeed-top{display:flex;flex-direction:column}
 .vfeed-logo-wrap{display:flex;align-items:center;margin-bottom:32px;height:48px}
