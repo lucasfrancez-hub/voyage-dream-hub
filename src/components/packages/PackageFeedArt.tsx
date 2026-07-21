@@ -177,7 +177,7 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                   <p className="vfeed-info-strong">{data.origem}</p>
                 </div>
                 <div className="vfeed-info-div" />
-                <div className="vfeed-info-col">
+                <div className="vfeed-info-col vfeed-info-col-hotel">
                   <div className="vfeed-info-icon">{I.building}</div>
                   <p className="vfeed-info-hotel">{data.hotel}</p>
                   {stars > 0 ? (
