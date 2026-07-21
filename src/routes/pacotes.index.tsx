@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { MapPin, Calendar as CalendarIcon, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket, Compass } from "lucide-react";
 import type { DateRange } from "react-day-picker";
+import { ptBR } from "date-fns/locale";
+
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
 import { whatsappUrl } from "@/lib/checkout-config";
