@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, Send } from "lucide-react";
+import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy } from "@/lib/packages/curate.functions";
@@ -340,7 +340,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
           baseUrl,
         },
       });
-      const preparedFile = channel === "whatsapp" ? await prepareShareFile() : null;
+      const preparedFile = await prepareShareFile();
       setShareFile(preparedFile);
       setOutput({ channel, text: res.text });
     } catch (err) {
@@ -356,66 +356,27 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     catch { toast.error("Não foi possível copiar"); }
   }
 
-  async function sendToWhatsApp() {
-    if (!output) return;
-    const text = output.text;
-
-    // O protocolo nativo abre o aplicativo fora do iframe do preview e evita
-    // os bloqueios de api.whatsapp.com, wa.me e web.whatsapp.com.
-    const appUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
-    const appLink = document.createElement("a");
-    appLink.href = appUrl;
-    appLink.target = "_top";
-    appLink.click();
-
-    // Copia imagem + texto na mesma entrada da área de transferência.
-    // A maioria dos navegadores aceita image/png + text/plain no mesmo
-    // ClipboardItem, então o Cmd/Ctrl+V no WhatsApp anexa a imagem e o
-    // botão "Copiar legenda" no toast reescreve só o texto para colar na legenda.
-    let copiedBoth = false;
+  async function copyImage() {
+    if (!shareFile) { toast.error("Cadastre a URL da imagem de capa antes."); return; }
     try {
-      if (shareFile) {
-        const pngBlob = await (async () => {
-          if (shareFile.type === "image/png") return shareFile;
-          const bmp = await createImageBitmap(shareFile);
-          const canvas = document.createElement("canvas");
-          canvas.width = bmp.width; canvas.height = bmp.height;
-          canvas.getContext("2d")!.drawImage(bmp, 0, 0);
-          return await new Promise<Blob>((resolve, reject) =>
-            canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/png")
-          );
-        })();
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            "image/png": pngBlob,
-            "text/plain": new Blob([text], { type: "text/plain" }),
-          }),
-        ]);
-        copiedBoth = true;
-      } else {
-        await navigator.clipboard.writeText(text);
-      }
+      const pngBlob = shareFile.type === "image/png"
+        ? shareFile
+        : await (async () => {
+            const bmp = await createImageBitmap(shareFile);
+            const canvas = document.createElement("canvas");
+            canvas.width = bmp.width; canvas.height = bmp.height;
+            canvas.getContext("2d")!.drawImage(bmp, 0, 0);
+            return await new Promise<Blob>((resolve, reject) =>
+              canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/png")
+            );
+          })();
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
+      toast.success("Foto copiada — cole (Cmd/Ctrl+V) no chat");
     } catch {
-      try { await navigator.clipboard.writeText(text); } catch { /* noop */ }
+      toast.error("Não foi possível copiar a foto");
     }
-
-    toast.success("Abrindo o WhatsApp", {
-      description: copiedBoth
-        ? "Imagem + texto copiados. Cole (Cmd/Ctrl+V) no contato para anexar a imagem. Depois clique em 'Copiar legenda' e cole na legenda."
-        : "Texto copiado. Escolha o contato e cole (Cmd/Ctrl+V).",
-      duration: 12000,
-      action: copiedBoth
-        ? {
-            label: "Copiar legenda",
-            onClick: () => {
-              navigator.clipboard.writeText(text)
-                .then(() => toast.success("Legenda copiada — cole no campo de legenda do WhatsApp"))
-                .catch(() => toast.error("Não foi possível copiar a legenda"));
-            },
-          }
-        : undefined,
-    });
   }
+
 
 
 
@@ -569,14 +530,14 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
                 Texto para {output.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
               </div>
               <div className="flex items-center gap-2">
-                {output.channel === "whatsapp" && (
+                {shareFile && (
                   <button
                     type="button"
-                    onClick={sendToWhatsApp}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#25D366]/40 bg-[#25D366]/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#25D366] hover:bg-[#25D366] hover:text-white transition-colors"
-                    title="Enviar no WhatsApp (com imagem quando suportado)"
+                    onClick={copyImage}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-200 hover:border-brand-orange hover:text-brand-orange"
+                    title="Copiar foto do pacote"
                   >
-                    <Send className="h-3 w-3" /> Enviar
+                    <ImageDown className="h-3 w-3" /> Copiar foto
                   </button>
                 )}
                 <button
@@ -584,7 +545,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
                   onClick={copyText}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-200 hover:border-brand-orange hover:text-brand-orange"
                 >
-                  <Copy className="h-3 w-3" /> Copiar
+                  <Copy className="h-3 w-3" /> Copiar texto
                 </button>
               </div>
 
