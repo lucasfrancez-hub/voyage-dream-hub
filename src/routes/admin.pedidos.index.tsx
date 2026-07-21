@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Search, ExternalLink, Loader2, Plus, Cloud, Trash2, RotateCcw } from "lucide-react";
-import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
+
 import { MondeSaleImportDialog } from "@/components/monde/MondeSaleImportDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -180,7 +180,7 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
   }, {});
 
   const [newOpen, setNewOpen] = useState(false);
-  const [mondeOpen, setMondeOpen] = useState(false);
+  
   const [mondeSaleOpen, setMondeSaleOpen] = useState(false);
 
   const PAGE_SIZE = 10;
@@ -210,9 +210,6 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
             <Button variant="outline" size="sm" onClick={() => setMondeSaleOpen(true)} className="gap-2 flex-1 sm:flex-none">
               <Cloud className="h-4 w-4" /> <span>Importar venda Monde</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setMondeOpen(true)} className="gap-2 flex-1 sm:flex-none">
-              <Cloud className="h-4 w-4" /> <span className="hidden sm:inline">Pessoa</span> Monde
-            </Button>
             <Button size="sm" onClick={() => setNewOpen(true)} className="gap-2 flex-1 sm:flex-none">
               <Plus className="h-4 w-4" /> Cadastrar<span className="hidden sm:inline"> pedido</span>
             </Button>
@@ -222,13 +219,6 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
       </div>
 
       <NewOrderDialog open={newOpen} onOpenChange={setNewOpen} />
-      <MondePersonSearchDialog
-        open={mondeOpen}
-        onOpenChange={setMondeOpen}
-        onPick={(p) => {
-          toast.success(`Cliente "${p.name}" carregado do Monde. Abra um pedido e use o botão de importar dentro dele para vincular como passageiro.`);
-        }}
-      />
       <MondeSaleImportDialog
         open={mondeSaleOpen}
         onOpenChange={setMondeSaleOpen}
