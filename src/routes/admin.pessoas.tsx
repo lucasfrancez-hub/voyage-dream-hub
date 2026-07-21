@@ -103,6 +103,14 @@ function PeoplePage() {
     });
   }, [q.data, term, kind]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+  React.useEffect(() => { setPage(1); }, [term, kind]);
+
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
