@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Search, ExternalLink, Loader2, Plus, Cloud, Trash2, RotateCcw, Sparkles } from "lucide-react";
 import { MondePersonSearchDialog } from "@/components/monde/MondePersonSearchDialog";
+import { MondeSaleImportDialog } from "@/components/monde/MondeSaleImportDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
