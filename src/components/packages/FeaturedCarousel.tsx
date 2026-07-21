@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { MapPin, Navigation, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { selectCuratedPackages } from "@/lib/packages/curation-select";
 
 
 
@@ -127,10 +128,14 @@ export function FeaturedCarousel({
   }, []);
 
   const featured = useMemo(() => {
-    const active = (packages || []).filter((p) => p.is_active);
-    const base = [...active].sort(
-      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
-    );
+    // Mesma seleção da aba "Curadoria de IA" — grupos e prioridade idênticos.
+    const curated = selectCuratedPackages(packages || []);
+    // Fallback: se por algum motivo a curadoria vier vazia, cai pra sort_order.
+    const base = curated.length
+      ? curated
+      : (packages || []).filter((p) => p.is_active).sort(
+          (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
+        );
 
     if (!userCoords) return base.slice(0, 12);
 
