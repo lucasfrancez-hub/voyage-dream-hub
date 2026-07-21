@@ -22,6 +22,7 @@ import { findAirline } from "@/lib/airlines";
 import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
 import { generatePackageSummary, searchCoverImages, extractFlightFromImage, extractPackageFromDocument, extractMultiplePackagesFromDocument } from "@/lib/packages/ai.functions";
+import { normalizeFlightBaggage } from "@/lib/packages/flight-baggage";
 import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
 import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions";
 import { FileUp, Upload, ChevronLeft, ChevronRight, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
@@ -1821,7 +1822,7 @@ function FormField({
 
 function cleanFlight(f: FlightInfo | null | undefined): FlightInfo | null {
   if (!f) return null;
-  const normalizedBaggage = normalizeExtractedFlight(f) as FlightInfo;
+  const normalizedBaggage = normalizeFlightBaggage(f) as FlightInfo;
   const segments = getCleanSegments(normalizedBaggage);
   const first = segments[0];
   const last = segments[segments.length - 1];
@@ -1890,56 +1891,6 @@ function autoFareFromBags(f: FlightInfo, patch: Partial<FlightInfo>): Partial<Fl
   }
   return patch;
 }
-
-// Normaliza um voo vindo da IA: garante booleans de bagagem definidos e
-// auto-preenche fare_class (LIGHT/STANDARD) quando a IA não trouxer código.
-function normalizeExtractedFlight(f: any): any {
-  if (!f || typeof f !== "object") return f;
-  const asBoolean = (value: unknown): boolean | undefined => {
-    if (typeof value === "boolean") return value;
-    if (typeof value === "number") return value > 0;
-    if (typeof value !== "string") return undefined;
-    const normalized = value.trim().toLowerCase();
-    if (/^(true|sim|yes|included|inclus[ao]|1)$/.test(normalized)) return true;
-    if (/^(false|nao|não|no|not included|0)$/.test(normalized)) return false;
-    return undefined;
-  };
-  const baggageText = [
-    f.baggage_allowance,
-    f.baggage,
-    f.bags,
-    f.baggage_info,
-    f.baggage_details,
-    f.checked_baggage,
-  ]
-    .filter((value) => value != null)
-    .map(String)
-    .join(" ")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-  const currentFare = String(f.fare_class ?? "").trim().toUpperCase();
-  const hasCheckedEvidence =
-    /(?:^|\b)(?:[1-9]\s*(?:pc|peca|bag)|23\s*kg|bagagem\s*despachada|mala\s*despachada|checked\s*bag|baggage\s*included)(?:\b|$)/i.test(baggageText) ||
-    /^(STANDARD|FULL|TOP|MAX|PLUS|SEAT\s*\+\s*BAG)$/.test(currentFare);
-  const noCheckedEvidence =
-    /(?:0\s*(?:pc|peca|bag)|sem\s+bagagem\s+despachada|nao\s+inclui\s+bagagem|no\s+checked\s+bag)/i.test(baggageText) ||
-    /^(LIGHT|BASIC|ZERO|DISCOUNT)$/.test(currentFare);
-  const checkedValue = asBoolean(f.checked_bag ?? f.checked_baggage ?? f.baggage_included);
-  const checked = hasCheckedEvidence ? true : noCheckedEvidence ? false : (checkedValue ?? false);
-  let fare_class = f.fare_class;
-  if (!currentFare || currentFare === "LIGHT" || currentFare === "STANDARD") {
-    fare_class = checked ? "STANDARD" : "LIGHT";
-  }
-  return {
-    ...f,
-    personal_item: asBoolean(f.personal_item ?? f.personalItem) ?? true,
-    carry_on: asBoolean(f.carry_on ?? f.carryOn ?? f.hand_baggage) ?? true,
-    checked_bag: checked,
-    fare_class,
-  };
-}
-
 
 function FlightFieldset({
   title,
@@ -2292,7 +2243,7 @@ function FlightImportButton({
       const { flight } = await extract({
         data: { image_base64: base64, mime_type: file.type },
       });
-      const normalized: FlightInfo = normalizeExtractedFlight({
+      const normalized: FlightInfo = normalizeFlightBaggage({
         ...flight,
         segments: Array.isArray(flight?.segments) ? flight.segments : [],
       });
@@ -2493,13 +2444,13 @@ function PackageImportButton({
       patch.includes = [];
       if (p.supplier_name) patch.supplier_name = String(p.supplier_name);
       if (p.outbound_flight && typeof p.outbound_flight === "object") {
-        patch.outbound_flight = normalizeExtractedFlight({
+        patch.outbound_flight = normalizeFlightBaggage({
           ...p.outbound_flight,
           segments: Array.isArray(p.outbound_flight.segments) ? p.outbound_flight.segments : [],
         });
       }
       if (p.return_flight && typeof p.return_flight === "object") {
-        patch.return_flight = normalizeExtractedFlight({
+        patch.return_flight = normalizeFlightBaggage({
           ...p.return_flight,
           segments: Array.isArray(p.return_flight.segments) ? p.return_flight.segments : [],
         });
@@ -2747,8 +2698,8 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           image_url: "",
           summary: "",
           itinerary: "",
-          outbound_flight: p.outbound_flight ? normalizeExtractedFlight(p.outbound_flight) : null,
-          return_flight: p.return_flight ? normalizeExtractedFlight(p.return_flight) : null,
+          outbound_flight: p.outbound_flight ? normalizeFlightBaggage(p.outbound_flight) : null,
+          return_flight: p.return_flight ? normalizeFlightBaggage(p.return_flight) : null,
         } as Partial<PackageRow>;
       });
 
