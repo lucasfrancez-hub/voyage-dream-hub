@@ -95,12 +95,11 @@ FORMATO OBRIGATÓRIO (copie exatamente, incluindo asteriscos do WhatsApp para ne
 
 *DESTINO EM CAIXA ALTA* {1-2 emojis do país/vibe}
 
-{Gancho de UMA linha começando com "Já imaginou…" — conectado ao tema "${data.groupTitle}". Ex.: "Já imaginou passar o Réveillon com pé na areia?", "Já imaginou fugir do frio numa das melhores ofertas ativas?", "Já imaginou aproveitar esse feriado a um preço redondo?".}
+_{Gancho de UMA linha começando com "Já imaginou…" — conectado ao tema "${data.groupTitle}". Ex.: "Já imaginou passar o Réveillon com pé na areia?", "Já imaginou fugir do frio numa das melhores ofertas ativas?", "Já imaginou aproveitar essa data especial a um preço redondo?". SEMPRE envolva a frase inteira em underscores para itálico no WhatsApp: _frase_.}_
 
 ✈️ Saindo de {origem}
 🗓️ {DD a DD/MÊS EM CAIXA ALTA} ({N noites})
 🏨 {Hotel} {estrelas em ★} — {regime, ex.: Café da Manhã / All Inclusive}
-👩🏻‍💻 Assessoria completa
 
 *FORMAS DE PAGAMENTO:*
 🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S) _(5% de desconto já aplicado)_
