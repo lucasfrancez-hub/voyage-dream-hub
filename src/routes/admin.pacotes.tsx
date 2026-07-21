@@ -634,6 +634,19 @@ function AdminPackages() {
             </SelectContent>
           </Select>
         </div>
+        <div className="flex-1">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ordenar por</label>
+          <Select value={sortMode} onValueChange={(v) => setSortMode(v as typeof sortMode)}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Ordem manual" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="manual">Ordem manual (#)</SelectItem>
+              <SelectItem value="price_asc">Menor preço</SelectItem>
+              <SelectItem value="price_desc">Maior preço</SelectItem>
+              <SelectItem value="date_asc">Data mais próxima</SelectItem>
+              <SelectItem value="date_desc">Data mais distante</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <button
           type="button"
           onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
