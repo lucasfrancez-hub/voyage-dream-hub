@@ -57,7 +57,9 @@ function EmbedFeatured() {
           linkBaseUrl={PUBLIC_SITE_URL}
           hideBrandHeader
           viewAllUrl={`${PUBLIC_SITE_URL}/pacotes`}
+          mixMode
         />
+
       )}
     </div>
   );
