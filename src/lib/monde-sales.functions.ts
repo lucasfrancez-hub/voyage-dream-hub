@@ -294,6 +294,52 @@ function extractPassengers(sale: MondeSale): PassengerSummary[] {
   return Array.from(map.values());
 }
 
+/** Busca detalhes completos de cada passageiro em /people/{id} do Monde. */
+async function enrichPassengers(list: PassengerSummary[]): Promise<PassengerSummary[]> {
+  const out: PassengerSummary[] = [];
+  for (const p of list) {
+    if (!p.external_id) { out.push(p); continue; }
+    try {
+      const json = await mondeGet(`/people/${p.external_id}`);
+      const full = (json?.data ?? json) as any;
+      const cpfClean = (full?.cpf ?? full?.cpf_cnpj ?? p.cpf ?? "").replace(/\D+/g, "");
+      out.push({
+        ...p,
+        cpf: cpfClean.length === 11 ? cpfClean : p.cpf,
+        birth_date: full?.birthdate ?? p.birth_date,
+        email: full?.email ?? p.email,
+        phone: full?.mobile_number ?? full?.phone_number ?? p.phone,
+        passport: full?.passport_number ?? p.passport,
+        passport_expiry: full?.passport_expiration_date ?? p.passport_expiry,
+        raw: { ...p.raw, ...full },
+      });
+    } catch {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+/** Coleta os bilhetes emitidos por passageiro a partir dos airline_tickets da venda. */
+function collectTicketsByPassenger(sale: MondeSale): Map<string, Array<{ ticket_number: string; locator: string | null; airline: string | null }>> {
+  const byKey = new Map<string, Array<{ ticket_number: string; locator: string | null; airline: string | null }>>();
+  for (const t of sale.airline_tickets ?? []) {
+    for (const pax of t.passengers ?? []) {
+      const person = pax.person as MondePersonRef | undefined;
+      if (!person) continue;
+      const cpfClean = (person.cpf ?? person.cpf_cnpj ?? "").replace(/\D+/g, "");
+      const key = person.external_id ?? (cpfClean.length >= 11 ? cpfClean : person.name ?? "");
+      if (!key) continue;
+      const tn = (pax as any).ticket_number ?? (pax as any).ticket ?? (pax as any).number ?? null;
+      if (!tn) continue;
+      const arr = byKey.get(key) ?? [];
+      arr.push({ ticket_number: String(tn), locator: t.locator ?? null, airline: t.supplier?.name ?? null });
+      byKey.set(key, arr);
+    }
+  }
+  return byKey;
+}
+
 export type MondeSalePreview = {
   sale_id: string;
   sale_number: number;
