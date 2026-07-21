@@ -228,8 +228,7 @@ const CSS = `
 .vstory-outer{width:1080px;height:1920px;position:relative;background:#000;overflow:hidden;--brand-orange:#ff7f00}
 .vstory-outer *{box-sizing:border-box}
 .vstory-inner{width:540px;height:960px;position:absolute;top:0;left:0;transform:scale(2);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden}
-.vstory-bg{position:absolute;inset:0;z-index:0}
-.vstory-bg img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+.vstory-bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center top;background-repeat:no-repeat}
 .vstory-bg-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 40%,rgba(0,0,0,.95) 100%)}
 .vstory-content{position:relative;z-index:10;width:100%;height:100%;padding:28px 28px 20px;display:flex;flex-direction:column;justify-content:space-between}
 .vstory-top{display:flex;flex-direction:column;margin-top:8px}
@@ -242,8 +241,9 @@ const CSS = `
 .vstory-tag-text{color:var(--brand-orange);font-weight:700;letter-spacing:.18em;text-transform:uppercase;font-size:13px;line-height:1}
 .vstory-dest{font-size:96px;font-weight:900;line-height:.9;letter-spacing:-.03em;margin:0;text-shadow:0 4px 12px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.45),0 2px 4px rgba(0,0,0,.35);text-transform:uppercase;color:#fff}
 .vstory-dest span{color:var(--brand-orange)}
-.vstory-sub-wrap{position:relative;display:inline-block;align-self:flex-start;margin-top:12px}
-.vstory-sub{font-family:'Dancing Script','Brush Script MT',cursive;font-size:48px;line-height:1;margin:0;padding-right:20px;position:relative;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.4);font-weight:700}
+.vstory-sub-wrap{position:relative;display:inline-block;align-self:flex-start;margin-top:12px;max-width:100%}
+.vstory-sub{font-family:'Dancing Script','Brush Script MT',cursive;font-size:36px;line-height:1;margin:0;padding-right:20px;position:relative;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.4);font-weight:700;white-space:nowrap}
+
 .vstory-swoosh{position:absolute;width:100%;height:14px;bottom:-6px;left:0;color:var(--brand-orange)}
 .vstory-bottom{display:flex;flex-direction:column;gap:14px}
 .glass-panel{background:rgba(0,0,0,.30);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.30);border-radius:20px}
