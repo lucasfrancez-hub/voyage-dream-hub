@@ -129,8 +129,21 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
     ]);
     if (!rDet.ok) {
       const body = await rDet.text().catch(() => "");
+      // 429 (rate limit) e 5xx: não quebra o fluxo do chamador — devolve
+      // um objeto vazio pra IA/UI seguirem sem enriquecimento do TripAdvisor.
+      if (rDet.status === 429 || rDet.status >= 500) {
+        return {
+          location_id: id,
+          name: "", address: null, city: null, country: null,
+          latitude: null, longitude: null, rating: null,
+          tripadvisor_url: null, phone: null, website: null,
+          photos: [], description: null, hotel_class: null,
+        };
+
+      }
       throw new Error(`TripAdvisor details ${rDet.status}: ${body.slice(0, 200)}`);
     }
+
     const rawDet = (await rDet.json()) as Record<string, unknown>;
     // Algumas versões da API envolvem os detalhes em `data` ou `location`.
     const det = ((rawDet.data as Record<string, unknown> | undefined)
