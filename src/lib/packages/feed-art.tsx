@@ -9,6 +9,31 @@ import { PackageFeedArt, type FeedArtData } from "@/components/packages/PackageF
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 import { generatePackageTagline } from "@/lib/packages/ai.functions";
 
+const FONTS_HREF =
+  "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Dancing+Script:wght@600;700&display=swap";
+
+async function ensureFonts() {
+  if (typeof document === "undefined") return;
+  if (!document.querySelector(`link[data-vfeed-fonts]`)) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = FONTS_HREF;
+    link.setAttribute("data-vfeed-fonts", "1");
+    document.head.appendChild(link);
+  }
+  try {
+    // força carregamento das faces usadas na arte
+    await Promise.all([
+      (document as any).fonts?.load?.('900 100px "Montserrat"'),
+      (document as any).fonts?.load?.('700 20px "Montserrat"'),
+      (document as any).fonts?.load?.('700 48px "Dancing Script"'),
+    ]);
+    await (document as any).fonts?.ready;
+  } catch {
+    /* noop */
+  }
+}
+
 const APT_LABEL: Record<number, string> = {
   1: "individual",
   2: "duplo",
