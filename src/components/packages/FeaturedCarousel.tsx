@@ -5,9 +5,9 @@
  * - Se o usuário permitir geolocalização, reordena priorizando os pacotes
  *   cuja origem esteja mais próxima da posição atual.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { MapPin, Navigation } from "lucide-react";
+import { MapPin, Navigation, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 
 
@@ -30,6 +30,8 @@ type PkgLite = {
   image_url: string | null;
   sort_order: number | null;
   is_active: boolean;
+  going_date?: string | null;
+  return_date?: string | null;
 };
 
 /** Coordenadas aproximadas das cidades de origem que usamos nos pacotes. */
