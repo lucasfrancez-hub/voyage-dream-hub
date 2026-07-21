@@ -2651,8 +2651,38 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           filename: file.name || "orcamentos.pdf",
         },
       });
-      const list = Array.isArray(extracted) ? extracted.filter((p) => p && typeof p === "object") : [];
-      if (list.length === 0) throw new Error("Nenhum orçamento reconhecido no documento");
+      const rawList = Array.isArray(extracted) ? extracted.filter((p) => p && typeof p === "object") : [];
+      if (rawList.length === 0) throw new Error("Nenhum orçamento reconhecido no documento");
+
+      // Deduplica pacotes idênticos vindos no mesmo documento (mesmo destino+origem+datas+hotel+preço)
+      const norm = (v: any) =>
+        String(v ?? "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+      const seen = new Set<string>();
+      const list: any[] = [];
+      let duplicatesSkipped = 0;
+      for (const p of rawList as any[]) {
+        const dest = norm(p.destination || p?.outbound_flight?.to_city);
+        const orig = norm(p.origin || p?.outbound_flight?.from_city || p?.return_flight?.to_city);
+        const going = norm(p.going_date);
+        const ret = norm(p.return_date);
+        const hotel = norm(p.hotel_name);
+        const price = Math.round(Number(p.price_per_person) || 0);
+        const key = [dest, orig, going, ret, hotel, price].join("|");
+        if (seen.has(key)) {
+          duplicatesSkipped++;
+          continue;
+        }
+        seen.add(key);
+        list.push(p);
+      }
+      if (duplicatesSkipped > 0) {
+        toast.info(`${duplicatesSkipped} pacote(s) duplicado(s) ignorado(s) na importação.`);
+      }
 
       const drafts: Partial<PackageRow>[] = list.map((raw, i) => {
         const p: any = raw;
