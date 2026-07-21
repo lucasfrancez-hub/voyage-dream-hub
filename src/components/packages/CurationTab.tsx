@@ -360,32 +360,13 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     if (!output) return;
     const text = output.text;
 
-    // Abre a janela IMEDIATAMENTE (dentro do gesto do clique) pra não ser
-    // bloqueada por popup-blocker. Só depois disso fazemos trabalho async.
-    // Abre o WhatsApp Web diretamente. Tanto wa.me quanto api.whatsapp.com
-    // redirecionam por uma página que recusa abrir dentro do preview.
-    const senderPhone = "5544998261137";
-    const webUrl = `https://web.whatsapp.com/send?phone=${senderPhone}&text=${encodeURIComponent(text)}`;
-    const popup = window.open(webUrl, "_blank", "noopener,noreferrer");
-
-
-    // Mobile / PWA: compartilhamento nativo com imagem + texto num passo só.
-    if (shareFile && typeof navigator.share === "function") {
-      try {
-        const shareData: ShareData = { files: [shareFile], text };
-        if (!navigator.canShare || navigator.canShare(shareData)) {
-          try { popup?.close(); } catch { /* noop */ }
-          await navigator.share(shareData);
-          return;
-        }
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          try { popup?.close(); } catch { /* noop */ }
-          return;
-        }
-        // cai pro fluxo desktop abaixo
-      }
-    }
+    // O protocolo nativo abre o aplicativo fora do iframe do preview e evita
+    // os bloqueios de api.whatsapp.com, wa.me e web.whatsapp.com.
+    const appUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
+    const appLink = document.createElement("a");
+    appLink.href = appUrl;
+    appLink.target = "_top";
+    appLink.click();
 
     // Desktop: copia imagem + texto num ClipboardItem só (para colar no
     // WhatsApp Web depois de escolher o contato).
@@ -416,12 +397,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       try { await navigator.clipboard.writeText(text); } catch { /* noop */ }
     }
 
-    // Se o popup foi bloqueado, tenta reabrir (pode falhar sem gesto — nesse
-    // caso o usuário vê o aviso pra desbloquear popups).
-    if (!popup || popup.closed) {
-      window.open(webUrl, "_blank", "noopener,noreferrer");
-    }
-    toast.success("WhatsApp aberto — escolha o contato", { description: clipboardMsg, duration: 8000 });
+    toast.success("Abrindo o aplicativo do WhatsApp", { description: clipboardMsg, duration: 8000 });
   }
 
 
