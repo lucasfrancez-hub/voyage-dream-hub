@@ -150,14 +150,20 @@ export function FeaturedCarousel({
     if (!el || featured.length === 0) return;
     let raf = 0;
     let last = performance.now();
-    const speed = 32; // px/s
+    let acc = 0; // acumulador fracionário (scrollLeft é inteiro)
+    const speed = 36; // px/s
     const tick = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
       if (!hoverRef.current && now > pauseUntilRef.current) {
-        el.scrollLeft += speed * dt;
-        const half = el.scrollWidth / 2;
-        if (half > 0 && el.scrollLeft >= half) el.scrollLeft -= half;
+        acc += speed * dt;
+        if (acc >= 1) {
+          const step = Math.floor(acc);
+          acc -= step;
+          el.scrollLeft += step;
+          const half = el.scrollWidth / 2;
+          if (half > 0 && el.scrollLeft >= half) el.scrollLeft -= half;
+        }
       }
       raf = requestAnimationFrame(tick);
     };
