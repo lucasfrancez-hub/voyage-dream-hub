@@ -3,6 +3,7 @@ import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, Send } from 
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy } from "@/lib/packages/curate.functions";
+import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 
 type Pkg = {
   id: string;
@@ -298,6 +299,7 @@ function GroupSection({ group, index }: { group: Group; index: number }) {
 
 function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: string; groupReason: string }) {
   const generateFn = useServerFn(generateCurationCopy);
+  const fetchImageFn = useServerFn(fetchProxiedImage);
   const [loading, setLoading] = useState<"whatsapp" | "instagram" | "feed" | "story" | null>(null);
   const [output, setOutput] = useState<{ channel: "whatsapp" | "instagram"; text: string } | null>(null);
 
@@ -339,57 +341,44 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     if (!output) return;
     const text = output.text;
 
-    // Tenta buscar a imagem do pacote (usada nas 3 vias abaixo).
+    // Busca a imagem pelo servidor para não depender do CORS do provedor da foto.
     let file: File | null = null;
     if (pkg.image_url) {
       try {
-        const resp = await fetch(pkg.image_url, { mode: "cors" });
-        if (resp.ok) {
-          const blob = await resp.blob();
-          const ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
-          file = new File([blob], `${pkg.slug}.${ext}`, { type: blob.type || "image/jpeg" });
+        const image = await fetchImageFn({ data: { url: pkg.image_url } });
+        if (image.ok) {
+          const mime = image.contentType.split(";")[0] || "image/jpeg";
+          const binary = atob(image.base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+          const extension = mime === "image/jpeg" ? "jpg" : (mime.split("/")[1] || "jpg").split("+")[0];
+          file = new File([bytes], `${pkg.slug}.${extension}`, { type: mime });
         }
       } catch { /* ignora — segue sem imagem */ }
     }
 
-    // 1) Mobile / PWA / Chrome desktop com share sheet — envia imagem + texto de uma vez.
-    if (file && typeof navigator !== "undefined" && (navigator as any).canShare) {
+    if (!file) {
+      toast.error("Não foi possível preparar a imagem do pacote para o envio.");
+      return;
+    }
+
+    // O compartilhamento nativo é a única API do navegador que entrega o
+    // arquivo e a legenda juntos ao WhatsApp, sem download intermediário.
+    if (typeof navigator.share === "function") {
       try {
-        const shareData: any = { files: [file], text };
-        if ((navigator as any).canShare(shareData)) {
-          await (navigator as any).share(shareData);
+        const shareData: ShareData = { files: [file], text };
+        if (!navigator.canShare || navigator.canShare(shareData)) {
+          await navigator.share(shareData);
           return;
         }
-      } catch { /* fallback abaixo */ }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        toast.error("Não foi possível abrir o compartilhamento do WhatsApp.");
+        return;
+      }
     }
 
-    // 2) Desktop: baixa a imagem no computador do usuário e copia o texto.
-    //    Ele anexa a imagem no aplicativo do WhatsApp e cola o texto na legenda.
-    if (file) {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(file);
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5_000);
-    }
-    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
-
-    // 3) Abre diretamente o aplicativo instalado. Links web externos são bloqueados
-    //    pelo preview incorporado e, por isso, não são usados como fallback.
-    const appLink = document.createElement("a");
-    appLink.href = "whatsapp://send";
-    appLink.style.display = "none";
-    document.body.appendChild(appLink);
-    appLink.click();
-    appLink.remove();
-
-    toast.message(file ? "Imagem baixada e texto copiado" : "Texto copiado", {
-      description: file
-        ? "No aplicativo do WhatsApp, escolha o contato, anexe a imagem baixada e cole (Cmd/Ctrl+V) a legenda."
-        : "No aplicativo do WhatsApp, escolha o contato e cole (Cmd/Ctrl+V) a mensagem.",
-    });
+    toast.error("Este navegador não permite enviar imagem e texto juntos. Abra pelo celular ou instale o app como PWA.");
   }
 
 
