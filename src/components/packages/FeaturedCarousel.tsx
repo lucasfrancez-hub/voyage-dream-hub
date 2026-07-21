@@ -227,7 +227,7 @@ export function FeaturedCarousel({
   if (featured.length === 0) return null;
 
   return (
-    <div className="relative mb-4 overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-[0_12px_30px_-14px_rgba(0,0,0,0.45)] sm:p-8">
+    <div className={`relative mb-4 overflow-hidden rounded-2xl bg-card p-6 sm:p-8 ${hideBrandHeader ? "" : "border border-border shadow-[0_12px_30px_-14px_rgba(0,0,0,0.45)]"}`}>
 
       {/* Auras laranjas decorativas nas quinas — glow bem sutil */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-brand-orange/[0.07] blur-[100px]" />
