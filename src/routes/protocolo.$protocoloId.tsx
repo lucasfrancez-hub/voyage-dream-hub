@@ -6,6 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import { Loader2, Printer, ShieldCheck, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { listProtocoloMessages, ensureProtocoloResumo, getProtocoloDetail } from "@/lib/chat/queries.functions";
+import { registerProtocolHash } from "@/lib/protocolo-verify.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/protocolo/$protocoloId")({
@@ -111,6 +112,7 @@ function ProtocoloPrintView() {
   useEffect(() => {
     setGeneratedBy(session?.user?.email ?? session?.user?.id ?? "sistema");
   }, [session]);
+  const registerFn = useServerFn(registerProtocolHash);
   useEffect(() => {
     if (!messages.length && !detail) return;
     const payload = JSON.stringify({
@@ -122,8 +124,29 @@ function ProtocoloPrintView() {
       nm: detail?.contact_name ?? null,
       m: messages.map((m) => ({ t: m.created_at, d: m.direction, s: m.sender, c: m.content })),
     });
-    sha256Hex(payload).then(setAuthHash).catch(() => {});
-  }, [protocoloId, detail, messages]);
+    sha256Hex(payload).then((h) => {
+      setAuthHash(h);
+      // Registra o hash no backend para permitir validação pública em /validacao
+      registerFn({
+        data: {
+          hash: h,
+          protocolo_id: protocoloId,
+          numero: detail?.numero ?? null,
+          contact_name: detail?.contact_name ?? null,
+          contact_phone: detail?.contact_phone ?? null,
+          message_count: messages.length,
+          opened_at: detail?.opened_at ?? null,
+          closed_at: detail?.closed_at ?? null,
+          generated_at: generatedAt,
+        },
+      }).catch(() => {});
+    }).catch(() => {});
+  }, [protocoloId, detail, messages, generatedAt, registerFn]);
+
+  const validationUrl = authHash
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/validacao?codigo=${authHash}`
+    : "";
+
 
   if (session === undefined || (session && (msgsLoading || detailLoading))) {
     return (
@@ -276,11 +299,25 @@ function ProtocoloPrintView() {
             <div className="mt-0.5 break-all font-mono text-[10px] leading-snug text-slate-700">
               {authHash || "calculando…"}
             </div>
+            {validationUrl && (
+              <div className="mt-2 rounded-md bg-slate-50 px-2 py-1.5 text-[10px] leading-snug text-slate-600">
+                Valide este documento em:{" "}
+                <a
+                  href={validationUrl}
+                  className="break-all font-medium text-[#F26B1F] underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {validationUrl}
+                </a>
+              </div>
+            )}
           </div>
           <div className="mt-2 text-[10px] leading-relaxed text-slate-500">
             Documento gerado eletronicamente pelo sistema <strong>VIA AIR</strong>. O código acima é um resumo criptográfico
             (hash) do conteúdo desta conversa — qualquer alteração no texto original produz um código diferente,
-            garantindo a integridade do registro. Este protocolo é válido como prova de atendimento realizado via WhatsApp.
+            garantindo a integridade do registro. A autenticidade pode ser verificada publicamente pelo link acima,
+            sem necessidade de login. Este protocolo é válido como prova de atendimento realizado via WhatsApp.
           </div>
         </div>
       </div>

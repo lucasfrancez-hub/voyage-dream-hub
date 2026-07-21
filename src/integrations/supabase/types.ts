@@ -2097,6 +2097,56 @@ export type Database = {
         }
         Relationships: []
       }
+      protocol_verifications: {
+        Row: {
+          closed_at: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          generated_at: string
+          generated_by: string | null
+          hash: string
+          message_count: number
+          numero: string | null
+          opened_at: string | null
+          protocolo_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          hash: string
+          message_count?: number
+          numero?: string | null
+          opened_at?: string | null
+          protocolo_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          hash?: string
+          message_count?: number
+          numero?: string | null
+          opened_at?: string | null
+          protocolo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_verifications_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "wa_protocolos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string
