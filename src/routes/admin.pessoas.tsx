@@ -43,6 +43,40 @@ function PeoplePage() {
     if (search.edit && search.edit !== editingId) setEditingId(search.edit);
   }, [search.edit]);
 
+  // ── Sincronização com o Monde ──────────────────────────────────────────
+  const syncFn = useServerFn(syncMondePeopleBatch);
+  const stateFn = useServerFn(getMondeSyncState);
+  const stateQ = useQuery({ queryKey: ["monde-sync-state"], queryFn: () => stateFn() });
+  const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{ done: number; total: number } | null>(null);
+
+  async function runFullSync(reset: boolean) {
+    if (syncing) return;
+    setSyncing(true);
+    setSyncProgress({ done: 0, total: 0 });
+    let page = reset ? 1 : (stateQ.data?.last_page ?? 1);
+    try {
+      let firstCall = true;
+      while (true) {
+        const res = await syncFn({ data: { start_page: page, reset: firstCall && reset } });
+        firstCall = false;
+        setSyncProgress({
+          done: Math.min(res.page * 50, res.total_records),
+          total: res.total_records,
+        });
+        if (res.done) break;
+        page = res.page + 1;
+      }
+      toast.success("Sincronização com o Monde concluída");
+      qc.invalidateQueries({ queryKey: ["admin-people"] });
+      qc.invalidateQueries({ queryKey: ["monde-sync-state"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro na sincronização");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   function openEditor(id: string | null) {
     setEditingId(id);
     navigate({ search: (s: any) => ({ ...s, edit: id ?? undefined }), replace: true });
