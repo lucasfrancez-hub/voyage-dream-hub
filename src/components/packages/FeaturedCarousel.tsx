@@ -207,7 +207,7 @@ export function FeaturedCarousel({
     if (!el) return;
     // Pausa o auto-play por 4s após qualquer interação manual.
     pauseUntilRef.current = performance.now() + 4000;
-    el.scrollBy({ left: dir * 260, behavior: "smooth" });
+    el.scrollBy({ left: dir * (cardW + 14), behavior: "smooth" });
   };
 
   if (featured.length === 0) return null;
