@@ -139,6 +139,10 @@ function AdminPackages() {
   const [pendingNumbers, setPendingNumbers] = useState<number[] | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
+  const [originFilter, setOriginFilter] = useState<string>("all");
+  const [destinationFilter, setDestinationFilter] = useState<string>("all");
+  const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
 
 
