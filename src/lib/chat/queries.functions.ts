@@ -169,7 +169,29 @@ export const getProtocoloDetail = createServerFn({ method: "POST" })
       .eq("id", data.protocolo_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return proto ?? null;
+    if (!proto) return null;
+    let contact_name: string | null = null;
+    let contact_phone: string | null = null;
+    if (proto.conversation_id) {
+      const { data: conv } = await context.supabase
+        .from("wa_conversations")
+        .select("wa_phone, display_name, person_id")
+        .eq("id", proto.conversation_id)
+        .maybeSingle();
+      if (conv) {
+        contact_phone = conv.wa_phone ?? null;
+        contact_name = conv.display_name ?? null;
+        if (!contact_name && conv.person_id) {
+          const { data: person } = await context.supabase
+            .from("people")
+            .select("full_name")
+            .eq("id", conv.person_id)
+            .maybeSingle();
+          contact_name = person?.full_name ?? null;
+        }
+      }
+    }
+    return { ...proto, contact_name, contact_phone };
   });
 
 
