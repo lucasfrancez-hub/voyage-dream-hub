@@ -362,11 +362,10 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
 
     // Abre a janela IMEDIATAMENTE (dentro do gesto do clique) pra não ser
     // bloqueada por popup-blocker. Só depois disso fazemos trabalho async.
-    // Usa wa.me com o número da consultora (origem) — é o mesmo destino que
-    // o api.whatsapp.com/send?phone=..., mas sem o ERR_BLOCKED_BY_RESPONSE
-    // que o api.whatsapp.com dispara em alguns ambientes (CSP).
+    // Abre o WhatsApp Web diretamente. Tanto wa.me quanto api.whatsapp.com
+    // redirecionam por uma página que recusa abrir dentro do preview.
     const senderPhone = "5544998261137";
-    const webUrl = `https://wa.me/${senderPhone}?text=${encodeURIComponent(text)}`;
+    const webUrl = `https://web.whatsapp.com/send?phone=${senderPhone}&text=${encodeURIComponent(text)}`;
     const popup = window.open(webUrl, "_blank", "noopener,noreferrer");
 
 
