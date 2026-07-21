@@ -360,7 +360,9 @@ function PacotesList() {
                     }}
                     disabled={{ before: new Date() }}
                     defaultMonth={dateRange?.from ?? new Date()}
+                    locale={ptBR}
                   />
+
                   {dateRange?.from && (
                     <div className="mt-2 flex justify-end">
                       <Button
