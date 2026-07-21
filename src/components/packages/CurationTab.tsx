@@ -59,61 +59,99 @@ function InstagramIcon({ className = "h-4 w-4" }: { className?: string }) {
 }
 
 const HOLIDAY_WINDOWS: Array<{ theme: string; from: string; to: string; label: string }> = [
+  // Datas oficiais do calendário brasileiro
   { theme: "natal", from: "2026-12-19", to: "2026-12-27", label: "Natal 2026" },
   { theme: "reveillon", from: "2026-12-27", to: "2027-01-04", label: "Réveillon 2026/27" },
-  { theme: "carnaval", from: "2027-02-04", to: "2027-02-11", label: "Carnaval 2027" },
-  { theme: "pascoa", from: "2027-03-24", to: "2027-03-29", label: "Páscoa 2027" },
+  { theme: "carnaval", from: "2027-02-06", to: "2027-02-10", label: "Carnaval 2027 (09/02 ter)" },
+  { theme: "pascoa", from: "2027-03-25", to: "2027-03-29", label: "Páscoa 2027 (28/03 dom)" },
   { theme: "natal", from: "2027-12-19", to: "2027-12-27", label: "Natal 2027" },
   { theme: "reveillon", from: "2027-12-27", to: "2028-01-04", label: "Réveillon 2027/28" },
-  { theme: "carnaval", from: "2028-02-24", to: "2028-03-02", label: "Carnaval 2028" },
-  { theme: "pascoa", from: "2028-04-12", to: "2028-04-17", label: "Páscoa 2028" },
-  { theme: "prolongado", from: "2026-04-18", to: "2026-04-25", label: "Feriado de Tiradentes" },
-  { theme: "prolongado", from: "2026-06-01", to: "2026-06-07", label: "Corpus Christi" },
-  { theme: "prolongado", from: "2026-09-04", to: "2026-09-09", label: "7 de Setembro" },
-  { theme: "prolongado", from: "2026-10-09", to: "2026-10-13", label: "N. Sra. Aparecida" },
-  { theme: "prolongado", from: "2026-10-30", to: "2026-11-04", label: "Finados" },
-  { theme: "prolongado", from: "2026-11-13", to: "2026-11-17", label: "Proclamação da República" },
-  { theme: "prolongado", from: "2027-04-19", to: "2027-04-25", label: "Feriado de Tiradentes 2027" },
-  { theme: "prolongado", from: "2027-09-04", to: "2027-09-09", label: "7 de Setembro 2027" },
+  { theme: "carnaval", from: "2028-02-26", to: "2028-03-01", label: "Carnaval 2028 (29/02 ter)" },
+  { theme: "pascoa", from: "2028-04-13", to: "2028-04-17", label: "Páscoa 2028 (16/04 dom)" },
+  // Feriados prolongados (fixos e móveis)
+  { theme: "prolongado", from: "2026-09-04", to: "2026-09-08", label: "7 de Setembro 2026" },
+  { theme: "prolongado", from: "2026-10-09", to: "2026-10-12", label: "N. Sra. Aparecida 2026" },
+  { theme: "prolongado", from: "2026-10-30", to: "2026-11-02", label: "Finados 2026" },
+  { theme: "prolongado", from: "2026-11-13", to: "2026-11-15", label: "Proclamação da República 2026" },
+  { theme: "prolongado", from: "2027-04-19", to: "2027-04-21", label: "Tiradentes 2027" },
+  { theme: "prolongado", from: "2027-05-27", to: "2027-05-30", label: "Corpus Christi 2027 (27/05)" },
+  { theme: "prolongado", from: "2027-09-04", to: "2027-09-07", label: "7 de Setembro 2027" },
+  { theme: "prolongado", from: "2027-10-09", to: "2027-10-12", label: "N. Sra. Aparecida 2027" },
+  { theme: "prolongado", from: "2027-10-30", to: "2027-11-02", label: "Finados 2027" },
+  { theme: "prolongado", from: "2027-11-13", to: "2027-11-15", label: "Proclamação 2027" },
+  { theme: "prolongado", from: "2028-04-21", to: "2028-04-23", label: "Tiradentes 2028" },
+  { theme: "prolongado", from: "2028-06-15", to: "2028-06-18", label: "Corpus Christi 2028 (15/06)" },
+  { theme: "prolongado", from: "2028-09-07", to: "2028-09-10", label: "7 de Setembro 2028" },
+];
+
+// Bloqueio de destinos brasileiros — precede qualquer verificação de "internacional"
+const BR_KEYWORDS = [
+  // Capitais e destinos famosos
+  "porto seguro", "porto de galinhas", "porto alegre", "porto belo", "porto de pedras",
+  "arraial d'ajuda", "arraial do cabo", "trancoso", "morro de sao paulo", "morro de são paulo",
+  "salvador", "praia do forte", "maragogi", "sao miguel dos milagres", "são miguel dos milagres",
+  "maceio", "maceió", "japaratinga", "recife", "olinda",
+  "natal", "pipa", "tibau", "fortaleza", "jericoacoara", "canoa quebrada", "cumbuco",
+  "aracaju", "joao pessoa", "joão pessoa", "sao luis", "são luís",
+  "florianopolis", "florianópolis", "balneario camboriu", "balneário camboriú", "bombinhas",
+  "buzios", "búzios", "cabo frio", "angra dos reis", "ilha grande", "paraty", "petropolis", "petrópolis",
+  "rio de janeiro", "sao paulo", "são paulo", "campos do jordao", "campos do jordão",
+  "gramado", "canela", "monte verde", "urubici", "sao joaquim", "são joaquim",
+  "serra gaucha", "serra gaúcha", "serra catarinense",
+  "ubatuba", "ilhabela", "guaruja", "guarujá", "santos", "ilheus", "ilhéus",
+  "itacare", "itacaré", "morro branco", "beach park", "porto galinhas",
+  "fernando de noronha", "alter do chao", "alter do chão", "manaus", "belem", "belém",
+  "bonito", "chapada diamantina", "chapada dos veadeiros", "lencois maranhenses", "lençóis maranhenses",
+  "brasilia", "brasília", "curitiba", "foz do iguacu", "foz do iguaçu",
+  "belo horizonte", "ouro preto", "tiradentes", "diamantina", "inhotim", "capitolio", "capitólio",
+  "goiania", "goiânia", "caldas novas", "rio quente",
+  "praia do rosa", "garopaba", "imbituba", "penha", "itapema",
+  "brasil",
 ];
 
 const INTERNATIONAL_KEYWORDS = [
-  "bariloche", "buenos aires", "mendoza", "el calafate", "ushuaia", "salta",
-  "santiago", "chile", "valparaíso", "atacama", "puerto varas",
-  "montevidéu", "montevideo", "punta del este",
-  "cancún", "cancun", "playa del carmen", "cozumel", "riviera maya", "cidade do méxico", "méxico",
-  "punta cana", "havana", "cuba", "aruba", "curaçao", "curacao", "bahamas", "jamaica",
+  "bariloche", "buenos aires", "mendoza", "el calafate", "ushuaia", "salta", "argentina",
+  "santiago", "chile", "valparaiso", "valparaíso", "atacama", "puerto varas",
+  "montevideu", "montevidéu", "montevideo", "punta del este", "uruguai",
+  "cancun", "cancún", "playa del carmen", "cozumel", "riviera maya", "cidade do mexico", "cidade do méxico", "mexico", "méxico",
+  "punta cana", "republica dominicana", "república dominicana",
+  "havana", "cuba", "aruba", "curacao", "curaçao", "bahamas", "jamaica",
   "orlando", "miami", "nova york", "new york", "las vegas", "los angeles", "san francisco",
   "estados unidos", "eua", "usa",
-  "paris", "lisboa", "porto", "madrid", "barcelona", "roma", "milão", "milano", "veneza", "florença",
-  "londres", "amsterdam", "amsterdã", "berlim", "praga", "viena", "atenas", "santorini",
-  "dubai", "abu dhabi", "istambul", "cairo", "marrakech",
-  "tóquio", "toquio", "kyoto", "seul", "bangkok", "bali", "phuket", "singapura", "hong kong",
-  "cape town", "cidade do cabo",
-  "cartagena", "medellín", "medellin", "bogotá", "bogota", "lima", "cusco", "machu picchu",
-  "quito", "galápagos", "galapagos",
+  "paris", "franca", "frança", "lisboa", "porto (portugal)", "portugal",
+  "madrid", "espanha", "barcelona", "roma", "italia", "itália", "milao", "milão", "milano", "veneza", "florenca", "florença",
+  "londres", "reino unido", "inglaterra", "amsterdam", "amsterda", "amsterdã", "holanda",
+  "berlim", "alemanha", "praga", "viena", "atenas", "santorini", "grecia", "grécia",
+  "dubai", "abu dhabi", "istambul", "turquia", "cairo", "egito", "marrakech", "marrocos",
+  "toquio", "tóquio", "japao", "japão", "kyoto", "seul", "coreia",
+  "bangkok", "tailandia", "tailândia", "bali", "indonesia", "indonésia", "phuket", "singapura", "hong kong",
+  "cape town", "cidade do cabo", "africa do sul", "áfrica do sul",
+  "cartagena", "colombia", "colômbia", "medellin", "medellín", "bogota", "bogotá",
+  "lima", "peru", "cusco", "machu picchu", "quito", "equador", "galapagos", "galápagos",
 ];
 const WINTER_KEYWORDS = [
   "bariloche", "ushuaia", "el calafate", "valle nevado", "portillo",
-  "campos do jordão", "campos do jordao", "gramado", "canela", "monte verde", "urubici",
-  "são joaquim", "sao joaquim", "serra gaúcha", "serra catarinense",
+  "campos do jordao", "campos do jordão", "gramado", "canela", "monte verde", "urubici",
+  "sao joaquim", "são joaquim", "serra gaucha", "serra gaúcha", "serra catarinense",
 ];
 const SUMMER_BR_KEYWORDS = [
-  "porto seguro", "arraial d'ajuda", "trancoso", "morro de são paulo", "morro de sao paulo",
-  "salvador", "praia do forte", "maragogi", "porto de galinhas", "maceió", "maceio", "japaratinga",
+  "porto seguro", "arraial d'ajuda", "trancoso", "morro de sao paulo", "morro de são paulo",
+  "salvador", "praia do forte", "maragogi", "porto de galinhas", "maceio", "maceió", "japaratinga",
   "recife", "natal", "pipa", "fortaleza", "jericoacoara", "canoa quebrada", "aracaju",
-  "florianópolis", "florianopolis", "balneário camboriú", "balneario camboriu", "bombinhas",
-  "búzios", "buzios", "cabo frio", "arraial do cabo", "angra dos reis", "ilha grande", "paraty",
-  "ubatuba", "ilhabela", "guarujá", "guaruja", "ilhéus", "ilheus", "itacaré", "itacare",
-  "fernando de noronha", "alter do chão", "alter do chao",
+  "florianopolis", "florianópolis", "balneario camboriu", "balneário camboriú", "bombinhas",
+  "buzios", "búzios", "cabo frio", "arraial do cabo", "angra dos reis", "ilha grande", "paraty",
+  "ubatuba", "ilhabela", "guaruja", "guarujá", "ilheus", "ilhéus", "itacare", "itacaré",
+  "fernando de noronha", "alter do chao", "alter do chão",
 ];
 
 const normalize = (s: string | null | undefined) =>
   (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+// Match por palavra inteira — evita colisão de substring ("porto" ⊂ "porto seguro")
 const matchesAny = (dest: string, keywords: string[]) => {
-  const n = normalize(dest);
-  return keywords.some((k) => n.includes(normalize(k)));
+  const n = ` ${normalize(dest).replace(/[^a-z0-9]+/g, " ")} `;
+  return keywords.some((k) => n.includes(` ${normalize(k).replace(/[^a-z0-9]+/g, " ")} `));
 };
+const isBrazilian = (dest: string) => matchesAny(dest, BR_KEYWORDS);
 const withinWindow = (d: string | null, from: string, to: string) => !!d && d >= from && d <= to;
 const totalPrice = (p: Pkg) => Number(p.price_per_person) * (p.base_occupancy ?? 2);
 const daysUntil = (s: string | null) => {
@@ -162,12 +200,14 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       reason: "Ranking dos 5 pacotes com menor valor total no cadastro ativo.", packages: cheapest,
     });
 
-    const intl = active.filter((p) => matchesAny(p.destination, INTERNATIONAL_KEYWORDS))
+    // Internacional: precisa casar keyword INTL E não ser destino brasileiro
+    const intl = active.filter((p) => !isBrazilian(p.destination) && matchesAny(p.destination, INTERNATIONAL_KEYWORDS))
       .sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 6);
     if (intl.length) list.push({
       key: "internacional", emoji: "🌎", title: "Destaques internacionais",
       reason: "Pacotes fora do Brasil, ordenados do mais barato ao mais caro.", packages: intl,
     });
+
 
     const winter = active.filter((p) => {
       const m = monthOf(p.going_date);
