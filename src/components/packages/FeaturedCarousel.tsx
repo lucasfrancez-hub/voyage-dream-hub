@@ -5,10 +5,12 @@
  * - Se o usuário permitir geolocalização, reordena priorizando os pacotes
  *   cuja origem esteja mais próxima da posição atual.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, MapPin, Sparkles, Navigation } from "lucide-react";
+import { MapPin, Flame, Navigation } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+
+
 
 /**
  * Quando `linkBaseUrl` é passado, os cards viram <a target="_blank"> apontando
@@ -92,8 +94,8 @@ export function FeaturedCarousel({
 
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [nearestOrigin, setNearestOrigin] = useState<string | null>(null);
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const [paused, setPaused] = useState(false);
+
+
 
   // Solicita geolocalização silenciosamente (o navegador pede permissão).
   useEffect(() => {
@@ -127,53 +129,31 @@ export function FeaturedCarousel({
     return scored.slice(0, 12).map((s) => s.p);
   }, [packages, userCoords]);
 
-  // Auto-scroll contínuo (marquee) via requestAnimationFrame. Pausa no hover
-  // e enquanto o usuário arrasta com prev/next. Lista é duplicada pra loop
-  // sem "salto" visível.
-  useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el || featured.length === 0) return;
-    let raf = 0;
-    let last = performance.now();
-    const SPEED = 28; // px por segundo — bem suave, contínuo
-
-    const tick = (now: number) => {
-      const dt = (now - last) / 1000;
-      last = now;
-      if (!paused) {
-        const half = el.scrollWidth / 2;
-        let next = el.scrollLeft + SPEED * dt;
-        if (next >= half) next -= half;
-        el.scrollLeft = next;
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [paused, featured.length]);
-
+  // Marquee 100% CSS — mais confiável que rAF. A trilha (`.vfc-track`) tem
+  // 2x a lista (loop) e desliza -50% em N segundos, infinito e linear. No
+  // hover, pausa via `animation-play-state`.
   if (featured.length === 0) return null;
-
-  // Duplica os cards pra formar um loop visualmente contínuo.
   const loop = [...featured, ...featured];
-
-  const scrollBy = (dir: 1 | -1) => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const step = el.querySelector<HTMLElement>("[data-card]")?.offsetWidth ?? 220;
-    el.scrollBy({ left: dir * (step + 14) * 2, behavior: "smooth" });
-  };
+  const durationSec = Math.max(30, featured.length * 4.5);
 
   return (
-    <div
-      className="mb-6 overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-[#12202f] to-[#0a1622] p-4 shadow-lg"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
+    <div className="mb-6 overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-[#12202f] to-[#0a1622] p-4 shadow-lg">
+      <style>{`
+        @keyframes vfc-marquee {
+          from { transform: translate3d(0, 0, 0); }
+          to   { transform: translate3d(-50%, 0, 0); }
+        }
+        .vfc-track {
+          animation: vfc-marquee ${durationSec}s linear infinite;
+          will-change: transform;
+        }
+        .vfc-viewport:hover .vfc-track { animation-play-state: paused; }
+      `}</style>
+
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange/20">
-            <Sparkles className="h-4 w-4 text-brand-orange" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange">
+            <Flame className="h-4 w-4 text-white" />
           </div>
           <div>
             <div className="text-[13px] font-bold uppercase tracking-[0.18em] text-brand-orange">
@@ -187,29 +167,10 @@ export function FeaturedCarousel({
             )}
           </div>
         </div>
-        <div className="flex gap-1.5">
-          <button
-            type="button"
-            onClick={() => scrollBy(-1)}
-            className="rounded-full border border-white/10 bg-white/5 p-2 text-muted-foreground transition hover:border-brand-orange/60 hover:text-brand-orange"
-            aria-label="Anterior"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollBy(1)}
-            className="rounded-full border border-white/10 bg-white/5 p-2 text-muted-foreground transition hover:border-brand-orange/60 hover:text-brand-orange"
-            aria-label="Próximo"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
       </div>
 
-      {/* Máscara nas bordas pra dar sensação de fluxo contínuo */}
       <div
-        className="relative"
+        className="vfc-viewport relative overflow-hidden"
         style={{
           maskImage:
             "linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent)",
@@ -217,10 +178,8 @@ export function FeaturedCarousel({
             "linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent)",
         }}
       >
-        <div
-          ref={scrollerRef}
-          className="flex gap-3.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        >
+        <div className="vfc-track flex w-max gap-3.5 pb-1">
+
           {loop.map((p, i) => {
             const total = Number(p.price_per_person) * (p.base_occupancy ?? 2);
             const cardClass =
@@ -243,11 +202,12 @@ export function FeaturedCarousel({
                   {/* Gradient forte no rodapé pra dar contraste ao texto */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
 
-                  {/* Chip destino — glass, discreto */}
-                  <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-md ring-1 ring-white/15">
-                    <MapPin className="h-2.5 w-2.5 text-brand-orange" />
+                  {/* Chip destino — laranja da marca */}
+                  <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-brand-orange px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-black/30 ring-1 ring-white/20">
+                    <MapPin className="h-2.5 w-2.5 text-white" />
                     {p.destination}
                   </div>
+
 
                   <div className="absolute bottom-0 left-0 right-0 p-3.5">
                     <div
