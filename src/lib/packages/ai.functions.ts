@@ -488,7 +488,7 @@ Regras:
 - depart_at / arrive_at: SEMPRE em ISO local "YYYY-MM-DDTHH:MM". Combine a DATA visível na imagem (ex.: "Sex 06 Nov", "sex 6 nov 2026", "6 de novembro de 2026") com o horário HH:MM. Se o ano não estiver explícito, use o ano do cabeçalho/contexto (ex.: "IDA - sex 6 nov 2026"). Meses PT: jan=01, fev=02, mar=03, abr=04, mai=05, jun=06, jul=07, ago=08, set=09, out=10, nov=11, dez=12.
 - Cada segmento DEVE ter depart_at e arrive_at completos (data + hora). Se o próximo trecho passa da meia-noite, incremente a data.
 - Se um campo realmente não estiver visível, omita-o (não invente).
-- carry_on/checked_bag/personal_item: ícone colorido/ativo = true; ícone cinza/riscado = false.
+- BAGAGEM (analise com muita atenção): personal_item/carry_on/checked_bag = true SÓ com ícone ativo/colorido ou texto claro. Se só houver mochila + bagagem de mão (sem despachada), preencha fare_class="LIGHT". Se houver bagagem despachada, fare_class="STANDARD" (a menos que o print mostre outro código explícito como FULL/PLUS/TOP/BLOQ). Ícone cinza/riscado = false.
 - Cidade sempre em português quando comum (São Paulo, não Sao Paulo).
 - Se houver várias paradas, preencha "segments" na ordem; "layover" só nos intermediários (ex.: "01h20 em São Paulo").
 - Antes de finalizar, RELEIA a imagem e confirme: (a) números de voo só com dígitos, todos presentes; (b) TODOS os depart_at/arrive_at com data completa YYYY-MM-DDTHH:MM.`;
