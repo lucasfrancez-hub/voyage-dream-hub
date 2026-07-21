@@ -277,5 +277,5 @@ const CSS = `
 .vstory-side-icon svg{width:26px;height:26px}
 .vstory-side-card p{margin:0;font-size:13px;font-weight:500;line-height:1.3;color:#fff}
 .vstory-side-fine{opacity:.7;font-size:11px}
-.vstory-note{margin:6px 0 0;text-align:center;font-size:10px;color:rgba(255,255,255,.5);line-height:1.2;padding:0 8px}
+.vstory-note{margin:6px 0 0;text-align:center;font-size:12px;color:rgba(255,255,255,.95);line-height:1.2;padding:0 8px;position:relative;z-index:20;text-shadow:0 1px 3px rgba(0,0,0,.9),0 2px 6px rgba(0,0,0,.7);font-weight:500}
 `;
