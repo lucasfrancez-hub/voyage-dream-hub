@@ -218,7 +218,7 @@ export const syncMondePeopleBatch = createServerFn({ method: "POST" })
           const mapped = rows.map(mapPersonToRow);
           const { error, count } = await context.supabase
             .from("people")
-            .upsert(mapped, { onConflict: "monde_id", count: "exact" });
+            .upsert(mapped as any, { onConflict: "monde_id", count: "exact" });
           if (error) throw new Error(`Erro salvando pessoas: ${error.message}`);
           importedInBatch += count ?? mapped.length;
         }
