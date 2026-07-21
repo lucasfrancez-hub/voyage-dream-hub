@@ -211,13 +211,16 @@ function ProtocoloPrintView() {
                     {g.date}
                   </div>
                   {g.items.map((m) => {
+                    const firstName = (s: string | null | undefined) => (s ?? "").trim().split(/\s+/)[0] || "";
+                    const clientLabel = firstName(contactName) || contactName || "Cliente";
+                    const attendantLabel = firstName(m.sender_full_name) || m.sender_full_name || "Atendente";
                     const who = m.direction === "inbound"
-                      ? (contactName || "Cliente")
+                      ? clientLabel
                       : m.sender === "system"
                         ? "Sistema"
                         : m.sender === "human"
-                          ? (m.sender_full_name ?? "Atendente")
-                          : "IA";
+                          ? attendantLabel
+                          : "Camila (IA)";
                     const isInbound = m.direction === "inbound";
                     const hora = new Date(m.created_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
                     return (
