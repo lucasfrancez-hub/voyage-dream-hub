@@ -9,6 +9,31 @@ import { PackageFeedArt, type FeedArtData } from "@/components/packages/PackageF
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 import { generatePackageTagline } from "@/lib/packages/ai.functions";
 
+const FONTS_HREF =
+  "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Dancing+Script:wght@600;700&display=swap";
+
+async function ensureFonts() {
+  if (typeof document === "undefined") return;
+  if (!document.querySelector(`link[data-vfeed-fonts]`)) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = FONTS_HREF;
+    link.setAttribute("data-vfeed-fonts", "1");
+    document.head.appendChild(link);
+  }
+  try {
+    // força carregamento das faces usadas na arte
+    await Promise.all([
+      (document as any).fonts?.load?.('900 100px "Montserrat"'),
+      (document as any).fonts?.load?.('700 20px "Montserrat"'),
+      (document as any).fonts?.load?.('700 48px "Dancing Script"'),
+    ]);
+    await (document as any).fonts?.ready;
+  } catch {
+    /* noop */
+  }
+}
+
 const APT_LABEL: Record<number, string> = {
   1: "individual",
   2: "duplo",
@@ -138,6 +163,9 @@ export async function generatePackageFeedArt(pkg: {
     inclusos: detectIncludes(pkg.includes),
   };
 
+  // Carrega Montserrat + Dancing Script no documento (uma única vez).
+  await ensureFonts();
+
   // Container invisível fora da tela — 1080x1440 exatos
   const host = document.createElement("div");
   host.style.cssText = "position:fixed;left:-99999px;top:0;width:1080px;height:1440px;pointer-events:none;";
@@ -163,7 +191,10 @@ export async function generatePackageFeedArt(pkg: {
       ),
     );
 
-    const stage = host.querySelector<HTMLDivElement>(".stage");
+    // Garante que as webfonts terminaram de carregar antes do snapshot
+    try { await (document as any).fonts?.ready; } catch { /* noop */ }
+
+    const stage = host.querySelector<HTMLDivElement>(".vfeed-outer");
     if (!stage) throw new Error("Falha ao montar a arte");
 
     // cacheBust:false + skipFonts:true evita refetch pesado e enumeração de webfonts,
@@ -176,7 +207,7 @@ export async function generatePackageFeedArt(pkg: {
       pixelRatio: 1,
       cacheBust: false,
       skipFonts: true,
-      backgroundColor: "#0a1a22",
+      backgroundColor: "#000000",
     });
 
     const a = document.createElement("a");
