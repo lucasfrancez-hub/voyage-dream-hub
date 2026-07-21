@@ -276,7 +276,7 @@ const CSS = `
 .vfeed-tag-icon{width:18px;height:18px;color:var(--brand-orange);margin-right:8px;display:inline-flex}
 .vfeed-tag-icon svg{width:18px;height:18px}
 .vfeed-tag-text{color:var(--brand-orange);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:14px;line-height:1}
-.vfeed-dest{font-size:100px;font-weight:900;line-height:.9;letter-spacing:-.04em;margin:0;text-shadow:2px 2px 0 rgba(0,0,0,.95), 4px 4px 6px rgba(0,0,0,.9), 0 2px 2px rgba(0,0,0,.95);text-transform:uppercase;color:#fff}
+.vfeed-dest{font-size:100px;font-weight:900;line-height:.9;letter-spacing:-.04em;margin:0;text-shadow:0 4px 12px rgba(0,0,0,.55), 0 8px 24px rgba(0,0,0,.45), 0 2px 4px rgba(0,0,0,.35);text-transform:uppercase;color:#fff}
 .vfeed-dest span{color:var(--brand-orange)}
 .vfeed-sub-wrap{position:relative;display:inline-block;align-self:flex-start;margin-top:8px;margin-bottom:40px}
 .vfeed-sub{font-family:'Dancing Script','Brush Script MT',cursive;font-size:48px;line-height:1;margin:0;padding-right:16px;position:relative;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.4)}
