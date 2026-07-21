@@ -274,19 +274,11 @@ export function FeaturedCarousel({
                   {/* Gradient forte no rodapé pra dar contraste ao texto */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
 
-                  {/* Chip destino — laranja da marca */}
+                  {/* Chip destino — laranja da marca (canto superior esquerdo) */}
                   <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-brand-orange px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-black/30 ring-1 ring-white/20">
                     <MapPin className="h-2.5 w-2.5 text-white" />
                     {p.destination}
                   </div>
-
-                  {/* Chip datas — canto superior direito */}
-                  {dateLabel && (
-                    <div className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white shadow-lg shadow-black/40 ring-1 ring-white/15 backdrop-blur-sm">
-                      <CalendarDays className="h-2.5 w-2.5 text-white/85" />
-                      {dateLabel}
-                    </div>
-                  )}
 
 
                   <div className="absolute bottom-0 left-0 right-0 p-3.5">
@@ -296,9 +288,10 @@ export function FeaturedCarousel({
                     >
                       {p.title}
                     </div>
-                    {p.origin && (
-                      <div className="mt-1 text-[11px] font-medium text-white/85">
-                        Saindo de {p.origin}
+                    {dateLabel && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#0f1a24]/85 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-white shadow-md shadow-black/30 ring-1 ring-white/10 backdrop-blur-md">
+                        <CalendarDays className="h-3 w-3 text-brand-orange" />
+                        {dateLabel}
                       </div>
                     )}
                     <div className="mt-2.5 flex items-baseline gap-1.5">
@@ -311,6 +304,7 @@ export function FeaturedCarousel({
                     </div>
                   </div>
                 </div>
+
             );
             return linkBaseUrl ? (
               <a
