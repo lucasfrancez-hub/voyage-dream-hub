@@ -380,12 +380,43 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       }
     }
 
-    // Alguns navegadores no Mac não oferecem arquivos no menu nativo. Nesse
-    // caso, abre o WhatsApp instalado imediatamente, sem baixar a imagem.
-    window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
-    toast.message("WhatsApp aberto com o texto", {
-      description: "Este navegador do Mac não permite anexar a imagem automaticamente. No celular, imagem e texto seguem juntos.",
-    });
+    // Desktop (Mac/Windows): copia imagem + texto para a área de transferência
+    // num único ClipboardItem e abre o app do WhatsApp. O usuário escolhe o
+    // contato e cola (Cmd/Ctrl+V) — a imagem entra no chat e abre o campo de
+    // legenda; basta colar novamente para inserir o texto.
+    try {
+      // Converte para PNG (WhatsApp aceita PNG colado; ClipboardItem exige png/jpeg/gif).
+      const pngBlob = await (async () => {
+        if (shareFile.type === "image/png") return shareFile;
+        const bmp = await createImageBitmap(shareFile);
+        const canvas = document.createElement("canvas");
+        canvas.width = bmp.width; canvas.height = bmp.height;
+        canvas.getContext("2d")!.drawImage(bmp, 0, 0);
+        return await new Promise<Blob>((resolve, reject) =>
+          canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/png")
+        );
+      })();
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "image/png": pngBlob,
+          "text/plain": new Blob([text], { type: "text/plain" }),
+        }),
+      ]);
+
+      window.location.href = "whatsapp://";
+      toast.success("Imagem e texto copiados!", {
+        description: "No WhatsApp: escolha o contato, cole (Cmd+V) a imagem e cole novamente na legenda para o texto.",
+        duration: 8000,
+      });
+    } catch {
+      // Último recurso: só o texto.
+      try { await navigator.clipboard.writeText(text); } catch { /* noop */ }
+      window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
+      toast.message("WhatsApp aberto com o texto", {
+        description: "Não foi possível copiar a imagem neste navegador. No celular, imagem e texto seguem juntos.",
+      });
+    }
   }
 
 
