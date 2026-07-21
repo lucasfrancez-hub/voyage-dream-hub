@@ -23,6 +23,31 @@ function fmtDateTime(d: string | null | undefined) {
   return new Date(d).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
 
+function fmtPhone(raw: string | null | undefined) {
+  if (!raw) return "";
+  const digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    const ddd = digits.slice(2, 4);
+    const rest = digits.slice(4);
+    const mid = rest.length === 9 ? `${rest.slice(0, 5)}-${rest.slice(5)}` : `${rest.slice(0, 4)}-${rest.slice(4)}`;
+    return `+55 (${ddd}) ${mid}`;
+  }
+  return `+${digits}`;
+}
+
+function initials(name: string | null | undefined) {
+  const s = (name ?? "").trim();
+  if (!s) return "?";
+  const parts = s.split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
+async function sha256Hex(input: string) {
+  const buf = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 function ProtocoloPrintView() {
   const { protocoloId } = useParams({ from: "/protocolo/$protocoloId" });
   const navigate = useNavigate();
