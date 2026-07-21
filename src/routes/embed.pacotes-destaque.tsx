@@ -52,7 +52,12 @@ function EmbedFeatured() {
         </div>
       )}
       {!isLoading && packages && packages.length > 0 && (
-        <FeaturedCarousel packages={packages as any} linkBaseUrl={PUBLIC_SITE_URL} />
+        <FeaturedCarousel
+          packages={packages as any}
+          linkBaseUrl={PUBLIC_SITE_URL}
+          hideBrandHeader
+          viewAllUrl={`${PUBLIC_SITE_URL}/pacotes`}
+        />
       )}
     </div>
   );

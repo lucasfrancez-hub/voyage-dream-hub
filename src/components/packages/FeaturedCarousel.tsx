@@ -98,9 +98,15 @@ function fmtShortDate(iso?: string | null): string | null {
 export function FeaturedCarousel({
   packages,
   linkBaseUrl,
+  hideBrandHeader = false,
+  viewAllUrl,
 }: {
   packages: PkgLite[];
   linkBaseUrl?: string;
+  /** Esconde o badge/título "Pacotes em destaque" — usado no embed WordPress. */
+  hideBrandHeader?: boolean;
+  /** Se setado, mostra botão "Ver todos os pacotes" no topo (abre nova aba). */
+  viewAllUrl?: string;
 }) {
 
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
@@ -194,30 +200,46 @@ export function FeaturedCarousel({
       `}</style>
 
       <div className="relative z-10 mb-6 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          {/* Badge do ícone com glow laranja atrás */}
-          <div className="relative shrink-0">
-            <div className="absolute inset-0 rounded-2xl bg-brand-orange opacity-25 blur-xl" />
-            <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-orange shadow-[0_8px_16px_rgba(242,107,31,0.25)]">
-              <MapPin className="h-5 w-5 text-white" strokeWidth={2.4} />
-            </div>
-          </div>
+        {hideBrandHeader ? (
           <div className="min-w-0">
-            <div className="text-[13px] font-extrabold uppercase tracking-[0.2em] text-brand-orange">
-              Pacotes em destaque
-            </div>
-            {nearestOrigin ? (
-              <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-white/40">
-                <Navigation className="h-3 w-3" />
-                Priorizando saídas próximas de você
-              </div>
-            ) : (
-              <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
-                Ofertas escolhidas a dedo pra sua próxima viagem
-              </div>
+            {viewAllUrl && (
+              <a
+                href={viewAllUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-[12px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_8px_20px_rgba(242,107,31,0.35)] transition hover:brightness-110"
+              >
+                Ver todos os pacotes
+                <span aria-hidden>→</span>
+              </a>
             )}
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-4 min-w-0">
+            {/* Badge do ícone com glow laranja atrás */}
+            <div className="relative shrink-0">
+              <div className="absolute inset-0 rounded-2xl bg-brand-orange opacity-25 blur-xl" />
+              <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-orange shadow-[0_8px_16px_rgba(242,107,31,0.25)]">
+                <MapPin className="h-5 w-5 text-white" strokeWidth={2.4} />
+              </div>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[13px] font-extrabold uppercase tracking-[0.2em] text-brand-orange">
+                Pacotes em destaque
+              </div>
+              {nearestOrigin ? (
+                <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-white/40">
+                  <Navigation className="h-3 w-3" />
+                  Priorizando saídas próximas de você
+                </div>
+              ) : (
+                <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-white/40">
+                  Ofertas escolhidas a dedo pra sua próxima viagem
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Controles manuais — pausam o auto-play por 4s */}
         <div className="flex shrink-0 gap-2">
@@ -244,7 +266,6 @@ export function FeaturedCarousel({
         ref={viewportRef}
         onMouseEnter={() => { hoverRef.current = true; }}
         onMouseLeave={() => { hoverRef.current = false; }}
-
         className="vfc-viewport relative overflow-x-auto overflow-y-hidden"
         style={{
           maskImage:
