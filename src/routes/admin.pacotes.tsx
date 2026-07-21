@@ -26,6 +26,7 @@ import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripa
 import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions";
 import { FileUp, Upload, ChevronLeft, ChevronRight, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
 import { CurationTab } from "@/components/packages/CurationTab";
+import { confirm } from "@/lib/confirm";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
