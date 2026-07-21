@@ -178,7 +178,7 @@ export function FeaturedCarousel({
             "linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent)",
         }}
       >
-        <div ref={scrollerRef} className="vfc-track flex w-max gap-3.5 pb-1">
+        <div className="vfc-track flex w-max gap-3.5 pb-1">
 
           {loop.map((p, i) => {
             const total = Number(p.price_per_person) * (p.base_occupancy ?? 2);
