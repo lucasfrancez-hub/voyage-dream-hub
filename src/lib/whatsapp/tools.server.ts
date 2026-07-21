@@ -267,26 +267,29 @@ export function buildCamilaTools(conversation: WaConversation) {
         const link = `https://pedidos.viaair.tur.br/pacotes/${pkg.slug}`;
         const title = String(pkg.title || pkg.destination || "PACOTE").toUpperCase();
 
+        const pixFmt = pixTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const parcelaFmt = parcelaCartao.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
         const lines: string[] = [];
         lines.push(`*${title}*`);
         lines.push("");
         if (pkg.origin) lines.push(`✈️ Saindo de ${pkg.origin}`);
-        lines.push(`🗓 ${dateRange}`);
+        lines.push(`🗓️ ${dateRange}`);
         const hotelLine = pkg.hotel_name
           ? `🏨 Hospedagem no ${pkg.hotel_name}${pkg.hotel_stars ? ` (${pkg.hotel_stars}★)` : ""}`
           : `🏨 Hospedagem`;
         lines.push(hotelLine);
         if (hasAllInclusive) lines.push(`🍽 All inclusive`);
-        else if (hasBreakfast) lines.push(`🍽 Café da manhã`);
-        lines.push(`🎧 Assessoria completa`);
+        else if (hasBreakfast) lines.push(`☕ Café da Manhã`);
+        lines.push(`👩🏻‍💻 Assessoria completa`);
         lines.push("");
         lines.push(`*FORMAS DE PAGAMENTO:*`);
-        lines.push(`🤑 PIX: ${brl(pixTotal)} para ${qtd} adulto${qtd === 1 ? "" : "s"} (5% de desconto)`);
-        lines.push(`💳 Cartão de crédito: 10x de ${brl(parcelaCartao)}`);
-        lines.push(`🧾 Boleto bancário: até 10x mediante aprovação`);
-        lines.push(`🧾 Boleto sem análise de crédito até a data da viagem`);
-        lines.push(`_sem juros em qualquer forma de pagamento_`);
+        lines.push(`🤑 *PIX:* ${pixFmt} PARA ${qtd} ADULTO${qtd === 1 ? "" : "S"}`);
+        lines.push(`💳 *Cartão de crédito:* 10x de ${parcelaFmt}`);
+        lines.push(`📄 *Boleto bancário:* até 10x mediante aprovação`);
+        lines.push(`*sem juros em qualquer forma de pagamento e boleto sem análise até a data da viagem*`);
         lines.push("");
+        lines.push(`✨ Para mais informações me chame aqui 📲 4499826-1137`);
         lines.push(link);
         const caption = lines.join("\n");
 
