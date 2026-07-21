@@ -577,6 +577,28 @@ function AdminPackages() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="mb-4 inline-flex rounded-xl border border-border bg-card p-1">
+        <button
+          type="button"
+          onClick={() => setView("list")}
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${view === "list" ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          <ListIcon className="h-3.5 w-3.5" /> Pacotes
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("curadoria")}
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${view === "curadoria" ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          <SparklesIcon className="h-3.5 w-3.5" /> Curadoria IA
+        </button>
+      </div>
+
+      {view === "curadoria" ? (
+        <CurationTab packages={(packages || []) as any} />
+      ) : (
+      <>
       {/* Filters */}
       <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:pb-2.5">
