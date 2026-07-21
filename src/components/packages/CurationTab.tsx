@@ -359,14 +359,9 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
   async function sendToWhatsApp() {
     if (!output) return;
     const text = output.text;
-    if (!shareFile) {
-      toast.error("Não foi possível preparar a imagem do pacote para o envio.");
-      return;
-    }
 
-    // A imagem já está pronta antes do clique para preservar a autorização
-    // do navegador e abrir o compartilhamento nativo imediatamente.
-    if (typeof navigator.share === "function") {
+    // Mobile / PWA: compartilhamento nativo com imagem + texto num passo só.
+    if (shareFile && typeof navigator.share === "function") {
       try {
         const shareData: ShareData = { files: [shareFile], text };
         if (!navigator.canShare || navigator.canShare(shareData)) {
@@ -375,48 +370,49 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
         }
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        toast.error("Não foi possível abrir o compartilhamento do WhatsApp.");
-        return;
+        // cai pro fluxo desktop abaixo
       }
     }
 
-    // Desktop (Mac/Windows): copia imagem + texto para a área de transferência
-    // num único ClipboardItem e abre o app do WhatsApp. O usuário escolhe o
-    // contato e cola (Cmd/Ctrl+V) — a imagem entra no chat e abre o campo de
-    // legenda; basta colar novamente para inserir o texto.
+    // Desktop: tenta copiar imagem + texto num ClipboardItem só (para colar
+    // no WhatsApp Web depois de escolher o contato) e abre o WhatsApp Web
+    // numa nova aba de nível superior — assim o usuário vê a lista de contatos
+    // igual ao fluxo do orçamento web da operadora.
+    let clipboardMsg = "Texto copiado. Escolha o contato no WhatsApp e cole (Cmd/Ctrl+V).";
     try {
-      // Converte para PNG (WhatsApp aceita PNG colado; ClipboardItem exige png/jpeg/gif).
-      const pngBlob = await (async () => {
-        if (shareFile.type === "image/png") return shareFile;
-        const bmp = await createImageBitmap(shareFile);
-        const canvas = document.createElement("canvas");
-        canvas.width = bmp.width; canvas.height = bmp.height;
-        canvas.getContext("2d")!.drawImage(bmp, 0, 0);
-        return await new Promise<Blob>((resolve, reject) =>
-          canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/png")
-        );
-      })();
-
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          "image/png": pngBlob,
-          "text/plain": new Blob([text], { type: "text/plain" }),
-        }),
-      ]);
-
-      window.location.href = "whatsapp://";
-      toast.success("Imagem e texto copiados!", {
-        description: "No WhatsApp: escolha o contato, cole (Cmd+V) a imagem e cole novamente na legenda para o texto.",
-        duration: 8000,
-      });
+      if (shareFile) {
+        const pngBlob = await (async () => {
+          if (shareFile.type === "image/png") return shareFile;
+          const bmp = await createImageBitmap(shareFile);
+          const canvas = document.createElement("canvas");
+          canvas.width = bmp.width; canvas.height = bmp.height;
+          canvas.getContext("2d")!.drawImage(bmp, 0, 0);
+          return await new Promise<Blob>((resolve, reject) =>
+            canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/png")
+          );
+        })();
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "image/png": pngBlob,
+            "text/plain": new Blob([text], { type: "text/plain" }),
+          }),
+        ]);
+        clipboardMsg = "Imagem e texto copiados. No contato, cole (Cmd/Ctrl+V) a imagem e cole novamente na legenda.";
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
     } catch {
-      // Último recurso: só o texto.
       try { await navigator.clipboard.writeText(text); } catch { /* noop */ }
-      window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
-      toast.message("WhatsApp aberto com o texto", {
-        description: "Não foi possível copiar a imagem neste navegador. No celular, imagem e texto seguem juntos.",
-      });
     }
+
+    // Abre em nova aba de nível superior — não é bloqueado como iframe.
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win) {
+      // Popup bloqueado: cai pro protocolo nativo.
+      window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
+    }
+    toast.success("WhatsApp aberto!", { description: clipboardMsg, duration: 8000 });
   }
 
 
