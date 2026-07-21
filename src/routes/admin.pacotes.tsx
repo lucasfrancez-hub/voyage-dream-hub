@@ -861,7 +861,8 @@ function AdminPackages() {
           </div>
         );
       })()}
-
+      </>
+      )}
 
       {editing && (
         <PackageEditorModal
@@ -880,8 +881,6 @@ function AdminPackages() {
       )}
 
 
-      </>
-      )}
     </div>
   );
 }
