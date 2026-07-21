@@ -1001,6 +1001,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   const [imgSource, setImgSource] = useState("");
   const [imgResults, setImgResults] = useState<Array<{ thumb: string; url: string; title: string; source: string; author: string }>>([]);
   const draftsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [hotelMode, setHotelMode] = useState<"live" | "manual" | null>(
+    editing.tripadvisor_location_id ? "live" : (editing.hotel_name ? "manual" : null)
+  );
 
 
   const genSummary = useServerFn(generatePackageSummary);
@@ -1545,7 +1548,8 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                 <FormField label="Hotel" wide>
                   <HotelAutocomplete
                     value={editing.hotel_name ?? ""}
-                    initialMode={editing.tripadvisor_location_id ? "live" : (editing.hotel_name ? "manual" : null)}
+                    mode={hotelMode}
+                    onModeChange={setHotelMode}
                     onChangeText={(v) => setEditing({ ...editing, hotel_name: v })}
                     onSelect={(h) => {
                       const automaticStars = h.rating != null
