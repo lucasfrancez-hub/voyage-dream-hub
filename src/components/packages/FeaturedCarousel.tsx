@@ -223,15 +223,12 @@ export function FeaturedCarousel({
         >
           {loop.map((p, i) => {
             const total = Number(p.price_per_person) * (p.base_occupancy ?? 2);
-            return (
-              <Link
-                key={`${p.id}-${i}`}
-                to="/pacotes/$slug"
-                params={{ slug: p.slug }}
-                data-card
-                className="group relative w-[230px] shrink-0 overflow-hidden rounded-2xl bg-[#0f1a26] ring-1 ring-white/10 transition duration-300 hover:-translate-y-0.5 hover:ring-brand-orange/60"
-              >
-                <div className="relative aspect-[4/5] overflow-hidden">
+            const cardClass =
+              "group relative w-[230px] shrink-0 overflow-hidden rounded-2xl bg-[#0f1a26] ring-1 ring-white/10 transition duration-300 hover:-translate-y-0.5 hover:ring-brand-orange/60";
+            const cardKey = `${p.id}-${i}`;
+            const CardInner = (
+              <div className="relative aspect-[4/5] overflow-hidden">
+
                   {p.image_url ? (
                     <img
                       src={p.image_url}
