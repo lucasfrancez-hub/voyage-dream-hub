@@ -183,6 +183,13 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
   const [mondeOpen, setMondeOpen] = useState(false);
   const [mondeSaleOpen, setMondeSaleOpen] = useState(false);
 
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  useEffect(() => { if (page > totalPages) setPage(1); }, [page, totalPages]);
+  useEffect(() => { setPage(1); }, [q, statusFilter, showDeleted]);
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -300,7 +307,7 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
           {!isLoading && filtered.length === 0 && (
             <div className="text-center py-10 text-muted-foreground text-sm">Nenhum pedido encontrado.</div>
           )}
-          {filtered.map((o) => {
+          {paged.map((o) => {
             const snap = (o.package_snapshot ?? {}) as {
               order_number?: string; title?: string; destination?: string; reference?: string;
             };
@@ -399,7 +406,7 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                   Nenhum pedido encontrado.
                 </td></tr>
               )}
-              {filtered.map((o) => {
+              {paged.map((o) => {
                 const snap = (o.package_snapshot ?? {}) as {
                   order_number?: string;
                   title?: string;
@@ -487,6 +494,20 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
             </tbody>
           </table>
         </div>
+        {filtered.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-t border-border px-4 py-3 text-xs text-muted-foreground">
+            <div className="tabular-nums">
+              Mostrando {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(1)}>«</Button>
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</Button>
+              <span className="px-2 tabular-nums">Página {page} de {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>›</Button>
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(totalPages)}>»</Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
