@@ -127,12 +127,34 @@ const monthOf = (s: string | null) => {
   return isNaN(m) ? null : m;
 };
 
-export function CurationTab({ packages }: { packages: Pkg[] }) {
-  const active = useMemo(() => (packages || []).filter((p) => p.is_active), [packages]);
+export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefresh?: () => void | Promise<void> }) {
+  const activeAll = useMemo(() => (packages || []).filter((p) => p.is_active), [packages]);
+  const originOptions = useMemo(
+    () => Array.from(new Set(activeAll.map((p) => (p.origin || "").trim()).filter(Boolean))).sort(),
+    [activeAll],
+  );
+  const [originFilter, setOriginFilter] = useState<string>("all");
+  const active = useMemo(
+    () => (originFilter === "all" ? activeAll : activeAll.filter((p) => (p.origin || "").trim() === originFilter)),
+    [activeAll, originFilter],
+  );
+  const [refreshing, setRefreshing] = useState(false);
+  const doRefresh = async () => {
+    if (!onRefresh) return;
+    setRefreshing(true);
+    try { await onRefresh(); } finally { setRefreshing(false); }
+  };
+  // Auto-refresh a cada 2h
+  useEffect(() => {
+    if (!onRefresh) return;
+    const t = setInterval(() => { onRefresh(); }, 2 * 60 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [onRefresh]);
 
   const groups = useMemo<Group[]>(() => {
     const list: Group[] = [];
     if (!active.length) return list;
+
 
     const cheapest = [...active].sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 5);
     if (cheapest.length) list.push({
