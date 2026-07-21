@@ -88,19 +88,18 @@ export const generatePackageTagline = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
 
-    const system = `Você é copywriter da VIA AIR. Crie UMA frase curta, elegante e atrativa para uma arte de post sobre o destino "${data.destination}".
+    const system = `Você é copywriter da VIA AIR. Crie UMA frase MUITO CURTA e elegante para uma arte de post sobre o destino "${data.destination}".
 Regras:
-- No máximo 55 caracteres.
+- MÁXIMO 4 PALAVRAS. Nunca mais que isso.
 - Apenas UMA linha, sem quebras.
-- Termine com ponto final.
-- Sem emojis, sem hashtags, sem aspas, sem markdown.
+- Sem ponto final, sem emojis, sem hashtags, sem aspas, sem markdown.
 - NÃO cite preços, hotel, datas, agência ou pacote.
 - Deve remeter ao lugar (paisagem/clima/vibe).
 Exemplos:
-Porto Seguro: "O paraíso te espera."
-Gramado: "Viva o charme da Serra Gaúcha."
-Bariloche: "Neve, paisagens e experiências inesquecíveis."
-Cancún: "Águas cristalinas esperando por você."
+Porto Seguro: "Paraíso te espera"
+Gramado: "Charme da Serra"
+Bariloche: "Neve e paisagens"
+Cancún: "Águas cristalinas te chamam"
 Responda apenas com a frase.`;
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -118,8 +117,11 @@ Responda apenas com a frase.`;
     if (!resp.ok) throw new Error(`Falha IA (${resp.status})`);
     const json = (await resp.json()) as any;
     const raw = String(json?.choices?.[0]?.message?.content ?? "").trim();
-    const text = raw.replace(/^["'“”]+|["'“”]+$/g, "").split("\n")[0].trim();
-    return { text: text || `Descubra ${data.destination}.` };
+    let text = raw.replace(/^["'“”]+|["'“”]+$/g, "").split("\n")[0].trim();
+    text = text.replace(/[.!?]+$/g, "").trim();
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length > 4) text = words.slice(0, 4).join(" ");
+    return { text: text || `Descubra ${data.destination}` };
   });
 
 

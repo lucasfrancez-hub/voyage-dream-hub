@@ -141,13 +141,15 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
               ) : null}
 
               <h2 className="vfeed-dest">
-                {top}
                 {bottom ? (
                   <>
+                    {top}
                     <br />
                     <span>{bottom}</span>
                   </>
-                ) : null}
+                ) : (
+                  <span>{top}</span>
+                )}
               </h2>
 
               <div className="vfeed-sub-wrap">
@@ -169,13 +171,13 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                   {data.noites ? <p className="vfeed-info-small">{data.noites} noites</p> : null}
                 </div>
                 <div className="vfeed-info-div" />
-                <div className="vfeed-info-col">
-                  <div className="vfeed-info-icon">{I.planeTakeoff}</div>
+                <div className="vfeed-info-col vfeed-info-col-plane">
+                  <div className="vfeed-info-icon">{I.plane}</div>
                   <p className="vfeed-info-mid">Saída de</p>
                   <p className="vfeed-info-strong">{data.origem}</p>
                 </div>
                 <div className="vfeed-info-div" />
-                <div className="vfeed-info-col">
+                <div className="vfeed-info-col vfeed-info-col-hotel">
                   <div className="vfeed-info-icon">{I.building}</div>
                   <p className="vfeed-info-hotel">{data.hotel}</p>
                   {stars > 0 ? (
@@ -274,25 +276,25 @@ const CSS = `
 .vfeed-tag-icon{width:18px;height:18px;color:var(--brand-orange);margin-right:8px;display:inline-flex}
 .vfeed-tag-icon svg{width:18px;height:18px}
 .vfeed-tag-text{color:var(--brand-orange);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:14px;line-height:1}
-.vfeed-dest{font-size:100px;font-weight:900;line-height:.9;letter-spacing:-.04em;margin:0;text-shadow:0 8px 8px rgba(0,0,0,.8);text-transform:uppercase}
+.vfeed-dest{font-size:100px;font-weight:900;line-height:.9;letter-spacing:-.04em;margin:0;text-shadow:2px 2px 0 rgba(0,0,0,.95), 4px 4px 6px rgba(0,0,0,.9), 0 2px 2px rgba(0,0,0,.95);text-transform:uppercase;color:#fff}
 .vfeed-dest span{color:var(--brand-orange)}
 .vfeed-sub-wrap{position:relative;display:inline-block;align-self:flex-start;margin-top:8px;margin-bottom:40px}
 .vfeed-sub{font-family:'Dancing Script','Brush Script MT',cursive;font-size:48px;line-height:1;margin:0;padding-right:16px;position:relative;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.4)}
 .vfeed-swoosh{position:absolute;width:100%;height:16px;bottom:-4px;left:0;color:var(--brand-orange)}
 .vfeed-bottom{display:flex;flex-direction:column;gap:16px}
-/* glass panels */
 .glass-panel{background:rgba(0,0,0,.30);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.30);border-radius:16px}
 .glass-panel-dark{background:rgba(0,0,0,.70);backdrop-filter:blur(16px);border:1px solid #374151;border-radius:16px}
-/* info */
-.vfeed-info{display:inline-flex;align-self:flex-start;padding:20px 24px;align-items:center;gap:40px}
-.vfeed-info-col{display:flex;flex-direction:column;align-items:center;text-align:center}
+.vfeed-info{display:inline-flex;align-self:flex-start;padding:20px 24px;align-items:center;gap:20px}
+.vfeed-info-col{display:flex;flex-direction:column;align-items:center;text-align:center;flex-shrink:0}
+.vfeed-info-col-plane{width:110px}
+.vfeed-info-col-hotel{width:170px}
 .vfeed-info-icon{width:30px;height:30px;margin-bottom:8px;color:rgba(255,255,255,.9);display:inline-flex}
 .vfeed-info-icon svg{width:30px;height:30px}
 .vfeed-info-strong{margin:0;font-weight:700;font-size:18px;line-height:1.2}
 .vfeed-info-mid{margin:0;font-weight:500;font-size:16px;line-height:1.2;color:rgba(255,255,255,.8)}
 .vfeed-info-small{margin:0;font-size:14px;color:rgba(255,255,255,.6);line-height:1.2}
-.vfeed-info-hotel{margin:0;font-weight:700;font-size:16px;line-height:1.15;margin-bottom:4px}
-.vfeed-info-div{width:1px;height:64px;background:rgba(255,255,255,.20)}
+.vfeed-info-hotel{margin:0;font-weight:700;font-size:16px;line-height:1.15;margin-bottom:4px;word-wrap:break-word;hyphens:auto}
+.vfeed-info-div{width:1px;height:64px;background:rgba(255,255,255,.20);flex-shrink:0}
 .vfeed-stars{display:flex;justify-content:center;gap:4px;color:var(--brand-orange)}
 .vfeed-stars svg{width:14px;height:14px}
 /* includes divider */
