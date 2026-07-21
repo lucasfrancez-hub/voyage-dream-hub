@@ -239,6 +239,12 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
           toast.success(`Cliente "${p.name}" carregado do Monde. Abra um pedido e use o botão de importar dentro dele para vincular como passageiro.`);
         }}
       />
+      <MondeSaleImportDialog
+        open={mondeSaleOpen}
+        onOpenChange={setMondeSaleOpen}
+        onImported={() => qc.invalidateQueries({ queryKey: ["orders"] })}
+      />
+
 
 
       {/* Search bar (FRT style) */}
