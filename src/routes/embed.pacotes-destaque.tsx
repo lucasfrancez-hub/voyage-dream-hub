@@ -35,7 +35,7 @@ function EmbedFeatured() {
         .eq("is_active", true)
         .or(`going_date.is.null,going_date.gte.${today}`)
         .order("sort_order", { ascending: true })
-        .limit(20);
+        .limit(300);
       if (error) throw error;
       return data;
     },
