@@ -2442,17 +2442,18 @@ function PackageImportButton({
       patch.includes = [];
       if (p.supplier_name) patch.supplier_name = String(p.supplier_name);
       if (p.outbound_flight && typeof p.outbound_flight === "object") {
-        patch.outbound_flight = {
+        patch.outbound_flight = normalizeExtractedFlight({
           ...p.outbound_flight,
           segments: Array.isArray(p.outbound_flight.segments) ? p.outbound_flight.segments : [],
-        };
+        });
       }
       if (p.return_flight && typeof p.return_flight === "object") {
-        patch.return_flight = {
+        patch.return_flight = normalizeExtractedFlight({
           ...p.return_flight,
           segments: Array.isArray(p.return_flight.segments) ? p.return_flight.segments : [],
-        };
+        });
       }
+
 
       // Tenta enriquecer o hotel automaticamente com dados do TripAdvisor.
       if (patch.hotel_name) {
