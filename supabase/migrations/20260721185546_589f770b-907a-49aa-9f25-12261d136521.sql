@@ -1,0 +1,1 @@
+CREATE POLICY "Authenticated can update generated hashes" ON public.protocol_verifications FOR UPDATE TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
