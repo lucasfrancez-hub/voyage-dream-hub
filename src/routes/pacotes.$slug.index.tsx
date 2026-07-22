@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Star,
   MessageCircle,
+  Eye,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
@@ -225,7 +226,7 @@ function PackageDetails() {
                     )}
                     {pkg.room_category && (
                       <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
-                        <Check className="h-3.5 w-3.5" />
+                        <Eye className="h-3.5 w-3.5" />
                         {pkg.room_category}
                       </div>
                     )}
