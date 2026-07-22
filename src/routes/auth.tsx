@@ -48,15 +48,25 @@ function AuthPage() {
     })();
   }, [navigate]);
 
-  /** Após signIn com sucesso: verifica MFA / trusted device e decide próximo passo. */
+  /** Inicia o desafio TOTP para o fator já verificado. */
+  async function startMfaChallenge(verifiedFactorId: string) {
+    const { data: challenge, error } = await supabase.auth.mfa.challenge({
+      factorId: verifiedFactorId,
+    });
+    if (error) throw error;
+    setFactorId(verifiedFactorId);
+    setChallengeId(challenge.id);
+    setStep("mfa");
+  }
+
+  /** Após signIn: (1) checa/força enrollment TOTP; (2) se device não é confiável,
+   * envia código por e-mail; (3) só então segue para o TOTP. */
   async function postSignInFlow() {
-    // 1) Já tem fator verificado?
     const { data: factors } = await supabase.auth.mfa.listFactors();
     const verified = factors?.totp?.find((f) => f.status === "verified");
 
-    // 2) Sem fator → força enrollment (MFA obrigatório).
+    // Sem fator verificado → enrollment obrigatório (2FA nunca pulado).
     if (!verified) {
-      // Limpa fatores pendentes de tentativas anteriores.
       for (const f of factors?.totp ?? []) {
         if (f.status !== "verified") {
           try { await supabase.auth.mfa.unenroll({ factorId: f.id }); } catch { /* ignore */ }
@@ -72,24 +82,62 @@ function AuthPage() {
       return;
     }
 
-    // 3) Tem fator. Este device é confiável?
+    // Device confiável? Se sim, pula APENAS o passo de e-mail (não o TOTP).
+    let trusted = false;
     try {
-      const { trusted } = await checkTrustedDevice();
-      if (trusted) {
-        toast.success("Dispositivo confiável reconhecido");
-        navigate({ to: "/admin" });
-        return;
-      }
-    } catch {
-      // se check falhar, cai no MFA normal
+      const res = await checkTrustedDevice();
+      trusted = res.trusted;
+    } catch { /* segue como não confiável */ }
+
+    if (trusted) {
+      await startMfaChallenge(verified.id);
+      return;
     }
 
-    // 4) Device novo → exige TOTP.
-    const { data: challenge, error } = await supabase.auth.mfa.challenge({ factorId: verified.id });
-    if (error) throw error;
-    setFactorId(verified.id);
-    setChallengeId(challenge.id);
-    setStep("mfa");
+    // Device novo → dispara código por e-mail antes do TOTP.
+    try {
+      const ua = navigator.userAgent.split(") ")[0]?.replace("(", "").slice(0, 120);
+      const { masked } = await requestLoginEmailCode({ data: { userAgent: ua } });
+      setMaskedEmail(masked);
+      setFactorId(verified.id); // guarda para usar depois
+      setEmailCode("");
+      setStep("email-code");
+      toast.success("Enviamos um código para o seu e-mail");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao enviar código por e-mail");
+      // Se o envio falhar, encerra a sessão para não deixar meio-logado.
+      try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+    }
+  }
+
+  async function handleEmailCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!factorId) return;
+    setLoading(true);
+    try {
+      await verifyLoginEmailCode({ data: { code: emailCode } });
+      // Código do e-mail OK → agora o TOTP.
+      await startMfaChallenge(factorId);
+      setOtp("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Código inválido");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resendEmailCode() {
+    setLoading(true);
+    try {
+      const ua = navigator.userAgent.split(") ")[0]?.replace("(", "").slice(0, 120);
+      const { masked } = await requestLoginEmailCode({ data: { userAgent: ua } });
+      setMaskedEmail(masked);
+      toast.success("Novo código enviado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao reenviar código");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
