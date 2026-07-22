@@ -9,14 +9,24 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Sem permissão");
 }
 
+function normalizePackageSupplier(value: unknown): string {
+  const supplier = String(value ?? "").trim();
+  if (!supplier) return "";
+  if (/cativa/i.test(supplier)) return "Cativa Operadora";
+  if (/via\s*air|via\s*a[eé]rea|voe\s*air|voeair(?:\.com)?|infotera/i.test(supplier)) return "";
+  return supplier;
+}
+
 export const generatePackageSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      brief: z.string().min(2).max(500),
-      destination: z.string().max(200).optional(),
-      angle: z.string().max(80).optional(),
-    }).parse(data),
+    z
+      .object({
+        brief: z.string().min(2).max(500),
+        destination: z.string().max(200).optional(),
+        angle: z.string().max(80).optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
@@ -78,7 +88,6 @@ Regras rígidas:
     return { text };
   });
 
-
 export const generatePackageTagline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
@@ -118,16 +127,15 @@ Responda apenas com a frase.`;
     if (!resp.ok) throw new Error(`Falha IA (${resp.status})`);
     const json = (await resp.json()) as any;
     const raw = String(json?.choices?.[0]?.message?.content ?? "").trim();
-    let text = raw.replace(/^["'“”]+|["'“”]+$/g, "").split("\n")[0].trim();
+    let text = raw
+      .replace(/^["'“”]+|["'“”]+$/g, "")
+      .split("\n")[0]
+      .trim();
     text = text.replace(/[.!?]+$/g, "").trim();
     const words = text.split(/\s+/).filter(Boolean);
     if (words.length > 4) text = words.slice(0, 4).join(" ");
     return { text: text || `Descubra ${data.destination}` };
   });
-
-
-
-
 
 // Busca de imagens livres — combina múltiplas fontes de alta qualidade:
 // 1) Categoria do destino no Wikimedia Commons (galeria curada com centenas
@@ -146,7 +154,8 @@ type CoverImage = {
 const UA = "VIA-AIR/1.0 (packages cover picker; contato@viaair.tur.br)";
 
 // Bloqueia imagens que não são fotos do destino.
-const BAD_TITLE = /bandeira|brasão|coat[_ ]of[_ ]arms|flag|logo|mapa|map\b|location|localiza|seal[_ ]of|escudo|orthographic|topograph|climograph|graph|chart|diagram|elevation|satellite|nasa|landsat|blank|svg|icon/i;
+const BAD_TITLE =
+  /bandeira|brasão|coat[_ ]of[_ ]arms|flag|logo|mapa|map\b|location|localiza|seal[_ ]of|escudo|orthographic|topograph|climograph|graph|chart|diagram|elevation|satellite|nasa|landsat|blank|svg|icon/i;
 
 async function fetchJson(u: string) {
   const r = await fetch(u, { headers: { "User-Agent": UA, Accept: "application/json" } });
@@ -162,8 +171,13 @@ async function resolveDestination(query: string): Promise<{
   for (const lang of ["pt", "en"] as const) {
     const su = new URL(`https://${lang}.wikipedia.org/w/api.php`);
     su.search = new URLSearchParams({
-      action: "query", format: "json", origin: "*",
-      list: "search", srsearch: query, srlimit: "1", srnamespace: "0",
+      action: "query",
+      format: "json",
+      origin: "*",
+      list: "search",
+      srsearch: query,
+      srlimit: "1",
+      srnamespace: "0",
     }).toString();
     const sj: any = await fetchJson(su.toString());
     const title = sj?.query?.search?.[0]?.title;
@@ -171,8 +185,11 @@ async function resolveDestination(query: string): Promise<{
 
     const pu = new URL(`https://${lang}.wikipedia.org/w/api.php`);
     pu.search = new URLSearchParams({
-      action: "query", format: "json", origin: "*",
-      titles: title, prop: "pageprops",
+      action: "query",
+      format: "json",
+      origin: "*",
+      titles: title,
+      prop: "pageprops",
     }).toString();
     const pj: any = await fetchJson(pu.toString());
     const pages = pj?.query?.pages ? Object.values(pj.query.pages) : [];
@@ -180,7 +197,9 @@ async function resolveDestination(query: string): Promise<{
 
     let commonsCategory: string | null = null;
     if (qid) {
-      const wj: any = await fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
+      const wj: any = await fetchJson(
+        `https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`,
+      );
       const p373 = wj?.entities?.[qid]?.claims?.P373?.[0]?.mainsnak?.datavalue?.value;
       if (typeof p373 === "string" && p373.length > 0) commonsCategory = p373;
     }
@@ -195,7 +214,9 @@ async function loadImageInfos(titles: string[]): Promise<CoverImage[]> {
     const batch = titles.slice(i, i + 50);
     const u = new URL("https://commons.wikimedia.org/w/api.php");
     u.search = new URLSearchParams({
-      action: "query", format: "json", origin: "*",
+      action: "query",
+      format: "json",
+      origin: "*",
       titles: batch.join("|"),
       prop: "imageinfo",
       iiprop: "url|extmetadata|size|mime",
@@ -225,7 +246,10 @@ async function loadImageInfos(titles: string[]): Promise<CoverImage[]> {
         url: info.url,
         title: title.replace(/^File:/, "").replace(/\.[a-z]+$/i, ""),
         source: "Wikimedia Commons",
-        author: String(meta?.Artist?.value || "").replace(/<[^>]+>/g, "").trim().slice(0, 80),
+        author: String(meta?.Artist?.value || "")
+          .replace(/<[^>]+>/g, "")
+          .trim()
+          .slice(0, 80),
       });
     }
   }
@@ -239,9 +263,12 @@ async function listCategoryFiles(category: string, limit = 250): Promise<string[
   async function pull(catTitle: string, max: number) {
     const u = new URL("https://commons.wikimedia.org/w/api.php");
     u.search = new URLSearchParams({
-      action: "query", format: "json", origin: "*",
+      action: "query",
+      format: "json",
+      origin: "*",
       list: "categorymembers",
-      cmtitle: catTitle, cmtype: "file",
+      cmtitle: catTitle,
+      cmtype: "file",
       cmlimit: String(max),
     }).toString();
     const j: any = await fetchJson(u.toString());
@@ -255,15 +282,21 @@ async function listCategoryFiles(category: string, limit = 250): Promise<string[
   if (files.length < limit) {
     const su = new URL("https://commons.wikimedia.org/w/api.php");
     su.search = new URLSearchParams({
-      action: "query", format: "json", origin: "*",
+      action: "query",
+      format: "json",
+      origin: "*",
       list: "categorymembers",
-      cmtitle: cat, cmtype: "subcat", cmlimit: "30",
+      cmtitle: cat,
+      cmtype: "subcat",
+      cmlimit: "30",
     }).toString();
     const sj: any = await fetchJson(su.toString());
     const subs: string[] = (sj?.query?.categorymembers ?? [])
       .map((m: any) => String(m?.title || ""))
       .filter((t: string) =>
-        /beach|praia|coast|litoral|landmark|tourism|turismo|architecture|arquitetura|building|edif|view|paisagem|landscape|monument|park|parque|square|praça|church|igreja|cathedral|catedral|hotel|street|rua|avenid|centro|downtown|skyline/i.test(t),
+        /beach|praia|coast|litoral|landmark|tourism|turismo|architecture|arquitetura|building|edif|view|paisagem|landscape|monument|park|parque|square|praça|church|igreja|cathedral|catedral|hotel|street|rua|avenid|centro|downtown|skyline/i.test(
+          t,
+        ),
       )
       .slice(0, 10);
     for (const s of subs) {
@@ -333,7 +366,11 @@ async function fetchPexels(query: string, page: number): Promise<CoverImage[]> {
     return results
       .map((r: any) => ({
         thumb: (r?.src?.medium as string) || (r?.src?.small as string) || "",
-        url: (r?.src?.large2x as string) || (r?.src?.large as string) || (r?.src?.original as string) || "",
+        url:
+          (r?.src?.large2x as string) ||
+          (r?.src?.large as string) ||
+          (r?.src?.original as string) ||
+          "",
         title: (r?.alt as string) || query,
         source: "Pexels",
         author: (r?.photographer as string) || "",
@@ -374,14 +411,15 @@ async function fetchUnsplash(query: string, page: number): Promise<CoverImage[]>
   }
 }
 
-
 export const searchCoverImages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      query: z.string().min(2).max(120),
-      page: z.number().int().min(1).max(10).default(1),
-    }).parse(data),
+    z
+      .object({
+        query: z.string().min(2).max(120),
+        page: z.number().int().min(1).max(10).default(1),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
@@ -432,7 +470,6 @@ export const searchCoverImages = createServerFn({ method: "POST" })
       sourceLabel,
     };
   });
-
 
 // Extrai dados de voo de um print (screenshot) via IA visão (Gemini).
 // Retorna FlightInfo compatível com o editor de pacotes.
@@ -494,7 +531,6 @@ Regras:
 - Se houver várias paradas, preencha "segments" na ordem; "layover" só nos intermediários (ex.: "01h20 em São Paulo").
 - Antes de finalizar, RELEIA a imagem e confirme: (a) números de voo só com dígitos, todos presentes; (b) TODOS os depart_at/arrive_at com data completa YYYY-MM-DDTHH:MM.`;
 
-
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -523,14 +559,16 @@ Regras:
       }),
     });
 
-
     if (!resp.ok) {
       const txt = await resp.text().catch(() => "");
       throw new Error(`Falha IA (${resp.status}): ${txt.slice(0, 200)}`);
     }
     const json = (await resp.json()) as any;
     let text = String(json?.choices?.[0]?.message?.content ?? "").trim();
-    text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+    text = text
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/```\s*$/i, "")
+      .trim();
     const start = text.indexOf("{");
     const end = text.lastIndexOf("}");
     if (start === -1 || end === -1) throw new Error("IA não retornou JSON");
@@ -553,7 +591,8 @@ Regras:
       if (Array.isArray(parsed.segments)) {
         parsed.segments = parsed.segments.map((s: any) => ({
           ...s,
-          flight_number: s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
+          flight_number:
+            s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
         }));
       }
       parsed = normalizeFlightBaggage(parsed);
@@ -561,7 +600,6 @@ Regras:
 
     return { flight: parsed };
   });
-
 
 // Extrai um pacote completo a partir de um documento (PDF ou imagem):
 // orçamento, voucher, itinerário. Retorna partial PackageRow com datas,
@@ -741,7 +779,10 @@ Regras:
     }
     const json = (await resp.json()) as any;
     let text = String(json?.choices?.[0]?.message?.content ?? "").trim();
-    text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+    text = text
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/```\s*$/i, "")
+      .trim();
     const start = text.indexOf("{");
     const end = text.lastIndexOf("}");
     if (start === -1 || end === -1) throw new Error("IA não retornou JSON");
@@ -763,7 +804,8 @@ Regras:
       if (Array.isArray(f.segments)) {
         f.segments = f.segments.map((s: any) => ({
           ...s,
-          flight_number: s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
+          flight_number:
+            s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
         }));
       }
       return f;
@@ -776,11 +818,76 @@ Regras:
         const n = Math.round(Number(parsed.hotel_stars));
         parsed.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
       }
+
+      // A extração geral tende a privilegiar a marca grande do cabeçalho e pode
+      // ignorar serviços que aparecem páginas depois. Faz uma leitura curta e
+      // dedicada do mesmo arquivo para operadora + extras e usa esse resultado
+      // como fonte de verdade para esses campos.
+      try {
+        const focusedResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3.5-flash",
+            messages: [
+              {
+                role: "system",
+                content: `Analise o documento inteiro, inclusive cabeçalhos, rodapés, letras pequenas, cláusulas e páginas de serviços. Extraia SOMENTE a operadora emissora e os serviços incluídos.
+
+VIA AIR, Via Aérea, Voe Air, voeair.com e Infotera são agência/plataforma e NUNCA podem ser supplier_name. Se aparecer "Cativa" em qualquer trecho, inclusive nas cláusulas do Protec Travel, supplier_name deve ser "Cativa Operadora".
+
+Retorne apenas JSON exatamente neste formato:
+{"supplier_name":"","services":{"seguro":{"enabled":false,"cobertura":"","moeda":"USD"},"cancelamento":{"enabled":false,"cobertura":"","moeda":"BRL"},"transfer":{"enabled":false,"sentido":"in_out"},"city_tour":{"enabled":false,"detalhe":""},"outros":[]}}
+
+Regras:
+- seguro = seguro/assistência médica de viagem; ative mesmo sem valor de cobertura.
+- cancelamento = Protec Travel, flexibilidade tarifária ou cobertura de cancelamento involuntário; é separado do seguro. Extraia valor e moeda.
+- transfer/traslado de chegada e saída = enabled true e sentido in_out.
+- Não invente valores.`,
+              },
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Faça a varredura completa e retorne operadora e serviços.",
+                  },
+                  ...userContent.slice(1),
+                ],
+              },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (focusedResp.ok) {
+          const focusedJson = (await focusedResp.json()) as any;
+          const focusedText = String(focusedJson?.choices?.[0]?.message?.content ?? "")
+            .trim()
+            .replace(/^```(?:json)?\s*/i, "")
+            .replace(/```\s*$/i, "")
+            .trim();
+          const focused = JSON.parse(focusedText) as any;
+          const focusedSupplier = normalizePackageSupplier(focused?.supplier_name);
+          if (focusedSupplier) parsed.supplier_name = focusedSupplier;
+          if (focused?.services && typeof focused.services === "object") {
+            parsed.services = {
+              ...(parsed.services && typeof parsed.services === "object" ? parsed.services : {}),
+              ...focused.services,
+            };
+          }
+        }
+      } catch {
+        // A leitura principal continua válida se a etapa focada ficar indisponível.
+      }
+
+      parsed.supplier_name = normalizePackageSupplier(parsed.supplier_name);
     }
 
     return { pkg: parsed };
   });
-
 
 // Extrai VÁRIOS pacotes de um único PDF/imagem, separados por
 // "Orcamento 1", "Orçamento 2", "Orcamento 3"… (padrão Infotera/Visual).
@@ -804,14 +911,22 @@ export const extractMultiplePackagesFromDocument = createServerFn({ method: "POS
     const fileBlock = isPdf
       ? {
           type: "file" as const,
-          file: { filename: data.filename, file_data: `data:${data.mime_type};base64,${data.file_base64}` },
+          file: {
+            filename: data.filename,
+            file_data: `data:${data.mime_type};base64,${data.file_base64}`,
+          },
         }
       : {
           type: "image_url" as const,
           image_url: { url: `data:${data.mime_type};base64,${data.file_base64}` },
         };
 
-    const callGemini = async (systemMsg: string, userText: string, maxTokens = 24000, model = "google/gemini-2.5-flash") => {
+    const callGemini = async (
+      systemMsg: string,
+      userText: string,
+      maxTokens = 24000,
+      model = "google/gemini-2.5-flash",
+    ) => {
       const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
@@ -832,7 +947,10 @@ export const extractMultiplePackagesFromDocument = createServerFn({ method: "POS
       }
       const json = (await resp.json()) as any;
       let text = String(json?.choices?.[0]?.message?.content ?? "").trim();
-      text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+      text = text
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/```\s*$/i, "")
+        .trim();
       const start = text.indexOf("{");
       const end = text.lastIndexOf("}");
       if (start === -1 || end === -1) throw new Error("IA não retornou JSON");
@@ -847,7 +965,10 @@ export const extractMultiplePackagesFromDocument = createServerFn({ method: "POS
         "Conte TODOS os cabeçalhos 'Orcamento N' presentes no documento e liste os números N. Não pule nenhum.",
         4000,
       );
-      totalCount = Number(countRes?.count ?? (Array.isArray(countRes?.numbers) ? countRes.numbers.length : 0)) || 0;
+      totalCount =
+        Number(
+          countRes?.count ?? (Array.isArray(countRes?.numbers) ? countRes.numbers.length : 0),
+        ) || 0;
     } catch {
       totalCount = 0;
     }
@@ -880,6 +1001,13 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
   "room_category": "Standard",
   "bed_type": "Casal",
   "supplier_name": "Visual Turismo",
+  "services": {
+    "seguro": { "enabled": true, "cobertura": "12.000", "moeda": "USD" },
+    "cancelamento": { "enabled": true, "cobertura": "8.000", "moeda": "BRL" },
+    "transfer": { "enabled": true, "sentido": "in_out" },
+    "city_tour": { "enabled": false, "detalhe": "" },
+    "outros": []
+  },
   "baggage_scope": "shared | per_flight",
   "outbound_flight": { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T13:05","duration":"04h45","cabin_class":"Econômica","fare_class":"LIGHT","carry_on":true,"checked_bag":false,"personal_item":true,"segments":[ { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"CGH","to_city":"São Paulo","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T09:45","duration":"01h25","layover":"01h20 em São Paulo" }, { "airline":"GOL","flight_number":"1502","from_iata":"CGH","from_city":"São Paulo","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T11:05","arrive_at":"2026-12-21T13:05","duration":"02h00" } ] },
   "return_flight": { ...mesma estrutura, sentido inverso }
@@ -894,7 +1022,11 @@ Regras (aplicar em CADA pacote):
 - BAGAGEM E TARIFA (OBRIGATÓRIO EM outbound_flight E return_flight): sempre devolva personal_item=true e carry_on=true. checked_bag=true quando houver ícone ativo, "1 bagagem", "1 peça", "1 PC" ou "23 kg"; false para ícone riscado/cinza, "0 PC" ou "sem bagagem despachada". Se a informação aparecer UMA VEZ como regra comum do aéreo/pacote, aplique-a tanto à ida quanto à volta. Só trate diferente quando houver blocos claramente separados por direção. fare_class nunca pode ficar vazio: checked_bag=true → "STANDARD"; checked_bag=false → "LIGHT"; preserve outro nome somente quando estiver escrito explicitamente no documento.
 - baggage_scope é OBRIGATÓRIO em cada pacote: "shared" quando existe uma única regra/bloco de bagagem para todo o aéreo; "per_flight" somente quando existem blocos separados e claramente associados à ida e à volta.
 - hotel_stars: inteiro 1-5.
-- supplier_name: operadora emissora (nunca VIA AIR).
+- supplier_name: examine cabeçalho, rodapé, corpo, cláusulas e páginas de serviços. VIA AIR / Via Aérea / Voe Air / voeair.com são a agência revendedora e Infotera é a plataforma: nunca use esses nomes. Qualquer menção a Cativa, inclusive nas cláusulas do Protec Travel, significa supplier_name = "Cativa Operadora". Se não encontrar operadora, deixe vazio.
+- services.seguro: seguro/assistência médica de viagem. enabled=true quando aparecer "Seguro viagem", mesmo sem cobertura explícita. cobertura é o valor médico por pessoa e moeda é BRL/USD/EUR.
+- services.cancelamento: serviço separado do seguro. enabled=true para "Cobertura de Cancelamento Involuntário de Viagem", "Protec Travel" ou flexibilidade tarifária; extraia cobertura e moeda.
+- services.transfer: enabled=true para transfer/traslado. "chegada e saída", "IN/OUT" ou ida e volta significa sentido="in_out".
+- services.city_tour: enabled=true quando houver city tour ou passeio incluído. Outros extras explícitos vão em services.outros.
 - Cidade em português.
 
 Retorne SÓ o JSON.`;
@@ -984,7 +1116,6 @@ Retorne SÓ o JSON.`;
 
     const arr = [...collected.entries()].sort((a, b) => a[0] - b[0]).map(([, v]) => v);
 
-
     const cleanNo = (v: any): string | undefined => {
       if (v == null) return undefined;
       const digits = String(v).replace(/[^0-9]/g, "");
@@ -996,7 +1127,8 @@ Retorne SÓ o JSON.`;
       if (Array.isArray(f.segments)) {
         f.segments = f.segments.map((s: any) => ({
           ...s,
-          flight_number: s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
+          flight_number:
+            s?.flight_number !== undefined ? cleanNo(s.flight_number) : s?.flight_number,
         }));
       }
       return f;
@@ -1011,8 +1143,8 @@ Retorne SÓ o JSON.`;
         const n = Math.round(Number(pkg.hotel_stars));
         pkg.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
       }
+      pkg.supplier_name = normalizePackageSupplier(pkg.supplier_name);
     }
 
     return { packages: arr };
   });
-

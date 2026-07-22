@@ -2,8 +2,35 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Pencil, Trash2, EyeOff, Loader2, X, Info, CalendarRange, Building2, Plane, ListChecks, Sparkles, Image as ImageIcon, Search, Wand2, Link as LinkIcon, Download, SlidersHorizontal, ArrowUp, ArrowDown } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  EyeOff,
+  Loader2,
+  X,
+  Info,
+  CalendarRange,
+  Building2,
+  Plane,
+  ListChecks,
+  Sparkles,
+  Image as ImageIcon,
+  Search,
+  Wand2,
+  Link as LinkIcon,
+  Download,
+  SlidersHorizontal,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,11 +48,25 @@ import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { findAirline } from "@/lib/airlines";
 import { iataCity } from "@/lib/iata-lookup";
 import { CABIN_CLASSES, fareClassesFor } from "@/lib/airline-fares";
-import { generatePackageSummary, searchCoverImages, extractFlightFromImage, extractPackageFromDocument, extractMultiplePackagesFromDocument } from "@/lib/packages/ai.functions";
+import {
+  generatePackageSummary,
+  searchCoverImages,
+  extractFlightFromImage,
+  extractPackageFromDocument,
+  extractMultiplePackagesFromDocument,
+} from "@/lib/packages/ai.functions";
 import { normalizeFlightBaggage } from "@/lib/packages/flight-baggage";
 import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
 import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions";
-import { FileUp, Upload, ChevronLeft, ChevronRight, ChevronDown, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
+import {
+  FileUp,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Sparkles as SparklesIcon,
+  List as ListIcon,
+} from "lucide-react";
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
@@ -152,10 +193,10 @@ function AdminPackages() {
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [sortMode, setSortMode] = useState<"manual" | "price_asc" | "price_desc" | "date_asc" | "date_desc">("manual");
+  const [sortMode, setSortMode] = useState<
+    "manual" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
+  >("manual");
   const [view, setView] = useState<"list" | "curadoria">("list");
-
-
 
   // Wrap setEditing to keep the drafts array in sync with edits
   const setEditing = (v: Partial<PackageRow> | null) => {
@@ -203,7 +244,6 @@ function AdminPackages() {
     setEditingState(remaining[nextIdx]);
   }
 
-
   const { data: packages, isLoading } = useQuery({
     queryKey: ["admin", "packages"],
     queryFn: async () => {
@@ -217,13 +257,26 @@ function AdminPackages() {
     },
   });
 
-  const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  const origins = useMemo(
-    () => dedupeOrigins((packages || []).map(p => p.origin)),
-    [packages],
-  );
+  const MONTH_NAMES = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+  ];
+  const origins = useMemo(() => dedupeOrigins((packages || []).map((p) => p.origin)), [packages]);
   const destinations = useMemo(
-    () => Array.from(new Set((packages || []).map(p => p.destination).filter(Boolean) as string[])).sort(),
+    () =>
+      Array.from(
+        new Set((packages || []).map((p) => p.destination).filter(Boolean) as string[]),
+      ).sort(),
     [packages],
   );
   const monthOptions = useMemo(() => {
@@ -234,14 +287,16 @@ function AdminPackages() {
       if (isNaN(d.getTime())) continue;
       keys.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     }
-    return Array.from(keys).sort().map(k => {
-      const [y, m] = k.split("-");
-      return { value: k, label: `${MONTH_NAMES[Number(m) - 1]} ${y}` };
-    });
+    return Array.from(keys)
+      .sort()
+      .map((k) => {
+        const [y, m] = k.split("-");
+        return { value: k, label: `${MONTH_NAMES[Number(m) - 1]} ${y}` };
+      });
   }, [packages]);
 
   const displayPackages = useMemo(() => {
-    const filtered = (packages || []).filter(p => {
+    const filtered = (packages || []).filter((p) => {
       if (originFilter !== "all" && originKey(p.origin) !== originKey(originFilter)) return false;
       if (destinationFilter !== "all" && p.destination !== destinationFilter) return false;
       if (monthFilter !== "all") {
@@ -259,8 +314,12 @@ function AdminPackages() {
         return sortMode === "price_asc" ? at - bt : bt - at;
       }
       if (sortMode === "date_asc" || sortMode === "date_desc") {
-        const ad = a.going_date ? new Date(String(a.going_date) + "T12:00:00").getTime() : Number.POSITIVE_INFINITY;
-        const bd = b.going_date ? new Date(String(b.going_date) + "T12:00:00").getTime() : Number.POSITIVE_INFINITY;
+        const ad = a.going_date
+          ? new Date(String(a.going_date) + "T12:00:00").getTime()
+          : Number.POSITIVE_INFINITY;
+        const bd = b.going_date
+          ? new Date(String(b.going_date) + "T12:00:00").getTime()
+          : Number.POSITIVE_INFINITY;
         return sortMode === "date_asc" ? ad - bd : bd - ad;
       }
       const av = a.sort_order ?? 0;
@@ -273,9 +332,15 @@ function AdminPackages() {
     return sorted;
   }, [packages, originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
 
-  const hasActiveFilters = originFilter !== "all" || destinationFilter !== "all" || monthFilter !== "all" || sortMode !== "manual";
+  const hasActiveFilters =
+    originFilter !== "all" ||
+    destinationFilter !== "all" ||
+    monthFilter !== "all" ||
+    sortMode !== "manual";
 
-  useEffect(() => { setPage(1); }, [originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
+  useEffect(() => {
+    setPage(1);
+  }, [originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
 
   async function nextPackageBaseNumber(): Promise<number> {
     const { count, error } = await supabase
@@ -325,7 +390,10 @@ function AdminPackages() {
         return (r.hotel_name || "").trim().toLowerCase() === hotelTrim;
       });
       if (matches.length > 0) {
-        const list = matches.slice(0, 3).map((r: any) => `• ${r.title}${r.hotel_name ? ` — ${r.hotel_name}` : ""}`).join("\n");
+        const list = matches
+          .slice(0, 3)
+          .map((r: any) => `• ${r.title}${r.hotel_name ? ` — ${r.hotel_name}` : ""}`)
+          .join("\n");
         const proceed = await confirm({
           title: "Pacote duplicado?",
           description: `Já existe ${matches.length === 1 ? "1 pacote" : `${matches.length} pacotes`} com o mesmo destino, datas${hotelTrim ? " e hotel" : ""}:\n\n${list}\n\nSalvar mesmo assim?`,
@@ -337,8 +405,6 @@ function AdminPackages() {
       }
     }
 
-
-
     const baseSlug = normalized.slug;
     const { data: existingSlugs, error: slugLookupError } = await supabase
       .from("packages")
@@ -346,9 +412,7 @@ function AdminPackages() {
       .like("slug", `${baseSlug}%`);
     if (slugLookupError) throw slugLookupError;
     const usedSlugs = new Set(
-      (existingSlugs ?? [])
-        .filter((row) => row.id !== pkg.id)
-        .map((row) => row.slug),
+      (existingSlugs ?? []).filter((row) => row.id !== pkg.id).map((row) => row.slug),
     );
     let availableSlug = baseSlug;
     let suffix = 2;
@@ -372,8 +436,11 @@ function AdminPackages() {
       is_active: pkg.is_active ?? true,
       includes:
         typeof pkg.includes === "string"
-          ? (pkg.includes as string).split("\n").map((s) => s.trim()).filter(Boolean)
-          : pkg.includes ?? [],
+          ? (pkg.includes as string)
+              .split("\n")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : (pkg.includes ?? []),
       price_per_person: Number(pkg.price_per_person) || 0,
       taxes: Number(pkg.taxes) || 0,
       nights: pkg.nights ? Number(pkg.nights) : null,
@@ -388,7 +455,8 @@ function AdminPackages() {
       tripadvisor_location_id: pkg.tripadvisor_location_id || null,
       tripadvisor_url: pkg.tripadvisor_url || null,
       tripadvisor_address: pkg.tripadvisor_address || null,
-      tripadvisor_photos: pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
+      tripadvisor_photos:
+        pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
       services: (pkg.services ?? {}) as any,
     } as any;
     const savedPackage = pkg.id
@@ -397,7 +465,10 @@ function AdminPackages() {
     const { error } = savedPackage;
     if (error) throw error;
     const sourcePhotos: string[] = (payload as any).tripadvisor_photos ?? [];
-    if (sourcePhotos.length > 0 && sourcePhotos.some((url: string) => !url.includes("/api/public/package-hotel-photo/"))) {
+    if (
+      sourcePhotos.length > 0 &&
+      sourcePhotos.some((url: string) => !url.includes("/api/public/package-hotel-photo/"))
+    ) {
       const persisted = await persistHotelPhotosFn({
         data: { packageId: savedPackage.data.id, photos: sourcePhotos.slice(0, 5) },
       });
@@ -411,9 +482,7 @@ function AdminPackages() {
     if (!editing) return;
     setSaving(true);
     try {
-      const numbering = editing.id
-        ? undefined
-        : { number: await nextPackageBaseNumber() };
+      const numbering = editing.id ? undefined : { number: await nextPackageBaseNumber() };
       await persistPackage(editing, numbering);
       toast.success(editing.id ? "Pacote atualizado" : "Pacote criado");
       if (drafts && drafts.length > 1) {
@@ -444,9 +513,7 @@ function AdminPackages() {
       let newIdx = 0;
       for (let i = 0; i < list.length; i++) {
         try {
-          const numbering = list[i].id
-            ? undefined
-            : { number: base + newIdx };
+          const numbering = list[i].id ? undefined : { number: base + newIdx };
           if (!list[i].id) newIdx += 1;
           await persistPackage(list[i], numbering);
           ok += 1;
@@ -468,8 +535,6 @@ function AdminPackages() {
       setSaving(false);
     }
   }
-
-
 
   async function toggleActive(p: PackageRow) {
     const { error } = await supabase
@@ -511,9 +576,16 @@ function AdminPackages() {
       let ok = 0;
       for (const r of targets as any[]) {
         try {
-          const existing = Array.isArray(r.tripadvisor_photos) ? r.tripadvisor_photos.filter(Boolean) : [];
-          const alreadyStored = existing.length > 0 && existing.every((url: string) => url.includes("/api/public/package-hotel-photo/"));
-          if (alreadyStored) { ok++; continue; }
+          const existing = Array.isArray(r.tripadvisor_photos)
+            ? r.tripadvisor_photos.filter(Boolean)
+            : [];
+          const alreadyStored =
+            existing.length > 0 &&
+            existing.every((url: string) => url.includes("/api/public/package-hotel-photo/"));
+          if (alreadyStored) {
+            ok++;
+            continue;
+          }
 
           let best: Awaited<ReturnType<typeof searchHotelsFn>>[number] | undefined;
           let full: Awaited<ReturnType<typeof hotelDetailsFn>> | undefined;
@@ -530,21 +602,26 @@ function AdminPackages() {
             sourcePhotos = full.photos ?? [];
           }
           if (sourcePhotos.length === 0) continue;
-          const saved = await persistHotelPhotosFn({ data: { packageId: r.id, photos: sourcePhotos.slice(0, 5) } });
+          const saved = await persistHotelPhotosFn({
+            data: { packageId: r.id, photos: sourcePhotos.slice(0, 5) },
+          });
           if (saved.photos.length === 0) continue;
           const rating = full?.rating ?? best?.rating ?? null;
           const cls = full?.hotel_class ?? null;
-          const stars = rating != null
-            ? Math.min(5, Math.max(1, Math.round(rating)))
-            : cls != null
-              ? Math.min(5, Math.max(1, Math.round(cls)))
-              : r.hotel_stars ?? 3;
+          const stars =
+            rating != null
+              ? Math.min(5, Math.max(1, Math.round(rating)))
+              : cls != null
+                ? Math.min(5, Math.max(1, Math.round(cls)))
+                : (r.hotel_stars ?? 3);
           const { error: upErr } = await supabase
             .from("packages")
             .update({
               hotel_name: full?.name || best?.name || r.hotel_name,
               hotel_stars: stars,
-              tripadvisor_location_id: best?.location_id ? String(best.location_id) : r.tripadvisor_location_id,
+              tripadvisor_location_id: best?.location_id
+                ? String(best.location_id)
+                : r.tripadvisor_location_id,
               tripadvisor_url: full?.tripadvisor_url ?? best?.tripadvisor_url ?? null,
               tripadvisor_address: full?.address ?? best?.address ?? null,
               tripadvisor_photos: saved.photos,
@@ -584,7 +661,11 @@ function AdminPackages() {
             title="Buscar no TripAdvisor as fotos dos hotéis dos pacotes já cadastrados que estão sem imagens."
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-brand-orange disabled:opacity-60"
           >
-            {backfilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            {backfilling ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ImageIcon className="h-4 w-4" />
+            )}
             Atualizar fotos
           </button>
           <MultiPackageImportButton
@@ -616,7 +697,6 @@ function AdminPackages() {
           >
             <Plus className="h-5 w-5" strokeWidth={3} /> Novo Pacote
           </button>
-
         </div>
       </div>
 
@@ -639,315 +719,371 @@ function AdminPackages() {
       </div>
 
       {view === "curadoria" ? (
-        <CurationTab packages={(packages || []) as any} onRefresh={() => qc.invalidateQueries({ queryKey: ["admin", "packages"] })} />
+        <CurationTab
+          packages={(packages || []) as any}
+          onRefresh={() => qc.invalidateQueries({ queryKey: ["admin", "packages"] })}
+        />
       ) : (
-      <>
-      <UnlinkedHotelsAlert
-        packages={(packages || []) as PackageRow[]}
-        onOpen={(p) => setEditingState(p)}
-      />
-      <DuplicatePackagesAlert
-        packages={(packages || []) as PackageRow[]}
-        onOpen={(p) => setEditingState(p)}
-        onDelete={(p) => remove(p)}
-      />
+        <>
+          <UnlinkedHotelsAlert
+            packages={(packages || []) as PackageRow[]}
+            onOpen={(p) => setEditingState(p)}
+          />
+          <DuplicatePackagesAlert
+            packages={(packages || []) as PackageRow[]}
+            onOpen={(p) => setEditingState(p)}
+            onDelete={(p) => remove(p)}
+          />
 
-      <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:pb-2.5">
-          <SlidersHorizontal className="h-3.5 w-3.5 text-brand-orange" /> Filtrar
-        </div>
-        <div className="flex-1">
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Origem</label>
-          <Select value={originFilter} onValueChange={setOriginFilter}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="Todas as origens" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as origens</SelectItem>
-              {origins.map(o => (<SelectItem key={o} value={o}>{o}</SelectItem>))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex-1">
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Destino</label>
-          <Select value={destinationFilter} onValueChange={setDestinationFilter}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="Todos os destinos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os destinos</SelectItem>
-              {destinations.map(d => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex-1">
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Data da viagem</label>
-          <Select value={monthFilter} onValueChange={setMonthFilter}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="Todos os meses" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os meses</SelectItem>
-              {monthOptions.map(m => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex-1">
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ordenar por</label>
-          <Select value={sortMode} onValueChange={(v) => setSortMode(v as typeof sortMode)}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="Ordem manual" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="manual">Ordem manual (#)</SelectItem>
-              <SelectItem value="price_asc">Menor preço</SelectItem>
-              <SelectItem value="price_desc">Maior preço</SelectItem>
-              <SelectItem value="date_asc">Data mais próxima</SelectItem>
-              <SelectItem value="date_desc">Data mais distante</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <button
-          type="button"
-          onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
-          title={sortDir === "asc" ? "Ordem crescente (1 → N). Clique para inverter." : "Ordem decrescente (N → 1). Clique para inverter."}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold uppercase tracking-wider text-foreground hover:border-brand-orange"
-        >
-          {sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5 text-brand-orange" /> : <ArrowDown className="h-3.5 w-3.5 text-brand-orange" />}
-          {sortDir === "asc" ? "Crescente" : "Decrescente"}
-        </button>
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={() => { setOriginFilter("all"); setDestinationFilter("all"); setMonthFilter("all"); }}
-            className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
-            aria-label="Limpar filtros"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-      {hasActiveFilters && (
-        <div className="mb-2 text-[11px] uppercase tracking-widest text-muted-foreground">
-          {displayPackages.length} de {packages?.length ?? 0} pacote(s)
-        </div>
-      )}
-
-      {/* Row Header */}
-      <div className="hidden md:grid grid-cols-12 px-8 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60">
-        <div className="col-span-5">Identificação do Pacote</div>
-        <div className="col-span-3 text-center">Período Operacional</div>
-        <div className="col-span-2 text-right">Valor Base</div>
-        <div className="col-span-2 text-right">Status / Gestão</div>
-      </div>
-
-      {/* List */}
-      <div className="space-y-3 mt-2">
-        {isLoading && (
-          <div className="p-8 text-center text-muted-foreground text-sm">
-            <Loader2 className="inline h-4 w-4 animate-spin mr-2" /> Carregando…
+          <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:pb-2.5">
+              <SlidersHorizontal className="h-3.5 w-3.5 text-brand-orange" /> Filtrar
+            </div>
+            <div className="flex-1">
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Origem
+              </label>
+              <Select value={originFilter} onValueChange={setOriginFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todas as origens" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as origens</SelectItem>
+                  {origins.map((o) => (
+                    <SelectItem key={o} value={o}>
+                      {o}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Destino
+              </label>
+              <Select value={destinationFilter} onValueChange={setDestinationFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todos os destinos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os destinos</SelectItem>
+                  {destinations.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Data da viagem
+              </label>
+              <Select value={monthFilter} onValueChange={setMonthFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todos os meses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os meses</SelectItem>
+                  {monthOptions.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Ordenar por
+              </label>
+              <Select value={sortMode} onValueChange={(v) => setSortMode(v as typeof sortMode)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Ordem manual" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">Ordem manual (#)</SelectItem>
+                  <SelectItem value="price_asc">Menor preço</SelectItem>
+                  <SelectItem value="price_desc">Maior preço</SelectItem>
+                  <SelectItem value="date_asc">Data mais próxima</SelectItem>
+                  <SelectItem value="date_desc">Data mais distante</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              title={
+                sortDir === "asc"
+                  ? "Ordem crescente (1 → N). Clique para inverter."
+                  : "Ordem decrescente (N → 1). Clique para inverter."
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold uppercase tracking-wider text-foreground hover:border-brand-orange"
+            >
+              {sortDir === "asc" ? (
+                <ArrowUp className="h-3.5 w-3.5 text-brand-orange" />
+              ) : (
+                <ArrowDown className="h-3.5 w-3.5 text-brand-orange" />
+              )}
+              {sortDir === "asc" ? "Crescente" : "Decrescente"}
+            </button>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOriginFilter("all");
+                  setDestinationFilter("all");
+                  setMonthFilter("all");
+                }}
+                className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
+                aria-label="Limpar filtros"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
-        )}
-        {displayPackages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((p, idx) => (
-          <div
-            key={p.id}
-            className="group bg-card/60 border border-border/60 rounded-2xl hover:border-brand-orange/50 transition-all"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-12 items-center p-4 md:px-6 md:py-4 gap-3 md:gap-2">
-              {/* Info */}
-              <div className="col-span-1 md:col-span-5 space-y-0.5 min-w-0">
-                <div className="flex items-center gap-2.5">
-                  <span
-                    className="inline-flex h-6 min-w-[26px] items-center justify-center rounded-md border border-brand-orange/30 bg-brand-orange/10 px-1.5 text-[11px] font-bold tabular-nums text-brand-orange shrink-0"
-                    title="Posição na lista"
-                  >
-                    {(page - 1) * PAGE_SIZE + idx + 1}
-                  </span>
-                  <h3 className="text-sm sm:text-[15px] font-bold text-foreground group-hover:text-brand-orange transition-colors truncate">
-                    {p.title}
-                  </h3>
-                </div>
-                <div className="flex items-center gap-2 pl-[34px] text-[10px] text-muted-foreground uppercase min-w-0">
-                  <span className="truncate">/{p.slug}</span>
-                  <span className="text-muted-foreground/40 shrink-0">•</span>
-                  <span className="text-muted-foreground/90 italic truncate">{p.destination}</span>
-                </div>
+          {hasActiveFilters && (
+            <div className="mb-2 text-[11px] uppercase tracking-widest text-muted-foreground">
+              {displayPackages.length} de {packages?.length ?? 0} pacote(s)
+            </div>
+          )}
+
+          {/* Row Header */}
+          <div className="hidden md:grid grid-cols-12 px-8 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60">
+            <div className="col-span-5">Identificação do Pacote</div>
+            <div className="col-span-3 text-center">Período Operacional</div>
+            <div className="col-span-2 text-right">Valor Base</div>
+            <div className="col-span-2 text-right">Status / Gestão</div>
+          </div>
+
+          {/* List */}
+          <div className="space-y-3 mt-2">
+            {isLoading && (
+              <div className="p-8 text-center text-muted-foreground text-sm">
+                <Loader2 className="inline h-4 w-4 animate-spin mr-2" /> Carregando…
               </div>
-
-              {/* Dates */}
-              <div className="col-span-1 md:col-span-3 flex md:justify-center">
-                <div className="inline-flex items-center gap-2.5 text-[11px] sm:text-xs tracking-tight text-muted-foreground bg-background/60 px-3 py-1 border border-border/60 rounded-full">
-                  <span>{p.going_date ? formatDate(p.going_date) : "—"}</span>
-                  <span className="text-muted-foreground/40">→</span>
-                  <span>{p.return_date ? formatDate(p.return_date) : "—"}</span>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="col-span-1 md:col-span-2 md:text-right">
-                <div className="text-[9px] text-muted-foreground uppercase mb-0.5">BRL</div>
-                <div className="text-base sm:text-lg font-black text-foreground tabular-nums tracking-tight">
-                  {formatBRLNoSymbol((Number(p.price_per_person) || 0) * (Number(p.base_occupancy) || 1))}
-                </div>
-                <div className="text-[9px] text-muted-foreground mt-0.5">
-                  Total {p.base_occupancy || 1} pax
-                </div>
-              </div>
-
-
-              {/* Status + Actions */}
-              <div className="col-span-1 md:col-span-2 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={!!p.is_active}
-                  onClick={() => toggleActive(p)}
-                  title={p.is_active ? "Ativo · toque para ocultar" : "Oculto · toque para ativar"}
-                  className="group inline-flex items-center gap-2 select-none focus:outline-none"
-                >
-                  <span
-                    className={`relative inline-flex h-[26px] w-[52px] shrink-0 items-center rounded-sm border transition-colors duration-200 ${
-                      p.is_active
-                        ? "bg-brand-orange/10 border-brand-orange"
-                        : "bg-[#1A1D23] border-[#2D333D]"
-                    } group-focus-visible:ring-2 group-focus-visible:ring-brand-orange/40`}
-                  >
-                    <span
-                      className={`absolute top-[3px] left-[3px] flex h-[18px] w-[18px] items-center justify-center rounded-sm shadow-md transition-transform duration-300 ease-out ${
-                        p.is_active
-                          ? "translate-x-[26px] bg-brand-orange"
-                          : "translate-x-0 bg-[#3D4450]"
-                      }`}
-                    >
-                      <span className="flex gap-[2px]">
-                        <span className="h-2 w-[2px] rounded-full bg-black/25" />
-                        <span className="h-2 w-[2px] rounded-full bg-black/25" />
+            )}
+            {displayPackages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((p, idx) => (
+              <div
+                key={p.id}
+                className="group bg-card/60 border border-border/60 rounded-2xl hover:border-brand-orange/50 transition-all"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-12 items-center p-4 md:px-6 md:py-4 gap-3 md:gap-2">
+                  {/* Info */}
+                  <div className="col-span-1 md:col-span-5 space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="inline-flex h-6 min-w-[26px] items-center justify-center rounded-md border border-brand-orange/30 bg-brand-orange/10 px-1.5 text-[11px] font-bold tabular-nums text-brand-orange shrink-0"
+                        title="Posição na lista"
+                      >
+                        {(page - 1) * PAGE_SIZE + idx + 1}
                       </span>
-                    </span>
-                  </span>
-                  <span
-                    className={`text-[10px] font-black uppercase tracking-tighter ${
-                      p.is_active ? "text-brand-orange" : "text-muted-foreground"
-                    }`}
-                  >
-                    {p.is_active ? "Ativo" : "Oculto"}
-                  </span>
-                </button>
+                      <h3 className="text-sm sm:text-[15px] font-bold text-foreground group-hover:text-brand-orange transition-colors truncate">
+                        {p.title}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2 pl-[34px] text-[10px] text-muted-foreground uppercase min-w-0">
+                      <span className="truncate">/{p.slug}</span>
+                      <span className="text-muted-foreground/40 shrink-0">•</span>
+                      <span className="text-muted-foreground/90 italic truncate">
+                        {p.destination}
+                      </span>
+                    </div>
+                  </div>
 
-                <div className="flex items-center gap-4">
+                  {/* Dates */}
+                  <div className="col-span-1 md:col-span-3 flex md:justify-center">
+                    <div className="inline-flex items-center gap-2.5 text-[11px] sm:text-xs tracking-tight text-muted-foreground bg-background/60 px-3 py-1 border border-border/60 rounded-full">
+                      <span>{p.going_date ? formatDate(p.going_date) : "—"}</span>
+                      <span className="text-muted-foreground/40">→</span>
+                      <span>{p.return_date ? formatDate(p.return_date) : "—"}</span>
+                    </div>
+                  </div>
 
-                  <a
-                    href={`/pacotes/${p.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-brand-orange transition-colors"
-                    title="Abrir página do pacote"
-                  >
-                    <LinkIcon className="h-[18px] w-[18px]" strokeWidth={2} />
-                  </a>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
+                  {/* Price */}
+                  <div className="col-span-1 md:col-span-2 md:text-right">
+                    <div className="text-[9px] text-muted-foreground uppercase mb-0.5">BRL</div>
+                    <div className="text-base sm:text-lg font-black text-foreground tabular-nums tracking-tight">
+                      {formatBRLNoSymbol(
+                        (Number(p.price_per_person) || 0) * (Number(p.base_occupancy) || 1),
+                      )}
+                    </div>
+                    <div className="text-[9px] text-muted-foreground mt-0.5">
+                      Total {p.base_occupancy || 1} pax
+                    </div>
+                  </div>
+
+                  {/* Status + Actions */}
+                  <div className="col-span-1 md:col-span-2 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={!!p.is_active}
+                      onClick={() => toggleActive(p)}
+                      title={
+                        p.is_active ? "Ativo · toque para ocultar" : "Oculto · toque para ativar"
+                      }
+                      className="group inline-flex items-center gap-2 select-none focus:outline-none"
+                    >
+                      <span
+                        className={`relative inline-flex h-[26px] w-[52px] shrink-0 items-center rounded-sm border transition-colors duration-200 ${
+                          p.is_active
+                            ? "bg-brand-orange/10 border-brand-orange"
+                            : "bg-[#1A1D23] border-[#2D333D]"
+                        } group-focus-visible:ring-2 group-focus-visible:ring-brand-orange/40`}
+                      >
+                        <span
+                          className={`absolute top-[3px] left-[3px] flex h-[18px] w-[18px] items-center justify-center rounded-sm shadow-md transition-transform duration-300 ease-out ${
+                            p.is_active
+                              ? "translate-x-[26px] bg-brand-orange"
+                              : "translate-x-0 bg-[#3D4450]"
+                          }`}
+                        >
+                          <span className="flex gap-[2px]">
+                            <span className="h-2 w-[2px] rounded-full bg-black/25" />
+                            <span className="h-2 w-[2px] rounded-full bg-black/25" />
+                          </span>
+                        </span>
+                      </span>
+                      <span
+                        className={`text-[10px] font-black uppercase tracking-tighter ${
+                          p.is_active ? "text-brand-orange" : "text-muted-foreground"
+                        }`}
+                      >
+                        {p.is_active ? "Ativo" : "Oculto"}
+                      </span>
+                    </button>
+
+                    <div className="flex items-center gap-4">
+                      <a
+                        href={`/pacotes/${p.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-muted-foreground hover:text-brand-orange transition-colors"
-                        title="Baixar arte para redes sociais"
+                        title="Abrir página do pacote"
                       >
-                        <Download className="h-[18px] w-[18px]" strokeWidth={2} />
+                        <LinkIcon className="h-[18px] w-[18px]" strokeWidth={2} />
+                      </a>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="text-muted-foreground hover:text-brand-orange transition-colors"
+                            title="Baixar arte para redes sociais"
+                          >
+                            <Download className="h-[18px] w-[18px]" strokeWidth={2} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              const t = toast.loading("Gerando arte do story…");
+                              try {
+                                const { generatePackageStoryArt } =
+                                  await import("@/lib/packages/story-art");
+                                await generatePackageStoryArt(p);
+                                toast.success("Arte pronta!", { id: t });
+                              } catch (e) {
+                                toast.error(
+                                  e instanceof Error ? e.message : "Falha ao gerar arte",
+                                  { id: t },
+                                );
+                              }
+                            }}
+                          >
+                            Story (1080×1920)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              const t = toast.loading("Gerando arte do feed…");
+                              try {
+                                const { generatePackageFeedArt } =
+                                  await import("@/lib/packages/feed-art");
+                                await generatePackageFeedArt(p);
+                                toast.success("Arte pronta!", { id: t });
+                              } catch (e) {
+                                toast.error(
+                                  e instanceof Error ? e.message : "Falha ao gerar arte",
+                                  { id: t },
+                                );
+                              }
+                            }}
+                          >
+                            Feed (1080×1440)
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <button
+                        onClick={() => setEditing(p)}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        title="Editar"
+                      >
+                        <Pencil className="h-[18px] w-[18px]" strokeWidth={2} />
                       </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={async () => {
-                          const t = toast.loading("Gerando arte do story…");
-                          try {
-                            const { generatePackageStoryArt } = await import("@/lib/packages/story-art");
-                            await generatePackageStoryArt(p);
-                            toast.success("Arte pronta!", { id: t });
-                          } catch (e) {
-                            toast.error(e instanceof Error ? e.message : "Falha ao gerar arte", { id: t });
-                          }
-                        }}
+                      <button
+                        onClick={() => remove(p)}
+                        className="text-muted-foreground/60 hover:text-red-500 transition-colors"
+                        title="Excluir"
                       >
-                        Story (1080×1920)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={async () => {
-                          const t = toast.loading("Gerando arte do feed…");
-                          try {
-                            const { generatePackageFeedArt } = await import("@/lib/packages/feed-art");
-                            await generatePackageFeedArt(p);
-                            toast.success("Arte pronta!", { id: t });
-                          } catch (e) {
-                            toast.error(e instanceof Error ? e.message : "Falha ao gerar arte", { id: t });
-                          }
-                        }}
-                      >
-                        Feed (1080×1440)
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <Trash2 className="h-[18px] w-[18px]" strokeWidth={2} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {(() => {
+            const total = displayPackages.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            const current = Math.min(page, totalPages);
+            if (total <= PAGE_SIZE) return null;
+            const from = (current - 1) * PAGE_SIZE + 1;
+            const to = Math.min(current * PAGE_SIZE, total);
+            return (
+              <div className="mt-6 flex items-center justify-between gap-3 px-2">
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                  {from}–{to} de {total}
+                </div>
+                <div className="flex items-center gap-1">
                   <button
-                    onClick={() => setEditing(p)}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    title="Editar"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={current === 1}
+                    className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg border border-border bg-card hover:border-brand-orange disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <Pencil className="h-[18px] w-[18px]" strokeWidth={2} />
+                    Anterior
                   </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPages || Math.abs(n - current) <= 1)
+                    .map((n, i, arr) => (
+                      <span key={n} className="flex items-center">
+                        {i > 0 && arr[i - 1] !== n - 1 && (
+                          <span className="px-1 text-muted-foreground">…</span>
+                        )}
+                        <button
+                          onClick={() => setPage(n)}
+                          className={`min-w-[32px] px-2 py-1.5 text-xs font-semibold rounded-lg border transition ${
+                            n === current
+                              ? "bg-brand-orange text-white border-brand-orange"
+                              : "border-border bg-card hover:border-brand-orange"
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      </span>
+                    ))}
                   <button
-                    onClick={() => remove(p)}
-                    className="text-muted-foreground/60 hover:text-red-500 transition-colors"
-                    title="Excluir"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={current === totalPages}
+                    className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg border border-border bg-card hover:border-brand-orange disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <Trash2 className="h-[18px] w-[18px]" strokeWidth={2} />
+                    Próxima
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-
-      {(() => {
-        const total = displayPackages.length;
-        const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-        const current = Math.min(page, totalPages);
-        if (total <= PAGE_SIZE) return null;
-        const from = (current - 1) * PAGE_SIZE + 1;
-        const to = Math.min(current * PAGE_SIZE, total);
-        return (
-          <div className="mt-6 flex items-center justify-between gap-3 px-2">
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
-              {from}–{to} de {total}
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={current === 1}
-                className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg border border-border bg-card hover:border-brand-orange disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Anterior
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter((n) => n === 1 || n === totalPages || Math.abs(n - current) <= 1)
-                .map((n, i, arr) => (
-                  <span key={n} className="flex items-center">
-                    {i > 0 && arr[i - 1] !== n - 1 && <span className="px-1 text-muted-foreground">…</span>}
-                    <button
-                      onClick={() => setPage(n)}
-                      className={`min-w-[32px] px-2 py-1.5 text-xs font-semibold rounded-lg border transition ${
-                        n === current
-                          ? "bg-brand-orange text-white border-brand-orange"
-                          : "border-border bg-card hover:border-brand-orange"
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  </span>
-                ))}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={current === totalPages}
-                className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg border border-border bg-card hover:border-brand-orange disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Próxima
-              </button>
-            </div>
-          </div>
-        );
-      })()}
-      </>
+            );
+          })()}
+        </>
       )}
 
       {editing && (
@@ -963,10 +1099,7 @@ function AdminPackages() {
           closeCurrentDraft={closeCurrentDraft}
           nextNumber={pendingNumbers?.[draftIndex] ?? pendingNumbers?.[0] ?? null}
         />
-
       )}
-
-
     </div>
   );
 }
@@ -994,9 +1127,6 @@ type PackageEditorModalProps = {
   nextNumber?: number | null;
 };
 
-
-
-
 type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
 
 function slugify(input: string): string {
@@ -1009,15 +1139,38 @@ function slugify(input: string): string {
     .slice(0, 80);
 }
 
-const PT_MONTHS = ["janeiro","fevereiro","marco","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const PT_MONTHS = [
+  "janeiro",
+  "fevereiro",
+  "marco",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
 
-function deriveFromFlights(editing: Partial<PackageRow>): { originCity?: string; destCity?: string; title?: string; slug?: string } {
+function deriveFromFlights(editing: Partial<PackageRow>): {
+  originCity?: string;
+  destCity?: string;
+  title?: string;
+  slug?: string;
+} {
   const outSegs = editing.outbound_flight?.segments ?? [];
   const first = outSegs[0];
   const last = outSegs[outSegs.length - 1];
   const originCity = first?.from_city?.trim() || editing.origin?.trim() || undefined;
   const destCity = last?.to_city?.trim() || editing.destination?.trim() || undefined;
-  const title = destCity && originCity ? `${destCity} - Saída de ${originCity}` : destCity ? destCity : undefined;
+  const title =
+    destCity && originCity
+      ? `${destCity} - Saída de ${originCity}`
+      : destCity
+        ? destCity
+        : undefined;
   let slug: string | undefined;
   if (destCity) {
     const going = editing.going_date;
@@ -1032,7 +1185,18 @@ function deriveFromFlights(editing: Partial<PackageRow>): { originCity?: string;
   return { originCity, destCity, title, slug };
 }
 
-function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts, draftIndex = 0, switchDraft, closeCurrentDraft, nextNumber }: PackageEditorModalProps) {
+function PackageEditorModal({
+  editing,
+  setEditing,
+  saving,
+  save,
+  saveAll,
+  drafts,
+  draftIndex = 0,
+  switchDraft,
+  closeCurrentDraft,
+  nextNumber,
+}: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
   const [aiLoading, setAiLoading] = useState(false);
@@ -1042,10 +1206,12 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   const [imgPage, setImgPage] = useState(1);
   const [imgHasMore, setImgHasMore] = useState(false);
   const [imgSource, setImgSource] = useState("");
-  const [imgResults, setImgResults] = useState<Array<{ thumb: string; url: string; title: string; source: string; author: string }>>([]);
+  const [imgResults, setImgResults] = useState<
+    Array<{ thumb: string; url: string; title: string; source: string; author: string }>
+  >([]);
   const draftsScrollRef = useRef<HTMLDivElement | null>(null);
   const [hotelMode, setHotelMode] = useState<"live" | "manual" | null>(
-    editing.tripadvisor_location_id ? "live" : (editing.hotel_name ? "manual" : null)
+    editing.tripadvisor_location_id ? "live" : editing.hotel_name ? "manual" : null,
   );
   // Sincroniza o modo do hotel sempre que o pacote em edição muda (ex.: abrir
   // pacote salvo, importar por IA, etc.) — evita "voltar pro manual" após picar TA.
@@ -1058,11 +1224,13 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing.tripadvisor_location_id, editing.id]);
 
-
   const genSummary = useServerFn(generatePackageSummary);
   const searchImages = useServerFn(searchCoverImages);
 
-  const derived = useMemo(() => deriveFromFlights(editing), [editing.outbound_flight, editing.going_date, editing.destination, editing.origin]);
+  const derived = useMemo(
+    () => deriveFromFlights(editing),
+    [editing.outbound_flight, editing.going_date, editing.destination, editing.origin],
+  );
 
   // Auto-fill empty fields when derived values become available
   useEffect(() => {
@@ -1072,7 +1240,8 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     if (!editing.title && derived.title) patch.title = derived.title;
     const currentSlug = editing.slug || derived.slug || "";
     if (currentSlug) {
-      const needsNumber = !editing.id && nextNumber && !/-\d+$/.test(currentSlug) && !/#\d+$/.test(currentSlug);
+      const needsNumber =
+        !editing.id && nextNumber && !/-\d+$/.test(currentSlug) && !/#\d+$/.test(currentSlug);
       if (needsNumber) {
         const base = currentSlug.replace(/[-#]\d+$/, "");
         patch.slug = `${base}-${nextNumber}`;
@@ -1081,11 +1250,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
       }
     }
 
-
     if (Object.keys(patch).length) setEditing({ ...editing, ...patch });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derived.destCity, derived.originCity, derived.title, derived.slug, nextNumber]);
-
 
   // Montar "O que inclui" a partir dos campos efetivamente preenchidos/marcados.
   const derivedIncludes = useMemo(() => {
@@ -1096,7 +1263,13 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     else if (hasOutbound || hasReturn) list.push("Passagem Aérea");
     if (editing.hotel_name || editing.tripadvisor_location_id) list.push("Hospedagem");
     const meal = String(editing.meal_plan ?? "").toLowerCase();
-    if (meal.includes("café") || meal.includes("cafe") || meal.includes("meia pensão") || meal.includes("pensão completa") || meal.includes("all inclusive")) {
+    if (
+      meal.includes("café") ||
+      meal.includes("cafe") ||
+      meal.includes("meia pensão") ||
+      meal.includes("pensão completa") ||
+      meal.includes("all inclusive")
+    ) {
       list.push("Café da Manhã");
     }
     const checked = !!(editing.outbound_flight?.checked_bag || editing.return_flight?.checked_bag);
@@ -1107,30 +1280,49 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
       list.push(cob ? `Seguro Viagem — Cobertura ${cob} por pessoa` : "Seguro Viagem");
     }
     // Legado: registros antigos guardavam cancelamento dentro de seguro.
-    const legacyCanc = formatSeguroCobertura(svc.seguro?.cancelamento, svc.seguro?.cancelamento_moeda);
+    const legacyCanc = formatSeguroCobertura(
+      svc.seguro?.cancelamento,
+      svc.seguro?.cancelamento_moeda,
+    );
     if (svc.cancelamento?.enabled) {
       const canc = formatSeguroCobertura(svc.cancelamento.cobertura, svc.cancelamento.moeda);
-      list.push(canc
-        ? `Cobertura de cancelamento involuntário de viagem — ${canc} por pessoa`
-        : "Cobertura de cancelamento involuntário de viagem");
+      list.push(
+        canc
+          ? `Cobertura de cancelamento involuntário de viagem — ${canc} por pessoa`
+          : "Cobertura de cancelamento involuntário de viagem",
+      );
     } else if (legacyCanc) {
       list.push(`Cobertura de cancelamento involuntário de viagem — ${legacyCanc} por pessoa`);
     }
     if (svc.transfer?.enabled) {
       const sentido = svc.transfer.sentido;
-      const label = sentido === "in_out" ? "IN/OUT" : sentido === "in" ? "IN" : sentido === "out" ? "OUT" : "IN/OUT";
+      const label =
+        sentido === "in_out"
+          ? "IN/OUT"
+          : sentido === "in"
+            ? "IN"
+            : sentido === "out"
+              ? "OUT"
+              : "IN/OUT";
       list.push(`Transfer ${label} (Aeroporto ↔ Hotel)`);
     }
     if (svc.city_tour?.enabled) {
       const det = (svc.city_tour.detalhe ?? "").trim();
       list.push(det ? `City Tour — ${det}` : "City Tour");
     }
-    for (const o of (svc.outros ?? [])) {
+    for (const o of svc.outros ?? []) {
       const t = String(o ?? "").trim();
       if (t) list.push(t);
     }
     return list;
-  }, [editing.outbound_flight, editing.return_flight, editing.hotel_name, editing.tripadvisor_location_id, editing.meal_plan, editing.services]);
+  }, [
+    editing.outbound_flight,
+    editing.return_flight,
+    editing.hotel_name,
+    editing.tripadvisor_location_id,
+    editing.meal_plan,
+    editing.services,
+  ]);
 
   function handleGenerateIncludes() {
     setEditing({ ...editing, includes: derivedIncludes });
@@ -1156,18 +1348,21 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   async function handleGenerateSummary() {
     const brief = (editing.summary ?? "").trim();
     const dest = (editing.destination ?? "").trim();
-    const finalBrief = brief.length >= 2
-      ? brief
-      : dest.length >= 2
-        ? `Resumo autoral sobre ${dest}, focado no que torna o lugar único.`
-        : "";
+    const finalBrief =
+      brief.length >= 2
+        ? brief
+        : dest.length >= 2
+          ? `Resumo autoral sobre ${dest}, focado no que torna o lugar único.`
+          : "";
     if (!finalBrief) {
       toast.error("Digite o destino ou escreva um resumo primeiro");
       return;
     }
     setAiLoading(true);
     try {
-      const { text } = await genSummary({ data: { brief: finalBrief, destination: dest || undefined } });
+      const { text } = await genSummary({
+        data: { brief: finalBrief, destination: dest || undefined },
+      });
       setEditing({ ...editing, summary: text });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao gerar resumo");
@@ -1175,7 +1370,6 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
       setAiLoading(false);
     }
   }
-
 
   // Auto-gerar resumo assim que houver destino e o resumo estiver vazio.
   // Dispara também em cada troca de draft (pacote diferente com destino igual).
@@ -1189,7 +1383,10 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
         setAiLoading(true);
         try {
           const { text } = await genSummary({
-            data: { brief: `Resumo autoral sobre ${dest}, focado no que torna o lugar único.`, destination: dest },
+            data: {
+              brief: `Resumo autoral sobre ${dest}, focado no que torna o lugar único.`,
+              destination: dest,
+            },
           });
 
           setEditing({ ...editing, summary: text });
@@ -1203,7 +1400,6 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing.destination, editing.slug, draftIndex]);
-
 
   async function handleSearchImages(nextPage = 1) {
     const q = imgQuery.trim() || editing.destination?.trim() || "";
@@ -1228,17 +1424,28 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
   }
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: "dates", label: "DATAS E PREÇOS", icon: <CalendarRange className="h-4 w-4" strokeWidth={1.75} /> },
-    { id: "hotel", label: "HOSPEDAGEM", icon: <Building2 className="h-4 w-4" strokeWidth={1.75} /> },
+    {
+      id: "dates",
+      label: "DATAS E PREÇOS",
+      icon: <CalendarRange className="h-4 w-4" strokeWidth={1.75} />,
+    },
+    {
+      id: "hotel",
+      label: "HOSPEDAGEM",
+      icon: <Building2 className="h-4 w-4" strokeWidth={1.75} />,
+    },
     { id: "flights", label: "AÉREOS", icon: <Plane className="h-4 w-4" strokeWidth={1.75} /> },
-    { id: "extras", label: "EXTRAS E INCLUSOS", icon: <ListChecks className="h-4 w-4" strokeWidth={1.75} /> },
+    {
+      id: "extras",
+      label: "EXTRAS E INCLUSOS",
+      icon: <ListChecks className="h-4 w-4" strokeWidth={1.75} />,
+    },
     { id: "about", label: "SOBRE O PACOTE", icon: <Info className="h-4 w-4" strokeWidth={1.75} /> },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="w-full max-w-5xl h-[90vh] rounded-2xl bg-card/70 backdrop-blur-2xl border border-border shadow-2xl flex flex-col overflow-hidden">
-
         {/* Header */}
         <div className="flex items-center justify-between gap-4 border-b border-border px-6 sm:px-8 py-5 shrink-0">
           <div className="flex items-center gap-3">
@@ -1249,9 +1456,35 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
           </div>
           <div className="flex items-center gap-2">
             <PackageImportButton
-              onImported={(patch: Partial<PackageRow>) =>
-                setEditing({ ...(editing ?? {}), ...patch })
-              }
+              onImported={(patch: Partial<PackageRow>) => {
+                const previousServices = (editing?.services ?? {}) as PackageServices;
+                const importedServices = (patch.services ?? {}) as PackageServices;
+                setEditing({
+                  ...(editing ?? {}),
+                  ...patch,
+                  services: {
+                    ...previousServices,
+                    ...importedServices,
+                    seguro: {
+                      ...(previousServices.seguro ?? {}),
+                      ...(importedServices.seguro ?? {}),
+                    },
+                    cancelamento: {
+                      ...(previousServices.cancelamento ?? {}),
+                      ...(importedServices.cancelamento ?? {}),
+                    },
+                    transfer: {
+                      ...(previousServices.transfer ?? {}),
+                      ...(importedServices.transfer ?? {}),
+                    },
+                    city_tour: {
+                      ...(previousServices.city_tour ?? {}),
+                      ...(importedServices.city_tour ?? {}),
+                    },
+                    outros: importedServices.outros ?? previousServices.outros ?? [],
+                  },
+                });
+              }}
             />
             <button
               onClick={() => setEditing(null)}
@@ -1276,7 +1509,10 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <div ref={draftsScrollRef} className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin flex-1">
+            <div
+              ref={draftsScrollRef}
+              className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin flex-1"
+            >
               {drafts.map((d, i) => {
                 const active = i === draftIndex;
                 const label = d.destination?.trim() || d.title?.trim() || `Pacote ${i + 1}`;
@@ -1292,7 +1528,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                       }`}
                     >
                       <span className="opacity-70 mr-1.5">#{i + 1}</span>
-                      <span className="truncate max-w-[160px] inline-block align-bottom">{label}</span>
+                      <span className="truncate max-w-[160px] inline-block align-bottom">
+                        {label}
+                      </span>
                     </button>
                     <button
                       type="button"
@@ -1325,9 +1563,6 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
           </div>
         )}
 
-
-
-
         <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
           {/* Sidebar */}
           <aside className="w-full sm:w-64 bg-muted/20 border-b sm:border-b-0 sm:border-r border-border p-3 sm:p-4 flex sm:flex-col gap-1 shrink-0 overflow-x-auto sm:overflow-x-visible">
@@ -1356,7 +1591,8 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-brand-orange/25 bg-brand-orange/5 px-4 py-3">
                   <div className="text-xs text-muted-foreground">
-                    Título, slug, destino e origem são preenchidos automaticamente a partir dos aéreos. Você pode editar se quiser.
+                    Título, slug, destino e origem são preenchidos automaticamente a partir dos
+                    aéreos. Você pode editar se quiser.
                   </div>
                   <button
                     type="button"
@@ -1405,7 +1641,6 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                     }}
                     placeholder={derived.destCity ?? ""}
                   />
-
                 </FormField>
                 <FormField label="Origem (auto)">
                   <input
@@ -1441,7 +1676,11 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
 
                   {editing.image_url && (
                     <div className="mt-2 relative w-full h-32 rounded-xl overflow-hidden border border-border bg-muted/20">
-                      <img src={editing.image_url} alt="capa" className="w-full h-full object-cover" />
+                      <img
+                        src={editing.image_url}
+                        alt="capa"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
 
@@ -1466,7 +1705,11 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                           disabled={imgLoading}
                           className="inline-flex items-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2 text-xs font-semibold text-white hover:bg-[#ff7b30] transition disabled:opacity-60 whitespace-nowrap"
                         >
-                          {imgLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                          {imgLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Search className="h-4 w-4" />
+                          )}
                           Buscar
                         </button>
                       </div>
@@ -1489,9 +1732,20 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                                 }`}
                                 title={`${r.title}${r.author ? " — " + r.author : ""}`}
                               >
-                                <img src={r.thumb || r.url} alt={r.title} loading="lazy" className="w-full h-full object-cover" />
+                                <img
+                                  src={r.thumb || r.url}
+                                  alt={r.title}
+                                  loading="lazy"
+                                  className="w-full h-full object-cover"
+                                />
                                 <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-[9px] text-white/90">
-                                  {r.source === "Pexels" ? "PX" : r.source === "Unsplash" ? "UN" : r.source === "Openverse" ? "OV" : "WC"}
+                                  {r.source === "Pexels"
+                                    ? "PX"
+                                    : r.source === "Unsplash"
+                                      ? "UN"
+                                      : r.source === "Openverse"
+                                        ? "OV"
+                                        : "WC"}
                                 </span>
                               </button>
                             ))}
@@ -1504,7 +1758,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                                 disabled={imgLoading}
                                 className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-semibold text-brand-orange hover:bg-brand-orange/20 transition disabled:opacity-60"
                               >
-                                {imgLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                                {imgLoading ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : null}
                                 Carregar mais fotos
                               </button>
                             </div>
@@ -1512,7 +1768,8 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                         </>
                       )}
                       <div className="mt-2 text-[10px] text-muted-foreground">
-                        {imgSource || "Wikimedia Commons + Openverse"} — sempre confira licença e autoria.
+                        {imgSource || "Wikimedia Commons + Openverse"} — sempre confira licença e
+                        autoria.
                       </div>
                     </div>
                   )}
@@ -1522,7 +1779,8 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                 <div className="sm:col-span-2">
                   <div className="flex items-center justify-between mb-1">
                     <span className="block text-xs text-muted-foreground">
-                      Resumo curto — gerado automaticamente a partir do destino. Escreva algo específico e clique em Regerar para personalizar.
+                      Resumo curto — gerado automaticamente a partir do destino. Escreva algo
+                      específico e clique em Regerar para personalizar.
                     </span>
                     <button
                       type="button"
@@ -1530,7 +1788,11 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                       disabled={aiLoading}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-[11px] font-semibold text-brand-orange hover:bg-brand-orange/20 transition disabled:opacity-60"
                     >
-                      {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                      {aiLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3.5 w-3.5" />
+                      )}
                       Gerar com IA
                     </button>
                   </div>
@@ -1553,7 +1815,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                 <div className="sm:col-span-2 rounded-xl border border-border bg-muted/20 p-4 flex items-center justify-between gap-4">
                   <div>
                     <div className="text-sm font-medium">Ativo no site</div>
-                    <div className="text-xs text-muted-foreground">Se desativado, não aparece na listagem pública.</div>
+                    <div className="text-xs text-muted-foreground">
+                      Se desativado, não aparece na listagem pública.
+                    </div>
                   </div>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -1600,7 +1864,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                     max={10}
                     className={inp}
                     value={editing.base_occupancy ?? 2}
-                    onChange={(e) => setEditing({ ...editing, base_occupancy: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setEditing({ ...editing, base_occupancy: Number(e.target.value) })
+                    }
                   />
                 </FormField>
                 <FormField label="Preço por pessoa *">
@@ -1609,7 +1875,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                     step="0.01"
                     className={inp}
                     value={editing.price_per_person ?? 0}
-                    onChange={(e) => setEditing({ ...editing, price_per_person: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setEditing({ ...editing, price_per_person: Number(e.target.value) })
+                    }
                   />
                 </FormField>
                 <FormField label="Valor das taxas inclusas (informativo)">
@@ -1633,20 +1901,24 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                     onModeChange={setHotelMode}
                     onChangeText={(v) => setEditing({ ...editing, hotel_name: v })}
                     onSelect={(h) => {
-                      const automaticStars = h.rating != null
-                        ? Math.min(5, Math.max(1, Math.round(h.rating)))
-                        : h.hotel_class != null
-                          ? Math.min(5, Math.max(1, Math.round(h.hotel_class)))
-                          : 3;
+                      const automaticStars =
+                        h.rating != null
+                          ? Math.min(5, Math.max(1, Math.round(h.rating)))
+                          : h.hotel_class != null
+                            ? Math.min(5, Math.max(1, Math.round(h.hotel_class)))
+                            : 3;
                       setEditing({
                         ...editing,
                         hotel_name: h.name,
                         hotel_stars: automaticStars,
-                        image_url: (editing.image_url && editing.image_url.length > 0) ? editing.image_url : (h.photos[0] ?? editing.image_url ?? ""),
+                        image_url:
+                          editing.image_url && editing.image_url.length > 0
+                            ? editing.image_url
+                            : (h.photos[0] ?? editing.image_url ?? ""),
                         tripadvisor_location_id: String(h.location_id),
                         tripadvisor_url: h.tripadvisor_url ?? null,
                         tripadvisor_address: h.address ?? null,
-                        tripadvisor_photos: (h.photos && h.photos.length > 0) ? h.photos : null,
+                        tripadvisor_photos: h.photos && h.photos.length > 0 ? h.photos : null,
                       });
                     }}
                   />
@@ -1658,7 +1930,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                     max={5}
                     className={inp}
                     value={editing.hotel_stars ?? 3}
-                    onChange={(e) => setEditing({ ...editing, hotel_stars: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setEditing({ ...editing, hotel_stars: Number(e.target.value) })
+                    }
                   />
                 </FormField>
                 <FormField label="Regime de alimentação">
@@ -1671,7 +1945,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                     <option value="Sem refeição">Sem refeição</option>
                     <option value="Café da manhã">Café da manhã</option>
                     <option value="Meia pensão">Meia pensão (café + 1 refeição)</option>
-                    <option value="Pensão completa">Pensão completa (café + almoço + jantar)</option>
+                    <option value="Pensão completa">
+                      Pensão completa (café + almoço + jantar)
+                    </option>
                     <option value="All inclusive">All inclusive</option>
                   </select>
                 </FormField>
@@ -1733,10 +2009,12 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
               <div className="space-y-5">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-border/70 bg-muted/30">
-                    {([
-                      { id: "outbound", label: "Voo de ida", filled: !!editing.outbound_flight },
-                      { id: "return", label: "Voo de volta", filled: !!editing.return_flight },
-                    ] as const).map((t) => {
+                    {(
+                      [
+                        { id: "outbound", label: "Voo de ida", filled: !!editing.outbound_flight },
+                        { id: "return", label: "Voo de volta", filled: !!editing.return_flight },
+                      ] as const
+                    ).map((t) => {
                       const active = flightLeg === t.id;
                       return (
                         <button
@@ -1751,7 +2029,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                         >
                           {t.label}
                           {t.filled && (
-                            <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-brand-orange"}`} />
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-brand-orange"}`}
+                            />
                           )}
                         </button>
                       );
@@ -1804,7 +2084,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
 
                 <div className="sm:col-span-2">
                   <div className="mb-1 flex items-center justify-between gap-3">
-                    <span className="text-xs text-muted-foreground">O que inclui (um por linha)</span>
+                    <span className="text-xs text-muted-foreground">
+                      O que inclui (um por linha)
+                    </span>
                     <button
                       type="button"
                       onClick={handleGenerateIncludes}
@@ -1820,7 +2102,9 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                         ? editing.includes.join("\n")
                         : ((editing.includes as unknown as string) ?? "")
                     }
-                    onChange={(e) => setEditing({ ...editing, includes: e.target.value as unknown as string[] })}
+                    onChange={(e) =>
+                      setEditing({ ...editing, includes: e.target.value as unknown as string[] })
+                    }
                   />
                 </div>
               </div>
@@ -1868,14 +2152,12 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                 Salvar pacote
               </button>
             )}
-
           </div>
         </div>
       </div>
     </div>
   );
 }
-
 
 const inp =
   "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/40";
@@ -1946,7 +2228,9 @@ function ServicesEditor({
                 <select
                   className={inpClass}
                   value={(seguro.moeda ?? "USD") as SeguroMoeda}
-                  onChange={(e) => patch({ seguro: { ...seguro, moeda: e.target.value as SeguroMoeda } })}
+                  onChange={(e) =>
+                    patch({ seguro: { ...seguro, moeda: e.target.value as SeguroMoeda } })
+                  }
                 >
                   <option value="BRL">R$ (Real)</option>
                   <option value="USD">US$ (Dólar)</option>
@@ -1961,7 +2245,8 @@ function ServicesEditor({
               </div>
               {seguro.cobertura && (
                 <div className="text-[11px] text-muted-foreground">
-                  Prévia: Cobertura médica {formatSeguroCobertura(seguro.cobertura, seguro.moeda)} por pessoa
+                  Prévia: Cobertura médica {formatSeguroCobertura(seguro.cobertura, seguro.moeda)}{" "}
+                  por pessoa
                 </div>
               )}
             </div>
@@ -1974,11 +2259,15 @@ function ServicesEditor({
             <input
               type="checkbox"
               className="h-4 w-4 accent-brand-orange"
-              checked={!!(v.cancelamento?.enabled)}
-              onChange={(e) => patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: e.target.checked } })}
+              checked={!!v.cancelamento?.enabled}
+              onChange={(e) =>
+                patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: e.target.checked } })
+              }
             />
             <Shield className="h-4 w-4 text-brand-orange" />
-            <span className="text-sm font-medium">Cobertura de cancelamento involuntário de viagem</span>
+            <span className="text-sm font-medium">
+              Cobertura de cancelamento involuntário de viagem
+            </span>
           </label>
           {v.cancelamento?.enabled && (
             <div className="mt-3 space-y-2">
@@ -1987,7 +2276,15 @@ function ServicesEditor({
                 <select
                   className={inpClass}
                   value={(v.cancelamento?.moeda ?? "BRL") as SeguroMoeda}
-                  onChange={(e) => patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: true, moeda: e.target.value as SeguroMoeda } })}
+                  onChange={(e) =>
+                    patch({
+                      cancelamento: {
+                        ...(v.cancelamento ?? {}),
+                        enabled: true,
+                        moeda: e.target.value as SeguroMoeda,
+                      },
+                    })
+                  }
                 >
                   <option value="BRL">R$ (Real)</option>
                   <option value="USD">US$ (Dólar)</option>
@@ -1997,18 +2294,26 @@ function ServicesEditor({
                   className={inpClass}
                   placeholder="Ex.: 5.000 · 8.000 · 10.000"
                   value={v.cancelamento?.cobertura ?? ""}
-                  onChange={(e) => patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: true, cobertura: e.target.value } })}
+                  onChange={(e) =>
+                    patch({
+                      cancelamento: {
+                        ...(v.cancelamento ?? {}),
+                        enabled: true,
+                        cobertura: e.target.value,
+                      },
+                    })
+                  }
                 />
               </div>
               {v.cancelamento?.cobertura && (
                 <div className="text-[11px] text-muted-foreground">
-                  Prévia: Cobertura de cancelamento involuntário de viagem — {formatSeguroCobertura(v.cancelamento.cobertura, v.cancelamento.moeda)} por pessoa
+                  Prévia: Cobertura de cancelamento involuntário de viagem —{" "}
+                  {formatSeguroCobertura(v.cancelamento.cobertura, v.cancelamento.moeda)} por pessoa
                 </div>
               )}
             </div>
           )}
         </div>
-
 
         {/* Transfer */}
         <div className="rounded-xl border border-border bg-background/60 p-3">
@@ -2031,17 +2336,21 @@ function ServicesEditor({
           </label>
           {transfer.enabled && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {([
-                { id: "in", label: "Só ida (IN)" },
-                { id: "out", label: "Só volta (OUT)" },
-                { id: "in_out", label: "Ida e volta (IN/OUT)" },
-              ] as const).map((opt) => {
+              {(
+                [
+                  { id: "in", label: "Só ida (IN)" },
+                  { id: "out", label: "Só volta (OUT)" },
+                  { id: "in_out", label: "Ida e volta (IN/OUT)" },
+                ] as const
+              ).map((opt) => {
                 const active = (transfer.sentido ?? "in_out") === opt.id;
                 return (
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => patch({ transfer: { ...transfer, enabled: true, sentido: opt.id } })}
+                    onClick={() =>
+                      patch({ transfer: { ...transfer, enabled: true, sentido: opt.id } })
+                    }
                     className={`rounded-full border px-3 py-1 text-xs transition ${
                       active
                         ? "bg-brand-orange text-white border-brand-orange"
@@ -2086,7 +2395,9 @@ function ServicesEditor({
             <div className="flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-brand-orange" />
               <span className="text-sm font-medium">Outros serviços</span>
-              <span className="text-[11px] text-muted-foreground">— ex.: assistência 24h, bagagem extra, eSIM</span>
+              <span className="text-[11px] text-muted-foreground">
+                — ex.: assistência 24h, bagagem extra, eSIM
+              </span>
             </div>
             <button
               type="button"
@@ -2135,7 +2446,8 @@ function cleanFlight(f: FlightInfo | null | undefined): FlightInfo | null {
   const segments = getCleanSegments(normalizedBaggage);
   const first = segments[0];
   const last = segments[segments.length - 1];
-  const duration = formatMinutes(diffMinutes(first?.depart_at, last?.arrive_at)) || normalizedBaggage.duration;
+  const duration =
+    formatMinutes(diffMinutes(first?.depart_at, last?.arrive_at)) || normalizedBaggage.duration;
   const normalized: FlightInfo = {
     ...normalizedBaggage,
     airline: normalizedBaggage.airline || first?.airline,
@@ -2184,7 +2496,9 @@ function cleanSegment(segment: FlightSegment): FlightSegment {
 }
 
 function hasSegmentData(segment: FlightSegment): boolean {
-  return Object.values(segment).some((value) => value !== "" && value !== null && value !== undefined);
+  return Object.values(segment).some(
+    (value) => value !== "" && value !== null && value !== undefined,
+  );
 }
 
 // Auto-preenche fare_class a partir das bagagens: sem despachada = LIGHT, com despachada = STANDARD.
@@ -2216,8 +2530,7 @@ function FlightFieldset({
   const patchSeg = (i: number, p: Partial<FlightSegment>) =>
     patch({ segments: segments.map((s, idx) => (idx === i ? { ...s, ...p } : s)) });
   const addSeg = () => patch({ segments: [...segments, {}] });
-  const removeSeg = (i: number) =>
-    patch({ segments: segments.filter((_, idx) => idx !== i) });
+  const removeSeg = (i: number) => patch({ segments: segments.filter((_, idx) => idx !== i) });
 
   const first = segments[0];
   const last = segments[segments.length - 1];
@@ -2313,11 +2626,15 @@ function FlightFieldset({
       <div className="rounded-lg bg-muted/30 border border-border p-3 text-xs flex flex-wrap gap-x-4 gap-y-1">
         <span>
           <span className="text-muted-foreground">Rota: </span>
-          <strong>{first?.from_iata || "—"} → {last?.to_iata || "—"}</strong>
+          <strong>
+            {first?.from_iata || "—"} → {last?.to_iata || "—"}
+          </strong>
         </span>
         <span>
           <span className="text-muted-foreground">Conexões: </span>
-          <strong>{stopsCount === 0 ? "Direto" : `${stopsCount} conexão${stopsCount > 1 ? "es" : ""}`}</strong>
+          <strong>
+            {stopsCount === 0 ? "Direto" : `${stopsCount} conexão${stopsCount > 1 ? "es" : ""}`}
+          </strong>
         </span>
         <span>
           <span className="text-muted-foreground">Tempo total: </span>
@@ -2342,8 +2659,8 @@ function FlightFieldset({
                     {i === 0 && segments.length === 1
                       ? "Voo direto"
                       : i === 0
-                      ? "Trecho 1"
-                      : `Trecho ${i + 1} (conexão)`}
+                        ? "Trecho 1"
+                        : `Trecho ${i + 1} (conexão)`}
                     {segMin != null && (
                       <span className="ml-2 text-muted-foreground font-normal normal-case tracking-normal">
                         · {formatMinutes(segMin)}
@@ -2365,16 +2682,18 @@ function FlightFieldset({
                     airline={s.airline}
                     flightNumber={s.flight_number}
                     departAt={s.depart_at}
-                    onApply={(r) => patchSeg(i, {
-                      ...(r.airline ? { airline: r.airline } : {}),
-                      ...(r.flightNumber ? { flight_number: r.flightNumber } : {}),
-                      ...(r.fromIata ? { from_iata: r.fromIata } : {}),
-                      ...(r.fromCity ? { from_city: r.fromCity } : {}),
-                      ...(r.toIata ? { to_iata: r.toIata } : {}),
-                      ...(r.toCity ? { to_city: r.toCity } : {}),
-                      ...(r.departAtLocal ? { depart_at: r.departAtLocal } : {}),
-                      ...(r.arriveAtLocal ? { arrive_at: r.arriveAtLocal } : {}),
-                    })}
+                    onApply={(r) =>
+                      patchSeg(i, {
+                        ...(r.airline ? { airline: r.airline } : {}),
+                        ...(r.flightNumber ? { flight_number: r.flightNumber } : {}),
+                        ...(r.fromIata ? { from_iata: r.fromIata } : {}),
+                        ...(r.fromCity ? { from_city: r.fromCity } : {}),
+                        ...(r.toIata ? { to_iata: r.toIata } : {}),
+                        ...(r.toCity ? { to_city: r.toCity } : {}),
+                        ...(r.departAtLocal ? { depart_at: r.departAtLocal } : {}),
+                        ...(r.arriveAtLocal ? { arrive_at: r.arriveAtLocal } : {}),
+                      })
+                    }
                   />
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2">
@@ -2388,7 +2707,9 @@ function FlightFieldset({
                         const upper = curr.toUpperCase();
                         const m = /^\d+$/.test(upper)
                           ? null
-                          : upper.match(/^(?=[A-Z0-9]{2,3}\s)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,3}\s*(.+)$/);
+                          : upper.match(
+                              /^(?=[A-Z0-9]{2,3}\s)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,3}\s*(.+)$/,
+                            );
                         const suffix = m && /\d/.test(m[1]) ? m[1].trim() : curr.toUpperCase();
                         nextNo = a ? `${a.iata} ${suffix}` : suffix;
                       }
@@ -2465,9 +2786,7 @@ function FlightFieldset({
                   <span>⏱</span>
                   <span>
                     Conexão em <strong className="text-foreground">{s.to_iata || "—"}</strong>:{" "}
-                    <strong className="text-foreground">
-                      {formatMinutes(layoverMin) || "—"}
-                    </strong>
+                    <strong className="text-foreground">{formatMinutes(layoverMin) || "—"}</strong>
                   </span>
                 </div>
               )}
@@ -2677,7 +2996,6 @@ function FlightImportButton({
                 }}
               />
             </label>
-
           </div>
         </div>
       )}
@@ -2685,11 +3003,7 @@ function FlightImportButton({
   );
 }
 
-function PackageImportButton({
-  onImported,
-}: {
-  onImported: (patch: Partial<PackageRow>) => void;
-}) {
+function PackageImportButton({ onImported }: { onImported: (patch: Partial<PackageRow>) => void }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -2751,8 +3065,11 @@ function PackageImportButton({
       // Não usar includes do documento — a derivação automática monta na ordem correta
       // (Passagem Aérea → Hospedagem → Café da Manhã → Bagagem Despachada).
       patch.includes = [];
-      if (p.supplier_name) patch.supplier_name = String(p.supplier_name);
-      if (p.services && typeof p.services === "object") patch.services = p.services as PackageServices;
+      // A importação deve substituir fornecedor antigo (inclusive por vazio,
+      // quando a operadora não for identificada) e sempre entregar serviços.
+      patch.supplier_name = String(p.supplier_name ?? "");
+      patch.services =
+        p.services && typeof p.services === "object" ? (p.services as PackageServices) : {};
       if (p.outbound_flight && typeof p.outbound_flight === "object") {
         patch.outbound_flight = normalizeFlightBaggage({
           ...p.outbound_flight,
@@ -2766,7 +3083,6 @@ function PackageImportButton({
         });
       }
 
-
       // Tenta enriquecer o hotel automaticamente com dados do TripAdvisor.
       if (patch.hotel_name) {
         try {
@@ -2775,20 +3091,23 @@ function PackageImportButton({
           const results = await searchHotels({ data: { query: q } });
           const best = results?.[0];
           if (best) {
-            const full = await hotelDetails({ data: { locationId: best.location_id, photoLimit: 5 } });
+            const full = await hotelDetails({
+              data: { locationId: best.location_id, photoLimit: 5 },
+            });
             const rating = full.rating ?? best.rating ?? null;
             const cls = full.hotel_class ?? null;
-            const stars = rating != null
-              ? Math.min(5, Math.max(1, Math.round(rating)))
-              : cls != null
-                ? Math.min(5, Math.max(1, Math.round(cls)))
-                : patch.hotel_stars ?? 3;
+            const stars =
+              rating != null
+                ? Math.min(5, Math.max(1, Math.round(rating)))
+                : cls != null
+                  ? Math.min(5, Math.max(1, Math.round(cls)))
+                  : (patch.hotel_stars ?? 3);
             patch.hotel_name = full.name || best.name || patch.hotel_name;
             patch.hotel_stars = stars;
             patch.tripadvisor_location_id = String(best.location_id);
             patch.tripadvisor_url = full.tripadvisor_url ?? best.tripadvisor_url ?? null;
             patch.tripadvisor_address = full.address ?? best.address ?? null;
-            const photos = (full.photos && full.photos.length > 0) ? full.photos : null;
+            const photos = full.photos && full.photos.length > 0 ? full.photos : null;
             if (photos) patch.tripadvisor_photos = photos;
           }
         } catch (err) {
@@ -2831,7 +3150,6 @@ function PackageImportButton({
         Importar
       </button>
 
-
       {open && (
         <div
           className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
@@ -2845,7 +3163,8 @@ function PackageImportButton({
               <div>
                 <h3 className="text-lg font-bold">Importar pacote de um documento</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Envie um PDF de orçamento / voucher ou uma imagem. A IA extrai destino, datas, hotel, refeição, valores e voos (ida + volta com conexões).
+                  Envie um PDF de orçamento / voucher ou uma imagem. A IA extrai destino, datas,
+                  hotel, refeição, valores e voos (ida + volta com conexões).
                 </p>
               </div>
               <button
@@ -2891,13 +3210,19 @@ function PackageImportButton({
                 <>
                   <Loader2 className="h-6 w-6 animate-spin text-brand-orange" />
                   <span className="text-sm font-medium">Lendo {fileName ?? "documento"}…</span>
-                  <span className="text-[11px] text-muted-foreground">Pode levar alguns segundos</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Pode levar alguns segundos
+                  </span>
                 </>
               ) : (
                 <>
                   <Upload className="h-7 w-7 text-brand-orange" />
-                  <span className="text-sm font-semibold">Solte o arquivo aqui ou clique para escolher</span>
-                  <span className="text-[11px] text-muted-foreground">PDF, PNG ou JPG · até 15 MB</span>
+                  <span className="text-sm font-semibold">
+                    Solte o arquivo aqui ou clique para escolher
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    PDF, PNG ou JPG · até 15 MB
+                  </span>
                 </>
               )}
               <input
@@ -2918,8 +3243,11 @@ function PackageImportButton({
   );
 }
 
-
-function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial<PackageRow>[]) => void }) {
+function MultiPackageImportButton({
+  onExtracted,
+}: {
+  onExtracted: (list: Partial<PackageRow>[]) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -2957,7 +3285,9 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           filename: file.name || "orcamentos.pdf",
         },
       });
-      const rawList = Array.isArray(extracted) ? extracted.filter((p) => p && typeof p === "object") : [];
+      const rawList = Array.isArray(extracted)
+        ? extracted.filter((p) => p && typeof p === "object")
+        : [];
       if (rawList.length === 0) throw new Error("Nenhum orçamento reconhecido no documento");
 
       // Deduplica pacotes idênticos vindos no mesmo documento (mesmo destino+origem+datas+hotel+preço)
@@ -2993,8 +3323,7 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
       const drafts: Partial<PackageRow>[] = list.map((raw, i) => {
         const p: any = raw;
         const destination =
-          String(p.destination || "").trim() ||
-          String(p?.outbound_flight?.to_city || "").trim();
+          String(p.destination || "").trim() || String(p?.outbound_flight?.to_city || "").trim();
         const origin =
           String(p.origin || "").trim() ||
           String(p?.outbound_flight?.from_city || "").trim() ||
@@ -3002,9 +3331,7 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
         const going = p.going_date ? String(p.going_date) : "";
         const ret = p.return_date ? String(p.return_date) : "";
         const title =
-          destination && origin
-            ? `${destination} - Saída de ${origin}`
-            : destination || "";
+          destination && origin ? `${destination} - Saída de ${origin}` : destination || "";
         const baseSlug = (destination || "pacote")
           .toLowerCase()
           .normalize("NFD")
@@ -3016,7 +3343,6 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           slug: baseSlug,
           title: title || "",
 
-
           destination,
           origin,
           going_date: going,
@@ -3026,13 +3352,18 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           price_per_person: Number(p.price_per_person) || 0,
           taxes: Number(p.taxes) || 0,
           hotel_name: p.hotel_name || "",
-          hotel_stars: p.hotel_stars != null ? Math.max(1, Math.min(5, Math.round(Number(p.hotel_stars)))) : null,
+          hotel_stars:
+            p.hotel_stars != null
+              ? Math.max(1, Math.min(5, Math.round(Number(p.hotel_stars))))
+              : null,
           meal_plan: p.meal_plan || "",
           room_type: p.room_type || "",
           room_category: p.room_category || "",
           bed_type: p.bed_type || "",
           supplier_name: p.supplier_name || "",
-          services: ((p as any).services && typeof (p as any).services === "object" ? (p as any).services : {}) as PackageServices,
+          services: ((p as any).services && typeof (p as any).services === "object"
+            ? (p as any).services
+            : {}) as PackageServices,
           includes: [],
           is_active: true,
           sort_order: 0,
@@ -3053,14 +3384,17 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
             const results = await searchHotels({ data: { query: q } });
             const best = results?.[0];
             if (!best) return;
-            const full = await hotelDetails({ data: { locationId: best.location_id, photoLimit: 5 } });
+            const full = await hotelDetails({
+              data: { locationId: best.location_id, photoLimit: 5 },
+            });
             const rating = full.rating ?? best.rating ?? null;
             const cls = full.hotel_class ?? null;
-            const stars = rating != null
-              ? Math.min(5, Math.max(1, Math.round(rating)))
-              : cls != null
-                ? Math.min(5, Math.max(1, Math.round(cls)))
-                : d.hotel_stars ?? 3;
+            const stars =
+              rating != null
+                ? Math.min(5, Math.max(1, Math.round(rating)))
+                : cls != null
+                  ? Math.min(5, Math.max(1, Math.round(cls)))
+                  : (d.hotel_stars ?? 3);
             d.hotel_name = full.name || best.name || d.hotel_name;
             d.hotel_stars = stars;
             (d as any).tripadvisor_location_id = String(best.location_id);
@@ -3073,7 +3407,9 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
         }),
       );
 
-      toast.success(`${drafts.length} pacote(s) reconhecido(s) — revise nas abas acima e salve cada um.`);
+      toast.success(
+        `${drafts.length} pacote(s) reconhecido(s) — revise nas abas acima e salve cada um.`,
+      );
       onExtracted(drafts);
       setOpen(false);
       setFileName(null);
@@ -3085,16 +3421,26 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
     }
   }
 
-
-
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); if (!busy) setDragging(true); }}
-        onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (!busy) setDragging(true); }}
-        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragging(false); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!busy) setDragging(true);
+        }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!busy) setDragging(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setDragging(false);
+        }}
         onDrop={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -3109,7 +3455,6 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
       >
         <FileUp className="h-4 w-4" strokeWidth={2.5} /> {busy ? "Importando…" : "Importar"}
       </button>
-
 
       {open && (
         <div
@@ -3134,9 +3479,21 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
             </div>
 
             <label
-              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); if (!busy) setDragging(true); }}
-              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); if (!busy) setDragging(true); }}
-              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragging(false); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!busy) setDragging(true);
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!busy) setDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragging(false);
+              }}
               onDrop={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -3153,14 +3510,22 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
               {busy ? (
                 <>
                   <Loader2 className="h-6 w-6 animate-spin text-brand-orange" />
-                  <span className="text-sm font-medium">{status || `Lendo ${fileName ?? "documento"}…`}</span>
-                  <span className="text-[11px] text-muted-foreground">Pode levar alguns segundos por pacote</span>
+                  <span className="text-sm font-medium">
+                    {status || `Lendo ${fileName ?? "documento"}…`}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Pode levar alguns segundos por pacote
+                  </span>
                 </>
               ) : (
                 <>
                   <Upload className="h-7 w-7 text-brand-orange" />
-                  <span className="text-sm font-semibold">Solte o PDF aqui ou clique para escolher</span>
-                  <span className="text-[11px] text-muted-foreground">PDF · até 20 MB · vários orçamentos em um só arquivo</span>
+                  <span className="text-sm font-semibold">
+                    Solte o PDF aqui ou clique para escolher
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    PDF · até 20 MB · vários orçamentos em um só arquivo
+                  </span>
                 </>
               )}
               <input
@@ -3181,10 +3546,6 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
   );
 }
 
-
-
-
-
 function UnlinkedHotelsAlert({
   packages,
   onOpen,
@@ -3196,9 +3557,7 @@ function UnlinkedHotelsAlert({
   const [expanded, setExpanded] = useState(false);
   const unlinked = useMemo(
     () =>
-      (packages || []).filter(
-        (p) => p.is_active && !!p.hotel_name && !p.tripadvisor_location_id,
-      ),
+      (packages || []).filter((p) => p.is_active && !!p.hotel_name && !p.tripadvisor_location_id),
     [packages],
   );
   if (dismissed || unlinked.length === 0) return null;
@@ -3324,10 +3683,7 @@ function DuplicatePackagesAlert({
     return Array.from(map.values()).filter((arr) => arr.length > 1);
   }, [packages]);
 
-  const total = useMemo(
-    () => groups.reduce((acc, arr) => acc + (arr.length - 1), 0),
-    [groups],
-  );
+  const total = useMemo(() => groups.reduce((acc, arr) => acc + (arr.length - 1), 0), [groups]);
 
   if (dismissed || groups.length === 0) return null;
 
@@ -3386,7 +3742,8 @@ function DuplicatePackagesAlert({
       </div>
       <div className="px-4 pb-5 space-y-4">
         <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-          Mesma origem, destino, datas, hotel e preço. Abra e exclua as cópias que não quiser manter.
+          Mesma origem, destino, datas, hotel e preço. Abra e exclua as cópias que não quiser
+          manter.
         </p>
         <div className="space-y-3">
           {groups.map((arr, gi) => (
@@ -3432,5 +3789,3 @@ function DuplicatePackagesAlert({
     </div>
   );
 }
-
-
