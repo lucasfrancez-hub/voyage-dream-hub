@@ -2992,9 +2992,11 @@ function UnlinkedHotelsAlert({
 function DuplicatePackagesAlert({
   packages,
   onOpen,
+  onDelete,
 }: {
   packages: PackageRow[];
   onOpen: (p: PackageRow) => void;
+  onDelete: (p: PackageRow) => void | Promise<any>;
 }) {
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
