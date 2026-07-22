@@ -3380,8 +3380,8 @@ function MultiPackageImportButton({
               ? Math.max(1, Math.min(5, Math.round(Number(p.hotel_stars))))
               : null,
           meal_plan: p.meal_plan || "",
-          room_type: p.room_type || "",
-          room_category: p.room_category || "",
+          room_type: cleanRoomLabel(p.room_type as string) ?? "",
+          room_category: cleanRoomLabel(p.room_category as string) ?? "",
           bed_type: p.bed_type || "",
           supplier_name: p.supplier_name || "",
           services: ((p as any).services && typeof (p as any).services === "object"
