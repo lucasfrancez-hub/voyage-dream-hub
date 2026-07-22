@@ -325,6 +325,61 @@ function AuthPage() {
                 </div>
               </form>
             </>
+          ) : step === "email-code" ? (
+            <>
+              <div className="flex items-center gap-2 text-brand-orange text-sm uppercase tracking-widest">
+                <Mail className="h-4 w-4" /> Novo dispositivo detectado
+              </div>
+              <h1 className="mt-2 text-2xl font-display font-bold">Confirme pelo e-mail</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Enviamos um código de 6 dígitos para{" "}
+                <strong className="text-foreground">{maskedEmail ?? "seu e-mail"}</strong>. Digite abaixo
+                para liberar o acesso. Depois pediremos o código do autenticador.
+              </p>
+              <form onSubmit={handleEmailCode} className="mt-6 space-y-4">
+                <input
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, ""))}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-3 text-center text-lg tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+                  placeholder="000000"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={loading || emailCode.length !== 6}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Confirmar código
+                </button>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={resendEmailCode}
+                    disabled={loading}
+                    className="hover:text-brand-orange underline underline-offset-2 disabled:opacity-50"
+                  >
+                    Reenviar código
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+                      setStep("credentials");
+                      setEmailCode("");
+                      setMaskedEmail(null);
+                    }}
+                    className="hover:text-brand-orange"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </>
           ) : step === "mfa" ? (
             <>
               <div className="flex items-center gap-2 text-brand-orange text-sm uppercase tracking-widest">
