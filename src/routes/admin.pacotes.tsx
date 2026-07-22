@@ -3082,8 +3082,8 @@ function PackageImportButton({ onImported }: { onImported: (patch: Partial<Packa
         if (Number.isFinite(n)) patch.hotel_stars = Math.max(1, Math.min(5, n));
       }
       if (p.meal_plan) patch.meal_plan = String(p.meal_plan);
-      if (p.room_type) patch.room_type = String(p.room_type);
-      if (p.room_category) patch.room_category = String(p.room_category);
+      if (p.room_type) { const v = cleanRoomLabel(String(p.room_type)); if (v) patch.room_type = v; }
+      if (p.room_category) { const v = cleanRoomLabel(String(p.room_category)); if (v) patch.room_category = v; }
       if (p.bed_type) patch.bed_type = String(p.bed_type);
       // Não usar includes do documento — a derivação automática monta na ordem correta
       // (Passagem Aérea → Hospedagem → Café da Manhã → Bagagem Despachada).
