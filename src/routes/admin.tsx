@@ -18,9 +18,13 @@ import { APP_VERSION, APP_BUILD_DATE } from "@/lib/version";
 
 
 export const Route = createFileRoute("/admin")({
+  ssr: false,
   component: AdminLayout,
   head: () => ({
-    meta: [{ title: "Admin - Via Air" }],
+    meta: [
+      { title: "Admin - Via Air" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
   }),
 });
 
