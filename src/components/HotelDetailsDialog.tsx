@@ -167,7 +167,7 @@ export function HotelDetailsDialog({
                   )}
                   {data?.address && (
                     <div className="flex items-center gap-2 min-w-0">
-                      <MapPin className="h-4 w-4 text-zinc-500 shrink-0" />
+                      <MapPin className="h-4 w-4 text-[var(--brand-orange)] shrink-0" />
                       <span className="truncate">{safeText(data.address)}</span>
                     </div>
                   )}
