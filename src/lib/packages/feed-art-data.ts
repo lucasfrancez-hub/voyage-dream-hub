@@ -97,9 +97,16 @@ export type PackageServices = {
     enabled?: boolean;
     cobertura?: string | null;
     moeda?: SeguroMoeda | null;
+    // Campos legados — mantidos p/ compatibilidade com registros antigos.
+    // Novo fluxo usa o bloco `cancelamento` no topo de services.
     cancelamento?: string | null;
     cancelamento_moeda?: SeguroMoeda | null;
     plano?: string | null;
+  };
+  cancelamento?: {
+    enabled?: boolean;
+    cobertura?: string | null;
+    moeda?: SeguroMoeda | null;
   };
   transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null };
   city_tour?: { enabled?: boolean; detalhe?: string | null };
@@ -159,6 +166,7 @@ function countServices(services?: PackageServices | null): number {
   if (!services) return 0;
   let n = 0;
   if (services.seguro?.enabled) n++;
+  if (services.cancelamento?.enabled) n++;
   if (services.transfer?.enabled) n++;
   if (services.city_tour?.enabled) n++;
   n += (services.outros ?? []).filter((x) => x && x.trim()).length;
