@@ -1984,7 +1984,7 @@ function ServicesEditor({
                 <div className="text-[11px] text-muted-foreground">
                   Prévia: {[
                     seguro.cobertura ? `Médica ${formatSeguroCobertura(seguro.cobertura, seguro.moeda)}` : null,
-                    seguro.cancelamento ? `Cancelamento ${formatSeguroCobertura(seguro.cancelamento, seguro.cancelamento_moeda ?? seguro.moeda)}` : null,
+                    seguro.cancelamento ? `Cancelamento ${formatSeguroCobertura(seguro.cancelamento, seguro.cancelamento_moeda ?? seguro.moeda)} por pessoa` : null,
                   ].filter(Boolean).join(" · ")}
                 </div>
               )}
