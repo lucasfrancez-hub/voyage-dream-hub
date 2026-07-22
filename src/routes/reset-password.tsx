@@ -33,21 +33,52 @@ function ResetPasswordPage() {
     let active = true;
     const currentUrl = new URL(window.location.href);
     const hashParams = new URLSearchParams(currentUrl.hash.slice(1));
+    const code = currentUrl.searchParams.get("code");
+    const tokenHash = currentUrl.searchParams.get("token_hash");
     const recoveryInUrl =
       hashParams.get("type") === "recovery" ||
       currentUrl.searchParams.get("type") === "recovery" ||
-      currentUrl.searchParams.has("code") ||
-      currentUrl.searchParams.has("token_hash");
+      Boolean(code) ||
+      Boolean(tokenHash) ||
+      hashParams.has("access_token");
+
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
-      if (event === "PASSWORD_RECOVERY" || (recoveryInUrl && session)) setValidSession(true);
+      if (event === "PASSWORD_RECOVERY" || (recoveryInUrl && session)) {
+        setValidSession(true);
+      }
       setReady(true);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setValidSession(Boolean(data.session) && recoveryInUrl);
-      setReady(true);
-    });
+
+    async function activateRecoverySession() {
+      try {
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        } else if (tokenHash) {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: "recovery",
+          });
+          if (error) throw error;
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (!active) return;
+        setValidSession(Boolean(data.session) && recoveryInUrl);
+
+        if (data.session && (code || tokenHash)) {
+          window.history.replaceState({}, "", "/reset-password");
+        }
+      } catch {
+        if (active) setValidSession(false);
+      } finally {
+        if (active) setReady(true);
+      }
+    }
+
+    void activateRecoverySession();
     return () => {
       active = false;
       listener.subscription.unsubscribe();
