@@ -29,6 +29,7 @@ import { customQuoteWhatsappUrl } from "@/lib/checkout-config";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { FlightCard, type FlightInfo } from "@/components/FlightCard";
+import { HotelDetailsDialog } from "@/components/HotelDetailsDialog";
 
 function cleanHotelDetail(value: string | null | undefined) {
   const cleaned = value
