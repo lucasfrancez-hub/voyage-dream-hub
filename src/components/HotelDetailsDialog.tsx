@@ -182,7 +182,7 @@ export function HotelDetailsDialog({
                     rel="noreferrer"
                     className="hidden md:inline-flex items-center gap-2 bg-[var(--brand-orange)] hover:bg-[var(--brand-orange)]/90 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-[var(--brand-orange)]/25 active:scale-95"
                   >
-                    Ver todas as fotos e reviews no TripAdvisor
+                    Ver todas as fotos e reviews
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 )}
