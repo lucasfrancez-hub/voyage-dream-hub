@@ -59,6 +59,9 @@ const BRAND = {
 const SHADOW_CSS = `
 :host, .befly-widget, .search-widget, form { font-family: 'Inter','Open Sans',system-ui,sans-serif !important; }
 
+/* Esconde bloco de "Não autorizado" quando o widget renderiza em domínio não liberado (dev/preview) */
+.unauthorized, .not-authorized, [class*="unauthorized"], [class*="notAuthorized"] { display: none !important; }
+
 /* Card principal */
 .mat-card, .search-container, .search-form, [class*="container"] > form {
   background: ${BRAND.cardBg} !important;
@@ -68,13 +71,30 @@ const SHADOW_CSS = `
   box-shadow: 0 12px 40px rgba(0,0,0,0.35) !important;
 }
 
-/* Tabs (Voos / Hotéis / Pacotes ...) */
-.mat-tab-label, .mat-tab-link { color: ${BRAND.textMuted} !important; opacity: 1 !important; font-weight: 500 !important; }
-.mat-tab-label-active, .mat-tab-link-active { color: ${BRAND.text} !important; font-weight: 600 !important; }
-.mat-ink-bar, .mat-tab-header-pagination-chevron { background-color: ${BRAND.primary} !important; border-color: ${BRAND.primary} !important; }
-.mat-tab-header { border-bottom-color: ${BRAND.cardBorder} !important; }
+/* Tabs (Voos / Hotéis / Pacotes ...) — aba ativa vira pill laranja */
+.mat-tab-label, .mat-tab-link {
+  color: ${BRAND.textMuted} !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+  border-radius: 999px !important;
+  min-width: 0 !important;
+  padding: 0 18px !important;
+  height: 40px !important;
+  margin: 6px 4px !important;
+  transition: background .2s ease, color .2s ease !important;
+}
+.mat-tab-label:hover:not(.mat-tab-label-active) { background: rgba(255,255,255,0.05) !important; color: ${BRAND.text} !important; }
+.mat-tab-label-active, .mat-tab-link-active {
+  color: #FFFFFF !important;
+  background: ${BRAND.primary} !important;
+  font-weight: 600 !important;
+  box-shadow: 0 6px 18px rgba(242,107,31,0.35) !important;
+}
+.mat-ink-bar { background-color: transparent !important; }
+.mat-tab-header { border-bottom-color: transparent !important; }
 .mat-icon, mat-icon, .material-icons, .material-symbols-outlined { color: ${BRAND.text} !important; }
 .mat-tab-label:not(.mat-tab-label-active) .mat-icon { color: ${BRAND.textMuted} !important; }
+.mat-tab-label-active .mat-icon, .mat-tab-link-active .mat-icon { color: #FFFFFF !important; }
 
 /* Chips secundários (Ida e volta, 1 Viajante) */
 .mat-button, .mat-flat-button, .mat-stroked-button, .mat-menu-trigger {
