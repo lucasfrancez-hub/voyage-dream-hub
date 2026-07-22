@@ -274,23 +274,26 @@ export function selectMixedFeatured<T extends CurationPkg>(
       return dp !== 0 ? dp : totalPrice(a) - totalPrice(b);
     });
   const brRest = brAll.sort((a, b) => totalPrice(a) - totalPrice(b));
+  // Priorização Brasil: feriados > próximas > resto (ordenados por preço).
+  // Depois passamos por diversifyByDestination pra pegar um-por-destino antes
+  // de repetir, garantindo Nordeste, Sudeste, Sul, Norte na vitrine.
   const brSeen = new Set<string>();
-  const brPool: T[] = [];
+  const brOrdered: T[] = [];
   for (const arr of [brHolidays, brUpcoming, brRest]) {
     for (const p of arr) {
       if (brSeen.has(p.id)) continue;
       brSeen.add(p.id);
-      brPool.push(p);
-      if (brPool.length >= half) break;
+      brOrdered.push(p);
     }
-    if (brPool.length >= half) break;
   }
+  const brPool = diversifyByDestination(brOrdered).slice(0, half);
 
-  // Internacional: puramente pelos menores preços totais
-  const intlPool = active
+  // Internacional: ordenado por preço, mas também diversificado por destino
+  // (senão Buenos Aires domina). Assim Punta Cana / Miami / Orlando entram.
+  const intlOrdered = active
     .filter((p) => !isBrazilian(p.destination) && matchesAny(p.destination, INTERNATIONAL_KEYWORDS))
-    .sort((a, b) => totalPrice(a) - totalPrice(b))
-    .slice(0, half);
+    .sort((a, b) => totalPrice(a) - totalPrice(b));
+  const intlPool = diversifyByDestination(intlOrdered).slice(0, half);
 
   // Intercala BR/INTL pra dar variedade no carrossel
   const out: T[] = [];
@@ -306,11 +309,13 @@ export function selectMixedFeatured<T extends CurationPkg>(
     if (out.length >= total) break;
     push(intlPool[i]);
   }
-  // Se ainda faltar, completa com o resto ativo mais barato
+  // Se ainda faltar, completa com o resto ativo, também diversificado por destino
   if (out.length < total) {
-    const filler = active
-      .filter((p) => !seen.has(p.id))
-      .sort((a, b) => totalPrice(a) - totalPrice(b));
+    const filler = diversifyByDestination(
+      active
+        .filter((p) => !seen.has(p.id))
+        .sort((a, b) => totalPrice(a) - totalPrice(b)),
+    );
     for (const p of filler) {
       push(p);
       if (out.length >= total) break;
@@ -318,3 +323,4 @@ export function selectMixedFeatured<T extends CurationPkg>(
   }
   return diversifyByDestination(out);
 }
+
