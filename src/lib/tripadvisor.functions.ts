@@ -24,15 +24,12 @@ export type TAHotelDetails = TAHotelSuggestion & {
   hotel_class: number | null;
 };
 
-async function taFetch(path: string, opts?: { language?: string }): Promise<Response> {
+async function taFetch(path: string, params?: Record<string, string>): Promise<Response> {
   const key = process.env.TRIPADVISOR_API_KEY;
   if (!key) throw new Error("TRIPADVISOR_API_KEY não configurada");
-  const lang = opts?.language;
-  let url = `${BASE}${path}`;
-  if (lang) {
-    url += (url.includes("?") ? "&" : "?") + `language=${encodeURIComponent(lang)}`;
-  }
-  return fetch(url, {
+  const url = new URL(`${BASE}${path}`);
+  Object.entries(params ?? {}).forEach(([name, value]) => url.searchParams.set(name, value));
+  return fetch(url.toString(), {
     headers: { accept: "application/json", "X-API-KEY": key },
   });
 }
@@ -363,17 +360,32 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
   .inputValidator((input: { locationId: number }) => input)
   .handler(async ({ data }): Promise<TAPublicHotelInfo> => {
     const id = data.locationId;
-    // Terra API costuma capar `limit` das fotos em ~5-30 por chamada; paginamos com offset
-    // pra montar uma galeria robusta (~150 fotos).
+    // A Terra usa page/size: fotos têm página inicial 0 e avaliações usam página inicial 1.
+    // Cada página falha isoladamente para uma resposta parcial continuar utilizável.
     const PHOTO_PAGES = 6;
-    const PHOTO_PAGE_SIZE = 30;
-    const photoRequests = Array.from({ length: PHOTO_PAGES }, (_, i) =>
-      taFetch(`/locations/${id}/photos?limit=${PHOTO_PAGE_SIZE}&offset=${i * PHOTO_PAGE_SIZE}`, { language: "pt" }),
-    );
-    const [rDet, rReviews, ...rPhotoPages] = await Promise.all([
-      taFetch(`/locations/${id}`, { language: "pt" }),
-      taFetch(`/locations/${id}/reviews?limit=20`, { language: "pt" }),
-      ...photoRequests,
+    const PHOTO_PAGE_SIZE = 10;
+    const [rDet, photoPageResults, reviewPageResults] = await Promise.all([
+      taFetch(`/locations/${id}`, { locale: "pt_BR" }),
+      Promise.allSettled(
+        Array.from({ length: PHOTO_PAGES }, (_, page) =>
+          taFetch(`/locations/${id}/photos`, {
+            locale: "pt_BR",
+            page: String(page),
+            size: String(PHOTO_PAGE_SIZE),
+          }),
+        ),
+      ),
+      Promise.allSettled(
+        [1, 2].map((page) =>
+          taFetch(`/locations/${id}/reviews`, {
+            language: "pt",
+            rating_min: "4",
+            sort_by: "HIGHEST_RATED",
+            page: String(page),
+            size: "10",
+          }),
+        ),
+      ),
     ]);
 
     const empty: TAPublicHotelInfo = {
@@ -449,9 +461,9 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     let photos: string[] = [];
     {
       const seen = new Set<string>();
-      for (const rp of rPhotoPages) {
-        if (!rp.ok) continue;
-        const jp = (await rp.json()) as { data?: Array<{ photo?: { original_size_url?: string; large_size_url?: string } }> };
+      for (const result of photoPageResults) {
+        if (result.status !== "fulfilled" || !result.value.ok) continue;
+        const jp = (await result.value.json()) as { data?: Array<{ photo?: { original_size_url?: string; large_size_url?: string } }> };
         for (const p of jp.data || []) {
           const url = p.photo?.original_size_url ?? p.photo?.large_size_url;
           if (typeof url === "string" && url.length > 0 && !seen.has(url)) {
@@ -506,9 +518,10 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
       trip_type: string | null; lang: string;
     };
     const raw: RawReview[] = [];
-    if (rReviews.ok) {
-      const jr = (await rReviews.json()) as { data?: Array<Record<string, unknown>> };
-      for (const r of (jr.data || []).slice(0, 20)) {
+    for (const result of reviewPageResults) {
+      if (result.status !== "fulfilled" || !result.value.ok) continue;
+      const jr = (await result.value.json()) as { data?: Array<Record<string, unknown>> };
+      for (const r of jr.data || []) {
         const user = (r.user as { username?: string; user_location?: { name?: string } } | undefined);
         const title = localizedText(r.title) || null;
         const text = localizedText(r.text) || null;
@@ -527,7 +540,6 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
           trip_type: localizedText(r.trip_type) || null,
           lang,
         });
-      }
     }
     raw.forEach((r, idx) => {
       if (r.lang !== "pt") {
