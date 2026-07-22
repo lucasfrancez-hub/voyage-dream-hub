@@ -29,6 +29,8 @@ import { FileUp, Upload, ChevronLeft, ChevronRight, ChevronDown, Sparkles as Spa
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
+import type { PackageServices } from "@/lib/packages/feed-art-data";
+import { Shield, Bus, MapPin as MapPinIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
@@ -98,6 +100,7 @@ type PackageRow = {
   tripadvisor_url: string | null;
   tripadvisor_address: string | null;
   tripadvisor_photos: string[] | null;
+  services: PackageServices | null;
 };
 
 const emptyForm: Partial<PackageRow> = {
@@ -126,6 +129,7 @@ const emptyForm: Partial<PackageRow> = {
   outbound_flight: null,
   return_flight: null,
   supplier_name: "",
+  services: {},
 };
 
 function AdminPackages() {
@@ -384,7 +388,8 @@ function AdminPackages() {
       tripadvisor_url: pkg.tripadvisor_url || null,
       tripadvisor_address: pkg.tripadvisor_address || null,
       tripadvisor_photos: pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
-    };
+      services: (pkg.services ?? {}) as any,
+    } as any;
     const savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
       : await supabase.from("packages").insert(payload).select("id").single();
