@@ -51,13 +51,16 @@ async function translateBatchToPt(texts: string[]): Promise<string[]> {
         "Você é um tradutor. Traduza cada trecho para português do Brasil, preservando tom e conteúdo. Responda APENAS no mesmo formato: cada item começa com `[N]` (mesmo índice recebido) e itens separados por uma linha `---`. Não adicione comentários.",
       prompt: numbered,
     });
-    const parts = text.split(/\n-{2,}\n/g);
     const out = [...clean];
-    for (const p of parts) {
-      const m = p.match(/^\s*\[(\d+)\]\s*([\s\S]*)$/);
-      if (!m) continue;
-      const idx = Number(m[1]);
-      const val = m[2].trim();
+    // O modelo nem sempre preserva exatamente a linha `---`. Use os próprios
+    // marcadores [N] como limites para não perder traduções longas.
+    const markers = [...text.matchAll(/(?:^|\n)\s*\[(\d+)\]\s*/g)];
+    for (let i = 0; i < markers.length; i += 1) {
+      const marker = markers[i];
+      const idx = Number(marker[1]);
+      const start = (marker.index ?? 0) + marker[0].length;
+      const end = markers[i + 1]?.index ?? text.length;
+      const val = text.slice(start, end).replace(/\n\s*-{2,}\s*$/g, "").trim();
       if (Number.isFinite(idx) && idx >= 0 && idx < out.length && val) {
         out[idx] = val;
       }
