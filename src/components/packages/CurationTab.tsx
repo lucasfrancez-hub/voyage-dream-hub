@@ -179,9 +179,18 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
     [activeAll],
   );
   const [originFilter, setOriginFilter] = useState<string>("all");
-  const active = useMemo(
+  const afterOrigin = useMemo(
     () => (originFilter === "all" ? activeAll : activeAll.filter((p) => originKey(p.origin) === originKey(originFilter))),
     [activeAll, originFilter],
+  );
+  const destinationOptions = useMemo(
+    () => dedupeOrigins(afterOrigin.map((p) => p.destination)),
+    [afterOrigin],
+  );
+  const [destinationFilter, setDestinationFilter] = useState<string>("all");
+  const active = useMemo(
+    () => (destinationFilter === "all" ? afterOrigin : afterOrigin.filter((p) => originKey(p.destination) === originKey(destinationFilter))),
+    [afterOrigin, destinationFilter],
   );
 
   const [refreshing, setRefreshing] = useState(false);
@@ -332,7 +341,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
         <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Origem</label>
         <select
           value={originFilter}
-          onChange={(e) => setOriginFilter(e.target.value)}
+          onChange={(e) => { setOriginFilter(e.target.value); setDestinationFilter("all"); }}
           className="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-orange"
         >
           <option value="all">Todas as origens ({activeAll.length})</option>
@@ -342,6 +351,19 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
             return <option key={o} value={o}>{canonOrigin(o)} ({n})</option>;
           })}
 
+        </select>
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Destino</label>
+        <select
+          value={destinationFilter}
+          onChange={(e) => setDestinationFilter(e.target.value)}
+          className="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-orange"
+        >
+          <option value="all">Todos os destinos ({afterOrigin.length})</option>
+          {destinationOptions.map((d) => {
+            const k = originKey(d);
+            const n = afterOrigin.filter((p) => originKey(p.destination) === k).length;
+            return <option key={d} value={d}>{canonOrigin(d)} ({n})</option>;
+          })}
         </select>
         {onRefresh && (
           <button
