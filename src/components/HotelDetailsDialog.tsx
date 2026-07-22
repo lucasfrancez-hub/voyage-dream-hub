@@ -10,6 +10,7 @@ import {
   Check,
   X,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 import {
   Dialog,
@@ -322,9 +323,20 @@ export function HotelDetailsDialog({
                   ))}
                 </div>
                 {data.tripadvisor_url && (
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    Fonte: TripAdvisor. As avaliações são de hóspedes verificados.
-                  </p>
+                  <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-xs text-muted-foreground">
+                      Fonte: TripAdvisor. As avaliações são de hóspedes verificados.
+                    </p>
+                    <a
+                      href={data.tripadvisor_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-xs font-semibold text-white hover:bg-brand-orange/90 transition-colors self-start sm:self-auto"
+                    >
+                      Ver todos os reviews no TripAdvisor
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
                 )}
               </section>
             )}
