@@ -44,25 +44,41 @@ async function translateBatchToPt(texts: string[]): Promise<string[]> {
     const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
     const { generateText } = await import("ai");
     const gateway = createLovableAiGatewayProvider(key);
-    const numbered = clean.map((t, i) => `[${i}] ${t.replace(/\s+/g, " ")}`).join("\n---\n");
-    const { text } = await generateText({
-      model: gateway("google/gemini-2.5-flash-lite"),
-      system:
-        "Você é um tradutor. Traduza cada trecho para português do Brasil, preservando tom e conteúdo. Responda APENAS no mesmo formato: cada item começa com `[N]` (mesmo índice recebido) e itens separados por uma linha `---`. Não adicione comentários.",
-      prompt: numbered,
-    });
     const out = [...clean];
-    // O modelo nem sempre preserva exatamente a linha `---`. Use os próprios
-    // marcadores [N] como limites para não perder traduções longas.
-    const markers = [...text.matchAll(/(?:^|\n)\s*\[(\d+)\]\s*/g)];
-    for (let i = 0; i < markers.length; i += 1) {
-      const marker = markers[i];
-      const idx = Number(marker[1]);
-      const start = (marker.index ?? 0) + marker[0].length;
-      const end = markers[i + 1]?.index ?? text.length;
-      const val = text.slice(start, end).replace(/\n\s*-{2,}\s*$/g, "").trim();
-      if (Number.isFinite(idx) && idx >= 0 && idx < out.length && val) {
-        out[idx] = val;
+
+    // Reviews longos podem fazer o modelo omitir o primeiro item quando todos
+    // são enviados juntos. Divida em lotes pequenos, preservando os índices.
+    const groups: Array<Array<{ index: number; value: string }>> = [];
+    let group: Array<{ index: number; value: string }> = [];
+    let chars = 0;
+    clean.forEach((value, index) => {
+      if (!value) return;
+      if (group.length && (group.length >= 3 || chars + value.length > 4_500)) {
+        groups.push(group);
+        group = [];
+        chars = 0;
+      }
+      group.push({ index, value });
+      chars += value.length;
+    });
+    if (group.length) groups.push(group);
+
+    for (const items of groups) {
+      const numbered = items.map(({ index, value }) => `[${index}] ${value.replace(/\s+/g, " ")}`).join("\n---\n");
+      const { text } = await generateText({
+        model: gateway("google/gemini-2.5-flash-lite"),
+        system:
+          "Você é um tradutor. Traduza integralmente cada trecho para português do Brasil, preservando tom e conteúdo. Responda APENAS no mesmo formato: cada item começa com `[N]` (mesmo índice recebido) e itens separados por uma linha `---`. Não omita itens nem adicione comentários.",
+        prompt: numbered,
+      });
+      const markers = [...text.matchAll(/(?:^|\n)\s*\[(\d+)\]\s*/g)];
+      for (let i = 0; i < markers.length; i += 1) {
+        const marker = markers[i];
+        const idx = Number(marker[1]);
+        const start = (marker.index ?? 0) + marker[0].length;
+        const end = markers[i + 1]?.index ?? text.length;
+        const val = text.slice(start, end).replace(/\n\s*-{2,}\s*$/g, "").trim();
+        if (Number.isFinite(idx) && idx >= 0 && idx < out.length && val) out[idx] = val;
       }
     }
     return out;
