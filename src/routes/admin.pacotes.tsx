@@ -214,7 +214,7 @@ function AdminPackages() {
 
   const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const origins = useMemo(
-    () => Array.from(new Set((packages || []).map(p => p.origin).filter(Boolean) as string[])).sort(),
+    () => dedupeOrigins((packages || []).map(p => p.origin)),
     [packages],
   );
   const destinations = useMemo(
