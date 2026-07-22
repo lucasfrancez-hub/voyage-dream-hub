@@ -1108,7 +1108,7 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
       const base = plano ? `Seguro Viagem ${plano}` : "Seguro Viagem";
       list.push(cob ? `${base} — Cobertura ${cob} por pessoa` : base);
       const canc = formatSeguroCobertura(svc.seguro.cancelamento, svc.seguro.cancelamento_moeda);
-      if (canc) list.push(`Cobertura de Cancelamento Involuntário — ${canc} por pessoa`);
+      if (canc) list.push(`Cobertura de cancelamento involuntário de viagem — ${canc} por pessoa`);
     }
     if (svc.transfer?.enabled) {
       const sentido = svc.transfer.sentido;
