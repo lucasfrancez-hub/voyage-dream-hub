@@ -360,12 +360,12 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       {/* Chips de filtro */}
       {groups.length > 1 && (
         <div className="flex flex-wrap gap-2 pb-6 border-b border-white/5">
-          <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="Todas" emoji="✨" count={groups.length} />
+          <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="Todas" Icon={LayoutGrid} count={groups.length} />
           {groups.map((g) => (
             <FilterChip
               key={g.key} active={filter === g.key} onClick={() => setFilter(g.key)}
               label={g.title.replace(/^Pacotes (para o|em|para a) /i, "").replace(/ — .*$/, "")}
-              emoji={g.emoji} count={g.packages.length}
+              Icon={g.Icon} count={g.packages.length}
             />
           ))}
         </div>
