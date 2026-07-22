@@ -310,7 +310,7 @@ export function HotelDetailsDialog({
 
                 {/* Reviews feed */}
                 <div className="flex-1 overflow-y-auto px-6 md:px-7 py-4 space-y-4 custom-scrollbar min-h-0">
-                  <div className="sticky top-0 z-10 py-2 -mx-1 px-1 bg-[#0A0A0B]">
+                  <div className="sticky top-0 z-10 py-2 -mx-1 px-1 bg-background/80 backdrop-blur-xl">
                     <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
                       Avaliações recentes
                     </h2>
