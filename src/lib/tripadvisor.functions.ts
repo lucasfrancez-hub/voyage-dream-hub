@@ -540,6 +540,7 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
           trip_type: localizedText(r.trip_type) || null,
           lang,
         });
+      }
     }
     raw.forEach((r, idx) => {
       if (r.lang !== "pt") {
