@@ -741,6 +741,10 @@ function AdminPackages() {
             packages={(packages || []) as PackageRow[]}
             onOpen={(p) => setEditingState(p)}
           />
+          <MissingIncludesAlert
+            packages={(packages || []) as PackageRow[]}
+            onOpen={(p) => setEditingState(p)}
+          />
           <DuplicatePackagesAlert
             packages={(packages || []) as PackageRow[]}
             onOpen={(p) => setEditingState(p)}
