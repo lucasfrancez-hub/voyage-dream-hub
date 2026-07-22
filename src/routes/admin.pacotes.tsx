@@ -3943,3 +3943,114 @@ function MissingIncludesAlert({
     </div>
   );
 }
+
+function MealPlanMismatchAlert({
+  packages,
+  onOpen,
+}: {
+  packages: PackageRow[];
+  onOpen: (p: PackageRow) => void;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const conflicts = useMemo(
+    () =>
+      (packages || [])
+        .filter((p) => p.is_active)
+        .map((p) => {
+          const mm = detectMealPlanMismatch(
+            (p as unknown as { meal_plan?: string | null }).meal_plan ?? null,
+            (p.includes ?? []) as string[],
+          );
+          return mm ? { pkg: p, mismatch: mm } : null;
+        })
+        .filter((x): x is { pkg: PackageRow; mismatch: { expected: string; found: string[] } } => x !== null),
+    [packages],
+  );
+  if (dismissed || conflicts.length === 0) return null;
+
+  if (!expanded) {
+    return (
+      <div className="mb-3 flex items-center gap-2 bg-[#1C252E] border border-slate-800 rounded-full pl-2 pr-2 py-1.5 shadow-xl shadow-black/20">
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shrink-0">
+            {conflicts.length}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase truncate">
+            Regime x "O que inclui" divergente
+          </span>
+          <ChevronDown className="w-4 h-4 text-slate-500 hover:text-white transition-colors shrink-0" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1 hover:bg-slate-700/50 rounded-full transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-3.5 h-3.5 text-slate-500" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3 bg-[#1C252E] border border-slate-800 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
+      <div className="flex items-center justify-between p-4 pb-2">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="flex items-center gap-3 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shadow-lg shadow-[#F26B1F]/20">
+            {conflicts.length}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase">
+            Regime x "O que inclui" divergente
+          </span>
+          <ChevronDown className="w-4 h-4 text-[#F26B1F] rotate-180 transition-transform" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-4 h-4 text-slate-500" />
+        </button>
+      </div>
+      <div className="px-4 pb-5 space-y-3">
+        <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+          O regime selecionado não bate com o rótulo listado em "O que inclui". Abra o pacote, vá em "Extras e inclusos" e clique em <span className="text-[#F26B1F] font-semibold">Gerar</span> para corrigir.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {conflicts.map(({ pkg, mismatch }) => (
+            <button
+              key={pkg.id}
+              type="button"
+              onClick={() => onOpen(pkg)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all cursor-pointer group"
+              title={`${pkg.title} — regime ${mismatch.expected}, mas inclui ${mismatch.found.join(", ")}`}
+            >
+              <ListChecks className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#F26B1F]" />
+              <span className="text-[11px] font-medium text-slate-300 max-w-[220px] truncate">
+                {pkg.title}
+              </span>
+              <span className="text-slate-600">·</span>
+              <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
+                {mismatch.expected}
+              </span>
+              <span className="text-slate-600">≠</span>
+              <span className="text-slate-400 text-[10px] font-semibold">
+                {mismatch.found.join(", ")}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
