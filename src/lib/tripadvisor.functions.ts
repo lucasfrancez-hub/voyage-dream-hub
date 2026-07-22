@@ -363,10 +363,17 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
   .inputValidator((input: { locationId: number }) => input)
   .handler(async ({ data }): Promise<TAPublicHotelInfo> => {
     const id = data.locationId;
-    const [rDet, rPhotos, rReviews] = await Promise.all([
+    // Terra API costuma capar `limit` das fotos em ~5-30 por chamada; paginamos com offset
+    // pra montar uma galeria robusta (~150 fotos).
+    const PHOTO_PAGES = 6;
+    const PHOTO_PAGE_SIZE = 30;
+    const photoRequests = Array.from({ length: PHOTO_PAGES }, (_, i) =>
+      taFetch(`/locations/${id}/photos?limit=${PHOTO_PAGE_SIZE}&offset=${i * PHOTO_PAGE_SIZE}`, { language: "pt" }),
+    );
+    const [rDet, rReviews, ...rPhotoPages] = await Promise.all([
       taFetch(`/locations/${id}`, { language: "pt" }),
-      taFetch(`/locations/${id}/photos?limit=30`, { language: "pt" }),
       taFetch(`/locations/${id}/reviews?limit=20`, { language: "pt" }),
+      ...photoRequests,
     ]);
 
     const empty: TAPublicHotelInfo = {
@@ -440,11 +447,19 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
 
 
     let photos: string[] = [];
-    if (rPhotos.ok) {
-      const jp = (await rPhotos.json()) as { data?: Array<{ photo?: { original_size_url?: string; large_size_url?: string } }> };
-      photos = (jp.data || [])
-        .map((p) => p.photo?.original_size_url ?? p.photo?.large_size_url)
-        .filter((u): u is string => typeof u === "string" && u.length > 0);
+    {
+      const seen = new Set<string>();
+      for (const rp of rPhotoPages) {
+        if (!rp.ok) continue;
+        const jp = (await rp.json()) as { data?: Array<{ photo?: { original_size_url?: string; large_size_url?: string } }> };
+        for (const p of jp.data || []) {
+          const url = p.photo?.original_size_url ?? p.photo?.large_size_url;
+          if (typeof url === "string" && url.length > 0 && !seen.has(url)) {
+            seen.add(url);
+            photos.push(url);
+          }
+        }
+      }
     }
 
     // ---------- Descrição ----------

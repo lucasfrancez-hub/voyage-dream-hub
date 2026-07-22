@@ -282,11 +282,11 @@ export function HotelDetailsDialog({
               </div>
 
               {/* RIGHT — content & reviews */}
-              <div className="md:w-[35%] flex flex-col border-t md:border-t-0 md:border-l border-white/5 min-h-0">
+              <div className="md:w-[35%] flex flex-col border-t md:border-t-0 md:border-l border-white/5 min-h-0 h-full">
                 {/* About (fixed) */}
                 {(data?.description || isLoading) && (
-                  <section className="p-6 md:p-7 flex-none border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
-                    <div className="flex items-center justify-between gap-3 mb-3">
+                  <section className="p-6 md:p-7 flex-none max-h-[38%] overflow-hidden border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent flex flex-col">
+                    <div className="flex items-center justify-between gap-3 mb-3 flex-none">
                       <h2 className="text-base font-bold text-white">Sobre o hotel</h2>
                       {data?.description_translated_from && (
                         <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-400 bg-zinc-900 border border-white/5 px-2 py-1 rounded">
@@ -301,7 +301,7 @@ export function HotelDetailsDialog({
                         <div className="h-3 w-4/5 rounded bg-white/5 animate-pulse" />
                       </div>
                     ) : (
-                      <p className="text-sm text-zinc-400 leading-relaxed max-h-40 overflow-y-auto custom-scrollbar pr-2">
+                      <p className="text-sm text-zinc-400 leading-relaxed flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
                         {safeText(data?.description)}
                       </p>
                     )}
@@ -309,7 +309,7 @@ export function HotelDetailsDialog({
                 )}
 
                 {/* Reviews feed */}
-                <div className="flex-1 overflow-y-auto px-6 md:px-7 py-4 space-y-4 custom-scrollbar min-h-0">
+                <div className="flex-1 min-h-0 overflow-y-auto px-6 md:px-7 py-4 space-y-4 custom-scrollbar">
                   <div className="sticky top-0 z-10 py-2 -mx-1 px-1 bg-background/80 backdrop-blur-xl">
                     <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
                       Avaliações recentes
