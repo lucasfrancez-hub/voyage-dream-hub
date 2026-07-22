@@ -9,6 +9,14 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Sem permissão");
 }
 
+function normalizePackageSupplier(value: unknown): string {
+  const supplier = String(value ?? "").trim();
+  if (!supplier) return "";
+  if (/cativa/i.test(supplier)) return "Cativa Operadora";
+  if (/via\s*air|via\s*a[eé]rea|voe\s*air|voeair(?:\.com)?|infotera/i.test(supplier)) return "";
+  return supplier;
+}
+
 export const generatePackageSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
@@ -824,10 +832,8 @@ Regras:
             .replace(/```\s*$/i, "")
             .trim();
           const focused = JSON.parse(focusedText) as any;
-          const focusedSupplier = String(focused?.supplier_name ?? "").trim();
-          if (focusedSupplier && !/^(via\s*air|via\s*a[eé]rea|voe\s*air|infotera)$/i.test(focusedSupplier)) {
-            parsed.supplier_name = /cativa/i.test(focusedSupplier) ? "Cativa Operadora" : focusedSupplier;
-          }
+          const focusedSupplier = normalizePackageSupplier(focused?.supplier_name);
+          if (focusedSupplier) parsed.supplier_name = focusedSupplier;
           if (focused?.services && typeof focused.services === "object") {
             parsed.services = {
               ...(parsed.services && typeof parsed.services === "object" ? parsed.services : {}),
@@ -839,9 +845,7 @@ Regras:
         // A leitura principal continua válida se a etapa focada ficar indisponível.
       }
 
-      const supplier = String(parsed.supplier_name ?? "").trim();
-      if (/^(via\s*air|via\s*a[eé]rea|voe\s*air|infotera)$/i.test(supplier)) parsed.supplier_name = "";
-      if (/cativa/i.test(supplier)) parsed.supplier_name = "Cativa Operadora";
+      parsed.supplier_name = normalizePackageSupplier(parsed.supplier_name);
     }
 
     return { pkg: parsed };
@@ -1088,9 +1092,7 @@ Retorne SÓ o JSON.`;
         const n = Math.round(Number(pkg.hotel_stars));
         pkg.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
       }
-      const supplier = String(pkg.supplier_name ?? "").trim();
-      if (/^(via\s*air|via\s*a[eé]rea|voe\s*air|infotera)$/i.test(supplier)) pkg.supplier_name = "";
-      if (/cativa/i.test(supplier)) pkg.supplier_name = "Cativa Operadora";
+      pkg.supplier_name = normalizePackageSupplier(pkg.supplier_name);
     }
 
     return { packages: arr };
