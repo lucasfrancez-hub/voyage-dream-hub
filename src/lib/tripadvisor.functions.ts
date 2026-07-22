@@ -531,12 +531,21 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
       });
     }
 
-    const reviews: TAPublicReview[] = raw.map((r) => ({
-      id: r.id, rating: r.rating, title: r.title, text: r.text,
-      published_date: r.published_date, user_name: r.user_name,
-      user_location: r.user_location, trip_type: r.trip_type,
-      translated_from: r.lang !== "pt" ? r.lang : null,
-    }));
+    const reviews: TAPublicReview[] = raw
+      .filter((r) => (r.rating ?? 0) >= 4)
+      .sort((a, b) => {
+        const rd = (b.rating ?? 0) - (a.rating ?? 0);
+        if (rd !== 0) return rd;
+        const ad = a.published_date ? new Date(a.published_date).getTime() : 0;
+        const bd = b.published_date ? new Date(b.published_date).getTime() : 0;
+        return bd - ad;
+      })
+      .map((r) => ({
+        id: r.id, rating: r.rating, title: r.title, text: r.text,
+        published_date: r.published_date, user_name: r.user_name,
+        user_location: r.user_location, trip_type: r.trip_type,
+        translated_from: r.lang !== "pt" ? r.lang : null,
+      }));
 
     return {
       location_id: id,
