@@ -1,5 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, RefreshCw } from "lucide-react";
+import {
+  Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, RefreshCw,
+  Wallet, Globe2, Snowflake, Palmtree, Timer, TreePine, Sparkles,
+  PartyPopper, Egg, CalendarDays, LayoutGrid,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy, listPackageCopies } from "@/lib/packages/curate.functions";
@@ -40,7 +45,7 @@ type Group = {
   key: string;
   title: string;
   reason: string;
-  emoji: string;
+  Icon: LucideIcon;
   packages: Pkg[];
 };
 
@@ -199,7 +204,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
 
     const cheapest = [...active].sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 5);
     if (cheapest.length) list.push({
-      key: "menor-preco", emoji: "💰", title: "Melhores preços do momento",
+      key: "menor-preco", Icon: Wallet, title: "Melhores preços do momento",
       reason: "Ranking dos 5 pacotes com menor valor total no cadastro ativo.", packages: cheapest,
     });
 
@@ -207,7 +212,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
     const intl = active.filter((p) => !isBrazilian(p.destination) && matchesAny(p.destination, INTERNATIONAL_KEYWORDS))
       .sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 6);
     if (intl.length) list.push({
-      key: "internacional", emoji: "🌎", title: "Destaques internacionais",
+      key: "internacional", Icon: Globe2, title: "Destaques internacionais",
       reason: "Pacotes fora do Brasil, ordenados do mais barato ao mais caro.", packages: intl,
     });
 
@@ -217,7 +222,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       return m !== null && m >= 6 && m <= 8 && matchesAny(p.destination, WINTER_KEYWORDS);
     }).sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 6);
     if (winter.length) list.push({
-      key: "inverno-neve", emoji: "❄️", title: "Temporada de inverno — neve e frio",
+      key: "inverno-neve", Icon: Snowflake, title: "Temporada de inverno — neve e frio",
       reason: "Saídas entre junho e agosto para destinos de neve e serra.", packages: winter,
     });
 
@@ -227,7 +232,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       return (m === 12 || m === 1 || m === 2 || m === 3) && matchesAny(p.destination, SUMMER_BR_KEYWORDS);
     }).sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 6);
     if (summer.length) list.push({
-      key: "verao-brasil", emoji: "🏖️", title: "Verão no Brasil — sol e praia",
+      key: "verao-brasil", Icon: Palmtree, title: "Verão no Brasil — sol e praia",
       reason: "Saídas de dezembro a março para praias brasileiras.", packages: summer,
     });
 
@@ -236,7 +241,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       return d !== null && d >= 0 && d <= 60;
     }).sort((a, b) => (daysUntil(a.going_date) ?? 999) - (daysUntil(b.going_date) ?? 999)).slice(0, 5);
     if (upcoming.length) list.push({
-      key: "proximos", emoji: "⏱️", title: "Saídas nos próximos 60 dias",
+      key: "proximos", Icon: Timer, title: "Saídas nos próximos 60 dias",
       reason: "Embarques próximos — bom apelo de urgência.", packages: upcoming,
     });
 
@@ -252,12 +257,12 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       }
     }
     const themeOrder = ["natal", "reveillon", "carnaval", "pascoa", "prolongado"];
-    const themeMeta: Record<string, { title: string; reason: string; emoji: string }> = {
-      natal: { title: "Pacotes para o Natal", reason: "Datas alinhadas ao Natal — alta procura.", emoji: "🎄" },
-      reveillon: { title: "Pacotes para o Réveillon", reason: "Saídas na virada — bom para venda antecipada.", emoji: "🎆" },
-      carnaval: { title: "Pacotes para o Carnaval", reason: "Saídas na semana do Carnaval — feriado longo.", emoji: "🎭" },
-      pascoa: { title: "Pacotes para a Páscoa", reason: "Feriado de Páscoa com viagem inclusa.", emoji: "🐣" },
-      prolongado: { title: "Pacotes em feriados prolongados", reason: "Feriados nacionais prolongados — bom pra escapadas curtas.", emoji: "🗓️" },
+    const themeMeta: Record<string, { title: string; reason: string; Icon: LucideIcon }> = {
+      natal: { title: "Pacotes para o Natal", reason: "Datas alinhadas ao Natal — alta procura.", Icon: TreePine },
+      reveillon: { title: "Pacotes para o Réveillon", reason: "Saídas na virada — bom para venda antecipada.", Icon: Sparkles },
+      carnaval: { title: "Pacotes para o Carnaval", reason: "Saídas na semana do Carnaval — feriado longo.", Icon: PartyPopper },
+      pascoa: { title: "Pacotes para a Páscoa", reason: "Feriado de Páscoa com viagem inclusa.", Icon: Egg },
+      prolongado: { title: "Pacotes em feriados prolongados", reason: "Feriados nacionais prolongados — bom pra escapadas curtas.", Icon: CalendarDays },
     };
     for (const theme of themeOrder) {
       const merged: Pkg[] = []; const labels: string[] = [];
@@ -271,7 +276,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       unique.sort((a, b) => totalPrice(a) - totalPrice(b));
       const meta = themeMeta[theme];
       list.push({
-        key: `feriado-${theme}`, emoji: meta.emoji, title: meta.title,
+        key: `feriado-${theme}`, Icon: meta.Icon, title: meta.title,
         reason: `${meta.reason} ${labels.length ? `(${labels.join(", ")})` : ""}`.trim(),
         packages: unique.slice(0, 6),
       });
@@ -355,12 +360,12 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       {/* Chips de filtro */}
       {groups.length > 1 && (
         <div className="flex flex-wrap gap-2 pb-6 border-b border-white/5">
-          <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="Todas" emoji="✨" count={groups.length} />
+          <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="Todas" Icon={LayoutGrid} count={groups.length} />
           {groups.map((g) => (
             <FilterChip
               key={g.key} active={filter === g.key} onClick={() => setFilter(g.key)}
               label={g.title.replace(/^Pacotes (para o|em|para a) /i, "").replace(/ — .*$/, "")}
-              emoji={g.emoji} count={g.packages.length}
+              Icon={g.Icon} count={g.packages.length}
             />
           ))}
         </div>
@@ -385,8 +390,8 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
 }
 
 function FilterChip({
-  active, onClick, label, emoji, count,
-}: { active: boolean; onClick: () => void; label: string; emoji: string; count: number; }) {
+  active, onClick, label, Icon, count,
+}: { active: boolean; onClick: () => void; label: string; Icon: LucideIcon; count: number; }) {
   return (
     <button
       type="button"
@@ -398,7 +403,7 @@ function FilterChip({
           : "bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10 hover:text-slate-200")
       }
     >
-      <span>{emoji}</span>
+      <Icon className="h-3.5 w-3.5" />
       <span>{label}</span>
       <span className={"ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] " + (active ? "bg-white/25" : "bg-white/10 text-slate-500")}>{count}</span>
     </button>
@@ -412,7 +417,7 @@ function GroupSection({ group, index }: { group: Group; index: number }) {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-3 leading-tight">
             <span className="text-brand-orange">#{String(index).padStart(2, "0")}</span>
-            <span>{group.emoji}</span>
+            <group.Icon className="h-5 w-5 text-brand-orange" />
             {group.title}
           </h2>
           <p className="text-slate-500 text-xs sm:text-sm mt-1">{group.reason}</p>
