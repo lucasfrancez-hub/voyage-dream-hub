@@ -166,6 +166,7 @@ function countServices(services?: PackageServices | null): number {
   if (!services) return 0;
   let n = 0;
   if (services.seguro?.enabled) n++;
+  if (services.cancelamento?.enabled) n++;
   if (services.transfer?.enabled) n++;
   if (services.city_tour?.enabled) n++;
   n += (services.outros ?? []).filter((x) => x && x.trim()).length;
