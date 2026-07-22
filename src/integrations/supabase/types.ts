@@ -1385,6 +1385,7 @@ export type Database = {
           return_flight: Json | null
           room_category: string | null
           room_type: string | null
+          services: Json
           slug: string
           sort_order: number
           summary: string | null
@@ -1419,6 +1420,7 @@ export type Database = {
           return_flight?: Json | null
           room_category?: string | null
           room_type?: string | null
+          services?: Json
           slug: string
           sort_order?: number
           summary?: string | null
@@ -1453,6 +1455,7 @@ export type Database = {
           return_flight?: Json | null
           room_category?: string | null
           room_type?: string | null
+          services?: Json
           slug?: string
           sort_order?: number
           summary?: string | null

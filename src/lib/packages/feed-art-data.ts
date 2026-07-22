@@ -91,16 +91,38 @@ function formatDateBR(iso: string | null) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function detectIncludes(list: string[] | null | undefined) {
+export type PackageServices = {
+  seguro?: { enabled?: boolean; cobertura?: string | null };
+  transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null };
+  city_tour?: { enabled?: boolean; detalhe?: string | null };
+  outros?: string[];
+};
+
+function countServices(services?: PackageServices | null): number {
+  if (!services) return 0;
+  let n = 0;
+  if (services.seguro?.enabled) n++;
+  if (services.transfer?.enabled) n++;
+  if (services.city_tour?.enabled) n++;
+  n += (services.outros ?? []).filter((x) => x && x.trim()).length;
+  return n;
+}
+
+function detectIncludes(list: string[] | null | undefined, services?: PackageServices | null) {
   const s = (list ?? []).map((x) => norm(x)).join(" | ");
+  const svcCount = countServices(services);
+  const groupServices = svcCount >= 2;
+  const seguroOn = !!services?.seguro?.enabled;
+  const transferOn = !!services?.transfer?.enabled;
   return {
     aereo: /aereo|voo|passag|avia/.test(s),
     hotel: /hotel|hospedagem|resort|pousada|acomoda/.test(s),
     cafeDaManha: /cafe da manha|cafe|breakfast|acm|map|fap|all inclusive/.test(s),
     bagagem23kg: /bagagem|despachad|23\s*kg|23kg/.test(s),
-    transfer: /transfer|traslado/.test(s),
-    seguroViagem: /seguro/.test(s),
+    transfer: groupServices ? false : (transferOn || /transfer|traslado/.test(s)),
+    seguroViagem: groupServices ? false : (seguroOn || /seguro/.test(s)),
     esimInternacional: /esim|chip|internet/.test(s),
+    maisServicos: groupServices,
   };
 }
 
@@ -125,6 +147,7 @@ export type FeedInputPkg = {
   room_type: string | null;
   base_occupancy: number;
   tripadvisor_address?: string | null;
+  services?: PackageServices | null;
 };
 
 export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> {
@@ -153,6 +176,6 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     apartamento: APT_LABEL[pessoas] || `de ${pessoas} pessoas`,
     parcelas: 10,
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
-    inclusos: detectIncludes(pkg.includes),
+    inclusos: detectIncludes(pkg.includes, pkg.services ?? null),
   };
 }

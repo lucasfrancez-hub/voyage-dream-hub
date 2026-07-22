@@ -29,6 +29,8 @@ import { FileUp, Upload, ChevronLeft, ChevronRight, ChevronDown, Sparkles as Spa
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
+import type { PackageServices } from "@/lib/packages/feed-art-data";
+import { Shield, Bus, MapPin as MapPinIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
@@ -98,6 +100,7 @@ type PackageRow = {
   tripadvisor_url: string | null;
   tripadvisor_address: string | null;
   tripadvisor_photos: string[] | null;
+  services: PackageServices | null;
 };
 
 const emptyForm: Partial<PackageRow> = {
@@ -126,6 +129,7 @@ const emptyForm: Partial<PackageRow> = {
   outbound_flight: null,
   return_flight: null,
   supplier_name: "",
+  services: {},
 };
 
 function AdminPackages() {
@@ -384,14 +388,15 @@ function AdminPackages() {
       tripadvisor_url: pkg.tripadvisor_url || null,
       tripadvisor_address: pkg.tripadvisor_address || null,
       tripadvisor_photos: pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
-    };
+      services: (pkg.services ?? {}) as any,
+    } as any;
     const savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
       : await supabase.from("packages").insert(payload).select("id").single();
     const { error } = savedPackage;
     if (error) throw error;
-    const sourcePhotos = payload.tripadvisor_photos ?? [];
-    if (sourcePhotos.length > 0 && sourcePhotos.some((url) => !url.includes("/api/public/package-hotel-photo/"))) {
+    const sourcePhotos: string[] = (payload as any).tripadvisor_photos ?? [];
+    if (sourcePhotos.length > 0 && sourcePhotos.some((url: string) => !url.includes("/api/public/package-hotel-photo/"))) {
       const persisted = await persistHotelPhotosFn({
         data: { packageId: savedPackage.data.id, photos: sourcePhotos.slice(0, 5) },
       });
@@ -1095,8 +1100,26 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     }
     const checked = !!(editing.outbound_flight?.checked_bag || editing.return_flight?.checked_bag);
     if (checked) list.push("Bagagem Despachada");
+    const svc = (editing.services ?? {}) as PackageServices;
+    if (svc.seguro?.enabled) {
+      const cob = (svc.seguro.cobertura ?? "").trim();
+      list.push(cob ? `Seguro Viagem — Cobertura ${cob} por pessoa` : "Seguro Viagem");
+    }
+    if (svc.transfer?.enabled) {
+      const sentido = svc.transfer.sentido;
+      const label = sentido === "in_out" ? "IN/OUT" : sentido === "in" ? "IN" : sentido === "out" ? "OUT" : "IN/OUT";
+      list.push(`Transfer ${label} (Aeroporto ↔ Hotel)`);
+    }
+    if (svc.city_tour?.enabled) {
+      const det = (svc.city_tour.detalhe ?? "").trim();
+      list.push(det ? `City Tour — ${det}` : "City Tour");
+    }
+    for (const o of (svc.outros ?? [])) {
+      const t = String(o ?? "").trim();
+      if (t) list.push(t);
+    }
     return list;
-  }, [editing.outbound_flight, editing.return_flight, editing.hotel_name, editing.tripadvisor_location_id, editing.meal_plan]);
+  }, [editing.outbound_flight, editing.return_flight, editing.hotel_name, editing.tripadvisor_location_id, editing.meal_plan, editing.services]);
 
   function handleGenerateIncludes() {
     setEditing({ ...editing, includes: derivedIncludes });
@@ -1761,6 +1784,13 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                     onChange={(e) => setEditing({ ...editing, itinerary: e.target.value })}
                   />
                 </FormField>
+
+                <ServicesEditor
+                  value={(editing.services ?? {}) as PackageServices}
+                  onChange={(next) => setEditing({ ...editing, services: next })}
+                  inpClass={inp}
+                />
+
                 <div className="sm:col-span-2">
                   <div className="mb-1 flex items-center justify-between gap-3">
                     <span className="text-xs text-muted-foreground">O que inclui (um por linha)</span>
@@ -1853,6 +1883,180 @@ function FormField({
       <span className="block text-xs text-muted-foreground mb-1">{label}</span>
       {children}
     </label>
+  );
+}
+
+function ServicesEditor({
+  value,
+  onChange,
+  inpClass,
+}: {
+  value: PackageServices;
+  onChange: (next: PackageServices) => void;
+  inpClass: string;
+}) {
+  const v = value ?? {};
+  const seguro = v.seguro ?? {};
+  const transfer = v.transfer ?? {};
+  const cityTour = v.city_tour ?? {};
+  const outros = v.outros ?? [];
+
+  function patch(p: Partial<PackageServices>) {
+    onChange({ ...v, ...p });
+  }
+
+  return (
+    <div className="sm:col-span-2 rounded-2xl border border-border bg-muted/10 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-brand-orange" />
+        <h4 className="text-sm font-semibold">Serviços incluídos no pacote</h4>
+        <span className="text-[11px] text-muted-foreground">
+          — aparecem no checkout e, quando houver 2+, viram “E mais serviços” no flyer.
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3">
+        {/* Seguro */}
+        <div className="rounded-xl border border-border bg-background/60 p-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-brand-orange"
+              checked={!!seguro.enabled}
+              onChange={(e) => patch({ seguro: { ...seguro, enabled: e.target.checked } })}
+            />
+            <Shield className="h-4 w-4 text-brand-orange" />
+            <span className="text-sm font-medium">Seguro viagem</span>
+          </label>
+          {seguro.enabled && (
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-2 items-center">
+              <span className="text-xs text-muted-foreground">Cobertura por pessoa</span>
+              <input
+                className={inpClass}
+                placeholder="Ex.: R$ 40.000 ou US$ 30.000"
+                value={seguro.cobertura ?? ""}
+                onChange={(e) => patch({ seguro: { ...seguro, cobertura: e.target.value } })}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Transfer */}
+        <div className="rounded-xl border border-border bg-background/60 p-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-brand-orange"
+              checked={!!transfer.enabled}
+              onChange={(e) =>
+                patch({
+                  transfer: {
+                    enabled: e.target.checked,
+                    sentido: transfer.sentido ?? "in_out",
+                  },
+                })
+              }
+            />
+            <Bus className="h-4 w-4 text-brand-orange" />
+            <span className="text-sm font-medium">Transfer aeroporto ↔ hotel</span>
+          </label>
+          {transfer.enabled && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {([
+                { id: "in", label: "Só ida (IN)" },
+                { id: "out", label: "Só volta (OUT)" },
+                { id: "in_out", label: "Ida e volta (IN/OUT)" },
+              ] as const).map((opt) => {
+                const active = (transfer.sentido ?? "in_out") === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => patch({ transfer: { ...transfer, enabled: true, sentido: opt.id } })}
+                    className={`rounded-full border px-3 py-1 text-xs transition ${
+                      active
+                        ? "bg-brand-orange text-white border-brand-orange"
+                        : "bg-background border-border hover:bg-muted"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* City tour */}
+        <div className="rounded-xl border border-border bg-background/60 p-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-brand-orange"
+              checked={!!cityTour.enabled}
+              onChange={(e) => patch({ city_tour: { ...cityTour, enabled: e.target.checked } })}
+            />
+            <MapPinIcon className="h-4 w-4 text-brand-orange" />
+            <span className="text-sm font-medium">City tour / passeios inclusos</span>
+          </label>
+          {cityTour.enabled && (
+            <div className="mt-2">
+              <input
+                className={inpClass}
+                placeholder="Ex.: City tour panorâmico de meio período"
+                value={cityTour.detalhe ?? ""}
+                onChange={(e) => patch({ city_tour: { ...cityTour, detalhe: e.target.value } })}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Outros */}
+        <div className="rounded-xl border border-border bg-background/60 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4 text-brand-orange" />
+              <span className="text-sm font-medium">Outros serviços</span>
+              <span className="text-[11px] text-muted-foreground">— ex.: assistência 24h, bagagem extra, eSIM</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => patch({ outros: [...outros, ""] })}
+              className="text-xs text-brand-orange hover:underline"
+            >
+              + Adicionar
+            </button>
+          </div>
+          {outros.length === 0 && (
+            <p className="text-xs text-muted-foreground">Nenhum serviço extra.</p>
+          )}
+          <div className="space-y-2">
+            {outros.map((item, idx) => (
+              <div key={idx} className="flex gap-2">
+                <input
+                  className={inpClass}
+                  placeholder="Nome do serviço"
+                  value={item ?? ""}
+                  onChange={(e) => {
+                    const next = [...outros];
+                    next[idx] = e.target.value;
+                    patch({ outros: next });
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => patch({ outros: outros.filter((_, i) => i !== idx) })}
+                  className="rounded-lg border border-border px-2 hover:bg-muted"
+                  aria-label="Remover"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -2479,6 +2683,7 @@ function PackageImportButton({
       // (Passagem Aérea → Hospedagem → Café da Manhã → Bagagem Despachada).
       patch.includes = [];
       if (p.supplier_name) patch.supplier_name = String(p.supplier_name);
+      if (p.services && typeof p.services === "object") patch.services = p.services as PackageServices;
       if (p.outbound_flight && typeof p.outbound_flight === "object") {
         patch.outbound_flight = normalizeFlightBaggage({
           ...p.outbound_flight,
@@ -2758,6 +2963,7 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           room_category: p.room_category || "",
           bed_type: p.bed_type || "",
           supplier_name: p.supplier_name || "",
+          services: ((p as any).services && typeof (p as any).services === "object" ? (p as any).services : {}) as PackageServices,
           includes: [],
           is_active: true,
           sort_order: 0,
