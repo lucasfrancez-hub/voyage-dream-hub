@@ -11,6 +11,16 @@ import {
   Star,
   MessageCircle,
   Eye,
+  Coffee,
+  Utensils,
+  UtensilsCrossed,
+  BedDouble,
+  Bed,
+  Sparkles,
+  Crown,
+  Home,
+  DoorOpen,
+  type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
@@ -26,6 +36,35 @@ function cleanHotelDetail(value: string | null | undefined) {
     .trim();
 
   return cleaned && cleaned !== "—" ? cleaned : null;
+}
+
+function mealIcon(value: string): LucideIcon {
+  const v = value.toLocaleLowerCase("pt-BR");
+  if (/all\s*inclusive|tudo incluso|all in/.test(v)) return Utensils;
+  if (/pens[aã]o completa|full board/.test(v)) return UtensilsCrossed;
+  if (/meia pens[aã]o|half board/.test(v)) return UtensilsCrossed;
+  if (/caf[eé]\s*da\s*manh[aã]|breakfast|bed\s*&?\s*breakfast|b&b/.test(v)) return Coffee;
+  if (/almo[cç]o|jantar|refei[cç]|lunch|dinner/.test(v)) return Utensils;
+  return Utensils;
+}
+
+function bedIcon(value: string): LucideIcon {
+  const v = value.toLocaleLowerCase("pt-BR");
+  if (/solteiro|single|individual/.test(v)) return Bed;
+  return BedDouble;
+}
+
+function roomTypeIcon(value: string): LucideIcon {
+  const v = value.toLocaleLowerCase("pt-BR");
+  if (/su[ií]te|suite/.test(v)) return DoorOpen;
+  return Home;
+}
+
+function roomCategoryIcon(value: string): LucideIcon {
+  const v = value.toLocaleLowerCase("pt-BR");
+  if (/vista|frente|mar|oceano|piscina|montanha|jardim|cidade/.test(v)) return Eye;
+  if (/luxo|luxury|premium|deluxe|superior|master|presidencial/.test(v)) return Crown;
+  return Sparkles;
 }
 
 export const Route = createFileRoute("/pacotes/$slug/")({
@@ -141,13 +180,13 @@ function PackageDetails() {
   const hotelDetails = Array.from(
     new Map(
       [
-        { value: cleanHotelDetail(pkg.meal_plan), icon: Check },
-        { value: cleanHotelDetail(pkg.bed_type), icon: Check },
-        { value: cleanHotelDetail(pkg.room_type), icon: Check },
-        { value: cleanHotelDetail(pkg.room_category), icon: Eye },
+        { value: cleanHotelDetail(pkg.meal_plan), icon: null as LucideIcon | null, resolve: mealIcon },
+        { value: cleanHotelDetail(pkg.bed_type), icon: null as LucideIcon | null, resolve: bedIcon },
+        { value: cleanHotelDetail(pkg.room_type), icon: null as LucideIcon | null, resolve: roomTypeIcon },
+        { value: cleanHotelDetail(pkg.room_category), icon: null as LucideIcon | null, resolve: roomCategoryIcon },
       ]
-        .filter((detail): detail is { value: string; icon: typeof Check } => Boolean(detail.value))
-        .map((detail) => [detail.value.toLocaleLowerCase("pt-BR"), detail]),
+        .filter((detail): detail is { value: string; icon: LucideIcon | null; resolve: (v: string) => LucideIcon } => Boolean(detail.value))
+        .map((detail) => [detail.value.toLocaleLowerCase("pt-BR"), { value: detail.value, icon: detail.icon ?? detail.resolve(detail.value) }]),
     ).values(),
   );
 
