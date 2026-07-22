@@ -475,7 +475,13 @@ function AdminPackages() {
   }
 
   async function remove(p: PackageRow) {
-    if (!confirm(`Excluir "${p.title}"? Esta ação não pode ser desfeita.`)) return;
+    const ok = await confirm({
+      title: "Excluir pacote?",
+      description: `"${p.title}" será excluído. Esta ação não pode ser desfeita.`,
+      confirmText: "Excluir",
+      variant: "destructive",
+    });
+    if (!ok) return;
     const { error } = await supabase.from("packages").delete().eq("id", p.id);
     if (error) return toast.error(error.message);
     toast.success("Pacote excluído");
