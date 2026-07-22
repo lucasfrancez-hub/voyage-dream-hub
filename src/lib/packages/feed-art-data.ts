@@ -116,12 +116,43 @@ export function formatSeguroCobertura(
   value: string | null | undefined,
   moeda: SeguroMoeda | null | undefined,
 ): string {
-  const v = (value ?? "").trim();
-  if (!v) return "";
+  const raw = (value ?? "").trim();
+  if (!raw) return "";
   const sym = moeda ? SEGURO_MOEDA_SYMBOL[moeda] : "";
-  // Se o próprio texto já traz moeda (R$/US$/€/USD/EUR/BRL), respeita.
-  if (/^(r\$|us\$|u\$|\$|€|usd|eur|brl)\b/i.test(v)) return v;
-  return sym ? `${sym} ${v}` : v;
+  // Detecta moeda embutida no texto para respeitar
+  const embedded = /^(r\$|us\$|u\$|\$|€|usd|eur|brl)\s*(.*)$/i.exec(raw);
+  const symOut = embedded ? raw.slice(0, embedded[0].length - embedded[2].length).trim() : sym;
+  const amountStr = embedded ? embedded[2] : raw;
+  // Extrai número aceitando "30000", "30.000", "30,000", "30.000,00", "30,000.00"
+  const digits = amountStr.replace(/[^\d.,-]/g, "");
+  let n: number = NaN;
+  if (digits) {
+    const hasComma = digits.includes(",");
+    const hasDot = digits.includes(".");
+    let normalized = digits;
+    if (hasComma && hasDot) {
+      // último separador é decimal
+      normalized = digits.lastIndexOf(",") > digits.lastIndexOf(".")
+        ? digits.replace(/\./g, "").replace(",", ".")
+        : digits.replace(/,/g, "");
+    } else if (hasComma) {
+      // vírgula é decimal se houver 1-2 dígitos após
+      const parts = digits.split(",");
+      normalized = parts.length === 2 && parts[1].length <= 2
+        ? `${parts[0].replace(/\./g, "")}.${parts[1]}`
+        : digits.replace(/,/g, "");
+    } else if (hasDot) {
+      const parts = digits.split(".");
+      normalized = parts.length === 2 && parts[1].length <= 2
+        ? digits
+        : digits.replace(/\./g, "");
+    }
+    n = Number(normalized);
+  }
+  const formatted = Number.isFinite(n)
+    ? n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : amountStr.trim();
+  return symOut ? `${symOut} ${formatted}` : formatted;
 }
 
 function countServices(services?: PackageServices | null): number {
