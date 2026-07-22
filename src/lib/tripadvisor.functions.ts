@@ -362,14 +362,14 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<TAPublicHotelInfo> => {
     const id = data.locationId;
     const [rDet, rPhotos, rReviews] = await Promise.all([
-      taFetch(`/locations/${id}`),
-      taFetch(`/locations/${id}/photos?limit=30`),
-      taFetch(`/locations/${id}/reviews?limit=10`),
+      taFetch(`/locations/${id}`, { language: "pt" }),
+      taFetch(`/locations/${id}/photos?limit=30`, { language: "pt" }),
+      taFetch(`/locations/${id}/reviews?limit=10`, { language: "pt" }),
     ]);
 
     const empty: TAPublicHotelInfo = {
-      location_id: id, name: "", description: null, address: null,
-      rating: null, num_reviews: null, ranking: null, hotel_class: null,
+      location_id: id, name: "", description: null, description_translated_from: null,
+      address: null, rating: null, num_reviews: null, ranking: null, hotel_class: null,
       price_level: null, amenities: [], awards: [], photos: [], reviews: [],
       tripadvisor_url: null, rating_histogram: null, subratings: [],
     };
@@ -461,28 +461,88 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
         .filter((u): u is string => typeof u === "string" && u.length > 0);
     }
 
-    let reviews: TAPublicReview[] = [];
+    // ---------- Descrição ----------
+    // Se veio texto mas parece não-português, marca como candidato à tradução.
+    const rawDescription = localizedText(det.description) || null;
+    const descriptionLang = (() => {
+      const langField = (det as { description_language?: string; language?: string }).description_language
+        ?? (det as { language?: string }).language;
+      if (typeof langField === "string" && langField) return langField.toLowerCase().slice(0, 2);
+      if (!rawDescription) return null;
+      // Heurística: se contém caracteres típicos do português (ãõçéíóáêôú) → pt
+      if (/[ãõçáéíóúâêôà]/i.test(rawDescription)) return "pt";
+      return "en";
+    })();
+
+    let description = rawDescription;
+    let descriptionTranslatedFrom: string | null = null;
+    const toTranslate: string[] = [];
+    const translateSlots: Array<{ kind: "desc" } | { kind: "review"; index: number; field: "title" | "text" }> = [];
+    if (description && descriptionLang && descriptionLang !== "pt") {
+      translateSlots.push({ kind: "desc" });
+      toTranslate.push(description);
+      descriptionTranslatedFrom = descriptionLang;
+    }
+
+    // ---------- Reviews ----------
+    type RawReview = {
+      id: number; rating: number | null; title: string | null; text: string | null;
+      published_date: string | null; user_name: string | null; user_location: string | null;
+      trip_type: string | null; lang: string;
+    };
+    const raw: RawReview[] = [];
     if (rReviews.ok) {
       const jr = (await rReviews.json()) as { data?: Array<Record<string, unknown>> };
-      reviews = (jr.data || []).slice(0, 10).map((r) => {
+      for (const r of (jr.data || []).slice(0, 10)) {
         const user = (r.user as { username?: string; user_location?: { name?: string } } | undefined);
-        return {
+        const title = localizedText(r.title) || null;
+        const text = localizedText(r.text) || null;
+        let lang = String((r as { lang?: string }).lang || "").toLowerCase().slice(0, 2);
+        if (!lang) {
+          const sample = `${title ?? ""} ${text ?? ""}`;
+          lang = /[ãõçáéíóúâêôà]/i.test(sample) ? "pt" : "en";
+        }
+        raw.push({
           id: Number(r.id) || 0,
           rating: (() => { const n = Number(r.rating); return Number.isFinite(n) ? n : null; })(),
-           title: localizedText(r.title) || null,
-           text: localizedText(r.text) || null,
+          title, text,
           published_date: (r.published_date as string) || null,
           user_name: user?.username ?? null,
-           user_location: localizedText(user?.user_location?.name) || null,
-           trip_type: localizedText(r.trip_type) || null,
-        };
+          user_location: localizedText(user?.user_location?.name) || null,
+          trip_type: localizedText(r.trip_type) || null,
+          lang,
+        });
+      }
+    }
+    raw.forEach((r, idx) => {
+      if (r.lang !== "pt") {
+        if (r.title) { translateSlots.push({ kind: "review", index: idx, field: "title" }); toTranslate.push(r.title); }
+        if (r.text)  { translateSlots.push({ kind: "review", index: idx, field: "text"  }); toTranslate.push(r.text); }
+      }
+    });
+
+    if (toTranslate.length > 0) {
+      const translated = await translateBatchToPt(toTranslate);
+      translated.forEach((val, i) => {
+        const slot = translateSlots[i];
+        if (!slot) return;
+        if (slot.kind === "desc") description = val;
+        else raw[slot.index][slot.field] = val;
       });
     }
+
+    const reviews: TAPublicReview[] = raw.map((r) => ({
+      id: r.id, rating: r.rating, title: r.title, text: r.text,
+      published_date: r.published_date, user_name: r.user_name,
+      user_location: r.user_location, trip_type: r.trip_type,
+      translated_from: r.lang !== "pt" ? r.lang : null,
+    }));
 
     return {
       location_id: id,
       name: pickName(det.names as Array<{ language?: string; value?: string; primary?: boolean }>),
-      description: localizedText(det.description) || null,
+      description,
+      description_translated_from: descriptionTranslatedFrom,
       address: addr?.formatted ?? null,
       rating,
       num_reviews: numReviews,
