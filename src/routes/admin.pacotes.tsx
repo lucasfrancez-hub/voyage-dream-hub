@@ -1276,7 +1276,7 @@ function PackageEditorModal({
     if (checked) list.push("Bagagem Despachada");
     const svc = (editing.services ?? {}) as PackageServices;
     if (svc.seguro?.enabled) {
-      const cob = formatSeguroCobertura(svc.seguro.cobertura, svc.seguro.moeda);
+      const cob = formatSeguroCobertura(svc.seguro.cobertura, svc.seguro.moeda ?? "USD");
       list.push(cob ? `Seguro Viagem — Cobertura ${cob} por pessoa` : "Seguro Viagem");
     }
     // Legado: registros antigos guardavam cancelamento dentro de seguro.
@@ -1285,7 +1285,7 @@ function PackageEditorModal({
       svc.seguro?.cancelamento_moeda,
     );
     if (svc.cancelamento?.enabled) {
-      const canc = formatSeguroCobertura(svc.cancelamento.cobertura, svc.cancelamento.moeda);
+      const canc = formatSeguroCobertura(svc.cancelamento.cobertura, svc.cancelamento.moeda ?? "BRL");
       list.push(
         canc
           ? `Cobertura de cancelamento involuntário de viagem — ${canc} por pessoa`
