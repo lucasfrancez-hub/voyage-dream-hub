@@ -179,9 +179,18 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
     [activeAll],
   );
   const [originFilter, setOriginFilter] = useState<string>("all");
-  const active = useMemo(
+  const afterOrigin = useMemo(
     () => (originFilter === "all" ? activeAll : activeAll.filter((p) => originKey(p.origin) === originKey(originFilter))),
     [activeAll, originFilter],
+  );
+  const destinationOptions = useMemo(
+    () => dedupeOrigins(afterOrigin.map((p) => p.destination)),
+    [afterOrigin],
+  );
+  const [destinationFilter, setDestinationFilter] = useState<string>("all");
+  const active = useMemo(
+    () => (destinationFilter === "all" ? afterOrigin : afterOrigin.filter((p) => originKey(p.destination) === originKey(destinationFilter))),
+    [afterOrigin, destinationFilter],
   );
 
   const [refreshing, setRefreshing] = useState(false);
