@@ -183,7 +183,7 @@ function PackageDetails() {
         { value: cleanHotelDetail(pkg.meal_plan), icon: null as LucideIcon | null, resolve: mealIcon },
         { value: cleanHotelDetail(pkg.bed_type), icon: null as LucideIcon | null, resolve: bedIcon },
         { value: cleanHotelDetail(pkg.room_type), icon: null as LucideIcon | null, resolve: roomTypeIcon },
-        { value: cleanHotelDetail(pkg.room_category), icon: Eye as LucideIcon, resolve: roomCategoryIcon },
+        { value: cleanHotelDetail(pkg.room_category), icon: null as LucideIcon | null, resolve: roomCategoryIcon },
       ]
         .filter((detail): detail is { value: string; icon: LucideIcon | null; resolve: (v: string) => LucideIcon } => Boolean(detail.value))
         .map((detail) => [detail.value.toLocaleLowerCase("pt-BR"), { value: detail.value, icon: detail.icon ?? detail.resolve(detail.value) }]),
