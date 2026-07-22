@@ -602,7 +602,14 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
   "includes": ["Hospedagem", "Aéreo", "Traslados", "Passeios"],
   "supplier_name": "Visual Turismo",
   "services": {
-    "seguro": { "enabled": true, "cobertura": "R$ 40.000" },
+    "seguro": {
+      "enabled": true,
+      "plano": "BRONZE AL",
+      "cobertura": "12.000",
+      "moeda": "USD",
+      "cancelamento": "5.000",
+      "cancelamento_moeda": "BRL"
+    },
     "transfer": { "enabled": true, "sentido": "in_out" },
     "city_tour": { "enabled": false, "detalhe": "" },
     "outros": ["Assistência 24h"]
