@@ -403,7 +403,7 @@ function FilterChip({
           : "bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10 hover:text-slate-200")
       }
     >
-      <Icon className="h-3.5 w-3.5" />
+      <Icon className={"h-3.5 w-3.5 " + (active ? "text-white" : "text-brand-orange")} />
       <span>{label}</span>
       <span className={"ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] " + (active ? "bg-white/25" : "bg-white/10 text-slate-500")}>{count}</span>
     </button>
