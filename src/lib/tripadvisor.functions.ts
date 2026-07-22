@@ -363,18 +363,11 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
   .inputValidator((input: { locationId: number }) => input)
   .handler(async ({ data }): Promise<TAPublicHotelInfo> => {
     const id = data.locationId;
-    const [rDet, rPhotos, rReviews, rAmen, rSub, rClass] = await Promise.all([
+    const [rDet, rPhotos, rReviews] = await Promise.all([
       taFetch(`/locations/${id}`, { language: "pt" }),
       taFetch(`/locations/${id}/photos?limit=30`, { language: "pt" }),
       taFetch(`/locations/${id}/reviews?limit=10`, { language: "pt" }),
-      taFetch(`/locations/${id}/features`, { language: "pt" }).catch(() => null),
-      taFetch(`/locations/${id}/subratings`, { language: "pt" }).catch(() => null),
-      taFetch(`/locations/${id}/attributes`, { language: "pt" }).catch(() => null),
     ]);
-    console.log("[TA extras]", {amen:rAmen?.status, sub:rSub?.status, cls:rClass?.status});
-    if (rAmen?.ok) console.log("[TA amen]", (await rAmen.clone().text()).slice(0,1200));
-    if (rSub?.ok) console.log("[TA sub]", (await rSub.clone().text()).slice(0,1200));
-    if (rClass?.ok) console.log("[TA cls]", (await rClass.clone().text()).slice(0,1200));
 
     const empty: TAPublicHotelInfo = {
       location_id: id, name: "", description: null, description_translated_from: null,
@@ -389,40 +382,23 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     const det = ((rawDet.data as Record<string, unknown> | undefined)
       ?? (rawDet.location as Record<string, unknown> | undefined)
       ?? rawDet);
-    console.log("[TA debug] det keys:", Object.keys(det));
-    console.log("[TA debug] det sample:", JSON.stringify(det).slice(0, 2500));
 
     const addr = pickAddress(det.addresses as Array<Record<string, unknown>> | undefined);
     const rating = extractRating(det);
     const url = (det.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null;
+    const tr = (det as { traveler_ratings?: {
+      overall?: { rating?: number; count?: number };
+      breakdowns?: Array<{ count?: number; rating?: number }>;
+    } }).traveler_ratings;
 
-    // amenidades: TA expõe em amenities, features, hotel_amenities
+    // Amenidades/awards/subratings/hotel_class não vêm nesta API — mantemos vazios.
     const amenities: string[] = [];
-    const pools: unknown[] = [
-      det.amenities, det.features, (det as { hotel_amenities?: unknown }).hotel_amenities,
-      (det as { property_amenities?: unknown }).property_amenities,
-      (det as { room_amenities?: unknown }).room_amenities,
-    ];
-    for (const pool of pools) {
-      if (!Array.isArray(pool)) continue;
-      for (const a of pool as unknown[]) {
-        const s = localizedText(a);
-        if (s && !amenities.includes(s)) amenities.push(s);
-      }
-    }
-
-    const awardsRaw = det.awards as Array<Record<string, unknown>> | undefined;
-    const awards = Array.isArray(awardsRaw)
-      ? awardsRaw
-          .map((a) => ({
-            name: localizedText(a.display_name ?? a.name),
-            year: a.year ? String(a.year) : null,
-          }))
-          .filter((a) => a.name.length > 0)
-      : [];
+    const awards: Array<{ name: string; year: string | null }> = [];
+    const subratings: Array<{ name: string; value: number }> = [];
 
     const numReviews = (() => {
-      const n = (det as { num_reviews?: unknown; review_count?: unknown }).num_reviews
+      const n = tr?.overall?.count
+        ?? (det as { num_reviews?: unknown }).num_reviews
         ?? (det as { review_count?: unknown }).review_count;
       const v = typeof n === "number" ? n : Number(n);
       return Number.isFinite(v) ? v : null;
@@ -443,6 +419,15 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     }
 
     const histogram = (() => {
+      if (Array.isArray(tr?.breakdowns) && tr.breakdowns.length > 0) {
+        const out: Record<string, number> = {};
+        for (const b of tr.breakdowns) {
+          const k = String(b.rating ?? "");
+          const v = Number(b.count);
+          if (["1","2","3","4","5"].includes(k) && Number.isFinite(v)) out[k] = v;
+        }
+        if (Object.keys(out).length) return out;
+      }
       const rh = (det as { review_rating_count?: Record<string, unknown> }).review_rating_count;
       if (!rh || typeof rh !== "object") return null;
       const out: Record<string, number> = {};
