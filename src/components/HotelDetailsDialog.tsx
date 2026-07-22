@@ -260,7 +260,7 @@ export function HotelDetailsDialog({
 
                 {/* Filmstrip */}
                 {photos.length > 1 && (
-                  <div className="flex-none overflow-x-auto no-scrollbar pb-1">
+                  <div className="flex-none h-[92px] md:h-[104px] overflow-x-auto no-scrollbar pb-1">
                     <div className="flex gap-3">
                       {photos.map((src, i) => (
                         <button
