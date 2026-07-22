@@ -72,7 +72,7 @@ function PacotesList() {
 
 
   const origins = useMemo(
-    () => Array.from(new Set((packages || []).map((p) => p.origin).filter(Boolean))).sort(),
+    () => dedupeOrigins((packages || []).map((p) => p.origin)),
     [packages],
   );
   const destinations = useMemo(
