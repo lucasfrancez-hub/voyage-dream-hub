@@ -110,12 +110,13 @@ export function HotelDetailsDialog({
 }: Props) {
   const fetchInfo = useServerFn(getTripAdvisorPublicHotelInfo);
   const query = useQuery({
-    queryKey: ["ta-public-hotel-v2", locationId],
+    queryKey: ["ta-public-hotel-v3", locationId],
     queryFn: () => fetchInfo({ data: { locationId } }),
     enabled: open && locationId > 0,
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 24,
   });
+
   const data = query.data as TAPublicHotelInfo | undefined;
   const isLoading = query.isLoading;
 
