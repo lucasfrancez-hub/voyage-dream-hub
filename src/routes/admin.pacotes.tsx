@@ -199,19 +199,30 @@ function AdminPackages() {
   >("manual");
   const [view, setView] = useState<"list" | "curadoria">("list");
 
-  // Wrap setEditing to keep the drafts array in sync with edits
-  const setEditing = (v: Partial<PackageRow> | null) => {
+  // Wrap setEditing to keep the drafts array in sync with edits.
+  // Accepts a value OR an updater function (use updater to avoid stale closures
+  // clobbering concurrent edits — e.g. auto-summary finishing after generate-includes).
+  const setEditing = (
+    v:
+      | Partial<PackageRow>
+      | null
+      | ((prev: Partial<PackageRow> | null) => Partial<PackageRow> | null),
+  ) => {
     if (v === null) {
       setEditingState(null);
       setDrafts(null);
       setDraftIndex(0);
       return;
     }
-    setEditingState(v);
-    setDrafts((prev) => {
-      if (!prev) return prev;
-      const next = prev.slice();
-      next[draftIndex] = v;
+    setEditingState((prev) => {
+      const next = typeof v === "function" ? v(prev) : v;
+      if (next === null) return null;
+      setDrafts((prevDrafts) => {
+        if (!prevDrafts) return prevDrafts;
+        const copy = prevDrafts.slice();
+        copy[draftIndex] = next;
+        return copy;
+      });
       return next;
     });
   };
@@ -730,6 +741,10 @@ function AdminPackages() {
             packages={(packages || []) as PackageRow[]}
             onOpen={(p) => setEditingState(p)}
           />
+          <MissingIncludesAlert
+            packages={(packages || []) as PackageRow[]}
+            onOpen={(p) => setEditingState(p)}
+          />
           <DuplicatePackagesAlert
             packages={(packages || []) as PackageRow[]}
             onOpen={(p) => setEditingState(p)}
@@ -1117,7 +1132,12 @@ function formatBRLNoSymbol(n: number): string {
 
 type PackageEditorModalProps = {
   editing: Partial<PackageRow>;
-  setEditing: (v: Partial<PackageRow> | null) => void;
+  setEditing: (
+    v:
+      | Partial<PackageRow>
+      | null
+      | ((prev: Partial<PackageRow> | null) => Partial<PackageRow> | null),
+  ) => void;
   saving: boolean;
   save: () => void;
   saveAll?: () => void;
@@ -1348,11 +1368,11 @@ function PackageEditorModal({
   ]);
 
   function handleGenerateIncludes() {
-    setEditing({ ...editing, includes: derivedIncludes });
     if (derivedIncludes.length === 0) {
       toast.error("Preencha os aéreos e a hospedagem antes de gerar");
       return;
     }
+    setEditing((prev) => (prev ? { ...prev, includes: derivedIncludes } : prev));
     toast.success("Itens inclusos gerados a partir do pacote");
   }
 
@@ -1412,7 +1432,7 @@ function PackageEditorModal({
             },
           });
 
-          setEditing({ ...editing, summary: text });
+          setEditing((prev) => (prev ? { ...prev, summary: text } : prev));
         } catch (err) {
           console.warn("[auto-summary] falhou", err);
         } finally {
@@ -3806,6 +3826,106 @@ function DuplicatePackagesAlert({
                 ))}
               </div>
             </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MissingIncludesAlert({
+  packages,
+  onOpen,
+}: {
+  packages: PackageRow[];
+  onOpen: (p: PackageRow) => void;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const missing = useMemo(
+    () =>
+      (packages || []).filter(
+        (p) => p.is_active && (!Array.isArray(p.includes) || p.includes.length === 0),
+      ),
+    [packages],
+  );
+  if (dismissed || missing.length === 0) return null;
+
+  if (!expanded) {
+    return (
+      <div className="mb-3 flex items-center gap-2 bg-[#1C252E] border border-slate-800 rounded-full pl-2 pr-2 py-1.5 shadow-xl shadow-black/20">
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shrink-0">
+            {missing.length}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase truncate">
+            Pacote(s) sem "O que inclui"
+          </span>
+          <ChevronDown className="w-4 h-4 text-slate-500 hover:text-white transition-colors shrink-0" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1 hover:bg-slate-700/50 rounded-full transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-3.5 h-3.5 text-slate-500" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3 bg-[#1C252E] border border-slate-800 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
+      <div className="flex items-center justify-between p-4 pb-2">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="flex items-center gap-3 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shadow-lg shadow-[#F26B1F]/20">
+            {missing.length}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase">
+            Pacote(s) sem "O que inclui"
+          </span>
+          <ChevronDown className="w-4 h-4 text-[#F26B1F] rotate-180 transition-transform" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-4 h-4 text-slate-500" />
+        </button>
+      </div>
+      <div className="px-4 pb-5 space-y-4">
+        <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+          Abra o pacote, vá em "Extras e inclusos" e clique em <span className="text-[#F26B1F] font-semibold">Gerar</span> para preencher automaticamente a partir dos aéreos, hospedagem e serviços.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {missing.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onOpen(p)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all cursor-pointer group"
+              title={`${p.title} — abrir para editar`}
+            >
+              <ListChecks className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#F26B1F]" />
+              <span className="text-[11px] font-medium text-slate-300 max-w-[220px] truncate">
+                {p.title}
+              </span>
+              <span className="text-slate-600">·</span>
+              <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
+                {p.destination}
+              </span>
+            </button>
           ))}
         </div>
       </div>
