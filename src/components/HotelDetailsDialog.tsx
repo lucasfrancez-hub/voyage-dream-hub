@@ -206,12 +206,13 @@ export function HotelDetailsDialog({
               </div>
             </header>
 
-            {/* Split workspace */}
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
+            {/* Split workspace — no mobile: rola a página inteira; desktop: 2 colunas com scrolls internos */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row md:overflow-hidden">
               {/* LEFT — gallery */}
-              <div className="flex min-h-0 min-w-0 flex-[1.85] flex-col gap-4 p-5 md:p-6">
+              <div className="flex min-w-0 flex-none flex-col gap-4 p-5 md:min-h-0 md:flex-[1.85] md:p-6">
+
                 {/* Main image */}
-                <div className="group relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/40 bg-black/40">
+                <div className="group relative h-[56vw] max-h-[420px] min-h-[240px] overflow-hidden rounded-2xl border border-border/40 bg-black/40 md:h-auto md:min-h-0 md:max-h-none md:flex-1">
                   {isLoading && !photos.length ? (
                     <div className="absolute inset-0 flex items-center justify-center text-zinc-500">
                       <Loader2 className="h-6 w-6 animate-spin" />
@@ -284,10 +285,10 @@ export function HotelDetailsDialog({
               </div>
 
               {/* RIGHT — content & reviews */}
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-border/40 md:min-w-[360px] md:border-l md:border-t-0">
+              <div className="flex min-w-0 flex-none flex-col border-t border-border/40 md:min-h-0 md:flex-1 md:min-w-[360px] md:overflow-hidden md:border-l md:border-t-0">
                 {/* About (capped, internal scroll) */}
                 {(data?.description || isLoading) && (
-                  <section className="flex-none flex flex-col border-b border-border/40 bg-muted/10 p-6 md:p-7" style={{ maxHeight: "40%" }}>
+                  <section className="flex flex-none flex-col border-b border-border/40 bg-muted/10 p-6 md:p-7 md:max-h-[40%]">
                     <div className="flex items-center justify-between gap-3 mb-3 flex-none">
                       <h2 className="text-base font-bold text-white">Sobre o hotel</h2>
                       {data?.description_translated_from && (
@@ -303,7 +304,7 @@ export function HotelDetailsDialog({
                         <div className="h-3 w-4/5 rounded bg-white/5 animate-pulse" />
                       </div>
                     ) : (
-                      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2">
+                      <div className="custom-scrollbar min-h-0 flex-1 pr-2 md:overflow-y-auto md:overscroll-contain">
                         <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">
                           {safeText(data?.description)}
                         </p>
@@ -313,7 +314,7 @@ export function HotelDetailsDialog({
                 )}
 
                 {/* Reviews feed */}
-                <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-4 md:px-7">
+                <div className="custom-scrollbar min-h-0 flex-none space-y-4 px-6 py-4 md:flex-1 md:overflow-y-auto md:overscroll-contain md:px-7">
 
                   <div className="sticky top-0 z-10 py-2 -mx-1 px-1 bg-background/80 backdrop-blur-xl">
                     <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
