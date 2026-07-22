@@ -284,18 +284,25 @@ function PackageDetails() {
               {(() => {
                 const photos = ((pkg as unknown as { tripadvisor_photos?: string[] | null }).tripadvisor_photos) ?? [];
                 const taUrl = (pkg as unknown as { tripadvisor_url?: string | null }).tripadvisor_url ?? null;
+                const taId = (pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null;
                 if (photos.length === 0 && !taUrl) return null;
                 return (
                   <div className="mt-4">
                     {photos.length > 0 && (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {photos.slice(0, 4).map((src, i) => (
-                          <a
+                          <button
+                            type="button"
                             key={i}
-                            href={taUrl ?? src}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border group"
+                            onClick={() => {
+                              if (taId) {
+                                setDialogPhotoIndex(i);
+                                setHotelDialogOpen(true);
+                              } else if (taUrl) {
+                                window.open(taUrl, "_blank", "noreferrer");
+                              }
+                            }}
+                            className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border group cursor-pointer"
                           >
                             <img
                               src={src}
@@ -303,12 +310,23 @@ function PackageDetails() {
                               loading="lazy"
                               className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition"
                             />
-                          </a>
+                          </button>
                         ))}
                       </div>
                     )}
-                    {taUrl && (
-                      <div className="mt-3 flex justify-end">
+                    <div className="mt-3 flex justify-end">
+                      {taId ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDialogPhotoIndex(0);
+                            setHotelDialogOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-medium text-brand-orange hover:bg-brand-orange/20 transition"
+                        >
+                          Ver fotos e avaliações <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      ) : taUrl ? (
                         <a
                           href={taUrl}
                           target="_blank"
@@ -317,8 +335,8 @@ function PackageDetails() {
                         >
                           Ver mais <ArrowRight className="h-3.5 w-3.5" />
                         </a>
-                      </div>
-                    )}
+                      ) : null}
+                    </div>
                   </div>
                 );
               })()}
