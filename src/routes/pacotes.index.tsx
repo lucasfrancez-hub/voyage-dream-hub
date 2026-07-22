@@ -13,6 +13,7 @@ import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { FeaturedCarousel } from "@/components/packages/FeaturedCarousel";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
+import { dedupeDestinations, destinationKey } from "@/lib/packages/destination";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -77,7 +78,7 @@ function PacotesList() {
     [packages],
   );
   const destinations = useMemo(
-    () => Array.from(new Set((packages || []).map((p) => p.destination).filter(Boolean))).sort(),
+    () => dedupeDestinations((packages || []).map((p) => p.destination)),
     [packages],
   );
 
@@ -112,7 +113,7 @@ function PacotesList() {
 
     const filtered = (packages || []).filter((p) => {
       const originMatch = originFilter === "all" || originKey(p.origin) === originKey(originFilter);
-      const destinationMatch = destinationFilter === "all" || p.destination === destinationFilter;
+      const destinationMatch = destinationFilter === "all" || destinationKey(p.destination) === destinationKey(destinationFilter);
       let monthMatch = true;
       if (monthFilter !== "all") {
         if (!p.going_date) monthMatch = false;
@@ -324,9 +325,9 @@ function PacotesList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os destinos</SelectItem>
-                {destinations.map((destination) => (
-                  <SelectItem key={destination} value={destination!}>
-                    {destination}
+                {destinations.map((d) => (
+                  <SelectItem key={d.value} value={d.value}>
+                    {d.flag ? `${d.flag} ${d.label}` : d.label}
                   </SelectItem>
                 ))}
               </SelectContent>
