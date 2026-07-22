@@ -1784,6 +1784,13 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
                     onChange={(e) => setEditing({ ...editing, itinerary: e.target.value })}
                   />
                 </FormField>
+
+                <ServicesEditor
+                  value={(editing.services ?? {}) as PackageServices}
+                  onChange={(next) => setEditing({ ...editing, services: next })}
+                  inpClass={inp}
+                />
+
                 <div className="sm:col-span-2">
                   <div className="mb-1 flex items-center justify-between gap-3">
                     <span className="text-xs text-muted-foreground">O que inclui (um por linha)</span>
