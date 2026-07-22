@@ -199,19 +199,30 @@ function AdminPackages() {
   >("manual");
   const [view, setView] = useState<"list" | "curadoria">("list");
 
-  // Wrap setEditing to keep the drafts array in sync with edits
-  const setEditing = (v: Partial<PackageRow> | null) => {
+  // Wrap setEditing to keep the drafts array in sync with edits.
+  // Accepts a value OR an updater function (use updater to avoid stale closures
+  // clobbering concurrent edits — e.g. auto-summary finishing after generate-includes).
+  const setEditing = (
+    v:
+      | Partial<PackageRow>
+      | null
+      | ((prev: Partial<PackageRow> | null) => Partial<PackageRow> | null),
+  ) => {
     if (v === null) {
       setEditingState(null);
       setDrafts(null);
       setDraftIndex(0);
       return;
     }
-    setEditingState(v);
-    setDrafts((prev) => {
-      if (!prev) return prev;
-      const next = prev.slice();
-      next[draftIndex] = v;
+    setEditingState((prev) => {
+      const next = typeof v === "function" ? v(prev) : v;
+      if (next === null) return null;
+      setDrafts((prevDrafts) => {
+        if (!prevDrafts) return prevDrafts;
+        const copy = prevDrafts.slice();
+        copy[draftIndex] = next;
+        return copy;
+      });
       return next;
     });
   };
