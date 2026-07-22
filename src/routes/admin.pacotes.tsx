@@ -1364,11 +1364,11 @@ function PackageEditorModal({
   ]);
 
   function handleGenerateIncludes() {
-    setEditing({ ...editing, includes: derivedIncludes });
     if (derivedIncludes.length === 0) {
       toast.error("Preencha os aéreos e a hospedagem antes de gerar");
       return;
     }
+    setEditing((prev) => (prev ? { ...prev, includes: derivedIncludes } : prev));
     toast.success("Itens inclusos gerados a partir do pacote");
   }
 
