@@ -511,9 +511,8 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
       trip_type: string | null; lang: string;
     };
     const raw: RawReview[] = [];
-    for (const result of reviewPageResults) {
-      if (result.status !== "fulfilled" || !result.value.ok) continue;
-      const jr = (await result.value.json()) as { data?: Array<Record<string, unknown>> };
+    if (rReviews.ok) {
+      const jr = (await rReviews.json()) as { data?: Array<Record<string, unknown>> };
       for (const r of jr.data || []) {
         const user = (r.user as { username?: string; user_location?: { name?: string } } | undefined);
         const title = localizedText(r.title) || null;
@@ -534,6 +533,8 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
           lang,
         });
       }
+    } else {
+      console.warn("[tripadvisor-public] reviews failed", id, rReviews.status);
     }
     raw.forEach((r, idx) => {
       if (r.lang !== "pt") {
