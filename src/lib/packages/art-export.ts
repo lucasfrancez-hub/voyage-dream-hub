@@ -234,18 +234,17 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
 
     // Área da prévia
     const previewWrap = document.createElement("div");
-    previewWrap.style.cssText = "padding:0 32px 20px;flex:1 1 auto;min-height:0;display:flex";
+    previewWrap.style.cssText = "padding:0 24px 20px;flex:1 1 auto;min-height:0;display:flex";
     const previewBox = document.createElement("div");
     previewBox.style.cssText = [
       "position:relative",
       "width:100%",
       "flex:1 1 auto",
       "min-height:0",
-      "background:#f4f4f5",
+      "background:rgba(255,255,255,.04)",
       "border-radius:18px",
       "overflow:hidden",
-      "border:1px solid #f4f4f5",
-      "box-shadow:inset 0 0 40px rgba(0,0,0,.02)",
+      "border:1px solid rgba(255,255,255,.08)",
       "display:flex",
       "align-items:center",
       "justify-content:center",
