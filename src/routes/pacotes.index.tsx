@@ -78,7 +78,7 @@ function PacotesList() {
     [packages],
   );
   const destinations = useMemo(
-    () => Array.from(new Set((packages || []).map((p) => p.destination).filter(Boolean))).sort(),
+    () => dedupeDestinations((packages || []).map((p) => p.destination)),
     [packages],
   );
 
