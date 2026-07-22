@@ -366,7 +366,7 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     const [rDet, rPhotos, rReviews] = await Promise.all([
       taFetch(`/locations/${id}`, { language: "pt" }),
       taFetch(`/locations/${id}/photos?limit=30`, { language: "pt" }),
-      taFetch(`/locations/${id}/reviews?limit=10`, { language: "pt" }),
+      taFetch(`/locations/${id}/reviews?limit=20`, { language: "pt" }),
     ]);
 
     const empty: TAPublicHotelInfo = {
