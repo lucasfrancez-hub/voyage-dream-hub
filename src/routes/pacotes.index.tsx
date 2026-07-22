@@ -325,9 +325,9 @@ function PacotesList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os destinos</SelectItem>
-                {destinations.map((destination) => (
-                  <SelectItem key={destination} value={destination!}>
-                    {destination}
+                {destinations.map((d) => (
+                  <SelectItem key={d.value} value={d.value}>
+                    {d.flag ? `${d.flag} ${d.label}` : d.label}
                   </SelectItem>
                 ))}
               </SelectContent>
