@@ -186,8 +186,9 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       "align-items:center",
       "justify-content:center",
       "padding:24px",
-      "background:rgba(9,9,11,.62)",
-      "backdrop-filter:blur(16px) saturate(140%)",
+      "background:rgba(15,23,42,.72)",
+      "backdrop-filter:blur(20px) saturate(150%)",
+      "-webkit-backdrop-filter:blur(20px) saturate(150%)",
       "-webkit-font-smoothing:antialiased",
       "animation:viaair-art-fade .18s ease-out",
     ].join(";");
