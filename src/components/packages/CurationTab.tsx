@@ -257,12 +257,12 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       }
     }
     const themeOrder = ["natal", "reveillon", "carnaval", "pascoa", "prolongado"];
-    const themeMeta: Record<string, { title: string; reason: string; emoji: string }> = {
-      natal: { title: "Pacotes para o Natal", reason: "Datas alinhadas ao Natal — alta procura.", emoji: "🎄" },
-      reveillon: { title: "Pacotes para o Réveillon", reason: "Saídas na virada — bom para venda antecipada.", emoji: "🎆" },
-      carnaval: { title: "Pacotes para o Carnaval", reason: "Saídas na semana do Carnaval — feriado longo.", emoji: "🎭" },
-      pascoa: { title: "Pacotes para a Páscoa", reason: "Feriado de Páscoa com viagem inclusa.", emoji: "🐣" },
-      prolongado: { title: "Pacotes em feriados prolongados", reason: "Feriados nacionais prolongados — bom pra escapadas curtas.", emoji: "🗓️" },
+    const themeMeta: Record<string, { title: string; reason: string; Icon: LucideIcon }> = {
+      natal: { title: "Pacotes para o Natal", reason: "Datas alinhadas ao Natal — alta procura.", Icon: TreePine },
+      reveillon: { title: "Pacotes para o Réveillon", reason: "Saídas na virada — bom para venda antecipada.", Icon: Sparkles },
+      carnaval: { title: "Pacotes para o Carnaval", reason: "Saídas na semana do Carnaval — feriado longo.", Icon: PartyPopper },
+      pascoa: { title: "Pacotes para a Páscoa", reason: "Feriado de Páscoa com viagem inclusa.", Icon: Egg },
+      prolongado: { title: "Pacotes em feriados prolongados", reason: "Feriados nacionais prolongados — bom pra escapadas curtas.", Icon: CalendarDays },
     };
     for (const theme of themeOrder) {
       const merged: Pkg[] = []; const labels: string[] = [];
@@ -276,7 +276,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       unique.sort((a, b) => totalPrice(a) - totalPrice(b));
       const meta = themeMeta[theme];
       list.push({
-        key: `feriado-${theme}`, emoji: meta.emoji, title: meta.title,
+        key: `feriado-${theme}`, Icon: meta.Icon, title: meta.title,
         reason: `${meta.reason} ${labels.length ? `(${labels.join(", ")})` : ""}`.trim(),
         packages: unique.slice(0, 6),
       });
