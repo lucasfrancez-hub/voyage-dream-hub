@@ -186,8 +186,9 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       "align-items:center",
       "justify-content:center",
       "padding:24px",
-      "background:rgba(9,9,11,.62)",
-      "backdrop-filter:blur(16px) saturate(140%)",
+      "background:rgba(15,23,42,.72)",
+      "backdrop-filter:blur(20px) saturate(150%)",
+      "-webkit-backdrop-filter:blur(20px) saturate(150%)",
       "-webkit-font-smoothing:antialiased",
       "animation:viaair-art-fade .18s ease-out",
     ].join(";");
@@ -214,40 +215,36 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       "display:flex",
       "flex-direction:column",
       "overflow:hidden",
-      "border-radius:28px",
-      "background:#ffffff",
-      "color:#18181b",
-      "border:1px solid rgba(0,0,0,.03)",
-      "box-shadow:0 30px 80px rgba(0,0,0,.35)",
+      "background:transparent",
+      "color:#ffffff",
       "font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif",
       "animation:viaair-art-pop .22s cubic-bezier(.2,.9,.3,1)",
     ].join(";");
 
     // Cabeçalho
     const header = document.createElement("div");
-    header.style.cssText = "padding:28px 32px 20px;text-align:center;flex-shrink:0";
+    header.style.cssText = "padding:24px 24px 18px;text-align:center;flex-shrink:0";
     const title = document.createElement("h2");
     title.textContent = "Sua arte está pronta!";
-    title.style.cssText = "margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:#18181b";
+    title.style.cssText = "margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:#ffffff";
     const subtitle = document.createElement("p");
     subtitle.textContent = "Revise o flyer gerado para o pacote VIA AIR";
-    subtitle.style.cssText = "margin:6px 0 0;font-size:14px;color:#71717a";
+    subtitle.style.cssText = "margin:6px 0 0;font-size:14px;color:rgba(255,255,255,.75)";
     header.append(title, subtitle);
 
     // Área da prévia
     const previewWrap = document.createElement("div");
-    previewWrap.style.cssText = "padding:0 32px 20px;flex:1 1 auto;min-height:0;display:flex";
+    previewWrap.style.cssText = "padding:0 24px 20px;flex:1 1 auto;min-height:0;display:flex";
     const previewBox = document.createElement("div");
     previewBox.style.cssText = [
       "position:relative",
       "width:100%",
       "flex:1 1 auto",
       "min-height:0",
-      "background:#f4f4f5",
+      "background:rgba(255,255,255,.04)",
       "border-radius:18px",
       "overflow:hidden",
-      "border:1px solid #f4f4f5",
-      "box-shadow:inset 0 0 40px rgba(0,0,0,.02)",
+      "border:1px solid rgba(255,255,255,.08)",
       "display:flex",
       "align-items:center",
       "justify-content:center",
@@ -261,7 +258,7 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
 
     // Ações
     const actions = document.createElement("div");
-    actions.style.cssText = "padding:0 32px 20px;display:flex;flex-direction:column;gap:12px;flex-shrink:0";
+    actions.style.cssText = "padding:0 24px 24px;display:flex;flex-direction:column;gap:10px;flex-shrink:0";
 
     const primaryButton = document.createElement("button");
     primaryButton.type = "button";
@@ -288,25 +285,15 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       "width:100%",
       "min-height:48px",
       "padding:0 24px",
-      "border:0",
+      "border:1px solid rgba(255,255,255,.25)",
       "border-radius:9999px",
-      "background:rgba(244,244,245,.8)",
-      "color:#52525b",
+      "background:transparent",
+      "color:#ffffff",
       "font:600 14px inherit",
       "cursor:pointer",
     ].join(";");
 
     actions.append(primaryButton, cancelButton);
-
-    // Marca discreta
-    const brand = document.createElement("div");
-    brand.style.cssText = "padding:0 0 18px;display:flex;justify-content:center;gap:6px;align-items:center;opacity:.3;flex-shrink:0";
-    const dot = document.createElement("span");
-    dot.style.cssText = "width:6px;height:6px;border-radius:9999px;background:#F26B1F;display:inline-block";
-    const brandText = document.createElement("span");
-    brandText.textContent = "VIA AIR ADMIN";
-    brandText.style.cssText = "font:700 10px inherit;letter-spacing:.2em;color:#18181b";
-    brand.append(dot, brandText);
 
     const finish = (delivery: ArtDelivery) => {
       overlay.remove();
@@ -336,7 +323,7 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       if (e.target === overlay) finish("cancelled");
     });
 
-    panel.append(header, previewWrap, actions, brand);
+    panel.append(header, previewWrap, actions);
     overlay.append(panel);
     document.body.appendChild(overlay);
     primaryButton.focus();
