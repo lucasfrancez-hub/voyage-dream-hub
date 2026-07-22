@@ -39,6 +39,16 @@ function formatDate(iso: string | null): string {
   }
 }
 
+function langLabel(code: string | null | undefined): string {
+  const c = (code || "").toLowerCase();
+  const map: Record<string, string> = {
+    en: "inglês", es: "espanhol", fr: "francês", it: "italiano", de: "alemão",
+    ru: "russo", ja: "japonês", zh: "chinês", ko: "coreano", nl: "holandês",
+    pl: "polonês", tr: "turco", ar: "árabe", he: "hebraico",
+  };
+  return map[c] || "inglês";
+}
+
 function safeText(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
@@ -197,7 +207,14 @@ export function HotelDetailsDialog({
             {/* Descrição */}
             {data?.description && (
               <section>
-                <h3 className="font-semibold text-sm mb-2">Sobre o hotel</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold text-sm">Sobre o hotel</h3>
+                  {data.description_translated_from && (
+                    <span className="rounded-full bg-brand-orange/10 text-brand-orange text-[10px] px-2 py-0.5 uppercase tracking-wide">
+                      Traduzido do {langLabel(data.description_translated_from)}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
                    {safeText(data.description)}
                 </p>
@@ -288,6 +305,13 @@ export function HotelDetailsDialog({
                         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                            {safeText(r.text)}
                         </p>
+                      )}
+                      {r.translated_from && (
+                        <div className="mt-2">
+                          <span className="rounded-full bg-brand-orange/10 text-brand-orange text-[10px] px-2 py-0.5 uppercase tracking-wide">
+                            Traduzido do {langLabel(r.translated_from)}
+                          </span>
+                        </div>
                       )}
                       <footer className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                          {r.user_name && <span>— {safeText(r.user_name)}</span>}
