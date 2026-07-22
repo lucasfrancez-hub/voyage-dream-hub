@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Lock, ArrowLeft, ShieldCheck, Copy, Smartphone } from "lucide-react";
+import { Loader2, Lock, ArrowLeft, ShieldCheck, Copy, Smartphone, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { checkTrustedDevice, registerTrustedDevice } from "@/lib/trusted-devices.functions";
+import { requestLoginEmailCode, verifyLoginEmailCode } from "@/lib/login-email-code.functions";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Step = "credentials" | "mfa" | "enroll";
+type Step = "credentials" | "email-code" | "mfa" | "enroll";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [maskedEmail, setMaskedEmail] = useState<string | null>(null);
   const [factorId, setFactorId] = useState<string | null>(null);
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,15 +48,25 @@ function AuthPage() {
     })();
   }, [navigate]);
 
-  /** Após signIn com sucesso: verifica MFA / trusted device e decide próximo passo. */
+  /** Inicia o desafio TOTP para o fator já verificado. */
+  async function startMfaChallenge(verifiedFactorId: string) {
+    const { data: challenge, error } = await supabase.auth.mfa.challenge({
+      factorId: verifiedFactorId,
+    });
+    if (error) throw error;
+    setFactorId(verifiedFactorId);
+    setChallengeId(challenge.id);
+    setStep("mfa");
+  }
+
+  /** Após signIn: (1) checa/força enrollment TOTP; (2) se device não é confiável,
+   * envia código por e-mail; (3) só então segue para o TOTP. */
   async function postSignInFlow() {
-    // 1) Já tem fator verificado?
     const { data: factors } = await supabase.auth.mfa.listFactors();
     const verified = factors?.totp?.find((f) => f.status === "verified");
 
-    // 2) Sem fator → força enrollment (MFA obrigatório).
+    // Sem fator verificado → enrollment obrigatório (2FA nunca pulado).
     if (!verified) {
-      // Limpa fatores pendentes de tentativas anteriores.
       for (const f of factors?.totp ?? []) {
         if (f.status !== "verified") {
           try { await supabase.auth.mfa.unenroll({ factorId: f.id }); } catch { /* ignore */ }
@@ -69,24 +82,62 @@ function AuthPage() {
       return;
     }
 
-    // 3) Tem fator. Este device é confiável?
+    // Device confiável? Se sim, pula APENAS o passo de e-mail (não o TOTP).
+    let trusted = false;
     try {
-      const { trusted } = await checkTrustedDevice();
-      if (trusted) {
-        toast.success("Dispositivo confiável reconhecido");
-        navigate({ to: "/admin" });
-        return;
-      }
-    } catch {
-      // se check falhar, cai no MFA normal
+      const res = await checkTrustedDevice();
+      trusted = res.trusted;
+    } catch { /* segue como não confiável */ }
+
+    if (trusted) {
+      await startMfaChallenge(verified.id);
+      return;
     }
 
-    // 4) Device novo → exige TOTP.
-    const { data: challenge, error } = await supabase.auth.mfa.challenge({ factorId: verified.id });
-    if (error) throw error;
-    setFactorId(verified.id);
-    setChallengeId(challenge.id);
-    setStep("mfa");
+    // Device novo → dispara código por e-mail antes do TOTP.
+    try {
+      const ua = navigator.userAgent.split(") ")[0]?.replace("(", "").slice(0, 120);
+      const { masked } = await requestLoginEmailCode({ data: { userAgent: ua } });
+      setMaskedEmail(masked);
+      setFactorId(verified.id); // guarda para usar depois
+      setEmailCode("");
+      setStep("email-code");
+      toast.success("Enviamos um código para o seu e-mail");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao enviar código por e-mail");
+      // Se o envio falhar, encerra a sessão para não deixar meio-logado.
+      try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+    }
+  }
+
+  async function handleEmailCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!factorId) return;
+    setLoading(true);
+    try {
+      await verifyLoginEmailCode({ data: { code: emailCode } });
+      // Código do e-mail OK → agora o TOTP.
+      await startMfaChallenge(factorId);
+      setOtp("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Código inválido");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resendEmailCode() {
+    setLoading(true);
+    try {
+      const ua = navigator.userAgent.split(") ")[0]?.replace("(", "").slice(0, 120);
+      const { masked } = await requestLoginEmailCode({ data: { userAgent: ua } });
+      setMaskedEmail(masked);
+      toast.success("Novo código enviado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao reenviar código");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -252,7 +303,7 @@ function AuthPage() {
                     className="mt-0.5 accent-[hsl(var(--brand-orange))]"
                   />
                   <span>
-                    Confiar neste dispositivo por 30 dias (pula o código nas próximas vezes deste navegador)
+                    Confiar neste dispositivo por 30 dias (pula apenas o código por e-mail nas próximas vezes deste navegador — o código do autenticador continua sendo pedido)
                   </span>
                 </label>
                 <div className="flex gap-2">
@@ -268,6 +319,61 @@ function AuthPage() {
                     type="button"
                     onClick={cancelEnroll}
                     className="rounded-full border border-border px-4 py-3 text-sm hover:border-brand-orange"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : step === "email-code" ? (
+            <>
+              <div className="flex items-center gap-2 text-brand-orange text-sm uppercase tracking-widest">
+                <Mail className="h-4 w-4" /> Novo dispositivo detectado
+              </div>
+              <h1 className="mt-2 text-2xl font-display font-bold">Confirme pelo e-mail</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Enviamos um código de 6 dígitos para{" "}
+                <strong className="text-foreground">{maskedEmail ?? "seu e-mail"}</strong>. Digite abaixo
+                para liberar o acesso. Depois pediremos o código do autenticador.
+              </p>
+              <form onSubmit={handleEmailCode} className="mt-6 space-y-4">
+                <input
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, ""))}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-3 text-center text-lg tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+                  placeholder="000000"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={loading || emailCode.length !== 6}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Confirmar código
+                </button>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={resendEmailCode}
+                    disabled={loading}
+                    className="hover:text-brand-orange underline underline-offset-2 disabled:opacity-50"
+                  >
+                    Reenviar código
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+                      setStep("credentials");
+                      setEmailCode("");
+                      setMaskedEmail(null);
+                    }}
+                    className="hover:text-brand-orange"
                   >
                     Cancelar
                   </button>
@@ -304,7 +410,7 @@ function AuthPage() {
                   />
                   <span className="inline-flex items-center gap-1">
                     <Smartphone className="h-3.5 w-3.5" />
-                    Confiar neste dispositivo por 30 dias
+                    Confiar neste dispositivo por 30 dias (pula o código por e-mail — o autenticador continua obrigatório)
                   </span>
                 </label>
                 <button
