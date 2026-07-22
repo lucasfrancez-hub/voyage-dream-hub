@@ -447,6 +447,21 @@ function PackageDetails() {
         </aside>
       </div>
       <ContactFooter whatsappMessage={`Olá! Tenho interesse no pacote e quero mais informações.`} />
+      {(() => {
+        const taId = (pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null;
+        const photos = ((pkg as unknown as { tripadvisor_photos?: string[] | null }).tripadvisor_photos) ?? [];
+        if (!taId) return null;
+        return (
+          <HotelDetailsDialog
+            open={hotelDialogOpen}
+            onOpenChange={setHotelDialogOpen}
+            locationId={taId}
+            hotelName={pkg.hotel_name ?? ""}
+            fallbackPhotos={photos}
+            initialPhotoIndex={dialogPhotoIndex}
+          />
+        );
+      })()}
     </div>
   );
 }
