@@ -38,6 +38,35 @@ function cleanHotelDetail(value: string | null | undefined) {
   return cleaned && cleaned !== "—" ? cleaned : null;
 }
 
+function mealIcon(value: string): LucideIcon {
+  const v = value.toLocaleLowerCase("pt-BR");
+  if (/all\s*inclusive|tudo incluso|all in/.test(v)) return Utensils;
+  if (/pens[aã]o completa|full board/.test(v)) return UtensilsCrossed;
+  if (/meia pens[aã]o|half board/.test(v)) return UtensilsCrossed;
+  if (/caf[eé]\s*da\s*manh[aã]|breakfast|bed\s*&?\s*breakfast|b&b/.test(v)) return Coffee;
+  if (/almo[cç]o|jantar|refei[cç]|lunch|dinner/.test(v)) return Utensils;
+  return Utensils;
+}
+
+function bedIcon(value: string): LucideIcon {
+  const v = value.toLocaleLowerCase("pt-BR");
+  if (/solteiro|single|individual/.test(v)) return Bed;
+  return BedDouble;
+}
+
+function roomTypeIcon(value: string): LucideIcon {
+  const v = value.toLocaleLowerCase("pt-BR");
+  if (/su[ií]te|suite/.test(v)) return DoorOpen;
+  return Home;
+}
+
+function roomCategoryIcon(value: string): LucideIcon {
+  const v = value.toLocaleLowerCase("pt-BR");
+  if (/luxo|luxury|premium|deluxe|superior|master|presidencial/.test(v)) return Crown;
+  if (/standard|standart|padr[aã]o|basic/.test(v)) return Sparkles;
+  return Sparkles;
+}
+
 export const Route = createFileRoute("/pacotes/$slug/")({
   validateSearch: (s: Record<string, unknown>) => ({
     preview: s.preview === "1" || s.preview === 1 || s.preview === true ? true : undefined,
