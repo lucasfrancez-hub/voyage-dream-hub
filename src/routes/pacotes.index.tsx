@@ -12,6 +12,7 @@ import { whatsappUrl } from "@/lib/checkout-config";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { FeaturedCarousel } from "@/components/packages/FeaturedCarousel";
+import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -71,7 +72,7 @@ function PacotesList() {
 
 
   const origins = useMemo(
-    () => Array.from(new Set((packages || []).map((p) => p.origin).filter(Boolean))).sort(),
+    () => dedupeOrigins((packages || []).map((p) => p.origin)),
     [packages],
   );
   const destinations = useMemo(
@@ -109,7 +110,7 @@ function PacotesList() {
       : null;
 
     const filtered = (packages || []).filter((p) => {
-      const originMatch = originFilter === "all" || p.origin === originFilter;
+      const originMatch = originFilter === "all" || originKey(p.origin) === originKey(originFilter);
       const destinationMatch = destinationFilter === "all" || p.destination === destinationFilter;
       let monthMatch = true;
       if (monthFilter !== "all") {

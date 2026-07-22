@@ -28,6 +28,7 @@ import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions"
 import { FileUp, Upload, ChevronLeft, ChevronRight, ChevronDown, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
+import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
@@ -213,7 +214,7 @@ function AdminPackages() {
 
   const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const origins = useMemo(
-    () => Array.from(new Set((packages || []).map(p => p.origin).filter(Boolean) as string[])).sort(),
+    () => dedupeOrigins((packages || []).map(p => p.origin)),
     [packages],
   );
   const destinations = useMemo(
@@ -236,7 +237,7 @@ function AdminPackages() {
 
   const displayPackages = useMemo(() => {
     const filtered = (packages || []).filter(p => {
-      if (originFilter !== "all" && p.origin !== originFilter) return false;
+      if (originFilter !== "all" && originKey(p.origin) !== originKey(originFilter)) return false;
       if (destinationFilter !== "all" && p.destination !== destinationFilter) return false;
       if (monthFilter !== "all") {
         if (!p.going_date) return false;
@@ -631,6 +632,10 @@ function AdminPackages() {
       ) : (
       <>
       <UnlinkedHotelsAlert
+        packages={(packages || []) as PackageRow[]}
+        onOpen={(p) => setEditingState(p)}
+      />
+      <DuplicatePackagesAlert
         packages={(packages || []) as PackageRow[]}
         onOpen={(p) => setEditingState(p)}
       />
@@ -2971,6 +2976,140 @@ function UnlinkedHotelsAlert({
                 {p.destination}
               </span>
             </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DuplicatePackagesAlert({
+  packages,
+  onOpen,
+}: {
+  packages: PackageRow[];
+  onOpen: (p: PackageRow) => void;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const groups = useMemo(() => {
+    const norm = (v: any) =>
+      String(v ?? "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    const map = new Map<string, PackageRow[]>();
+    for (const p of packages || []) {
+      if (!p.is_active) continue;
+      if (!p.destination || !p.going_date || !p.return_date) continue;
+      const key = [
+        norm(p.destination),
+        originKey(p.origin),
+        String(p.going_date),
+        String(p.return_date),
+        norm(p.hotel_name),
+        Math.round(Number(p.price_per_person) || 0),
+      ].join("|");
+      const arr = map.get(key) || [];
+      arr.push(p);
+      map.set(key, arr);
+    }
+    return Array.from(map.values()).filter((arr) => arr.length > 1);
+  }, [packages]);
+
+  const total = useMemo(
+    () => groups.reduce((acc, arr) => acc + (arr.length - 1), 0),
+    [groups],
+  );
+
+  if (dismissed || groups.length === 0) return null;
+
+  if (!expanded) {
+    return (
+      <div className="mb-3 flex items-center gap-2 bg-[#1C252E] border border-slate-800 rounded-full pl-2 pr-2 py-1.5 shadow-xl shadow-black/20">
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shrink-0">
+            {total}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase truncate">
+            Pacote(s) duplicado(s) detectado(s)
+          </span>
+          <ChevronDown className="w-4 h-4 text-slate-500 hover:text-white transition-colors shrink-0" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1 hover:bg-slate-700/50 rounded-full transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-3.5 h-3.5 text-slate-500" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3 bg-[#1C252E] border border-slate-800 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
+      <div className="flex items-center justify-between p-4 pb-2">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="flex items-center gap-3 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shadow-lg shadow-[#F26B1F]/20">
+            {total}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase">
+            Pacote(s) duplicado(s) detectado(s)
+          </span>
+          <ChevronDown className="w-4 h-4 text-[#F26B1F] rotate-180 transition-transform" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-4 h-4 text-slate-500" />
+        </button>
+      </div>
+      <div className="px-4 pb-5 space-y-4">
+        <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+          Mesma origem, destino, datas, hotel e preço. Abra e exclua as cópias que não quiser manter.
+        </p>
+        <div className="space-y-3">
+          {groups.map((arr, gi) => (
+            <div key={gi} className="space-y-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-[#F26B1F]/80">
+                {arr[0].destination} · {arr[0].going_date} → {arr[0].return_date}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {arr.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onOpen(p)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all cursor-pointer group"
+                    title={`${p.title} — abrir para excluir`}
+                  >
+                    <span className="text-[11px] font-medium text-slate-300 max-w-[260px] truncate">
+                      {p.title}
+                    </span>
+                    <span className="text-slate-600">·</span>
+                    <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
+                      {p.origin || "—"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
