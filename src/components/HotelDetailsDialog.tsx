@@ -304,7 +304,7 @@ export function HotelDetailsDialog({
                         <div className="h-3 w-4/5 rounded bg-white/5 animate-pulse" />
                       </div>
                     ) : (
-                      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2">
+                      <div className="custom-scrollbar min-h-0 flex-1 pr-2 md:overflow-y-auto md:overscroll-contain">
                         <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">
                           {safeText(data?.description)}
                         </p>
