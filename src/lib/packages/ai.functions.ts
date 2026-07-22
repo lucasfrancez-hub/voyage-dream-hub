@@ -677,8 +677,22 @@ Regras:
 
 - hotel_stars: número inteiro de 1 a 5 (conte as estrelas ou pegue a classificação).
 - includes: liste os itens da seção "Incluso" do documento.
-- supplier_name: identifique a OPERADORA/FORNECEDOR emissor do orçamento. Procure o LOGO ou nome no cabeçalho/rodapé/topo do documento. Regras: se aparecer "Visual" (com losango azul) → "Visual Turismo"; "CVC" → "CVC"; "Azul Viagens" → "Azul Viagens"; "Flytour" → "Flytour"; "Nascimento" → "Nascimento Turismo". Nunca coloque o nome da agência revendedora (ex.: VIA AIR), só da OPERADORA emissora.
-- services: identifique serviços incluídos. seguro.enabled=true quando o documento mencionar "seguro viagem"/"assistência de viagem"; cobertura = valor por pessoa como aparece (ex.: "US$ 30.000", "R$ 40.000"). transfer.enabled=true quando mencionar "traslados"/"transfer"/"transporte aeroporto-hotel"; sentido: "in_out" para ida e volta, "in" só chegada, "out" só saída. city_tour.enabled=true quando mencionar "city tour"/"passeio panorâmico"/"passeios inclusos"; detalhe = descrição curta. outros = lista de serviços adicionais explícitos (ex.: "eSIM", "bagagem extra", "assistência 24h"). Se não houver menção clara, deixe enabled=false e outros=[].
+- supplier_name: identifique a OPERADORA/FORNECEDOR emissor do orçamento. Procure o LOGO ou nome TANTO no cabeçalho QUANTO no rodapé (às vezes o topo traz a agência revendedora e o rodapé traz a operadora emissora — sempre prefira a operadora). Regras: "Visual" (losango azul) → "Visual Turismo"; "CVC" → "CVC"; "Azul Viagens" → "Azul Viagens"; "Flytour" → "Flytour"; "Nascimento" → "Nascimento Turismo"; "Cativa" → "Cativa Operadora"; "GTA" → "GTA"; "HubTravels" → "HubTravels"; "Infotera" NÃO é operadora (é plataforma) — ignore. Nunca coloque o nome da agência revendedora (ex.: VIA AIR), só da OPERADORA emissora.
+- services.seguro: identifique seguro/assistência de viagem. Preencha:
+  * plano: nome do plano/produto exatamente como aparece (ex.: "BRONZE AL", "PRATA", "GTA Standard").
+  * cobertura: valor da cobertura MÉDICA por pessoa como número/texto (ex.: "30.000", "40.000").
+  * moeda: "BRL" | "USD" | "EUR" — leia o símbolo do documento (R$/US$/€).
+  * cancelamento / cancelamento_moeda: valor por pessoa da "Cobertura de Cancelamento Involuntário de Viagem" quando aparecer.
+  Tabela de auto-preenchimento (quando o plano aparecer no voucher e o valor não estiver explícito):
+    - GTA "BRONZE AL" → cobertura "12.000" USD.
+    - GTA "PRATA AL" → cobertura "30.000" USD.
+    - GTA "OURO AL" → cobertura "60.000" USD.
+    - Assist Card AC 35 / AC35 → cobertura "35.000" USD.
+    - Assist Card AC 60 / AC60 → cobertura "60.000" USD.
+  Se o documento mostrar o valor explícito, use o valor do documento (prevalece sobre a tabela).
+- services.transfer: enabled=true quando mencionar "traslados"/"transfer"/"transporte aeroporto-hotel"; sentido: "in_out" para ida e volta, "in" só chegada, "out" só saída.
+- services.city_tour: enabled=true quando mencionar "city tour"/"passeio panorâmico"/"passeios inclusos"; detalhe = descrição curta.
+- services.outros: lista de serviços adicionais explícitos (ex.: "eSIM", "bagagem extra", "assistência 24h"). Se não houver menção clara, deixe enabled=false e outros=[].
 - Retorne SÓ o JSON, começando com { e terminando com }.`;
 
     const userContent: any[] = [
