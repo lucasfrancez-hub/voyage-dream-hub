@@ -570,14 +570,23 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
         room_type: pkg.room_type ?? null, base_occupancy: pkg.base_occupancy ?? 2,
         tripadvisor_address: pkg.tripadvisor_address ?? null,
       };
+      let delivery: "downloaded" | "shared" | "cancelled";
       if (kind === "feed") {
         const { generatePackageFeedArt } = await import("@/lib/packages/feed-art");
-        await generatePackageFeedArt(input);
+        delivery = await generatePackageFeedArt(input);
       } else {
         const { generatePackageStoryArt } = await import("@/lib/packages/story-art");
-        await generatePackageStoryArt(input);
+        delivery = await generatePackageStoryArt(input);
       }
-      toast.success(kind === "feed" ? "Arte Feed (3:4) baixada!" : "Arte Story (9:16) baixada!");
+      toast.success(
+        delivery === "shared"
+          ? "Arte pronta para salvar ou compartilhar!"
+          : delivery === "cancelled"
+            ? "Compartilhamento cancelado."
+            : kind === "feed"
+              ? "Arte Feed (3:4) baixada!"
+              : "Arte Story (9:16) baixada!",
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao gerar a arte");
     } finally {

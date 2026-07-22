@@ -996,8 +996,15 @@ function AdminPackages() {
                               try {
                                 const { generatePackageStoryArt } =
                                   await import("@/lib/packages/story-art");
-                                await generatePackageStoryArt(p);
-                                toast.success("Arte pronta!", { id: t });
+                                const delivery = await generatePackageStoryArt(p);
+                                toast.success(
+                                  delivery === "shared"
+                                    ? "Arte pronta para salvar ou compartilhar!"
+                                    : delivery === "cancelled"
+                                      ? "Compartilhamento cancelado."
+                                      : "Arte baixada!",
+                                  { id: t },
+                                );
                               } catch (e) {
                                 toast.error(
                                   e instanceof Error ? e.message : "Falha ao gerar arte",
@@ -1014,8 +1021,15 @@ function AdminPackages() {
                               try {
                                 const { generatePackageFeedArt } =
                                   await import("@/lib/packages/feed-art");
-                                await generatePackageFeedArt(p);
-                                toast.success("Arte pronta!", { id: t });
+                                const delivery = await generatePackageFeedArt(p);
+                                toast.success(
+                                  delivery === "shared"
+                                    ? "Arte pronta para salvar ou compartilhar!"
+                                    : delivery === "cancelled"
+                                      ? "Compartilhamento cancelado."
+                                      : "Arte baixada!",
+                                  { id: t },
+                                );
                               } catch (e) {
                                 toast.error(
                                   e instanceof Error ? e.message : "Falha ao gerar arte",
