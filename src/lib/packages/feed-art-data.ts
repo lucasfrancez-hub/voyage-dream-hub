@@ -91,12 +91,38 @@ function formatDateBR(iso: string | null) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+export type SeguroMoeda = "BRL" | "USD" | "EUR";
 export type PackageServices = {
-  seguro?: { enabled?: boolean; cobertura?: string | null };
+  seguro?: {
+    enabled?: boolean;
+    cobertura?: string | null;
+    moeda?: SeguroMoeda | null;
+    cancelamento?: string | null;
+    cancelamento_moeda?: SeguroMoeda | null;
+    plano?: string | null;
+  };
   transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null };
   city_tour?: { enabled?: boolean; detalhe?: string | null };
   outros?: string[];
 };
+
+export const SEGURO_MOEDA_SYMBOL: Record<SeguroMoeda, string> = {
+  BRL: "R$",
+  USD: "US$",
+  EUR: "€",
+};
+
+export function formatSeguroCobertura(
+  value: string | null | undefined,
+  moeda: SeguroMoeda | null | undefined,
+): string {
+  const v = (value ?? "").trim();
+  if (!v) return "";
+  const sym = moeda ? SEGURO_MOEDA_SYMBOL[moeda] : "";
+  // Se o próprio texto já traz moeda (R$/US$/€/USD/EUR/BRL), respeita.
+  if (/^(r\$|us\$|u\$|\$|€|usd|eur|brl)\b/i.test(v)) return v;
+  return sym ? `${sym} ${v}` : v;
+}
 
 function countServices(services?: PackageServices | null): number {
   if (!services) return 0;

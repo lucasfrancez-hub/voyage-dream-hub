@@ -29,7 +29,8 @@ import { FileUp, Upload, ChevronLeft, ChevronRight, ChevronDown, Sparkles as Spa
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
-import type { PackageServices } from "@/lib/packages/feed-art-data";
+import type { PackageServices, SeguroMoeda } from "@/lib/packages/feed-art-data";
+import { formatSeguroCobertura } from "@/lib/packages/feed-art-data";
 import { Shield, Bus, MapPin as MapPinIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pacotes")({
@@ -1102,8 +1103,12 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     if (checked) list.push("Bagagem Despachada");
     const svc = (editing.services ?? {}) as PackageServices;
     if (svc.seguro?.enabled) {
-      const cob = (svc.seguro.cobertura ?? "").trim();
-      list.push(cob ? `Seguro Viagem — Cobertura ${cob} por pessoa` : "Seguro Viagem");
+      const cob = formatSeguroCobertura(svc.seguro.cobertura, svc.seguro.moeda);
+      const plano = (svc.seguro.plano ?? "").trim();
+      const base = plano ? `Seguro Viagem ${plano}` : "Seguro Viagem";
+      list.push(cob ? `${base} — Cobertura ${cob} por pessoa` : base);
+      const canc = formatSeguroCobertura(svc.seguro.cancelamento, svc.seguro.cancelamento_moeda);
+      if (canc) list.push(`Cobertura de Cancelamento Involuntário — ${canc} por pessoa`);
     }
     if (svc.transfer?.enabled) {
       const sentido = svc.transfer.sentido;
@@ -1929,14 +1934,60 @@ function ServicesEditor({
             <span className="text-sm font-medium">Seguro viagem</span>
           </label>
           {seguro.enabled && (
-            <div className="mt-2 grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-2 items-center">
-              <span className="text-xs text-muted-foreground">Cobertura por pessoa</span>
-              <input
-                className={inpClass}
-                placeholder="Ex.: R$ 40.000 ou US$ 30.000"
-                value={seguro.cobertura ?? ""}
-                onChange={(e) => patch({ seguro: { ...seguro, cobertura: e.target.value } })}
-              />
+            <div className="mt-3 space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-2 items-center">
+                <span className="text-xs text-muted-foreground">Plano (opcional)</span>
+                <input
+                  className={inpClass}
+                  placeholder="Ex.: BRONZE AL, PRATA, GTA Standard"
+                  value={seguro.plano ?? ""}
+                  onChange={(e) => patch({ seguro: { ...seguro, plano: e.target.value } })}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[140px_110px_1fr] gap-2 items-center">
+                <span className="text-xs text-muted-foreground">Cobertura médica</span>
+                <select
+                  className={inpClass}
+                  value={(seguro.moeda ?? "USD") as SeguroMoeda}
+                  onChange={(e) => patch({ seguro: { ...seguro, moeda: e.target.value as SeguroMoeda } })}
+                >
+                  <option value="BRL">R$ (Real)</option>
+                  <option value="USD">US$ (Dólar)</option>
+                  <option value="EUR">€ (Euro)</option>
+                </select>
+                <input
+                  className={inpClass}
+                  placeholder="Ex.: 30.000 · 40.000 · 12.000"
+                  value={seguro.cobertura ?? ""}
+                  onChange={(e) => patch({ seguro: { ...seguro, cobertura: e.target.value } })}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[140px_110px_1fr] gap-2 items-center">
+                <span className="text-xs text-muted-foreground">Cancelamento</span>
+                <select
+                  className={inpClass}
+                  value={(seguro.cancelamento_moeda ?? seguro.moeda ?? "BRL") as SeguroMoeda}
+                  onChange={(e) => patch({ seguro: { ...seguro, cancelamento_moeda: e.target.value as SeguroMoeda } })}
+                >
+                  <option value="BRL">R$ (Real)</option>
+                  <option value="USD">US$ (Dólar)</option>
+                  <option value="EUR">€ (Euro)</option>
+                </select>
+                <input
+                  className={inpClass}
+                  placeholder="Cobertura de cancelamento involuntário (opcional)"
+                  value={seguro.cancelamento ?? ""}
+                  onChange={(e) => patch({ seguro: { ...seguro, cancelamento: e.target.value } })}
+                />
+              </div>
+              {(seguro.cobertura || seguro.cancelamento) && (
+                <div className="text-[11px] text-muted-foreground">
+                  Prévia: {[
+                    seguro.cobertura ? `Médica ${formatSeguroCobertura(seguro.cobertura, seguro.moeda)}` : null,
+                    seguro.cancelamento ? `Cancelamento ${formatSeguroCobertura(seguro.cancelamento, seguro.cancelamento_moeda ?? seguro.moeda)}` : null,
+                  ].filter(Boolean).join(" · ")}
+                </div>
+              )}
             </div>
           )}
         </div>
