@@ -197,7 +197,14 @@ export function HotelDetailsDialog({
             {/* Descrição */}
             {data?.description && (
               <section>
-                <h3 className="font-semibold text-sm mb-2">Sobre o hotel</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold text-sm">Sobre o hotel</h3>
+                  {data.description_translated_from && (
+                    <span className="rounded-full bg-brand-orange/10 text-brand-orange text-[10px] px-2 py-0.5 uppercase tracking-wide">
+                      Traduzido do {langLabel(data.description_translated_from)}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
                    {safeText(data.description)}
                 </p>
