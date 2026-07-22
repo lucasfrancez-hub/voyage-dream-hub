@@ -34,7 +34,7 @@ function Checkout() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle();
@@ -205,6 +205,9 @@ function Checkout() {
             hotel_name: pkg.hotel_name ?? null,
             hotel_stars: pkg.hotel_stars ?? null,
             meal_plan: pkg.meal_plan ?? null,
+            room_type: (pkg as { room_type?: string | null }).room_type ?? null,
+            room_category: (pkg as { room_category?: string | null }).room_category ?? null,
+            bed_type: (pkg as { bed_type?: string | null }).bed_type ?? null,
             includes: pkg.includes ?? null,
             outbound_flight: pkg.outbound_flight ?? null,
             return_flight: pkg.return_flight ?? null,
