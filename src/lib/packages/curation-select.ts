@@ -200,6 +200,38 @@ export function selectCuratedPackages<T extends CurationPkg>(packages: T[]): T[]
       out.push(p);
     }
   }
+  return diversifyByDestination(out);
+}
+
+/**
+ * Reordena preservando a prioridade original, mas evitando repetir o
+ * mesmo destino em sequência. Round-robin por destino normalizado:
+ * pega o 1º de cada destino, depois o 2º, e assim por diante.
+ */
+export function diversifyByDestination<T extends { destination: string }>(list: T[]): T[] {
+  if (list.length <= 2) return list;
+  const groups = new Map<string, T[]>();
+  const order: string[] = [];
+  for (const p of list) {
+    const key = norm(p.destination).replace(/[^a-z0-9]+/g, " ").trim();
+    if (!groups.has(key)) {
+      groups.set(key, []);
+      order.push(key);
+    }
+    groups.get(key)!.push(p);
+  }
+  const out: T[] = [];
+  let added = true;
+  while (added) {
+    added = false;
+    for (const key of order) {
+      const arr = groups.get(key);
+      if (arr && arr.length) {
+        out.push(arr.shift()!);
+        added = true;
+      }
+    }
+  }
   return out;
 }
 
@@ -284,5 +316,5 @@ export function selectMixedFeatured<T extends CurationPkg>(
       if (out.length >= total) break;
     }
   }
-  return out;
+  return diversifyByDestination(out);
 }
