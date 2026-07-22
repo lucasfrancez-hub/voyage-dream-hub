@@ -124,7 +124,9 @@ function pickAddress(addresses: Array<Record<string, unknown>> | undefined) {
 }
 
 function extractRating(obj: Record<string, unknown>): number | null {
+  const tr = (obj as { traveler_ratings?: { overall?: { rating?: unknown } } }).traveler_ratings;
   const candidates: unknown[] = [
+    tr?.overall?.rating,
     (obj.overall_rating as { rating?: unknown } | undefined)?.rating,
     obj.overall_rating,
     obj.rating,
