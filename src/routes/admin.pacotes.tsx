@@ -643,6 +643,7 @@ function AdminPackages() {
       <DuplicatePackagesAlert
         packages={(packages || []) as PackageRow[]}
         onOpen={(p) => setEditingState(p)}
+        onDelete={(p) => remove(p)}
       />
 
       <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
