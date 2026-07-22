@@ -375,7 +375,10 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     const [rDet, rPhotos, rReviews] = await Promise.all([
       fetchWithRetry(`/locations/${id}`, {}),
       fetchWithRetry(`/locations/${id}/photos`, { limit: "50" }),
-      fetchWithRetry(`/locations/${id}/reviews`, { language: "pt", limit: "40" }),
+      // Não filtre por português: para muitos hotéis a API retorna zero itens
+      // mesmo havendo avaliações em outros idiomas. Buscamos todas e traduzimos
+      // o conteúdo abaixo antes de enviá-lo para a interface.
+      fetchWithRetry(`/locations/${id}/reviews`, { limit: "40" }),
     ]);
 
     const empty: TAPublicHotelInfo = {
@@ -514,7 +517,11 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     if (rReviews.ok) {
       const jr = (await rReviews.json()) as { data?: Array<Record<string, unknown>> };
       for (const r of jr.data || []) {
-        const user = (r.user as { username?: string; user_location?: { name?: string } } | undefined);
+        const user = (r.user as {
+          username?: string;
+          geo?: string;
+          user_location?: { name?: string } | string;
+        } | undefined);
         const title = localizedText(r.title) || null;
         const text = localizedText(r.text) || null;
         let lang = String((r as { lang?: string }).lang || "").toLowerCase().slice(0, 2);
@@ -526,9 +533,11 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
           id: Number(r.id) || 0,
           rating: (() => { const n = Number(r.rating); return Number.isFinite(n) ? n : null; })(),
           title, text,
-          published_date: (r.published_date as string) || null,
+          published_date: (r.publish_ts as string) || (r.published_date as string) || null,
           user_name: user?.username ?? null,
-          user_location: localizedText(user?.user_location?.name) || null,
+          user_location: localizedText(
+            typeof user?.user_location === "object" ? user.user_location.name : user?.user_location,
+          ) || localizedText(user?.geo) || null,
           trip_type: localizedText(r.trip_type) || null,
           lang,
         });
