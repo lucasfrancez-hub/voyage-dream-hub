@@ -170,14 +170,15 @@ const monthOf = (s: string | null) => {
 export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefresh?: () => void | Promise<void> }) {
   const activeAll = useMemo(() => (packages || []).filter((p) => p.is_active), [packages]);
   const originOptions = useMemo(
-    () => Array.from(new Set(activeAll.map((p) => (p.origin || "").trim()).filter(Boolean))).sort(),
+    () => dedupeOrigins(activeAll.map((p) => p.origin)),
     [activeAll],
   );
   const [originFilter, setOriginFilter] = useState<string>("all");
   const active = useMemo(
-    () => (originFilter === "all" ? activeAll : activeAll.filter((p) => (p.origin || "").trim() === originFilter)),
+    () => (originFilter === "all" ? activeAll : activeAll.filter((p) => originKey(p.origin) === originKey(originFilter))),
     [activeAll, originFilter],
   );
+
   const [refreshing, setRefreshing] = useState(false);
   const doRefresh = async () => {
     if (!onRefresh) return;
