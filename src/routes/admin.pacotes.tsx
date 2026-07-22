@@ -431,8 +431,8 @@ function AdminPackages() {
       itinerary: pkg.itinerary || null,
       hotel_name: pkg.hotel_name || null,
       meal_plan: pkg.meal_plan || null,
-      room_type: pkg.room_type || null,
-      room_category: pkg.room_category || null,
+      room_type: cleanRoomLabel(pkg.room_type),
+      room_category: cleanRoomLabel(pkg.room_category),
       bed_type: pkg.bed_type || null,
       is_active: pkg.is_active ?? true,
       includes:
