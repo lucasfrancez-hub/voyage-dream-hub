@@ -97,9 +97,16 @@ export type PackageServices = {
     enabled?: boolean;
     cobertura?: string | null;
     moeda?: SeguroMoeda | null;
+    // Campos legados — mantidos p/ compatibilidade com registros antigos.
+    // Novo fluxo usa o bloco `cancelamento` no topo de services.
     cancelamento?: string | null;
     cancelamento_moeda?: SeguroMoeda | null;
     plano?: string | null;
+  };
+  cancelamento?: {
+    enabled?: boolean;
+    cobertura?: string | null;
+    moeda?: SeguroMoeda | null;
   };
   transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null };
   city_tour?: { enabled?: boolean; detalhe?: string | null };
