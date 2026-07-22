@@ -2683,6 +2683,7 @@ function PackageImportButton({
       // (Passagem Aérea → Hospedagem → Café da Manhã → Bagagem Despachada).
       patch.includes = [];
       if (p.supplier_name) patch.supplier_name = String(p.supplier_name);
+      if (p.services && typeof p.services === "object") patch.services = p.services as PackageServices;
       if (p.outbound_flight && typeof p.outbound_flight === "object") {
         patch.outbound_flight = normalizeFlightBaggage({
           ...p.outbound_flight,
