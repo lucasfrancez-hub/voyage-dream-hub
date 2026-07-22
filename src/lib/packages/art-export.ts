@@ -185,9 +185,10 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       "display:flex",
       "align-items:center",
       "justify-content:center",
-      "padding:20px",
-      "background:rgba(10,12,18,.62)",
-      "backdrop-filter:blur(14px) saturate(140%)",
+      "padding:24px",
+      "background:rgba(9,9,11,.62)",
+      "backdrop-filter:blur(16px) saturate(140%)",
+      "-webkit-font-smoothing:antialiased",
       "animation:viaair-art-fade .18s ease-out",
     ].join(";");
 
@@ -198,72 +199,114 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       style.textContent = `
         @keyframes viaair-art-fade { from { opacity: 0 } to { opacity: 1 } }
         @keyframes viaair-art-pop { from { opacity: 0; transform: translateY(12px) scale(.98) } to { opacity: 1; transform: none } }
-        .viaair-art-btn { transition: transform .12s ease, filter .12s ease, box-shadow .12s ease; }
-        .viaair-art-btn:hover { filter: brightness(1.05); }
-        .viaair-art-btn:active { transform: translateY(1px) scale(.98); }
+        .viaair-art-btn { transition: transform .12s ease, filter .12s ease, box-shadow .12s ease, background-color .12s ease; }
+        .viaair-art-btn:hover { filter: brightness(1.03); }
+        .viaair-art-btn:active { transform: scale(.985); }
+        .viaair-art-cancel:hover { background: rgba(228,228,231,.9) !important; }
       `;
       document.head.appendChild(style);
     }
 
     const panel = document.createElement("div");
     panel.style.cssText = [
-      "width:min(100%,440px)",
-      "max-height:92dvh",
-      "overflow:auto",
-      "padding:18px",
-      "border-radius:24px",
-      "background:#111318",
-      "color:#f5f6f8",
-      "border:1px solid rgba(255,255,255,.08)",
-      "box-shadow:0 30px 80px rgba(0,0,0,.55)",
+      "width:min(100%,400px)",
+      "max-height:88dvh",
+      "display:flex",
+      "flex-direction:column",
+      "overflow:hidden",
+      "border-radius:28px",
+      "background:#ffffff",
+      "color:#18181b",
+      "border:1px solid rgba(0,0,0,.03)",
+      "box-shadow:0 30px 80px rgba(0,0,0,.35)",
+      "font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif",
       "animation:viaair-art-pop .22s cubic-bezier(.2,.9,.3,1)",
     ].join(";");
 
+    // Cabeçalho
+    const header = document.createElement("div");
+    header.style.cssText = "padding:28px 32px 20px;text-align:center;flex-shrink:0";
+    const title = document.createElement("h2");
+    title.textContent = "Sua arte está pronta!";
+    title.style.cssText = "margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:#18181b";
+    const subtitle = document.createElement("p");
+    subtitle.textContent = "Revise o flyer gerado para o pacote VIA AIR";
+    subtitle.style.cssText = "margin:6px 0 0;font-size:14px;color:#71717a";
+    header.append(title, subtitle);
+
+    // Área da prévia
+    const previewWrap = document.createElement("div");
+    previewWrap.style.cssText = "padding:0 32px 20px;flex:1 1 auto;min-height:0;display:flex";
+    const previewBox = document.createElement("div");
+    previewBox.style.cssText = [
+      "position:relative",
+      "width:100%",
+      "flex:1 1 auto",
+      "min-height:0",
+      "background:#f4f4f5",
+      "border-radius:18px",
+      "overflow:hidden",
+      "border:1px solid #f4f4f5",
+      "box-shadow:inset 0 0 40px rgba(0,0,0,.02)",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+    ].join(";");
     const preview = document.createElement("img");
     preview.src = previewUrl;
     preview.alt = "Prévia da arte pronta";
-    preview.style.cssText = "display:block;width:100%;max-height:60dvh;object-fit:contain;border-radius:18px;background:#0a0b0f";
+    preview.style.cssText = "display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain";
+    previewBox.append(preview);
+    previewWrap.append(previewBox);
 
-    const hint = document.createElement("p");
-    hint.textContent = opts.canShare
-      ? "Toque em Salvar ou compartilhar para escolher onde guardar a imagem."
-      : "";
-    hint.style.cssText = "margin:12px 4px 0;font:400 13px inherit;color:rgba(245,246,248,.7);text-align:center";
-
+    // Ações
     const actions = document.createElement("div");
-    actions.style.cssText = "display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:14px";
+    actions.style.cssText = "padding:0 32px 20px;display:flex;flex-direction:column;gap:12px;flex-shrink:0";
 
     const primaryButton = document.createElement("button");
     primaryButton.type = "button";
     primaryButton.className = "viaair-art-btn";
     primaryButton.textContent = opts.canShare ? "Salvar ou compartilhar" : "Baixar imagem";
     primaryButton.style.cssText = [
+      "width:100%",
       "min-height:52px",
-      "padding:0 22px",
+      "padding:0 24px",
       "border:0",
       "border-radius:9999px",
       "background:#F26B1F",
-      "color:#fff",
-      "font:600 15px inherit",
+      "color:#ffffff",
+      "font:700 16px inherit",
       "cursor:pointer",
-      "box-shadow:0 8px 24px rgba(242,107,31,.35)",
+      "box-shadow:0 10px 24px -6px rgba(242,107,31,.5)",
     ].join(";");
 
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
-    cancelButton.className = "viaair-art-btn";
+    cancelButton.className = "viaair-art-btn viaair-art-cancel";
     cancelButton.textContent = "Cancelar";
     cancelButton.style.cssText = [
-      "min-height:52px",
-      "padding:0 22px",
-      "border:1px solid rgba(255,255,255,.14)",
+      "width:100%",
+      "min-height:48px",
+      "padding:0 24px",
+      "border:0",
       "border-radius:9999px",
-      "background:rgba(255,255,255,.06)",
-      "color:#f5f6f8",
-      "font:600 15px inherit",
+      "background:rgba(244,244,245,.8)",
+      "color:#52525b",
+      "font:600 14px inherit",
       "cursor:pointer",
     ].join(";");
 
+    actions.append(primaryButton, cancelButton);
+
+    // Marca discreta
+    const brand = document.createElement("div");
+    brand.style.cssText = "padding:0 0 18px;display:flex;justify-content:center;gap:6px;align-items:center;opacity:.3;flex-shrink:0";
+    const dot = document.createElement("span");
+    dot.style.cssText = "width:6px;height:6px;border-radius:9999px;background:#F26B1F;display:inline-block";
+    const brandText = document.createElement("span");
+    brandText.textContent = "VIA AIR ADMIN";
+    brandText.style.cssText = "font:700 10px inherit;letter-spacing:.2em;color:#18181b";
+    brand.append(dot, brandText);
 
     const finish = (delivery: ArtDelivery) => {
       overlay.remove();
@@ -289,14 +332,17 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       finish("downloaded");
     });
     cancelButton.addEventListener("click", () => finish("cancelled"));
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) finish("cancelled");
+    });
 
-    actions.append(primaryButton, cancelButton);
-    panel.append(preview, hint, actions);
+    panel.append(header, previewWrap, actions, brand);
     overlay.append(panel);
     document.body.appendChild(overlay);
     primaryButton.focus();
   });
 }
+
 
 export async function deliverArtPng(blob: Blob, filename: string): Promise<ArtDelivery> {
   const file = new File([blob], filename, { type: "image/png" });
