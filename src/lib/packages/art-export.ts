@@ -279,14 +279,12 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
 export async function deliverArtPng(blob: Blob, filename: string): Promise<ArtDelivery> {
   const file = new File([blob], filename, { type: "image/png" });
 
-  // A geração assíncrona perde a ativação do clique no WebKit — tanto no Safari
-  // desktop quanto no iOS o download automático é ignorado silenciosamente.
-  // Mostramos uma prévia com um botão que roda em um clique novo do usuário.
+  // A geração da arte é assíncrona e pode perder a ativação original do clique.
+  // Alguns navegadores então ignoram anchor.click() silenciosamente, embora a
+  // interface informe sucesso. A prévia cria um novo clique válido e só retorna
+  // "downloaded" depois que a pessoa aciona explicitamente o salvamento.
   const canShareFiles = Boolean(navigator.canShare?.({ files: [file] }));
-  if (isSafari()) {
-    return offerPreviewSheet(file, { canShare: canShareFiles && isAppleMobile() });
-  }
-
-  downloadBlob(blob, filename);
-  return "downloaded";
+  return offerPreviewSheet(file, {
+    canShare: canShareFiles && (isAppleMobile() || isSafari()),
+  });
 }
