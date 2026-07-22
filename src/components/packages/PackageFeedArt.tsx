@@ -30,6 +30,7 @@ export type FeedArtData = {
     transfer: boolean;
     seguroViagem: boolean;
     esimInternacional: boolean;
+    maisServicos: boolean;
   };
 };
 
@@ -91,6 +92,7 @@ const INCLUDES: IncludeItem[] = [
   { key: "transfer",          label: "Transfer",           icon: I.bus },
   { key: "seguroViagem",      label: "Seguro\nViagem",     icon: I.shield },
   { key: "esimInternacional", label: "eSIM\nIntl.",        icon: I.wifi },
+  { key: "maisServicos",      label: "E mais\nserviços",   icon: I.bus },
 ];
 
 function splitDestino(destino: string) {

@@ -62,6 +62,7 @@ const INCLUDES: IncludeItem[] = [
   { key: "transfer",          label: "Transfer", icon: I.bus },
   { key: "seguroViagem",      label: "Seguro",   icon: I.shield },
   { key: "esimInternacional", label: "eSIM",     icon: I.wifi },
+  { key: "maisServicos",      label: "+ Serviços", icon: I.bus },
 ];
 
 function splitDestino(destino: string) {
