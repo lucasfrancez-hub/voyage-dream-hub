@@ -332,9 +332,11 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
         >
           <option value="all">Todas as origens ({activeAll.length})</option>
           {originOptions.map((o) => {
-            const n = activeAll.filter((p) => (p.origin || "").trim() === o).length;
-            return <option key={o} value={o}>{o} ({n})</option>;
+            const k = originKey(o);
+            const n = activeAll.filter((p) => originKey(p.origin) === k).length;
+            return <option key={o} value={o}>{canonOrigin(o)} ({n})</option>;
           })}
+
         </select>
         {onRefresh && (
           <button
