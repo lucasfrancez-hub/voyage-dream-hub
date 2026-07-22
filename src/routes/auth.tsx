@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Lock, ArrowLeft, ShieldCheck } from "lucide-react";
+import { Loader2, Lock, ArrowLeft, ShieldCheck, Copy, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import { checkTrustedDevice, registerTrustedDevice } from "@/lib/trusted-devices.functions";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -21,11 +22,10 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Step = "credentials" | "mfa";
+type Step = "credentials" | "mfa" | "enroll";
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode] = useState<"login" | "signup">("login");
   const [step, setStep] = useState<Step>("credentials");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,38 +33,64 @@ function AuthPage() {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [trustDevice, setTrustDevice] = useState(true);
+  const [enroll, setEnroll] = useState<{ id: string; qr: string; secret: string } | null>(null);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (data && data.currentLevel && data.currentLevel === data.nextLevel && data.currentLevel !== null) {
-        const { data: sess } = await supabase.auth.getSession();
-        if (sess.session) navigate({ to: "/admin" });
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.currentLevel === "aal2") {
+        navigate({ to: "/admin" });
       }
     })();
   }, [navigate]);
 
-  async function ensureMfaOrEnter() {
-    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const verified = factors?.totp?.find((f) => f.status === "verified");
-      if (verified) {
-        const { data: challenge, error } = await supabase.auth.mfa.challenge({ factorId: verified.id });
-        if (error) throw error;
-        setFactorId(verified.id);
-        setChallengeId(challenge.id);
-        setStep("mfa");
+  /** Após signIn com sucesso: verifica MFA / trusted device e decide próximo passo. */
+  async function postSignInFlow() {
+    // 1) Já tem fator verificado?
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const verified = factors?.totp?.find((f) => f.status === "verified");
+
+    // 2) Sem fator → força enrollment (MFA obrigatório).
+    if (!verified) {
+      // Limpa fatores pendentes de tentativas anteriores.
+      for (const f of factors?.totp ?? []) {
+        if (f.status !== "verified") {
+          try { await supabase.auth.mfa.unenroll({ factorId: f.id }); } catch { /* ignore */ }
+        }
+      }
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: `Authenticator ${new Date().toLocaleDateString("pt-BR")}`,
+      });
+      if (error) throw error;
+      setEnroll({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
+      setStep("enroll");
+      return;
+    }
+
+    // 3) Tem fator. Este device é confiável?
+    try {
+      const { trusted } = await checkTrustedDevice();
+      if (trusted) {
+        toast.success("Dispositivo confiável reconhecido");
+        navigate({ to: "/admin" });
         return;
       }
+    } catch {
+      // se check falhar, cai no MFA normal
     }
-    navigate({ to: "/admin" });
+
+    // 4) Device novo → exige TOTP.
+    const { data: challenge, error } = await supabase.auth.mfa.challenge({ factorId: verified.id });
+    if (error) throw error;
+    setFactorId(verified.id);
+    setChallengeId(challenge.id);
+    setStep("mfa");
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    // Lê direto do form pra pegar valor de autofill do navegador,
-    // mesmo se o onChange do React não disparou.
     const form = e.currentTarget;
     const fd = new FormData(form);
     const emailValue = String(fd.get("email") ?? email ?? "").trim();
@@ -77,26 +103,17 @@ function AuthPage() {
     setPassword(passwordValue);
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email: emailValue,
-          password: passwordValue,
-          options: { emailRedirectTo: `${window.location.origin}/admin` },
-        });
-        if (error) throw error;
-        toast.success("Conta criada! Se a confirmação por e-mail estiver ativa, verifique sua caixa.");
-        navigate({ to: "/admin" });
-        return;
-      }
-      // Limpa qualquer sessão residual (ex.: MFA anterior que falhou) antes
-      // de gerar tokens novos — evita 'session_not_found' no challenge/verify.
       try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
       const { error } = await supabase.auth.signInWithPassword({ email: emailValue, password: passwordValue });
       if (error) throw error;
-      await ensureMfaOrEnter();
+      await postSignInFlow();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro na autenticação";
-      toast.error(message.toLowerCase().includes("invalid login credentials") ? "E-mail ou senha incorretos. Peça ao gestor para reenviar seu acesso." : message);
+      toast.error(
+        message.toLowerCase().includes("invalid login credentials")
+          ? "E-mail ou senha incorretos. Peça ao gestor para reenviar seu acesso."
+          : message,
+      );
     } finally {
       setLoading(false);
     }
@@ -109,6 +126,16 @@ function AuthPage() {
     try {
       const { error } = await supabase.auth.mfa.verify({ factorId, challengeId, code: otp });
       if (error) throw error;
+
+      if (trustDevice) {
+        try {
+          await registerTrustedDevice({
+            data: { label: navigator.userAgent.split(") ")[0]?.replace("(", "").slice(0, 60) },
+          });
+        } catch (err) {
+          console.error("Falha ao registrar device confiável", err);
+        }
+      }
       toast.success("Verificação concluída");
       navigate({ to: "/admin" });
     } catch (err) {
@@ -116,6 +143,48 @@ function AuthPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleEnroll(e: React.FormEvent) {
+    e.preventDefault();
+    if (!enroll) return;
+    setLoading(true);
+    try {
+      const { data: challenge, error: ce } = await supabase.auth.mfa.challenge({ factorId: enroll.id });
+      if (ce) throw ce;
+      const { error } = await supabase.auth.mfa.verify({
+        factorId: enroll.id,
+        challengeId: challenge.id,
+        code: otp,
+      });
+      if (error) throw error;
+
+      if (trustDevice) {
+        try {
+          await registerTrustedDevice({
+            data: { label: navigator.userAgent.split(") ")[0]?.replace("(", "").slice(0, 60) },
+          });
+        } catch (err) {
+          console.error("Falha ao registrar device confiável", err);
+        }
+      }
+      toast.success("Autenticador ativado. Bem-vindo!");
+      navigate({ to: "/admin" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Código inválido");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function cancelEnroll() {
+    if (enroll) {
+      try { await supabase.auth.mfa.unenroll({ factorId: enroll.id }); } catch { /* ignore */ }
+    }
+    await supabase.auth.signOut({ scope: "local" });
+    setEnroll(null);
+    setOtp("");
+    setStep("credentials");
   }
 
   return (
@@ -133,7 +202,79 @@ function AuthPage() {
 
       <div className="flex-1 flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)]">
-          {step === "mfa" ? (
+          {step === "enroll" && enroll ? (
+            <>
+              <div className="flex items-center gap-2 text-brand-orange text-sm uppercase tracking-widest">
+                <ShieldCheck className="h-4 w-4" /> Ative o 2FA (obrigatório)
+              </div>
+              <h1 className="mt-2 text-2xl font-display font-bold">Configure seu autenticador</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Escaneie o QR code no <strong>Google Authenticator</strong>, Authy ou 1Password e digite o código gerado.
+              </p>
+              <div className="mt-5 flex justify-center">
+                <div className="rounded-xl bg-white p-3" dangerouslySetInnerHTML={{ __html: enroll.qr }} />
+              </div>
+              <div className="mt-3">
+                <label className="text-xs text-muted-foreground">Ou digite manualmente:</label>
+                <div className="mt-1 flex gap-2">
+                  <code className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono break-all">
+                    {enroll.secret}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(enroll.secret);
+                      toast.success("Copiado");
+                    }}
+                    className="rounded-lg border border-border px-3 hover:border-brand-orange"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <form onSubmit={handleEnroll} className="mt-5 space-y-4">
+                <input
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-3 text-center text-lg tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+                  placeholder="000000"
+                  autoFocus
+                />
+                <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={trustDevice}
+                    onChange={(e) => setTrustDevice(e.target.checked)}
+                    className="mt-0.5 accent-[hsl(var(--brand-orange))]"
+                  />
+                  <span>
+                    Confiar neste dispositivo por 30 dias (pula o código nas próximas vezes deste navegador)
+                  </span>
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={loading || otp.length !== 6}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Ativar e entrar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelEnroll}
+                    className="rounded-full border border-border px-4 py-3 text-sm hover:border-brand-orange"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : step === "mfa" ? (
             <>
               <div className="flex items-center gap-2 text-brand-orange text-sm uppercase tracking-widest">
                 <ShieldCheck className="h-4 w-4" /> Verificação em 2 passos
@@ -154,6 +295,18 @@ function AuthPage() {
                   placeholder="000000"
                   autoFocus
                 />
+                <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={trustDevice}
+                    onChange={(e) => setTrustDevice(e.target.checked)}
+                    className="mt-0.5 accent-[hsl(var(--brand-orange))]"
+                  />
+                  <span className="inline-flex items-center gap-1">
+                    <Smartphone className="h-3.5 w-3.5" />
+                    Confiar neste dispositivo por 30 dias
+                  </span>
+                </label>
                 <button
                   type="submit"
                   disabled={loading || otp.length !== 6}
@@ -169,13 +322,9 @@ function AuthPage() {
               <div className="flex items-center gap-2 text-brand-orange text-sm uppercase tracking-widest">
                 <Lock className="h-4 w-4" /> Área restrita
               </div>
-              <h1 className="mt-2 text-2xl font-display font-bold">
-                {mode === "login" ? "Entrar no painel" : "Criar conta admin"}
-              </h1>
+              <h1 className="mt-2 text-2xl font-display font-bold">Entrar no painel</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                {mode === "login"
-                  ? "Acesse para gerenciar pacotes e reservas."
-                  : "A primeira conta criada vira admin automaticamente."}
+                Acesse para gerenciar pacotes e reservas.
               </p>
 
               <form onSubmit={handleSubmit} method="post" action="#" className="mt-6 space-y-4">
@@ -213,7 +362,7 @@ function AuthPage() {
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  {mode === "login" ? "Entrar" : "Criar conta"}
+                  Entrar
                 </button>
               </form>
 
