@@ -253,7 +253,7 @@ function PacotesList() {
 
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <TopBar backHref="https://viaair.tur.br" backLabel="Voltar ao site" />
 
       <main>
