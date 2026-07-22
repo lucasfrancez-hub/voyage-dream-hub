@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   component: AuthPage,
 });
 
