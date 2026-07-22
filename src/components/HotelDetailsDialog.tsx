@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { getTripAdvisorPublicHotelInfo } from "@/lib/tripadvisor.functions";
+import { getTripAdvisorPublicHotelInfo, type TAPublicHotelInfo } from "@/lib/tripadvisor.functions";
 
 type Props = {
   open: boolean;
