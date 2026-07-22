@@ -438,16 +438,6 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
       return Object.keys(out).length ? out : null;
     })();
 
-    const subratings = (() => {
-      const s = (det as { subratings?: Record<string, { name?: string; localized_name?: string; value?: string | number }> }).subratings;
-      if (!s || typeof s !== "object") return [];
-      return Object.values(s)
-        .map((x) => ({
-           name: localizedText(x?.localized_name ?? x?.name),
-          value: Number(x?.value),
-        }))
-        .filter((x) => x.name && Number.isFinite(x.value) && x.value > 0);
-    })();
 
     let photos: string[] = [];
     if (rPhotos.ok) {
