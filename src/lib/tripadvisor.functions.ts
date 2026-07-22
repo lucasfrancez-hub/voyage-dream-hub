@@ -363,10 +363,17 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
   .inputValidator((input: { locationId: number }) => input)
   .handler(async ({ data }): Promise<TAPublicHotelInfo> => {
     const id = data.locationId;
-    const [rDet, rPhotos, rReviews] = await Promise.all([
+    // Terra API costuma capar `limit` das fotos em ~5-30 por chamada; paginamos com offset
+    // pra montar uma galeria robusta (~150 fotos).
+    const PHOTO_PAGES = 6;
+    const PHOTO_PAGE_SIZE = 30;
+    const photoRequests = Array.from({ length: PHOTO_PAGES }, (_, i) =>
+      taFetch(`/locations/${id}/photos?limit=${PHOTO_PAGE_SIZE}&offset=${i * PHOTO_PAGE_SIZE}`, { language: "pt" }),
+    );
+    const [rDet, rReviews, ...rPhotoPages] = await Promise.all([
       taFetch(`/locations/${id}`, { language: "pt" }),
-      taFetch(`/locations/${id}/photos?limit=30`, { language: "pt" }),
       taFetch(`/locations/${id}/reviews?limit=20`, { language: "pt" }),
+      ...photoRequests,
     ]);
 
     const empty: TAPublicHotelInfo = {
