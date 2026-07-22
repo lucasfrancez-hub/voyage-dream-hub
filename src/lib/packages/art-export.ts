@@ -215,11 +215,8 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       "display:flex",
       "flex-direction:column",
       "overflow:hidden",
-      "border-radius:28px",
-      "background:#ffffff",
-      "color:#18181b",
-      "border:1px solid rgba(0,0,0,.03)",
-      "box-shadow:0 30px 80px rgba(0,0,0,.35)",
+      "background:transparent",
+      "color:#ffffff",
       "font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif",
       "animation:viaair-art-pop .22s cubic-bezier(.2,.9,.3,1)",
     ].join(";");
