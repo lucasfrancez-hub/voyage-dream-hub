@@ -254,7 +254,7 @@ function TrustedDevicesSection() {
       title: "Revogar dispositivo?",
       description: "O próximo login neste navegador vai exigir o código do autenticador novamente.",
       confirmText: "Revogar",
-      variant: "destructive",
+      destructive: true,
     });
     if (!ok) return;
     try {
@@ -271,7 +271,7 @@ function TrustedDevicesSection() {
       title: "Revogar todos os outros?",
       description: "Todos os dispositivos exceto este vão precisar de código no próximo login.",
       confirmText: "Revogar todos",
-      variant: "destructive",
+      destructive: true,
     });
     if (!ok) return;
     try {
