@@ -248,3 +248,181 @@ async function scrapeHotelClassFromPage(url: string): Promise<number | null> {
   return null;
 }
 
+// ============================================================================
+// Público (sem auth) — usado no site do cliente pra abrir modal do hotel
+// com todas as fotos, avaliações, ranking, amenidades. NUNCA retorna preços.
+// ============================================================================
+
+export type TAPublicReview = {
+  id: number;
+  rating: number | null;
+  title: string | null;
+  text: string | null;
+  published_date: string | null;
+  user_name: string | null;
+  user_location: string | null;
+  trip_type: string | null;
+};
+
+export type TAPublicHotelInfo = {
+  location_id: number;
+  name: string;
+  description: string | null;
+  address: string | null;
+  rating: number | null;
+  num_reviews: number | null;
+  ranking: string | null;
+  hotel_class: number | null;
+  price_level: null; // sempre null — não expomos preços
+  amenities: string[];
+  awards: Array<{ name: string; year: string | null }>;
+  photos: string[];
+  reviews: TAPublicReview[];
+  tripadvisor_url: string | null;
+  rating_histogram: Record<string, number> | null;
+  subratings: Array<{ name: string; value: number }>;
+};
+
+export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
+  .inputValidator((input: { locationId: number }) => input)
+  .handler(async ({ data }): Promise<TAPublicHotelInfo> => {
+    const id = data.locationId;
+    const [rDet, rPhotos, rReviews] = await Promise.all([
+      taFetch(`/locations/${id}`),
+      taFetch(`/locations/${id}/photos?limit=30`),
+      taFetch(`/locations/${id}/reviews?limit=10`),
+    ]);
+
+    const empty: TAPublicHotelInfo = {
+      location_id: id, name: "", description: null, address: null,
+      rating: null, num_reviews: null, ranking: null, hotel_class: null,
+      price_level: null, amenities: [], awards: [], photos: [], reviews: [],
+      tripadvisor_url: null, rating_histogram: null, subratings: [],
+    };
+
+    if (!rDet.ok) return empty;
+
+    const rawDet = (await rDet.json()) as Record<string, unknown>;
+    const det = ((rawDet.data as Record<string, unknown> | undefined)
+      ?? (rawDet.location as Record<string, unknown> | undefined)
+      ?? rawDet);
+
+    const addr = pickAddress(det.addresses as Array<Record<string, unknown>> | undefined);
+    const rating = extractRating(det);
+    const url = (det.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null;
+
+    // amenidades: TA expõe em amenities, features, hotel_amenities
+    const amenities: string[] = [];
+    const pools: unknown[] = [
+      det.amenities, det.features, (det as { hotel_amenities?: unknown }).hotel_amenities,
+      (det as { property_amenities?: unknown }).property_amenities,
+      (det as { room_amenities?: unknown }).room_amenities,
+    ];
+    for (const pool of pools) {
+      if (!Array.isArray(pool)) continue;
+      for (const a of pool as unknown[]) {
+        const s = typeof a === "string"
+          ? a
+          : (a as { name?: string; display_name?: string; value?: string })?.display_name
+            ?? (a as { name?: string })?.name
+            ?? (a as { value?: string })?.value;
+        if (s && !amenities.includes(s)) amenities.push(s);
+      }
+    }
+
+    const awardsRaw = det.awards as Array<Record<string, unknown>> | undefined;
+    const awards = Array.isArray(awardsRaw)
+      ? awardsRaw
+          .map((a) => ({
+            name: String(a.display_name ?? a.name ?? "").trim(),
+            year: a.year ? String(a.year) : null,
+          }))
+          .filter((a) => a.name.length > 0)
+      : [];
+
+    const numReviews = (() => {
+      const n = (det as { num_reviews?: unknown; review_count?: unknown }).num_reviews
+        ?? (det as { review_count?: unknown }).review_count;
+      const v = typeof n === "number" ? n : Number(n);
+      return Number.isFinite(v) ? v : null;
+    })();
+
+    const ranking = (() => {
+      const rd = (det as { ranking_data?: Record<string, unknown> }).ranking_data;
+      if (rd && typeof rd.ranking_string === "string") return rd.ranking_string;
+      return (det as { ranking?: string }).ranking ?? null;
+    })();
+
+    let hotelClass = extractHotelClass(det);
+    if (hotelClass == null && url) {
+      hotelClass = await scrapeHotelClassFromPage(url).catch(() => null);
+    }
+
+    const histogram = (() => {
+      const rh = (det as { review_rating_count?: Record<string, unknown> }).review_rating_count;
+      if (!rh || typeof rh !== "object") return null;
+      const out: Record<string, number> = {};
+      for (const k of ["1", "2", "3", "4", "5"]) {
+        const v = Number((rh as Record<string, unknown>)[k]);
+        if (Number.isFinite(v)) out[k] = v;
+      }
+      return Object.keys(out).length ? out : null;
+    })();
+
+    const subratings = (() => {
+      const s = (det as { subratings?: Record<string, { name?: string; localized_name?: string; value?: string | number }> }).subratings;
+      if (!s || typeof s !== "object") return [];
+      return Object.values(s)
+        .map((x) => ({
+          name: String(x?.localized_name ?? x?.name ?? "").trim(),
+          value: Number(x?.value),
+        }))
+        .filter((x) => x.name && Number.isFinite(x.value) && x.value > 0);
+    })();
+
+    let photos: string[] = [];
+    if (rPhotos.ok) {
+      const jp = (await rPhotos.json()) as { data?: Array<{ photo?: { original_size_url?: string; large_size_url?: string } }> };
+      photos = (jp.data || [])
+        .map((p) => p.photo?.original_size_url ?? p.photo?.large_size_url)
+        .filter((u): u is string => typeof u === "string" && u.length > 0);
+    }
+
+    let reviews: TAPublicReview[] = [];
+    if (rReviews.ok) {
+      const jr = (await rReviews.json()) as { data?: Array<Record<string, unknown>> };
+      reviews = (jr.data || []).slice(0, 10).map((r) => {
+        const user = (r.user as { username?: string; user_location?: { name?: string } } | undefined);
+        return {
+          id: Number(r.id) || 0,
+          rating: (() => { const n = Number(r.rating); return Number.isFinite(n) ? n : null; })(),
+          title: (r.title as string) || null,
+          text: (r.text as string) || null,
+          published_date: (r.published_date as string) || null,
+          user_name: user?.username ?? null,
+          user_location: user?.user_location?.name ?? null,
+          trip_type: (r.trip_type as string) || null,
+        };
+      });
+    }
+
+    return {
+      location_id: id,
+      name: pickName(det.names as Array<{ language?: string; value?: string; primary?: boolean }>),
+      description: (det.description as string | undefined) ?? null,
+      address: addr?.formatted ?? null,
+      rating,
+      num_reviews: numReviews,
+      ranking,
+      hotel_class: hotelClass,
+      price_level: null,
+      amenities,
+      awards,
+      photos,
+      reviews,
+      tripadvisor_url: url,
+      rating_histogram: histogram,
+      subratings,
+    };
+  });
+
