@@ -360,30 +360,22 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
   .inputValidator((input: { locationId: number }) => input)
   .handler(async ({ data }): Promise<TAPublicHotelInfo> => {
     const id = data.locationId;
-    // A Terra usa page/size com páginas iniciando em 1.
-    // Cada página falha isoladamente para uma resposta parcial continuar utilizável.
-    const PHOTO_PAGES = 6;
-    const PHOTO_PAGE_SIZE = 10;
-    const [rDet, photoPageResults, reviewPageResults] = await Promise.all([
-      taFetch(`/locations/${id}`),
-      Promise.allSettled(
-        Array.from({ length: PHOTO_PAGES }, (_, index) =>
-          taFetch(`/locations/${id}/photos`, {
-            page: String(index + 1),
-            size: String(PHOTO_PAGE_SIZE),
-          }),
-        ),
-      ),
-      Promise.allSettled(
-        [1, 2, 3].map((page) =>
-          taFetch(`/locations/${id}/reviews`, {
-            language: "pt",
-            page: String(page),
-            size: "25",
-          }),
-        ),
-      ),
+    // A Terra API rate-limita agressivamente por chave. Fazer múltiplas páginas
+    // em paralelo dispara 429 em quase todas — usamos 1 request por endpoint
+    // com limit alto e 1 retentativa após pequeno backoff se cair em 429.
+    async function fetchWithRetry(path: string, params: Record<string, string>) {
+      let r = await taFetch(path, params);
+      if (r.status === 429) {
+        await new Promise((res) => setTimeout(res, 900));
+        r = await taFetch(path, params);
+      }
+      return r;
+    }
 
+    const [rDet, rPhotos, rReviews] = await Promise.all([
+      fetchWithRetry(`/locations/${id}`, {}),
+      fetchWithRetry(`/locations/${id}/photos`, { limit: "50" }),
+      fetchWithRetry(`/locations/${id}/reviews`, { language: "pt", limit: "40" }),
     ]);
 
     const empty: TAPublicHotelInfo = {
@@ -460,20 +452,20 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
 
 
     let photos: string[] = [];
-    {
+    if (rPhotos.ok) {
+      const jp = (await rPhotos.json()) as { data?: Array<{ photo?: { original_size_url?: string; large_size_url?: string } }> };
       const seen = new Set<string>();
-      for (const result of photoPageResults) {
-        if (result.status !== "fulfilled" || !result.value.ok) continue;
-        const jp = (await result.value.json()) as { data?: Array<{ photo?: { original_size_url?: string; large_size_url?: string } }> };
-        for (const p of jp.data || []) {
-          const url = p.photo?.original_size_url ?? p.photo?.large_size_url;
-          if (typeof url === "string" && url.length > 0 && !seen.has(url)) {
-            seen.add(url);
-            photos.push(url);
-          }
+      for (const p of jp.data || []) {
+        const purl = p.photo?.original_size_url ?? p.photo?.large_size_url;
+        if (typeof purl === "string" && purl.length > 0 && !seen.has(purl)) {
+          seen.add(purl);
+          photos.push(purl);
         }
       }
+    } else {
+      console.warn("[tripadvisor-public] photos failed", id, rPhotos.status);
     }
+
 
     // ---------- Descrição ----------
     // Terra API expõe `descriptions: [{language, value}]`; preferimos pt, senão o primary/en.
@@ -519,9 +511,8 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
       trip_type: string | null; lang: string;
     };
     const raw: RawReview[] = [];
-    for (const result of reviewPageResults) {
-      if (result.status !== "fulfilled" || !result.value.ok) continue;
-      const jr = (await result.value.json()) as { data?: Array<Record<string, unknown>> };
+    if (rReviews.ok) {
+      const jr = (await rReviews.json()) as { data?: Array<Record<string, unknown>> };
       for (const r of jr.data || []) {
         const user = (r.user as { username?: string; user_location?: { name?: string } } | undefined);
         const title = localizedText(r.title) || null;
@@ -542,6 +533,8 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
           lang,
         });
       }
+    } else {
+      console.warn("[tripadvisor-public] reviews failed", id, rReviews.status);
     }
     raw.forEach((r, idx) => {
       if (r.lang !== "pt") {
