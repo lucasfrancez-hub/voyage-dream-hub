@@ -365,11 +365,10 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     const PHOTO_PAGES = 6;
     const PHOTO_PAGE_SIZE = 10;
     const [rDet, photoPageResults, reviewPageResults] = await Promise.all([
-      taFetch(`/locations/${id}`, { locale: "pt-BR" }),
+      taFetch(`/locations/${id}`),
       Promise.allSettled(
         Array.from({ length: PHOTO_PAGES }, (_, page) =>
           taFetch(`/locations/${id}/photos`, {
-            locale: "pt-BR",
             page: String(page),
             size: String(PHOTO_PAGE_SIZE),
           }),
