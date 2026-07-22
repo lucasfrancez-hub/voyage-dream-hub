@@ -223,13 +223,13 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
 
     // Cabeçalho
     const header = document.createElement("div");
-    header.style.cssText = "padding:28px 32px 20px;text-align:center;flex-shrink:0";
+    header.style.cssText = "padding:24px 24px 18px;text-align:center;flex-shrink:0";
     const title = document.createElement("h2");
     title.textContent = "Sua arte está pronta!";
-    title.style.cssText = "margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:#18181b";
+    title.style.cssText = "margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:#ffffff";
     const subtitle = document.createElement("p");
     subtitle.textContent = "Revise o flyer gerado para o pacote VIA AIR";
-    subtitle.style.cssText = "margin:6px 0 0;font-size:14px;color:#71717a";
+    subtitle.style.cssText = "margin:6px 0 0;font-size:14px;color:rgba(255,255,255,.75)";
     header.append(title, subtitle);
 
     // Área da prévia
