@@ -635,6 +635,10 @@ function AdminPackages() {
         packages={(packages || []) as PackageRow[]}
         onOpen={(p) => setEditingState(p)}
       />
+      <DuplicatePackagesAlert
+        packages={(packages || []) as PackageRow[]}
+        onOpen={(p) => setEditingState(p)}
+      />
 
       <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:pb-2.5">
