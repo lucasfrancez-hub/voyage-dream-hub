@@ -417,7 +417,7 @@ function GroupSection({ group, index }: { group: Group; index: number }) {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-3 leading-tight">
             <span className="text-brand-orange">#{String(index).padStart(2, "0")}</span>
-            <span>{group.emoji}</span>
+            <group.Icon className="h-5 w-5 text-brand-orange" />
             {group.title}
           </h2>
           <p className="text-slate-500 text-xs sm:text-sm mt-1">{group.reason}</p>
