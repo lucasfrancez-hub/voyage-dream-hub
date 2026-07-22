@@ -11,6 +11,16 @@ import {
   Star,
   MessageCircle,
   Eye,
+  Coffee,
+  Utensils,
+  UtensilsCrossed,
+  BedDouble,
+  Bed,
+  Sparkles,
+  Crown,
+  Home,
+  DoorOpen,
+  type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
