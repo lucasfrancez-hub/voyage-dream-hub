@@ -395,8 +395,8 @@ function AdminPackages() {
       : await supabase.from("packages").insert(payload).select("id").single();
     const { error } = savedPackage;
     if (error) throw error;
-    const sourcePhotos = payload.tripadvisor_photos ?? [];
-    if (sourcePhotos.length > 0 && sourcePhotos.some((url) => !url.includes("/api/public/package-hotel-photo/"))) {
+    const sourcePhotos: string[] = (payload as any).tripadvisor_photos ?? [];
+    if (sourcePhotos.length > 0 && sourcePhotos.some((url: string) => !url.includes("/api/public/package-hotel-photo/"))) {
       const persisted = await persistHotelPhotosFn({
         data: { packageId: savedPackage.data.id, photos: sourcePhotos.slice(0, 5) },
       });
