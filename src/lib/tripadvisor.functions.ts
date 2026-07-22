@@ -493,7 +493,7 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     const raw: RawReview[] = [];
     if (rReviews.ok) {
       const jr = (await rReviews.json()) as { data?: Array<Record<string, unknown>> };
-      for (const r of (jr.data || []).slice(0, 10)) {
+      for (const r of (jr.data || []).slice(0, 20)) {
         const user = (r.user as { username?: string; user_location?: { name?: string } } | undefined);
         const title = localizedText(r.title) || null;
         const text = localizedText(r.text) || null;
