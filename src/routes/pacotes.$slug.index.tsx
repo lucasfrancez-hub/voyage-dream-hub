@@ -110,7 +110,7 @@ function PackageDetails() {
     queryKey: ["package", slug, preview ? "preview" : "public"],
     queryFn: async () => {
       const slugs = slug.includes("#") ? [slug, slug.replace(/#/g, "-")] : [slug];
-      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos").in("slug", slugs);
+      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos").in("slug", slugs);
       if (!preview) query = query.eq("is_active", true);
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
@@ -208,19 +208,25 @@ function PackageDetails() {
                     {pkg.meal_plan && (
                       <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
                         <Check className="h-3.5 w-3.5" />
-                        Regime: {pkg.meal_plan}
+                        {pkg.meal_plan}
                       </div>
                     )}
-                    {(pkg as unknown as { room_category?: string | null }).room_category && (
+                    {pkg.bed_type && (
                       <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
                         <Check className="h-3.5 w-3.5" />
-                        {(pkg as unknown as { room_category: string }).room_category}
+                        {pkg.bed_type}
                       </div>
                     )}
-                    {(pkg as unknown as { bed_type?: string | null }).bed_type && (
+                    {pkg.room_type && (
                       <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
                         <Check className="h-3.5 w-3.5" />
-                        {(pkg as unknown as { bed_type: string }).bed_type}
+                        {pkg.room_type}
+                      </div>
+                    )}
+                    {pkg.room_category && (
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
+                        <Check className="h-3.5 w-3.5" />
+                        {pkg.room_category}
                       </div>
                     )}
                   </div>
