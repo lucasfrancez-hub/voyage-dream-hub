@@ -31,7 +31,13 @@ function ResetPasswordPage() {
 
   useEffect(() => {
     let active = true;
-    const recoveryInUrl = new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery";
+    const currentUrl = new URL(window.location.href);
+    const hashParams = new URLSearchParams(currentUrl.hash.slice(1));
+    const recoveryInUrl =
+      hashParams.get("type") === "recovery" ||
+      currentUrl.searchParams.get("type") === "recovery" ||
+      currentUrl.searchParams.has("code") ||
+      currentUrl.searchParams.has("token_hash");
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
       if (event === "PASSWORD_RECOVERY" || (recoveryInUrl && session)) setValidSession(true);
