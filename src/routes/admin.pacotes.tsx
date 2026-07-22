@@ -784,20 +784,20 @@ function AdminPackages() {
               {/* Status + Actions */}
               <div className="col-span-1 md:col-span-2 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3">
                 <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!!p.is_active}
                   onClick={() => toggleActive(p)}
-                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                    p.is_active
-                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
-                      : "bg-muted border-border text-muted-foreground"
+                  title={p.is_active ? "Ativo · toque para ocultar" : "Oculto · toque para ativar"}
+                  className={`relative inline-flex h-[26px] w-[46px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-brand-orange/40 ${
+                    p.is_active ? "bg-emerald-500" : "bg-muted-foreground/30"
                   }`}
-                  title={p.is_active ? "Clique para ocultar" : "Clique para ativar"}
                 >
-                  {p.is_active ? (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  ) : (
-                    <EyeOff className="h-3 w-3" />
-                  )}
-                  {p.is_active ? "Ativo" : "Oculto"}
+                  <span
+                    className={`inline-block h-[22px] w-[22px] transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ${
+                      p.is_active ? "translate-x-[22px]" : "translate-x-[2px]"
+                    }`}
+                  />
                 </button>
                 <div className="flex items-center gap-4">
 
