@@ -1249,9 +1249,26 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
           </div>
           <div className="flex items-center gap-2">
             <PackageImportButton
-              onImported={(patch: Partial<PackageRow>) =>
-                setEditing({ ...(editing ?? {}), ...patch })
-              }
+              onImported={(patch: Partial<PackageRow>) => {
+                const previousServices = (editing?.services ?? {}) as PackageServices;
+                const importedServices = (patch.services ?? {}) as PackageServices;
+                setEditing({
+                  ...(editing ?? {}),
+                  ...patch,
+                  services: {
+                    ...previousServices,
+                    ...importedServices,
+                    seguro: { ...(previousServices.seguro ?? {}), ...(importedServices.seguro ?? {}) },
+                    cancelamento: {
+                      ...(previousServices.cancelamento ?? {}),
+                      ...(importedServices.cancelamento ?? {}),
+                    },
+                    transfer: { ...(previousServices.transfer ?? {}), ...(importedServices.transfer ?? {}) },
+                    city_tour: { ...(previousServices.city_tour ?? {}), ...(importedServices.city_tour ?? {}) },
+                    outros: importedServices.outros ?? previousServices.outros ?? [],
+                  },
+                });
+              }}
             />
             <button
               onClick={() => setEditing(null)}
@@ -2751,8 +2768,12 @@ function PackageImportButton({
       // Não usar includes do documento — a derivação automática monta na ordem correta
       // (Passagem Aérea → Hospedagem → Café da Manhã → Bagagem Despachada).
       patch.includes = [];
-      if (p.supplier_name) patch.supplier_name = String(p.supplier_name);
-      if (p.services && typeof p.services === "object") patch.services = p.services as PackageServices;
+      // A importação deve substituir fornecedor antigo (inclusive por vazio,
+      // quando a operadora não for identificada) e sempre entregar serviços.
+      patch.supplier_name = String(p.supplier_name ?? "");
+      patch.services = p.services && typeof p.services === "object"
+        ? p.services as PackageServices
+        : {};
       if (p.outbound_flight && typeof p.outbound_flight === "object") {
         patch.outbound_flight = normalizeFlightBaggage({
           ...p.outbound_flight,
