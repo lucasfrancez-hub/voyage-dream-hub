@@ -28,6 +28,7 @@ import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions"
 import { FileUp, Upload, ChevronLeft, ChevronRight, ChevronDown, Sparkles as SparklesIcon, List as ListIcon } from "lucide-react";
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
+import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 
 export const Route = createFileRoute("/admin/pacotes")({
   component: AdminPackages,
