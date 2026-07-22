@@ -144,7 +144,7 @@ export function HotelDetailsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-7xl w-[96vw] h-[88vh] p-0 gap-0 border border-white/10 bg-[#0A0A0B] rounded-[28px] overflow-hidden [&>button]:hidden">
+        <DialogContent className="max-w-7xl w-[96vw] h-[88vh] p-0 gap-0 border border-white/10 bg-background/80 backdrop-blur-2xl rounded-[28px] overflow-hidden [&>button]:hidden">
           <DialogTitle className="sr-only">{displayName}</DialogTitle>
           <DialogDescription className="sr-only">
             Fotos, descrição e avaliações do hotel
