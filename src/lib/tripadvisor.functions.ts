@@ -361,11 +361,18 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
   .inputValidator((input: { locationId: number }) => input)
   .handler(async ({ data }): Promise<TAPublicHotelInfo> => {
     const id = data.locationId;
-    const [rDet, rPhotos, rReviews] = await Promise.all([
+    const [rDet, rPhotos, rReviews, rAmen, rSub, rClass] = await Promise.all([
       taFetch(`/locations/${id}`, { language: "pt" }),
       taFetch(`/locations/${id}/photos?limit=30`, { language: "pt" }),
       taFetch(`/locations/${id}/reviews?limit=10`, { language: "pt" }),
+      taFetch(`/locations/${id}/features`, { language: "pt" }).catch(() => null),
+      taFetch(`/locations/${id}/subratings`, { language: "pt" }).catch(() => null),
+      taFetch(`/locations/${id}/attributes`, { language: "pt" }).catch(() => null),
     ]);
+    console.log("[TA extras]", {amen:rAmen?.status, sub:rSub?.status, cls:rClass?.status});
+    if (rAmen?.ok) console.log("[TA amen]", (await rAmen.clone().text()).slice(0,1200));
+    if (rSub?.ok) console.log("[TA sub]", (await rSub.clone().text()).slice(0,1200));
+    if (rClass?.ok) console.log("[TA cls]", (await rClass.clone().text()).slice(0,1200));
 
     const empty: TAPublicHotelInfo = {
       location_id: id, name: "", description: null, description_translated_from: null,
