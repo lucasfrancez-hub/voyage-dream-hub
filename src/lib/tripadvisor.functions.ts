@@ -375,16 +375,15 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
         ),
       ),
       Promise.allSettled(
-        [1, 2].map((page) =>
+        [1, 2, 3].map((page) =>
           taFetch(`/locations/${id}/reviews`, {
             language: "pt",
-            rating_min: "4",
-            sort_by: "HIGHEST_RATED",
             page: String(page),
-            size: "10",
+            size: "25",
           }),
         ),
       ),
+
     ]);
 
     const empty: TAPublicHotelInfo = {
