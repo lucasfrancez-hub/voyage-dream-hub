@@ -604,11 +604,13 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
   "services": {
     "seguro": {
       "enabled": true,
-      "plano": "BRONZE AL",
       "cobertura": "12.000",
-      "moeda": "USD",
-      "cancelamento": "5.000",
-      "cancelamento_moeda": "BRL"
+      "moeda": "USD"
+    },
+    "cancelamento": {
+      "enabled": true,
+      "cobertura": "5.000",
+      "moeda": "BRL"
     },
     "transfer": { "enabled": true, "sentido": "in_out" },
     "city_tour": { "enabled": false, "detalhe": "" },
