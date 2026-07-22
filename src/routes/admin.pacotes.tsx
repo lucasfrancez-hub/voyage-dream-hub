@@ -1100,8 +1100,26 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     }
     const checked = !!(editing.outbound_flight?.checked_bag || editing.return_flight?.checked_bag);
     if (checked) list.push("Bagagem Despachada");
+    const svc = (editing.services ?? {}) as PackageServices;
+    if (svc.seguro?.enabled) {
+      const cob = (svc.seguro.cobertura ?? "").trim();
+      list.push(cob ? `Seguro Viagem — Cobertura ${cob} por pessoa` : "Seguro Viagem");
+    }
+    if (svc.transfer?.enabled) {
+      const sentido = svc.transfer.sentido;
+      const label = sentido === "in_out" ? "IN/OUT" : sentido === "in" ? "IN" : sentido === "out" ? "OUT" : "IN/OUT";
+      list.push(`Transfer ${label} (Aeroporto ↔ Hotel)`);
+    }
+    if (svc.city_tour?.enabled) {
+      const det = (svc.city_tour.detalhe ?? "").trim();
+      list.push(det ? `City Tour — ${det}` : "City Tour");
+    }
+    for (const o of (svc.outros ?? [])) {
+      const t = String(o ?? "").trim();
+      if (t) list.push(t);
+    }
     return list;
-  }, [editing.outbound_flight, editing.return_flight, editing.hotel_name, editing.tripadvisor_location_id, editing.meal_plan]);
+  }, [editing.outbound_flight, editing.return_flight, editing.hotel_name, editing.tripadvisor_location_id, editing.meal_plan, editing.services]);
 
   function handleGenerateIncludes() {
     setEditing({ ...editing, includes: derivedIncludes });
