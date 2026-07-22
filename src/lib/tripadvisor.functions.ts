@@ -124,7 +124,9 @@ function pickAddress(addresses: Array<Record<string, unknown>> | undefined) {
 }
 
 function extractRating(obj: Record<string, unknown>): number | null {
+  const tr = (obj as { traveler_ratings?: { overall?: { rating?: unknown } } }).traveler_ratings;
   const candidates: unknown[] = [
+    tr?.overall?.rating,
     (obj.overall_rating as { rating?: unknown } | undefined)?.rating,
     obj.overall_rating,
     obj.rating,
@@ -384,34 +386,19 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     const addr = pickAddress(det.addresses as Array<Record<string, unknown>> | undefined);
     const rating = extractRating(det);
     const url = (det.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null;
+    const tr = (det as { traveler_ratings?: {
+      overall?: { rating?: number; count?: number };
+      breakdowns?: Array<{ count?: number; rating?: number }>;
+    } }).traveler_ratings;
 
-    // amenidades: TA expõe em amenities, features, hotel_amenities
+    // Amenidades/awards/subratings/hotel_class não vêm nesta API — mantemos vazios.
     const amenities: string[] = [];
-    const pools: unknown[] = [
-      det.amenities, det.features, (det as { hotel_amenities?: unknown }).hotel_amenities,
-      (det as { property_amenities?: unknown }).property_amenities,
-      (det as { room_amenities?: unknown }).room_amenities,
-    ];
-    for (const pool of pools) {
-      if (!Array.isArray(pool)) continue;
-      for (const a of pool as unknown[]) {
-        const s = localizedText(a);
-        if (s && !amenities.includes(s)) amenities.push(s);
-      }
-    }
-
-    const awardsRaw = det.awards as Array<Record<string, unknown>> | undefined;
-    const awards = Array.isArray(awardsRaw)
-      ? awardsRaw
-          .map((a) => ({
-            name: localizedText(a.display_name ?? a.name),
-            year: a.year ? String(a.year) : null,
-          }))
-          .filter((a) => a.name.length > 0)
-      : [];
+    const awards: Array<{ name: string; year: string | null }> = [];
+    const subratings: Array<{ name: string; value: number }> = [];
 
     const numReviews = (() => {
-      const n = (det as { num_reviews?: unknown; review_count?: unknown }).num_reviews
+      const n = tr?.overall?.count
+        ?? (det as { num_reviews?: unknown }).num_reviews
         ?? (det as { review_count?: unknown }).review_count;
       const v = typeof n === "number" ? n : Number(n);
       return Number.isFinite(v) ? v : null;
@@ -432,6 +419,15 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     }
 
     const histogram = (() => {
+      if (Array.isArray(tr?.breakdowns) && tr.breakdowns.length > 0) {
+        const out: Record<string, number> = {};
+        for (const b of tr.breakdowns) {
+          const k = String(b.rating ?? "");
+          const v = Number(b.count);
+          if (["1","2","3","4","5"].includes(k) && Number.isFinite(v)) out[k] = v;
+        }
+        if (Object.keys(out).length) return out;
+      }
       const rh = (det as { review_rating_count?: Record<string, unknown> }).review_rating_count;
       if (!rh || typeof rh !== "object") return null;
       const out: Record<string, number> = {};
@@ -442,16 +438,6 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
       return Object.keys(out).length ? out : null;
     })();
 
-    const subratings = (() => {
-      const s = (det as { subratings?: Record<string, { name?: string; localized_name?: string; value?: string | number }> }).subratings;
-      if (!s || typeof s !== "object") return [];
-      return Object.values(s)
-        .map((x) => ({
-           name: localizedText(x?.localized_name ?? x?.name),
-          value: Number(x?.value),
-        }))
-        .filter((x) => x.name && Number.isFinite(x.value) && x.value > 0);
-    })();
 
     let photos: string[] = [];
     if (rPhotos.ok) {
@@ -462,14 +448,28 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     }
 
     // ---------- Descrição ----------
-    // Se veio texto mas parece não-português, marca como candidato à tradução.
-    const rawDescription = localizedText(det.description) || null;
-    const descriptionLang = (() => {
-      const langField = (det as { description_language?: string; language?: string }).description_language
-        ?? (det as { language?: string }).language;
-      if (typeof langField === "string" && langField) return langField.toLowerCase().slice(0, 2);
+    // Terra API expõe `descriptions: [{language, value}]`; preferimos pt, senão o primary/en.
+    const rawDescription: string | null = (() => {
+      const arr = (det as { descriptions?: Array<{ language?: string; value?: string; primary?: boolean }> }).descriptions;
+      if (Array.isArray(arr) && arr.length > 0) {
+        const pt = arr.find((d) => d?.language?.toLowerCase().startsWith("pt"))?.value;
+        if (pt) return pt;
+        const primary = arr.find((d) => d?.primary)?.value;
+        if (primary) return primary;
+        return arr[0]?.value || null;
+      }
+      return localizedText(det.description) || null;
+    })();
+    const descriptionLang: string | null = (() => {
+      const arr = (det as { descriptions?: Array<{ language?: string; value?: string; primary?: boolean }> }).descriptions;
+      if (Array.isArray(arr)) {
+        const pt = arr.find((d) => d?.language?.toLowerCase().startsWith("pt"));
+        if (pt) return "pt";
+        const primary = arr.find((d) => d?.primary);
+        if (primary?.language) return primary.language.toLowerCase().slice(0, 2);
+        if (arr[0]?.language) return arr[0].language.toLowerCase().slice(0, 2);
+      }
       if (!rawDescription) return null;
-      // Heurística: se contém caracteres típicos do português (ãõçéíóáêôú) → pt
       if (/[ãõçáéíóúâêôà]/i.test(rawDescription)) return "pt";
       return "en";
     })();
