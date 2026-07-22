@@ -110,7 +110,7 @@ export function HotelDetailsDialog({
 }: Props) {
   const fetchInfo = useServerFn(getTripAdvisorPublicHotelInfo);
   const query = useQuery({
-    queryKey: ["ta-public-hotel", locationId],
+    queryKey: ["ta-public-hotel-v2", locationId],
     queryFn: () => fetchInfo({ data: { locationId } }),
     enabled: open && locationId > 0,
     staleTime: 1000 * 60 * 60,
@@ -144,13 +144,13 @@ export function HotelDetailsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-7xl w-[96vw] h-[88vh] p-0 gap-0 border border-white/10 bg-background/80 backdrop-blur-2xl rounded-[28px] overflow-hidden [&>button]:hidden">
+        <DialogContent className="!flex max-w-7xl w-[96vw] h-[88vh] flex-col p-0 gap-0 border border-border/60 bg-background/80 backdrop-blur-2xl rounded-[28px] overflow-hidden [&>button]:hidden">
           <DialogTitle className="sr-only">{displayName}</DialogTitle>
           <DialogDescription className="sr-only">
             Fotos, descrição e avaliações do hotel
           </DialogDescription>
 
-          <div className="flex h-full flex-col text-zinc-100">
+          <div className="flex min-h-0 flex-1 flex-col text-foreground">
             {/* Header */}
             <header className="flex-none px-6 md:px-8 py-5 border-b border-white/5 flex items-center justify-between gap-4 bg-gradient-to-r from-white/[0.02] to-transparent">
               <div className="min-w-0 space-y-1.5">
@@ -206,11 +206,11 @@ export function HotelDetailsDialog({
             </header>
 
             {/* Split workspace */}
-            <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
               {/* LEFT — gallery */}
-              <div className="md:w-[65%] flex flex-col p-5 md:p-6 gap-4 min-h-0">
+              <div className="flex min-h-0 min-w-0 flex-[1.85] flex-col gap-4 p-5 md:p-6">
                 {/* Main image */}
-                <div className="relative flex-1 basis-0 min-h-[280px] group rounded-2xl overflow-hidden border border-white/5 bg-white/5">
+                <div className="group relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/40 bg-muted/20">
                   {isLoading && !photos.length ? (
                     <div className="absolute inset-0 flex items-center justify-center text-zinc-500">
                       <Loader2 className="h-6 w-6 animate-spin" />
@@ -260,8 +260,8 @@ export function HotelDetailsDialog({
 
                 {/* Filmstrip */}
                 {photos.length > 1 && (
-                  <div className="flex-none h-[92px] md:h-[104px] overflow-x-auto no-scrollbar pb-1">
-                    <div className="flex gap-3">
+                   <div className="custom-scrollbar h-[104px] w-full flex-none overflow-x-auto overflow-y-hidden pb-2">
+                     <div className="flex min-w-max gap-3">
                       {photos.map((src, i) => (
                         <button
                           key={`${src}-${i}`}
@@ -282,10 +282,10 @@ export function HotelDetailsDialog({
               </div>
 
               {/* RIGHT — content & reviews */}
-              <div className="md:w-[35%] flex flex-col border-t md:border-t-0 md:border-l border-white/5 min-h-0 h-full">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-border/40 md:min-w-[360px] md:border-l md:border-t-0">
                 {/* About (fixed) */}
                 {(data?.description || isLoading) && (
-                  <section className="p-6 md:p-7 flex-none max-h-[38%] overflow-hidden border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent flex flex-col">
+                  <section className="flex max-h-[34%] flex-none flex-col overflow-hidden border-b border-border/40 bg-muted/10 p-6 md:p-7">
                     <div className="flex items-center justify-between gap-3 mb-3 flex-none">
                       <h2 className="text-base font-bold text-white">Sobre o hotel</h2>
                       {data?.description_translated_from && (
@@ -309,7 +309,7 @@ export function HotelDetailsDialog({
                 )}
 
                 {/* Reviews feed */}
-                <div className="flex-1 min-h-0 overflow-y-auto px-6 md:px-7 py-4 space-y-4 custom-scrollbar">
+                <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-scroll overscroll-contain px-6 py-4 md:px-7">
                   <div className="sticky top-0 z-10 py-2 -mx-1 px-1 bg-background/80 backdrop-blur-xl">
                     <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
                       Avaliações recentes

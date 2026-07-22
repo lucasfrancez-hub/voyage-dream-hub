@@ -226,4 +226,8 @@ html:root {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--brand-orange);
 }
-.custom-scrollbar { scrollbar-color: color-mix(in oklab, var(--brand-orange) 55%, transparent) transparent; scrollbar-width: thin; }
+.custom-scrollbar {
+  scrollbar-color: color-mix(in oklab, var(--brand-orange) 55%, transparent) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
