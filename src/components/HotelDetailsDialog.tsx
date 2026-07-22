@@ -101,9 +101,9 @@ export function HotelDetailsDialog({
   initialPhotoIndex = 0,
 }: Props) {
   const fetchInfo = useServerFn(getTripAdvisorPublicHotelInfo);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<TAPublicHotelInfo>({
     queryKey: ["ta-public-hotel", locationId],
-    queryFn: () => fetchInfo({ data: { locationId } }),
+    queryFn: () => fetchInfo({ data: { locationId } }) as Promise<TAPublicHotelInfo>,
     enabled: open && locationId > 0,
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 24,
