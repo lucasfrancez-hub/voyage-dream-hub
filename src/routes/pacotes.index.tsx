@@ -110,7 +110,7 @@ function PacotesList() {
       : null;
 
     const filtered = (packages || []).filter((p) => {
-      const originMatch = originFilter === "all" || p.origin === originFilter;
+      const originMatch = originFilter === "all" || originKey(p.origin) === originKey(originFilter);
       const destinationMatch = destinationFilter === "all" || p.destination === destinationFilter;
       let monthMatch = true;
       if (monthFilter !== "all") {
