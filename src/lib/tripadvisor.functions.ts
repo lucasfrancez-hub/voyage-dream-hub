@@ -41,6 +41,37 @@ function pickName(names: Array<{ language?: string; value?: string; primary?: bo
   return names[0]?.value ?? "";
 }
 
+function localizedText(value: unknown, lang = "pt"): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  if (Array.isArray(value)) {
+    const localized = value.find((item) => {
+      if (!item || typeof item !== "object") return false;
+      const language = String((item as Record<string, unknown>).language ?? "").toLowerCase();
+      return language === lang || language.startsWith(`${lang}-`);
+    });
+    const primary = value.find(
+      (item) => item && typeof item === "object" && (item as Record<string, unknown>).primary === true,
+    );
+    return localizedText(localized ?? primary ?? value[0], lang);
+  }
+  if (!value || typeof value !== "object") return "";
+  const record = value as Record<string, unknown>;
+  for (const candidate of [
+    record.value,
+    record.localized_name,
+    record.display_name,
+    record.name,
+    record.text,
+    record.description,
+    record.title,
+  ]) {
+    const text = localizedText(candidate, lang);
+    if (text) return text;
+  }
+  return "";
+}
+
 function pickAddress(addresses: Array<Record<string, unknown>> | undefined) {
   if (!Array.isArray(addresses) || addresses.length === 0) return null;
   const a = addresses[0] as Record<string, string>;
@@ -187,7 +218,7 @@ export const getTripAdvisorHotelDetails = createServerFn({ method: "POST" })
       phone: phones?.[0]?.value ?? null,
       website: websites?.[0]?.url ?? null,
       photos,
-      description: (det.description as string | undefined) ?? null,
+      description: localizedText(det.description) || null,
       hotel_class: hotelClass,
     };
 
@@ -321,11 +352,7 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     for (const pool of pools) {
       if (!Array.isArray(pool)) continue;
       for (const a of pool as unknown[]) {
-        const s = typeof a === "string"
-          ? a
-          : (a as { name?: string; display_name?: string; value?: string })?.display_name
-            ?? (a as { name?: string })?.name
-            ?? (a as { value?: string })?.value;
+        const s = localizedText(a);
         if (s && !amenities.includes(s)) amenities.push(s);
       }
     }
@@ -334,7 +361,7 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     const awards = Array.isArray(awardsRaw)
       ? awardsRaw
           .map((a) => ({
-            name: String(a.display_name ?? a.name ?? "").trim(),
+            name: localizedText(a.display_name ?? a.name),
             year: a.year ? String(a.year) : null,
           }))
           .filter((a) => a.name.length > 0)
@@ -349,8 +376,11 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
 
     const ranking = (() => {
       const rd = (det as { ranking_data?: Record<string, unknown> }).ranking_data;
-      if (rd && typeof rd.ranking_string === "string") return rd.ranking_string;
-      return (det as { ranking?: string }).ranking ?? null;
+      if (rd) {
+        const value = localizedText(rd.ranking_string);
+        if (value) return value;
+      }
+      return localizedText((det as { ranking?: unknown }).ranking) || null;
     })();
 
     let hotelClass = extractHotelClass(det);
@@ -374,7 +404,7 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
       if (!s || typeof s !== "object") return [];
       return Object.values(s)
         .map((x) => ({
-          name: String(x?.localized_name ?? x?.name ?? "").trim(),
+           name: localizedText(x?.localized_name ?? x?.name),
           value: Number(x?.value),
         }))
         .filter((x) => x.name && Number.isFinite(x.value) && x.value > 0);
@@ -396,12 +426,12 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
         return {
           id: Number(r.id) || 0,
           rating: (() => { const n = Number(r.rating); return Number.isFinite(n) ? n : null; })(),
-          title: (r.title as string) || null,
-          text: (r.text as string) || null,
+           title: localizedText(r.title) || null,
+           text: localizedText(r.text) || null,
           published_date: (r.published_date as string) || null,
           user_name: user?.username ?? null,
-          user_location: user?.user_location?.name ?? null,
-          trip_type: (r.trip_type as string) || null,
+           user_location: localizedText(user?.user_location?.name) || null,
+           trip_type: localizedText(r.trip_type) || null,
         };
       });
     }
@@ -409,7 +439,7 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     return {
       location_id: id,
       name: pickName(det.names as Array<{ language?: string; value?: string; primary?: boolean }>),
-      description: (det.description as string | undefined) ?? null,
+      description: localizedText(det.description) || null,
       address: addr?.formatted ?? null,
       rating,
       num_reviews: numReviews,

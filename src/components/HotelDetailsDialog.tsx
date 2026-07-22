@@ -39,6 +39,22 @@ function formatDate(iso: string | null): string {
   }
 }
 
+function safeText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (Array.isArray(value)) {
+    const primary = value.find(
+      (item) => item && typeof item === "object" && (item as Record<string, unknown>).primary === true,
+    );
+    return safeText(primary ?? value[0]);
+  }
+  if (!value || typeof value !== "object") return "";
+  const record = value as Record<string, unknown>;
+  return safeText(
+    record.value ?? record.localized_name ?? record.display_name ?? record.name ?? record.text ?? record.title,
+  );
+}
+
 export function HotelDetailsDialog({
   open,
   onOpenChange,
@@ -79,7 +95,7 @@ export function HotelDetailsDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-0 gap-0">
           <DialogHeader className="px-6 pt-6 pb-3 border-b border-border">
-            <DialogTitle className="text-xl">{data?.name || hotelName}</DialogTitle>
+            <DialogTitle className="text-xl">{safeText(data?.name) || hotelName}</DialogTitle>
             <DialogDescription className="sr-only">
               Fotos, avaliações e informações do hotel
             </DialogDescription>
@@ -106,13 +122,13 @@ export function HotelDetailsDialog({
               {data?.address && (
                 <span className="inline-flex items-start gap-1 text-xs">
                   <MapPin className="h-3.5 w-3.5 mt-0.5 text-brand-orange" />
-                  {data.address}
+                  {safeText(data.address)}
                 </span>
               )}
               {data?.ranking && (
                 <span className="inline-flex items-center gap-1 text-xs">
                   <Award className="h-3.5 w-3.5 text-brand-orange" />
-                  {data.ranking}
+                  {safeText(data.ranking)}
                 </span>
               )}
             </div>
@@ -183,7 +199,7 @@ export function HotelDetailsDialog({
               <section>
                 <h3 className="font-semibold text-sm mb-2">Sobre o hotel</h3>
                 <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
-                  {data.description}
+                   {safeText(data.description)}
                 </p>
               </section>
             )}
@@ -195,7 +211,7 @@ export function HotelDetailsDialog({
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {data.subratings.map((s) => (
                     <div key={s.name} className="rounded-lg border border-border bg-card p-3">
-                      <div className="text-xs text-muted-foreground">{s.name}</div>
+                       <div className="text-xs text-muted-foreground">{safeText(s.name)}</div>
                       <div className="mt-1 flex items-center gap-2">
                         <div className="text-lg font-semibold">{s.value.toFixed(1)}</div>
                         <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -216,10 +232,10 @@ export function HotelDetailsDialog({
               <section>
                 <h3 className="font-semibold text-sm mb-3">O que este hotel oferece</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
-                  {data.amenities.map((a) => (
-                    <div key={a} className="flex items-start gap-2 text-sm">
+                   {data.amenities.map((a, index) => (
+                     <div key={`${safeText(a)}-${index}`} className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-brand-orange mt-0.5 shrink-0" />
-                      <span>{a}</span>
+                       <span>{safeText(a)}</span>
                     </div>
                   ))}
                 </div>
@@ -237,7 +253,7 @@ export function HotelDetailsDialog({
                       className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs text-brand-orange"
                     >
                       <Award className="h-3.5 w-3.5" />
-                      {a.name}{a.year ? ` · ${a.year}` : ""}
+                       {safeText(a.name)}{a.year ? ` · ${safeText(a.year)}` : ""}
                     </span>
                   ))}
                 </div>
@@ -262,7 +278,7 @@ export function HotelDetailsDialog({
                               ))}
                             </span>
                           )}
-                          {r.title && <span className="font-semibold text-sm">{r.title}</span>}
+                           {r.title && <span className="font-semibold text-sm">{safeText(r.title)}</span>}
                         </div>
                         <span className="text-xs text-muted-foreground">
                           {formatDate(r.published_date)}
@@ -270,13 +286,13 @@ export function HotelDetailsDialog({
                       </header>
                       {r.text && (
                         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                          {r.text}
+                           {safeText(r.text)}
                         </p>
                       )}
                       <footer className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        {r.user_name && <span>— {r.user_name}</span>}
-                        {r.user_location && <span>· {r.user_location}</span>}
-                        {r.trip_type && <span>· {r.trip_type}</span>}
+                         {r.user_name && <span>— {safeText(r.user_name)}</span>}
+                         {r.user_location && <span>· {safeText(r.user_location)}</span>}
+                         {r.trip_type && <span>· {safeText(r.trip_type)}</span>}
                       </footer>
                     </article>
                   ))}
