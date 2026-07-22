@@ -1285,7 +1285,7 @@ function PackageEditorModal({
       svc.seguro?.cancelamento_moeda,
     );
     if (svc.cancelamento?.enabled) {
-      const canc = formatSeguroCobertura(svc.cancelamento.cobertura, svc.cancelamento.moeda);
+      const canc = formatSeguroCobertura(svc.cancelamento.cobertura, svc.cancelamento.moeda ?? "BRL");
       list.push(
         canc
           ? `Cobertura de cancelamento involuntário de viagem — ${canc} por pessoa`
