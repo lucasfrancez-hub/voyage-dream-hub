@@ -211,7 +211,7 @@ export function HotelDetailsDialog({
               {/* LEFT — gallery */}
               <div className="flex min-h-0 min-w-0 flex-[1.85] flex-col gap-4 p-5 md:p-6">
                 {/* Main image */}
-                <div className="group relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/40 bg-muted/20">
+                <div className="group relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/40 bg-black/40">
                   {isLoading && !photos.length ? (
                     <div className="absolute inset-0 flex items-center justify-center text-zinc-500">
                       <Loader2 className="h-6 w-6 animate-spin" />
@@ -221,9 +221,10 @@ export function HotelDetailsDialog({
                       <img
                         src={photos[activePhoto]}
                         alt={`${displayName} — foto ${activePhoto + 1}`}
-                        className="absolute inset-0 h-full w-full object-cover cursor-zoom-in"
+                        className="absolute inset-0 h-full w-full object-contain cursor-zoom-in"
                         onClick={() => setLightbox(activePhoto)}
                       />
+
                       {photos.length > 1 && (
                         <>
                           <div className="absolute inset-y-0 left-0 flex items-center pl-4 opacity-0 group-hover:opacity-100 transition-opacity">
