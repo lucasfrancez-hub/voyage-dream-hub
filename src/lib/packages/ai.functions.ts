@@ -1084,35 +1084,31 @@ Retorne SÓ o JSON.`;
       });
     }
 
-    // Safety sweep: garante que nenhum orçamento entre 1..max(totalCount,10) seja
-    // esquecido — cobre casos em que a contagem inicial errou pra menos.
-    const targetMax = Math.max(totalCount || 0, 10);
-    const stillMissing: number[] = [];
-    for (let i = 1; i <= targetMax; i++) if (!collected.has(i)) stillMissing.push(i);
-    if (stillMissing.length > 0) {
-      try {
-        const sweep = await extractBatch(1, targetMax);
-        for (const pkg of sweep) {
-          if (!pkg || typeof pkg !== "object") continue;
-          const idx = Number(pkg.index);
-          if (!Number.isFinite(idx) || idx <= 0) continue;
-          if (!collected.has(idx)) collected.set(idx, pkg);
-        }
-      } catch {}
-      // Tenta individualmente os que ainda faltarem (até 10)
-      for (const i of stillMissing) {
-        if (collected.has(i)) continue;
-        if (collected.size >= 10) break;
+    // Safety sweep: só quando a contagem inicial NÃO foi possível (totalCount=0).
+    // Se totalCount > 0 confiamos no cabeçalho "Orcamento N" — não inventar índices
+    // acima do total (evita duplicar/gerar pacotes fantasmas, ex.: 4 viram 5).
+    if (totalCount === 0) {
+      const targetMax = 10;
+      const stillMissing: number[] = [];
+      for (let i = 1; i <= targetMax; i++) if (!collected.has(i)) stillMissing.push(i);
+      if (stillMissing.length > 0) {
         try {
-          const arr = await extractBatch(i, i);
-          for (const pkg of arr) {
+          const sweep = await extractBatch(1, targetMax);
+          for (const pkg of sweep) {
             if (!pkg || typeof pkg !== "object") continue;
-            const idx = Number(pkg.index) || i;
+            const idx = Number(pkg.index);
+            if (!Number.isFinite(idx) || idx <= 0) continue;
             if (!collected.has(idx)) collected.set(idx, pkg);
           }
         } catch {}
       }
+    } else {
+      // Descarta qualquer índice fora da faixa 1..totalCount que a IA tenha inventado.
+      for (const key of [...collected.keys()]) {
+        if (key < 1 || key > totalCount) collected.delete(key);
+      }
     }
+
 
     const arr = [...collected.entries()].sort((a, b) => a[0] - b[0]).map(([, v]) => v);
 
