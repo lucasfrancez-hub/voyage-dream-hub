@@ -1104,11 +1104,17 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     const svc = (editing.services ?? {}) as PackageServices;
     if (svc.seguro?.enabled) {
       const cob = formatSeguroCobertura(svc.seguro.cobertura, svc.seguro.moeda);
-      const plano = (svc.seguro.plano ?? "").trim();
-      const base = plano ? `Seguro Viagem ${plano}` : "Seguro Viagem";
-      list.push(cob ? `${base} — Cobertura ${cob} por pessoa` : base);
-      const canc = formatSeguroCobertura(svc.seguro.cancelamento, svc.seguro.cancelamento_moeda);
-      if (canc) list.push(`Cobertura de cancelamento involuntário de viagem — ${canc} por pessoa`);
+      list.push(cob ? `Seguro Viagem — Cobertura ${cob} por pessoa` : "Seguro Viagem");
+    }
+    // Legado: registros antigos guardavam cancelamento dentro de seguro.
+    const legacyCanc = formatSeguroCobertura(svc.seguro?.cancelamento, svc.seguro?.cancelamento_moeda);
+    if (svc.cancelamento?.enabled) {
+      const canc = formatSeguroCobertura(svc.cancelamento.cobertura, svc.cancelamento.moeda);
+      list.push(canc
+        ? `Cobertura de cancelamento involuntário de viagem — ${canc} por pessoa`
+        : "Cobertura de cancelamento involuntário de viagem");
+    } else if (legacyCanc) {
+      list.push(`Cobertura de cancelamento involuntário de viagem — ${legacyCanc} por pessoa`);
     }
     if (svc.transfer?.enabled) {
       const sentido = svc.transfer.sentido;
