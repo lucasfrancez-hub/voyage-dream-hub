@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, ShieldCheck, ShieldAlert, Copy, Trash2 } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, Copy, Trash2, Smartphone, Globe, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { confirm } from "@/lib/confirm";
+import {
+  listTrustedDevices,
+  revokeTrustedDevice,
+  revokeAllOtherTrustedDevices,
+} from "@/lib/trusted-devices.functions";
 
 export const Route = createFileRoute("/admin/seguranca")({
   component: SecurityPage,
 });
+
 
 type Factor = { id: string; status: string; friendly_name?: string | null };
 
