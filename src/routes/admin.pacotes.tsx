@@ -1423,7 +1423,7 @@ function PackageEditorModal({
             },
           });
 
-          setEditing({ ...editing, summary: text });
+          setEditing((prev) => (prev ? { ...prev, summary: text } : prev));
         } catch (err) {
           console.warn("[auto-summary] falhou", err);
         } finally {
