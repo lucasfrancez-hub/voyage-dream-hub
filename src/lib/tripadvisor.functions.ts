@@ -448,14 +448,28 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     }
 
     // ---------- Descrição ----------
-    // Se veio texto mas parece não-português, marca como candidato à tradução.
-    const rawDescription = localizedText(det.description) || null;
-    const descriptionLang = (() => {
-      const langField = (det as { description_language?: string; language?: string }).description_language
-        ?? (det as { language?: string }).language;
-      if (typeof langField === "string" && langField) return langField.toLowerCase().slice(0, 2);
+    // Terra API expõe `descriptions: [{language, value}]`; preferimos pt, senão o primary/en.
+    const rawDescription: string | null = (() => {
+      const arr = (det as { descriptions?: Array<{ language?: string; value?: string; primary?: boolean }> }).descriptions;
+      if (Array.isArray(arr) && arr.length > 0) {
+        const pt = arr.find((d) => d?.language?.toLowerCase().startsWith("pt"))?.value;
+        if (pt) return pt;
+        const primary = arr.find((d) => d?.primary)?.value;
+        if (primary) return primary;
+        return arr[0]?.value || null;
+      }
+      return localizedText(det.description) || null;
+    })();
+    const descriptionLang: string | null = (() => {
+      const arr = (det as { descriptions?: Array<{ language?: string; value?: string; primary?: boolean }> }).descriptions;
+      if (Array.isArray(arr)) {
+        const pt = arr.find((d) => d?.language?.toLowerCase().startsWith("pt"));
+        if (pt) return "pt";
+        const primary = arr.find((d) => d?.primary);
+        if (primary?.language) return primary.language.toLowerCase().slice(0, 2);
+        if (arr[0]?.language) return arr[0].language.toLowerCase().slice(0, 2);
+      }
       if (!rawDescription) return null;
-      // Heurística: se contém caracteres típicos do português (ãõçéíóáêôú) → pt
       if (/[ãõçáéíóúâêôà]/i.test(rawDescription)) return "pt";
       return "en";
     })();
