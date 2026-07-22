@@ -776,6 +776,72 @@ Regras:
         const n = Math.round(Number(parsed.hotel_stars));
         parsed.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
       }
+
+      // A extração geral tende a privilegiar a marca grande do cabeçalho e pode
+      // ignorar serviços que aparecem páginas depois. Faz uma leitura curta e
+      // dedicada do mesmo arquivo para operadora + extras e usa esse resultado
+      // como fonte de verdade para esses campos.
+      try {
+        const focusedResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3.5-flash",
+            messages: [
+              {
+                role: "system",
+                content: `Analise o documento inteiro, inclusive cabeçalhos, rodapés, letras pequenas, cláusulas e páginas de serviços. Extraia SOMENTE a operadora emissora e os serviços incluídos.
+
+VIA AIR, Via Aérea, Voe Air, voeair.com e Infotera são agência/plataforma e NUNCA podem ser supplier_name. Se aparecer "Cativa" em qualquer trecho, inclusive nas cláusulas do Protec Travel, supplier_name deve ser "Cativa Operadora".
+
+Retorne apenas JSON exatamente neste formato:
+{"supplier_name":"","services":{"seguro":{"enabled":false,"cobertura":"","moeda":"USD"},"cancelamento":{"enabled":false,"cobertura":"","moeda":"BRL"},"transfer":{"enabled":false,"sentido":"in_out"},"city_tour":{"enabled":false,"detalhe":""},"outros":[]}}
+
+Regras:
+- seguro = seguro/assistência médica de viagem; ative mesmo sem valor de cobertura.
+- cancelamento = Protec Travel, flexibilidade tarifária ou cobertura de cancelamento involuntário; é separado do seguro. Extraia valor e moeda.
+- transfer/traslado de chegada e saída = enabled true e sentido in_out.
+- Não invente valores.`,
+              },
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: "Faça a varredura completa e retorne operadora e serviços." },
+                  ...userContent.slice(1),
+                ],
+              },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (focusedResp.ok) {
+          const focusedJson = (await focusedResp.json()) as any;
+          const focusedText = String(focusedJson?.choices?.[0]?.message?.content ?? "").trim()
+            .replace(/^```(?:json)?\s*/i, "")
+            .replace(/```\s*$/i, "")
+            .trim();
+          const focused = JSON.parse(focusedText) as any;
+          const focusedSupplier = String(focused?.supplier_name ?? "").trim();
+          if (focusedSupplier && !/^(via\s*air|via\s*a[eé]rea|voe\s*air|infotera)$/i.test(focusedSupplier)) {
+            parsed.supplier_name = /cativa/i.test(focusedSupplier) ? "Cativa Operadora" : focusedSupplier;
+          }
+          if (focused?.services && typeof focused.services === "object") {
+            parsed.services = {
+              ...(parsed.services && typeof parsed.services === "object" ? parsed.services : {}),
+              ...focused.services,
+            };
+          }
+        }
+      } catch {
+        // A leitura principal continua válida se a etapa focada ficar indisponível.
+      }
+
+      const supplier = String(parsed.supplier_name ?? "").trim();
+      if (/^(via\s*air|via\s*a[eé]rea|voe\s*air|infotera)$/i.test(supplier)) parsed.supplier_name = "";
+      if (/cativa/i.test(supplier)) parsed.supplier_name = "Cativa Operadora";
     }
 
     return { pkg: parsed };
@@ -880,6 +946,13 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
   "room_category": "Standard",
   "bed_type": "Casal",
   "supplier_name": "Visual Turismo",
+  "services": {
+    "seguro": { "enabled": true, "cobertura": "12.000", "moeda": "USD" },
+    "cancelamento": { "enabled": true, "cobertura": "8.000", "moeda": "BRL" },
+    "transfer": { "enabled": true, "sentido": "in_out" },
+    "city_tour": { "enabled": false, "detalhe": "" },
+    "outros": []
+  },
   "baggage_scope": "shared | per_flight",
   "outbound_flight": { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T13:05","duration":"04h45","cabin_class":"Econômica","fare_class":"LIGHT","carry_on":true,"checked_bag":false,"personal_item":true,"segments":[ { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"CGH","to_city":"São Paulo","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T09:45","duration":"01h25","layover":"01h20 em São Paulo" }, { "airline":"GOL","flight_number":"1502","from_iata":"CGH","from_city":"São Paulo","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T11:05","arrive_at":"2026-12-21T13:05","duration":"02h00" } ] },
   "return_flight": { ...mesma estrutura, sentido inverso }
@@ -894,7 +967,11 @@ Regras (aplicar em CADA pacote):
 - BAGAGEM E TARIFA (OBRIGATÓRIO EM outbound_flight E return_flight): sempre devolva personal_item=true e carry_on=true. checked_bag=true quando houver ícone ativo, "1 bagagem", "1 peça", "1 PC" ou "23 kg"; false para ícone riscado/cinza, "0 PC" ou "sem bagagem despachada". Se a informação aparecer UMA VEZ como regra comum do aéreo/pacote, aplique-a tanto à ida quanto à volta. Só trate diferente quando houver blocos claramente separados por direção. fare_class nunca pode ficar vazio: checked_bag=true → "STANDARD"; checked_bag=false → "LIGHT"; preserve outro nome somente quando estiver escrito explicitamente no documento.
 - baggage_scope é OBRIGATÓRIO em cada pacote: "shared" quando existe uma única regra/bloco de bagagem para todo o aéreo; "per_flight" somente quando existem blocos separados e claramente associados à ida e à volta.
 - hotel_stars: inteiro 1-5.
-- supplier_name: operadora emissora (nunca VIA AIR).
+- supplier_name: examine cabeçalho, rodapé, corpo, cláusulas e páginas de serviços. VIA AIR / Via Aérea / Voe Air / voeair.com são a agência revendedora e Infotera é a plataforma: nunca use esses nomes. Qualquer menção a Cativa, inclusive nas cláusulas do Protec Travel, significa supplier_name = "Cativa Operadora". Se não encontrar operadora, deixe vazio.
+- services.seguro: seguro/assistência médica de viagem. enabled=true quando aparecer "Seguro viagem", mesmo sem cobertura explícita. cobertura é o valor médico por pessoa e moeda é BRL/USD/EUR.
+- services.cancelamento: serviço separado do seguro. enabled=true para "Cobertura de Cancelamento Involuntário de Viagem", "Protec Travel" ou flexibilidade tarifária; extraia cobertura e moeda.
+- services.transfer: enabled=true para transfer/traslado. "chegada e saída", "IN/OUT" ou ida e volta significa sentido="in_out".
+- services.city_tour: enabled=true quando houver city tour ou passeio incluído. Outros extras explícitos vão em services.outros.
 - Cidade em português.
 
 Retorne SÓ o JSON.`;
@@ -1011,6 +1088,9 @@ Retorne SÓ o JSON.`;
         const n = Math.round(Number(pkg.hotel_stars));
         pkg.hotel_stars = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : undefined;
       }
+      const supplier = String(pkg.supplier_name ?? "").trim();
+      if (/^(via\s*air|via\s*a[eé]rea|voe\s*air|infotera)$/i.test(supplier)) pkg.supplier_name = "";
+      if (/cativa/i.test(supplier)) pkg.supplier_name = "Cativa Operadora";
     }
 
     return { packages: arr };
