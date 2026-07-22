@@ -153,6 +153,12 @@ function isAppleMobile() {
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
+function isSafari() {
+  const ua = navigator.userAgent;
+  // Safari (desktop e iOS) — exclui Chrome/Edge/Firefox/Opera que também têm "Safari" no UA.
+  return /^((?!chrome|android|crios|fxios|edgios|edg|opr).)*safari/i.test(ua) || isAppleMobile();
+}
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -165,7 +171,7 @@ function downloadBlob(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-function offerAppleShare(file: File): Promise<ArtDelivery> {
+function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<ArtDelivery> {
   return new Promise((resolve) => {
     const previewUrl = URL.createObjectURL(file);
     const overlay = document.createElement("div");
@@ -198,15 +204,21 @@ function offerAppleShare(file: File): Promise<ArtDelivery> {
     const preview = document.createElement("img");
     preview.src = previewUrl;
     preview.alt = "Prévia da arte pronta";
-    preview.style.cssText = "display:block;width:100%;max-height:68dvh;object-fit:contain;border-radius:6px;background:var(--muted)";
+    preview.style.cssText = "display:block;width:100%;max-height:60dvh;object-fit:contain;border-radius:6px;background:var(--muted)";
+
+    const hint = document.createElement("p");
+    hint.textContent = opts.canShare
+      ? "Toque em Salvar ou compartilhar para escolher onde guardar a imagem."
+      : "Clique em Baixar imagem para salvar. Se preferir, mantenha pressionada a prévia para salvar direto.";
+    hint.style.cssText = "margin:10px 0 0;font:400 13px inherit;color:var(--muted-foreground)";
 
     const actions = document.createElement("div");
     actions.style.cssText = "display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:14px";
 
-    const shareButton = document.createElement("button");
-    shareButton.type = "button";
-    shareButton.textContent = "Salvar ou compartilhar";
-    shareButton.style.cssText = [
+    const primaryButton = document.createElement("button");
+    primaryButton.type = "button";
+    primaryButton.textContent = opts.canShare ? "Salvar ou compartilhar" : "Baixar imagem";
+    primaryButton.style.cssText = [
       "min-height:48px",
       "padding:0 18px",
       "border:0",
@@ -214,6 +226,7 @@ function offerAppleShare(file: File): Promise<ArtDelivery> {
       "background:var(--primary)",
       "color:var(--primary-foreground)",
       "font:600 15px inherit",
+      "cursor:pointer",
     ].join(";");
 
     const cancelButton = document.createElement("button");
@@ -227,6 +240,7 @@ function offerAppleShare(file: File): Promise<ArtDelivery> {
       "background:var(--secondary)",
       "color:var(--secondary-foreground)",
       "font:600 15px inherit",
+      "cursor:pointer",
     ].join(";");
 
     const finish = (delivery: ArtDelivery) => {
@@ -235,39 +249,42 @@ function offerAppleShare(file: File): Promise<ArtDelivery> {
       resolve(delivery);
     };
 
-    shareButton.addEventListener("click", async () => {
-      try {
-        await navigator.share({ files: [file] });
-        finish("shared");
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          finish("cancelled");
+    primaryButton.addEventListener("click", async () => {
+      if (opts.canShare) {
+        try {
+          await navigator.share({ files: [file] });
+          finish("shared");
           return;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            finish("cancelled");
+            return;
+          }
+          // Fallback: cai para o download dentro do mesmo clique.
         }
-        // Ainda dentro do clique do usuário: o download via Blob URL é aceito
-        // mesmo em versões do Safari sem compartilhamento de arquivos.
-        downloadBlob(file, file.name);
-        finish("downloaded");
       }
+      downloadBlob(file, file.name);
+      finish("downloaded");
     });
     cancelButton.addEventListener("click", () => finish("cancelled"));
 
-    actions.append(shareButton, cancelButton);
-    panel.append(preview, actions);
+    actions.append(primaryButton, cancelButton);
+    panel.append(preview, hint, actions);
     overlay.append(panel);
     document.body.appendChild(overlay);
-    shareButton.focus();
+    primaryButton.focus();
   });
 }
 
 export async function deliverArtPng(blob: Blob, filename: string): Promise<ArtDelivery> {
   const file = new File([blob], filename, { type: "image/png" });
 
-  // A geração assíncrona perde a ativação do clique no WebKit. Mostramos uma
-  // prévia com um segundo botão, cujo clique abre a folha de compartilhamento
-  // e permite “Salvar Imagem” de forma confiável.
-  if (isAppleMobile() && navigator.canShare?.({ files: [file] })) {
-    return offerAppleShare(file);
+  // A geração assíncrona perde a ativação do clique no WebKit — tanto no Safari
+  // desktop quanto no iOS o download automático é ignorado silenciosamente.
+  // Mostramos uma prévia com um botão que roda em um clique novo do usuário.
+  const canShareFiles = Boolean(navigator.canShare?.({ files: [file] }));
+  if (isSafari()) {
+    return offerPreviewSheet(file, { canShare: canShareFiles && isAppleMobile() });
   }
 
   downloadBlob(blob, filename);
