@@ -1103,8 +1103,12 @@ function PackageEditorModal({ editing, setEditing, saving, save, saveAll, drafts
     if (checked) list.push("Bagagem Despachada");
     const svc = (editing.services ?? {}) as PackageServices;
     if (svc.seguro?.enabled) {
-      const cob = (svc.seguro.cobertura ?? "").trim();
-      list.push(cob ? `Seguro Viagem — Cobertura ${cob} por pessoa` : "Seguro Viagem");
+      const cob = formatSeguroCobertura(svc.seguro.cobertura, svc.seguro.moeda);
+      const plano = (svc.seguro.plano ?? "").trim();
+      const base = plano ? `Seguro Viagem ${plano}` : "Seguro Viagem";
+      list.push(cob ? `${base} — Cobertura ${cob} por pessoa` : base);
+      const canc = formatSeguroCobertura(svc.seguro.cancelamento, svc.seguro.cancelamento_moeda);
+      if (canc) list.push(`Cobertura de Cancelamento Involuntário — ${canc} por pessoa`);
     }
     if (svc.transfer?.enabled) {
       const sentido = svc.transfer.sentido;
