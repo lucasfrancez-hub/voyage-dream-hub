@@ -70,7 +70,6 @@ export const createAdminUser = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string().email(),
-        password: z.string().min(8).max(72),
         role: z.enum(["admin", "user", "partner"]),
         fullName: z.string().trim().max(120).optional(),
         agencyName: z.string().trim().max(120).optional(),
@@ -83,11 +82,11 @@ export const createAdminUser = createServerFn({ method: "POST" })
       throw new Error("Informe o nome da empresa para o usuário terceiro.");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Cria o usuário já com e-mail confirmado e a senha temporária definida
-    // pelo gestor (não depende de entrega de e-mail).
+    // Cria a conta confirmada e envia um link para o usuário definir a senha.
+    const temporaryPassword = `${crypto.randomUUID()}Aa1!`;
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
+      email: data.email.trim().toLowerCase(),
+      password: temporaryPassword,
       email_confirm: true,
       user_metadata: data.fullName ? { full_name: data.fullName } : undefined,
     });
@@ -111,6 +110,13 @@ export const createAdminUser = createServerFn({ method: "POST" })
       await supabaseAdmin
         .from("partner_agencies")
         .upsert({ user_id: userId, agency_name: data.agencyName }, { onConflict: "user_id" });
+    }
+    const { error: emailErr } = await supabaseAdmin.auth.resetPasswordForEmail(data.email, {
+      redirectTo: "https://pedidos.viaair.tur.br/reset-password",
+    });
+    if (emailErr) {
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      throw new Error(`Não foi possível enviar o acesso: ${emailErr.message}`);
     }
     return { id: userId, email: created.user!.email ?? data.email };
   });
@@ -185,8 +191,9 @@ export const resendUserPassword = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureGestor(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Dispara e-mail de recuperação de senha (template padrão da Lovable).
-    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(data.email);
+    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(data.email, {
+      redirectTo: "https://pedidos.viaair.tur.br/reset-password",
+    });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

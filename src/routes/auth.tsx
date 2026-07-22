@@ -7,6 +7,16 @@ import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Entrar no painel | VIA AIR" },
+      { name: "description", content: "Acesso restrito ao painel administrativo VIA AIR." },
+      { property: "og:title", content: "Entrar no painel | VIA AIR" },
+      { property: "og:description", content: "Acesso restrito ao painel administrativo VIA AIR." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: AuthPage,
 });
 
@@ -84,7 +94,8 @@ function AuthPage() {
       if (error) throw error;
       await ensureMfaOrEnter();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro na autenticação");
+      const message = err instanceof Error ? err.message : "Erro na autenticação";
+      toast.error(message.toLowerCase().includes("invalid login credentials") ? "E-mail ou senha incorretos. Peça ao gestor para reenviar seu acesso." : message);
     } finally {
       setLoading(false);
     }
