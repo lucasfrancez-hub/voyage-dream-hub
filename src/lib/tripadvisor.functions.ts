@@ -360,16 +360,16 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
   .inputValidator((input: { locationId: number }) => input)
   .handler(async ({ data }): Promise<TAPublicHotelInfo> => {
     const id = data.locationId;
-    // A Terra usa page/size: fotos têm página inicial 0 e avaliações usam página inicial 1.
+    // A Terra usa page/size com páginas iniciando em 1.
     // Cada página falha isoladamente para uma resposta parcial continuar utilizável.
     const PHOTO_PAGES = 6;
     const PHOTO_PAGE_SIZE = 10;
     const [rDet, photoPageResults, reviewPageResults] = await Promise.all([
       taFetch(`/locations/${id}`),
       Promise.allSettled(
-        Array.from({ length: PHOTO_PAGES }, (_, page) =>
+        Array.from({ length: PHOTO_PAGES }, (_, index) =>
           taFetch(`/locations/${id}/photos`, {
-            page: String(page),
+            page: String(index + 1),
             size: String(PHOTO_PAGE_SIZE),
           }),
         ),
