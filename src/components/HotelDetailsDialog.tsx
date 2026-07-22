@@ -206,10 +206,11 @@ export function HotelDetailsDialog({
               </div>
             </header>
 
-            {/* Split workspace */}
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
+            {/* Split workspace — no mobile: rola a página inteira; desktop: 2 colunas com scrolls internos */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row md:overflow-hidden">
               {/* LEFT — gallery */}
-              <div className="flex min-h-0 min-w-0 flex-[1.85] flex-col gap-4 p-5 md:p-6">
+              <div className="flex min-w-0 flex-none flex-col gap-4 p-5 md:min-h-0 md:flex-[1.85] md:p-6">
+
                 {/* Main image */}
                 <div className="group relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/40 bg-black/40">
                   {isLoading && !photos.length ? (
