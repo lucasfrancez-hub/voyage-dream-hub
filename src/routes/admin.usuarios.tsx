@@ -4,6 +4,15 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Users, UserPlus, Trash2, ShieldCheck, Loader2, Check, KeyRound, MailCheck, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { confirmThen } from "@/lib/confirm";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   listAdminUsers,
   createAdminUser,
@@ -37,12 +46,11 @@ function UsersPage() {
   });
 
   const createMut = useMutation({
-    mutationFn: (input: { email: string; password: string; role: AdminRole; fullName?: string; agencyName?: string }) =>
+    mutationFn: (input: { email: string; role: AdminRole; fullName?: string; agencyName?: string }) =>
       create({ data: input }),
     onSuccess: () => {
-      toast.success("Usuário criado");
+      toast.success("Usuário criado e e-mail de acesso enviado");
       setEmail("");
-      setPassword("");
       setFullName("");
       setAgencyName("");
       qc.invalidateQueries({ queryKey: ["admin-users"] });
@@ -98,15 +106,15 @@ function UsersPage() {
   });
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [agencyName, setAgencyName] = useState("");
   const [role, setNewRole] = useState<AdminRole>("user");
+  const [passwordUser, setPasswordUser] = useState<{ id: string; email: string } | null>(null);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || password.length < 8) {
-      toast.error("Informe e-mail e senha com ao menos 8 caracteres");
+    if (!email) {
+      toast.error("Informe o e-mail");
       return;
     }
     if (role === "partner" && !agencyName.trim()) {
@@ -115,7 +123,6 @@ function UsersPage() {
     }
     createMut.mutate({
       email,
-      password,
       role,
       fullName: fullName.trim() || undefined,
       agencyName: role === "partner" ? agencyName.trim() : undefined,
@@ -129,7 +136,7 @@ function UsersPage() {
       </div>
       <h1 className="mt-1 font-display text-3xl font-bold">Equipe com acesso ao painel</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Apenas o gestor cria e gerencia contas. Novos usuários já entram com o e-mail confirmado.
+        Apenas o gestor cria e gerencia contas. O novo usuário recebe um e-mail para definir a própria senha.
       </p>
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-6">
@@ -156,18 +163,6 @@ function UsersPage() {
               onChange={(e) => setEmail(e.target.value)}
               className={cls}
               placeholder="pessoa@voeair.com"
-            />
-          </label>
-          <label className="block">
-            <span className="block text-xs text-muted-foreground mb-1.5">Senha temporária</span>
-            <input
-              type="text"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={cls}
-              placeholder="mín. 8 caracteres"
             />
           </label>
           <label className="block">
@@ -227,18 +222,8 @@ function UsersPage() {
               onChangeRole={(r) => roleMut.mutate({ userId: u.id, role: r })}
               onResend={() => resendMut.mutate(u.email)}
               onConfirmEmail={() => confirmMut.mutate(u.id)}
-              onSetPassword={() => {
-                const p = prompt(`Nova senha para ${u.email} (mín. 8 caracteres):`);
-                if (!p) return;
-                if (p.length < 8) {
-                  toast.error("Senha muito curta");
-                  return;
-                }
-                pwdMut.mutate({ userId: u.id, password: p });
-              }}
-              onDelete={() => {
-                if (confirm(`Remover ${u.email}?`)) delMut.mutate(u.id);
-              }}
+              onSetPassword={() => setPasswordUser({ id: u.id, email: u.email })}
+              onDelete={() => confirmThen({ title: "Remover usuário", description: `Remover ${u.email}?`, confirmText: "Remover", destructive: true }, () => delMut.mutate(u.id))}
             />
           ))}
           {usersQuery.data?.length === 0 && (
@@ -246,7 +231,60 @@ function UsersPage() {
           )}
         </div>
       </section>
+      <SetPasswordDialog
+        user={passwordUser}
+        saving={pwdMut.isPending}
+        onClose={() => setPasswordUser(null)}
+        onSave={(newPassword) => {
+          if (!passwordUser) return;
+          pwdMut.mutate(
+            { userId: passwordUser.id, password: newPassword },
+            { onSuccess: () => setPasswordUser(null) },
+          );
+        }}
+      />
     </div>
+  );
+}
+
+function SetPasswordDialog({
+  user,
+  saving,
+  onClose,
+  onSave,
+}: {
+  user: { id: string; email: string } | null;
+  saving: boolean;
+  onClose: () => void;
+  onSave: (password: string) => void;
+}) {
+  const [password, setPassword] = useState("");
+  useEffect(() => {
+    if (!user) setPassword("");
+  }, [user]);
+  return (
+    <Dialog open={Boolean(user)} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="w-[calc(100%-2rem)] rounded-lg sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Definir nova senha</DialogTitle>
+          <DialogDescription>{user?.email}</DialogDescription>
+        </DialogHeader>
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Mínimo de 8 caracteres"
+          className={cls}
+        />
+        <DialogFooter>
+          <button type="button" onClick={onClose} className="rounded-full border border-border px-4 py-2 text-sm">Cancelar</button>
+          <button type="button" disabled={saving || password.length < 8} onClick={() => onSave(password)} className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />} Salvar senha
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

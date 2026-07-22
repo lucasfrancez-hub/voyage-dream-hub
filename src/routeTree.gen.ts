@@ -20,6 +20,7 @@ import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
@@ -138,6 +139,11 @@ const PagarBoletoRoute = PagarBoletoRouteImport.update({
 const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
   id: '/politica-de-privacidade',
   path: '/politica-de-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -486,6 +492,7 @@ export interface FileRoutesByFullPath {
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -562,6 +569,7 @@ export interface FileRoutesByTo {
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -640,6 +648,7 @@ export interface FileRoutesById {
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -719,6 +728,7 @@ export interface FileRouteTypes {
     | '/pagar'
     | '/pagar-boleto'
     | '/politica-de-privacidade'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
@@ -795,6 +805,7 @@ export interface FileRouteTypes {
     | '/pagar'
     | '/pagar-boleto'
     | '/politica-de-privacidade'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
@@ -872,6 +883,7 @@ export interface FileRouteTypes {
     | '/pagar'
     | '/pagar-boleto'
     | '/politica-de-privacidade'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
@@ -950,6 +962,7 @@ export interface RootRouteChildren {
   PagarRoute: typeof PagarRoute
   PagarBoletoRoute: typeof PagarBoletoRoute
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosDeUsoRoute: typeof TermosDeUsoRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
@@ -1058,6 +1071,13 @@ declare module '@tanstack/react-router' {
       path: '/politica-de-privacidade'
       fullPath: '/politica-de-privacidade'
       preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -1640,6 +1660,7 @@ const rootRouteChildren: RootRouteChildren = {
   PagarRoute: PagarRoute,
   PagarBoletoRoute: PagarBoletoRoute,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosDeUsoRoute: TermosDeUsoRoute,
   UnsubscribeRoute: UnsubscribeRoute,
@@ -1675,13 +1696,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
