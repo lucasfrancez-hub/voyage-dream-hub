@@ -321,7 +321,18 @@ function PackageDetails() {
                       </div>
                     )}
                     <div className="mt-3 flex justify-end">
-                      {taUrl ? (
+                      {taId ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDialogPhotoIndex(0);
+                            setHotelDialogOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-medium text-brand-orange hover:bg-brand-orange/20 transition"
+                        >
+                          Ver fotos e avaliações <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      ) : taUrl ? (
                         <a
                           href={taUrl}
                           target="_blank"
