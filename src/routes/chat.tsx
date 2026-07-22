@@ -11,12 +11,13 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { getMyProfile } from "@/lib/chat/queries.functions";
 
 export const Route = createFileRoute("/chat")({
+  ssr: false,
   component: ChatLayout,
   head: () => ({
     meta: [
       { title: "Central de Atendimento — VIA AIR" },
       { name: "description", content: "CRM WhatsApp + IA integrado da VIA AIR" },
-      { name: "robots", content: "noindex" },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
 });
