@@ -746,6 +746,10 @@ function AdminPackages() {
             packages={(packages || []) as PackageRow[]}
             onOpen={(p) => setEditingState(p)}
           />
+          <MealPlanMismatchAlert
+            packages={(packages || []) as PackageRow[]}
+            onOpen={(p) => setEditingState(p)}
+          />
           <DuplicatePackagesAlert
             packages={(packages || []) as PackageRow[]}
             onOpen={(p) => setEditingState(p)}
