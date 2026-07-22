@@ -2280,13 +2280,15 @@ function HotelReservationCard({
           <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
             {destination && <div>{destination}</div>}
             {address && <div>{address}</div>}
-            {room && <div>Categoria: <span className="text-foreground">{room}</span></div>}
-            {typeof d.room_type === "string" && (d.room_type as string).trim() && !room && (
-              <div>Tipo de quarto: <span className="text-foreground">{d.room_type as string}</span></div>
-            )}
-            {typeof d.room_category === "string" && (d.room_category as string).trim() && (
-              <div>Vista: <span className="text-foreground">{d.room_category as string}</span></div>
-            )}
+            {room && <div>Categoria: <span className="text-foreground">{room.replace(/\b(frete|broker|tarifa|net|pacote|comiss(?:ão|ao)|contratada?)\b/gi, "").replace(/\s{2,}/g, " ").trim()}</span></div>}
+            {typeof d.room_type === "string" && (d.room_type as string).trim() && !room && (() => {
+              const v = (d.room_type as string).replace(/\b(frete|broker|tarifa|net|pacote|comiss(?:ão|ao)|contratada?)\b/gi, "").replace(/\s{2,}/g, " ").trim();
+              return v ? <div>Tipo de quarto: <span className="text-foreground">{v}</span></div> : null;
+            })()}
+            {typeof d.room_category === "string" && (d.room_category as string).trim() && (() => {
+              const v = (d.room_category as string).replace(/\b(frete|broker|tarifa|net|pacote|comiss(?:ão|ao)|contratada?)\b/gi, "").replace(/\s{2,}/g, " ").trim();
+              return v ? <div>Vista: <span className="text-foreground">{v}</span></div> : null;
+            })()}
             {typeof d.bed_type === "string" && (d.bed_type as string).trim() && (
               <div>Cama: <span className="text-foreground">{d.bed_type as string}</span></div>
             )}
