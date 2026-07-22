@@ -1128,7 +1128,12 @@ function formatBRLNoSymbol(n: number): string {
 
 type PackageEditorModalProps = {
   editing: Partial<PackageRow>;
-  setEditing: (v: Partial<PackageRow> | null) => void;
+  setEditing: (
+    v:
+      | Partial<PackageRow>
+      | null
+      | ((prev: Partial<PackageRow> | null) => Partial<PackageRow> | null),
+  ) => void;
   saving: boolean;
   save: () => void;
   saveAll?: () => void;
