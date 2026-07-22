@@ -110,12 +110,13 @@ export function HotelDetailsDialog({
 }: Props) {
   const fetchInfo = useServerFn(getTripAdvisorPublicHotelInfo);
   const query = useQuery({
-    queryKey: ["ta-public-hotel-v2", locationId],
+    queryKey: ["ta-public-hotel-v3", locationId],
     queryFn: () => fetchInfo({ data: { locationId } }),
     enabled: open && locationId > 0,
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 24,
   });
+
   const data = query.data as TAPublicHotelInfo | undefined;
   const isLoading = query.isLoading;
 
@@ -283,9 +284,9 @@ export function HotelDetailsDialog({
 
               {/* RIGHT — content & reviews */}
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-border/40 md:min-w-[360px] md:border-l md:border-t-0">
-                {/* About (fixed) */}
+                {/* About (capped, internal scroll) */}
                 {(data?.description || isLoading) && (
-                  <section className="flex max-h-[34%] flex-none flex-col overflow-hidden border-b border-border/40 bg-muted/10 p-6 md:p-7">
+                  <section className="flex-none flex flex-col border-b border-border/40 bg-muted/10 p-6 md:p-7" style={{ maxHeight: "40%" }}>
                     <div className="flex items-center justify-between gap-3 mb-3 flex-none">
                       <h2 className="text-base font-bold text-white">Sobre o hotel</h2>
                       {data?.description_translated_from && (
@@ -301,15 +302,18 @@ export function HotelDetailsDialog({
                         <div className="h-3 w-4/5 rounded bg-white/5 animate-pulse" />
                       </div>
                     ) : (
-                      <p className="text-sm text-zinc-400 leading-relaxed flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
-                        {safeText(data?.description)}
-                      </p>
+                      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2">
+                        <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">
+                          {safeText(data?.description)}
+                        </p>
+                      </div>
                     )}
                   </section>
                 )}
 
                 {/* Reviews feed */}
-                <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-scroll overscroll-contain px-6 py-4 md:px-7">
+                <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-4 md:px-7">
+
                   <div className="sticky top-0 z-10 py-2 -mx-1 px-1 bg-background/80 backdrop-blur-xl">
                     <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
                       Avaliações recentes
