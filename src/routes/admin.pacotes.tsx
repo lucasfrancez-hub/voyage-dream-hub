@@ -479,7 +479,6 @@ function AdminPackages() {
       title: "Excluir pacote?",
       description: `"${p.title}" será excluído. Esta ação não pode ser desfeita.`,
       confirmText: "Excluir",
-      variant: "destructive",
     });
     if (!ok) return;
     const { error } = await supabase.from("packages").delete().eq("id", p.id);
