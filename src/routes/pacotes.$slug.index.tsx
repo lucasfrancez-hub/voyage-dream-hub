@@ -62,8 +62,8 @@ function roomTypeIcon(value: string): LucideIcon {
 
 function roomCategoryIcon(value: string): LucideIcon {
   const v = value.toLocaleLowerCase("pt-BR");
+  if (/vista|frente|mar|oceano|piscina|montanha|jardim|cidade/.test(v)) return Eye;
   if (/luxo|luxury|premium|deluxe|superior|master|presidencial/.test(v)) return Crown;
-  if (/standard|standart|padr[aã]o|basic/.test(v)) return Sparkles;
   return Sparkles;
 }
 
