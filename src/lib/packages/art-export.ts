@@ -323,7 +323,7 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       if (e.target === overlay) finish("cancelled");
     });
 
-    panel.append(header, previewWrap, actions, brand);
+    panel.append(header, previewWrap, actions);
     overlay.append(panel);
     document.body.appendChild(overlay);
     primaryButton.focus();
