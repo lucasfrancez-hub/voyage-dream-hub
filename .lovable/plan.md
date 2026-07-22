@@ -1,44 +1,70 @@
+# Trusted Devices + MFA Obrigatório — VIA AIR Admin
 
-## Objetivo
+Dois reforços no login admin trabalhando juntos:
+1. **MFA (TOTP) obrigatório** pra todo usuário — sem exceção.
+2. **Dispositivos confiáveis** — device confiável pula só o passo do TOTP (senha continua obrigatória).
 
-Transformar o Treinador de Check-in num "navegador ao vivo": abre a LATAM uma única vez, e cada ação (clicar / digitar / scroll) roda **na hora** na mesma aba, sem reabrir a página. O print atualiza depois de cada ação, como se você tivesse um mini-navegador dentro do painel.
+## Fluxos
 
-## Como vai funcionar (fluxo novo)
+**Primeiro login de um usuário (ainda sem MFA cadastrado):**
+1. E-mail + senha
+2. Tela **obrigatória** de "Ative seu autenticador": QR code + campo pra digitar código
+3. Não consegue prosseguir sem ativar
+4. Após ativar, entra normalmente + opção "confiar neste dispositivo"
 
-1. Botão **"Abrir sessão"** — abre a LATAM no Browserless com proxy/stealth, guarda o endpoint da sessão e devolve o primeiro print.
-2. Você escreve a pergunta → **Perguntar pra IA** → aparecem os alvos (igual hoje).
-3. Você clica em **Clicar** / **Digitar PNR** / **Digitar sobrenome** no alvo:
-   - o passo é adicionado à lista de "Passos aprendidos"
-   - **e já executa na sessão viva** — a página avança de verdade
-   - retorna o novo print automaticamente
-4. Botões auxiliares na mesma sessão: **Print agora**, **Voltar** (undo do último passo), **Fechar sessão**.
-5. No fim, botão **"Salvar script"** grava a lista de passos como script reutilizável do autopilot.
+**Login normal (MFA já ativo, device novo):**
+1. E-mail + senha
+2. TOTP obrigatório
+3. Checkbox "confiar neste dispositivo por 30 dias" (opcional) → e-mail de aviso
 
-O botão antigo "Executar & Print" vira **"Repetir do zero"** (opcional, pra validar que o script inteiro funciona do começo).
+**Login em device confiável (dentro de 30 dias):**
+1. E-mail + senha
+2. Entra direto
 
-## Como manter a sessão viva
+**Painel `/admin/seguranca`:**
+- Aba "Meu MFA": mostra se está ativo, permite reconfigurar
+- Aba "Dispositivos confiáveis": lista + revogar individual / todos
+- (Admin master) Aba "Usuários": ver quem tem MFA ativo, forçar reset
 
-Browserless retorna um `browserWSEndpoint` (reconnect URL) quando a sessão é aberta com stealth. Vou:
+## Como funciona por baixo
 
-- Guardar `{ sessionId, wsEndpoint, expiresAt }` num Map em memória no server (chaveado pelo `userId` admin — 1 sessão por admin por vez).
-- Cada ação nova reconecta no mesmo `wsEndpoint` via `puppeteer.connect()`, roda o passo, tira print, e devolve. Puppeteer desconecta ao fim da chamada, mas a sessão remota do Browserless continua viva.
-- TTL de 10 min de inatividade. Se expirar, o front avisa "sessão encerrada, abra novamente".
+### MFA obrigatório
+- Após `signInWithPassword`, checa `supabase.auth.mfa.getAuthenticatorAssuranceLevel()`
+- Se `currentLevel === 'aal1'` e usuário **não tem** fator enrollado → força tela de enrollment (não deixa fechar/pular)
+- Se tem fator mas `currentLevel === 'aal1'` → exige TOTP (a menos que device confiável)
+- Logout automático se tentar fechar a tela
+
+### Trusted devices
+- **Tabela `trusted_devices`**: `user_id`, `token_hash` (SHA-256), `user_agent`, `ip_address`, `last_used_at`, `expires_at`. RLS: `auth.uid() = user_id`.
+- **Cookie httpOnly** `via_td` (256 bits, base64), `Secure`, `SameSite=Lax`, 30 dias.
+- **Server fns**: `checkTrustedDevice`, `registerTrustedDevice`, `revokeTrustedDevice`, `listTrustedDevices`.
+- Token nunca em texto puro no banco — só hash SHA-256.
+- Cookie httpOnly → imune a XSS.
 
 ## Arquivos
 
-- `src/lib/checkin/training-session.server.ts` — novo. Map em memória `openSession()`, `getSession()`, `closeSession()`, `runStepOnSession()`.
-- `src/lib/checkin/training.functions.ts` — adicionar 4 server fns: `openTrainingSession`, `runStepLive`, `screenshotSession`, `closeTrainingSession`. Manter as antigas (`runTrainingScript`, `askVisionAboutScreenshot`) intactas.
-- `src/routes/admin.checkin-treino.tsx` — trocar o botão principal por **Abrir sessão** + estado `sessionId`. Ao clicar em Clicar/Digitar, chama `runStepLive` em vez de só acumular passo. Adicionar botões Voltar / Fechar / Repetir do zero.
+- **Migration**: `public.trusted_devices` com GRANTs + RLS.
+- **`src/lib/trusted-devices.functions.ts`**: server fns.
+- **`src/routes/auth.tsx`**: adiciona (a) checagem de trusted device antes do MFA, (b) tela de enrollment forçado, (c) checkbox "confiar", (d) chamada de `registerTrustedDevice`.
+- **`src/components/auth/MfaEnrollGate.tsx`**: novo componente da tela de enrollment obrigatório.
+- **`src/routes/admin.seguranca.tsx`**: nova aba "Dispositivos confiáveis" + status do MFA do usuário.
+- **Template e-mail**: "novo dispositivo autorizado" (usa infra já configurada).
 
-## Detalhes técnicos
+## Segurança / trade-offs
 
-- **Persistência real**: Map em memória do worker. Um worker Cloudflare pode reciclar entre requests, então o `wsEndpoint` também vai pra `sessionStorage` do navegador como fallback — se o Map perdeu, o front reenvia o endpoint e o server reconecta.
-- **Concorrência**: 1 sessão ativa por admin. Abrir uma nova fecha a anterior.
-- **Erro de sessão morta**: se `puppeteer.connect()` falhar (Browserless matou por timeout), server responde `SESSION_EXPIRED` e o front mostra "reabrir sessão".
-- **Print**: JPEG 60 (já tá assim), viewport 1280×900. Retornado como base64 pro `<img>`.
-- **Undo (Voltar)**: navegador não tem `undo` universal — o "Voltar" faz `page.goBack()` + print. Suficiente pra corrigir clique errado na maioria dos casos.
+- ✅ Mesmo com senha vazada + cookie roubado, atacante precisa do TOTP se cookie não estiver na tabela.
+- ✅ Revogar device = deleta linha → cookie vira inválido no próximo check.
+- ⚠️ Todos os admins precisam ter app autenticador (Google Authenticator, Authy, 1Password, etc.). No primeiro login pós-deploy, cada um vai ter que passar pela tela de enrollment — comunique a equipe antes.
+- ⚠️ Se um admin perder o celular com o app autenticador **e** não tiver device confiável ativo, precisa que outro admin master resete o MFA dele pelo painel.
 
-## Fora do escopo
+## Ordem de implementação (proponho fazer tudo em sequência)
 
-- Não vou mexer no `latam-autopilot.server.ts` (o executor de produção continua igual).
-- Não vou mudar a estrutura do JSON dos passos salvos — os scripts gravados continuam compatíveis com o autopilot atual.
+1. Migration `trusted_devices` + server fns
+2. Rework do `/auth`: enrollment forçado + trusted device check + checkbox
+3. Painel de segurança com listagem de devices + status MFA
+4. Template de e-mail de novo device
+5. Testar fluxo completo
+
+Confirma que:
+- **A)** MFA obrigatório pra 100% dos usuários (inclusive parceiros/agências externas)? Ou só role `admin`?
+- **B)** Duração do trusted device: **30 dias** OK ou prefere outro (7/60/90)?

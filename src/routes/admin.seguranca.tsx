@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, ShieldCheck, ShieldAlert, Copy, Trash2 } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, Copy, Trash2, Smartphone, Globe, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { confirm } from "@/lib/confirm";
+import {
+  listTrustedDevices,
+  revokeTrustedDevice,
+  revokeAllOtherTrustedDevices,
+} from "@/lib/trusted-devices.functions";
 
 export const Route = createFileRoute("/admin/seguranca")({
   component: SecurityPage,
 });
+
 
 type Factor = { id: string; status: string; friendly_name?: string | null };
 
@@ -207,6 +214,171 @@ function SecurityPage() {
           </div>
         </section>
       )}
+
+      <TrustedDevicesSection />
     </div>
   );
 }
+
+type TDevice = {
+  id: string;
+  user_agent: string | null;
+  ip_address: string | null;
+  label: string | null;
+  last_used_at: string;
+  expires_at: string;
+  created_at: string;
+  is_current: boolean;
+};
+
+function TrustedDevicesSection() {
+  const [devices, setDevices] = useState<TDevice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const list = await listTrustedDevices();
+      setDevices(list);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao listar dispositivos");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { refresh(); }, []);
+
+  async function revoke(id: string) {
+    const ok = await confirm({
+      title: "Revogar dispositivo?",
+      description: "O próximo login neste navegador vai exigir o código do autenticador novamente.",
+      confirmText: "Revogar",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await revokeTrustedDevice({ data: { id } });
+      toast.success("Dispositivo revogado");
+      refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao revogar");
+    }
+  }
+
+  async function revokeAllOthers() {
+    const ok = await confirm({
+      title: "Revogar todos os outros?",
+      description: "Todos os dispositivos exceto este vão precisar de código no próximo login.",
+      confirmText: "Revogar todos",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await revokeAllOtherTrustedDevices();
+      toast.success("Outros dispositivos revogados");
+      refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao revogar");
+    }
+  }
+
+  function parseUA(ua: string | null): string {
+    if (!ua) return "Navegador desconhecido";
+    if (/Edg\//.test(ua)) return "Edge";
+    if (/Chrome\//.test(ua)) return "Chrome";
+    if (/Firefox\//.test(ua)) return "Firefox";
+    if (/Safari\//.test(ua)) return "Safari";
+    return ua.slice(0, 40);
+  }
+
+  function parseOS(ua: string | null): string {
+    if (!ua) return "";
+    if (/Windows/.test(ua)) return "Windows";
+    if (/Mac OS X/.test(ua)) return "macOS";
+    if (/Android/.test(ua)) return "Android";
+    if (/iPhone|iPad|iOS/.test(ua)) return "iOS";
+    if (/Linux/.test(ua)) return "Linux";
+    return "";
+  }
+
+  return (
+    <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="font-semibold inline-flex items-center gap-2">
+            <Smartphone className="h-4 w-4 text-brand-orange" /> Dispositivos confiáveis
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Navegadores em que você marcou "confiar" — pulam o código do autenticador por 30 dias.
+          </p>
+        </div>
+        {devices.filter((d) => !d.is_current).length > 0 && (
+          <button
+            onClick={revokeAllOthers}
+            className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
+          >
+            Revogar todos os outros
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+        </div>
+      ) : devices.length === 0 ? (
+        <div className="mt-4 text-sm text-muted-foreground">
+          Nenhum dispositivo confiável. Após fazer login com 2FA, marque "confiar neste dispositivo" para pular o código nas próximas vezes.
+        </div>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {devices.map((d) => {
+            const browser = parseUA(d.user_agent);
+            const os = parseOS(d.user_agent);
+            const expDays = Math.max(0, Math.round((new Date(d.expires_at).getTime() - Date.now()) / 86400000));
+            return (
+              <li
+                key={d.id}
+                className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+                  d.is_current ? "border-brand-orange/50 bg-brand-orange/5" : "border-border"
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium inline-flex items-center gap-2">
+                    {browser}
+                    {os && <span className="text-muted-foreground font-normal">· {os}</span>}
+                    {d.is_current && (
+                      <span className="rounded-full bg-brand-orange/20 text-brand-orange px-2 py-0.5 text-[10px] uppercase tracking-wider">
+                        Este device
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+                    {d.ip_address && (
+                      <span className="inline-flex items-center gap-1">
+                        <Globe className="h-3 w-3" /> {d.ip_address}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Último uso: {new Date(d.last_used_at).toLocaleString("pt-BR")}
+                    </span>
+                    <span>Expira em {expDays} {expDays === 1 ? "dia" : "dias"}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => revoke(d.id)}
+                  className="inline-flex items-center gap-1 text-xs text-red-500 hover:underline shrink-0"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Revogar
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
