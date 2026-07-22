@@ -285,7 +285,7 @@ export function HotelDetailsDialog({
               </div>
 
               {/* RIGHT — content & reviews */}
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-border/40 md:min-w-[360px] md:border-l md:border-t-0">
+              <div className="flex min-w-0 flex-none flex-col border-t border-border/40 md:min-h-0 md:flex-1 md:min-w-[360px] md:overflow-hidden md:border-l md:border-t-0">
                 {/* About (capped, internal scroll) */}
                 {(data?.description || isLoading) && (
                   <section className="flex-none flex flex-col border-b border-border/40 bg-muted/10 p-6 md:p-7" style={{ maxHeight: "40%" }}>
