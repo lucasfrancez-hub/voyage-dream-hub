@@ -35,6 +35,10 @@ function cleanHotelDetail(value: string | null | undefined) {
   const cleaned = value
     ?.trim()
     .replace(/^(regime(?: de alimenta[cç][aã]o)?|tipo de cama|cama|tipo de quarto|quarto|categoria|vista)\s*:\s*/i, "")
+    // remove jargão comercial de broker/operadora (Frete, Broker, Tarifa, Net, etc.)
+    .replace(/\b(frete|broker|tarifa|net|pacote|comiss(?:ão|ao)|comission|comm|fee|markup|contratada?|contrato|revenda|operadora|distribui[çc][aã]o)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[\s,;/|.\-–—]+|[\s,;/|.\-–—]+$/g, "")
     .trim();
 
   return cleaned && cleaned !== "—" ? cleaned : null;
