@@ -288,7 +288,7 @@ export function HotelDetailsDialog({
               <div className="flex min-w-0 flex-none flex-col border-t border-border/40 md:min-h-0 md:flex-1 md:min-w-[360px] md:overflow-hidden md:border-l md:border-t-0">
                 {/* About (capped, internal scroll) */}
                 {(data?.description || isLoading) && (
-                  <section className="flex-none flex flex-col border-b border-border/40 bg-muted/10 p-6 md:p-7" style={{ maxHeight: "40%" }}>
+                  <section className="flex flex-none flex-col border-b border-border/40 bg-muted/10 p-6 md:p-7 md:max-h-[40%]">
                     <div className="flex items-center justify-between gap-3 mb-3 flex-none">
                       <h2 className="text-base font-bold text-white">Sobre o hotel</h2>
                       {data?.description_translated_from && (
