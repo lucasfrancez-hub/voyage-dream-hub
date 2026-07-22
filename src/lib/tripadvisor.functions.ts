@@ -380,6 +380,8 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     const det = ((rawDet.data as Record<string, unknown> | undefined)
       ?? (rawDet.location as Record<string, unknown> | undefined)
       ?? rawDet);
+    console.log("[TA debug] det keys:", Object.keys(det));
+    console.log("[TA debug] det sample:", JSON.stringify(det).slice(0, 2500));
 
     const addr = pickAddress(det.addresses as Array<Record<string, unknown>> | undefined);
     const rating = extractRating(det);
