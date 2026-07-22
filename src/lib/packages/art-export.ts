@@ -209,8 +209,9 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
     const hint = document.createElement("p");
     hint.textContent = opts.canShare
       ? "Toque em Salvar ou compartilhar para escolher onde guardar a imagem."
-      : "Clique em Baixar imagem para salvar. Se preferir, mantenha pressionada a prévia para salvar direto.";
+      : "";
     hint.style.cssText = "margin:10px 0 0;font:400 13px inherit;color:var(--muted-foreground)";
+
 
     const actions = document.createElement("div");
     actions.style.cssText = "display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:14px";
