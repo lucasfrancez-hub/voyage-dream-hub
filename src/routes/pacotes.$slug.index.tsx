@@ -204,12 +204,26 @@ function PackageDetails() {
                       <span>{(pkg as unknown as { tripadvisor_address: string }).tripadvisor_address}</span>
                     </div>
                   )}
-                  {pkg.meal_plan && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
-                      <Check className="h-3.5 w-3.5" />
-                      Regime: {pkg.meal_plan}
-                    </div>
-                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {pkg.meal_plan && (
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
+                        <Check className="h-3.5 w-3.5" />
+                        Regime: {pkg.meal_plan}
+                      </div>
+                    )}
+                    {(pkg as unknown as { room_category?: string | null }).room_category && (
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
+                        <Check className="h-3.5 w-3.5" />
+                        {(pkg as unknown as { room_category: string }).room_category}
+                      </div>
+                    )}
+                    {(pkg as unknown as { bed_type?: string | null }).bed_type && (
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
+                        <Check className="h-3.5 w-3.5" />
+                        {(pkg as unknown as { bed_type: string }).bed_type}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
