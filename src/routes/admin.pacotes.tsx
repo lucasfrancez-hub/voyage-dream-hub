@@ -1941,15 +1941,6 @@ function ServicesEditor({
           </label>
           {seguro.enabled && (
             <div className="mt-3 space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-2 items-center">
-                <span className="text-xs text-muted-foreground">Plano (opcional)</span>
-                <input
-                  className={inpClass}
-                  placeholder="Ex.: BRONZE AL, PRATA, GTA Standard"
-                  value={seguro.plano ?? ""}
-                  onChange={(e) => patch({ seguro: { ...seguro, plano: e.target.value } })}
-                />
-              </div>
               <div className="grid grid-cols-1 sm:grid-cols-[140px_110px_1fr] gap-2 items-center">
                 <span className="text-xs text-muted-foreground">Cobertura médica</span>
                 <select
@@ -1968,12 +1959,35 @@ function ServicesEditor({
                   onChange={(e) => patch({ seguro: { ...seguro, cobertura: e.target.value } })}
                 />
               </div>
+              {seguro.cobertura && (
+                <div className="text-[11px] text-muted-foreground">
+                  Prévia: Cobertura médica {formatSeguroCobertura(seguro.cobertura, seguro.moeda)} por pessoa
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Cobertura de cancelamento involuntário */}
+        <div className="rounded-xl border border-border bg-background/60 p-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-brand-orange"
+              checked={!!(v.cancelamento?.enabled)}
+              onChange={(e) => patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: e.target.checked } })}
+            />
+            <Shield className="h-4 w-4 text-brand-orange" />
+            <span className="text-sm font-medium">Cobertura de cancelamento involuntário de viagem</span>
+          </label>
+          {v.cancelamento?.enabled && (
+            <div className="mt-3 space-y-2">
               <div className="grid grid-cols-1 sm:grid-cols-[140px_110px_1fr] gap-2 items-center">
-                <span className="text-xs text-muted-foreground">Cancelamento</span>
+                <span className="text-xs text-muted-foreground">Cobertura</span>
                 <select
                   className={inpClass}
-                  value={(seguro.cancelamento_moeda ?? seguro.moeda ?? "BRL") as SeguroMoeda}
-                  onChange={(e) => patch({ seguro: { ...seguro, cancelamento_moeda: e.target.value as SeguroMoeda } })}
+                  value={(v.cancelamento?.moeda ?? "BRL") as SeguroMoeda}
+                  onChange={(e) => patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: true, moeda: e.target.value as SeguroMoeda } })}
                 >
                   <option value="BRL">R$ (Real)</option>
                   <option value="USD">US$ (Dólar)</option>
@@ -1981,22 +1995,20 @@ function ServicesEditor({
                 </select>
                 <input
                   className={inpClass}
-                  placeholder="Cobertura de cancelamento involuntário (opcional)"
-                  value={seguro.cancelamento ?? ""}
-                  onChange={(e) => patch({ seguro: { ...seguro, cancelamento: e.target.value } })}
+                  placeholder="Ex.: 5.000 · 8.000 · 10.000"
+                  value={v.cancelamento?.cobertura ?? ""}
+                  onChange={(e) => patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: true, cobertura: e.target.value } })}
                 />
               </div>
-              {(seguro.cobertura || seguro.cancelamento) && (
+              {v.cancelamento?.cobertura && (
                 <div className="text-[11px] text-muted-foreground">
-                  Prévia: {[
-                    seguro.cobertura ? `Médica ${formatSeguroCobertura(seguro.cobertura, seguro.moeda)}` : null,
-                    seguro.cancelamento ? `Cancelamento ${formatSeguroCobertura(seguro.cancelamento, seguro.cancelamento_moeda ?? seguro.moeda)} por pessoa` : null,
-                  ].filter(Boolean).join(" · ")}
+                  Prévia: Cobertura de cancelamento involuntário de viagem — {formatSeguroCobertura(v.cancelamento.cobertura, v.cancelamento.moeda)} por pessoa
                 </div>
               )}
             </div>
           )}
         </div>
+
 
         {/* Transfer */}
         <div className="rounded-xl border border-border bg-background/60 p-3">
