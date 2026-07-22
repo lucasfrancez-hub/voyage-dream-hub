@@ -1319,16 +1319,8 @@ function PackageEditorModal({
     if (hasOutbound && hasReturn) list.push("Passagem Aérea de Ida e Volta");
     else if (hasOutbound || hasReturn) list.push("Passagem Aérea");
     if (editing.hotel_name || editing.tripadvisor_location_id) list.push("Hospedagem");
-    const meal = String(editing.meal_plan ?? "").toLowerCase();
-    if (
-      meal.includes("café") ||
-      meal.includes("cafe") ||
-      meal.includes("meia pensão") ||
-      meal.includes("pensão completa") ||
-      meal.includes("all inclusive")
-    ) {
-      list.push("Café da Manhã");
-    }
+    const mealLabel = mealPlanLabel(classifyMealPlan(editing.meal_plan));
+    if (mealLabel) list.push(mealLabel);
     const checked = !!(editing.outbound_flight?.checked_bag || editing.return_flight?.checked_bag);
     if (checked) list.push("Bagagem Despachada");
     const svc = (editing.services ?? {}) as PackageServices;
