@@ -306,6 +306,13 @@ export function HotelDetailsDialog({
                            {safeText(r.text)}
                         </p>
                       )}
+                      {r.translated_from && (
+                        <div className="mt-2">
+                          <span className="rounded-full bg-brand-orange/10 text-brand-orange text-[10px] px-2 py-0.5 uppercase tracking-wide">
+                            Traduzido do {langLabel(r.translated_from)}
+                          </span>
+                        </div>
+                      )}
                       <footer className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                          {r.user_name && <span>— {safeText(r.user_name)}</span>}
                          {r.user_location && <span>· {safeText(r.user_location)}</span>}
