@@ -311,11 +311,6 @@ export function selectMixedFeatured<T extends CurationPkg>(
     const filler = active
       .filter((p) => !seen.has(p.id))
       .sort((a, b) => totalPrice(a) - totalPrice(b));
-  // Se ainda faltar, completa com o resto ativo mais barato
-  if (out.length < total) {
-    const filler = active
-      .filter((p) => !seen.has(p.id))
-      .sort((a, b) => totalPrice(a) - totalPrice(b));
     for (const p of filler) {
       push(p);
       if (out.length >= total) break;
