@@ -123,16 +123,17 @@ export function FeaturedCarousel({
   // Largura de card calculada pra caber exatamente 5 por vez.
   const [cardW, setCardW] = useState<number>(240);
 
-  // Mede a largura do viewport e reparte pra 5 cards + 4 gaps (14px cada).
+  // Mede o viewport e escolhe quantos cards ficam visíveis conforme largura.
+  // Mobile mostra ~1.6 cards (deixa o próximo "espiando"), tablet ~2.6, desktop 5.
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
     const GAP = 14;
-    const VISIBLE = 5;
     const recalc = () => {
       const w = el.clientWidth;
       if (!w) return;
-      const next = Math.max(180, Math.floor((w - GAP * (VISIBLE - 1)) / VISIBLE));
+      const visible = w < 480 ? 1.6 : w < 768 ? 2.6 : w < 1100 ? 3.6 : 5;
+      const next = Math.max(150, Math.floor((w - GAP * Math.floor(visible)) / visible));
       setCardW(next);
     };
     recalc();
