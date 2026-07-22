@@ -24,12 +24,52 @@ export type TAHotelDetails = TAHotelSuggestion & {
   hotel_class: number | null;
 };
 
-async function taFetch(path: string): Promise<Response> {
+async function taFetch(path: string, opts?: { language?: string }): Promise<Response> {
   const key = process.env.TRIPADVISOR_API_KEY;
   if (!key) throw new Error("TRIPADVISOR_API_KEY não configurada");
-  return fetch(`${BASE}${path}`, {
+  const lang = opts?.language;
+  let url = `${BASE}${path}`;
+  if (lang) {
+    url += (url.includes("?") ? "&" : "?") + `language=${encodeURIComponent(lang)}`;
+  }
+  return fetch(url, {
     headers: { accept: "application/json", "X-API-KEY": key },
   });
+}
+
+// Traduz um lote de textos para português usando Lovable AI. Se falhar, retorna os originais.
+async function translateBatchToPt(texts: string[]): Promise<string[]> {
+  const clean = texts.map((t) => (t || "").trim());
+  if (clean.every((t) => !t)) return clean;
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) return clean;
+  try {
+    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
+    const { generateText } = await import("ai");
+    const gateway = createLovableAiGatewayProvider(key);
+    const numbered = clean.map((t, i) => `[${i}] ${t.replace(/\s+/g, " ")}`).join("\n---\n");
+    const { text } = await generateText({
+      model: gateway("google/gemini-2.5-flash-lite"),
+      system:
+        "Você é um tradutor. Traduza cada trecho para português do Brasil, preservando tom e conteúdo. Responda APENAS no mesmo formato: cada item começa com `[N]` (mesmo índice recebido) e itens separados por uma linha `---`. Não adicione comentários.",
+      prompt: numbered,
+    });
+    const parts = text.split(/\n-{2,}\n/g);
+    const out = [...clean];
+    for (const p of parts) {
+      const m = p.match(/^\s*\[(\d+)\]\s*([\s\S]*)$/);
+      if (!m) continue;
+      const idx = Number(m[1]);
+      const val = m[2].trim();
+      if (Number.isFinite(idx) && idx >= 0 && idx < out.length && val) {
+        out[idx] = val;
+      }
+    }
+    return out;
+  } catch (err) {
+    console.warn("[tripadvisor] translateBatchToPt failed:", (err as Error).message);
+    return clean;
+  }
 }
 
 function pickName(names: Array<{ language?: string; value?: string; primary?: boolean }> | undefined, lang = "pt"): string {
