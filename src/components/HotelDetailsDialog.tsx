@@ -390,7 +390,7 @@ export function HotelDetailsDialog({
                       rel="noreferrer"
                       className="flex items-center justify-center gap-2 w-full bg-[var(--brand-orange)] hover:bg-[var(--brand-orange)]/90 text-white px-4 py-3 rounded-2xl font-bold text-sm transition-all"
                     >
-                      Ver todas as fotos e reviews no TripAdvisor
+                      Ver todas as fotos e reviews
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   </div>
