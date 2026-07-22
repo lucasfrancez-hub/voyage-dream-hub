@@ -212,7 +212,7 @@ export function HotelDetailsDialog({
               <div className="flex min-w-0 flex-none flex-col gap-4 p-5 md:min-h-0 md:flex-[1.85] md:p-6">
 
                 {/* Main image */}
-                <div className="group relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/40 bg-black/40">
+                <div className="group relative h-[56vw] max-h-[420px] min-h-[240px] overflow-hidden rounded-2xl border border-border/40 bg-black/40 md:h-auto md:min-h-0 md:max-h-none md:flex-1">
                   {isLoading && !photos.length ? (
                     <div className="absolute inset-0 flex items-center justify-center text-zinc-500">
                       <Loader2 className="h-6 w-6 animate-spin" />
