@@ -82,12 +82,20 @@ function Stars({ value }: { value: number | null }) {
   const r = Math.max(0, Math.min(5, Math.round(value ?? 0)));
   return (
     <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          className={`h-3.5 w-3.5 ${i <= r ? "fill-[hsl(var(--brand-orange))] text-[hsl(var(--brand-orange))]" : "text-white/15"}`}
-        />
-      ))}
+      {[1, 2, 3, 4, 5].map((i) => {
+        const on = i <= r;
+        return (
+          <Star
+            key={i}
+            className="h-3.5 w-3.5"
+            style={
+              on
+                ? { fill: "var(--brand-orange)", color: "var(--brand-orange)" }
+                : { fill: "transparent", color: "rgba(255,255,255,0.18)" }
+            }
+          />
+        );
+      })}
     </div>
   );
 }
@@ -151,8 +159,8 @@ export function HotelDetailsDialog({
                     {displayName}
                   </h1>
                   {data?.rating != null && (
-                    <div className="flex items-center gap-1.5 bg-[hsl(var(--brand-orange))]/10 border border-[hsl(var(--brand-orange))]/25 px-2 py-0.5 rounded-md">
-                      <span className="text-[hsl(var(--brand-orange))] font-bold text-sm">
+                    <div className="flex items-center gap-1.5 bg-[var(--brand-orange)]/10 border border-[var(--brand-orange)]/25 px-2 py-0.5 rounded-md">
+                      <span className="text-[var(--brand-orange)] font-bold text-sm">
                         {data.rating.toFixed(1)}
                       </span>
                       <Stars value={data.rating} />
@@ -167,7 +175,7 @@ export function HotelDetailsDialog({
                   )}
                   {data?.address && (
                     <div className="flex items-center gap-2 min-w-0">
-                      <MapPin className="h-4 w-4 text-zinc-500 shrink-0" />
+                      <MapPin className="h-4 w-4 text-[var(--brand-orange)] shrink-0" />
                       <span className="truncate">{safeText(data.address)}</span>
                     </div>
                   )}
@@ -180,9 +188,9 @@ export function HotelDetailsDialog({
                     href={tripUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="hidden md:inline-flex items-center gap-2 bg-[hsl(var(--brand-orange))] hover:bg-[hsl(var(--brand-orange))]/90 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-[hsl(var(--brand-orange))]/25 active:scale-95"
+                    className="hidden md:inline-flex items-center gap-2 bg-[var(--brand-orange)] hover:bg-[var(--brand-orange)]/90 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-[var(--brand-orange)]/25 active:scale-95"
                   >
-                    Ver todas as fotos e reviews no TripAdvisor
+                    Ver todas as fotos e reviews
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 )}
@@ -221,7 +229,7 @@ export function HotelDetailsDialog({
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); setActivePhoto((i) => (i - 1 + photos.length) % photos.length); }}
-                              className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/10 text-white hover:bg-[hsl(var(--brand-orange))] transition-colors"
+                              className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/10 text-white hover:bg-[var(--brand-orange)] transition-colors"
                               aria-label="Foto anterior"
                             >
                               <ChevronLeft className="h-6 w-6" />
@@ -231,7 +239,7 @@ export function HotelDetailsDialog({
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); setActivePhoto((i) => (i + 1) % photos.length); }}
-                              className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/10 text-white hover:bg-[hsl(var(--brand-orange))] transition-colors"
+                              className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/10 text-white hover:bg-[var(--brand-orange)] transition-colors"
                               aria-label="Próxima foto"
                             >
                               <ChevronRight className="h-6 w-6" />
@@ -261,7 +269,7 @@ export function HotelDetailsDialog({
                           onClick={() => setActivePhoto(i)}
                           className={`flex-none w-28 h-20 md:w-32 md:h-[88px] rounded-xl overflow-hidden transition-all ${
                             i === activePhoto
-                              ? "ring-2 ring-[hsl(var(--brand-orange))]"
+                              ? "ring-2 ring-[var(--brand-orange)]"
                               : "border border-white/10 opacity-60 hover:opacity-100 hover:scale-105"
                           }`}
                         >
@@ -327,7 +335,7 @@ export function HotelDetailsDialog({
                         </time>
                       </div>
                       {r.title && (
-                        <h3 className="font-bold text-white mb-2 group-hover:text-[hsl(var(--brand-orange))] transition-colors leading-snug">
+                        <h3 className="font-bold text-white mb-2 group-hover:text-[var(--brand-orange)] transition-colors leading-snug">
                           {safeText(r.title)}
                         </h3>
                       )}
@@ -338,14 +346,14 @@ export function HotelDetailsDialog({
                       )}
                       {r.translated_from && (
                         <div className="mb-3">
-                          <span className="text-[10px] uppercase font-bold tracking-widest text-[hsl(var(--brand-orange))] bg-[hsl(var(--brand-orange))]/10 px-2 py-0.5 rounded">
+                          <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--brand-orange)] bg-[var(--brand-orange)]/10 px-2 py-0.5 rounded">
                             Traduzido do {langLabel(r.translated_from)}
                           </span>
                         </div>
                       )}
                       {(r.user_name || r.trip_type || r.user_location) && (
                         <div className="flex items-center gap-3 pt-3 border-t border-white/5">
-                          <div className="w-8 h-8 rounded-full bg-[hsl(var(--brand-orange))]/15 flex items-center justify-center text-[10px] font-bold text-[hsl(var(--brand-orange))] border border-[hsl(var(--brand-orange))]/20">
+                          <div className="w-8 h-8 rounded-full bg-[var(--brand-orange)]/15 flex items-center justify-center text-[10px] font-bold text-[var(--brand-orange)] border border-[var(--brand-orange)]/20">
                             {initials(r.user_name)}
                           </div>
                           <div className="min-w-0">
@@ -373,7 +381,7 @@ export function HotelDetailsDialog({
                         href={tripUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 text-[11px] font-bold text-zinc-500 hover:text-[hsl(var(--brand-orange))] uppercase tracking-widest transition-colors"
+                        className="inline-flex items-center gap-2 text-[11px] font-bold text-zinc-500 hover:text-[var(--brand-orange)] uppercase tracking-widest transition-colors"
                       >
                         Ver todos no TripAdvisor <ExternalLink className="h-3 w-3" />
                       </a>
@@ -388,9 +396,9 @@ export function HotelDetailsDialog({
                       href={tripUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center justify-center gap-2 w-full bg-[hsl(var(--brand-orange))] hover:bg-[hsl(var(--brand-orange))]/90 text-white px-4 py-3 rounded-2xl font-bold text-sm transition-all"
+                      className="flex items-center justify-center gap-2 w-full bg-[var(--brand-orange)] hover:bg-[var(--brand-orange)]/90 text-white px-4 py-3 rounded-2xl font-bold text-sm transition-all"
                     >
-                      Ver todas as fotos e reviews no TripAdvisor
+                      Ver todas as fotos e reviews
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   </div>

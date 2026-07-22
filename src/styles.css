@@ -213,3 +213,17 @@ html:root {
 .chat-dark textarea { color: var(--foreground); caret-color: var(--brand-orange); }
 .chat-dark input::placeholder,
 .chat-dark textarea::placeholder { color: var(--muted-foreground); }
+
+/* Hotel dialog helpers */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.custom-scrollbar::-webkit-scrollbar { width: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--brand-orange) 55%, transparent);
+  border-radius: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-orange);
+}
+.custom-scrollbar { scrollbar-color: color-mix(in oklab, var(--brand-orange) 55%, transparent) transparent; scrollbar-width: thin; }
