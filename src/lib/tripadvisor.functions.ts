@@ -447,11 +447,19 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
 
 
     let photos: string[] = [];
-    if (rPhotos.ok) {
-      const jp = (await rPhotos.json()) as { data?: Array<{ photo?: { original_size_url?: string; large_size_url?: string } }> };
-      photos = (jp.data || [])
-        .map((p) => p.photo?.original_size_url ?? p.photo?.large_size_url)
-        .filter((u): u is string => typeof u === "string" && u.length > 0);
+    {
+      const seen = new Set<string>();
+      for (const rp of rPhotoPages) {
+        if (!rp.ok) continue;
+        const jp = (await rp.json()) as { data?: Array<{ photo?: { original_size_url?: string; large_size_url?: string } }> };
+        for (const p of jp.data || []) {
+          const url = p.photo?.original_size_url ?? p.photo?.large_size_url;
+          if (typeof url === "string" && url.length > 0 && !seen.has(url)) {
+            seen.add(url);
+            photos.push(url);
+          }
+        }
+      }
     }
 
     // ---------- Descrição ----------
