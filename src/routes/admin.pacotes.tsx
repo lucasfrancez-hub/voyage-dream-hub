@@ -1254,6 +1254,28 @@ function PackageEditorModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derived.destCity, derived.originCity, derived.title, derived.slug, nextNumber]);
 
+  // Auto-preencher seguro quando fornecedor é GTA (padrão BRONZE AL = US$ 12.000 por pessoa).
+  useEffect(() => {
+    const supplier = String(editing.supplier_name ?? "").toLowerCase();
+    if (!/\bgta\b/.test(supplier)) return;
+    const svc = (editing.services ?? {}) as PackageServices;
+    const cob = String(svc.seguro?.cobertura ?? "").trim();
+    if (svc.seguro?.enabled && cob) return;
+    setEditing({
+      ...editing,
+      services: {
+        ...svc,
+        seguro: {
+          ...(svc.seguro ?? {}),
+          enabled: true,
+          moeda: (svc.seguro?.moeda ?? "USD") as SeguroMoeda,
+          cobertura: cob || "12000",
+        },
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing.supplier_name]);
+
   // Montar "O que inclui" a partir dos campos efetivamente preenchidos/marcados.
   const derivedIncludes = useMemo(() => {
     const list: string[] = [];
