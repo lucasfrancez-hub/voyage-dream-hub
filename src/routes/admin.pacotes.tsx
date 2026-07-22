@@ -3100,21 +3100,33 @@ function DuplicatePackagesAlert({
               </div>
               <div className="flex flex-wrap gap-2">
                 {arr.map((p) => (
-                  <button
+                  <div
                     key={p.id}
-                    type="button"
-                    onClick={() => onOpen(p)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all cursor-pointer group"
-                    title={`${p.title} — abrir para excluir`}
+                    className="flex items-center gap-1 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all overflow-hidden"
                   >
-                    <span className="text-[11px] font-medium text-slate-300 max-w-[260px] truncate">
-                      {p.title}
-                    </span>
-                    <span className="text-slate-600">·</span>
-                    <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
-                      {p.origin || "—"}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpen(p)}
+                      className="flex items-center gap-2 pl-3 pr-2 py-1.5 cursor-pointer"
+                      title={`${p.title} — abrir para editar`}
+                    >
+                      <span className="text-[11px] font-medium text-slate-300 max-w-[260px] truncate">
+                        {p.title}
+                      </span>
+                      <span className="text-slate-600">·</span>
+                      <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
+                        {p.origin || "—"}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(p)}
+                      className="flex items-center justify-center h-full px-2.5 py-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 border-l border-slate-700/50 transition-colors"
+                      title={`Excluir "${p.title}"`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
