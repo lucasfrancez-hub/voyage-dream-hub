@@ -204,7 +204,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
 
     const cheapest = [...active].sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 5);
     if (cheapest.length) list.push({
-      key: "menor-preco", emoji: "💰", title: "Melhores preços do momento",
+      key: "menor-preco", Icon: Wallet, title: "Melhores preços do momento",
       reason: "Ranking dos 5 pacotes com menor valor total no cadastro ativo.", packages: cheapest,
     });
 
@@ -212,7 +212,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
     const intl = active.filter((p) => !isBrazilian(p.destination) && matchesAny(p.destination, INTERNATIONAL_KEYWORDS))
       .sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 6);
     if (intl.length) list.push({
-      key: "internacional", emoji: "🌎", title: "Destaques internacionais",
+      key: "internacional", Icon: Globe2, title: "Destaques internacionais",
       reason: "Pacotes fora do Brasil, ordenados do mais barato ao mais caro.", packages: intl,
     });
 
@@ -222,7 +222,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       return m !== null && m >= 6 && m <= 8 && matchesAny(p.destination, WINTER_KEYWORDS);
     }).sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 6);
     if (winter.length) list.push({
-      key: "inverno-neve", emoji: "❄️", title: "Temporada de inverno — neve e frio",
+      key: "inverno-neve", Icon: Snowflake, title: "Temporada de inverno — neve e frio",
       reason: "Saídas entre junho e agosto para destinos de neve e serra.", packages: winter,
     });
 
@@ -232,7 +232,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       return (m === 12 || m === 1 || m === 2 || m === 3) && matchesAny(p.destination, SUMMER_BR_KEYWORDS);
     }).sort((a, b) => totalPrice(a) - totalPrice(b)).slice(0, 6);
     if (summer.length) list.push({
-      key: "verao-brasil", emoji: "🏖️", title: "Verão no Brasil — sol e praia",
+      key: "verao-brasil", Icon: Palmtree, title: "Verão no Brasil — sol e praia",
       reason: "Saídas de dezembro a março para praias brasileiras.", packages: summer,
     });
 
@@ -241,7 +241,7 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
       return d !== null && d >= 0 && d <= 60;
     }).sort((a, b) => (daysUntil(a.going_date) ?? 999) - (daysUntil(b.going_date) ?? 999)).slice(0, 5);
     if (upcoming.length) list.push({
-      key: "proximos", emoji: "⏱️", title: "Saídas nos próximos 60 dias",
+      key: "proximos", Icon: Timer, title: "Saídas nos próximos 60 dias",
       reason: "Embarques próximos — bom apelo de urgência.", packages: upcoming,
     });
 
