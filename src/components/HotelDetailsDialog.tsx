@@ -82,12 +82,20 @@ function Stars({ value }: { value: number | null }) {
   const r = Math.max(0, Math.min(5, Math.round(value ?? 0)));
   return (
     <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          className={`h-3.5 w-3.5 ${i <= r ? "fill-[var(--brand-orange)] text-[var(--brand-orange)]" : "text-white/15"}`}
-        />
-      ))}
+      {[1, 2, 3, 4, 5].map((i) => {
+        const on = i <= r;
+        return (
+          <Star
+            key={i}
+            className="h-3.5 w-3.5"
+            style={
+              on
+                ? { fill: "var(--brand-orange)", color: "var(--brand-orange)" }
+                : { fill: "transparent", color: "rgba(255,255,255,0.18)" }
+            }
+          />
+        );
+      })}
     </div>
   );
 }
