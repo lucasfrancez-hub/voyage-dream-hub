@@ -11,6 +11,7 @@ export const Route = createFileRoute("/auth")({
     meta: [
       { title: "Entrar no painel | VIA AIR" },
       { name: "description", content: "Acesso restrito ao painel administrativo VIA AIR." },
+      { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
       { property: "og:title", content: "Entrar no painel | VIA AIR" },
       { property: "og:description", content: "Acesso restrito ao painel administrativo VIA AIR." },
       { property: "og:type", content: "website" },
