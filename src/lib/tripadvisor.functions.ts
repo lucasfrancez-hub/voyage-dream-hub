@@ -333,12 +333,15 @@ export type TAPublicReview = {
   user_name: string | null;
   user_location: string | null;
   trip_type: string | null;
+  /** Idioma de origem antes da tradução (ex.: "en"). null se já veio em pt. */
+  translated_from: string | null;
 };
 
 export type TAPublicHotelInfo = {
   location_id: number;
   name: string;
   description: string | null;
+  description_translated_from: string | null;
   address: string | null;
   rating: number | null;
   num_reviews: number | null;
