@@ -19,6 +19,15 @@ import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 
+function cleanHotelDetail(value: string | null | undefined) {
+  const cleaned = value
+    ?.trim()
+    .replace(/^(regime(?: de alimenta[cç][aã]o)?|tipo de cama|cama|tipo de quarto|quarto|categoria|vista)\s*:\s*/i, "")
+    .trim();
+
+  return cleaned && cleaned !== "—" ? cleaned : null;
+}
+
 export const Route = createFileRoute("/pacotes/$slug/")({
   validateSearch: (s: Record<string, unknown>) => ({
     preview: s.preview === "1" || s.preview === 1 || s.preview === true ? true : undefined,
@@ -129,6 +138,18 @@ function PackageDetails() {
   }
 
   const baseOccupancy = pkg.base_occupancy ?? 2;
+  const hotelDetails = Array.from(
+    new Map(
+      [
+        { value: cleanHotelDetail(pkg.meal_plan), icon: Check },
+        { value: cleanHotelDetail(pkg.bed_type), icon: Check },
+        { value: cleanHotelDetail(pkg.room_type), icon: Check },
+        { value: cleanHotelDetail(pkg.room_category), icon: Eye },
+      ]
+        .filter((detail): detail is { value: string; icon: typeof Check } => Boolean(detail.value))
+        .map((detail) => [detail.value.toLocaleLowerCase("pt-BR"), detail]),
+    ).values(),
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -205,32 +226,19 @@ function PackageDetails() {
                       <span>{(pkg as unknown as { tripadvisor_address: string }).tripadvisor_address}</span>
                     </div>
                   )}
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    {pkg.meal_plan && (
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
-                        <Check className="h-3.5 w-3.5" />
-                        {pkg.meal_plan}
-                      </div>
-                    )}
-                    {pkg.bed_type && (
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
-                        <Check className="h-3.5 w-3.5" />
-                        {pkg.bed_type}
-                      </div>
-                    )}
-                    {pkg.room_type && (
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
-                        <Check className="h-3.5 w-3.5" />
-                        {pkg.room_type}
-                      </div>
-                    )}
-                    {pkg.room_category && (
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange">
-                        <Eye className="h-3.5 w-3.5" />
-                        {pkg.room_category}
-                      </div>
-                    )}
-                  </div>
+                  {hotelDetails.length > 0 && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {hotelDetails.map(({ value, icon: DetailIcon }) => (
+                        <span
+                          key={value}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange"
+                        >
+                          <DetailIcon className="h-3.5 w-3.5" />
+                          {value}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
