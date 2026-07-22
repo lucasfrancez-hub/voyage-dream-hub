@@ -394,7 +394,10 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
       tripadvisor_url: null, rating_histogram: null, subratings: [],
     };
 
-    if (!rDet.ok) return empty;
+    if (!rDet.ok) {
+      console.warn("[tripadvisor-public] details failed", id, rDet.status, await rDet.text().catch(() => ""));
+      return empty;
+    }
 
     const rawDet = (await rDet.json()) as Record<string, unknown>;
     const det = ((rawDet.data as Record<string, unknown> | undefined)
