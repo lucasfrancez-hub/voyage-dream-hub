@@ -2963,6 +2963,7 @@ function MultiPackageImportButton({ onExtracted }: { onExtracted: (list: Partial
           room_category: p.room_category || "",
           bed_type: p.bed_type || "",
           supplier_name: p.supplier_name || "",
+          services: ((p as any).services && typeof (p as any).services === "object" ? (p as any).services : {}) as PackageServices,
           includes: [],
           is_active: true,
           sort_order: 0,
