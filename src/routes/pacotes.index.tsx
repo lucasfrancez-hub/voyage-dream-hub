@@ -13,6 +13,7 @@ import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { FeaturedCarousel } from "@/components/packages/FeaturedCarousel";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
+import { dedupeDestinations, destinationKey } from "@/lib/packages/destination";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
