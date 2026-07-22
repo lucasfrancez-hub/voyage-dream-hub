@@ -475,7 +475,12 @@ function AdminPackages() {
   }
 
   async function remove(p: PackageRow) {
-    if (!confirm(`Excluir "${p.title}"? Esta ação não pode ser desfeita.`)) return;
+    const ok = await confirm({
+      title: "Excluir pacote?",
+      description: `"${p.title}" será excluído. Esta ação não pode ser desfeita.`,
+      confirmText: "Excluir",
+    });
+    if (!ok) return;
     const { error } = await supabase.from("packages").delete().eq("id", p.id);
     if (error) return toast.error(error.message);
     toast.success("Pacote excluído");
@@ -638,6 +643,7 @@ function AdminPackages() {
       <DuplicatePackagesAlert
         packages={(packages || []) as PackageRow[]}
         onOpen={(p) => setEditingState(p)}
+        onDelete={(p) => remove(p)}
       />
 
       <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
@@ -778,20 +784,20 @@ function AdminPackages() {
               {/* Status + Actions */}
               <div className="col-span-1 md:col-span-2 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3">
                 <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!!p.is_active}
                   onClick={() => toggleActive(p)}
-                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                    p.is_active
-                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
-                      : "bg-muted border-border text-muted-foreground"
+                  title={p.is_active ? "Ativo · toque para ocultar" : "Oculto · toque para ativar"}
+                  className={`relative inline-flex h-[26px] w-[46px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-brand-orange/40 ${
+                    p.is_active ? "bg-emerald-500" : "bg-muted-foreground/30"
                   }`}
-                  title={p.is_active ? "Clique para ocultar" : "Clique para ativar"}
                 >
-                  {p.is_active ? (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  ) : (
-                    <EyeOff className="h-3 w-3" />
-                  )}
-                  {p.is_active ? "Ativo" : "Oculto"}
+                  <span
+                    className={`inline-block h-[22px] w-[22px] transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ${
+                      p.is_active ? "translate-x-[22px]" : "translate-x-[2px]"
+                    }`}
+                  />
                 </button>
                 <div className="flex items-center gap-4">
 
@@ -2986,9 +2992,11 @@ function UnlinkedHotelsAlert({
 function DuplicatePackagesAlert({
   packages,
   onOpen,
+  onDelete,
 }: {
   packages: PackageRow[];
   onOpen: (p: PackageRow) => void;
+  onDelete: (p: PackageRow) => void | Promise<any>;
 }) {
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -3092,21 +3100,33 @@ function DuplicatePackagesAlert({
               </div>
               <div className="flex flex-wrap gap-2">
                 {arr.map((p) => (
-                  <button
+                  <div
                     key={p.id}
-                    type="button"
-                    onClick={() => onOpen(p)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all cursor-pointer group"
-                    title={`${p.title} — abrir para excluir`}
+                    className="flex items-center gap-1 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all overflow-hidden"
                   >
-                    <span className="text-[11px] font-medium text-slate-300 max-w-[260px] truncate">
-                      {p.title}
-                    </span>
-                    <span className="text-slate-600">·</span>
-                    <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
-                      {p.origin || "—"}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpen(p)}
+                      className="flex items-center gap-2 pl-3 pr-2 py-1.5 cursor-pointer"
+                      title={`${p.title} — abrir para editar`}
+                    >
+                      <span className="text-[11px] font-medium text-slate-300 max-w-[260px] truncate">
+                        {p.title}
+                      </span>
+                      <span className="text-slate-600">·</span>
+                      <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
+                        {p.origin || "—"}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(p)}
+                      className="flex items-center justify-center h-full px-2.5 py-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 border-l border-slate-700/50 transition-colors"
+                      title={`Excluir "${p.title}"`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
