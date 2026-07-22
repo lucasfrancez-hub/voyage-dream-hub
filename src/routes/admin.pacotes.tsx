@@ -789,16 +789,37 @@ function AdminPackages() {
                   aria-checked={!!p.is_active}
                   onClick={() => toggleActive(p)}
                   title={p.is_active ? "Ativo · toque para ocultar" : "Oculto · toque para ativar"}
-                  className={`relative inline-flex h-[26px] w-[46px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-brand-orange/40 ${
-                    p.is_active ? "bg-emerald-500" : "bg-muted-foreground/30"
-                  }`}
+                  className="group inline-flex items-center gap-2 select-none focus:outline-none"
                 >
                   <span
-                    className={`inline-block h-[22px] w-[22px] transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ${
-                      p.is_active ? "translate-x-[22px]" : "translate-x-[2px]"
+                    className={`relative inline-flex h-[26px] w-[52px] shrink-0 items-center rounded-sm border transition-colors duration-200 ${
+                      p.is_active
+                        ? "bg-brand-orange/10 border-brand-orange"
+                        : "bg-[#1A1D23] border-[#2D333D]"
+                    } group-focus-visible:ring-2 group-focus-visible:ring-brand-orange/40`}
+                  >
+                    <span
+                      className={`absolute top-[3px] left-[3px] flex h-[18px] w-[18px] items-center justify-center rounded-sm shadow-md transition-transform duration-300 ease-out ${
+                        p.is_active
+                          ? "translate-x-[26px] bg-brand-orange"
+                          : "translate-x-0 bg-[#3D4450]"
+                      }`}
+                    >
+                      <span className="flex gap-[2px]">
+                        <span className="h-2 w-[2px] rounded-full bg-black/25" />
+                        <span className="h-2 w-[2px] rounded-full bg-black/25" />
+                      </span>
+                    </span>
+                  </span>
+                  <span
+                    className={`text-[10px] font-black uppercase tracking-tighter ${
+                      p.is_active ? "text-brand-orange" : "text-muted-foreground"
                     }`}
-                  />
+                  >
+                    {p.is_active ? "Ativo" : "Oculto"}
+                  </span>
                 </button>
+
                 <div className="flex items-center gap-4">
 
                   <a
