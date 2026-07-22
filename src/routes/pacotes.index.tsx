@@ -66,7 +66,8 @@ function PacotesList() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [sortBy, setSortBy] = useState<
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
-  >("price_asc");
+  >("sort_order");
+
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
 
@@ -182,8 +183,44 @@ function PacotesList() {
         sorted.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
         break;
     }
+
+    // Sem filtros de conteúdo (origem/destino/mês/data), intercala por origem+destino
+    // pra evitar que o topo fique todo com a mesma rota. Mantém a ordenação escolhida
+    // dentro de cada grupo (round-robin preservando a ordem já aplicada).
+    const noContentFilters =
+      originFilter === "all" &&
+      destinationFilter === "all" &&
+      monthFilter === "all" &&
+      !dateRange?.from;
+
+    if (noContentFilters && sorted.length > 1) {
+      const groups = new Map<string, typeof sorted>();
+      const order: string[] = [];
+      for (const p of sorted) {
+        const key = `${originKey(p.origin) || "?"}|${(p.destination || "?").toLowerCase()}`;
+        if (!groups.has(key)) {
+          groups.set(key, []);
+          order.push(key);
+        }
+        groups.get(key)!.push(p);
+      }
+      const interleaved: typeof sorted = [];
+      let remaining = sorted.length;
+      while (remaining > 0) {
+        for (const key of order) {
+          const bucket = groups.get(key)!;
+          if (bucket.length > 0) {
+            interleaved.push(bucket.shift()!);
+            remaining--;
+          }
+        }
+      }
+      return interleaved;
+    }
+
     return sorted;
   }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy]);
+
 
   const hasActiveFilters =
     originFilter !== "all" ||
