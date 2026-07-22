@@ -258,7 +258,7 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
 
     // Ações
     const actions = document.createElement("div");
-    actions.style.cssText = "padding:0 32px 20px;display:flex;flex-direction:column;gap:12px;flex-shrink:0";
+    actions.style.cssText = "padding:0 24px 24px;display:flex;flex-direction:column;gap:10px;flex-shrink:0";
 
     const primaryButton = document.createElement("button");
     primaryButton.type = "button";
@@ -285,25 +285,15 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       "width:100%",
       "min-height:48px",
       "padding:0 24px",
-      "border:0",
+      "border:1px solid rgba(255,255,255,.25)",
       "border-radius:9999px",
-      "background:rgba(244,244,245,.8)",
-      "color:#52525b",
+      "background:transparent",
+      "color:#ffffff",
       "font:600 14px inherit",
       "cursor:pointer",
     ].join(";");
 
     actions.append(primaryButton, cancelButton);
-
-    // Marca discreta
-    const brand = document.createElement("div");
-    brand.style.cssText = "padding:0 0 18px;display:flex;justify-content:center;gap:6px;align-items:center;opacity:.3;flex-shrink:0";
-    const dot = document.createElement("span");
-    dot.style.cssText = "width:6px;height:6px;border-radius:9999px;background:#F26B1F;display:inline-block";
-    const brandText = document.createElement("span");
-    brandText.textContent = "VIA AIR ADMIN";
-    brandText.style.cssText = "font:700 10px inherit;letter-spacing:.2em;color:#18181b";
-    brand.append(dot, brandText);
 
     const finish = (delivery: ArtDelivery) => {
       overlay.remove();
