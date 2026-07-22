@@ -45,7 +45,7 @@ type Group = {
   key: string;
   title: string;
   reason: string;
-  emoji: string;
+  Icon: LucideIcon;
   packages: Pkg[];
 };
 
