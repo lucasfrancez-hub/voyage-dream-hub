@@ -601,6 +601,12 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
   "bed_type": "Casal | Solteiro | Duplo",
   "includes": ["Hospedagem", "Aéreo", "Traslados", "Passeios"],
   "supplier_name": "Visual Turismo",
+  "services": {
+    "seguro": { "enabled": true, "cobertura": "R$ 40.000" },
+    "transfer": { "enabled": true, "sentido": "in_out" },
+    "city_tour": { "enabled": false, "detalhe": "" },
+    "outros": ["Assistência 24h"]
+  },
   "baggage_scope": "shared | per_flight",
   "outbound_flight": {
     "airline": "GOL",
@@ -665,6 +671,7 @@ Regras:
 - hotel_stars: número inteiro de 1 a 5 (conte as estrelas ou pegue a classificação).
 - includes: liste os itens da seção "Incluso" do documento.
 - supplier_name: identifique a OPERADORA/FORNECEDOR emissor do orçamento. Procure o LOGO ou nome no cabeçalho/rodapé/topo do documento. Regras: se aparecer "Visual" (com losango azul) → "Visual Turismo"; "CVC" → "CVC"; "Azul Viagens" → "Azul Viagens"; "Flytour" → "Flytour"; "Nascimento" → "Nascimento Turismo". Nunca coloque o nome da agência revendedora (ex.: VIA AIR), só da OPERADORA emissora.
+- services: identifique serviços incluídos. seguro.enabled=true quando o documento mencionar "seguro viagem"/"assistência de viagem"; cobertura = valor por pessoa como aparece (ex.: "US$ 30.000", "R$ 40.000"). transfer.enabled=true quando mencionar "traslados"/"transfer"/"transporte aeroporto-hotel"; sentido: "in_out" para ida e volta, "in" só chegada, "out" só saída. city_tour.enabled=true quando mencionar "city tour"/"passeio panorâmico"/"passeios inclusos"; detalhe = descrição curta. outros = lista de serviços adicionais explícitos (ex.: "eSIM", "bagagem extra", "assistência 24h"). Se não houver menção clara, deixe enabled=false e outros=[].
 - Retorne SÓ o JSON, começando com { e terminando com }.`;
 
     const userContent: any[] = [
