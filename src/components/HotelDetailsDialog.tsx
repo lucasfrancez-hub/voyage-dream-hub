@@ -39,6 +39,16 @@ function formatDate(iso: string | null): string {
   }
 }
 
+function langLabel(code: string | null | undefined): string {
+  const c = (code || "").toLowerCase();
+  const map: Record<string, string> = {
+    en: "inglês", es: "espanhol", fr: "francês", it: "italiano", de: "alemão",
+    ru: "russo", ja: "japonês", zh: "chinês", ko: "coreano", nl: "holandês",
+    pl: "polonês", tr: "turco", ar: "árabe", he: "hebraico",
+  };
+  return map[c] || "inglês";
+}
+
 function safeText(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
