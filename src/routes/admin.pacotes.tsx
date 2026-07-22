@@ -70,6 +70,7 @@ import {
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
+import { cleanRoomLabel } from "@/lib/packages/room";
 import type { PackageServices, SeguroMoeda } from "@/lib/packages/feed-art-data";
 import { formatSeguroCobertura } from "@/lib/packages/feed-art-data";
 import { Shield, Bus, MapPin as MapPinIcon } from "lucide-react";
@@ -430,8 +431,8 @@ function AdminPackages() {
       itinerary: pkg.itinerary || null,
       hotel_name: pkg.hotel_name || null,
       meal_plan: pkg.meal_plan || null,
-      room_type: pkg.room_type || null,
-      room_category: pkg.room_category || null,
+      room_type: cleanRoomLabel(pkg.room_type),
+      room_category: cleanRoomLabel(pkg.room_category),
       bed_type: pkg.bed_type || null,
       is_active: pkg.is_active ?? true,
       includes:
@@ -3081,8 +3082,8 @@ function PackageImportButton({ onImported }: { onImported: (patch: Partial<Packa
         if (Number.isFinite(n)) patch.hotel_stars = Math.max(1, Math.min(5, n));
       }
       if (p.meal_plan) patch.meal_plan = String(p.meal_plan);
-      if (p.room_type) patch.room_type = String(p.room_type);
-      if (p.room_category) patch.room_category = String(p.room_category);
+      if (p.room_type) { const v = cleanRoomLabel(String(p.room_type)); if (v) patch.room_type = v; }
+      if (p.room_category) { const v = cleanRoomLabel(String(p.room_category)); if (v) patch.room_category = v; }
       if (p.bed_type) patch.bed_type = String(p.bed_type);
       // Não usar includes do documento — a derivação automática monta na ordem correta
       // (Passagem Aérea → Hospedagem → Café da Manhã → Bagagem Despachada).
@@ -3379,8 +3380,8 @@ function MultiPackageImportButton({
               ? Math.max(1, Math.min(5, Math.round(Number(p.hotel_stars))))
               : null,
           meal_plan: p.meal_plan || "",
-          room_type: p.room_type || "",
-          room_category: p.room_category || "",
+          room_type: cleanRoomLabel(p.room_type as string) ?? "",
+          room_category: cleanRoomLabel(p.room_category as string) ?? "",
           bed_type: p.bed_type || "",
           supplier_name: p.supplier_name || "",
           services: ((p as any).services && typeof (p as any).services === "object"
