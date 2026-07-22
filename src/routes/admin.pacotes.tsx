@@ -30,7 +30,7 @@ import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import type { PackageServices, SeguroMoeda } from "@/lib/packages/feed-art-data";
-import { formatSeguroCobertura, SEGURO_MOEDA_SYMBOL } from "@/lib/packages/feed-art-data";
+import { formatSeguroCobertura } from "@/lib/packages/feed-art-data";
 import { Shield, Bus, MapPin as MapPinIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pacotes")({
