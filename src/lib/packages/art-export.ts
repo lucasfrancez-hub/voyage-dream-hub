@@ -183,66 +183,87 @@ function offerPreviewSheet(file: File, opts: { canShare: boolean }): Promise<Art
       "inset:0",
       "z-index:2147483647",
       "display:flex",
-      "align-items:flex-end",
+      "align-items:center",
       "justify-content:center",
-      "padding:16px",
-      "background:color-mix(in srgb,var(--foreground) 55%,transparent)",
+      "padding:20px",
+      "background:rgba(10,12,18,.62)",
+      "backdrop-filter:blur(14px) saturate(140%)",
+      "animation:viaair-art-fade .18s ease-out",
     ].join(";");
+
+    // Injeta keyframes uma única vez.
+    if (!document.getElementById("viaair-art-export-styles")) {
+      const style = document.createElement("style");
+      style.id = "viaair-art-export-styles";
+      style.textContent = `
+        @keyframes viaair-art-fade { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes viaair-art-pop { from { opacity: 0; transform: translateY(12px) scale(.98) } to { opacity: 1; transform: none } }
+        .viaair-art-btn { transition: transform .12s ease, filter .12s ease, box-shadow .12s ease; }
+        .viaair-art-btn:hover { filter: brightness(1.05); }
+        .viaair-art-btn:active { transform: translateY(1px) scale(.98); }
+      `;
+      document.head.appendChild(style);
+    }
 
     const panel = document.createElement("div");
     panel.style.cssText = [
-      "width:min(100%,420px)",
+      "width:min(100%,440px)",
       "max-height:92dvh",
       "overflow:auto",
-      "padding:16px",
-      "border-radius:8px",
-      "background:var(--background)",
-      "color:var(--foreground)",
-      "box-shadow:0 24px 64px rgba(0,0,0,.35)",
+      "padding:18px",
+      "border-radius:24px",
+      "background:#111318",
+      "color:#f5f6f8",
+      "border:1px solid rgba(255,255,255,.08)",
+      "box-shadow:0 30px 80px rgba(0,0,0,.55)",
+      "animation:viaair-art-pop .22s cubic-bezier(.2,.9,.3,1)",
     ].join(";");
 
     const preview = document.createElement("img");
     preview.src = previewUrl;
     preview.alt = "Prévia da arte pronta";
-    preview.style.cssText = "display:block;width:100%;max-height:60dvh;object-fit:contain;border-radius:6px;background:var(--muted)";
+    preview.style.cssText = "display:block;width:100%;max-height:60dvh;object-fit:contain;border-radius:18px;background:#0a0b0f";
 
     const hint = document.createElement("p");
     hint.textContent = opts.canShare
       ? "Toque em Salvar ou compartilhar para escolher onde guardar a imagem."
       : "";
-    hint.style.cssText = "margin:10px 0 0;font:400 13px inherit;color:var(--muted-foreground)";
-
+    hint.style.cssText = "margin:12px 4px 0;font:400 13px inherit;color:rgba(245,246,248,.7);text-align:center";
 
     const actions = document.createElement("div");
     actions.style.cssText = "display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:14px";
 
     const primaryButton = document.createElement("button");
     primaryButton.type = "button";
+    primaryButton.className = "viaair-art-btn";
     primaryButton.textContent = opts.canShare ? "Salvar ou compartilhar" : "Baixar imagem";
     primaryButton.style.cssText = [
-      "min-height:48px",
-      "padding:0 18px",
+      "min-height:52px",
+      "padding:0 22px",
       "border:0",
-      "border-radius:6px",
-      "background:var(--primary)",
-      "color:var(--primary-foreground)",
+      "border-radius:9999px",
+      "background:#F26B1F",
+      "color:#fff",
       "font:600 15px inherit",
       "cursor:pointer",
+      "box-shadow:0 8px 24px rgba(242,107,31,.35)",
     ].join(";");
 
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
+    cancelButton.className = "viaair-art-btn";
     cancelButton.textContent = "Cancelar";
     cancelButton.style.cssText = [
-      "min-height:48px",
-      "padding:0 16px",
-      "border:1px solid var(--border)",
-      "border-radius:6px",
-      "background:var(--secondary)",
-      "color:var(--secondary-foreground)",
+      "min-height:52px",
+      "padding:0 22px",
+      "border:1px solid rgba(255,255,255,.14)",
+      "border-radius:9999px",
+      "background:rgba(255,255,255,.06)",
+      "color:#f5f6f8",
       "font:600 15px inherit",
       "cursor:pointer",
     ].join(";");
+
 
     const finish = (delivery: ArtDelivery) => {
       overlay.remove();
