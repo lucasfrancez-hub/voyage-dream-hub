@@ -284,7 +284,7 @@ export function HotelDetailsDialog({
                         </span>
                       )}
                     </div>
-                    {isLoading && !data?.description ? (
+                    {isLoading && !(data && data.description) ? (
                       <div className="space-y-2">
                         <div className="h-3 w-full rounded bg-white/5 animate-pulse" />
                         <div className="h-3 w-11/12 rounded bg-white/5 animate-pulse" />
