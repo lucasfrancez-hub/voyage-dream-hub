@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Lock, ArrowLeft, ShieldCheck, Copy, Smartphone } from "lucide-react";
+import { Loader2, Lock, ArrowLeft, ShieldCheck, Copy, Smartphone, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { checkTrustedDevice, registerTrustedDevice } from "@/lib/trusted-devices.functions";
+import { requestLoginEmailCode, verifyLoginEmailCode } from "@/lib/login-email-code.functions";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Step = "credentials" | "mfa" | "enroll";
+type Step = "credentials" | "email-code" | "mfa" | "enroll";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [maskedEmail, setMaskedEmail] = useState<string | null>(null);
   const [factorId, setFactorId] = useState<string | null>(null);
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
