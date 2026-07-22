@@ -390,8 +390,8 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
 }
 
 function FilterChip({
-  active, onClick, label, emoji, count,
-}: { active: boolean; onClick: () => void; label: string; emoji: string; count: number; }) {
+  active, onClick, label, Icon, count,
+}: { active: boolean; onClick: () => void; label: string; Icon: LucideIcon; count: number; }) {
   return (
     <button
       type="button"
@@ -403,7 +403,7 @@ function FilterChip({
           : "bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10 hover:text-slate-200")
       }
     >
-      <span>{emoji}</span>
+      <Icon className="h-3.5 w-3.5" />
       <span>{label}</span>
       <span className={"ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] " + (active ? "bg-white/25" : "bg-white/10 text-slate-500")}>{count}</span>
     </button>
