@@ -314,7 +314,7 @@ export function HotelDetailsDialog({
                 )}
 
                 {/* Reviews feed */}
-                <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-4 md:px-7">
+                <div className="custom-scrollbar min-h-0 flex-none space-y-4 px-6 py-4 md:flex-1 md:overflow-y-auto md:overscroll-contain md:px-7">
 
                   <div className="sticky top-0 z-10 py-2 -mx-1 px-1 bg-background/80 backdrop-blur-xl">
                     <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
