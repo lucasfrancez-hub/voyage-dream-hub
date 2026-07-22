@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   component: AuthPage,
 });
 
@@ -165,7 +166,7 @@ function AuthPage() {
                   : "A primeira conta criada vira admin automaticamente."}
               </p>
 
-              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <form onSubmit={handleSubmit} method="post" action="#" className="mt-6 space-y-4">
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1.5">E-mail</label>
                   <input
