@@ -56,6 +56,7 @@ import {
   extractMultiplePackagesFromDocument,
 } from "@/lib/packages/ai.functions";
 import { normalizeFlightBaggage } from "@/lib/packages/flight-baggage";
+import { classifyMealPlan, mealPlanLabel, detectMealPlanMismatch } from "@/lib/packages/meal-plan";
 import { searchTripAdvisorHotels, getTripAdvisorHotelDetails } from "@/lib/tripadvisor.functions";
 import { persistPackageHotelPhotos } from "@/lib/package-hotel-photos.functions";
 import {
