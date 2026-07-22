@@ -303,7 +303,7 @@ function AuthPage() {
                     className="mt-0.5 accent-[hsl(var(--brand-orange))]"
                   />
                   <span>
-                    Confiar neste dispositivo por 30 dias (pula o código nas próximas vezes deste navegador)
+                    Confiar neste dispositivo por 30 dias (pula apenas o código por e-mail nas próximas vezes deste navegador — o código do autenticador continua sendo pedido)
                   </span>
                 </label>
                 <div className="flex gap-2">
@@ -355,7 +355,7 @@ function AuthPage() {
                   />
                   <span className="inline-flex items-center gap-1">
                     <Smartphone className="h-3.5 w-3.5" />
-                    Confiar neste dispositivo por 30 dias
+                    Confiar neste dispositivo por 30 dias (pula o código por e-mail — o autenticador continua obrigatório)
                   </span>
                 </label>
                 <button
