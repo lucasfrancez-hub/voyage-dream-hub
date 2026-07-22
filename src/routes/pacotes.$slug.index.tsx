@@ -179,6 +179,8 @@ function PackageDetails() {
   }
 
   const baseOccupancy = pkg.base_occupancy ?? 2;
+  const [hotelDialogOpen, setHotelDialogOpen] = useState(false);
+  const [dialogPhotoIndex, setDialogPhotoIndex] = useState(0);
   const hotelDetails = Array.from(
     new Map(
       [
