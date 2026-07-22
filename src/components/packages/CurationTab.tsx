@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy, listPackageCopies } from "@/lib/packages/curate.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
+import { canonOrigin, originKey, dedupeOrigins } from "@/lib/packages/origin";
+
 
 type CachedCopy = { text: string; updated_at: string };
 type CopyCache = Record<string, { whatsapp?: CachedCopy; instagram?: CachedCopy }>;
@@ -168,14 +170,15 @@ const monthOf = (s: string | null) => {
 export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefresh?: () => void | Promise<void> }) {
   const activeAll = useMemo(() => (packages || []).filter((p) => p.is_active), [packages]);
   const originOptions = useMemo(
-    () => Array.from(new Set(activeAll.map((p) => (p.origin || "").trim()).filter(Boolean))).sort(),
+    () => dedupeOrigins(activeAll.map((p) => p.origin)),
     [activeAll],
   );
   const [originFilter, setOriginFilter] = useState<string>("all");
   const active = useMemo(
-    () => (originFilter === "all" ? activeAll : activeAll.filter((p) => (p.origin || "").trim() === originFilter)),
+    () => (originFilter === "all" ? activeAll : activeAll.filter((p) => originKey(p.origin) === originKey(originFilter))),
     [activeAll, originFilter],
   );
+
   const [refreshing, setRefreshing] = useState(false);
   const doRefresh = async () => {
     if (!onRefresh) return;
@@ -329,9 +332,11 @@ export function CurationTab({ packages, onRefresh }: { packages: Pkg[]; onRefres
         >
           <option value="all">Todas as origens ({activeAll.length})</option>
           {originOptions.map((o) => {
-            const n = activeAll.filter((p) => (p.origin || "").trim() === o).length;
-            return <option key={o} value={o}>{o} ({n})</option>;
+            const k = originKey(o);
+            const n = activeAll.filter((p) => originKey(p.origin) === k).length;
+            return <option key={o} value={o}>{canonOrigin(o)} ({n})</option>;
           })}
+
         </select>
         {onRefresh && (
           <button
