@@ -1,5 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, RefreshCw } from "lucide-react";
+import {
+  Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, RefreshCw,
+  Wallet, Globe2, Snowflake, Palmtree, Timer, TreePine, Sparkles,
+  PartyPopper, Egg, CalendarDays, LayoutGrid,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy, listPackageCopies } from "@/lib/packages/curate.functions";
