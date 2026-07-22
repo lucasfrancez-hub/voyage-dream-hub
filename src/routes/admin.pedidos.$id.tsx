@@ -2281,6 +2281,12 @@ function HotelReservationCard({
             {destination && <div>{destination}</div>}
             {address && <div>{address}</div>}
             {room && <div>Categoria: <span className="text-foreground">{room}</span></div>}
+            {typeof d.room_type === "string" && (d.room_type as string).trim() && !room && (
+              <div>Tipo de quarto: <span className="text-foreground">{d.room_type as string}</span></div>
+            )}
+            {typeof d.room_category === "string" && (d.room_category as string).trim() && (
+              <div>Vista: <span className="text-foreground">{d.room_category as string}</span></div>
+            )}
             {typeof d.bed_type === "string" && (d.bed_type as string).trim() && (
               <div>Cama: <span className="text-foreground">{d.bed_type as string}</span></div>
             )}
