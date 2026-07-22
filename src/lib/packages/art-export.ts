@@ -266,7 +266,7 @@ export async function deliverArtPng(blob: Blob, filename: string): Promise<ArtDe
   // A geração assíncrona perde a ativação do clique no WebKit. Mostramos uma
   // prévia com um segundo botão, cujo clique abre a folha de compartilhamento
   // e permite “Salvar Imagem” de forma confiável.
-  if (isAppleMobile() && navigator.share && navigator.canShare?.({ files: [file] })) {
+  if (isAppleMobile() && navigator.canShare?.({ files: [file] })) {
     return offerAppleShare(file);
   }
 
