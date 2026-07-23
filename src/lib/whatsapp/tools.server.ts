@@ -773,6 +773,11 @@ export function buildCamilaTools(conversation: WaConversation) {
 
         // Match único: transfere agora.
         const alvo = list[0];
+        // Nome curto pra usar na mensagem ao cliente: primeiro + último (se
+        // tiver sobrenome), senão só o primeiro. Sempre em negrito no WhatsApp.
+        const partes = (alvo.full_name ?? "").trim().split(/\s+/).filter(Boolean);
+        const nomeCurto = partes.length >= 2 ? `${partes[0]} ${partes[partes.length - 1]}` : (partes[0] ?? alvo.full_name ?? "");
+        const nomeBold = `*${nomeCurto}*`;
         const existingTags = conversation.tags ?? [];
         const newTags = Array.from(new Set([...existingTags, "transferencia_nominal", "aguardando_humano"]));
         await supabaseAdmin
@@ -805,8 +810,9 @@ export function buildCamilaTools(conversation: WaConversation) {
         return {
           encontrados: 1,
           atendente: alvo.full_name,
+          nome_curto: nomeCurto,
           transferido: true,
-          instrucao: `Envie UMA mensagem curta (2-3 linhas) confirmando ao cliente que já transferiu a conversa pra ${alvo.full_name} e que ${alvo.full_name} responde em breve por aqui (horário comercial 09h às 21h — se fora do horário, avisar que retorna no início do próximo expediente). Use "obrigado pela preferência", NUNCA "paciência". A partir desta mensagem você (IA) não responde mais nesta conversa até o atendente humano assumir.`,
+          instrucao: `Envie UMA mensagem curta (2-3 linhas) confirmando que já transferiu a conversa pra ${nomeBold} e que ${nomeBold} responde em breve por aqui. REGRA OBRIGATÓRIA: use EXATAMENTE "${nomeBold}" (com os asteriscos do WhatsApp pra negrito) — NUNCA use o nome completo "${alvo.full_name}", só a versão curta "${nomeCurto}". Horário comercial 09h às 21h — se fora do horário, avise que retorna no início do próximo expediente. Use "obrigado pela preferência", NUNCA "paciência". A partir desta mensagem você (IA) não responde mais nesta conversa até o atendente humano assumir.`,
         };
       },
     }),
