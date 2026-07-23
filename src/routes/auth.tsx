@@ -39,14 +39,21 @@ function AuthPage() {
   const [trustDevice, setTrustDevice] = useState(true);
   const [enroll, setEnroll] = useState<{ id: string; qr: string; secret: string } | null>(null);
 
+  // Destino pós-login: respeita ?redirect=/chat/inbox (usado pelo app do chat).
+  const redirectTo = (() => {
+    if (typeof window === "undefined") return "/admin";
+    const r = new URLSearchParams(window.location.search).get("redirect");
+    return r && r.startsWith("/") && !r.startsWith("//") ? r : "/admin";
+  })();
+
   useEffect(() => {
     (async () => {
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (aal?.currentLevel === "aal2") {
-        navigate({ to: "/admin" });
+        navigate({ to: redirectTo });
       }
     })();
-  }, [navigate]);
+  }, [navigate, redirectTo]);
 
   /** Inicia o desafio TOTP para o fator já verificado. */
   async function startMfaChallenge(verifiedFactorId: string) {
@@ -188,7 +195,7 @@ function AuthPage() {
         }
       }
       toast.success("Verificação concluída");
-      navigate({ to: "/admin" });
+      navigate({ to: redirectTo });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Código inválido");
     } finally {
@@ -220,7 +227,7 @@ function AuthPage() {
         }
       }
       toast.success("Autenticador ativado. Bem-vindo!");
-      navigate({ to: "/admin" });
+      navigate({ to: redirectTo });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Código inválido");
     } finally {

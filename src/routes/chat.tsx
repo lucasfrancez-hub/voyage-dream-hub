@@ -104,7 +104,7 @@ function ChatLayout() {
 
   useEffect(() => {
     if (session === undefined) return;
-    if (!session) { navigate({ to: "/auth" }); return; }
+    if (!session) { navigate({ to: "/auth", search: { redirect: pathname || "/chat/inbox" } as any }); return; }
     (async () => {
       const { data, error } = await supabase
         .from("user_roles")
