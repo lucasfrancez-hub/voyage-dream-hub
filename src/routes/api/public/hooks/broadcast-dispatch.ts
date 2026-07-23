@@ -54,7 +54,7 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
               // blocos de imagem para não duplicar a arte.
               if (d.tipo === "channel" && (m.tipo === "image" || m.tipo === "video")) continue;
               // Story do Instagram só aceita bloco de imagem ou vídeo com URL.
-              if (d.tipo === "instagram_story" && m.tipo !== "image" && m.tipo !== "video") continue;
+              if (d.tipo === "instagram_story" && m.tipo !== "image") continue;
 
               // Idempotência: pula se já enviado (retry seguro)
               const { data: existente } = await supabaseAdmin
