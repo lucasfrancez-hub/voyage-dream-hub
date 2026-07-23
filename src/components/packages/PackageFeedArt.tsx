@@ -111,7 +111,14 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
   const parcelas = data.parcelas || 10;
   const valorParcela = (data.valorTotal || 0) / parcelas;
   const [reais, centavos] = BRL(valorParcela).split(",");
-  const includes = INCLUDES.filter((it) => data.inclusos[it.key]);
+  const mealLabelRaw = (data.mealPlanLabel || "Café da Manhã").trim();
+  const mealChipLabel = mealLabelRaw.includes(" ")
+    ? mealLabelRaw.replace(/\s+/, "\n")
+    : mealLabelRaw;
+  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) =>
+    it.key === "cafeDaManha" ? { ...it, label: mealChipLabel } : it,
+  );
+
   const { top, bottom } = splitDestino(data.destino);
   const stars = data.estrelas && data.estrelas > 0 ? Math.max(1, Math.min(5, Math.round(data.estrelas))) : 0;
 
