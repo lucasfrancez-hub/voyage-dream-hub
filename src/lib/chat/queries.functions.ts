@@ -103,7 +103,7 @@ export const listProtocoloMessages = createServerFn({ method: "POST" })
         const toTs = proto.closed_at ?? new Date().toISOString();
         const { data: winRows } = await context.supabase
           .from("wa_messages")
-          .select("id, direction, sender, content, created_at, sender_user_id")
+          .select("id, direction, sender, content, created_at, sender_user_id, agent_slug")
           .eq("conversation_id", proto.conversation_id)
           .gt("created_at", fromTs)
           .lte("created_at", toTs)
