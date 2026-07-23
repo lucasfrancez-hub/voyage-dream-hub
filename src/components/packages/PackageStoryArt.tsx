@@ -82,7 +82,16 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
   const parcelas = data.parcelas || 10;
   const valorParcela = (data.valorTotal || 0) / parcelas;
   const [reais, centavos] = BRL(valorParcela).split(",");
-  const includes = INCLUDES.filter((it) => data.inclusos[it.key]);
+  const mealLabelRaw = (data.mealPlanLabel || "Café da Manhã").trim();
+  const shortMeal =
+    /all\s*inclusive/i.test(mealLabelRaw) ? "All Incl."
+    : /pensao\s*completa/i.test(mealLabelRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ? "Pensão Comp."
+    : /meia\s*pensao/i.test(mealLabelRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ? "Meia Pensão"
+    : "Café";
+  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) =>
+    it.key === "cafeDaManha" ? { ...it, label: shortMeal } : it,
+  );
+
   const { top, bottom } = splitDestino(data.destino);
   const stars = data.estrelas && data.estrelas > 0 ? Math.max(1, Math.min(5, Math.round(data.estrelas))) : 0;
   const apto = data.apartamento || APT_LABEL[data.quantidadePessoas] || "";
