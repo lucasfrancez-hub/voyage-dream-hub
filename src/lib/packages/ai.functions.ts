@@ -652,7 +652,9 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
     },
     "transfer": { "enabled": true, "sentido": "in_out" },
     "city_tour": { "enabled": false, "detalhe": "" },
+    "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
     "outros": ["Assistência 24h"]
+
   },
   "baggage_scope": "shared | per_flight",
   "outbound_flight": {
