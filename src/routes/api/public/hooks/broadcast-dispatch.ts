@@ -53,6 +53,8 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
               // Em canais o WhatsApp já gera preview da URL no texto — pular
               // blocos de imagem para não duplicar a arte.
               if (d.tipo === "channel" && (m.tipo === "image" || m.tipo === "video")) continue;
+              // Story do Instagram só aceita bloco de imagem ou vídeo com URL.
+              if (d.tipo === "instagram_story" && m.tipo !== "image") continue;
 
               // Idempotência: pula se já enviado (retry seguro)
               const { data: existente } = await supabaseAdmin
@@ -64,14 +66,41 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
                 .maybeSingle();
               if (existente && existente.status !== "pendente" && existente.status !== "falhou") continue;
 
-              const r = await sendBroadcastBlock(d.jid, {
-                tipo: m.tipo as "text" | "image" | "video" | "document" | "buttons",
-                texto: m.texto,
-                midia_url: m.midia_url,
-                midia_filename: m.midia_filename,
-                midia_caption: m.midia_caption,
-                botoes: m.botoes,
-              });
+              let r: { id: string | null; error?: string | null };
+              if (d.tipo === "instagram_story") {
+                const igUserId = d.jid.replace(/^ig_story:/, "");
+                const { data: acc } = await supabaseAdmin
+                  .from("instagram_accounts")
+                  .select("id")
+                  .eq("ig_user_id", igUserId)
+                  .maybeSingle();
+                if (!acc?.id || !m.midia_url || m.tipo !== "image") {
+                  r = { id: null, error: "Story exige bloco de imagem com URL" };
+                } else {
+                  const { publishInstagramMedia } = await import("@/lib/instagram/publish.server");
+                  try {
+                    const res = await publishInstagramMedia({
+                      accountId: acc.id,
+                      mediaType: "story_image",
+                      imageUrls: [m.midia_url],
+                      caption: m.texto ?? undefined,
+                    });
+                    r = { id: res.id ?? null, error: null };
+                  } catch (e) {
+                    r = { id: null, error: e instanceof Error ? e.message : "erro IG" };
+                  }
+                }
+              } else {
+                r = await sendBroadcastBlock(d.jid, {
+                  tipo: m.tipo as "text" | "image" | "video" | "document" | "buttons",
+                  texto: m.texto,
+                  midia_url: m.midia_url,
+                  midia_filename: m.midia_filename,
+                  midia_caption: m.midia_caption,
+                  botoes: m.botoes,
+                });
+              }
+
 
 
               const row = {

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search, CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search, CalendarClock, ChevronLeft, ChevronRight, Instagram } from "lucide-react";
 import {
   listCampanhas,
   listDestinos,
@@ -33,7 +33,7 @@ export const Route = createFileRoute("/chat/broadcast")({
 type Destino = {
   id: string;
   jid: string;
-  tipo: "channel" | "group";
+  tipo: "channel" | "group" | "instagram_story";
   nome: string;
   foto_url: string | null;
   participantes: number | null;
@@ -1207,6 +1207,7 @@ function DestinosList({ destinos, onChanged }: { destinos: Destino[]; onChanged:
 
   const grupos = destinos.filter((d) => d.tipo === "group");
   const canais = destinos.filter((d) => d.tipo === "channel");
+  const igStories = destinos.filter((d) => d.tipo === "instagram_story");
 
   return (
     <div className="space-y-6">
@@ -1243,9 +1244,10 @@ function DestinosList({ destinos, onChanged }: { destinos: Destino[]; onChanged:
           Nenhum destino ainda. Adicione por link acima ou clique em "Sincronizar destinos".
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           <DestinoGroup title="Canais" icon={Radio} items={canais} onDelete={handleDelete} />
           <DestinoGroup title="Grupos" icon={Users} items={grupos} onDelete={handleDelete} />
+          <DestinoGroup title="Instagram Story" icon={Instagram} items={igStories} onDelete={handleDelete} />
         </div>
       )}
     </div>
@@ -1388,8 +1390,10 @@ function CampanhaEditor({
 
   const canais = destinos.filter((d) => d.tipo === "channel");
   const grupos = destinos.filter((d) => d.tipo === "group");
+  const igStories = destinos.filter((d) => d.tipo === "instagram_story");
   const destinosSelecionados = destinos.filter((d) => selecionados.has(d.id));
   const somenteCanais = destinosSelecionados.length > 0 && destinosSelecionados.every((d) => d.tipo === "channel");
+  const temIgStory = destinosSelecionados.some((d) => d.tipo === "instagram_story");
 
   useEffect(() => {
     if (!somenteCanais) return;
@@ -1469,10 +1473,16 @@ function CampanhaEditor({
                 </div>
                 <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
               </div>
-              <div className="grid md:grid-cols-2 gap-3">
+              <div className="grid md:grid-cols-3 gap-3">
                 <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
                 <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
+                <DestSelector title="Instagram Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
               </div>
+              {temIgStory && (
+                <p className="mt-2 text-[11px] text-pink-500">
+                  📸 Story do Instagram só publica blocos de <b>imagem</b> com URL pública (o texto vira legenda opcional). Vídeos/documentos/botões são ignorados.
+                </p>
+              )}
             </section>
 
             {/* Secão 3: mensagens */}
