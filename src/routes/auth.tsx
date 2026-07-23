@@ -456,9 +456,9 @@ function AuthPage() {
                 </button>
               </form>
 
-              <p className="mt-4 w-full text-center text-xs text-muted-foreground">
-                Acesso restrito. Novos usuários são criados pelo gestor no painel administrativo.
-              </p>
+              <div className="mt-4 flex justify-center text-muted-foreground/60">
+                <Lock className="h-4 w-4" aria-label="Acesso restrito" />
+              </div>
             </>
           )}
         </div>
