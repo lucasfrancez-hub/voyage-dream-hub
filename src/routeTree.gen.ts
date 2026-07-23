@@ -31,6 +31,7 @@ import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminDisparosRouteImport } from './routes/admin.disparos'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
@@ -195,6 +196,11 @@ const AdminContasReceberRoute = AdminContasReceberRouteImport.update({
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDisparosRoute = AdminDisparosRouteImport.update({
+  id: '/disparos',
+  path: '/disparos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminInstalarExtensaoRoute = AdminInstalarExtensaoRouteImport.update({
@@ -510,6 +516,7 @@ export interface FileRoutesByFullPath {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/disparos': typeof AdminDisparosRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -588,6 +595,7 @@ export interface FileRoutesByTo {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/disparos': typeof AdminDisparosRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -668,6 +676,7 @@ export interface FileRoutesById {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/disparos': typeof AdminDisparosRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -749,6 +758,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/disparos'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -827,6 +837,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/disparos'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -906,6 +917,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/disparos'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -1162,6 +1174,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/disparos': {
+      id: '/admin/disparos'
+      path: '/disparos'
+      fullPath: '/admin/disparos'
+      preLoaderRoute: typeof AdminDisparosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/instalar-extensao': {
@@ -1571,6 +1590,7 @@ interface AdminRouteChildren {
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminDisparosRoute: typeof AdminDisparosRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
@@ -1592,6 +1612,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminDisparosRoute: AdminDisparosRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
