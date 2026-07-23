@@ -528,6 +528,9 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
 
 
   const grouped = groupByDay(messages);
+  const repliedIds = new Set(
+    messages.map((m) => m.reply_to_wa_id).filter((x): x is string => !!x),
+  );
   const lastInbound = [...messages].reverse().find((m) => m.direction === "inbound");
   const hoursSince = lastInbound ? (Date.now() - new Date(lastInbound.created_at).getTime()) / 3600000 : 0;
   const window24 = hoursSince > 24;
@@ -648,6 +651,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                       senderLabel={senderLabel}
                       status={m.direction === "outbound" ? "delivered" : undefined}
                       deleted={!!m.deleted_at}
+                      replied={!!m.wa_message_id && repliedIds.has(m.wa_message_id)}
                       reply={
                         m.reply_to_wa_id
                           ? { snippet: m.reply_to_snippet ?? "mensagem", sender: m.reply_to_sender ?? null }

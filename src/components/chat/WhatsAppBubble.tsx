@@ -16,6 +16,8 @@ interface Props {
   senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
   status?: "sent" | "delivered" | "read";
   deleted?: boolean;
+  /** Marca visual "respondida" — aparece uma setinha ↩ ao lado do horário */
+  replied?: boolean;
   /** Prévia da mensagem citada (reply/quote) */
   reply?: { sender?: string | null; snippet: string } | null;
   /** Handler pra "Responder" — clica na setinha que aparece no hover */
@@ -27,7 +29,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, reply, onReply }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, replied, reply, onReply }: Props) {
   const isOut = side === "out";
   const label = firstName(senderLabel);
   const replySender = firstName(reply?.sender ?? null);
@@ -104,6 +106,11 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           style={{ color: "color-mix(in oklab, var(--chat-bubble-fg) 55%, transparent)" }}
         >
           <span>{formatTime(timestamp)}</span>
+          {replied && (
+            <span title="Respondida" className="flex items-center gap-0.5 text-[10px]" style={{ color: "var(--brand-orange)" }}>
+              <CornerUpLeft className="h-3 w-3" />
+            </span>
+          )}
           {isOut && status && (
             status === "read" ? (
               <CheckCheck className="h-3 w-3 text-blue-500" />
