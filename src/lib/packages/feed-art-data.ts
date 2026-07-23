@@ -306,6 +306,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     quantidadePessoas: pessoas,
     apartamento: APT_LABEL[pessoas] || `de ${pessoas} pessoas`,
     parcelas: isCativa ? 15 : 10,
+    isCativa,
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
 
     inclusos: detectIncludes(pkg.includes, pkg.services ?? null),

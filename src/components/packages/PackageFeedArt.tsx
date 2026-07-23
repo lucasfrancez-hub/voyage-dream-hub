@@ -21,6 +21,7 @@ export type FeedArtData = {
   quantidadePessoas: number;
   apartamento: string;
   parcelas: number;
+  isCativa?: boolean;
   valorTotal: number;
   inclusos: {
     aereo: boolean;
@@ -315,7 +316,11 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                   </div>
                   <div className="vfeed-price-pay">
                     <div className="vfeed-inc-icon">{I.card}</div>
-                    <p>No cartão e boleto bancário sem juros<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
+                    {data.isCativa ? (
+                      <p>15x sem juros no cartão Visa e Amex<br/>Boleto bancário em até 10x<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
+                    ) : (
+                      <p>No cartão e boleto bancário sem juros<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
+                    )}
                   </div>
                 </div>
 
@@ -404,8 +409,8 @@ const CSS = `
 .vfeed-price-line{display:flex;align-items:baseline;margin-bottom:8px}
 .vfeed-price-x{font-size:20px;font-weight:700;margin-right:4px}
 .vfeed-price-cur{font-size:24px;font-weight:700;color:var(--brand-orange);margin-right:4px}
-.vfeed-price-num{font-size:60px;font-weight:900;color:var(--brand-orange);letter-spacing:-.04em;line-height:1}
-.vfeed-price-cents{font-size:30px;font-weight:700;color:var(--brand-orange)}
+.vfeed-price-num{font-size:60px;font-weight:900;color:var(--brand-orange);letter-spacing:-.04em;line-height:1;margin-right:-2px}
+.vfeed-price-cents{font-size:30px;font-weight:700;color:var(--brand-orange);margin-left:-4px}
 .vfeed-price-bar{width:100%;height:1px;background:var(--brand-orange);margin:4px 0}
 .vfeed-price-total{margin:0;font-size:14px;font-weight:500;text-align:center}
 .vfeed-price-total span{color:var(--brand-orange);font-weight:700}
