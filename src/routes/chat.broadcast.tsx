@@ -1113,12 +1113,18 @@ function CampanhaEditor({
   return (
     <>
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
-      <div className="w-full max-w-4xl bg-background border border-border rounded-2xl my-4">
-        <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background z-10">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Megaphone className="h-5 w-5 text-brand-orange" />
-            {id ? "Editar campanha" : "Nova campanha"}
-          </h2>
+      <div className="w-full max-w-4xl bg-background border border-border rounded-2xl my-4 shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-gradient-to-r from-brand-orange/10 via-background to-background z-10 rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-8 rounded-full bg-brand-orange" />
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Megaphone className="h-5 w-5 text-brand-orange" />
+                {id ? "Editar campanha" : "Nova campanha"}
+              </h2>
+              <p className="text-xs text-muted-foreground">{id ? "Ajuste os blocos e destinos." : "Monte a mensagem e escolha para onde disparar."}</p>
+            </div>
+          </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
@@ -1129,68 +1135,92 @@ function CampanhaEditor({
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="p-4 space-y-6">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <label className="text-sm">
-                <span className="text-xs uppercase text-muted-foreground">Nome da campanha</span>
-                <input
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  placeholder="Ex: Promoção Orlando Novembro"
+          <div className="p-5 space-y-5">
+            {/* Secão 1: identificação */}
+            <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <span className="inline-flex w-5 h-5 rounded-full bg-brand-orange/15 text-brand-orange items-center justify-center text-[10px] font-black">1</span>
+                Identificação
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="text-sm">
+                  <span className="text-[11px] uppercase text-muted-foreground font-medium">Nome da campanha</span>
+                  <input
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-orange focus:outline-none"
+                    placeholder="Ex: Promoção Orlando Novembro"
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="text-[11px] uppercase text-muted-foreground font-medium">Agendar para (09h-21h BRT)</span>
+                  <input
+                    type="datetime-local"
+                    value={scheduled}
+                    onChange={(e) => setScheduled(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-orange focus:outline-none"
+                  />
+                </label>
+              </div>
+              <label className="text-sm block">
+                <span className="text-[11px] uppercase text-muted-foreground font-medium">Observações internas (marketing)</span>
+                <textarea
+                  value={obs}
+                  onChange={(e) => setObs(e.target.value)}
+                  rows={2}
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-orange focus:outline-none"
+                  placeholder="Contexto interno, referências, campanha-mãe…"
                 />
               </label>
-              <label className="text-sm">
-                <span className="text-xs uppercase text-muted-foreground">Agendar para (opcional, 09h-21h BRT)</span>
-                <input
-                  type="datetime-local"
-                  value={scheduled}
-                  onChange={(e) => setScheduled(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
-              </label>
-            </div>
+            </section>
 
-            <label className="text-sm block">
-              <span className="text-xs uppercase text-muted-foreground">Observações internas (marketing)</span>
-              <textarea
-                value={obs}
-                onChange={(e) => setObs(e.target.value)}
-                rows={2}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-              />
-            </label>
-
-            {/* Destinos */}
-            <div>
-              <h3 className="text-sm font-medium mb-2">Destinos ({selecionados.size} selecionados)</h3>
-              <div className="grid md:grid-cols-2 gap-4">
+            {/* Secão 2: destinos */}
+            <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  <span className="inline-flex w-5 h-5 rounded-full bg-brand-orange/15 text-brand-orange items-center justify-center text-[10px] font-black">2</span>
+                  Destinos
+                </div>
+                <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
+              </div>
+              <div className="grid md:grid-cols-2 gap-3">
                 <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
                 <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
               </div>
-            </div>
+            </section>
 
-            {/* Blocos */}
-            <div>
-              <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-                <h3 className="text-sm font-medium">Mensagens ({blocos.length} blocos)</h3>
+            {/* Secão 3: mensagens */}
+            <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  <span className="inline-flex w-5 h-5 rounded-full bg-brand-orange/15 text-brand-orange items-center justify-center text-[10px] font-black">3</span>
+                  Mensagens
+                  <span className="text-muted-foreground font-normal normal-case tracking-normal">({blocos.length} bloco{blocos.length === 1 ? "" : "s"})</span>
+                </div>
                 <div className="flex items-center gap-1 flex-wrap">
-                  <button onClick={() => setShowPicker(true)} className="text-xs rounded-full bg-brand-orange/10 text-brand-orange px-3 py-1 hover:bg-brand-orange/20 inline-flex items-center gap-1 font-medium">
+                  <button onClick={() => setShowPicker(true)} className="text-xs rounded-full bg-brand-orange text-white px-3 py-1.5 hover:opacity-90 inline-flex items-center gap-1 font-semibold shadow-sm shadow-brand-orange/30">
                     <Package className="h-3 w-3" /> Pacote pronto
                   </button>
-                  <span className="text-xs text-muted-foreground px-1">·</span>
-                  <button onClick={() => addBloco("text")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ Texto</button>
-                  <button onClick={() => addBloco("image")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ Imagem</button>
-                  <button onClick={() => addBloco("document")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ PDF</button>
-                  <button onClick={() => addBloco("video")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ Vídeo</button>
+                  <span className="text-muted-foreground/40 px-1">·</span>
+                  <button onClick={() => addBloco("text")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Texto</button>
+                  <button onClick={() => addBloco("image")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Imagem</button>
+                  <button onClick={() => addBloco("document")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ PDF</button>
+                  <button onClick={() => addBloco("video")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Vídeo</button>
                 </div>
               </div>
-              <div className="space-y-2">
-                {blocos.map((b, i) => (
-                  <BlocoEditor key={i} idx={i} bloco={b} onChange={(p) => updateBloco(i, p)} onRemove={() => removeBloco(i)} />
-                ))}
-              </div>
-            </div>
+              {blocos.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border py-8 text-center">
+                  <Package className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Adicione um <button onClick={() => setShowPicker(true)} className="text-brand-orange font-semibold hover:underline">pacote pronto</button> ou blocos manuais.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {blocos.map((b, i) => (
+                    <BlocoEditor key={i} idx={i} bloco={b} onChange={(p) => updateBloco(i, p)} onRemove={() => removeBloco(i)} />
+                  ))}
+                </div>
+              )}
+            </section>
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
               <button onClick={onClose} className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange">
@@ -1206,9 +1236,9 @@ function CampanhaEditor({
               <button
                 onClick={() => salvar("agendada")}
                 disabled={saving || !scheduled}
-                className="text-sm rounded-full bg-brand-orange px-4 py-2 text-white font-medium hover:opacity-90 disabled:opacity-50"
+                className="text-sm rounded-full bg-brand-orange px-5 py-2 text-white font-semibold hover:opacity-90 disabled:opacity-50 shadow-lg shadow-brand-orange/25 inline-flex items-center gap-1"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Agendar envio"}
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Agendar envio</>}
               </button>
             </div>
           </div>
