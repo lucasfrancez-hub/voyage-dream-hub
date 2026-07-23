@@ -391,13 +391,33 @@ export function buildCamilaTools(conversation: WaConversation) {
           content: caption,
         });
 
+        // Destaques pra IA usar no comentário humanizado logo depois do folder
+        const svcAny: any = (pkg as any).services ?? {};
+        const highlights: string[] = [];
+        if (pkg.origin) highlights.push(`sai de ${pkg.origin}`);
+        if (pkg.hotel_name) {
+          const st = pkg.hotel_stars ? ` ${pkg.hotel_stars} estrelas` : "";
+          highlights.push(`fica no ${pkg.hotel_name}${st}`);
+        }
+        if (/all\s*inclusive|tudo\s*incluso/i.test(String(pkg.meal_plan ?? ""))) highlights.push("regime all inclusive");
+        else if (/café|cafe|manhã|manha/i.test(String(pkg.meal_plan ?? ""))) highlights.push("com café da manhã incluso");
+        if (svcAny?.tickets?.enabled) {
+          const parks = (svcAny.tickets.parks ?? []).map((p: any) => String(p ?? "").trim()).filter(Boolean);
+          if (parks.length) highlights.push(`já com ingresso ${parks.join(" e ")}`);
+        }
+        if (svcAny?.transfer?.enabled) highlights.push("com transfer aeroporto ↔ hotel");
+        if (svcAny?.seguro?.enabled) highlights.push("com seguro viagem incluso");
+        if (svcAny?.city_tour?.enabled) highlights.push("com city tour");
+
         return {
           ok: true,
           enviado: true,
           image_fallback_error: sendErr ?? null,
+          destaques_para_comentar: highlights,
           instrucao:
-            "Folder do pacote (imagem + descritivo + preços + link) JÁ enviado pelo WhatsApp. NÃO repita título, datas, valores nem link no seu texto. Responda AGORA apenas com UM balão curto perguntando 'O que você achou?' (ou variação natural).",
+            "Folder do pacote JÁ foi enviado (imagem + descritivo + preços + link). NÃO repita título, datas, valores nem link. AGORA mande 1 mensagem curta e humanizada (2 a 4 linhas curtas, tom de consultora experiente, NADA robótico) resumindo em português natural 2 ou 3 destaques da lista 'destaques_para_comentar' (ex.: 'Esse aqui sai de São Paulo, fica no [hotel] e já vem com ingresso pra Disney e Universal — bem completinho.'). Encaixe UMA sugestão sutil de vantagem/urgência quando fizer sentido ('as datas de novembro estão saindo rápido', 'esse hotel é muito bem avaliado', 'com café já incluso não precisa se preocupar'). NÃO copie a frase do exemplo — varie o texto. TERMINE com uma pergunta leve tipo 'O que você achou?' ou 'Faz sentido pra vocês?'. Sem emojis em excesso (no máx. 1). Sem hashtag, sem asterisco de negrito, sem link.",
         };
+
       },
     }),
 
