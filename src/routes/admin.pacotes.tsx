@@ -67,7 +67,11 @@ import {
   ChevronDown,
   Sparkles as SparklesIcon,
   List as ListIcon,
+  Bell,
+  RefreshCw,
 } from "lucide-react";
+import { useIgnoredHotels } from "@/lib/ignored-hotels";
+
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
@@ -667,20 +671,7 @@ function AdminPackages() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={backfillHotelPhotos}
-            disabled={backfilling}
-            title="Buscar no TripAdvisor as fotos dos hotéis dos pacotes já cadastrados que estão sem imagens."
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-brand-orange disabled:opacity-60"
-          >
-            {backfilling ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ImageIcon className="h-4 w-4" />
-            )}
-            Atualizar fotos
-          </button>
+          <IgnoredHotelsBell />
           <MultiPackageImportButton
             onExtracted={async (list) => {
               if (!list.length) return;
@@ -695,8 +686,22 @@ function AdminPackages() {
               setEditingState(list[0]);
             }}
           />
-
           <button
+            type="button"
+            onClick={backfillHotelPhotos}
+            disabled={backfilling}
+            title="Atualizar fotos dos hotéis (busca no TripAdvisor as fotos dos pacotes sem imagens)"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-brand-orange transition-colors disabled:opacity-60"
+          >
+            {backfilling ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+          </button>
+          <button
+            type="button"
+            title="Novo pacote"
             onClick={async () => {
               try {
                 const base = await nextPackageBaseNumber();
@@ -706,11 +711,12 @@ function AdminPackages() {
               }
               setEditing({ ...emptyForm });
             }}
-            className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-brand-orange hover:bg-[#ff7b30] text-white transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
           >
-            <Plus className="h-5 w-5" strokeWidth={3} /> Novo Pacote
+            <Plus className="h-5 w-5" strokeWidth={3} />
           </button>
         </div>
+
       </div>
 
       {/* Tabs */}
@@ -3679,37 +3685,73 @@ function MultiPackageImportButton({
   );
 }
 
+function IgnoredHotelsBell() {
+  const { ids, restoreAll } = useIgnoredHotels();
+  const [open, setOpen] = useState(false);
+  const count = ids.size;
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={
+            count > 0
+              ? `${count} alerta(s) ignorado(s) — clique para restaurar`
+              : "Nenhum alerta ignorado"
+          }
+          className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-brand-orange transition-colors"
+        >
+          <Bell className="h-4 w-4" />
+          {count > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-orange text-white text-[10px] font-bold flex items-center justify-center shadow-[0_2px_6px_rgba(242,107,31,0.45)]">
+              {count}
+            </span>
+          )}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        {count === 0 ? (
+          <div className="px-3 py-4 text-[11px] text-muted-foreground text-center">
+            Nenhuma notificação ignorada.
+          </div>
+        ) : (
+          <>
+            <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
+              Alertas ignorados
+            </div>
+            <div className="px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
+              {count} hotel(is) sem vínculo com TripAdvisor foram ignorados no alerta.
+            </div>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                restoreAll();
+                setOpen(false);
+              }}
+              className="text-brand-orange font-semibold cursor-pointer"
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-2" /> Restaurar todos
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function UnlinkedHotelsAlert({
+
   packages,
   onOpen,
 }: {
   packages: PackageRow[];
   onOpen: (p: PackageRow) => void;
 }) {
-  const IGNORE_KEY = "viaair:unlinked-hotels:ignored";
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [ignored, setIgnored] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try {
-      const raw = window.localStorage.getItem(IGNORE_KEY);
-      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-    } catch {
-      return new Set();
-    }
-  });
-  const persistIgnored = (next: Set<string>) => {
-    setIgnored(new Set(next));
-    try {
-      window.localStorage.setItem(IGNORE_KEY, JSON.stringify(Array.from(next)));
-    } catch {}
-  };
-  const ignore = (id: string) => {
-    const next = new Set(ignored);
-    next.add(id);
-    persistIgnored(next);
-  };
-  const restoreAll = () => persistIgnored(new Set());
+  const { ids: ignored, ignore, restoreAll } = useIgnoredHotels();
+
 
   const unlinked = useMemo(
     () =>
