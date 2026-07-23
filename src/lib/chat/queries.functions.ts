@@ -428,6 +428,9 @@ export const sendHumanReply = createServerFn({ method: "POST" })
     z.object({
       conversation_id: z.string().uuid(),
       content: z.string().min(1).max(4000),
+      reply_to_wa_id: z.string().nullish(),
+      reply_to_snippet: z.string().nullish(),
+      reply_to_sender: z.string().nullish(),
     }).parse(data),
   )
   .handler(async ({ data, context }) => {
@@ -471,9 +474,14 @@ export const sendHumanReply = createServerFn({ method: "POST" })
       sender: "human",
       content,
       sender_user_id: context.userId,
+      reply_to_wa_id: data.reply_to_wa_id ?? null,
+      reply_to_snippet: data.reply_to_snippet ?? null,
+      reply_to_sender: data.reply_to_sender ?? null,
     });
 
-    await sendWhatsAppBubbles(conv.wa_phone, content, prefix);
+    await sendWhatsAppBubbles(conv.wa_phone, content, prefix, {
+      replyId: data.reply_to_wa_id ?? null,
+    });
     return { ok: true };
   });
 
