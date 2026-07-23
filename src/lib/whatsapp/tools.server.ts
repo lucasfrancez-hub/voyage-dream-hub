@@ -188,7 +188,8 @@ export function buildCamilaTools(conversation: WaConversation) {
         const cap = limit ?? 5;
         let base = supabaseAdmin
           .from("packages")
-          .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services")
+          .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight")
+
           .eq("is_active", true)
           .order("going_date", { ascending: true });
         if (destino) base = base.ilike("destination", `%${destino}%`);
