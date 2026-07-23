@@ -455,6 +455,7 @@ function CampanhaEditor({
   const [blocos, setBlocos] = useState<Bloco[]>([{ tipo: "text", texto: "" }]);
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(Boolean(id));
+  const [showPicker, setShowPicker] = useState(false);
 
   const fetchOne = useServerFn(getCampanha);
   const doSalvar = useServerFn(salvarCampanha);
