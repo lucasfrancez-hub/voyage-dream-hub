@@ -55,7 +55,9 @@ function InboxPage() {
     refetchInterval: 15_000,
   });
 
-  const [channel, setChannel] = useState<"whatsapp" | "instagram_dm" | "instagram_comments">("whatsapp");
+  const [channel, _setChannel] = useState<"whatsapp" | "instagram_dm" | "instagram_comments">("whatsapp");
+  const setChannel = (_c: "whatsapp" | "instagram_dm" | "instagram_comments") => _setChannel("whatsapp");
+
   const [folder, setFolder] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -216,36 +218,8 @@ function InboxPage() {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            {/* Abas de canal (WhatsApp | Direct | Comentários) */}
-            <div className="mt-2 flex gap-1 rounded-lg bg-slate-100 p-0.5">
-              <button
-                onClick={() => { setChannel("whatsapp"); setActiveId(null); }}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  channel === "whatsapp" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500",
-                )}
-              >
-                <MessageCircle className="h-3 w-3" /> WhatsApp
-              </button>
-              <button
-                onClick={() => { setChannel("instagram_dm"); setActiveId(null); }}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  channel === "instagram_dm" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500",
-                )}
-              >
-                <Instagram className="h-3 w-3" /> Direct
-              </button>
-              <button
-                onClick={() => { setChannel("instagram_comments"); setActiveId(null); }}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  channel === "instagram_comments" ? "bg-white text-purple-600 shadow-sm" : "text-slate-500",
-                )}
-              >
-                <MessageSquare className="h-3 w-3" /> Comentários
-              </button>
-            </div>
+            {/* Abas de canal ocultas temporariamente — Instagram voltará depois */}
+
             <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {FOLDERS.map((f) => (
                 <button
