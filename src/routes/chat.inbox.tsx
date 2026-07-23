@@ -71,15 +71,54 @@ function InboxPage() {
     });
   }, [conversations, folder, search]);
 
-  // Realtime
+  // Realtime + push notifications (desktop/electron/web)
   useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+    const prevTags = new Map<string, string[]>();
+    const canNotify = () =>
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      Notification.permission === "granted" &&
+      (typeof document === "undefined" || document.visibilityState !== "visible");
+
+    const notify = (title: string, body: string, tag?: string) => {
+      if (!canNotify()) return;
+      try {
+        const n = new Notification(title, { body, tag, icon: "/favicon.ico" });
+        n.onclick = () => { window.focus(); n.close(); };
+      } catch {}
+    };
+
     const ch = supabase
       .channel("wa_messages_inbox")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "wa_messages" }, () => refetch())
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wa_conversations" }, () => refetch())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "wa_messages" }, (payload: any) => {
+        refetch();
+        const m = payload?.new;
+        if (!m || m.direction !== "inbound") return;
+        const conv = conversations.find((c) => c.id === m.conversation_id);
+        const who = conv?.display_name || conv?.wa_phone || "Nova mensagem";
+        const text = typeof m.content === "string" ? m.content : (m.content?.text ?? "📎 Mídia recebida");
+        const aiOn = conv?.mode === "ai";
+        const prefix = aiOn ? "🤖 IA atendendo" : "💬";
+        notify(`${prefix} · ${who}`, String(text).slice(0, 140), `msg-${m.conversation_id}`);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wa_conversations" }, (payload: any) => {
+        refetch();
+        const c = payload?.new;
+        if (!c) return;
+        const nextTags: string[] = Array.isArray(c.tags) ? c.tags : [];
+        const before = prevTags.get(c.id) ?? [];
+        prevTags.set(c.id, nextTags);
+        if (nextTags.includes("aguardando_humano") && !before.includes("aguardando_humano")) {
+          const who = c.display_name || c.wa_phone || "Contato";
+          notify("🚨 Atendimento humano necessário", `${who} está aguardando você`, `human-${c.id}`);
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [refetch]);
+  }, [refetch, conversations]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) return;
