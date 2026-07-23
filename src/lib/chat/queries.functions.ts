@@ -76,7 +76,7 @@ export const listProtocoloMessages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     let { data: rows, error } = await context.supabase
       .from("wa_messages")
-      .select("id, direction, sender, content, created_at, sender_user_id")
+      .select("id, direction, sender, content, created_at, sender_user_id, agent_slug")
       .eq("protocolo_id", data.protocolo_id)
       .order("created_at", { ascending: true })
       .limit(1000);
