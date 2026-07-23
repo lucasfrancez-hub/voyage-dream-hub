@@ -98,14 +98,37 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       const boleto_ate_data_viagem = d !== null && d >= 60;
 
       const svc = p.services ?? {};
-      const services_emojis: string[] = [];
-      if (svc.seguro?.enabled) services_emojis.push("🛡️");
-      if (svc.cancelamento?.enabled) services_emojis.push("🧾");
-      if (svc.transfer?.enabled) services_emojis.push("🚐");
-      if (svc.city_tour?.enabled) services_emojis.push("🗺️");
-      const outrosCount = (svc.outros ?? []).filter((e) => (e || "").trim()).length;
-      for (let i = 0; i < outrosCount; i++) services_emojis.push("✨");
-      const services_emoji_line = services_emojis.join(" ");
+      const services_lines: string[] = [];
+      if (svc.seguro?.enabled) {
+        const cob = svc.seguro.cobertura?.toString().trim();
+        const moeda = svc.seguro.moeda || "USD";
+        services_lines.push(
+          cob
+            ? `🛡️ Seguro Viagem ${moeda} ${cob} por pessoa`
+            : `🛡️ Seguro Viagem`,
+        );
+      }
+      if (svc.cancelamento?.enabled) {
+        const cob = svc.cancelamento.cobertura?.toString().trim();
+        const moeda = svc.cancelamento.moeda || "BRL";
+        services_lines.push(
+          cob
+            ? `🧾 Cobertura para cancelamento involuntário ${moeda} ${cob} por pessoa`
+            : `🧾 Cobertura para cancelamento involuntário`,
+        );
+      }
+      if (svc.transfer?.enabled) {
+        services_lines.push(`🚐 Transfer aeroporto ↔ hotel (${sentidoLabel(svc.transfer.sentido)})`);
+      }
+      if (svc.city_tour?.enabled) {
+        const det = svc.city_tour.detalhe?.trim();
+        services_lines.push(det ? `🗺️ City Tour — ${det}` : `🗺️ City Tour`);
+      }
+      for (const extra of svc.outros ?? []) {
+        const t = (extra || "").trim();
+        if (t) services_lines.push(`✨ ${t}`);
+      }
+
 
 
       return {
@@ -122,7 +145,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         url: `${baseUrl}/w/${p.slug}`,
         days_until_departure: d,
         boleto_ate_data_viagem,
-        services_emoji_line,
+        services_lines,
 
       };
     });
@@ -150,8 +173,9 @@ Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("p
 🗓️ {DD a DD/MÊS EM CAIXA ALTA} ({N noites})
 🏨 {Hotel} {estrelas em ★} — {regime, ex.: Café da Manhã / All Inclusive}
 
-{SE E SOMENTE SE "services_emoji_line" NÃO for vazio, adicione uma linha em branco e depois EXATAMENTE essa linha só com os emojis (sem título, sem texto, sem asteriscos, sem descrição), copiando o valor de "services_emoji_line" como está. Ex.: 🛡️ 🚐 🗺️}
-{SE "services_emoji_line" estiver vazio, NÃO inclua nada.}
+{SE "services_lines" tiver 1+ item, adicione uma linha em branco e depois UMA LINHA por item de "services_lines", EXATAMENTE como está (o emoji já vem no início). Sem título, sem "SERVIÇOS INCLUSOS", sem asteriscos, sem alterar o texto. Depois outra linha em branco antes das formas de pagamento.}
+{SE "services_lines" estiver vazio, NÃO inclua nada.}
+
 
 
 
