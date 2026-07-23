@@ -739,7 +739,11 @@ Regras:
   · descrições tipo "N Dias de Ingresso Disney", "N Dias de Ingresso Universal", "Universal Park to Park", "Park Hopper";
   · títulos de produto "Disney N-Day Ticket", "Universal N-Day Ticket", "Disney Magic Your Way";
   · menções a: Magic Kingdom, Epcot, Hollywood Studios, Animal Kingdom, Blizzard Beach, Typhoon Lagoon (todos = Disney); Universal Studios, Islands of Adventure, Volcano Bay, Epic Universe, CityWalk (todos = Universal); Discovery Cove, Aquatica (SeaWorld).
-  parks = lista com nomes CURTOS agrupados: use "Disney" para qualquer parque Disney/WDW/water park Disney; "Universal" para qualquer parque Universal (Studios, Islands, Volcano Bay, Epic Universe); "SeaWorld", "Busch Gardens", "LEGOLAND", "Aquatica", "Discovery Cove" para os demais. NUNCA duplique ("Disney" aparece uma vez mesmo com 4 dias em 4 parques diferentes). Se identificar tanto ingressos Disney quanto Universal → parks: ["Disney","Universal"]. Não coloque ingressos em services.outros.
+  parks = lista com nomes CURTOS agrupados por operador, MAS ingressos Disney e Universal DEVEM aparecer como entradas SEPARADAS quando ambos existirem (nunca fundir em uma só linha). Regras:
+  · Disney: use "Disney" para qualquer combinação de parques Disney/WDW/water parks Disney. Se o voucher indicar claramente a quantidade de dias (ex.: "4 Dias de Ingresso Disney", "Disney 5-Day"), pode acrescentar "Disney 4 dias". Sem quantidade explícita → só "Disney".
+  · Universal: por padrão "Universal". Se o voucher mencionar explicitamente Epic Universe (ou "Epic"), gere "Universal + Epic" (Epic Universe é parque novo e o cliente cobra separado). Se citar apenas Universal Studios / Islands of Adventure / Volcano Bay sem Epic → só "Universal". Se houver dias explícitos ("2 parques em 2 dias", "3-Day Park to Park"), pode acrescentar contagem: "Universal 2 dias" ou "Universal 2 dias + Epic".
+  · SeaWorld, Busch Gardens, LEGOLAND, Aquatica, Discovery Cove: entradas próprias com esses nomes.
+  NUNCA duplique o mesmo operador (Disney aparece uma única entrada mesmo com 4 parques diferentes). Se identificar Disney e Universal → parks: ["Disney","Universal"] (ou variantes acima). Ordem sugerida: Disney antes de Universal. Não coloque ingressos em services.outros.
 
 - services.outros: lista de serviços adicionais explícitos (ex.: "eSIM", "bagagem extra", "assistência 24h"). Se não houver menção clara, deixe enabled=false e outros=[]. NÃO liste ingressos de parques aqui — eles vão em services.tickets.
 
