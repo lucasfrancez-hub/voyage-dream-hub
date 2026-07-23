@@ -1462,7 +1462,7 @@ function CampanhaEditor({
 }
 
 function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: Bloco[]) => void }) {
-  const [pacotes, setPacotes] = useState<{ id: string; slug: string; title: string; destination: string | null; origin: string | null; image_url: string | null; caption: string }[]>([]);
+  const [pacotes, setPacotes] = useState<{ id: string; slug: string; title: string; destination: string | null; origin: string | null; image_url: string | null; caption: string; price_per_person: number | null; going_date: string | null; return_date: string | null; nights: number | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
