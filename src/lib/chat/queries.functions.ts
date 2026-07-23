@@ -676,13 +676,16 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
 
     await sendWhatsAppBubbles(conv.wa_phone, encerramentoMsg);
 
-    await saveMessage({
-      conversation_id: conv.id,
-      direction: "outbound",
-      sender: "system",
-      content: encerramentoMsg,
-      skip_protocolo: true,
-    });
+    const { splitToBubbles: splitClose } = await import("@/lib/whatsapp/send.server");
+    for (const b of splitClose(encerramentoMsg)) {
+      await saveMessage({
+        conversation_id: conv.id,
+        direction: "outbound",
+        sender: "system",
+        content: b,
+        skip_protocolo: true,
+      });
+    }
 
     // Gera resumo automático da conversa do protocolo via IA (+ necessidade do cliente se estiver vazia)
     let resumoConversa: string | null = null;
