@@ -538,6 +538,7 @@ function CampanhaEditor({
   const grupos = destinos.filter((d) => d.tipo === "group");
 
   return (
+    <>
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
       <div className="w-full max-w-4xl bg-background border border-border rounded-2xl my-4">
         <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background z-10">
