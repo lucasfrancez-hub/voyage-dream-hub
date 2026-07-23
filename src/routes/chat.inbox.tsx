@@ -1497,3 +1497,63 @@ function groupByDay(msgs: Msg[]) {
   }
   return groups;
 }
+
+// ============ Instagram DM list (embedded) ============
+
+function InstagramList({ folder, search, activeId, onSelect }: { folder: string; search: string; activeId: string | null; onSelect: (id: string) => void }) {
+  const listFn = useServerFn(listInstagramConversations);
+  const { data: convs = [], isLoading } = useQuery({
+    queryKey: ["ig", "conversations"],
+    queryFn: () => listFn(),
+    refetchInterval: 15_000,
+  });
+
+  const filtered = convs.filter((c) => {
+    if (folder === "unread" && (c.unread_count ?? 0) <= 0) return false;
+    if (folder === "resolved" && c.status !== "closed") return false;
+    if (folder !== "resolved" && c.status === "closed") return false;
+    if (search) {
+      const s = search.toLowerCase();
+      return (c.contact_name ?? "").toLowerCase().includes(s) || (c.contact_username ?? "").toLowerCase().includes(s);
+    }
+    return true;
+  });
+
+  if (isLoading) return <div className="p-6 text-center text-xs text-slate-400">Carregando…</div>;
+  if (filtered.length === 0) return <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa no Instagram</div>;
+
+  return (
+    <>
+      {filtered.map((c) => (
+        <button
+          key={c.id}
+          onClick={() => onSelect(c.id)}
+          className={cn(
+            "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+            activeId === c.id ? "bg-pink-50" : "hover:bg-slate-50",
+          )}
+        >
+          {c.contact_profile_pic ? (
+            <img src={c.contact_profile_pic} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
+              <Instagram className="h-4 w-4" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <span className="truncate text-sm font-medium text-slate-900">
+                {c.contact_name ?? c.contact_username ?? "sem nome"}
+              </span>
+              {(c.unread_count ?? 0) > 0 && (
+                <span className="rounded-full bg-pink-500 px-1.5 text-[10px] font-medium text-white">{c.unread_count}</span>
+              )}
+            </div>
+            {c.contact_username && <div className="text-[10px] text-slate-500">@{c.contact_username}</div>}
+            <div className="truncate text-xs text-slate-500">{c.last_message_preview ?? "—"}</div>
+          </div>
+        </button>
+      ))}
+    </>
+  );
+}
