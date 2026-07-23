@@ -129,55 +129,60 @@ function DisparosPage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-7xl px-3 sm:px-6 py-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <Megaphone className="h-5 w-5 text-brand-orange" />
-            Broadcast
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Campanhas para canais e grupos. Envio automático entre 09h e 21h (BRT).
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-1.5 h-7 rounded-full bg-brand-orange" />
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-brand-orange" />
+              Broadcast
+            </h1>
+          </div>
+          <p className="text-sm text-muted-foreground ml-4">
+            Agendamento de campanhas via WhatsApp — envio entre 09h e 21h (BRT).
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={sync}
             disabled={syncing}
-            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:border-brand-orange disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm hover:border-brand-orange disabled:opacity-50"
           >
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Sincronizar
           </button>
           <button
             onClick={() => setShowEditor({})}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-lg shadow-brand-orange/20"
           >
             <Plus className="h-4 w-4" /> Nova campanha
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border-b border-border overflow-x-auto">
-        {(["calendario", "campanhas", "destinos"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm border-b-2 whitespace-nowrap ${
-              tab === t
-                ? "border-brand-orange text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t === "calendario" ? "Calendário" : t === "campanhas" ? "Campanhas" : "Destinos"}{" "}
-            <span className="text-xs opacity-60">
-              ({t === "calendario"
-                ? campanhas.filter((c) => c.status === "agendada" && c.scheduled_at).length
-                : t === "campanhas"
-                ? campanhas.length
-                : destinos.length})
-            </span>
-          </button>
-        ))}
+      <div className="inline-flex bg-muted/50 p-1 rounded-lg self-start overflow-x-auto">
+        {(["calendario", "campanhas", "destinos"] as const).map((t) => {
+          const count =
+            t === "calendario"
+              ? campanhas.filter((c) => c.status === "agendada" && c.scheduled_at).length
+              : t === "campanhas"
+              ? campanhas.length
+              : destinos.length;
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
+                tab === t
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t === "calendario" ? "Calendário" : t === "campanhas" ? "Campanhas" : "Destinos"}
+              <span className="text-xs opacity-60 ml-1">({count})</span>
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
@@ -186,11 +191,22 @@ function DisparosPage() {
         </div>
       ) : tab === "calendario" ? (
         <div className="space-y-6">
-          <CalendarioMes
-            campanhas={campanhas}
-            onPickDay={(iso) => setShowEditor({ presetDate: iso })}
-            onPickCampanha={(id) => setShowEditor({ id })}
-          />
+          <div className="rounded-2xl border border-border bg-card/50 overflow-hidden flex flex-col lg:flex-row">
+            <div className="flex-1 min-w-0">
+              <CalendarioMes
+                campanhas={campanhas}
+                destinos={destinos}
+                onPickDay={(iso) => setShowEditor({ presetDate: iso })}
+                onPickCampanha={(id) => setShowEditor({ id })}
+              />
+            </div>
+            <AgendaSidebar
+              campanhas={campanhas}
+              destinos={destinos}
+              onPick={(id) => setShowEditor({ id })}
+              onNew={() => setShowEditor({})}
+            />
+          </div>
           <AgendaProgramada
             campanhas={campanhas}
             destinos={destinos}
@@ -255,10 +271,12 @@ function DisparosPage() {
 
 function CalendarioMes({
   campanhas,
+  destinos,
   onPickDay,
   onPickCampanha,
 }: {
   campanhas: Campanha[];
+  destinos: Destino[];
   onPickDay: (iso: string) => void;
   onPickCampanha: (id: string) => void;
 }) {
@@ -306,94 +324,261 @@ function CalendarioMes({
     onPickDay(local);
   }
 
+  const destMap = useMemo(() => new Map(destinos.map((d) => [d.id, d])), [destinos]);
+  function campanhaTipo(c: Campanha): "channel" | "group" | "mixed" {
+    let ch = 0, gr = 0;
+    for (const id of c.destino_ids) {
+      const d = destMap.get(id);
+      if (d?.tipo === "channel") ch++;
+      else if (d?.tipo === "group") gr++;
+    }
+    if (ch > 0 && gr === 0) return "channel";
+    if (gr > 0 && ch === 0) return "group";
+    return "mixed";
+  }
+  const chipCls: Record<"channel" | "group" | "mixed", string> = {
+    channel: "bg-indigo-500/10 border-l-2 border-indigo-500 text-indigo-400 hover:bg-indigo-500/20",
+    group: "bg-emerald-500/10 border-l-2 border-emerald-500 text-emerald-400 hover:bg-emerald-500/20",
+    mixed: "bg-brand-orange/10 border-l-2 border-brand-orange text-brand-orange hover:bg-brand-orange/20",
+  };
+
   return (
-    <section className="rounded-2xl border border-border bg-card overflow-hidden">
-      <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border">
+    <section className="overflow-hidden">
+      <header className="flex items-center justify-between gap-2 px-5 py-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold capitalize">{mesLabel}</h2>
+        </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
-            className="p-1.5 rounded-full hover:bg-muted"
+            onClick={() => setCursor(new Date(hoje.getFullYear(), hoje.getMonth(), 1))}
+            className="text-xs rounded-md border border-border px-3 py-1.5 hover:border-brand-orange"
           >
-            <ChevronLeft className="h-4 w-4" />
+            Hoje
           </button>
-          <h2 className="text-lg font-semibold capitalize">{mesLabel}</h2>
-          <button
-            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
-            className="p-1.5 rounded-full hover:bg-muted"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-        <button
-          onClick={() => setCursor(new Date(hoje.getFullYear(), hoje.getMonth(), 1))}
-          className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
-        >
-          Hoje
-        </button>
-      </header>
-      <div className="grid grid-cols-7 text-[11px] uppercase tracking-wide text-muted-foreground bg-muted/40">
-        {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((d) => (
-          <div key={d} className="px-2 py-1.5 text-center">{d}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7">
-        {cells.map((cell, i) => {
-          const evs = cell.iso ? eventos.get(cell.iso) ?? [] : [];
-          const isToday = cell.date && isSameDay(cell.date, hoje);
-          return (
-            <div
-              key={i}
-              className={`min-h-[92px] border-t border-l border-border p-1.5 text-xs ${
-                (i + 1) % 7 === 0 ? "border-r" : ""
-              } ${cell.date ? "cursor-pointer hover:bg-muted/40" : "bg-muted/10"}`}
-              onClick={() => cell.iso && openDay(cell.iso)}
+          <div className="flex gap-1">
+            <button
+              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
+              className="p-2 rounded-md border border-border hover:bg-muted"
             >
-              {cell.date && (
-                <div className="flex items-center justify-between mb-1">
-                  <span
-                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
-                      isToday ? "bg-brand-orange text-white font-semibold" : "text-foreground"
-                    }`}
-                  >
-                    {cell.date.getDate()}
-                  </span>
-                  {evs.length > 0 && (
-                    <span className="text-[10px] text-muted-foreground">{evs.length}</span>
-                  )}
-                </div>
-              )}
-              <div className="space-y-0.5">
-                {evs.slice(0, 3).map((c) => {
-                  const hora = new Date(c.scheduled_at!).toLocaleTimeString("pt-BR", {
-                    timeZone: "America/Sao_Paulo",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPickCampanha(c.id);
-                      }}
-                      className="w-full text-left truncate rounded px-1.5 py-0.5 text-[10px] bg-brand-orange/15 text-brand-orange hover:bg-brand-orange/25"
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
+              className="p-2 rounded-md border border-border hover:bg-muted"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </header>
+      <div className="px-5 py-4">
+        <div className="grid grid-cols-7 gap-px bg-border border border-border rounded-lg overflow-hidden">
+          {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((d) => (
+            <div key={d} className="bg-card p-2 text-center text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              {d}
+            </div>
+          ))}
+          {cells.map((cell, i) => {
+            const evs = cell.iso ? eventos.get(cell.iso) ?? [] : [];
+            const isToday = cell.date && isSameDay(cell.date, hoje);
+            return (
+              <div
+                key={i}
+                className={`min-h-[100px] p-2 text-xs transition-colors ${
+                  cell.date
+                    ? `bg-card cursor-pointer hover:bg-muted/40 ${isToday ? "ring-1 ring-inset ring-brand-orange/40" : ""}`
+                    : "bg-muted/20"
+                }`}
+                onClick={() => cell.iso && openDay(cell.iso)}
+              >
+                {cell.date && (
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span
+                      className={`text-sm font-medium ${
+                        isToday ? "text-brand-orange font-bold" : "text-foreground"
+                      }`}
                     >
-                      <span className="font-medium">{hora}</span> {c.nome}
-                    </button>
-                  );
-                })}
-                {evs.length > 3 && (
-                  <div className="text-[10px] text-muted-foreground px-1">
-                    +{evs.length - 3} mais
+                      {cell.date.getDate()}
+                    </span>
+                    {evs.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground">{evs.length}</span>
+                    )}
                   </div>
                 )}
+                <div className="space-y-1">
+                  {evs.slice(0, 2).map((c) => {
+                    const hora = new Date(c.scheduled_at!).toLocaleTimeString("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+                    const tipo = campanhaTipo(c);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPickCampanha(c.id);
+                        }}
+                        className={`w-full text-left rounded-r p-1 ${chipCls[tipo]}`}
+                      >
+                        <p className="text-[10px] font-bold truncate">{c.nome}</p>
+                        <p className="text-[9px] opacity-70 uppercase">
+                          {hora} • {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"}
+                        </p>
+                      </button>
+                    );
+                  })}
+                  {evs.length > 2 && (
+                    <div className="text-[10px] text-muted-foreground px-1">
+                      +{evs.length - 2} mais
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </section>
+  );
+}
+
+// ==================== Sidebar de próximos disparos (dentro do card do calendário) ====================
+
+function AgendaSidebar({
+  campanhas,
+  destinos,
+  onPick,
+  onNew,
+}: {
+  campanhas: Campanha[];
+  destinos: Destino[];
+  onPick: (id: string) => void;
+  onNew: () => void;
+}) {
+  const destMap = useMemo(() => new Map(destinos.map((d) => [d.id, d])), [destinos]);
+  const proximos = useMemo(
+    () =>
+      campanhas
+        .filter((c) => c.status === "agendada" && c.scheduled_at)
+        .sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime())
+        .slice(0, 6),
+    [campanhas],
+  );
+
+  function tipoDe(c: Campanha): "channel" | "group" | "mixed" {
+    let ch = 0, gr = 0;
+    for (const id of c.destino_ids) {
+      const d = destMap.get(id);
+      if (d?.tipo === "channel") ch++;
+      else if (d?.tipo === "group") gr++;
+    }
+    if (ch > 0 && gr === 0) return "channel";
+    if (gr > 0 && ch === 0) return "group";
+    return "mixed";
+  }
+
+  const tagCls: Record<"channel" | "group" | "mixed", string> = {
+    channel: "bg-indigo-500/10 text-indigo-400",
+    group: "bg-emerald-500/10 text-emerald-400",
+    mixed: "bg-brand-orange/10 text-brand-orange",
+  };
+
+  const hoje = new Date();
+  const amanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+  function labelDia(dt: Date): string {
+    if (
+      dt.getFullYear() === hoje.getFullYear() &&
+      dt.getMonth() === hoje.getMonth() &&
+      dt.getDate() === hoje.getDate()
+    )
+      return "HOJE";
+    if (
+      dt.getFullYear() === amanha.getFullYear() &&
+      dt.getMonth() === amanha.getMonth() &&
+      dt.getDate() === amanha.getDate()
+    )
+      return "AMANHÃ";
+    return dt
+      .toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })
+      .toUpperCase();
+  }
+
+  return (
+    <aside className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-muted/20 p-5 flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Próximos disparos
+        </h3>
+        {proximos.length > 0 && (
+          <span className="px-2 py-0.5 bg-brand-orange/10 text-brand-orange text-[10px] font-bold rounded">
+            {proximos.length} {proximos.length === 1 ? "TOTAL" : "TOTAIS"}
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-3 flex-1">
+        {proximos.length === 0 ? (
+          <div className="p-6 border border-dashed border-border rounded-xl text-center">
+            <div className="w-10 h-10 bg-muted/60 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CalendarClock className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <p className="text-xs font-medium text-muted-foreground">Nada agendado</p>
+            <button
+              onClick={onNew}
+              className="mt-2 text-[10px] font-bold text-brand-orange uppercase hover:underline"
+            >
+              Agendar novo
+            </button>
+          </div>
+        ) : (
+          proximos.map((c, idx) => {
+            const dt = new Date(c.scheduled_at!);
+            const hora = dt.toLocaleTimeString("pt-BR", {
+              timeZone: "America/Sao_Paulo",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            const tipo = tipoDe(c);
+            return (
+              <div key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => onPick(c.id)}
+                  className="group w-full text-left"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                      {labelDia(dt)} • {hora}
+                    </span>
+                    <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded uppercase ${tagCls[tipo]}`}>
+                      {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-medium text-foreground group-hover:text-brand-orange transition-colors truncate">
+                    {c.nome}
+                  </h4>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {c.destino_ids.length}{" "}
+                    {c.destino_ids.length === 1 ? "destino" : "destinos"}
+                  </p>
+                </button>
+                {idx < proximos.length - 1 && <div className="h-px bg-border mt-3" />}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="mt-6 pt-4 border-t border-border">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>09h — 21h (BRT)</span>
+        </div>
+      </div>
+    </aside>
   );
 }
 
