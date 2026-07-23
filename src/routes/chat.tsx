@@ -51,7 +51,7 @@ function ChatLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [authorized, setAuthorized] = useState<boolean | undefined>(undefined);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"dark" | "light">("light");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Follow the visual viewport (iOS keyboard) so the chat container shrinks
