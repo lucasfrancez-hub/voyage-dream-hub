@@ -240,7 +240,9 @@ export type FeedInputPkg = {
   base_occupancy: number;
   tripadvisor_address?: string | null;
   services?: PackageServices | null;
+  meal_plan?: string | null;
 };
+
 
 export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> {
   if (!pkg.image_url) throw new Error("Cadastre a URL da imagem de capa para gerar a arte.");
