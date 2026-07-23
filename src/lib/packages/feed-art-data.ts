@@ -198,7 +198,7 @@ function deriveMealPlanLabel(
   mealPlan: string | null | undefined,
   list: string[] | null | undefined,
 ): string {
-  const priority = ["all_inclusive", "pensao_completa", "meia_pensao", "cafe"] as const;
+  const priority: readonly string[] = ["all_inclusive", "pensao_completa", "meia_pensao", "cafe"];
   const candidates: MealPlanKind[] = [];
   const primary = classifyMealPlan(mealPlan ?? "");
   if (primary) candidates.push(primary);
@@ -209,9 +209,10 @@ function deriveMealPlanLabel(
   let best: MealPlanKind = null;
   let bestRank = priority.length;
   for (const c of candidates) {
-    const idx = priority.indexOf(c as (typeof priority)[number]);
+    const idx = c ? priority.indexOf(c) : -1;
     if (idx !== -1 && idx < bestRank) { best = c; bestRank = idx; }
   }
+
   return mealPlanLabel(best) || "Café da Manhã";
 }
 
