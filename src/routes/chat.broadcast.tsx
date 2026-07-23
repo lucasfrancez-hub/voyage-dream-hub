@@ -84,12 +84,12 @@ const STATUS_COLOR: Record<Campanha["status"], string> = {
 };
 
 function DisparosPage() {
-  const [tab, setTab] = useState<"campanhas" | "destinos">("campanhas");
+  const [tab, setTab] = useState<"calendario" | "campanhas" | "destinos">("calendario");
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [destinos, setDestinos] = useState<Destino[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [showEditor, setShowEditor] = useState<null | { id?: string }>(null);
+  const [showEditor, setShowEditor] = useState<null | { id?: string; presetDate?: string }>(null);
 
   const fetchCamp = useServerFn(listCampanhas);
   const fetchDest = useServerFn(listDestinos);
@@ -127,15 +127,16 @@ function DisparosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-6 py-6 space-y-6">
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 py-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Megaphone className="h-6 w-6 text-brand-orange" />
-            Disparos WhatsApp
+          <h1 className="text-xl font-semibold flex items-center gap-2">
+            <Megaphone className="h-5 w-5 text-brand-orange" />
+            Broadcast
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Campanhas para canais e grupos gerenciados. Envio automático entre 09h e 21h.
+            Campanhas para canais e grupos. Envio automático entre 09h e 21h (BRT).
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -145,7 +146,7 @@ function DisparosPage() {
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:border-brand-orange disabled:opacity-50"
           >
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sincronizar destinos
+            Sincronizar
           </button>
           <button
             onClick={() => setShowEditor({})}
@@ -156,20 +157,24 @@ function DisparosPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border-b border-border">
-        {(["campanhas", "destinos"] as const).map((t) => (
+      <div className="flex items-center gap-2 border-b border-border overflow-x-auto">
+        {(["calendario", "campanhas", "destinos"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm border-b-2 ${
+            className={`px-4 py-2 text-sm border-b-2 whitespace-nowrap ${
               tab === t
                 ? "border-brand-orange text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "campanhas" ? "Campanhas" : "Destinos"}{" "}
+            {t === "calendario" ? "Calendário" : t === "campanhas" ? "Campanhas" : "Destinos"}{" "}
             <span className="text-xs opacity-60">
-              ({t === "campanhas" ? campanhas.length : destinos.length})
+              ({t === "calendario"
+                ? campanhas.filter((c) => c.status === "agendada" && c.scheduled_at).length
+                : t === "campanhas"
+                ? campanhas.length
+                : destinos.length})
             </span>
           </button>
         ))}
@@ -179,8 +184,13 @@ function DisparosPage() {
         <div className="py-16 flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : tab === "campanhas" ? (
-        <>
+      ) : tab === "calendario" ? (
+        <div className="space-y-6">
+          <CalendarioMes
+            campanhas={campanhas}
+            onPickDay={(iso) => setShowEditor({ presetDate: iso })}
+            onPickCampanha={(id) => setShowEditor({ id })}
+          />
           <AgendaProgramada
             campanhas={campanhas}
             destinos={destinos}
@@ -198,30 +208,31 @@ function DisparosPage() {
               load();
             }}
           />
-          <CampanhasList
-            campanhas={campanhas}
-            destinos={destinos}
-            onEdit={(id) => setShowEditor({ id })}
-            onCancelar={async (id) => {
-              if (!(await confirm({ title: "Cancelar campanha?", description: "Ela não será mais enviada." }))) return;
-              await doCancelar({ data: { id } });
-              toast.success("Campanha cancelada");
-              load();
-            }}
-            onExcluir={async (id) => {
-              if (!(await confirm({ title: "Excluir campanha?", description: "Essa ação não pode ser desfeita." }))) return;
-              await doExcluir({ data: { id } });
-              toast.success("Excluída");
-              load();
-            }}
-            onDisparar={async (id) => {
-              if (!(await confirm({ title: "Disparar agora?", description: "Será enviada imediatamente para todos os destinos selecionados." }))) return;
-              await doDisparar({ data: { id } });
-              toast.success("Enviando…");
-              load();
-            }}
-          />
-        </>
+        </div>
+      ) : tab === "campanhas" ? (
+        <CampanhasList
+          campanhas={campanhas}
+          destinos={destinos}
+          onEdit={(id) => setShowEditor({ id })}
+          onCancelar={async (id) => {
+            if (!(await confirm({ title: "Cancelar campanha?", description: "Ela não será mais enviada." }))) return;
+            await doCancelar({ data: { id } });
+            toast.success("Campanha cancelada");
+            load();
+          }}
+          onExcluir={async (id) => {
+            if (!(await confirm({ title: "Excluir campanha?", description: "Essa ação não pode ser desfeita." }))) return;
+            await doExcluir({ data: { id } });
+            toast.success("Excluída");
+            load();
+          }}
+          onDisparar={async (id) => {
+            if (!(await confirm({ title: "Disparar agora?", description: "Será enviada imediatamente para todos os destinos selecionados." }))) return;
+            await doDisparar({ data: { id } });
+            toast.success("Enviando…");
+            load();
+          }}
+        />
       ) : (
         <DestinosList destinos={destinos} onChanged={load} />
       )}
@@ -229,14 +240,164 @@ function DisparosPage() {
       {showEditor && (
         <CampanhaEditor
           id={showEditor.id}
+          presetDate={showEditor.presetDate}
           destinos={destinos}
           onClose={() => setShowEditor(null)}
           onSaved={() => { setShowEditor(null); load(); }}
         />
       )}
+      </div>
     </div>
   );
 }
+
+// ==================== Calendário estilo macOS ====================
+
+function CalendarioMes({
+  campanhas,
+  onPickDay,
+  onPickCampanha,
+}: {
+  campanhas: Campanha[];
+  onPickDay: (iso: string) => void;
+  onPickCampanha: (id: string) => void;
+}) {
+  const hoje = new Date();
+  const [cursor, setCursor] = useState(() => new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+
+  const eventos = useMemo(() => {
+    const map = new Map<string, Campanha[]>();
+    for (const c of campanhas) {
+      if (!c.scheduled_at) continue;
+      if (c.status !== "agendada" && c.status !== "enviando" && c.status !== "concluida") continue;
+      const d = new Date(c.scheduled_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const arr = map.get(key) ?? [];
+      arr.push(c);
+      map.set(key, arr);
+    }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime());
+    }
+    return map;
+  }, [campanhas]);
+
+  const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const startWeekday = first.getDay(); // 0=dom
+  const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+  const cells: Array<{ date: Date | null; iso: string | null }> = [];
+  for (let i = 0; i < startWeekday; i++) cells.push({ date: null, iso: null });
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(cursor.getFullYear(), cursor.getMonth(), d);
+    const iso = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    cells.push({ date: dt, iso });
+  }
+  while (cells.length % 7 !== 0) cells.push({ date: null, iso: null });
+
+  const mesLabel = cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  function openDay(iso: string) {
+    // Abre editor pré-agendado às 10:00 daquele dia
+    const [y, m, d] = iso.split("-").map(Number);
+    const dt = new Date(y, m - 1, d, 10, 0, 0);
+    const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    onPickDay(local);
+  }
+
+  return (
+    <section className="rounded-2xl border border-border bg-card overflow-hidden">
+      <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
+            className="p-1.5 rounded-full hover:bg-muted"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <h2 className="text-lg font-semibold capitalize">{mesLabel}</h2>
+          <button
+            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
+            className="p-1.5 rounded-full hover:bg-muted"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+        <button
+          onClick={() => setCursor(new Date(hoje.getFullYear(), hoje.getMonth(), 1))}
+          className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
+        >
+          Hoje
+        </button>
+      </header>
+      <div className="grid grid-cols-7 text-[11px] uppercase tracking-wide text-muted-foreground bg-muted/40">
+        {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((d) => (
+          <div key={d} className="px-2 py-1.5 text-center">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {cells.map((cell, i) => {
+          const evs = cell.iso ? eventos.get(cell.iso) ?? [] : [];
+          const isToday = cell.date && isSameDay(cell.date, hoje);
+          return (
+            <div
+              key={i}
+              className={`min-h-[92px] border-t border-l border-border p-1.5 text-xs ${
+                (i + 1) % 7 === 0 ? "border-r" : ""
+              } ${cell.date ? "cursor-pointer hover:bg-muted/40" : "bg-muted/10"}`}
+              onClick={() => cell.iso && openDay(cell.iso)}
+            >
+              {cell.date && (
+                <div className="flex items-center justify-between mb-1">
+                  <span
+                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
+                      isToday ? "bg-brand-orange text-white font-semibold" : "text-foreground"
+                    }`}
+                  >
+                    {cell.date.getDate()}
+                  </span>
+                  {evs.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground">{evs.length}</span>
+                  )}
+                </div>
+              )}
+              <div className="space-y-0.5">
+                {evs.slice(0, 3).map((c) => {
+                  const hora = new Date(c.scheduled_at!).toLocaleTimeString("pt-BR", {
+                    timeZone: "America/Sao_Paulo",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPickCampanha(c.id);
+                      }}
+                      className="w-full text-left truncate rounded px-1.5 py-0.5 text-[10px] bg-brand-orange/15 text-brand-orange hover:bg-brand-orange/25"
+                    >
+                      <span className="font-medium">{hora}</span> {c.nome}
+                    </button>
+                  );
+                })}
+                {evs.length > 3 && (
+                  <div className="text-[10px] text-muted-foreground px-1">
+                    +{evs.length - 3} mais
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+
 
 function AgendaProgramada({
   campanhas,
