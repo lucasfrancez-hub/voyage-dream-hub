@@ -2260,7 +2260,10 @@ function ServicesEditor({
   const seguro = v.seguro ?? {};
   const transfer = v.transfer ?? {};
   const cityTour = v.city_tour ?? {};
+  const tickets = v.tickets ?? {};
+  const parks = (tickets.parks ?? []) as string[];
   const outros = v.outros ?? [];
+
 
   function patch(p: Partial<PackageServices>) {
     onChange({ ...v, ...p });
