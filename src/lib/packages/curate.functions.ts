@@ -149,11 +149,16 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       const passeiosList = (() => {
         const list: string[] = [];
         const seen = new Set<string>();
+        const isCityTour = (s: string) => /^city\s*tour\b/i.test(s.trim());
         const push = (s: string) => {
           const t = s.trim().replace(/\s+/g, " ");
           if (!t) return;
           const k = t.toLowerCase();
           if (seen.has(k)) return;
+          // Dedup por "family": todo City Tour conta como o mesmo passeio.
+          // Mantém a primeira variação (preferencialmente a detalhada, já que
+          // svc.city_tour é empurrado antes de svc.passeios).
+          if (isCityTour(t) && [...seen].some((x) => x.startsWith("city tour"))) return;
           seen.add(k);
           list.push(t);
         };
@@ -164,6 +169,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         for (const p of svc.passeios ?? []) push(String(p ?? ""));
         return list;
       })();
+
       for (const p of passeiosList) services_lines.push(`🗺️ ${p}`);
 
       if (svc.tickets?.enabled) {
