@@ -19,12 +19,49 @@ type UazMessage = {
   content?: string;
   message?: {
     conversation?: string;
-    extendedTextMessage?: { text?: string };
+    extendedTextMessage?: { text?: string; contextInfo?: UazContextInfo };
     audioMessage?: { url?: string; mimetype?: string };
-    imageMessage?: { url?: string; caption?: string; mimetype?: string };
+    imageMessage?: { url?: string; caption?: string; mimetype?: string; contextInfo?: UazContextInfo };
   };
+  contextInfo?: UazContextInfo;
+  quoted?: { id?: string; text?: string; participant?: string | null };
   messageTimestamp?: number;
 };
+
+type UazContextInfo = {
+  stanzaId?: string;
+  stanzaid?: string;
+  participant?: string | null;
+  quotedMessage?: {
+    conversation?: string;
+    extendedTextMessage?: { text?: string };
+    imageMessage?: { caption?: string };
+    videoMessage?: { caption?: string };
+    documentMessage?: { fileName?: string; caption?: string };
+  };
+};
+
+function extractQuoted(m: UazMessage): { id: string; snippet: string; sender: string | null } | null {
+  const ctx =
+    m.message?.extendedTextMessage?.contextInfo ??
+    m.message?.imageMessage?.contextInfo ??
+    m.contextInfo;
+  const stanzaId = ctx?.stanzaId ?? ctx?.stanzaid ?? m.quoted?.id;
+  if (!stanzaId) return null;
+  const qm = ctx?.quotedMessage;
+  const text =
+    qm?.conversation ??
+    qm?.extendedTextMessage?.text ??
+    qm?.imageMessage?.caption ??
+    qm?.videoMessage?.caption ??
+    qm?.documentMessage?.caption ??
+    qm?.documentMessage?.fileName ??
+    m.quoted?.text ??
+    "";
+  const rawSender = ctx?.participant ?? m.quoted?.participant ?? null;
+  const sender = rawSender ? rawSender.split("@")[0]?.split(":")[0] ?? null : null;
+  return { id: stanzaId, snippet: (text ?? "").slice(0, 240), sender };
+}
 
 type UazPayload = {
   event?: string;
