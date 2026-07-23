@@ -409,8 +409,8 @@ const CSS = `
 .vfeed-price-line{display:flex;align-items:baseline;margin-bottom:8px}
 .vfeed-price-x{font-size:20px;font-weight:700;margin-right:4px}
 .vfeed-price-cur{font-size:24px;font-weight:700;color:var(--brand-orange);margin-right:4px}
-.vfeed-price-num{font-size:60px;font-weight:900;color:var(--brand-orange);letter-spacing:-.04em;line-height:1}
-.vfeed-price-cents{font-size:30px;font-weight:700;color:var(--brand-orange)}
+.vfeed-price-num{font-size:60px;font-weight:900;color:var(--brand-orange);letter-spacing:-.04em;line-height:1;margin-right:-2px}
+.vfeed-price-cents{font-size:30px;font-weight:700;color:var(--brand-orange);margin-left:-4px}
 .vfeed-price-bar{width:100%;height:1px;background:var(--brand-orange);margin:4px 0}
 .vfeed-price-total{margin:0;font-size:14px;font-weight:500;text-align:center}
 .vfeed-price-total span{color:var(--brand-orange);font-weight:700}
