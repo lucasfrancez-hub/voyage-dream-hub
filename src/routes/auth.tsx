@@ -302,17 +302,6 @@ function AuthPage() {
                   placeholder="000000"
                   autoFocus
                 />
-                <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={trustDevice}
-                    onChange={(e) => setTrustDevice(e.target.checked)}
-                    className="mt-0.5 accent-[hsl(var(--brand-orange))]"
-                  />
-                  <span>
-                    Confiar neste dispositivo por 30 dias (pula apenas o código por e-mail nas próximas vezes deste navegador — o código do autenticador continua sendo pedido)
-                  </span>
-                </label>
                 <div className="flex gap-2">
                   <button
                     type="submit"
