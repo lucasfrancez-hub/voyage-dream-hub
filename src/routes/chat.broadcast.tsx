@@ -33,7 +33,7 @@ export const Route = createFileRoute("/chat/broadcast")({
 type Destino = {
   id: string;
   jid: string;
-  tipo: "channel" | "group";
+  tipo: "channel" | "group" | "instagram_story";
   nome: string;
   foto_url: string | null;
   participantes: number | null;
