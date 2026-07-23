@@ -1244,9 +1244,10 @@ function DestinosList({ destinos, onChanged }: { destinos: Destino[]; onChanged:
           Nenhum destino ainda. Adicione por link acima ou clique em "Sincronizar destinos".
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           <DestinoGroup title="Canais" icon={Radio} items={canais} onDelete={handleDelete} />
           <DestinoGroup title="Grupos" icon={Users} items={grupos} onDelete={handleDelete} />
+          <DestinoGroup title="Instagram Story" icon={Instagram} items={igStories} onDelete={handleDelete} />
         </div>
       )}
     </div>
