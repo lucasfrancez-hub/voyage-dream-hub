@@ -271,5 +271,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     parcelas: 10,
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
     inclusos: detectIncludes(pkg.includes, pkg.services ?? null),
+    mealPlanLabel: deriveMealPlanLabel(pkg.meal_plan, pkg.includes),
+
   };
 }
