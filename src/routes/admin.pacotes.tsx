@@ -67,7 +67,11 @@ import {
   ChevronDown,
   Sparkles as SparklesIcon,
   List as ListIcon,
+  Bell,
+  RefreshCw,
 } from "lucide-react";
+import { useIgnoredHotels } from "@/lib/ignored-hotels";
+
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
