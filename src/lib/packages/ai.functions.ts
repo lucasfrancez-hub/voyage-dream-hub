@@ -652,7 +652,9 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
     },
     "transfer": { "enabled": true, "sentido": "in_out" },
     "city_tour": { "enabled": false, "detalhe": "" },
+    "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
     "outros": ["Assistência 24h"]
+
   },
   "baggage_scope": "shared | per_flight",
   "outbound_flight": {
@@ -731,7 +733,9 @@ Regras:
 - services.cancelamento: bloco SEPARADO do seguro, para a "Cobertura de Cancelamento Involuntário de Viagem" / "Protec Travel" / "Flexibilidade Tarifária". enabled=true quando aparecer no orçamento (na seção "Inclui", "Outros Serviços" ou como item independente). Preencha cobertura (ex.: "8.000", "5.000") e moeda ("BRL"/"USD"/"EUR") a partir do símbolo. NÃO confunda com seguro médico — são serviços distintos e ambos podem estar ativos ao mesmo tempo.
 - services.transfer: enabled=true quando mencionar "traslados"/"transfer"/"transporte aeroporto-hotel"/"transfer de chegada e saída"; sentido: "in_out" para ida e volta, "in" só chegada, "out" só saída. Frases como "Transfer grátis" ou "PROMO TRANSFER GRÁTIS" também ativam.
 - services.city_tour: enabled=true quando mencionar "city tour"/"passeio panorâmico"/"passeios inclusos"; detalhe = descrição curta.
-- services.outros: lista de serviços adicionais explícitos (ex.: "eSIM", "bagagem extra", "assistência 24h"). Se não houver menção clara, deixe enabled=false e outros=[].
+- services.tickets: enabled=true quando o orçamento/voucher mencionar INGRESSOS de parques/atrações (ex.: "Disney", "Walt Disney World", "Magic Kingdom", "Epcot", "Universal", "Universal Studios", "Islands of Adventure", "Volcano Bay", "SeaWorld", "Busch Gardens", "LEGOLAND", "Aquatica", "Discovery Cove"). Preencha parks com os nomes CURTOS dos parques/atrações identificados (ex.: ["Disney", "Universal"] — agrupe todos os parques Disney sob "Disney" e todos Universal sob "Universal", sem duplicar). Se não houver ingresso de parque, deixe enabled=false e parks=[].
+- services.outros: lista de serviços adicionais explícitos (ex.: "eSIM", "bagagem extra", "assistência 24h"). Se não houver menção clara, deixe enabled=false e outros=[]. NÃO liste ingressos de parques aqui — eles vão em services.tickets.
+
 - Retorne SÓ o JSON, começando com { e terminando com }.`;
 
     const userContent: any[] = [
@@ -840,13 +844,15 @@ Regras:
 VIA AIR, Via Aérea, Voe Air, voeair.com e Infotera são agência/plataforma e NUNCA podem ser supplier_name. Se aparecer "Cativa" em qualquer trecho, inclusive nas cláusulas do Protec Travel, supplier_name deve ser "Cativa Operadora".
 
 Retorne apenas JSON exatamente neste formato:
-{"supplier_name":"","services":{"seguro":{"enabled":false,"cobertura":"","moeda":"USD"},"cancelamento":{"enabled":false,"cobertura":"","moeda":"BRL"},"transfer":{"enabled":false,"sentido":"in_out"},"city_tour":{"enabled":false,"detalhe":""},"outros":[]}}
+{"supplier_name":"","services":{"seguro":{"enabled":false,"cobertura":"","moeda":"USD"},"cancelamento":{"enabled":false,"cobertura":"","moeda":"BRL"},"transfer":{"enabled":false,"sentido":"in_out"},"city_tour":{"enabled":false,"detalhe":""},"tickets":{"enabled":false,"parks":[]},"outros":[]}}
 
 Regras:
 - seguro = seguro/assistência médica de viagem; ative mesmo sem valor de cobertura.
 - cancelamento = Protec Travel, flexibilidade tarifária ou cobertura de cancelamento involuntário; é separado do seguro. Extraia valor e moeda.
 - transfer/traslado de chegada e saída = enabled true e sentido in_out.
+- tickets = INGRESSOS de parques/atrações (Disney, Universal, SeaWorld, LEGOLAND, Busch Gardens, Volcano Bay, Aquatica, Discovery Cove etc.). Preencha parks com nomes CURTOS (["Disney","Universal"]); agrupe todos os parques Disney sob "Disney" e todos Universal sob "Universal".
 - Não invente valores.`,
+
               },
               {
                 role: "user",
@@ -1006,7 +1012,9 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
     "cancelamento": { "enabled": true, "cobertura": "8.000", "moeda": "BRL" },
     "transfer": { "enabled": true, "sentido": "in_out" },
     "city_tour": { "enabled": false, "detalhe": "" },
+    "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
     "outros": []
+
   },
   "baggage_scope": "shared | per_flight",
   "outbound_flight": { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T13:05","duration":"04h45","cabin_class":"Econômica","fare_class":"LIGHT","carry_on":true,"checked_bag":false,"personal_item":true,"segments":[ { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"CGH","to_city":"São Paulo","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T09:45","duration":"01h25","layover":"01h20 em São Paulo" }, { "airline":"GOL","flight_number":"1502","from_iata":"CGH","from_city":"São Paulo","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T11:05","arrive_at":"2026-12-21T13:05","duration":"02h00" } ] },
@@ -1027,6 +1035,8 @@ Regras (aplicar em CADA pacote):
 - services.cancelamento: serviço separado do seguro. enabled=true para "Cobertura de Cancelamento Involuntário de Viagem", "Protec Travel" ou flexibilidade tarifária; extraia cobertura e moeda.
 - services.transfer: enabled=true para transfer/traslado. "chegada e saída", "IN/OUT" ou ida e volta significa sentido="in_out".
 - services.city_tour: enabled=true quando houver city tour ou passeio incluído. Outros extras explícitos vão em services.outros.
+- services.tickets: enabled=true quando o pacote inclui INGRESSOS de parques/atrações (Disney, Walt Disney World, Magic Kingdom, Epcot, Universal, Universal Studios, Islands of Adventure, Volcano Bay, SeaWorld, Busch Gardens, LEGOLAND, Aquatica, Discovery Cove...). parks = lista com nomes CURTOS dos parques (["Disney","Universal"]); agrupe todos os parques Disney sob "Disney" e todos os Universal sob "Universal", sem duplicar. Não coloque ingressos em services.outros.
+
 - Cidade em português.
 
 Retorne SÓ o JSON.`;

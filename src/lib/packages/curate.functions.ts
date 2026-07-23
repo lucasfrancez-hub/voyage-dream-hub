@@ -26,7 +26,12 @@ const ServicesSchema = z
       .object({ enabled: z.boolean().optional(), detalhe: z.string().nullable().optional() })
       .partial()
       .optional(),
+    tickets: z
+      .object({ enabled: z.boolean().optional(), parks: z.array(z.string()).nullable().optional() })
+      .partial()
+      .optional(),
     outros: z.array(z.string()).optional(),
+
   })
   .partial()
   .nullable()
@@ -130,10 +135,19 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         const det = svc.city_tour.detalhe?.trim();
         services_lines.push(det ? `🗺️ City Tour — ${det}` : `🗺️ City Tour`);
       }
+      if (svc.tickets?.enabled) {
+        const parks = (svc.tickets.parks ?? [])
+          .map((p) => String(p ?? "").trim())
+          .filter(Boolean);
+        if (parks.length) {
+          services_lines.push(`🎟️ Ingressos: ${parks.join(", ")}`);
+        }
+      }
       for (const extra of svc.outros ?? []) {
         const t = (extra || "").trim();
         if (t) services_lines.push(`✨ ${t}`);
       }
+
 
 
 

@@ -30,10 +30,13 @@ export type FeedArtData = {
     transfer: boolean;
     seguroViagem: boolean;
     esimInternacional: boolean;
+    ingressos: boolean;
     maisServicos: boolean;
   };
   mealPlanLabel?: string | null;
+  ticketsLabel?: string | null;
 };
+
 
 
 const BRL = (n: number) =>
@@ -83,7 +86,11 @@ const I = {
   card: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
   ),
+  ticket: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8z"/><path d="M9 6v2M9 11v2M9 16v2"/></svg>
+  ),
 };
+
 
 type IncludeItem = { key: keyof FeedArtData["inclusos"]; label: string; icon: ReactElement };
 const INCLUDES: IncludeItem[] = [
@@ -94,8 +101,10 @@ const INCLUDES: IncludeItem[] = [
   { key: "transfer",          label: "Transfer",           icon: I.bus },
   { key: "seguroViagem",      label: "Seguro\nViagem",     icon: I.shield },
   { key: "esimInternacional", label: "eSIM\nIntl.",        icon: I.wifi },
+  { key: "ingressos",         label: "Ingressos",          icon: I.ticket },
   { key: "maisServicos",      label: "E mais\nserviços",   icon: I.bus },
 ];
+
 
 function splitDestino(destino: string) {
   const parts = destino.trim().split(/\s+/);
@@ -115,9 +124,18 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
   const mealChipLabel = mealLabelRaw.includes(" ")
     ? mealLabelRaw.replace(/\s+/, "\n")
     : mealLabelRaw;
-  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) =>
-    it.key === "cafeDaManha" ? { ...it, label: mealChipLabel } : it,
-  );
+  const ticketsChipLabel = (() => {
+    const raw = (data.ticketsLabel || "").trim();
+    if (!raw) return "Ingressos";
+    // Se couber em ~14 chars total (ex.: "Disney · Univ."), usa o label; senão mantém "Ingressos"
+    return raw.length <= 16 ? raw.replace(/\s*·\s*/g, "\n") : "Ingressos";
+  })();
+  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) => {
+    if (it.key === "cafeDaManha") return { ...it, label: mealChipLabel };
+    if (it.key === "ingressos") return { ...it, label: ticketsChipLabel };
+    return it;
+  });
+
 
   const { top, bottom } = splitDestino(data.destino);
   const stars = data.estrelas && data.estrelas > 0 ? Math.max(1, Math.min(5, Math.round(data.estrelas))) : 0;

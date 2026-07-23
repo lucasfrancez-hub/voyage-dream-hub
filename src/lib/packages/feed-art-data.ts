@@ -112,8 +112,10 @@ export type PackageServices = {
   };
   transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null };
   city_tour?: { enabled?: boolean; detalhe?: string | null };
+  tickets?: { enabled?: boolean; parks?: string[] | null };
   outros?: string[];
 };
+
 
 export const SEGURO_MOEDA_SYMBOL: Record<SeguroMoeda, string> = {
   BRL: "R$",
@@ -171,6 +173,7 @@ function countServices(services?: PackageServices | null): number {
   if (services.cancelamento?.enabled) n++;
   if (services.transfer?.enabled) n++;
   if (services.city_tour?.enabled) n++;
+  if (services.tickets?.enabled && (services.tickets.parks ?? []).some((p) => p && p.trim())) n++;
   n += (services.outros ?? []).filter((x) => x && x.trim()).length;
   return n;
 }
@@ -181,6 +184,7 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
   const groupServices = svcCount >= 2;
   const seguroOn = !!services?.seguro?.enabled;
   const transferOn = !!services?.transfer?.enabled;
+  const ticketsOn = !!services?.tickets?.enabled && (services?.tickets?.parks ?? []).some((p) => p && p.trim());
   return {
     aereo: /aereo|voo|passag|avia/.test(s),
     hotel: /hotel|hospedagem|resort|pousada|acomoda/.test(s),
@@ -189,9 +193,11 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
     transfer: groupServices ? false : (transferOn || /transfer|traslado/.test(s)),
     seguroViagem: groupServices ? false : (seguroOn || /seguro/.test(s)),
     esimInternacional: /esim|chip|internet/.test(s),
+    ingressos: ticketsOn, // ingressos sempre aparecem quando informados
     maisServicos: groupServices,
   };
 }
+
 
 /** Deriva rótulo do regime (all inclusive, meia pensão, etc.) para o chip de refeições. */
 function deriveMealPlanLabel(
@@ -272,6 +278,11 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
     inclusos: detectIncludes(pkg.includes, pkg.services ?? null),
     mealPlanLabel: deriveMealPlanLabel(pkg.meal_plan, pkg.includes),
+    ticketsLabel: (pkg.services?.tickets?.parks ?? [])
+      .map((p) => String(p ?? "").trim())
+      .filter(Boolean)
+      .join(" · ") || null,
+
 
   };
 }
