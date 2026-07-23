@@ -1,12 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sparkles, Loader2, Check, X, ExternalLink, MapPin, Clock, Calendar, Megaphone, Instagram, MessageCircle } from "lucide-react";
 import {
   listSuggestions,
-  gerarSuggestions,
   aprovarSuggestion,
   descartarSuggestion,
 } from "@/lib/broadcast/suggestions.functions";
@@ -57,32 +55,19 @@ const CHANNEL_META: Record<string, { label: string; icon: typeof MessageCircle; 
 
 function SugestoesPage() {
   const list = useServerFn(listSuggestions);
-  const gerar = useServerFn(gerarSuggestions);
   const aprovar = useServerFn(aprovarSuggestion);
   const descartar = useServerFn(descartarSuggestion);
-  const [generating, setGenerating] = useState(false);
 
   const q = useQuery({
     queryKey: ["broadcast-suggestions"],
     queryFn: () => list(),
+    // Recarrega a cada 5 min pra pegar novas sugestões geradas pelo cron
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const suggestions = (q.data?.suggestions ?? []) as unknown as Suggestion[];
   const pending = suggestions.filter((s) => s.status === "pending");
   const approved = suggestions.filter((s) => s.status === "approved");
-
-  async function handleGerar() {
-    setGenerating(true);
-    try {
-      const res = await gerar();
-      toast.success(res.message || `${res.created} sugestões geradas`);
-      await q.refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao gerar sugestões");
-    } finally {
-      setGenerating(false);
-    }
-  }
 
   async function handleAprovar(id: string) {
     const ok = await confirm({
@@ -120,24 +105,16 @@ function SugestoesPage() {
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-6">
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 p-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
-            <Sparkles className="h-5 w-5 text-orange-500" />
-            Sugestões de campanhas
-          </h1>
+      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-slate-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 p-5">
+        <div className="rounded-xl bg-orange-500/10 p-2.5">
+          <Sparkles className="h-5 w-5 text-orange-500" />
+        </div>
+        <div className="flex-1">
+          <h1 className="text-xl font-semibold text-slate-900">Sugestões de campanhas</h1>
           <p className="mt-1 text-sm text-slate-600">
-            A IA analisa seus pacotes ativos, sazonalidade e origens cadastradas pra sugerir o que postar essa semana — em qual canal e horário. Você aprova, ela vira rascunho em Broadcast.
+            A IA analisa seus pacotes ativos todo dia às <b>08h</b> e sugere aqui o que postar — em qual canal (WhatsApp, Feed, Story) e no melhor horário. Você só aprova ou descarta.
           </p>
         </div>
-        <button
-          onClick={handleGerar}
-          disabled={generating}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-orange-600 disabled:opacity-60"
-        >
-          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {generating ? "Analisando pacotes…" : "Gerar sugestões agora"}
-        </button>
       </div>
 
       {/* Loading */}
@@ -152,7 +129,7 @@ function SugestoesPage() {
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
           <Sparkles className="mx-auto mb-3 h-10 w-10 text-slate-300" />
           <p className="text-sm font-medium text-slate-700">Nenhuma sugestão ainda</p>
-          <p className="mt-1 text-xs text-slate-500">Clique em "Gerar sugestões agora" pra IA analisar seus pacotes.</p>
+          <p className="mt-1 text-xs text-slate-500">A IA roda todo dia às 08h. Assim que houver pacotes ativos com origem definida, as sugestões aparecem aqui automaticamente.</p>
         </div>
       )}
 
