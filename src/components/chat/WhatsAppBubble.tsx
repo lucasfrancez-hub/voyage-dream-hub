@@ -15,6 +15,7 @@ interface Props {
   timestamp: string; // ISO
   senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
   status?: "sent" | "delivered" | "read";
+  deleted?: boolean;
 }
 
 function formatTime(iso: string) {
@@ -22,7 +23,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted }: Props) {
   const isOut = side === "out";
   const label = firstName(senderLabel);
   return (
@@ -65,7 +66,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status }
                 </a>
               )}
               {text && (
-                <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{text}</div>
+                <div className={cn("whitespace-pre-wrap break-words text-sm leading-relaxed", deleted && "italic opacity-70")}>{text}</div>
               )}
             </>
           );
