@@ -54,12 +54,11 @@ async function uazSendText(to: string, body: string, replyId?: string | null): P
     number: normalizePhone(to),
     text: body.slice(0, 4090),
     linkPreview: true,
-    // UazAPI aceita `replyid` (camelCase/lowercase varia entre versões) —
-    // enviamos ambas as chaves pra maximizar compatibilidade e o quote
-    // aparecer nativo no WhatsApp do cliente.
-    ...(replyId ? { replyid: replyId, replyId, quoted: replyId } : {}),
+    // UazAPI v2 usa `replyid` (minúsculo) pra citar/responder uma mensagem.
+    ...(replyId ? { replyid: replyId } : {}),
   });
 }
+
 
 function mimeForType(type: "image" | "document" | "video" | "audio", filename?: string): string {
   if (type === "image") return "image/jpeg";
