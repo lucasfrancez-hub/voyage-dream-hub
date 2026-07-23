@@ -15,9 +15,18 @@ export const Route = createFileRoute("/chat")({
   component: ChatLayout,
   head: () => ({
     meta: [
-      { title: "Central de Atendimento — VIA AIR" },
+      { title: "VIA AIR Chat — Central de Atendimento" },
       { name: "description", content: "CRM WhatsApp + IA integrado da VIA AIR" },
       { name: "robots", content: "noindex, nofollow" },
+      { name: "theme-color", content: "#16A34A" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "VIA AIR Chat" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+    ],
+    links: [
+      { rel: "apple-touch-icon", href: "/apple-touch-icon-chat.png" },
+      { rel: "manifest", href: "/manifest-chat.webmanifest" },
     ],
   }),
 });
