@@ -2550,6 +2550,9 @@ export type Database = {
           media_type: string | null
           media_url: string | null
           protocolo_id: string | null
+          reply_to_sender: string | null
+          reply_to_snippet: string | null
+          reply_to_wa_id: string | null
           sender: string
           sender_user_id: string | null
           tool_calls: Json | null
@@ -2567,6 +2570,9 @@ export type Database = {
           media_type?: string | null
           media_url?: string | null
           protocolo_id?: string | null
+          reply_to_sender?: string | null
+          reply_to_snippet?: string | null
+          reply_to_wa_id?: string | null
           sender: string
           sender_user_id?: string | null
           tool_calls?: Json | null
@@ -2584,6 +2590,9 @@ export type Database = {
           media_type?: string | null
           media_url?: string | null
           protocolo_id?: string | null
+          reply_to_sender?: string | null
+          reply_to_snippet?: string | null
+          reply_to_wa_id?: string | null
           sender?: string
           sender_user_id?: string | null
           tool_calls?: Json | null
