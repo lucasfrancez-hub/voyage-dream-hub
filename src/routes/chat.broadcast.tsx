@@ -129,55 +129,60 @@ function DisparosPage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-7xl px-3 sm:px-6 py-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <Megaphone className="h-5 w-5 text-brand-orange" />
-            Broadcast
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Campanhas para canais e grupos. Envio automático entre 09h e 21h (BRT).
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-1.5 h-7 rounded-full bg-brand-orange" />
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-brand-orange" />
+              Broadcast
+            </h1>
+          </div>
+          <p className="text-sm text-muted-foreground ml-4">
+            Agendamento de campanhas via WhatsApp — envio entre 09h e 21h (BRT).
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={sync}
             disabled={syncing}
-            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:border-brand-orange disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm hover:border-brand-orange disabled:opacity-50"
           >
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Sincronizar
           </button>
           <button
             onClick={() => setShowEditor({})}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-lg shadow-brand-orange/20"
           >
             <Plus className="h-4 w-4" /> Nova campanha
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border-b border-border overflow-x-auto">
-        {(["calendario", "campanhas", "destinos"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm border-b-2 whitespace-nowrap ${
-              tab === t
-                ? "border-brand-orange text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t === "calendario" ? "Calendário" : t === "campanhas" ? "Campanhas" : "Destinos"}{" "}
-            <span className="text-xs opacity-60">
-              ({t === "calendario"
-                ? campanhas.filter((c) => c.status === "agendada" && c.scheduled_at).length
-                : t === "campanhas"
-                ? campanhas.length
-                : destinos.length})
-            </span>
-          </button>
-        ))}
+      <div className="inline-flex bg-muted/50 p-1 rounded-lg self-start overflow-x-auto">
+        {(["calendario", "campanhas", "destinos"] as const).map((t) => {
+          const count =
+            t === "calendario"
+              ? campanhas.filter((c) => c.status === "agendada" && c.scheduled_at).length
+              : t === "campanhas"
+              ? campanhas.length
+              : destinos.length;
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
+                tab === t
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t === "calendario" ? "Calendário" : t === "campanhas" ? "Campanhas" : "Destinos"}
+              <span className="text-xs opacity-60 ml-1">({count})</span>
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
@@ -186,11 +191,22 @@ function DisparosPage() {
         </div>
       ) : tab === "calendario" ? (
         <div className="space-y-6">
-          <CalendarioMes
-            campanhas={campanhas}
-            onPickDay={(iso) => setShowEditor({ presetDate: iso })}
-            onPickCampanha={(id) => setShowEditor({ id })}
-          />
+          <div className="rounded-2xl border border-border bg-card/50 overflow-hidden flex flex-col lg:flex-row">
+            <div className="flex-1 min-w-0">
+              <CalendarioMes
+                campanhas={campanhas}
+                destinos={destinos}
+                onPickDay={(iso) => setShowEditor({ presetDate: iso })}
+                onPickCampanha={(id) => setShowEditor({ id })}
+              />
+            </div>
+            <AgendaSidebar
+              campanhas={campanhas}
+              destinos={destinos}
+              onPick={(id) => setShowEditor({ id })}
+              onNew={() => setShowEditor({})}
+            />
+          </div>
           <AgendaProgramada
             campanhas={campanhas}
             destinos={destinos}
