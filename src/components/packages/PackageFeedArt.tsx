@@ -30,10 +30,13 @@ export type FeedArtData = {
     transfer: boolean;
     seguroViagem: boolean;
     esimInternacional: boolean;
+    ingressos: boolean;
     maisServicos: boolean;
   };
   mealPlanLabel?: string | null;
+  ticketsLabel?: string | null;
 };
+
 
 
 const BRL = (n: number) =>
