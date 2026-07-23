@@ -106,6 +106,30 @@ async function processPayload(payload: WhatsAppPayload) {
         const profileName =
           value.contacts?.find((c) => c.wa_id === msg.from)?.profile?.name ?? null;
 
+        // --- DELEÇÃO ("apagar para todos") ---
+        // Meta sinaliza como type=unsupported + errors[code=131051].
+        // O `id` recebido aqui É o id da mensagem que foi apagada.
+        const isRevoke =
+          msg.type === "unsupported" &&
+          Array.isArray(msg.errors) &&
+          msg.errors.some((e) => e?.code === 131051);
+        if (isRevoke) {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: updated } = await supabaseAdmin
+            .from("wa_messages")
+            .update({
+              deleted_at: new Date().toISOString(),
+              deleted_by_customer: true,
+            })
+            .eq("wa_message_id", msg.id)
+            .select("id")
+            .maybeSingle();
+          console.log(
+            `[wa-webhook] REVOKE Meta ${msg.id} — ${updated ? "marcada" : "não encontrada"}`,
+          );
+          continue;
+        }
+
         // Monta o conteúdo textual (texto direto OU transcrição de áudio OU resposta de botão)
         let content: string | null = null;
         let buttonReplyId: string | null = null;
@@ -145,12 +169,32 @@ async function processPayload(payload: WhatsAppPayload) {
           conv.mode = "ai";
         }
 
+        // Se a mensagem é uma resposta (reply nativo), busca o snippet da mensagem citada
+        let replySnippet: string | null = null;
+        let replySender: string | null = null;
+        const replyToId = msg.context?.id ?? null;
+        if (replyToId) {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: quoted } = await supabaseAdmin
+            .from("wa_messages")
+            .select("content, direction, sender")
+            .eq("wa_message_id", replyToId)
+            .maybeSingle();
+          if (quoted?.content) {
+            replySnippet = String(quoted.content).slice(0, 160);
+            replySender = quoted.direction === "outbound" ? "me" : (quoted.sender ?? "customer");
+          }
+        }
+
         const saved = await saveMessage({
           conversation_id: conv.id,
           direction: "inbound",
           sender: "customer",
           content,
           wa_message_id: msg.id,
+          reply_to_wa_id: replyToId,
+          reply_to_snippet: replySnippet,
+          reply_to_sender: replySender,
         });
         if (!saved) {
           console.log(`[wa-webhook] mensagem ${msg.id} já processada (dedupe)`);
