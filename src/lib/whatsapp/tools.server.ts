@@ -246,7 +246,7 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     enviar_pacote: tool({
       description:
-        "Envia o FOLDER completo do pacote pelo WhatsApp: imagem do header + descritivo formatado (origem, datas, hotel, refeição, serviços inclusos) + formas de pagamento (Pix com 5% off, Visa e Master em 15x sem juros, demais bandeiras em 10x sem juros, boleto 10x mediante aprovação, boleto sem análise de crédito até a data da viagem) + link. NUNCA use o termo 'assessoria completa' nem 'assessoria' em nenhum lugar. Use SEMPRE que o cliente demonstrar interesse num pacote específico. NÃO exige CPF nem confirmação — pacote é conteúdo público. Depois de chamar, responda com UM balão curto só perguntando 'O que você achou?' (ou variação natural).",
+        "Envia o FOLDER completo do pacote pelo WhatsApp: imagem do header + descritivo formatado (origem, datas, hotel, refeição, serviços inclusos) + formas de pagamento (Pix com 5% off, cartão 10x sem juros — e quando for pacote Cativa Operadora, Visa e Master saem em 15x sem juros e demais bandeiras em 10x sem juros —, boleto 10x mediante aprovação, boleto sem análise de crédito até a data da viagem) + link. NUNCA use o termo 'assessoria completa' nem 'assessoria' em nenhum lugar. Use SEMPRE que o cliente demonstrar interesse num pacote específico. NÃO exige CPF nem confirmação — pacote é conteúdo público. Depois de chamar, responda com UM balão curto só perguntando 'O que você achou?' (ou variação natural).",
       inputSchema: z.object({
         slug: z.string().describe("slug do pacote (vem de buscar_pacotes)"),
         quantidade_adultos: z.number().int().nullable().describe("adultos para calcular Pix total; padrão = base_occupancy (geralmente 2)"),
@@ -254,7 +254,7 @@ export function buildCamilaTools(conversation: WaConversation) {
       execute: async ({ slug, quantidade_adultos }) => {
         const { data: pkg } = await supabaseAdmin
           .from("packages")
-          .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active, services")
+          .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active, services, supplier_name")
           .eq("slug", slug)
           .maybeSingle();
         const storedCopyRes = pkg
@@ -273,8 +273,10 @@ export function buildCamilaTools(conversation: WaConversation) {
         const priceP = Number(pkg.price_per_person) || 0;
         const total = priceP * qtd;
         const pixTotal = total * 0.95;
+        const isCaptive = /cativ/i.test(String((pkg as any).supplier_name ?? ""));
         const parcelaVisaMaster = total / 15;
         const parcelaOutrasBandeiras = total / 10;
+        const parcelaCartao10 = total / 10;
 
         const link = `https://pedidos.viaair.tur.br/w/${pkg.slug}`;
 
@@ -384,8 +386,12 @@ export function buildCamilaTools(conversation: WaConversation) {
           lines.push("");
           lines.push(`*FORMAS DE PAGAMENTO:*`);
           lines.push(`🤑 *PIX:* ${brl2(pixTotal)} PARA ${qtd} ADULTO${qtd === 1 ? "" : "S"} _(5% de desconto já aplicado)_`);
-          lines.push(`💳 *Cartão Visa/Master:* 15x de ${brl2(parcelaVisaMaster)}`);
-          lines.push(`💳 *Demais bandeiras:* 10x de ${brl2(parcelaOutrasBandeiras)}`);
+          if (isCaptive) {
+            lines.push(`💳 *Cartão Visa/Master:* 15x de ${brl2(parcelaVisaMaster)}`);
+            lines.push(`💳 *Demais bandeiras:* 10x de ${brl2(parcelaOutrasBandeiras)}`);
+          } else {
+            lines.push(`💳 *Cartão de crédito:* 10x de ${brl2(parcelaCartao10)}`);
+          }
           lines.push(`📄 *Boleto bancário:* até 10x mediante aprovação`);
           if (boletoAteViagem) lines.push(`📄 *Boleto parcelado:* até a data da viagem (sem análise de crédito)`);
           lines.push(`*sem juros em qualquer forma de pagamento*`);

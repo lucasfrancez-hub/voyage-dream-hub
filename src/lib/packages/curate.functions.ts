@@ -50,6 +50,7 @@ const PackageBrief = z.object({
   hotel_stars: z.number().nullable().optional(),
   meal_plan: z.string().nullable().optional(),
   slug: z.string(),
+  supplier_name: z.string().nullable().optional(),
   services: ServicesSchema,
 });
 
@@ -101,6 +102,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       const stars = p.hotel_stars ? "★".repeat(Math.min(5, Math.max(1, p.hotel_stars))) : "";
       const d = daysUntil(p.going_date);
       const boleto_ate_data_viagem = d !== null && d >= 60;
+      const is_captive = /cativ/i.test(String(p.supplier_name ?? ""));
 
       const svc = p.services ?? {};
       const services_lines: string[] = [];
@@ -177,6 +179,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         url: `${baseUrl}/w/${p.slug}`,
         days_until_departure: d,
         boleto_ate_data_viagem,
+        is_captive,
         services_lines,
 
       };
@@ -213,8 +216,11 @@ Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("p
 
 *FORMAS DE PAGAMENTO:*
 🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S) _(5% de desconto já aplicado)_
+{SE "is_captive" for true, incluir AS DUAS linhas abaixo (Visa/Master 15x + demais bandeiras 10x):}
 💳 *Cartão Visa/Master:* 15x de {total / 15}
 💳 *Demais bandeiras:* 10x de {total / 10}
+{SE "is_captive" for false, incluir SOMENTE esta linha única (cartão 10x):}
+💳 *Cartão de crédito:* 10x de {total / 10}
 📄 *Boleto bancário:* até 10x mediante aprovação
 {SE E SOMENTE SE o item tiver "boleto_ate_data_viagem": true, adicione esta linha extra logo abaixo:}
 📄 *Boleto parcelado:* até a data da viagem (sem análise de crédito)
@@ -230,7 +236,7 @@ REGRAS FIRMES:
 - Sem markdown de heading (#), sem hashtags.
 - Nunca invente dados; use SÓ os fornecidos.
 - Mês em CAIXA ALTA (JANEIRO, FEVEREIRO…). Data no formato "15 a 22/SETEMBRO".
-- Valor do PIX = total x 0,95 (5% off). Cartão Visa/Master = total / 15. Demais bandeiras = total / 10.
+- Valor do PIX = total x 0,95 (5% off). Cartão: se "is_captive" for true, mostrar DUAS linhas — Visa/Master em 15x (total/15) e demais bandeiras em 10x (total/10). Se "is_captive" for false, mostrar UMA linha só "Cartão de crédito: 10x de {total/10}".
 - A linha "Boleto parcelado até a data da viagem" só aparece quando "boleto_ate_data_viagem" do item for true (antecedência mínima de 60 dias). Nunca inclua se for false.
 - Se houver mais de 1 pacote, gere um bloco por pacote separado por uma linha em branco, e repita a assinatura "✨ Para mais informações…" só UMA vez no fim.`
 
