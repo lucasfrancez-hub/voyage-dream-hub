@@ -506,79 +506,163 @@ function AgendaSidebar({
       .toUpperCase();
   }
 
+  // Stats
+  const stats = useMemo(() => {
+    const agora = Date.now();
+    const semana = 7 * 24 * 60 * 60 * 1000;
+    let agendadas = 0, rascunhos = 0, enviadas7d = 0, falhas7d = 0;
+    for (const c of campanhas) {
+      if (c.status === "agendada") agendadas++;
+      else if (c.status === "rascunho") rascunhos++;
+      else if (c.status === "concluida" && c.sent_at && agora - new Date(c.sent_at).getTime() < semana) enviadas7d++;
+      else if (c.status === "falhou" && c.sent_at && agora - new Date(c.sent_at).getTime() < semana) falhas7d++;
+    }
+    return { agendadas, rascunhos, enviadas7d, falhas7d };
+  }, [campanhas]);
+
+  // Coisas a fazer
+  const tarefas = useMemo(() => {
+    const t: Array<{ icon: typeof CalendarClock; label: string; count: number; tone: string }> = [];
+    if (stats.rascunhos > 0) {
+      t.push({ icon: CalendarClock, label: "Rascunhos sem agenda", count: stats.rascunhos, tone: "text-amber-400 bg-amber-500/10" });
+    }
+    const semSync = destinos.filter((d) => !d.ultima_sync || Date.now() - new Date(d.ultima_sync).getTime() > 7 * 24 * 60 * 60 * 1000).length;
+    if (semSync > 0) {
+      t.push({ icon: RefreshCw, label: "Destinos sem sync 7d+", count: semSync, tone: "text-sky-400 bg-sky-500/10" });
+    }
+    const semPermissao = destinos.filter((d) => d.ativo && !d.pode_postar).length;
+    if (semPermissao > 0) {
+      t.push({ icon: X, label: "Sem permissão de post", count: semPermissao, tone: "text-red-400 bg-red-500/10" });
+    }
+    if (stats.falhas7d > 0) {
+      t.push({ icon: X, label: "Falhas nos últimos 7d", count: stats.falhas7d, tone: "text-red-400 bg-red-500/10" });
+    }
+    return t;
+  }, [stats, destinos]);
+
   return (
-    <aside className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-muted/20 p-5 flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          Próximos disparos
+    <aside className="w-full lg:w-80 shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-muted/20 flex flex-col">
+      {/* Stats */}
+      <div className="p-5 border-b border-border">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+          Resumo
         </h3>
-        {proximos.length > 0 && (
-          <span className="px-2 py-0.5 bg-brand-orange/10 text-brand-orange text-[10px] font-bold rounded">
-            {proximos.length} {proximos.length === 1 ? "TOTAL" : "TOTAIS"}
-          </span>
-        )}
+        <div className="grid grid-cols-2 gap-2">
+          <StatCard label="Agendadas" value={stats.agendadas} tone="text-brand-orange" />
+          <StatCard label="Rascunhos" value={stats.rascunhos} tone="text-amber-400" />
+          <StatCard label="Enviadas 7d" value={stats.enviadas7d} tone="text-emerald-400" />
+          <StatCard label="Falhas 7d" value={stats.falhas7d} tone="text-red-400" />
+        </div>
       </div>
 
-      <div className="space-y-3 flex-1">
-        {proximos.length === 0 ? (
-          <div className="p-6 border border-dashed border-border rounded-xl text-center">
-            <div className="w-10 h-10 bg-muted/60 rounded-full flex items-center justify-center mx-auto mb-3">
-              <CalendarClock className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <p className="text-xs font-medium text-muted-foreground">Nada agendado</p>
-            <button
-              onClick={onNew}
-              className="mt-2 text-[10px] font-bold text-brand-orange uppercase hover:underline"
-            >
-              Agendar novo
-            </button>
-          </div>
-        ) : (
-          proximos.map((c, idx) => {
-            const dt = new Date(c.scheduled_at!);
-            const hora = dt.toLocaleTimeString("pt-BR", {
-              timeZone: "America/Sao_Paulo",
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            const tipo = tipoDe(c);
-            return (
-              <div key={c.id}>
-                <button
-                  type="button"
-                  onClick={() => onPick(c.id)}
-                  className="group w-full text-left"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      {labelDia(dt)} • {hora}
-                    </span>
-                    <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded uppercase ${tagCls[tipo]}`}>
-                      {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"}
-                    </span>
-                  </div>
-                  <h4 className="text-sm font-medium text-foreground group-hover:text-brand-orange transition-colors truncate">
-                    {c.nome}
-                  </h4>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {c.destino_ids.length}{" "}
-                    {c.destino_ids.length === 1 ? "destino" : "destinos"}
-                  </p>
-                </button>
-                {idx < proximos.length - 1 && <div className="h-px bg-border mt-3" />}
+      {/* Próximos disparos */}
+      <div className="p-5 border-b border-border">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            Próximos disparos
+          </h3>
+          {proximos.length > 0 && (
+            <span className="px-2 py-0.5 bg-brand-orange/10 text-brand-orange text-[10px] font-bold rounded">
+              {proximos.length}
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {proximos.length === 0 ? (
+            <div className="p-5 border border-dashed border-border rounded-xl text-center">
+              <div className="w-9 h-9 bg-muted/60 rounded-full flex items-center justify-center mx-auto mb-2">
+                <CalendarClock className="w-4 h-4 text-muted-foreground" />
               </div>
-            );
-          })
+              <p className="text-xs font-medium text-muted-foreground">Nada agendado</p>
+              <button
+                onClick={onNew}
+                className="mt-2 text-[10px] font-bold text-brand-orange uppercase hover:underline"
+              >
+                Agendar novo
+              </button>
+            </div>
+          ) : (
+            proximos.map((c, idx) => {
+              const dt = new Date(c.scheduled_at!);
+              const hora = dt.toLocaleTimeString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              const tipo = tipoDe(c);
+              return (
+                <div key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => onPick(c.id)}
+                    className="group w-full text-left"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-muted-foreground">
+                        {labelDia(dt)} • {hora}
+                      </span>
+                      <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded uppercase ${tagCls[tipo]}`}>
+                        {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-medium text-foreground group-hover:text-brand-orange transition-colors truncate">
+                      {c.nome}
+                    </h4>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {c.destino_ids.length}{" "}
+                      {c.destino_ids.length === 1 ? "destino" : "destinos"}
+                    </p>
+                  </button>
+                  {idx < proximos.length - 1 && <div className="h-px bg-border mt-3" />}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Coisas a fazer */}
+      <div className="p-5 flex-1">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+          Coisas a fazer
+        </h3>
+        {tarefas.length === 0 ? (
+          <div className="text-xs text-muted-foreground italic">Tudo em dia ✨</div>
+        ) : (
+          <div className="space-y-2">
+            {tarefas.map((t, i) => (
+              <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg border border-border bg-card/50">
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center ${t.tone}`}>
+                  <t.icon className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{t.label}</p>
+                </div>
+                <span className="text-sm font-bold tabular-nums">{t.count}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      <div className="mt-6 pt-4 border-t border-border">
+      {/* Footer */}
+      <div className="p-5 pt-3 border-t border-border">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>09h — 21h (BRT)</span>
+          <span>Janela de envio 09h — 21h (BRT)</span>
         </div>
       </div>
     </aside>
+  );
+}
+
+function StatCard({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-card/50 px-3 py-2.5">
+      <div className={`text-xl font-bold tabular-nums ${tone}`}>{value}</div>
+      <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mt-0.5">{label}</div>
+    </div>
   );
 }
 
