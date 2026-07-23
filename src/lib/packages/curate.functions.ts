@@ -105,7 +105,18 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       const svc = p.services ?? {};
       const services_lines: string[] = [];
       const fmtCob = (raw: string) => {
-        const n = Number(String(raw).replace(/\./g, "").replace(",", "."));
+        const s = String(raw).trim().replace(/[^\d.,-]/g, "");
+        let n: number;
+        if (s.includes(",")) {
+          // pt-BR: "." é milhar, "," é decimal
+          n = Number(s.replace(/\./g, "").replace(",", "."));
+        } else if (/^\d+\.\d{1,2}$/.test(s)) {
+          // en: "80000.00" → ponto como decimal
+          n = Number(s);
+        } else {
+          // sem decimal explícito: "80000" ou "80.000" (milhar)
+          n = Number(s.replace(/\./g, ""));
+        }
         if (!isFinite(n) || n === 0) return raw;
         return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
       };
