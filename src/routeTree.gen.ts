@@ -31,6 +31,7 @@ import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminDisparosRouteImport } from './routes/admin.disparos'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
@@ -74,6 +75,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
+import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/api/public/hooks/broadcast-dispatch'
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
@@ -194,6 +196,11 @@ const AdminContasReceberRoute = AdminContasReceberRouteImport.update({
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDisparosRoute = AdminDisparosRouteImport.update({
+  id: '/disparos',
+  path: '/disparos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminInstalarExtensaoRoute = AdminInstalarExtensaoRouteImport.update({
@@ -415,6 +422,12 @@ const ApiPublicBpIdRoute = ApiPublicBpIdRouteImport.update({
   path: '/api/public/bp/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksBroadcastDispatchRoute =
+  ApiPublicHooksBroadcastDispatchRouteImport.update({
+    id: '/api/public/hooks/broadcast-dispatch',
+    path: '/api/public/hooks/broadcast-dispatch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksCheckFlightChangesRoute =
   ApiPublicHooksCheckFlightChangesRouteImport.update({
     id: '/api/public/hooks/check-flight-changes',
@@ -503,6 +516,7 @@ export interface FileRoutesByFullPath {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/disparos': typeof AdminDisparosRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -546,6 +560,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
+  '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -580,6 +595,7 @@ export interface FileRoutesByTo {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/disparos': typeof AdminDisparosRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -623,6 +639,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
+  '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -659,6 +676,7 @@ export interface FileRoutesById {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/disparos': typeof AdminDisparosRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -702,6 +720,7 @@ export interface FileRoutesById {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
+  '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -739,6 +758,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/disparos'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -782,6 +802,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
     | '/api/public/bp/$id'
+    | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -816,6 +837,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/disparos'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -859,6 +881,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/pacotes/$slug'
     | '/api/public/bp/$id'
+    | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -894,6 +917,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/disparos'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -937,6 +961,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
     | '/api/public/bp/$id'
+    | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -982,6 +1007,7 @@ export interface RootRouteChildren {
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
+  ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -1148,6 +1174,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/disparos': {
+      id: '/admin/disparos'
+      path: '/disparos'
+      fullPath: '/admin/disparos'
+      preLoaderRoute: typeof AdminDisparosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/instalar-extensao': {
@@ -1451,6 +1484,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBpIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/broadcast-dispatch': {
+      id: '/api/public/hooks/broadcast-dispatch'
+      path: '/api/public/hooks/broadcast-dispatch'
+      fullPath: '/api/public/hooks/broadcast-dispatch'
+      preLoaderRoute: typeof ApiPublicHooksBroadcastDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/check-flight-changes': {
       id: '/api/public/hooks/check-flight-changes'
       path: '/api/public/hooks/check-flight-changes'
@@ -1550,6 +1590,7 @@ interface AdminRouteChildren {
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminDisparosRoute: typeof AdminDisparosRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
@@ -1571,6 +1612,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminDisparosRoute: AdminDisparosRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
@@ -1680,6 +1722,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
+  ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
   ApiPublicHooksCheckFlightChangesRoute: ApiPublicHooksCheckFlightChangesRoute,
   ApiPublicHooksCloseInactiveProtocolsRoute:
     ApiPublicHooksCloseInactiveProtocolsRoute,

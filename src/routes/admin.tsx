@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle, Sun, Moon } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle, Sun, Moon, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/admin")({
   }),
 });
 
-type Role = "admin" | "partner" | null;
+type Role = "admin" | "partner" | "marketing" | null;
 
 function AdminLayout() {
   const navigate = useNavigate();
@@ -37,6 +37,7 @@ function AdminLayout() {
   const [role, setRole] = useState<Role | undefined>(undefined);
   const isAdmin = role === "admin";
   const isPartner = role === "partner";
+  const isMarketing = role === "marketing" || role === "admin";
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "dark";
     return (window.localStorage.getItem("admin-theme") as "dark" | "light") || "dark";
@@ -100,7 +101,7 @@ function AdminLayout() {
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
-        .in("role", ["admin", "partner"]);
+        .in("role", ["admin", "partner", "marketing"]);
       if (cancelled) return;
       clearTimeout(roleFailsafe);
       if (error) {
@@ -111,6 +112,7 @@ function AdminLayout() {
       const roles = (data ?? []).map((r) => r.role);
       if (roles.includes("admin")) setRole("admin");
       else if (roles.includes("partner")) setRole("partner");
+      else if (roles.includes("marketing")) setRole("marketing");
       else setRole(null);
     })();
     return () => {
@@ -124,12 +126,13 @@ function AdminLayout() {
     if (pathname !== "/admin") return;
     if (isAdmin) navigate({ to: "/admin/dashboard" });
     else if (isPartner) navigate({ to: "/admin/pedidos" });
-  }, [pathname, isAdmin, isPartner, navigate]);
+    else if (role === "marketing") navigate({ to: "/admin/disparos" });
+  }, [pathname, isAdmin, isPartner, role, navigate]);
 
 
   // Auto-logout por inatividade (30 min sem interação do usuário)
   useEffect(() => {
-    if (!session || !(isAdmin || isPartner)) return;
+    if (!session || !(isAdmin || isPartner || role === "marketing")) return;
     const TIMEOUT_MS = 30 * 60 * 1000;
     let timer: ReturnType<typeof setTimeout>;
     const doLogout = async () => {
@@ -162,7 +165,7 @@ function AdminLayout() {
   }
 
 
-  if (!isAdmin && !isPartner) {
+  if (!isAdmin && !isPartner && role !== "marketing") {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
         <div>
@@ -209,6 +212,24 @@ function AdminLayout() {
       </div>
     );
   }
+  if (role === "marketing" && !pathname.startsWith("/admin/disparos")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-center">
+        <div>
+          <h1 className="text-2xl font-semibold">Área restrita</h1>
+          <p className="mt-2 text-muted-foreground text-sm">
+            Sua conta de marketing só tem acesso a Disparos.
+          </p>
+          <button
+            className="mt-4 text-brand-orange hover:underline"
+            onClick={() => navigate({ to: "/admin/disparos" })}
+          >
+            Ir para Disparos
+          </button>
+        </div>
+      </div>
+    );
+  }
 
 
   return (
@@ -226,6 +247,7 @@ function AdminLayout() {
                 ? <PedidosNav pathname={pathname} />
                 : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
               <CartaoNav pathname={pathname} />
+              {isMarketing && <NavItem to="/admin/disparos" icon={Megaphone} label="Disparos" active={pathname.startsWith("/admin/disparos")} />}
               {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
             </nav>
 
@@ -282,6 +304,7 @@ function AdminLayout() {
               ? <PedidosNav pathname={pathname} />
               : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
             <CartaoNav pathname={pathname} />
+            {isMarketing && <NavItem to="/admin/disparos" icon={Megaphone} label="Disparos" active={pathname.startsWith("/admin/disparos")} />}
             {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
           </div>
         </nav>

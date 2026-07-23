@@ -2261,6 +2261,216 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_broadcast_campanhas: {
+        Row: {
+          aprovada_por: string | null
+          created_at: string
+          criado_por: string | null
+          destino_ids: string[]
+          id: string
+          metrics: Json
+          nome: string
+          observacoes_marketing: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          aprovada_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          destino_ids?: string[]
+          id?: string
+          metrics?: Json
+          nome: string
+          observacoes_marketing?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          aprovada_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          destino_ids?: string[]
+          id?: string
+          metrics?: Json
+          nome?: string
+          observacoes_marketing?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wa_broadcast_destinos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          foto_url: string | null
+          id: string
+          is_admin: boolean
+          jid: string
+          nome: string
+          participantes: number | null
+          pode_postar: boolean
+          tags: string[]
+          tipo: string
+          ultima_sync: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          is_admin?: boolean
+          jid: string
+          nome: string
+          participantes?: number | null
+          pode_postar?: boolean
+          tags?: string[]
+          tipo: string
+          ultima_sync?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          is_admin?: boolean
+          jid?: string
+          nome?: string
+          participantes?: number | null
+          pode_postar?: boolean
+          tags?: string[]
+          tipo?: string
+          ultima_sync?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wa_broadcast_envios: {
+        Row: {
+          campanha_id: string
+          created_at: string
+          delivered_at: string | null
+          destino_id: string
+          error: string | null
+          id: string
+          mensagem_id: string
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          wa_message_id: string | null
+        }
+        Insert: {
+          campanha_id: string
+          created_at?: string
+          delivered_at?: string | null
+          destino_id: string
+          error?: string | null
+          id?: string
+          mensagem_id: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          wa_message_id?: string | null
+        }
+        Update: {
+          campanha_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          destino_id?: string
+          error?: string | null
+          id?: string
+          mensagem_id?: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_broadcast_envios_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "wa_broadcast_campanhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_broadcast_envios_destino_id_fkey"
+            columns: ["destino_id"]
+            isOneToOne: false
+            referencedRelation: "wa_broadcast_destinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_broadcast_envios_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "wa_broadcast_mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_broadcast_mensagens: {
+        Row: {
+          botoes: Json | null
+          campanha_id: string
+          created_at: string
+          id: string
+          midia_caption: string | null
+          midia_filename: string | null
+          midia_url: string | null
+          ordem: number
+          texto: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          botoes?: Json | null
+          campanha_id: string
+          created_at?: string
+          id?: string
+          midia_caption?: string | null
+          midia_filename?: string | null
+          midia_url?: string | null
+          ordem?: number
+          texto?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          botoes?: Json | null
+          campanha_id?: string
+          created_at?: string
+          id?: string
+          midia_caption?: string | null
+          midia_filename?: string | null
+          midia_url?: string | null
+          ordem?: number
+          texto?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_broadcast_mensagens_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "wa_broadcast_campanhas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_conversations: {
         Row: {
           agent_slug: string | null
@@ -2272,6 +2482,7 @@ export type Database = {
           id: string
           identity_verified_at: string | null
           identity_verified_cpf: string | null
+          is_group: boolean
           last_message_at: string
           last_message_preview: string | null
           meta: Json
@@ -2294,6 +2505,7 @@ export type Database = {
           id?: string
           identity_verified_at?: string | null
           identity_verified_cpf?: string | null
+          is_group?: boolean
           last_message_at?: string
           last_message_preview?: string | null
           meta?: Json
@@ -2316,6 +2528,7 @@ export type Database = {
           id?: string
           identity_verified_at?: string | null
           identity_verified_cpf?: string | null
+          is_group?: boolean
           last_message_at?: string
           last_message_preview?: string | null
           meta?: Json
@@ -2740,7 +2953,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user" | "partner"
+      app_role: "admin" | "user" | "partner" | "marketing"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2868,7 +3081,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "partner"],
+      app_role: ["admin", "user", "partner", "marketing"],
     },
   },
 } as const
