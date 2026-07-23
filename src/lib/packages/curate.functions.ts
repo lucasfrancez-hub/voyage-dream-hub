@@ -98,36 +98,15 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       const boleto_ate_data_viagem = d !== null && d >= 60;
 
       const svc = p.services ?? {};
-      const services_lines: string[] = [];
-      if (svc.seguro?.enabled) {
-        const cob = svc.seguro.cobertura?.toString().trim();
-        const moeda = svc.seguro.moeda || "USD";
-        services_lines.push(
-          cob
-            ? `Seguro viagem com cobertura médica de ${moeda} ${cob} por pessoa`
-            : `Seguro viagem com assistência médica`,
-        );
-      }
-      if (svc.cancelamento?.enabled) {
-        const cob = svc.cancelamento.cobertura?.toString().trim();
-        const moeda = svc.cancelamento.moeda || "BRL";
-        services_lines.push(
-          cob
-            ? `Cobertura de cancelamento involuntário de ${moeda} ${cob} por pessoa`
-            : `Cobertura de cancelamento involuntário de viagem`,
-        );
-      }
-      if (svc.transfer?.enabled) {
-        services_lines.push(`Transfer aeroporto ↔ hotel (${sentidoLabel(svc.transfer.sentido)})`);
-      }
-      if (svc.city_tour?.enabled) {
-        const det = svc.city_tour.detalhe?.trim();
-        services_lines.push(det ? `City tour: ${det}` : `City tour incluso`);
-      }
-      for (const extra of svc.outros ?? []) {
-        const t = (extra || "").trim();
-        if (t) services_lines.push(t);
-      }
+      const services_emojis: string[] = [];
+      if (svc.seguro?.enabled) services_emojis.push("🛡️");
+      if (svc.cancelamento?.enabled) services_emojis.push("🧾");
+      if (svc.transfer?.enabled) services_emojis.push("🚐");
+      if (svc.city_tour?.enabled) services_emojis.push("🗺️");
+      const outrosCount = (svc.outros ?? []).filter((e) => (e || "").trim()).length;
+      for (let i = 0; i < outrosCount; i++) services_emojis.push("✨");
+      const services_emoji_line = services_emojis.join(" ");
+
 
       return {
         title: p.title,
