@@ -456,8 +456,9 @@ function AuthPage() {
                 </button>
               </form>
 
-              <div className="mt-4 flex justify-center text-muted-foreground/60">
-                <Lock className="h-4 w-4" aria-label="Acesso restrito" />
+              <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground/70">
+                <Lock className="h-3.5 w-3.5" />
+                <span>Acesso restrito</span>
               </div>
             </>
           )}
