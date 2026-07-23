@@ -217,7 +217,7 @@ function InboxPage() {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            {/* Abas de canal (WhatsApp | Instagram) */}
+            {/* Abas de canal (WhatsApp | Direct | Comentários) */}
             <div className="mt-2 flex gap-1 rounded-lg bg-slate-100 p-0.5">
               <button
                 onClick={() => { setChannel("whatsapp"); setActiveId(null); }}
@@ -229,13 +229,22 @@ function InboxPage() {
                 <MessageCircle className="h-3 w-3" /> WhatsApp
               </button>
               <button
-                onClick={() => { setChannel("instagram"); setActiveId(null); }}
+                onClick={() => { setChannel("instagram_dm"); setActiveId(null); }}
                 className={cn(
                   "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  channel === "instagram" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500",
+                  channel === "instagram_dm" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500",
                 )}
               >
-                <Instagram className="h-3 w-3" /> Instagram
+                <Instagram className="h-3 w-3" /> Direct
+              </button>
+              <button
+                onClick={() => { setChannel("instagram_comments"); setActiveId(null); }}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  channel === "instagram_comments" ? "bg-white text-purple-600 shadow-sm" : "text-slate-500",
+                )}
+              >
+                <MessageSquare className="h-3 w-3" /> Comentários
               </button>
             </div>
             <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -258,8 +267,10 @@ function InboxPage() {
 
           </div>
           <div className="flex-1 space-y-1 overflow-y-auto p-2">
-            {channel === "instagram" ? (
+            {channel === "instagram_dm" ? (
               <InstagramList folder={folder} search={search} activeId={activeId} onSelect={setActiveId} />
+            ) : channel === "instagram_comments" ? (
+              <InstagramCommentsList search={search} />
             ) : filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
             ) : (
