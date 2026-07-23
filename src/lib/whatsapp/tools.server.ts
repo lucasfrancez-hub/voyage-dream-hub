@@ -455,13 +455,17 @@ export function buildCamilaTools(conversation: WaConversation) {
         if (svcAny?.city_tour?.enabled) highlights.push("com city tour");
 
         const incluirConvitePersonalizacao = isFirstPackage || clienteFalouPersonalizado;
+        const nOrdinal = priorFolders + 1; // 1 = primeiro, 2 = segundo, 3 = terceiro...
+        const aberturasProibidas = priorFolders === 0
+          ? "" // primeiro pacote pode usar 'Olha, que legal...'
+          : " PROIBIDO começar com 'Olha, que legal', 'Que legal', 'Que incrível', 'Nossa, adoro' ou qualquer variação de elogio genérico — isso soa robótico quando é o " + (nOrdinal === 2 ? "segundo" : nOrdinal === 3 ? "terceiro" : `${nOrdinal}º`) + " pacote da conversa. Em vez disso, faça uma abertura que CONECTA com a mensagem anterior do cliente, do tipo: 'E olha esse outro aqui, ó...', 'Esse aqui é uma alternativa bem legal — ...', 'Já esse é diferente porque...', 'Tem esse também que...', 'Se preferir mais [ponto forte], esse encaixa melhor...'. Varie sempre, nunca repita a mesma abertura de um pacote anterior nesta conversa.";
         const instrucaoBase =
-          "Folder do pacote JÁ foi enviado (imagem + descritivo + preços + link). NÃO repita título, datas, valores nem link. AGORA mande 1 mensagem curta e humanizada (3 a 5 linhas curtas, tom de consultora experiente e simpática, NADA robótico, NADA de venda empurrada) resumindo em português natural 2 ou 3 destaques da lista 'destaques_para_comentar' (ex.: 'Olha, que legal! Esse aqui sai de São Paulo, fica no [hotel] e já vem com ingresso pra Disney e Universal — bem completinho.'). Encaixe UMA sugestão sutil de vantagem quando fizer sentido ('hotel muito bem avaliado', 'datas de novembro estão saindo rápido', 'com café já incluso').";
+          "Folder do pacote JÁ foi enviado (imagem + descritivo + preços + link). NÃO repita título, datas, valores nem link. AGORA mande 1 mensagem curta e humanizada (3 a 5 linhas curtas, tom de consultora experiente e simpática, NADA robótico, NADA de venda empurrada) resumindo em português natural 2 ou 3 destaques da lista 'destaques_para_comentar'. Encaixe UMA sugestão sutil de vantagem quando fizer sentido ('hotel muito bem avaliado', 'datas saindo rápido', 'com café já incluso')." + aberturasProibidas;
         const instrucaoConvite = incluirConvitePersonalizacao
           ? " Inclua no final, antes da pergunta, um convite leve de personalização, algo como: 'Se preferir, também consigo montar um personalizado pra você — posso trocar o hotel, mudar a origem, ajustar as datas ou incluir mais serviços, é só me falar o que faz mais sentido.' (varie a redação, cite pelo menos: outra origem, outro hotel e outros serviços)."
-          : " NÃO ofereça personalização nem diga 'se preferir posso montar personalizado' — o cliente já viu opções antes e ficaria repetitivo. Só ofereça personalização se o cliente PEDIR explicitamente (falar em outro hotel, outra origem, montar sob medida, etc.). Vá direto ao ponto: 2-3 linhas destacando o que tem de melhor nesse pacote e termine com pergunta gentil.";
+          : " NÃO ofereça personalização nem diga 'se preferir posso montar personalizado' — o cliente já viu opções antes e ficaria repetitivo. Só ofereça personalização se o cliente PEDIR explicitamente (falar em outro hotel, outra origem, montar sob medida, etc.). Vá direto ao ponto: 2-3 linhas comparando/destacando o que esse pacote tem de diferente ou interessante e termine com pergunta gentil.";
         const instrucaoFinal =
-          " TERMINE com uma pergunta gentil tipo 'O que você achou?' ou 'Faz sentido pra vocês?'. Pode começar com 'Olha, que legal…' ou variação natural. No máx. 1 emoji na mensagem inteira. Sem asterisco de negrito, sem hashtag, sem link.";
+          " TERMINE com uma pergunta gentil e variada (ex.: 'Curtiu?', 'Faz sentido?', 'Esse encaixa melhor?', 'O que acha desse?', 'Quer que eu segure a disponibilidade?'), sem repetir a mesma pergunta de mensagens anteriores. No máx. 1 emoji na mensagem inteira. Sem asterisco de negrito, sem hashtag, sem link.";
 
         return {
           ok: true,
