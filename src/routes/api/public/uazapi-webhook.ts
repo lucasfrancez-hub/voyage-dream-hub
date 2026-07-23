@@ -73,11 +73,23 @@ type UazPayload = {
 
 function jidToPhone(jid: string | undefined | null): string | null {
   if (!jid) return null;
+  // @lid = Linked ID interno do WhatsApp, não é telefone real — ignora
+  if (jid.includes("@lid")) return null;
   const clean = jid.split("@")[0]?.split(":")[0];
   if (!clean) return null;
-  // Só números
-  return clean.replace(/\D/g, "");
+  const digits = clean.replace(/\D/g, "");
+  if (digits.length < 10 || digits.length > 15) return null;
+  return digits;
 }
+
+function pickJid(m: UazMessage): string {
+  const candidates = [m.chatid, m.key?.remoteJid, m.sender];
+  for (const c of candidates) {
+    if (c && !c.includes("@lid")) return c;
+  }
+  return candidates.find((c) => !!c) ?? "";
+}
+
 
 function extractText(m: UazMessage): string | null {
   return (
@@ -120,12 +132,13 @@ async function processUaz(payload: UazPayload) {
     const fromMe = m.fromMe ?? m.key?.fromMe ?? false;
     if (fromMe) continue; // ignora as próprias mensagens
 
-    const jid = m.sender ?? m.chatid ?? m.key?.remoteJid ?? "";
+    const jid = pickJid(m);
     const phone = jidToPhone(jid);
     if (!phone) {
       console.warn("[uazapi-webhook] mensagem sem número:", JSON.stringify(m).slice(0, 200));
       continue;
     }
+
 
     const wa_message_id = m.id ?? m.messageid ?? m.key?.id ?? `${phone}-${Date.now()}`;
     const profileName = m.pushName ?? m.senderName ?? null;
