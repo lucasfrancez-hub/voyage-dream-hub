@@ -31,6 +31,7 @@ import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
@@ -65,6 +66,7 @@ import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
+import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
 import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/public/nfse-atendenet-test'
 import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/public/test-flight-alert'
 import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
@@ -193,6 +195,11 @@ const AdminContasReceberRoute = AdminContasReceberRouteImport.update({
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInstagramRoute = AdminInstagramRouteImport.update({
+  id: '/instagram',
+  path: '/instagram',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminInstalarExtensaoRoute = AdminInstalarExtensaoRouteImport.update({
@@ -366,6 +373,12 @@ const ApiPublicImportAereoRoute = ApiPublicImportAereoRouteImport.update({
   path: '/api/public/import-aereo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicInstagramWebhookRoute =
+  ApiPublicInstagramWebhookRouteImport.update({
+    id: '/api/public/instagram-webhook',
+    path: '/api/public/instagram-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicNfseAtendenetTestRoute =
   ApiPublicNfseAtendenetTestRouteImport.update({
     id: '/api/public/nfse-atendenet-test',
@@ -497,6 +510,7 @@ export interface FileRoutesByFullPath {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -530,6 +544,7 @@ export interface FileRoutesByFullPath {
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -573,6 +588,7 @@ export interface FileRoutesByTo {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -606,6 +622,7 @@ export interface FileRoutesByTo {
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -651,6 +668,7 @@ export interface FileRoutesById {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -684,6 +702,7 @@ export interface FileRoutesById {
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -730,6 +749,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -763,6 +783,7 @@ export interface FileRouteTypes {
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
+    | '/api/public/instagram-webhook'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -806,6 +827,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -839,6 +861,7 @@ export interface FileRouteTypes {
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
+    | '/api/public/instagram-webhook'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -883,6 +906,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -916,6 +940,7 @@ export interface FileRouteTypes {
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
+    | '/api/public/instagram-webhook'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -963,6 +988,7 @@ export interface RootRouteChildren {
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
+  ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicNfseAtendenetTestRoute: typeof ApiPublicNfseAtendenetTestRoute
   ApiPublicTestFlightAlertRoute: typeof ApiPublicTestFlightAlertRoute
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
@@ -1136,6 +1162,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/instagram': {
+      id: '/admin/instagram'
+      path: '/instagram'
+      fullPath: '/admin/instagram'
+      preLoaderRoute: typeof AdminInstagramRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/instalar-extensao': {
@@ -1376,6 +1409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicImportAereoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/instagram-webhook': {
+      id: '/api/public/instagram-webhook'
+      path: '/api/public/instagram-webhook'
+      fullPath: '/api/public/instagram-webhook'
+      preLoaderRoute: typeof ApiPublicInstagramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/nfse-atendenet-test': {
       id: '/api/public/nfse-atendenet-test'
       path: '/api/public/nfse-atendenet-test'
@@ -1531,6 +1571,7 @@ interface AdminRouteChildren {
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminInstagramRoute: typeof AdminInstagramRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
@@ -1552,6 +1593,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminInstagramRoute: AdminInstagramRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
@@ -1640,6 +1682,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
+  ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicNfseAtendenetTestRoute: ApiPublicNfseAtendenetTestRoute,
   ApiPublicTestFlightAlertRoute: ApiPublicTestFlightAlertRoute,
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,

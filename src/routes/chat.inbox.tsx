@@ -2,11 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo } from "@/lib/chat/queries.functions";
+import { listInstagramConversations, listInstagramMessages, sendInstagramReply } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
@@ -55,6 +56,7 @@ function InboxPage() {
     refetchInterval: 15_000,
   });
 
+  const [channel, setChannel] = useState<"whatsapp" | "instagram">("whatsapp");
   const [folder, setFolder] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -215,6 +217,27 @@ function InboxPage() {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
+            {/* Abas de canal (WhatsApp | Instagram) */}
+            <div className="mt-2 flex gap-1 rounded-lg bg-slate-100 p-0.5">
+              <button
+                onClick={() => { setChannel("whatsapp"); setActiveId(null); }}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  channel === "whatsapp" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500",
+                )}
+              >
+                <MessageCircle className="h-3 w-3" /> WhatsApp
+              </button>
+              <button
+                onClick={() => { setChannel("instagram"); setActiveId(null); }}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  channel === "instagram" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500",
+                )}
+              >
+                <Instagram className="h-3 w-3" /> Instagram
+              </button>
+            </div>
             <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {FOLDERS.map((f) => (
                 <button
@@ -235,7 +258,9 @@ function InboxPage() {
 
           </div>
           <div className="flex-1 space-y-1 overflow-y-auto p-2">
-            {filtered.length === 0 ? (
+            {channel === "instagram" ? (
+              <InstagramList folder={folder} search={search} activeId={activeId} onSelect={setActiveId} />
+            ) : filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
             ) : (
               filtered.map((c) => <ConvItem key={c.id} conv={c} active={activeId === c.id} onClick={() => setActiveId(c.id)} attendantName={c.assigned_to ? attendantMap[c.assigned_to] ?? null : null} />)
@@ -1471,4 +1496,64 @@ function groupByDay(msgs: Msg[]) {
     g.messages.push(m);
   }
   return groups;
+}
+
+// ============ Instagram DM list (embedded) ============
+
+function InstagramList({ folder, search, activeId, onSelect }: { folder: string; search: string; activeId: string | null; onSelect: (id: string) => void }) {
+  const listFn = useServerFn(listInstagramConversations);
+  const { data: convs = [], isLoading } = useQuery({
+    queryKey: ["ig", "conversations"],
+    queryFn: () => listFn(),
+    refetchInterval: 15_000,
+  });
+
+  const filtered = convs.filter((c) => {
+    if (folder === "unread" && (c.unread_count ?? 0) <= 0) return false;
+    if (folder === "resolved" && c.status !== "closed") return false;
+    if (folder !== "resolved" && c.status === "closed") return false;
+    if (search) {
+      const s = search.toLowerCase();
+      return (c.contact_name ?? "").toLowerCase().includes(s) || (c.contact_username ?? "").toLowerCase().includes(s);
+    }
+    return true;
+  });
+
+  if (isLoading) return <div className="p-6 text-center text-xs text-slate-400">Carregando…</div>;
+  if (filtered.length === 0) return <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa no Instagram</div>;
+
+  return (
+    <>
+      {filtered.map((c) => (
+        <button
+          key={c.id}
+          onClick={() => onSelect(c.id)}
+          className={cn(
+            "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+            activeId === c.id ? "bg-pink-50" : "hover:bg-slate-50",
+          )}
+        >
+          {c.contact_profile_pic ? (
+            <img src={c.contact_profile_pic} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
+              <Instagram className="h-4 w-4" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <span className="truncate text-sm font-medium text-slate-900">
+                {c.contact_name ?? c.contact_username ?? "sem nome"}
+              </span>
+              {(c.unread_count ?? 0) > 0 && (
+                <span className="rounded-full bg-pink-500 px-1.5 text-[10px] font-medium text-white">{c.unread_count}</span>
+              )}
+            </div>
+            {c.contact_username && <div className="text-[10px] text-slate-500">@{c.contact_username}</div>}
+            <div className="truncate text-xs text-slate-500">{c.last_message_preview ?? "—"}</div>
+          </div>
+        </button>
+      ))}
+    </>
+  );
 }

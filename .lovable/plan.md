@@ -1,137 +1,70 @@
+# Instagram + Meta App Review — Plano
 
-# Broadcast VIA AIR — Canal + Grupos
+Escopo travado pelas suas respostas: DMs, respostas automáticas de comentários, publicação de Story e Feed, abas WhatsApp/Instagram na caixa de entrada, e um MP4 de demonstração gravado no sandbox.
 
-Área nova no admin (`/admin/disparos`) usada por marketing pra programar postagens no **canal WhatsApp comercial** e em **grupos**, com fila, agendamento, mídia rica, métricas e integração com o inbox atual.
+## 1. Fundação (mesma arquitetura do WhatsApp)
 
-Nada de disparo 1:1 em massa — só canal e grupos, exatamente como você pediu.
+**Migração de banco** (`instagram_*`):
+- `instagram_accounts`: `ig_user_id`, `page_id`, `username`, `access_token` (criptografado), `token_expires_at`, `webhook_verify_token`.
+- `instagram_conversations`: espelho de `whatsapp_conversations` com `ig_user_id`/`ig_thread_id`.
+- `instagram_messages`: DM inbound/outbound + reply threading.
+- `instagram_comments`: `media_id`, `comment_id`, `parent_id`, `from_username`, `text`, `auto_replied_at`.
+- `instagram_media`: registros de posts/stories publicados (`media_type`, `permalink`, `caption`, `published_at`, `scheduled_for`).
+- RLS + GRANT em todas.
 
----
+**Secrets** (via `add_secret` no próximo turno):
+`META_APP_ID`, `META_APP_SECRET`, `META_IG_VERIFY_TOKEN`, `META_IG_LONG_LIVED_TOKEN`, `META_IG_BUSINESS_ID`, `META_PAGE_ID`.
 
-## 1. Descobrir canais e grupos da instância UazAPI
+## 2. Webhook + envio (`/api/public/instagram/webhook`)
 
-Rota nova `POST /api/public/hooks/uazapi-sync-destinos` (chamada sob demanda pelo botão "Sincronizar" no admin):
+- GET → hub challenge (verify token).
+- POST → validação HMAC `x-hub-signature-256`, roteamento:
+  - `messages` → `instagram_messages` + reaproveita `dispatch-ai-debounced` (mesmo agente Camila/Roberto/Maria/Giovani, mesma stickiness).
+  - `comments` → `instagram_comments` + auto-resposta (regra: IA responde pública curta + DM ao autor com pacote sugerido).
+  - `mentions` → mesmo pipeline de comentários.
 
-- Chama `POST {UAZAPI_URL}/group/list` → traz todos os grupos que a instância participa (JID, nome, foto, se é admin).
-- Chama `POST {UAZAPI_URL}/channel/list` (endpoint de newsletters/canais da UazAPI) → traz canais WhatsApp que a linha comercial gerencia, com JID `@newsletter`.
-- Persiste em `wa_broadcast_destinos` com flag `pode_postar` (true só quando somos admin/owner do canal ou grupo).
+**Envio** (`src/lib/instagram/send.server.ts`): DM texto, DM com botão de link (pacote), reply a comentário, DM privado ao autor do comentário — reaproveita `splitToBubbles` e adaptive debounce.
 
-Sem sincronização manual toda hora: um botãozinho de refresh na tela + sync automático 1x/dia via `pg_cron`.
+**Publicação** (`src/lib/instagram/publish.server.ts`): Story (imagem/vídeo), Feed foto única, carrossel, Reels — fluxo `POST /media` → `POST /media_publish`. Botões no admin de pacotes prontos: "Publicar Story" / "Publicar Feed".
 
----
+## 3. Caixa de entrada — abas WhatsApp | Instagram
 
-## 2. Novas tabelas
+Em `src/routes/chat.inbox.tsx`:
+- Duas abas no topo (`WhatsApp` | `Instagram`) trocam a fonte da lista (`channel` param).
+- Filtros existentes (Minha caixa, Não lidas, Aguardando humano, Arquivadas, funil) permanecem por baixo, atuando sobre o canal ativo.
+- Badge de contador de não lidas em cada aba.
+- Bubble adaptada com ícone Instagram + link pra thread; comentários aparecem como card inline.
 
-```text
-wa_broadcast_destinos       um registro por canal/grupo detectado
-  jid, tipo (channel|group), nome, foto_url, participantes,
-  is_admin, pode_postar, tags[], ativo, ultima_sync
+## 4. Gravação de demo pra Meta App Review
 
-wa_broadcast_campanhas      a campanha em si
-  nome, criado_por, status (rascunho|agendada|enviando|concluida|falhou|cancelada),
-  scheduled_at (timestamptz), sent_at, aprovada_por,
-  destino_ids[] (fk pra wa_broadcast_destinos),
-  observacoes_marketing
+Script Playwright headless + ffmpeg em `scripts/record-meta-demo.mjs`:
+1. Login mock no admin.
+2. Abre Caixa de entrada → alterna aba pra Instagram → mostra DM chegando (seed).
+3. IA sugere resposta → humano aprova → envia.
+4. Vai em `/admin/instagram/comentarios` → mostra comentário respondido automaticamente + DM privado enviado.
+5. Vai em `/admin/pacotes` → clica "Publicar Story" → mostra preview → confirma → registra `instagram_media`.
+6. Mesma coisa para Feed.
+7. Legenda sobreposta em cada cena explicando permissão usada (`instagram_business_manage_messages`, `_manage_comments`, `_content_publish`).
 
-wa_broadcast_mensagens      blocos da campanha (permite sequência)
-  campanha_id, ordem,
-  tipo (text|image|video|document|buttons),
-  texto, midia_url, midia_filename, midia_caption,
-  botoes jsonb  [{ id, label, tipo (reply|url), valor }]
+Saída: `/mnt/documents/meta-app-review-instagram.mp4` (1280x800, ~90s, MP4 h264 mudo — Meta aceita sem áudio).
 
-wa_broadcast_envios         resultado por destino x mensagem
-  campanha_id, destino_id, mensagem_id,
-  status (pendente|enviado|entregue|lido|falhou),
-  wa_message_id, error, sent_at, delivered_at, read_at
-```
+## 5. Ordem de execução
 
-Tudo com RLS por `has_role('admin')` **ou** `has_role('marketing')` (papel novo).
-
----
-
-## 3. Papel "marketing"
-
-- Adiciona valor `marketing` no enum `app_role`.
-- Menu `/admin/disparos` só aparece pra admin + marketing.
-- Marketing pode: criar rascunho, agendar, ver métricas.
-- Só admin pode: aprovar campanha, criar destinos manualmente, alterar janela de envio.
-
----
-
-## 4. UI `/admin/disparos`
-
-Três abas:
-
-**a) Campanhas** — lista com status colorido, próximas agendadas no topo, botão "Nova campanha".
-
-**b) Nova campanha (wizard 4 passos)**
-1. Nome interno + selecionar destinos (checkbox de canais/grupos, agrupados por tipo, com filtro por tag e busca).
-2. Compor mensagens (drag-and-drop pra ordenar blocos; cada bloco = texto OU mídia + legenda OU botões). Anexar pacote pronto abre um seletor que gera automaticamente 1 bloco imagem (folder já existente) + 1 bloco texto (curadoria).
-3. Agendar: `datetime-local`. Validação: só permite horários dentro da janela **09h-21h America/Sao_Paulo** (mesma regra do comercial). Também aceita "Enviar agora".
-4. Revisão + botão "Salvar rascunho" ou "Enviar pra aprovação".
-
-**c) Destinos** — lista de canais/grupos sincronizados, gerencia tags, botão "Sincronizar agora".
-
-Preview lateral em bolha WhatsApp escura (reaproveita `WhatsAppBubble`) mostrando exatamente como vai aparecer.
-
----
-
-## 5. Motor de envio
-
-Cron `wa-broadcast-dispatcher` (a cada 1min) chama `POST /api/public/hooks/broadcast-dispatch`:
-
-1. Pega campanhas com `status='agendada'` e `scheduled_at <= now()`.
-2. Marca `status='enviando'`.
-3. Pra cada `destino × mensagem` na ordem: chama UazAPI `send/text` ou `send/media` passando o JID do canal/grupo, com **throttle de 3s entre destinos** (evita ban).
-4. Salva `wa_message_id` retornado em `wa_broadcast_envios`.
-5. Ao terminar, `status='concluida'` (ou `'falhou'` se todos falharam).
-
-Botão "Cancelar" só funciona enquanto `status ∈ (agendada, rascunho)`.
-
----
-
-## 6. Métricas (aba "Métricas" dentro da campanha)
-
-Cards: enviados / entregues / lidos / falhas / respostas geradas.
-
-Timeline por destino com tempo médio até entrega. Ranking dos destinos que mais engajaram.
-
-Alimentado por:
-- webhook UazAPI já existente (`uazapi-webhook.server.ts`) — adiciona um handler pra eventos `message.ack` (delivered/read) casando pelo `wa_message_id` gravado.
-- respostas: quando webhook detecta mensagem inbound de um número que estava em algum grupo destino recente, incrementa `respostas_geradas` da campanha. Canais WhatsApp não têm resposta direta — só reações.
-
----
-
-## 7. Integração com o inbox
-
-Mensagens de grupo já entram no fluxo normal do webhook — vira uma conversa `wa_conversations` marcada como `is_group=true` (coluna nova). Inbox ganha filtro "Grupos" pra separar do 1:1. Camila/Roberto **não respondem grupos automaticamente**; ficam sempre em modo humano.
-
-Canais são unidirecionais — não geram conversa no inbox.
-
----
-
-## 8. Regras de conteúdo (IA validadora leve)
-
-Antes de agendar, roda uma checagem local (sem chamar IA externa):
-- Bloqueia se aparecer "assessoria" ou "assessoria completa" (regra permanente sua).
-- Alerta se o texto ultrapassar 1024 chars num único bloco (limite de caption).
-- Alerta se agendou fora da janela 09h-21h.
-
----
+1. Migração + tipos + secrets scaffold.
+2. Webhook + verify + HMAC.
+3. DM inbound/outbound + integração com agent-runner (Camila reaproveitada).
+4. Comentários auto-reply.
+5. Publicação Story/Feed + UI no admin de pacotes.
+6. Abas WhatsApp/Instagram na inbox.
+7. Script de gravação + geração do MP4.
+8. Página `/admin/instagram/setup` com passo-a-passo (Facebook Page → IG Business → App Meta → tokens → webhook URL) e link do MP4 pra você anexar na revisão.
 
 ## Detalhes técnicos
 
-- Migração única cria: enum `marketing`, tabelas acima, índices em `(campanha_id, status)` e `(scheduled_at) WHERE status='agendada'`, RLS por role, trigger de `updated_at`.
-- Cron via `pg_cron` + `pg_net` batendo em `/api/public/hooks/broadcast-dispatch` (padrão que já usamos em `dispatch-ai-debounced` e `close-inactive-protocols`).
-- Sync destinos: cron diário 05h + botão manual.
-- Server functions em `src/lib/broadcast/*.functions.ts` protegidas com `requireSupabaseAuth` + checagem de role.
-- UazAPI: reaproveita `UAZAPI_URL`/`UAZAPI_TOKEN`/`UAZAPI_INSTANCE` já configurados. Endpoints usados: `/group/list`, `/channel/list`, `/send/text`, `/send/media`, `/send/buttons`.
-- Upload de mídia usa bucket novo `broadcast-media` (privado, URL assinada de 7 dias pra envio).
-- Componentes reaproveitados: `WhatsAppBubble`, `AlertDialog`, `confirm`, `PromptInput` (composer), estética glass do inbox.
+- Endpoints: `graph.facebook.com/v21.0/{ig-user-id}/messages`, `/media`, `/media_publish`, `/{comment-id}/replies`.
+- Webhook URL fixa: `https://project--{id}.lovable.app/api/public/instagram/webhook`.
+- Token de longa duração renovado por cron (`/api/public/hooks/refresh-ig-token`) a cada 45 dias.
+- Rate limit Meta: 200 chamadas/hora/usuário — respeitar via fila reutilizando `broadcast-dispatch` pattern.
+- Reuso máximo: `agent-runner`, `dispatch-ai-debounced`, `splitToBubbles`, `camila-prompt`, confirm dialogs, RLS pattern.
 
----
-
-## Fora do escopo (podemos fazer depois)
-
-- Disparo 1:1 em massa pra lista de contatos.
-- IA reescrevendo copy / escolha de melhor horário por contato / A/B test.
-- Fluxo de aprovação multi-etapas (por ora: marketing cria, admin dispara com 1 clique).
+Confirma que posso seguir? Se sim, começo pela migração + webhook + abas na inbox (partes que não precisam dos secrets ainda) e no fim gero o MP4 de demonstração.
