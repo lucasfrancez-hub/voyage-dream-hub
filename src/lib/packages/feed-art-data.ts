@@ -282,6 +282,10 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
       .map((p) => String(p ?? "").trim())
       .filter(Boolean)
       .join(" · ") || null,
+    ticketsParks: (pkg.services?.tickets?.parks ?? [])
+      .map((p) => String(p ?? "").trim())
+      .filter(Boolean),
+
 
 
   };

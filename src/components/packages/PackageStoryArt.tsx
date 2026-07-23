@@ -94,16 +94,29 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
     : /pensao\s*completa/i.test(mealLabelRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ? "Pensão Comp."
     : /meia\s*pensao/i.test(mealLabelRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ? "Meia Pensão"
     : "Café";
-  const ticketsShort = (() => {
-    const raw = (data.ticketsLabel || "").trim();
-    if (!raw) return "Ingressos";
-    return raw.length <= 14 ? raw : "Ingressos";
-  })();
-  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) => {
-    if (it.key === "cafeDaManha") return { ...it, label: shortMeal };
-    if (it.key === "ingressos") return { ...it, label: ticketsShort };
-    return it;
+  const parks = (data.ticketsParks ?? []).map((p) => String(p ?? "").trim()).filter(Boolean);
+  const formatParkShort = (park: string) => {
+    const compact = park
+      .replace(/\bUniversal\b/gi, "Univ.")
+      .replace(/\bdias?\b/gi, "d")
+      .replace(/\s+/g, " ")
+      .trim();
+    return compact.length <= 14 ? compact : compact.slice(0, 13) + "…";
+  };
+  const includes = INCLUDES.flatMap((it) => {
+    if (!data.inclusos[it.key]) return [];
+    if (it.key === "cafeDaManha") return [{ ...it, label: shortMeal }];
+    if (it.key === "ingressos") {
+      if (parks.length === 0) return [{ ...it, label: "Ingressos" }];
+      return parks.map((park, idx) => ({
+        key: `ingressos-${idx}` as unknown as IncludeItem["key"],
+        label: formatParkShort(park),
+        icon: I.ticket,
+      }));
+    }
+    return [it];
   });
+
 
 
   const { top, bottom } = splitDestino(data.destino);
