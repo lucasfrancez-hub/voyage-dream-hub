@@ -3787,25 +3787,8 @@ function UnlinkedHotelsAlert({
     [packages, ignored],
   );
   const hasIgnored = ignored.size > 0;
-  if (dismissed || unlinked.length === 0) {
-    if (hasIgnored && !dismissed && unlinked.length === 0) {
-      return (
-        <div className="mb-3 flex items-center justify-between gap-2 bg-[#1C252E] border border-slate-800 rounded-full pl-3 pr-2 py-1.5 shadow-xl shadow-black/20">
-          <span className="text-[11px] text-slate-400">
-            {ignored.size} hotel(is) ignorado(s) no alerta de TripAdvisor.
-          </span>
-          <button
-            type="button"
-            onClick={restoreAll}
-            className="text-[11px] font-semibold text-[#F26B1F] hover:text-[#ff8846] px-2 py-0.5 rounded-full"
-          >
-            Restaurar
-          </button>
-        </div>
-      );
-    }
-    return null;
-  }
+  if (dismissed || unlinked.length === 0) return null;
+
 
   if (!expanded) {
     return (
