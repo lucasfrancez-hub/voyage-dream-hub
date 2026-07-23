@@ -344,8 +344,8 @@ const CSS = `
 .vstory-price-line{display:flex;align-items:baseline;justify-content:center;margin-bottom:6px}
 .vstory-price-x{font-size:18px;font-weight:700;margin-right:6px}
 .vstory-price-cur{font-size:28px;font-weight:700;color:var(--brand-orange);margin-right:6px}
-.vstory-price-num{font-size:84px;font-weight:900;color:var(--brand-orange);letter-spacing:-.04em;line-height:1}
-.vstory-price-cents{font-size:32px;font-weight:700;color:var(--brand-orange)}
+.vstory-price-num{font-size:84px;font-weight:900;color:var(--brand-orange);letter-spacing:-.04em;line-height:1;margin-right:-2px}
+.vstory-price-cents{font-size:32px;font-weight:700;color:var(--brand-orange);margin-left:-4px}
 .vstory-price-bar{width:100%;height:1px;background:var(--brand-orange);opacity:.5;margin:10px 0}
 .vstory-price-total{margin:0;font-size:16px;font-weight:500;text-align:center}
 .vstory-price-total span{color:var(--brand-orange);font-weight:700}
