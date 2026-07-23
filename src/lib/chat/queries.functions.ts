@@ -468,16 +468,20 @@ export const sendHumanReply = createServerFn({ method: "POST" })
     const content = capitalizeKnownNames(capitalizeBubbles(data.content), [convFull?.display_name?.split(/\s+/)[0]]);
     const prefix = buildSenderPrefix(senderName);
 
-    await saveMessage({
-      conversation_id: conv.id,
-      direction: "outbound",
-      sender: "human",
-      content,
-      sender_user_id: context.userId,
-      reply_to_wa_id: data.reply_to_wa_id ?? null,
-      reply_to_snippet: data.reply_to_snippet ?? null,
-      reply_to_sender: data.reply_to_sender ?? null,
-    });
+    const { splitToBubbles } = await import("@/lib/whatsapp/send.server");
+    const bubbles = splitToBubbles(content);
+    for (let i = 0; i < bubbles.length; i++) {
+      await saveMessage({
+        conversation_id: conv.id,
+        direction: "outbound",
+        sender: "human",
+        content: bubbles[i],
+        sender_user_id: context.userId,
+        reply_to_wa_id: i === 0 ? (data.reply_to_wa_id ?? null) : null,
+        reply_to_snippet: i === 0 ? (data.reply_to_snippet ?? null) : null,
+        reply_to_sender: i === 0 ? (data.reply_to_sender ?? null) : null,
+      });
+    }
 
     await sendWhatsAppBubbles(conv.wa_phone, content, prefix, {
       replyId: data.reply_to_wa_id ?? null,
