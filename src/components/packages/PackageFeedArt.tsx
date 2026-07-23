@@ -101,8 +101,10 @@ const INCLUDES: IncludeItem[] = [
   { key: "transfer",          label: "Transfer",           icon: I.bus },
   { key: "seguroViagem",      label: "Seguro\nViagem",     icon: I.shield },
   { key: "esimInternacional", label: "eSIM\nIntl.",        icon: I.wifi },
+  { key: "ingressos",         label: "Ingressos",          icon: I.ticket },
   { key: "maisServicos",      label: "E mais\nserviços",   icon: I.bus },
 ];
+
 
 function splitDestino(destino: string) {
   const parts = destino.trim().split(/\s+/);
