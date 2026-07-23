@@ -844,13 +844,15 @@ Regras:
 VIA AIR, Via Aérea, Voe Air, voeair.com e Infotera são agência/plataforma e NUNCA podem ser supplier_name. Se aparecer "Cativa" em qualquer trecho, inclusive nas cláusulas do Protec Travel, supplier_name deve ser "Cativa Operadora".
 
 Retorne apenas JSON exatamente neste formato:
-{"supplier_name":"","services":{"seguro":{"enabled":false,"cobertura":"","moeda":"USD"},"cancelamento":{"enabled":false,"cobertura":"","moeda":"BRL"},"transfer":{"enabled":false,"sentido":"in_out"},"city_tour":{"enabled":false,"detalhe":""},"outros":[]}}
+{"supplier_name":"","services":{"seguro":{"enabled":false,"cobertura":"","moeda":"USD"},"cancelamento":{"enabled":false,"cobertura":"","moeda":"BRL"},"transfer":{"enabled":false,"sentido":"in_out"},"city_tour":{"enabled":false,"detalhe":""},"tickets":{"enabled":false,"parks":[]},"outros":[]}}
 
 Regras:
 - seguro = seguro/assistência médica de viagem; ative mesmo sem valor de cobertura.
 - cancelamento = Protec Travel, flexibilidade tarifária ou cobertura de cancelamento involuntário; é separado do seguro. Extraia valor e moeda.
 - transfer/traslado de chegada e saída = enabled true e sentido in_out.
+- tickets = INGRESSOS de parques/atrações (Disney, Universal, SeaWorld, LEGOLAND, Busch Gardens, Volcano Bay, Aquatica, Discovery Cove etc.). Preencha parks com nomes CURTOS (["Disney","Universal"]); agrupe todos os parques Disney sob "Disney" e todos Universal sob "Universal".
 - Não invente valores.`,
+
               },
               {
                 role: "user",
