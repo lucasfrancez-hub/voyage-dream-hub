@@ -83,6 +83,53 @@ function drawCover(context: CanvasRenderingContext2D, image: HTMLImageElement, w
   context.drawImage(image, sourceX, 0, sourceWidth, sourceHeight, 0, 0, width, height);
 }
 
+function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  const radius = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+type PanelRect = { x: number; y: number; w: number; h: number; radius: number; dark: boolean };
+
+function collectPanelRects(
+  stage: HTMLElement,
+  targetWidth: number,
+  targetHeight: number,
+): PanelRect[] {
+  const stageRect = stage.getBoundingClientRect();
+  const sx = targetWidth / stageRect.width;
+  const sy = targetHeight / stageRect.height;
+  const nodes = stage.querySelectorAll<HTMLElement>(".glass-panel, .glass-panel-dark");
+  const rects: PanelRect[] = [];
+  nodes.forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return;
+    const style = window.getComputedStyle(el);
+    const cssRadius = parseFloat(style.borderTopLeftRadius) || 20;
+    rects.push({
+      x: (r.left - stageRect.left) * sx,
+      y: (r.top - stageRect.top) * sy,
+      w: r.width * sx,
+      h: r.height * sy,
+      radius: cssRadius * sx,
+      dark: el.classList.contains("glass-panel-dark"),
+    });
+  });
+  return rects;
+}
+
 export async function captureArtPng(stage: HTMLElement, options: CaptureOptions): Promise<Blob> {
   const inner = stage.querySelector<HTMLElement>(options.innerSelector);
   const background = stage.querySelector<HTMLElement>(options.backgroundSelector);
@@ -92,6 +139,9 @@ export async function captureArtPng(stage: HTMLElement, options: CaptureOptions)
   const previousStageBackground = stage.style.background;
   const previousInnerBackground = inner.style.background;
   const previousBackgroundDisplay = background.style.display;
+
+  // Coleta rects ANTES de esconder o fundo (layout permanece igual, mas garantimos consistência).
+  const panelRects = collectPanelRects(stage, options.width, options.height);
 
   let foregroundBlob: Blob | null = null;
   try {
@@ -128,13 +178,38 @@ export async function captureArtPng(stage: HTMLElement, options: CaptureOptions)
     const context = canvas.getContext("2d");
     if (!context) throw new Error("O navegador não conseguiu preparar a imagem.");
 
+    // 1. Foto de fundo
     drawCover(context, photo, options.width, options.height);
+    // 2. Gradiente global
     const gradient = context.createLinearGradient(0, 0, 0, options.height);
     gradient.addColorStop(0, `rgba(0,0,0,${options.gradientTopOpacity})`);
     gradient.addColorStop(options.gradientMiddle, "rgba(0,0,0,0)");
     gradient.addColorStop(1, "rgba(0,0,0,0.95)");
     context.fillStyle = gradient;
     context.fillRect(0, 0, options.width, options.height);
+
+    // 3. Simula backdrop-filter: por painel, redesenha a foto borrada dentro do recorte arredondado.
+    //    O foreground já contém a tintura escura translúcida do painel, então basta o borrado por baixo.
+    if (panelRects.length > 0 && "filter" in context) {
+      for (const rect of panelRects) {
+        context.save();
+        roundedRectPath(context, rect.x, rect.y, rect.w, rect.h, rect.radius);
+        context.clip();
+        try {
+          context.filter = "blur(36px) saturate(140%)";
+        } catch {
+          /* alguns navegadores antigos ignoram */
+        }
+        drawCover(context, photo, options.width, options.height);
+        // Aplica também o gradiente dentro do recorte para manter a tonalidade.
+        context.filter = "none";
+        context.fillStyle = gradient;
+        context.fillRect(rect.x, rect.y, rect.w, rect.h);
+        context.restore();
+      }
+    }
+
+    // 4. Foreground (textos, ícones, painel translúcido por cima do blur)
     context.drawImage(foreground, 0, 0, options.width, options.height);
 
     return await new Promise<Blob>((resolve, reject) => {
@@ -147,6 +222,7 @@ export async function captureArtPng(stage: HTMLElement, options: CaptureOptions)
     URL.revokeObjectURL(foregroundUrl);
   }
 }
+
 
 function isAppleMobile() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
