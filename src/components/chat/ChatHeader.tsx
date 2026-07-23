@@ -17,7 +17,14 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "dark", onToggleTheme, onOpenMobileNav }: ChatHeaderProps) {
-  const agents = useMemo(currentAgents, []);
+  const fetchOnline = useServerFn(listOnlineAgents);
+  const { data: agentsData } = useQuery({
+    queryKey: ["chat-online-agents"],
+    queryFn: () => fetchOnline({}),
+    refetchInterval: 60_000, // revalida de minuto em minuto
+    staleTime: 30_000,
+  });
+  const agents: string[] = (agentsData ?? []).map((a: { nome: string }) => a.nome);
   const displayName = (userFullName?.trim())
     || (userEmail ? userEmail.split("@")[0]!.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : null);
   return (
