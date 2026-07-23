@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search, CalendarClock } from "lucide-react";
+import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search, CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   listCampanhas,
   listDestinos,
@@ -18,7 +18,7 @@ import {
 } from "@/lib/broadcast/broadcast.functions";
 import { confirm } from "@/lib/confirm";
 
-export const Route = createFileRoute("/admin/disparos")({
+export const Route = createFileRoute("/chat/broadcast")({
   ssr: false,
   component: DisparosPage,
   head: () => ({
