@@ -659,8 +659,101 @@ export function buildCamilaTools(conversation: WaConversation) {
       },
     }),
 
+    transferir_para_atendente: tool({
+      description:
+        "Use esta tool SEMPRE que o cliente pedir para falar/continuar com um atendente humano específico pelo nome (ex.: 'quero falar com o Lucas', 'me passa pra Nathally', 'a Camila que me atendeu antes'). Busca no cadastro de atendentes VIA AIR (equipe interna) o nome informado. Regras: (1) se encontrar EXATAMENTE 1 atendente, a conversa é transferida automaticamente pra ele — envie 1 mensagem curta confirmando o repasse pelo nome; (2) se encontrar MAIS de um com nome parecido, NÃO transfere — pergunte ao cliente qual deles (ex.: 'temos o Lucas Silva e o Lucas Andrade, sabe dizer qual te atendeu?'); (3) se não encontrar nenhum, informe que não localizou esse atendente e ofereça repassar pro time comercial (aí use a tool escalar_para_humano em seguida se o cliente concordar). NUNCA invente nome de atendente que não venha desta tool.",
+      inputSchema: z.object({
+        nome: z
+          .string()
+          .min(2)
+          .describe("Nome (ou parte do nome) do atendente conforme o cliente falou. Ex.: 'Lucas', 'Nathally', 'Fabrício'. Pode ser primeiro nome, sobrenome ou completo."),
+      }),
+      execute: async ({ nome }) => {
+        const termo = nome.trim().replace(/[%_]/g, "");
+        if (!termo) return { error: "Nome vazio." };
 
+        // Só admins (equipe interna) podem receber transferência — mesma
+        // regra do listAttendants no painel de chat.
+        const { data: roles } = await supabaseAdmin
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "admin");
+        const adminIds = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
+        if (adminIds.length === 0) {
+          return {
+            encontrados: 0,
+            instrucao:
+              "Diga com naturalidade que não encontrou esse atendente no sistema agora e pergunte se quer que você registre um pedido pro time comercial retornar.",
+          };
+        }
+
+        const { data: matches } = await supabaseAdmin
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", adminIds)
+          .ilike("full_name", `%${termo}%`)
+          .order("full_name");
+
+        const list = (matches ?? []).filter((m) => (m.full_name ?? "").trim().length > 0);
+
+        if (list.length === 0) {
+          return {
+            encontrados: 0,
+            termo_buscado: termo,
+            instrucao: `Diga ao cliente, com naturalidade, que não localizou nenhum atendente com o nome "${termo}" no sistema. Pergunte se ele lembra o nome completo ou se prefere que você encaminhe pro time comercial em geral (nesse caso, na próxima resposta use a tool escalar_para_humano com motivo apropriado).`,
+          };
+        }
+
+        if (list.length > 1) {
+          const nomes = list.map((m) => m.full_name).filter(Boolean) as string[];
+          return {
+            encontrados: list.length,
+            opcoes: nomes,
+            instrucao: `Envie UMA mensagem curta perguntando ao cliente qual desses atendentes é. Cite os nomes assim: ${nomes.join(" e ")}. Ex.: "temos aqui o ${nomes[0]} e o ${nomes[1]}${nomes.length > 2 ? ` (e mais ${nomes.length - 2})` : ""} — sabe dizer qual te atendeu?". NÃO transfira até o cliente confirmar; quando confirmar, chame esta tool de novo com o nome completo escolhido.`,
+          };
+        }
+
+        // Match único: transfere agora.
+        const alvo = list[0];
+        const existingTags = conversation.tags ?? [];
+        const newTags = Array.from(new Set([...existingTags, "transferencia_nominal", "aguardando_humano"]));
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({
+            assigned_to: alvo.id,
+            mode: "human",
+            tags: newTags,
+            priority: "high",
+          })
+          .eq("id", conversation.id);
+
+        if (conversation.protocolo_ativo_id) {
+          await supabaseAdmin
+            .from("wa_protocolos")
+            .update({
+              assunto_resumo: `Cliente pediu falar diretamente com ${alvo.full_name}.`,
+            })
+            .eq("id", conversation.protocolo_ativo_id);
+        }
+
+        await recordHandoff({
+          conversation_id: conversation.id,
+          from_mode: "ai",
+          to_mode: "human",
+          reason: `transferencia_nominal:${alvo.full_name}`,
+          briefing: `Cliente solicitou nominalmente falar com ${alvo.full_name}. Conversa atribuída automaticamente.`,
+        });
+
+        return {
+          encontrados: 1,
+          atendente: alvo.full_name,
+          transferido: true,
+          instrucao: `Envie UMA mensagem curta (2-3 linhas) confirmando ao cliente que já transferiu a conversa pra ${alvo.full_name} e que ${alvo.full_name} responde em breve por aqui (horário comercial 09h às 21h — se fora do horário, avisar que retorna no início do próximo expediente). Use "obrigado pela preferência", NUNCA "paciência". A partir desta mensagem você (IA) não responde mais nesta conversa até o atendente humano assumir.`,
+        };
+      },
+    }),
 
     _meta: { isIdentityVerified }, // usado só pelo runner pra decidir prompt
   };
 }
+
