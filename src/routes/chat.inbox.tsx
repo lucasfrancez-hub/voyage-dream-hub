@@ -528,6 +528,9 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
 
 
   const grouped = groupByDay(messages);
+  const repliedIds = new Set(
+    messages.map((m) => m.reply_to_wa_id).filter((x): x is string => !!x),
+  );
   const lastInbound = [...messages].reverse().find((m) => m.direction === "inbound");
   const hoursSince = lastInbound ? (Date.now() - new Date(lastInbound.created_at).getTime()) / 3600000 : 0;
   const window24 = hoursSince > 24;
