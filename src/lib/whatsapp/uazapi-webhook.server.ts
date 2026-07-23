@@ -36,10 +36,25 @@ type UazPayload = {
 
 function jidToPhone(jid: string | undefined | null): string | null {
   if (!jid) return null;
+  // @lid = Linked ID interno do WhatsApp, não é telefone real — ignora
+  if (jid.includes("@lid")) return null;
   const clean = jid.split("@")[0]?.split(":")[0];
   if (!clean) return null;
-  return clean.replace(/\D/g, "");
+  const digits = clean.replace(/\D/g, "");
+  // BR/mundo: telefone tem entre 10 e 15 dígitos. LIDs costumam ter 14+ sem padrão de país
+  if (digits.length < 10 || digits.length > 15) return null;
+  return digits;
 }
+
+function pickJid(m: UazMessage): string {
+  // prioriza chatid/remoteJid (JID real do chat) sobre sender (que pode vir como @lid)
+  const candidates = [m.chatid, m.key?.remoteJid, m.sender];
+  for (const c of candidates) {
+    if (c && !c.includes("@lid")) return c;
+  }
+  return candidates.find((c) => !!c) ?? "";
+}
+
 
 function extractText(m: UazMessage): string | null {
   return (
@@ -78,9 +93,10 @@ export async function processUazPayload(raw: unknown) {
     const fromMe = m.fromMe ?? m.key?.fromMe ?? false;
     if (fromMe) continue;
 
-    const jid = m.sender ?? m.chatid ?? m.key?.remoteJid ?? "";
+    const jid = pickJid(m);
     const phone = jidToPhone(jid);
     if (!phone) continue;
+
 
     const wa_message_id = m.id ?? m.messageid ?? m.key?.id ?? `${phone}-${Date.now()}`;
     const profileName = m.pushName ?? m.senderName ?? null;
