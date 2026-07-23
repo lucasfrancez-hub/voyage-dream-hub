@@ -12,6 +12,8 @@ import {
   excluirCampanha,
   dispararAgora,
   getCampanha,
+  adicionarDestinoPorLink,
+  excluirDestino,
 } from "@/lib/broadcast/broadcast.functions";
 import { confirm } from "@/lib/confirm";
 
@@ -314,25 +316,92 @@ function CampanhasList({
   );
 }
 
-function DestinosList({ destinos, onChanged: _onChanged }: { destinos: Destino[]; onChanged: () => void }) {
-  if (destinos.length === 0) {
-    return (
-      <div className="py-16 text-center text-muted-foreground text-sm border border-dashed border-border rounded-xl">
-        Nenhum destino sincronizado ainda. Clique em "Sincronizar destinos".
-      </div>
-    );
+function DestinosList({ destinos, onChanged }: { destinos: Destino[]; onChanged: () => void }) {
+  const [link, setLink] = useState("");
+  const [adding, setAdding] = useState(false);
+  const doAdd = useServerFn(adicionarDestinoPorLink);
+  const doDel = useServerFn(excluirDestino);
+
+  async function handleAdd() {
+    const l = link.trim();
+    if (!l) return;
+    setAdding(true);
+    try {
+      const r = await doAdd({ data: { link: l } });
+      toast.success(`Adicionado: ${r.destino.nome}`);
+      setLink("");
+      onChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao adicionar");
+    } finally {
+      setAdding(false);
+    }
   }
+
+  async function handleDelete(d: Destino) {
+    const ok = await confirm({
+      title: "Remover destino?",
+      description: `"${d.nome}" será removido da lista de disparos.`,
+      confirmText: "Remover",
+    });
+    if (!ok) return;
+    try {
+      await doDel({ data: { id: d.id } });
+      toast.success("Destino removido");
+      onChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao remover");
+    }
+  }
+
   const grupos = destinos.filter((d) => d.tipo === "group");
   const canais = destinos.filter((d) => d.tipo === "channel");
+
   return (
-    <div className="grid md:grid-cols-2 gap-6">
-      <DestinoGroup title="Canais" icon={Radio} items={canais} />
-      <DestinoGroup title="Grupos" icon={Users} items={grupos} />
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card p-4">
+        <label className="text-sm font-medium mb-2 block">Adicionar por link</label>
+        <p className="text-xs text-muted-foreground mb-3">
+          Cole um convite de grupo (<code>chat.whatsapp.com/…</code>) ou canal (<code>whatsapp.com/channel/…</code>).
+          O número conectado vai entrar/seguir automaticamente.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="https://chat.whatsapp.com/... ou https://whatsapp.com/channel/..."
+            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            disabled={adding}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+          />
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={adding || !link.trim()}
+            className="rounded-md bg-brand-orange px-4 py-2 text-sm font-medium text-white disabled:opacity-50 flex items-center gap-2"
+          >
+            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Adicionar
+          </button>
+        </div>
+      </div>
+
+      {destinos.length === 0 ? (
+        <div className="py-16 text-center text-muted-foreground text-sm border border-dashed border-border rounded-xl">
+          Nenhum destino ainda. Adicione por link acima ou clique em "Sincronizar destinos".
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-6">
+          <DestinoGroup title="Canais" icon={Radio} items={canais} onDelete={handleDelete} />
+          <DestinoGroup title="Grupos" icon={Users} items={grupos} onDelete={handleDelete} />
+        </div>
+      )}
     </div>
   );
 }
 
-function DestinoGroup({ title, icon: Icon, items }: { title: string; icon: typeof Users; items: Destino[] }) {
+function DestinoGroup({ title, icon: Icon, items, onDelete }: { title: string; icon: typeof Users; items: Destino[]; onDelete: (d: Destino) => void }) {
   return (
     <div>
       <h3 className="font-medium flex items-center gap-2 mb-3">
@@ -350,6 +419,14 @@ function DestinoGroup({ title, icon: Icon, items }: { title: string; icon: typeo
                 {!d.pode_postar && <span className="text-amber-500">só leitura</span>}
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => onDelete(d)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              title="Remover"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         ))}
       </div>

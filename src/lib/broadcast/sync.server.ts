@@ -108,6 +108,82 @@ export async function syncBroadcastDestinos(): Promise<SyncCounts> {
   return counts;
 }
 
+// ============================================================================
+// Adicionar destino por link (grupo ou canal)
+// ============================================================================
+
+type AddResult = { destino: { jid: string; tipo: "group" | "channel"; nome: string; foto_url: string | null; participantes: number | null; is_admin: boolean } };
+
+/**
+ * Aceita link de grupo (https://chat.whatsapp.com/CODE) ou canal
+ * (https://whatsapp.com/channel/CODE). Faz join/follow via UazAPI e
+ * upserta em wa_broadcast_destinos.
+ */
+export async function addBroadcastDestinoByLink(link: string): Promise<AddResult> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const raw = link.trim();
+  if (!raw) throw new Error("Link vazio");
+
+  // ---- Grupo ----
+  const groupMatch = raw.match(/chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9_-]{10,})/i);
+  if (groupMatch) {
+    const invitecode = groupMatch[1];
+    const joined = (await uazPost("/group/join", { invitecode: raw })) as {
+      response?: string;
+      group?: Record<string, unknown>;
+      error?: string;
+    } | null;
+    // A resposta pode vir com o grupo ou vazia se já era membro. Buscamos
+    // sempre o info depois pra ter dados frescos.
+    let g: Record<string, unknown> | undefined = joined?.group;
+    if (!g) {
+      // inviteInfo aceita o código
+      try {
+        const info = (await uazPost("/group/inviteInfo", { invitecode })) as { response?: Record<string, unknown>; group?: Record<string, unknown> } | null;
+        g = info?.group ?? info?.response;
+      } catch { /* noop */ }
+    }
+    const jid = pick<string>(g, "jid", "id", "chatid");
+    if (!jid) throw new Error(`Não consegui entrar no grupo (${joined?.error ?? "resposta sem jid"})`);
+    const nome = pick<string>(g, "name", "subject", "title") ?? "Grupo";
+    const foto = pick<string>(g, "picture", "imageurl", "profilePicUrl") ?? null;
+    const parts = pick<number>(g, "size", "participantsCount", "membersCount") ?? null;
+    const isAdmin = Boolean(pick(g, "isAdmin", "iAmAdmin", "youAreAdmin"));
+    const now = new Date().toISOString();
+    await supabaseAdmin.from("wa_broadcast_destinos").upsert(
+      { jid, tipo: "group", nome, foto_url: foto, participantes: parts, is_admin: isAdmin, pode_postar: true, ultima_sync: now },
+      { onConflict: "jid" },
+    );
+    return { destino: { jid, tipo: "group", nome, foto_url: foto, participantes: parts, is_admin: isAdmin } };
+  }
+
+  // ---- Canal ----
+  const channelMatch = raw.match(/(?:whatsapp\.com\/channel|wa\.me\/channel)\/([A-Za-z0-9_-]{10,})/i);
+  if (channelMatch) {
+    const key = channelMatch[1];
+    // 1) resolve info a partir da chave de convite
+    const info = (await uazPost("/newsletter/link", { key })) as { response?: Record<string, unknown>; error?: string } | null;
+    const nl = info?.response ?? {};
+    const jid = pick<string>(nl, "jid", "id") ?? "";
+    const jidFull = jid.includes("@") ? jid : (jid ? `${jid}@newsletter` : "");
+    if (!jidFull) throw new Error(`Canal não encontrado (${info?.error ?? "resposta sem jid"})`);
+    const nome = pick<string>(nl, "name", "subject", "title") ?? "Canal";
+    const foto = pick<string>(nl, "picture", "imageurl", "profilePicUrl") ?? null;
+    const parts = pick<number>(nl, "subscribers", "membersCount", "size") ?? null;
+    const isOwner = Boolean(pick(nl, "isOwner", "iAmOwner", "owner"));
+    // 2) tenta seguir o canal (idempotente — se já segue, tudo bem)
+    try { await uazPost("/newsletter/follow", { jid: jidFull }); } catch (e) { console.warn("[broadcast] follow canal:", e); }
+    const now = new Date().toISOString();
+    await supabaseAdmin.from("wa_broadcast_destinos").upsert(
+      { jid: jidFull, tipo: "channel", nome, foto_url: foto, participantes: parts, is_admin: isOwner, pode_postar: isOwner, ultima_sync: now },
+      { onConflict: "jid" },
+    );
+    return { destino: { jid: jidFull, tipo: "channel", nome, foto_url: foto, participantes: parts, is_admin: isOwner } };
+  }
+
+  throw new Error("Link não reconhecido. Use um convite de grupo (chat.whatsapp.com/...) ou canal (whatsapp.com/channel/...).");
+}
+
 /**
  * Envia UM bloco de mensagem para UM destino (grupo/canal).
  * Retorna { id, error }. Suporta text/image/video/document/buttons.

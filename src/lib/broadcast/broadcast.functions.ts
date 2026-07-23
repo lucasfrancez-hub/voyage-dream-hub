@@ -49,6 +49,26 @@ export const syncDestinos = createServerFn({ method: "POST" })
     return counts;
   });
 
+export const adicionarDestinoPorLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { link: string }) => d)
+  .handler(async ({ context, data }) => {
+    await ensureMarketing(context);
+    const { addBroadcastDestinoByLink } = await import("./sync.server");
+    return await addBroadcastDestinoByLink(data.link);
+  });
+
+export const excluirDestino = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    await ensureMarketing(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("wa_broadcast_destinos").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const updateDestinoTags = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; tags: string[]; ativo?: boolean }) => d)
