@@ -733,7 +733,14 @@ Regras:
 - services.cancelamento: bloco SEPARADO do seguro, para a "Cobertura de Cancelamento Involuntário de Viagem" / "Protec Travel" / "Flexibilidade Tarifária". enabled=true quando aparecer no orçamento (na seção "Inclui", "Outros Serviços" ou como item independente). Preencha cobertura (ex.: "8.000", "5.000") e moeda ("BRL"/"USD"/"EUR") a partir do símbolo. NÃO confunda com seguro médico — são serviços distintos e ambos podem estar ativos ao mesmo tempo.
 - services.transfer: enabled=true quando mencionar "traslados"/"transfer"/"transporte aeroporto-hotel"/"transfer de chegada e saída"; sentido: "in_out" para ida e volta, "in" só chegada, "out" só saída. Frases como "Transfer grátis" ou "PROMO TRANSFER GRÁTIS" também ativam.
 - services.city_tour: enabled=true quando mencionar "city tour"/"passeio panorâmico"/"passeios inclusos"; detalhe = descrição curta.
-- services.tickets: enabled=true quando o orçamento/voucher mencionar INGRESSOS de parques/atrações (ex.: "Disney", "Walt Disney World", "Magic Kingdom", "Epcot", "Universal", "Universal Studios", "Islands of Adventure", "Volcano Bay", "SeaWorld", "Busch Gardens", "LEGOLAND", "Aquatica", "Discovery Cove"). Preencha parks com os nomes CURTOS dos parques/atrações identificados (ex.: ["Disney", "Universal"] — agrupe todos os parques Disney sob "Disney" e todos Universal sob "Universal", sem duplicar). Se não houver ingresso de parque, deixe enabled=false e parks=[].
+- services.tickets: enabled=true SEMPRE que o orçamento/voucher contiver INGRESSOS de parques/atrações. Sinais fortes (qualquer um basta):
+  · seção/título "Ingresso" ou "# Ingresso" (típico Cativa/Infotera — cada parque aparece em uma página dedicada);
+  · frases "Ingresso do Walt Disney World", "Ingresso do Universal Orlando", "Ingresso do SeaWorld", "Ingresso do LEGOLAND", "Ingresso do Busch Gardens";
+  · descrições tipo "N Dias de Ingresso Disney", "N Dias de Ingresso Universal", "Universal Park to Park", "Park Hopper";
+  · títulos de produto "Disney N-Day Ticket", "Universal N-Day Ticket", "Disney Magic Your Way";
+  · menções a: Magic Kingdom, Epcot, Hollywood Studios, Animal Kingdom, Blizzard Beach, Typhoon Lagoon (todos = Disney); Universal Studios, Islands of Adventure, Volcano Bay, Epic Universe, CityWalk (todos = Universal); Discovery Cove, Aquatica (SeaWorld).
+  parks = lista com nomes CURTOS agrupados: use "Disney" para qualquer parque Disney/WDW/water park Disney; "Universal" para qualquer parque Universal (Studios, Islands, Volcano Bay, Epic Universe); "SeaWorld", "Busch Gardens", "LEGOLAND", "Aquatica", "Discovery Cove" para os demais. NUNCA duplique ("Disney" aparece uma vez mesmo com 4 dias em 4 parques diferentes). Se identificar tanto ingressos Disney quanto Universal → parks: ["Disney","Universal"]. Não coloque ingressos em services.outros.
+
 - services.outros: lista de serviços adicionais explícitos (ex.: "eSIM", "bagagem extra", "assistência 24h"). Se não houver menção clara, deixe enabled=false e outros=[]. NÃO liste ingressos de parques aqui — eles vão em services.tickets.
 
 - Retorne SÓ o JSON, começando com { e terminando com }.`;
