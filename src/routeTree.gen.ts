@@ -52,6 +52,7 @@ import { Route as ChatFluxosRouteImport } from './routes/chat.fluxos'
 import { Route as ChatInboxRouteImport } from './routes/chat.inbox'
 import { Route as ChatPastasRouteImport } from './routes/chat.pastas'
 import { Route as ChatProtocolosRouteImport } from './routes/chat.protocolos'
+import { Route as ChatSugestoesRouteImport } from './routes/chat.sugestoes'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as EmbedPacotesDestaqueRouteImport } from './routes/embed.pacotes-destaque'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
@@ -302,6 +303,11 @@ const ChatProtocolosRoute = ChatProtocolosRouteImport.update({
   path: '/protocolos',
   getParentRoute: () => ChatRoute,
 } as any)
+const ChatSugestoesRoute = ChatSugestoesRouteImport.update({
+  id: '/sugestoes',
+  path: '/sugestoes',
+  getParentRoute: () => ChatRoute,
+} as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
@@ -531,6 +537,7 @@ export interface FileRoutesByFullPath {
   '/chat/inbox': typeof ChatInboxRoute
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
+  '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
@@ -609,6 +616,7 @@ export interface FileRoutesByTo {
   '/chat/inbox': typeof ChatInboxRoute
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
+  '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
@@ -689,6 +697,7 @@ export interface FileRoutesById {
   '/chat/inbox': typeof ChatInboxRoute
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
+  '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
@@ -770,6 +779,7 @@ export interface FileRouteTypes {
     | '/chat/inbox'
     | '/chat/pastas'
     | '/chat/protocolos'
+    | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/pacotes-destaque'
     | '/orcamento/$token'
@@ -848,6 +858,7 @@ export interface FileRouteTypes {
     | '/chat/inbox'
     | '/chat/pastas'
     | '/chat/protocolos'
+    | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/pacotes-destaque'
     | '/orcamento/$token'
@@ -927,6 +938,7 @@ export interface FileRouteTypes {
     | '/chat/inbox'
     | '/chat/pastas'
     | '/chat/protocolos'
+    | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/pacotes-destaque'
     | '/orcamento/$token'
@@ -1311,6 +1323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatProtocolosRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/chat/sugestoes': {
+      id: '/chat/sugestoes'
+      path: '/sugestoes'
+      fullPath: '/chat/sugestoes'
+      preLoaderRoute: typeof ChatSugestoesRouteImport
+      parentRoute: typeof ChatRoute
+    }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
       path: '/email/unsubscribe'
@@ -1622,6 +1641,7 @@ interface ChatRouteChildren {
   ChatInboxRoute: typeof ChatInboxRoute
   ChatPastasRoute: typeof ChatPastasRoute
   ChatProtocolosRoute: typeof ChatProtocolosRoute
+  ChatSugestoesRoute: typeof ChatSugestoesRoute
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
@@ -1636,6 +1656,7 @@ const ChatRouteChildren: ChatRouteChildren = {
   ChatInboxRoute: ChatInboxRoute,
   ChatPastasRoute: ChatPastasRoute,
   ChatProtocolosRoute: ChatProtocolosRoute,
+  ChatSugestoesRoute: ChatSugestoesRoute,
 }
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
