@@ -671,20 +671,7 @@ function AdminPackages() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={backfillHotelPhotos}
-            disabled={backfilling}
-            title="Buscar no TripAdvisor as fotos dos hotéis dos pacotes já cadastrados que estão sem imagens."
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-brand-orange disabled:opacity-60"
-          >
-            {backfilling ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ImageIcon className="h-4 w-4" />
-            )}
-            Atualizar fotos
-          </button>
+          <IgnoredHotelsBell />
           <MultiPackageImportButton
             onExtracted={async (list) => {
               if (!list.length) return;
@@ -699,8 +686,22 @@ function AdminPackages() {
               setEditingState(list[0]);
             }}
           />
-
           <button
+            type="button"
+            onClick={backfillHotelPhotos}
+            disabled={backfilling}
+            title="Atualizar fotos dos hotéis (busca no TripAdvisor as fotos dos pacotes sem imagens)"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-brand-orange transition-colors disabled:opacity-60"
+          >
+            {backfilling ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+          </button>
+          <button
+            type="button"
+            title="Novo pacote"
             onClick={async () => {
               try {
                 const base = await nextPackageBaseNumber();
@@ -710,11 +711,12 @@ function AdminPackages() {
               }
               setEditing({ ...emptyForm });
             }}
-            className="inline-flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff7b30] text-white px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-brand-orange hover:bg-[#ff7b30] text-white transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
           >
-            <Plus className="h-5 w-5" strokeWidth={3} /> Novo Pacote
+            <Plus className="h-5 w-5" strokeWidth={3} />
           </button>
         </div>
+
       </div>
 
       {/* Tabs */}
