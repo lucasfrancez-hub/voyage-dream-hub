@@ -3692,30 +3692,10 @@ function UnlinkedHotelsAlert({
   packages: PackageRow[];
   onOpen: (p: PackageRow) => void;
 }) {
-  const IGNORE_KEY = "viaair:unlinked-hotels:ignored";
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [ignored, setIgnored] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try {
-      const raw = window.localStorage.getItem(IGNORE_KEY);
-      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-    } catch {
-      return new Set();
-    }
-  });
-  const persistIgnored = (next: Set<string>) => {
-    setIgnored(new Set(next));
-    try {
-      window.localStorage.setItem(IGNORE_KEY, JSON.stringify(Array.from(next)));
-    } catch {}
-  };
-  const ignore = (id: string) => {
-    const next = new Set(ignored);
-    next.add(id);
-    persistIgnored(next);
-  };
-  const restoreAll = () => persistIgnored(new Set());
+  const { ids: ignored, ignore, restoreAll } = useIgnoredHotels();
+
 
   const unlinked = useMemo(
     () =>
