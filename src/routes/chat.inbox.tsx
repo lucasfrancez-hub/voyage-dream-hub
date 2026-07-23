@@ -28,10 +28,24 @@ type Msg = Awaited<ReturnType<typeof listMessages>>[number];
 
 const FOLDERS = [
   { key: "all", label: "Todas", icon: InboxIcon },
+  { key: "unread", label: "Não lidas", icon: InboxIcon },
   { key: "ai", label: "Com IA", icon: Bot },
   { key: "human", label: "Humano", icon: Users },
   { key: "resolved", label: "Arquivadas", icon: Archive },
 ] as const;
+
+const AGENT_LABEL: Record<string, string> = {
+  camila: "Camila",
+  nath: "Nath",
+  fabricio: "Fabrício",
+  roberto: "Roberto",
+  maria: "Maria",
+  giovani: "Giovani",
+};
+function agentLabel(slug?: string | null) {
+  if (!slug) return "IA";
+  return AGENT_LABEL[slug] ?? (slug.charAt(0).toUpperCase() + slug.slice(1));
+}
 
 function InboxPage() {
   const listFn = useServerFn(listConversations);
