@@ -1012,7 +1012,9 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
     "cancelamento": { "enabled": true, "cobertura": "8.000", "moeda": "BRL" },
     "transfer": { "enabled": true, "sentido": "in_out" },
     "city_tour": { "enabled": false, "detalhe": "" },
+    "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
     "outros": []
+
   },
   "baggage_scope": "shared | per_flight",
   "outbound_flight": { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T13:05","duration":"04h45","cabin_class":"Econômica","fare_class":"LIGHT","carry_on":true,"checked_bag":false,"personal_item":true,"segments":[ { "airline":"GOL","flight_number":"1137","from_iata":"MGF","from_city":"Maringá","to_iata":"CGH","to_city":"São Paulo","depart_at":"2026-12-21T08:20","arrive_at":"2026-12-21T09:45","duration":"01h25","layover":"01h20 em São Paulo" }, { "airline":"GOL","flight_number":"1502","from_iata":"CGH","from_city":"São Paulo","to_iata":"BPS","to_city":"Porto Seguro","depart_at":"2026-12-21T11:05","arrive_at":"2026-12-21T13:05","duration":"02h00" } ] },
