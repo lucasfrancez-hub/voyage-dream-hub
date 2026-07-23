@@ -32,6 +32,10 @@ export type BroadcastPackage = {
   origin: string | null;
   image_url: string | null;
   caption: string;
+  price_per_person: number | null;
+  going_date: string | null;
+  return_date: string | null;
+  nights: number | null;
 };
 
 function brl2(n: number) {
@@ -202,13 +206,26 @@ export async function listBroadcastPackages(filter: { origin?: string; destinati
       if (c.text) copyMap.set(c.package_id, c.text);
     }
   }
-  return rows.map((r) => ({
-    id: r.id,
-    slug: r.slug,
-    title: r.title ?? r.destination ?? r.slug,
-    destination: r.destination,
-    origin: r.origin,
-    image_url: r.image_url,
-    caption: buildPackageCaption(r, copyMap.get(r.id) ?? null),
-  }));
+  return rows.map((r) => {
+    let nights: number | null = null;
+    try {
+      const d1 = new Date(String(r.going_date) + "T12:00:00").getTime();
+      const d2 = new Date(String(r.return_date) + "T12:00:00").getTime();
+      const n = Math.round((d2 - d1) / 86400000);
+      nights = n > 0 ? n : null;
+    } catch { /* noop */ }
+    return {
+      id: r.id,
+      slug: r.slug,
+      title: r.title ?? r.destination ?? r.slug,
+      destination: r.destination,
+      origin: r.origin,
+      image_url: r.image_url,
+      caption: buildPackageCaption(r, copyMap.get(r.id) ?? null),
+      price_per_person: r.price_per_person != null ? Number(r.price_per_person) : null,
+      going_date: r.going_date,
+      return_date: r.return_date,
+      nights,
+    };
+  });
 }
