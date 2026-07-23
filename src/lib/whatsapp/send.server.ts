@@ -205,8 +205,36 @@ async function metaSendMedia(to: string, extra: Record<string, unknown>): Promis
 
 // ================== API pública (mantém assinaturas) ==================
 
-export async function sendWhatsAppText(to: string, body: string): Promise<{ id: string | null; error?: string }> {
-  if (uazConfigured()) return uazSendText(to, body);
+export async function sendWhatsAppText(to: string, body: string, replyId?: string | null): Promise<{ id: string | null; error?: string }> {
+  if (uazConfigured()) return uazSendText(to, body, replyId);
+  // Meta: reply via context.message_id
+  if (replyId) {
+    const token = process.env.WHATSAPP_ACCESS_TOKEN;
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    if (!token || !phoneId) return { id: null, error: "WhatsApp credentials missing" };
+    const url = `https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/messages`;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: normalizePhone(to),
+          context: { message_id: replyId },
+          type: "text",
+          text: { preview_url: true, body: body.slice(0, 4090) },
+        }),
+      });
+      const rawText = await res.text();
+      let data: { messages?: Array<{ id: string }>; error?: { message: string } } = {};
+      try { data = JSON.parse(rawText); } catch { /* keep empty */ }
+      if (!res.ok) return { id: null, error: data.error?.message ?? `HTTP ${res.status}` };
+      return { id: data.messages?.[0]?.id ?? null };
+    } catch (err) {
+      return { id: null, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
   return metaSendText(to, body);
 }
 
