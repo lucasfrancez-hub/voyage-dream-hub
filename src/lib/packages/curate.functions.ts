@@ -98,36 +98,15 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       const boleto_ate_data_viagem = d !== null && d >= 60;
 
       const svc = p.services ?? {};
-      const services_lines: string[] = [];
-      if (svc.seguro?.enabled) {
-        const cob = svc.seguro.cobertura?.toString().trim();
-        const moeda = svc.seguro.moeda || "USD";
-        services_lines.push(
-          cob
-            ? `Seguro viagem com cobertura médica de ${moeda} ${cob} por pessoa`
-            : `Seguro viagem com assistência médica`,
-        );
-      }
-      if (svc.cancelamento?.enabled) {
-        const cob = svc.cancelamento.cobertura?.toString().trim();
-        const moeda = svc.cancelamento.moeda || "BRL";
-        services_lines.push(
-          cob
-            ? `Cobertura de cancelamento involuntário de ${moeda} ${cob} por pessoa`
-            : `Cobertura de cancelamento involuntário de viagem`,
-        );
-      }
-      if (svc.transfer?.enabled) {
-        services_lines.push(`Transfer aeroporto ↔ hotel (${sentidoLabel(svc.transfer.sentido)})`);
-      }
-      if (svc.city_tour?.enabled) {
-        const det = svc.city_tour.detalhe?.trim();
-        services_lines.push(det ? `City tour: ${det}` : `City tour incluso`);
-      }
-      for (const extra of svc.outros ?? []) {
-        const t = (extra || "").trim();
-        if (t) services_lines.push(t);
-      }
+      const services_emojis: string[] = [];
+      if (svc.seguro?.enabled) services_emojis.push("🛡️");
+      if (svc.cancelamento?.enabled) services_emojis.push("🧾");
+      if (svc.transfer?.enabled) services_emojis.push("🚐");
+      if (svc.city_tour?.enabled) services_emojis.push("🗺️");
+      const outrosCount = (svc.outros ?? []).filter((e) => (e || "").trim()).length;
+      for (let i = 0; i < outrosCount; i++) services_emojis.push("✨");
+      const services_emoji_line = services_emojis.join(" ");
+
 
       return {
         title: p.title,
@@ -143,7 +122,8 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         url: `${baseUrl}/w/${p.slug}`,
         days_until_departure: d,
         boleto_ate_data_viagem,
-        services_lines,
+        services_emoji_line,
+
       };
     });
 
@@ -170,16 +150,10 @@ Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("p
 🗓️ {DD a DD/MÊS EM CAIXA ALTA} ({N noites})
 🏨 {Hotel} {estrelas em ★} — {regime, ex.: Café da Manhã / All Inclusive}
 
-{SE E SOMENTE SE o item tiver "services_lines" com pelo menos 1 item, adicione um bloco em branco antes e depois com o título:}
-*SERVIÇOS INCLUSOS:*
-{Uma linha por item de "services_lines", cada linha começando com o emoji apropriado:
- • 🛡️ para "Seguro viagem …"
- • 🧾 para "Cobertura de cancelamento …"
- • 🚐 para "Transfer …"
- • 🗺️ para "City tour …"
- • ✨ para qualquer outro item de "outros" que não caia nas categorias acima.
-NÃO invente serviços — use SÓ o texto exato de services_lines, adicionando apenas o emoji na frente.}
-{SE "services_lines" estiver vazio, NÃO inclua esse bloco.}
+{SE E SOMENTE SE "services_emoji_line" NÃO for vazio, adicione uma linha em branco e depois EXATAMENTE essa linha só com os emojis (sem título, sem texto, sem asteriscos, sem descrição), copiando o valor de "services_emoji_line" como está. Ex.: 🛡️ 🚐 🗺️}
+{SE "services_emoji_line" estiver vazio, NÃO inclua nada.}
+
+
 
 *FORMAS DE PAGAMENTO:*
 🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S) _(5% de desconto já aplicado)_
