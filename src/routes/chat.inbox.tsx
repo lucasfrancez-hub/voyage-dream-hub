@@ -368,6 +368,9 @@ function ConvItem({ conv, active, onClick, attendantName }: { conv: Conv; active
       : conv.mode === "human" && attendantName
         ? { label: firstName(attendantName) || attendantName, icon: "human" as const }
         : null;
+  const needsHuman =
+    !conv.assigned_to &&
+    ((conv.tags ?? []).includes("aguardando_humano") || conv.mode === "human");
   return (
     <button
       onClick={onClick}
@@ -387,8 +390,11 @@ function ConvItem({ conv, active, onClick, attendantName }: { conv: Conv; active
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <span className="truncate text-sm font-medium text-slate-900">{conv.display_name ?? conv.wa_phone}</span>
+          <span className="truncate text-sm font-medium text-slate-900">{conv.display_name ?? conv.wa_phone}</span>
+          <span className="shrink-0 text-[10px] text-slate-400">{time}</span>
+        </div>
+        {(stage || needsHuman) && (
+          <div className="mt-1 flex min-w-0 items-center gap-1.5">
             {stage && (
               <span
                 className={cn(
@@ -400,9 +406,14 @@ function ConvItem({ conv, active, onClick, attendantName }: { conv: Conv; active
                 {stage.label}
               </span>
             )}
+            {needsHuman && (
+              <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-[#F26B1F]">
+                <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#F26B1F]" />
+                <span className="truncate">Atendimento necessário</span>
+              </span>
+            )}
           </div>
-          <span className="shrink-0 text-[10px] text-slate-400">{time}</span>
-        </div>
+        )}
         {attendingBy && (
           <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-slate-500">
             {attendingBy.icon === "ai" ? (
@@ -414,12 +425,6 @@ function ConvItem({ conv, active, onClick, attendantName }: { conv: Conv; active
               {attendingBy.icon === "ai" ? "IA " : "Atendente "}
               <b className="font-semibold text-slate-700">{attendingBy.label}</b>
             </span>
-          </div>
-        )}
-        {conv.mode === "human" && !conv.assigned_to && (
-          <div className="mt-0.5 mb-1 inline-flex items-center gap-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-[#F26B1F]">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#F26B1F]" />
-            Atendimento necessário
           </div>
         )}
         <div className="flex items-center justify-between gap-2">
