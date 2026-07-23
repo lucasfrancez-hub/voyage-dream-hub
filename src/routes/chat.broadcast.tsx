@@ -1471,10 +1471,16 @@ function CampanhaEditor({
                 </div>
                 <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
               </div>
-              <div className="grid md:grid-cols-2 gap-3">
+              <div className="grid md:grid-cols-3 gap-3">
                 <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
                 <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
+                <DestSelector title="Instagram Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
               </div>
+              {temIgStory && (
+                <p className="mt-2 text-[11px] text-pink-500">
+                  📸 Story do Instagram só publica blocos de <b>imagem</b> com URL pública (o texto vira legenda opcional). Vídeos/documentos/botões são ignorados.
+                </p>
+              )}
             </section>
 
             {/* Secão 3: mensagens */}
