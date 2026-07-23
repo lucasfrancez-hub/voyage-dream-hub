@@ -288,20 +288,33 @@ export async function sendWhatsAppBubbles(
     .filter(Boolean)
     .map((s) => s.charAt(0).toLocaleUpperCase("pt-BR") + s.slice(1));
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
+  // Orçamento total de delays entre balões: no máximo ~8s pra caber
+  // dentro da janela de 30s do Worker mesmo com 8+ bolhas + latência UazAPI.
+  const MAX_TOTAL_DELAY_MS = 8000;
+  let spent = 0;
   for (let i = 0; i < bubbles.length; i++) {
     const body = i === 0 && prefix ? `${prefix}\n${bubbles[i]}` : bubbles[i];
     if (i > 0) {
       const prevLen = bubbles[i - 1].length;
-      let delay = Math.min(6000, 1200 + prevLen * 55);
-      const cur = bubbles[i];
-      const looksLikeHotelHeader = /^\*[^*\n]{3,80}\*\s*$/.test(cur);
-      if (looksLikeHotelHeader) delay += 3500 + Math.floor(Math.random() * 2500);
-      await new Promise((r) => setTimeout(r, delay));
+      const remaining = Math.max(0, MAX_TOTAL_DELAY_MS - spent);
+      const perBubble = Math.min(1600, 400 + prevLen * 18);
+      const delay = Math.min(perBubble, remaining);
+      if (delay > 0) {
+        await new Promise((r) => setTimeout(r, delay));
+        spent += delay;
+      }
     }
-    // O reply/quote só faz sentido no primeiro balão da sequência.
     const replyId = i === 0 ? opts?.replyId ?? null : null;
-    const r = await sendWhatsAppText(to, body, replyId);
-    out.push({ text: body, ...r });
+    try {
+      const r = await sendWhatsAppText(to, body, replyId);
+      out.push({ text: body, ...r });
+      if (r.error) console.warn(`[bubbles] falha #${i + 1}:`, r.error);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[bubbles] exception #${i + 1}:`, msg);
+      out.push({ text: body, id: null, error: msg });
+      // continua para os próximos balões — não aborta a sequência
+    }
   }
   return out;
 }
