@@ -3686,14 +3686,58 @@ function UnlinkedHotelsAlert({
   packages: PackageRow[];
   onOpen: (p: PackageRow) => void;
 }) {
+  const IGNORE_KEY = "viaair:unlinked-hotels:ignored";
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [ignored, setIgnored] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = window.localStorage.getItem(IGNORE_KEY);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch {
+      return new Set();
+    }
+  });
+  const persistIgnored = (next: Set<string>) => {
+    setIgnored(new Set(next));
+    try {
+      window.localStorage.setItem(IGNORE_KEY, JSON.stringify(Array.from(next)));
+    } catch {}
+  };
+  const ignore = (id: string) => {
+    const next = new Set(ignored);
+    next.add(id);
+    persistIgnored(next);
+  };
+  const restoreAll = () => persistIgnored(new Set());
+
   const unlinked = useMemo(
     () =>
-      (packages || []).filter((p) => p.is_active && !!p.hotel_name && !p.tripadvisor_location_id),
-    [packages],
+      (packages || []).filter(
+        (p) => p.is_active && !!p.hotel_name && !p.tripadvisor_location_id && !ignored.has(p.id),
+      ),
+    [packages, ignored],
   );
-  if (dismissed || unlinked.length === 0) return null;
+  const hasIgnored = ignored.size > 0;
+  if (dismissed || unlinked.length === 0) {
+    if (hasIgnored && !dismissed && unlinked.length === 0) {
+      return (
+        <div className="mb-3 flex items-center justify-between gap-2 bg-[#1C252E] border border-slate-800 rounded-full pl-3 pr-2 py-1.5 shadow-xl shadow-black/20">
+          <span className="text-[11px] text-slate-400">
+            {ignored.size} hotel(is) ignorado(s) no alerta de TripAdvisor.
+          </span>
+          <button
+            type="button"
+            onClick={restoreAll}
+            className="text-[11px] font-semibold text-[#F26B1F] hover:text-[#ff8846] px-2 py-0.5 rounded-full"
+          >
+            Restaurar
+          </button>
+        </div>
+      );
+    }
+    return null;
+  }
 
   if (!expanded) {
     return (
@@ -3739,43 +3783,72 @@ function UnlinkedHotelsAlert({
           </span>
           <ChevronDown className="w-4 h-4 text-[#F26B1F] rotate-180 transition-transform" />
         </button>
-        <button
-          type="button"
-          onClick={() => setDismissed(true)}
-          className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
-          title="Ocultar"
-        >
-          <X className="w-4 h-4 text-slate-500" />
-        </button>
+        <div className="flex items-center gap-1">
+          {hasIgnored && (
+            <button
+              type="button"
+              onClick={restoreAll}
+              className="text-[10px] font-semibold text-slate-400 hover:text-[#F26B1F] px-2 py-1 rounded-lg hover:bg-slate-700/40 transition-colors"
+              title="Restaurar hotéis ignorados"
+            >
+              Restaurar ({ignored.size})
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+            title="Ocultar"
+          >
+            <X className="w-4 h-4 text-slate-500" />
+          </button>
+        </div>
       </div>
       <div className="px-4 pb-5 space-y-4">
         <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-          Cadastrados manualmente. Abra e reconecte para puxar fotos, estrelas e endereço oficial.
+          Cadastrados manualmente. Abra e reconecte para puxar fotos, estrelas e endereço oficial —
+          ou clique no × para ignorar hotéis que não constam no TripAdvisor.
         </p>
         <div className="flex flex-wrap gap-2">
           {unlinked.map((p) => (
-            <button
+            <div
               key={p.id}
-              type="button"
-              onClick={() => onOpen(p)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all cursor-pointer group"
-              title={`${p.hotel_name} — ${p.destination}`}
+              className="flex items-center gap-1 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all group"
             >
-              <Building2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#F26B1F]" />
-              <span className="text-[11px] font-medium text-slate-300 max-w-[220px] truncate">
-                {p.hotel_name}
-              </span>
-              <span className="text-slate-600">·</span>
-              <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
-                {p.destination}
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => onOpen(p)}
+                className="flex items-center gap-2 pl-3 pr-1 py-1.5 cursor-pointer"
+                title={`${p.hotel_name} — ${p.destination}`}
+              >
+                <Building2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#F26B1F]" />
+                <span className="text-[11px] font-medium text-slate-300 max-w-[220px] truncate">
+                  {p.hotel_name}
+                </span>
+                <span className="text-slate-600">·</span>
+                <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
+                  {p.destination}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  ignore(p.id);
+                }}
+                className="p-1 mr-1 rounded-full text-slate-500 hover:text-white hover:bg-slate-700/60 transition-colors"
+                title="Ignorar este hotel"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
           ))}
         </div>
       </div>
     </div>
   );
 }
+
 
 function DuplicatePackagesAlert({
   packages,
