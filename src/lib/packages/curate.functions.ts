@@ -84,6 +84,9 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       return Math.round((t - Date.now()) / 86400000);
     };
 
+    const sentidoLabel = (s?: string | null) =>
+      s === "in" ? "somente chegada" : s === "out" ? "somente saída" : "ida e volta (chegada e saída)";
+
     const items = data.packages.map((p) => {
       const occ = p.base_occupancy ?? 2;
       const total = Number(p.price_per_person) * occ;
@@ -93,6 +96,39 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       const stars = p.hotel_stars ? "★".repeat(Math.min(5, Math.max(1, p.hotel_stars))) : "";
       const d = daysUntil(p.going_date);
       const boleto_ate_data_viagem = d !== null && d >= 60;
+
+      const svc = p.services ?? {};
+      const services_lines: string[] = [];
+      if (svc.seguro?.enabled) {
+        const cob = svc.seguro.cobertura?.toString().trim();
+        const moeda = svc.seguro.moeda || "USD";
+        services_lines.push(
+          cob
+            ? `Seguro viagem com cobertura médica de ${moeda} ${cob} por pessoa`
+            : `Seguro viagem com assistência médica`,
+        );
+      }
+      if (svc.cancelamento?.enabled) {
+        const cob = svc.cancelamento.cobertura?.toString().trim();
+        const moeda = svc.cancelamento.moeda || "BRL";
+        services_lines.push(
+          cob
+            ? `Cobertura de cancelamento involuntário de ${moeda} ${cob} por pessoa`
+            : `Cobertura de cancelamento involuntário de viagem`,
+        );
+      }
+      if (svc.transfer?.enabled) {
+        services_lines.push(`Transfer aeroporto ↔ hotel (${sentidoLabel(svc.transfer.sentido)})`);
+      }
+      if (svc.city_tour?.enabled) {
+        const det = svc.city_tour.detalhe?.trim();
+        services_lines.push(det ? `City tour: ${det}` : `City tour incluso`);
+      }
+      for (const extra of svc.outros ?? []) {
+        const t = (extra || "").trim();
+        if (t) services_lines.push(t);
+      }
+
       return {
         title: p.title,
         destination: p.destination,
@@ -107,6 +143,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         url: `${baseUrl}/w/${p.slug}`,
         days_until_departure: d,
         boleto_ate_data_viagem,
+        services_lines,
       };
     });
 
