@@ -26,11 +26,13 @@ const ServicesSchema = z
       .object({ enabled: z.boolean().optional(), detalhe: z.string().nullable().optional() })
       .partial()
       .optional(),
+    passeios: z.array(z.string()).nullable().optional(),
     tickets: z
       .object({ enabled: z.boolean().optional(), parks: z.array(z.string()).nullable().optional() })
       .partial()
       .optional(),
     outros: z.array(z.string()).optional(),
+
 
   })
   .partial()
