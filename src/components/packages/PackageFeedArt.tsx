@@ -111,7 +111,7 @@ const INCLUDES: IncludeItem[] = [
   { key: "maisServicos",      label: "E mais\nserviços",   icon: I.bus },
 ];
 
-const CHIP_CAP = 8;
+const CHIP_CAP = 7;
 
 function shortenPasseio(raw: string): string {
   const t = raw.replace(/\s+/g, " ").trim();
