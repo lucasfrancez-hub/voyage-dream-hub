@@ -696,7 +696,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                   m.direction === "inbound"
                     ? (conv.display_name ?? conv.wa_phone)
                     : m.sender === "camila"
-                      ? (conv.agent_slug === "roberto" ? "Roberto" : "Camila")
+                      ? agentLabel(m.agent_slug ?? conv.agent_slug)
+
                     : m.sender === "human"
                       ? (firstName(m.sender_full_name) ?? "Atendente")
                     : m.sender === "system"
