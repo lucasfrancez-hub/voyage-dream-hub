@@ -173,6 +173,7 @@ function countServices(services?: PackageServices | null): number {
   if (services.cancelamento?.enabled) n++;
   if (services.transfer?.enabled) n++;
   if (services.city_tour?.enabled) n++;
+  if (services.tickets?.enabled && (services.tickets.parks ?? []).some((p) => p && p.trim())) n++;
   n += (services.outros ?? []).filter((x) => x && x.trim()).length;
   return n;
 }
@@ -183,6 +184,7 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
   const groupServices = svcCount >= 2;
   const seguroOn = !!services?.seguro?.enabled;
   const transferOn = !!services?.transfer?.enabled;
+  const ticketsOn = !!services?.tickets?.enabled && (services?.tickets?.parks ?? []).some((p) => p && p.trim());
   return {
     aereo: /aereo|voo|passag|avia/.test(s),
     hotel: /hotel|hospedagem|resort|pousada|acomoda/.test(s),
@@ -191,9 +193,11 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
     transfer: groupServices ? false : (transferOn || /transfer|traslado/.test(s)),
     seguroViagem: groupServices ? false : (seguroOn || /seguro/.test(s)),
     esimInternacional: /esim|chip|internet/.test(s),
+    ingressos: ticketsOn, // ingressos sempre aparecem quando informados
     maisServicos: groupServices,
   };
 }
+
 
 /** Deriva rótulo do regime (all inclusive, meia pensão, etc.) para o chip de refeições. */
 function deriveMealPlanLabel(
