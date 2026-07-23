@@ -1,0 +1,1 @@
+UPDATE public.ai_agents SET horario_inicio='18:00:00', horario_fim='08:00:00' WHERE slug IN ('maria','giovani');
