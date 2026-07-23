@@ -172,11 +172,15 @@ function normalizePasseios(services?: PackageServices | null): string[] {
   if (!services) return [];
   const seen = new Set<string>();
   const out: string[] = [];
+  const isCityTour = (s: string) => /^city\s*tour\b/i.test(s.trim());
   const push = (raw: string) => {
     const t = String(raw ?? "").trim().replace(/\s+/g, " ");
     if (!t) return;
     const k = t.toLowerCase();
     if (seen.has(k)) return;
+    // Dedup por "family": todo City Tour conta como o mesmo passeio.
+    // Mantém a primeira variação (preferencialmente a detalhada).
+    if (isCityTour(t) && [...seen].some((x) => x.startsWith("city tour"))) return;
     seen.add(k);
     out.push(t);
   };
