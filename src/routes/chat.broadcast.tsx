@@ -207,6 +207,14 @@ function DisparosPage() {
               onNew={() => setShowEditor({})}
             />
           </div>
+          <KanbanBoard
+            campanhas={campanhas}
+            destinos={destinos}
+            onEditCampanha={(id) => setShowEditor({ id })}
+            onGoDestinos={() => setTab("destinos")}
+            onSync={sync}
+            syncing={syncing}
+          />
           <AgendaProgramada
             campanhas={campanhas}
             destinos={destinos}
@@ -224,6 +232,7 @@ function DisparosPage() {
               load();
             }}
           />
+
         </div>
       ) : tab === "campanhas" ? (
         <CampanhasList
