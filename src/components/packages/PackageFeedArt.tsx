@@ -124,9 +124,18 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
   const mealChipLabel = mealLabelRaw.includes(" ")
     ? mealLabelRaw.replace(/\s+/, "\n")
     : mealLabelRaw;
-  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) =>
-    it.key === "cafeDaManha" ? { ...it, label: mealChipLabel } : it,
-  );
+  const ticketsChipLabel = (() => {
+    const raw = (data.ticketsLabel || "").trim();
+    if (!raw) return "Ingressos";
+    // Se couber em ~14 chars total (ex.: "Disney · Univ."), usa o label; senão mantém "Ingressos"
+    return raw.length <= 16 ? raw.replace(/\s*·\s*/g, "\n") : "Ingressos";
+  })();
+  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) => {
+    if (it.key === "cafeDaManha") return { ...it, label: mealChipLabel };
+    if (it.key === "ingressos") return { ...it, label: ticketsChipLabel };
+    return it;
+  });
+
 
   const { top, bottom } = splitDestino(data.destino);
   const stars = data.estrelas && data.estrelas > 0 ? Math.max(1, Math.min(5, Math.round(data.estrelas))) : 0;
