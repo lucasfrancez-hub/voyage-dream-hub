@@ -73,7 +73,7 @@ export async function publishInstagramMedia(params: {
       })
       .eq("id", row!.id);
 
-    return { id: row!.id, ...result };
+    return { row_id: row!.id, ...result };
   } catch (e) {
     const msg = (e as Error).message;
     await supabaseAdmin

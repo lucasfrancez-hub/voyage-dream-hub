@@ -58,6 +58,7 @@ import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
+import { Route as AuthenticatedAdminInstagramRouteImport } from './routes/_authenticated/admin.instagram'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
@@ -65,6 +66,7 @@ import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
+import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
 import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/public/nfse-atendenet-test'
 import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/public/test-flight-alert'
 import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
@@ -330,6 +332,12 @@ const WSlugRoute = WSlugRouteImport.update({
   path: '/w/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminInstagramRoute =
+  AuthenticatedAdminInstagramRouteImport.update({
+    id: '/_authenticated/admin/instagram',
+    path: '/admin/instagram',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -366,6 +374,12 @@ const ApiPublicImportAereoRoute = ApiPublicImportAereoRouteImport.update({
   path: '/api/public/import-aereo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicInstagramWebhookRoute =
+  ApiPublicInstagramWebhookRouteImport.update({
+    id: '/api/public/instagram-webhook',
+    path: '/api/public/instagram-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicNfseAtendenetTestRoute =
   ApiPublicNfseAtendenetTestRouteImport.update({
     id: '/api/public/nfse-atendenet-test',
@@ -524,12 +538,14 @@ export interface FileRoutesByFullPath {
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
   '/pacotes/': typeof PacotesIndexRoute
+  '/admin/instagram': typeof AuthenticatedAdminInstagramRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -600,12 +616,14 @@ export interface FileRoutesByTo {
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
   '/pacotes': typeof PacotesIndexRoute
+  '/admin/instagram': typeof AuthenticatedAdminInstagramRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -678,12 +696,14 @@ export interface FileRoutesById {
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
   '/pacotes/': typeof PacotesIndexRoute
+  '/_authenticated/admin/instagram': typeof AuthenticatedAdminInstagramRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -757,12 +777,14 @@ export interface FileRouteTypes {
     | '/protocolo/$protocoloId'
     | '/w/$slug'
     | '/pacotes/'
+    | '/admin/instagram'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
+    | '/api/public/instagram-webhook'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -833,12 +855,14 @@ export interface FileRouteTypes {
     | '/protocolo/$protocoloId'
     | '/w/$slug'
     | '/pacotes'
+    | '/admin/instagram'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
+    | '/api/public/instagram-webhook'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -910,12 +934,14 @@ export interface FileRouteTypes {
     | '/protocolo/$protocoloId'
     | '/w/$slug'
     | '/pacotes/'
+    | '/_authenticated/admin/instagram'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
+    | '/api/public/instagram-webhook'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -960,9 +986,11 @@ export interface RootRouteChildren {
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   WSlugRoute: typeof WSlugRoute
+  AuthenticatedAdminInstagramRoute: typeof AuthenticatedAdminInstagramRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
+  ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicNfseAtendenetTestRoute: typeof ApiPublicNfseAtendenetTestRoute
   ApiPublicTestFlightAlertRoute: typeof ApiPublicTestFlightAlertRoute
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
@@ -1327,6 +1355,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/instagram': {
+      id: '/_authenticated/admin/instagram'
+      path: '/admin/instagram'
+      fullPath: '/admin/instagram'
+      preLoaderRoute: typeof AuthenticatedAdminInstagramRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/pedidos/': {
       id: '/admin/pedidos/'
       path: '/pedidos'
@@ -1374,6 +1409,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/import-aereo'
       fullPath: '/api/public/import-aereo'
       preLoaderRoute: typeof ApiPublicImportAereoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/instagram-webhook': {
+      id: '/api/public/instagram-webhook'
+      path: '/api/public/instagram-webhook'
+      fullPath: '/api/public/instagram-webhook'
+      preLoaderRoute: typeof ApiPublicInstagramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/nfse-atendenet-test': {
@@ -1637,9 +1679,11 @@ const rootRouteChildren: RootRouteChildren = {
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   WSlugRoute: WSlugRoute,
+  AuthenticatedAdminInstagramRoute: AuthenticatedAdminInstagramRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
+  ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicNfseAtendenetTestRoute: ApiPublicNfseAtendenetTestRoute,
   ApiPublicTestFlightAlertRoute: ApiPublicTestFlightAlertRoute,
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
