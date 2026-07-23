@@ -145,6 +145,37 @@ export async function sendWhatsAppTypingIndicator(
   }
 }
 
+/**
+ * Divide um texto em balões (parágrafos separados por linha em branco),
+ * já com capitalização inicial e sem parágrafos vazios. Usado tanto pelo
+ * envio Meta quanto pelo painel, pra que o preview registre um wa_messages
+ * por balão (mesmo padrão que chega no WhatsApp do cliente).
+ */
+export function splitToBubbles(fullText: string, prefix?: string | null): string[] {
+  const paragraphs = fullText
+    .split(/\n{2,}/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => s.charAt(0).toLocaleUpperCase("pt-BR") + s.slice(1));
+  const rawBubbles = paragraphs.length ? paragraphs : [fullText.trim()].filter(Boolean);
+  if (prefix?.trim() && rawBubbles.length) {
+    rawBubbles[0] = `${prefix.trim()}\n${rawBubbles[0]}`;
+  }
+  // Quebra parágrafos gigantes no limite oficial da Meta (~4096)
+  const bubbles: string[] = [];
+  for (const p of rawBubbles) {
+    let remaining = p;
+    while (remaining.length > 4000) {
+      let splitAt = remaining.lastIndexOf(" ", 4000);
+      if (splitAt < 1) splitAt = 4000;
+      bubbles.push(remaining.slice(0, splitAt).trim());
+      remaining = remaining.slice(splitAt).trim();
+    }
+    if (remaining) bubbles.push(remaining);
+  }
+  return bubbles;
+}
+
 export async function sendWhatsAppBubbles(
   to: string,
   fullText: string,
