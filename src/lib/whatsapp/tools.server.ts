@@ -643,7 +643,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         return {
           ok: true,
           instrucao:
-            "Envie UMA mensagem curta avisando que já passou pro time humano assumir daqui, agradeça a paciência e encerre por aqui — NÃO faça mais perguntas nem siga respondendo, o atendente humano vai continuar.",
+            "Envie UMA mensagem curta (2 a 4 linhas) avisando que já passou pro time comercial assumir daqui. OBRIGATÓRIO informar o horário de atendimento comercial: das 09h às 21h (se estiver dentro do horário: 'em breve um dos nossos consultores entra em contato por aqui'; se estiver FORA desse horário: 'nosso comercial atende das 09h às 21h, então logo no início do expediente um consultor te chama por aqui'). Agradeça a paciência e encerre — NÃO faça mais perguntas nem siga respondendo, o atendente humano vai continuar.",
         };
       },
     }),
