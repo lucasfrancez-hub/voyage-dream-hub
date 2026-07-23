@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio } from "lucide-react";
+import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search } from "lucide-react";
 import {
   listCampanhas,
   listDestinos,
@@ -14,6 +14,7 @@ import {
   getCampanha,
   adicionarDestinoPorLink,
   excluirDestino,
+  listPacotesProntos,
 } from "@/lib/broadcast/broadcast.functions";
 import { confirm } from "@/lib/confirm";
 
@@ -454,6 +455,7 @@ function CampanhaEditor({
   const [blocos, setBlocos] = useState<Bloco[]>([{ tipo: "text", texto: "" }]);
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(Boolean(id));
+  const [showPicker, setShowPicker] = useState(false);
 
   const fetchOne = useServerFn(getCampanha);
   const doSalvar = useServerFn(salvarCampanha);
@@ -536,6 +538,7 @@ function CampanhaEditor({
   const grupos = destinos.filter((d) => d.tipo === "group");
 
   return (
+    <>
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
       <div className="w-full max-w-4xl bg-background border border-border rounded-2xl my-4">
         <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background z-10">
@@ -596,9 +599,13 @@ function CampanhaEditor({
 
             {/* Blocos */}
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                 <h3 className="text-sm font-medium">Mensagens ({blocos.length} blocos)</h3>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
+                  <button onClick={() => setShowPicker(true)} className="text-xs rounded-full bg-brand-orange/10 text-brand-orange px-3 py-1 hover:bg-brand-orange/20 inline-flex items-center gap-1 font-medium">
+                    <Package className="h-3 w-3" /> Pacote pronto
+                  </button>
+                  <span className="text-xs text-muted-foreground px-1">·</span>
                   <button onClick={() => addBloco("text")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ Texto</button>
                   <button onClick={() => addBloco("image")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ Imagem</button>
                   <button onClick={() => addBloco("document")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ PDF</button>
@@ -633,6 +640,93 @@ function CampanhaEditor({
             </div>
           </div>
         )}
+      </div>
+    </div>
+    {showPicker && (
+      <PackagePicker
+        onClose={() => setShowPicker(false)}
+        onPick={(bloco) => {
+          setBlocos((b) => [...b, bloco]);
+          setShowPicker(false);
+        }}
+      />
+    )}
+    </>
+  );
+}
+
+function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: Bloco) => void }) {
+  const [pacotes, setPacotes] = useState<{ id: string; slug: string; title: string; destination: string | null; origin: string | null; image_url: string | null; caption: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [origin, setOrigin] = useState("");
+  const [destination, setDestination] = useState("");
+  const [search, setSearch] = useState("");
+  const fetchPkgs = useServerFn(listPacotesProntos);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetchPkgs({ data: { origin: origin.trim() || undefined, destination: destination.trim() || undefined, search: search.trim() || undefined } });
+      setPacotes(r.pacotes ?? []);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao buscar pacotes");
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
+      <div className="w-full max-w-3xl bg-background border border-border rounded-2xl my-4 flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Package className="h-5 w-5 text-brand-orange" /> Selecionar pacote pronto
+          </h2>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-muted"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="p-4 border-b border-border grid sm:grid-cols-3 gap-2">
+          <input value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Origem (ex: Curitiba)" className="rounded-md border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
+          <input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Destino (ex: Orlando)" className="rounded-md border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
+          <div className="flex gap-2">
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Título…" className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
+            <button onClick={load} disabled={loading} className="rounded-md bg-brand-orange px-3 py-2 text-white text-sm disabled:opacity-50 inline-flex items-center gap-1">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {loading && pacotes.length === 0 ? (
+            <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : pacotes.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-12">Nenhum pacote encontrado com esses filtros.</p>
+          ) : (
+            pacotes.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onPick({ tipo: "image", midia_url: p.image_url ?? "", midia_caption: p.caption, texto: null, midia_filename: null })}
+                className="w-full text-left rounded-lg border border-border bg-card p-3 hover:border-brand-orange flex gap-3 items-start"
+              >
+                {p.image_url ? (
+                  <img src={p.image_url} alt="" className="h-16 w-16 rounded-md object-cover shrink-0" loading="lazy" />
+                ) : (
+                  <div className="h-16 w-16 rounded-md bg-muted shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{p.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {p.origin ? `De ${p.origin} · ` : ""}{p.destination ?? ""}
+                  </p>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1 whitespace-pre-line">
+                    {p.caption.split("\n").slice(0, 3).join(" · ")}
+                  </p>
+                </div>
+                <span className="text-xs text-brand-orange shrink-0 self-center">Inserir</span>
+              </button>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

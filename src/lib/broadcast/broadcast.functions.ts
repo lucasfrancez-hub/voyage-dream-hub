@@ -24,6 +24,18 @@ export const broadcastMyRole = createServerFn({ method: "GET" })
     return { role: null };
   });
 
+// ==================== Pacotes prontos (para inserir em campanhas) ====================
+
+export const listPacotesProntos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { origin?: string; destination?: string; search?: string }) => d)
+  .handler(async ({ context, data }) => {
+    await ensureMarketing(context);
+    const { listBroadcastPackages } = await import("./package-message.server");
+    const pacotes = await listBroadcastPackages(data);
+    return { pacotes };
+  });
+
 // ==================== Destinos ====================
 
 export const listDestinos = createServerFn({ method: "GET" })
