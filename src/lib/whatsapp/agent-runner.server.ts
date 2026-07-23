@@ -27,7 +27,7 @@ const AGENT_GENDER: Record<string, "f" | "m"> = {
   maria: "f",
   roberto: "m",
   fabricio: "m",
-  geovane: "m",
+  giovani: "m",
 };
 function genderOf(slug: string): "f" | "m" {
   return AGENT_GENDER[slug.toLowerCase()] ?? "f";

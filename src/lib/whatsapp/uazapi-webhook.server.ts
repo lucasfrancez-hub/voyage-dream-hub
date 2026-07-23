@@ -123,9 +123,13 @@ export async function processUazPayload(raw: unknown) {
       .gte("created_at", thirtySecAgo);
 
     let waitMs: number;
-    if ((recentBurst ?? 0) >= 2) waitMs = 4 * 60 * 1000;
-    else if (convState?.ai_debounce_until) waitMs = 3 * 60 * 1000;
+    // burst de mensagens (2+ em 30s): espera 2min pra pessoa terminar
+    if ((recentBurst ?? 0) >= 2) waitMs = 2 * 60 * 1000;
+    // já tinha debounce ativo (follow-up): espera só 60s
+    else if (convState?.ai_debounce_until) waitMs = 60 * 1000;
+    // primeira msg: 90s pra dar tempo de vir mais
     else waitMs = 90 * 1000;
+
 
     await supabaseAdmin
       .from("wa_conversations")

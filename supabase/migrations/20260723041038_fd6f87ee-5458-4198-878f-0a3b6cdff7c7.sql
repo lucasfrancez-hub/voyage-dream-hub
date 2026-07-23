@@ -1,0 +1,1 @@
+UPDATE public.ai_agents SET slug = 'giovani', nome = 'Giovani' WHERE slug = 'geovane';
