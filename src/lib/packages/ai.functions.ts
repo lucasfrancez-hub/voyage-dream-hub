@@ -652,7 +652,9 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
     },
     "transfer": { "enabled": true, "sentido": "in_out" },
     "city_tour": { "enabled": false, "detalhe": "" },
+    "passeios": ["City Tour Panorâmico", "Vinhedo Concha y Toro", "Farellones", "Viña del Mar e Valparaíso"],
     "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
+
     "outros": ["Assistência 24h"]
 
   },
@@ -733,6 +735,8 @@ Regras:
 - services.cancelamento: bloco SEPARADO do seguro, para a "Cobertura de Cancelamento Involuntário de Viagem" / "Protec Travel" / "Flexibilidade Tarifária". enabled=true quando aparecer no orçamento (na seção "Inclui", "Outros Serviços" ou como item independente). Preencha cobertura (ex.: "8.000", "5.000") e moeda ("BRL"/"USD"/"EUR") a partir do símbolo. NÃO confunda com seguro médico — são serviços distintos e ambos podem estar ativos ao mesmo tempo.
 - services.transfer: enabled=true quando mencionar "traslados"/"transfer"/"transporte aeroporto-hotel"/"transfer de chegada e saída"; sentido: "in_out" para ida e volta, "in" só chegada, "out" só saída. Frases como "Transfer grátis" ou "PROMO TRANSFER GRÁTIS" também ativam.
 - services.city_tour: enabled=true quando mencionar "city tour"/"passeio panorâmico"/"passeios inclusos"; detalhe = descrição curta.
+- services.passeios: ARRAY de strings, uma por passeio/tour/experiência incluído no orçamento. Detecte cada bloco/página titulado "# Passeio", "# City tour", "# Experiência", "# Tour" (padrão Infotera/Cativa/Visual) e também itens listados na seção "Inclui/Incluso" como "City tour", "Passeio a X", "Excursão a Y". Cada passeio vira UMA entrada com nome CURTO e legível em pt-BR (ex.: "Vinhedo Concha y Toro", "Farellones", "Viña del Mar e Valparaíso", "City Tour Panorâmico"). Regras: (1) remova sufixos operacionais como FD, HD, MD, FULL DAY, HALF DAY, PREMIUM, PRIVATIVO, REGULAR, SIC do nome; (2) mantenha diacríticos corretos; (3) NÃO duplique (dedup case-insensitive); (4) ordem = ordem de aparição no documento; (5) se houver city tour genérico + tours específicos, inclua "City Tour" como primeira entrada; (6) NÃO coloque ingressos de parques aqui (esses vão em services.tickets). Se não houver passeios, retorne [].
+
 - services.tickets: enabled=true SEMPRE que o orçamento/voucher contiver INGRESSOS de parques/atrações. Sinais fortes (qualquer um basta):
   · seção/título "Ingresso" ou "# Ingresso" (típico Cativa/Infotera — cada parque aparece em uma página dedicada);
   · frases "Ingresso do Walt Disney World", "Ingresso do Universal Orlando", "Ingresso do SeaWorld", "Ingresso do LEGOLAND", "Ingresso do Busch Gardens";
@@ -855,14 +859,16 @@ Regras:
 VIA AIR, Via Aérea, Voe Air, voeair.com e Infotera são agência/plataforma e NUNCA podem ser supplier_name. Se aparecer "Cativa" em qualquer trecho, inclusive nas cláusulas do Protec Travel, supplier_name deve ser "Cativa Operadora".
 
 Retorne apenas JSON exatamente neste formato:
-{"supplier_name":"","services":{"seguro":{"enabled":false,"cobertura":"","moeda":"USD"},"cancelamento":{"enabled":false,"cobertura":"","moeda":"BRL"},"transfer":{"enabled":false,"sentido":"in_out"},"city_tour":{"enabled":false,"detalhe":""},"tickets":{"enabled":false,"parks":[]},"outros":[]}}
+{"supplier_name":"","services":{"seguro":{"enabled":false,"cobertura":"","moeda":"USD"},"cancelamento":{"enabled":false,"cobertura":"","moeda":"BRL"},"transfer":{"enabled":false,"sentido":"in_out"},"city_tour":{"enabled":false,"detalhe":""},"passeios":[],"tickets":{"enabled":false,"parks":[]},"outros":[]}}
 
 Regras:
 - seguro = seguro/assistência médica de viagem; ative mesmo sem valor de cobertura.
 - cancelamento = Protec Travel, flexibilidade tarifária ou cobertura de cancelamento involuntário; é separado do seguro. Extraia valor e moeda.
 - transfer/traslado de chegada e saída = enabled true e sentido in_out.
 - tickets = INGRESSOS de parques/atrações (Disney, Universal, SeaWorld, LEGOLAND, Busch Gardens, Volcano Bay, Aquatica, Discovery Cove etc.). Preencha parks com nomes CURTOS (["Disney","Universal"]); agrupe todos os parques Disney sob "Disney" e todos Universal sob "Universal".
+- passeios = ARRAY com cada passeio/tour/city tour/excursão incluído. Detecte blocos "# Passeio", "# City tour", "# Tour", "# Excursão" e itens da seção "Inclui" como "Passeio a X". Nome CURTO em pt-BR sem sufixos FD/HD/MD/PREMIUM/PRIVATIVO/REGULAR/SIC. Dedup case-insensitive. NÃO inclua ingressos de parques aqui.
 - Não invente valores.`,
+
 
               },
               {
@@ -1023,7 +1029,9 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
     "cancelamento": { "enabled": true, "cobertura": "8.000", "moeda": "BRL" },
     "transfer": { "enabled": true, "sentido": "in_out" },
     "city_tour": { "enabled": false, "detalhe": "" },
+    "passeios": ["City Tour Panorâmico", "Vinhedo Concha y Toro"],
     "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
+
     "outros": []
 
   },
@@ -1046,6 +1054,8 @@ Regras (aplicar em CADA pacote):
 - services.cancelamento: serviço separado do seguro. enabled=true para "Cobertura de Cancelamento Involuntário de Viagem", "Protec Travel" ou flexibilidade tarifária; extraia cobertura e moeda.
 - services.transfer: enabled=true para transfer/traslado. "chegada e saída", "IN/OUT" ou ida e volta significa sentido="in_out".
 - services.city_tour: enabled=true quando houver city tour ou passeio incluído. Outros extras explícitos vão em services.outros.
+- services.passeios: ARRAY com cada passeio/tour/excursão do orçamento (blocos "# Passeio", "# City tour", "# Tour", "# Excursão" e itens da seção "Inclui"). Nome CURTO em pt-BR sem sufixos FD/HD/MD/PREMIUM/PRIVATIVO/REGULAR/SIC. Dedup case-insensitive. Ordem = ordem de aparição. City tour genérico vira primeira entrada "City Tour". NÃO inclua ingressos de parques aqui.
+
 - services.tickets: enabled=true SEMPRE que houver INGRESSOS de parques/atrações. Sinais: seção/título "Ingresso" ou "# Ingresso" (Cativa/Infotera); frases "Ingresso do Walt Disney World", "Ingresso do Universal Orlando", "Ingresso do SeaWorld", "Ingresso do LEGOLAND"; "N Dias de Ingresso Disney/Universal", "Park to Park", "Park Hopper"; produtos "Disney N-Day Ticket", "Universal N-Day Ticket"; parques nomeados Magic Kingdom/Epcot/Hollywood Studios/Animal Kingdom/Blizzard Beach/Typhoon Lagoon (=Disney), Universal Studios/Islands of Adventure/Volcano Bay/Epic Universe/CityWalk (=Universal), Discovery Cove/Aquatica (SeaWorld). parks = nomes CURTOS SEPARADOS por operador. Disney e Universal SEMPRE em entradas distintas quando ambos existirem. Universal ganha sufixo "+ Epic" se Epic Universe estiver incluído (ex.: "Universal + Epic"); só "Universal" caso contrário. Pode acrescentar dias explícitos ("Disney 4 dias", "Universal 2 dias + Epic") quando o voucher indicar. Nunca duplique o mesmo operador. Outros: "SeaWorld", "Busch Gardens", "LEGOLAND", "Aquatica", "Discovery Cove". Não coloque ingressos em services.outros.
 
 - Cidade em português.

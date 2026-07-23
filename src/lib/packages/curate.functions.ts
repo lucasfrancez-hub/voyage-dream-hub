@@ -26,11 +26,13 @@ const ServicesSchema = z
       .object({ enabled: z.boolean().optional(), detalhe: z.string().nullable().optional() })
       .partial()
       .optional(),
+    passeios: z.array(z.string()).nullable().optional(),
     tickets: z
       .object({ enabled: z.boolean().optional(), parks: z.array(z.string()).nullable().optional() })
       .partial()
       .optional(),
     outros: z.array(z.string()).optional(),
+
 
   })
   .partial()
@@ -144,10 +146,26 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         services_lines.push(`🚐 Transfer aeroporto ↔ hotel (${sentidoLabel(svc.transfer.sentido)})`);
       }
 
-      if (svc.city_tour?.enabled) {
-        const det = svc.city_tour.detalhe?.trim();
-        services_lines.push(det ? `🗺️ City Tour — ${det}` : `🗺️ City Tour`);
-      }
+      const passeiosList = (() => {
+        const list: string[] = [];
+        const seen = new Set<string>();
+        const push = (s: string) => {
+          const t = s.trim().replace(/\s+/g, " ");
+          if (!t) return;
+          const k = t.toLowerCase();
+          if (seen.has(k)) return;
+          seen.add(k);
+          list.push(t);
+        };
+        if (svc.city_tour?.enabled) {
+          const det = svc.city_tour.detalhe?.trim();
+          push(det ? `City Tour — ${det}` : `City Tour`);
+        }
+        for (const p of svc.passeios ?? []) push(String(p ?? ""));
+        return list;
+      })();
+      for (const p of passeiosList) services_lines.push(`🗺️ ${p}`);
+
       if (svc.tickets?.enabled) {
         const parks = (svc.tickets.parks ?? [])
           .map((p) => String(p ?? "").trim())

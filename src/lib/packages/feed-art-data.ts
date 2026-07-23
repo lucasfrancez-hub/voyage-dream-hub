@@ -112,9 +112,11 @@ export type PackageServices = {
   };
   transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null };
   city_tour?: { enabled?: boolean; detalhe?: string | null };
+  passeios?: string[] | null;
   tickets?: { enabled?: boolean; parks?: string[] | null };
   outros?: string[];
 };
+
 
 
 export const SEGURO_MOEDA_SYMBOL: Record<SeguroMoeda, string> = {
@@ -166,13 +168,33 @@ export function formatSeguroCobertura(
   return symOut ? `${symOut} ${formatted}` : formatted;
 }
 
+function normalizePasseios(services?: PackageServices | null): string[] {
+  if (!services) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (raw: string) => {
+    const t = String(raw ?? "").trim().replace(/\s+/g, " ");
+    if (!t) return;
+    const k = t.toLowerCase();
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push(t);
+  };
+  if (services.city_tour?.enabled) {
+    const det = services.city_tour.detalhe?.trim();
+    push(det ? `City Tour — ${det}` : "City Tour");
+  }
+  for (const p of services.passeios ?? []) push(String(p ?? ""));
+  return out;
+}
+
 function countServices(services?: PackageServices | null): number {
   if (!services) return 0;
   let n = 0;
   if (services.seguro?.enabled) n++;
   if (services.cancelamento?.enabled) n++;
   if (services.transfer?.enabled) n++;
-  if (services.city_tour?.enabled) n++;
+  if (normalizePasseios(services).length) n++;
   if (services.tickets?.enabled && (services.tickets.parks ?? []).some((p) => p && p.trim())) n++;
   n += (services.outros ?? []).filter((x) => x && x.trim()).length;
   return n;
@@ -185,6 +207,7 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
   const seguroOn = !!services?.seguro?.enabled;
   const transferOn = !!services?.transfer?.enabled;
   const ticketsOn = !!services?.tickets?.enabled && (services?.tickets?.parks ?? []).some((p) => p && p.trim());
+  const passeiosOn = normalizePasseios(services).length > 0;
   return {
     aereo: /aereo|voo|passag|avia/.test(s),
     hotel: /hotel|hospedagem|resort|pousada|acomoda/.test(s),
@@ -193,10 +216,12 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
     transfer: groupServices ? false : (transferOn || /transfer|traslado/.test(s)),
     seguroViagem: groupServices ? false : (seguroOn || /seguro/.test(s)),
     esimInternacional: /esim|chip|internet/.test(s),
-    ingressos: ticketsOn, // ingressos sempre aparecem quando informados
+    ingressos: ticketsOn,
+    passeios: passeiosOn, // sempre exibe quando houver
     maisServicos: groupServices,
   };
 }
+
 
 
 /** Deriva rótulo do regime (all inclusive, meia pensão, etc.) para o chip de refeições. */
@@ -288,8 +313,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     ticketsParks: (pkg.services?.tickets?.parks ?? [])
       .map((p) => String(p ?? "").trim())
       .filter(Boolean),
-
-
-
+    passeiosList: normalizePasseios(pkg.services ?? null),
   };
 }
+

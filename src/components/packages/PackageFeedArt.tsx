@@ -31,13 +31,16 @@ export type FeedArtData = {
     seguroViagem: boolean;
     esimInternacional: boolean;
     ingressos: boolean;
+    passeios: boolean;
     maisServicos: boolean;
   };
   mealPlanLabel?: string | null;
   ticketsLabel?: string | null;
   ticketsParks?: string[] | null;
+  passeiosList?: string[] | null;
 
 };
+
 
 
 
@@ -104,8 +107,24 @@ const INCLUDES: IncludeItem[] = [
   { key: "seguroViagem",      label: "Seguro\nViagem",     icon: I.shield },
   { key: "esimInternacional", label: "eSIM\nIntl.",        icon: I.wifi },
   { key: "ingressos",         label: "Ingressos",          icon: I.ticket },
+  { key: "passeios",          label: "Passeios",           icon: I.mapPin },
   { key: "maisServicos",      label: "E mais\nserviços",   icon: I.bus },
 ];
+
+const CHIP_CAP = 8;
+
+function shortenPasseio(raw: string): string {
+  const t = raw.replace(/\s+/g, " ").trim();
+  // remove sufixos de duração comuns: FD, HD, MD, PREMIUM, PRIVATIVO, REGULAR
+  const cleaned = t
+    .replace(/\b(FD|HD|MD|FULL\s*DAY|HALF\s*DAY|PREMIUM|PRIVATIVO|REGULAR)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  const words = cleaned.split(/\s+/);
+  const short = words.slice(0, 3).join(" ");
+  return short.length <= 18 ? short : short.slice(0, 17) + "…";
+}
+
 
 
 function splitDestino(destino: string) {
@@ -136,7 +155,8 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
       .trim();
     return `Ingresso\n${compact}`;
   };
-  const includes = INCLUDES.flatMap((it) => {
+  const passeios = (data.passeiosList ?? []).map((p) => String(p ?? "").trim()).filter(Boolean);
+  const rawIncludes = INCLUDES.flatMap((it) => {
     if (!data.inclusos[it.key]) return [];
     if (it.key === "cafeDaManha") return [{ ...it, label: mealChipLabel }];
     if (it.key === "ingressos") {
@@ -147,8 +167,28 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
         icon: I.ticket,
       }));
     }
+    if (it.key === "passeios") {
+      if (passeios.length === 0) return [];
+      return passeios.map((p, idx) => ({
+        key: `passeios-${idx}` as unknown as IncludeItem["key"],
+        label: shortenPasseio(p),
+        icon: I.mapPin,
+      }));
+    }
     return [it];
   });
+  const includes =
+    rawIncludes.length > CHIP_CAP
+      ? [
+          ...rawIncludes.slice(0, CHIP_CAP - 1),
+          {
+            key: "maisServicos" as IncludeItem["key"],
+            label: `+${rawIncludes.length - (CHIP_CAP - 1)}\nserviços`,
+            icon: I.bus,
+          },
+        ]
+      : rawIncludes;
+
 
 
 

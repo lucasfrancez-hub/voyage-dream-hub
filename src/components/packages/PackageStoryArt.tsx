@@ -67,8 +67,23 @@ const INCLUDES: IncludeItem[] = [
   { key: "seguroViagem",      label: "Seguro",   icon: I.shield },
   { key: "esimInternacional", label: "eSIM",     icon: I.wifi },
   { key: "ingressos",         label: "Ingressos", icon: I.ticket },
+  { key: "passeios",          label: "Passeios", icon: I.bus },
   { key: "maisServicos",      label: "+ Serviços", icon: I.bus },
 ];
+
+const STORY_CHIP_CAP = 8;
+
+function shortenPasseioStory(raw: string): string {
+  const t = raw.replace(/\s+/g, " ").trim();
+  const cleaned = t
+    .replace(/\b(FD|HD|MD|FULL\s*DAY|HALF\s*DAY|PREMIUM|PRIVATIVO|REGULAR)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  const words = cleaned.split(/\s+/);
+  const short = words.slice(0, 2).join(" ");
+  return short.length <= 14 ? short : short.slice(0, 13) + "…";
+}
+
 
 
 function splitDestino(destino: string) {
@@ -103,7 +118,8 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
       .trim();
     return compact.length <= 14 ? compact : compact.slice(0, 13) + "…";
   };
-  const includes = INCLUDES.flatMap((it) => {
+  const passeios = (data.passeiosList ?? []).map((p) => String(p ?? "").trim()).filter(Boolean);
+  const rawIncludes = INCLUDES.flatMap((it) => {
     if (!data.inclusos[it.key]) return [];
     if (it.key === "cafeDaManha") return [{ ...it, label: shortMeal }];
     if (it.key === "ingressos") {
@@ -114,8 +130,28 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
         icon: I.ticket,
       }));
     }
+    if (it.key === "passeios") {
+      if (passeios.length === 0) return [];
+      return passeios.map((p, idx) => ({
+        key: `passeios-${idx}` as unknown as IncludeItem["key"],
+        label: shortenPasseioStory(p),
+        icon: I.bus,
+      }));
+    }
     return [it];
   });
+  const includes =
+    rawIncludes.length > STORY_CHIP_CAP
+      ? [
+          ...rawIncludes.slice(0, STORY_CHIP_CAP - 1),
+          {
+            key: "maisServicos" as IncludeItem["key"],
+            label: `+${rawIncludes.length - (STORY_CHIP_CAP - 1)} serv.`,
+            icon: I.bus,
+          },
+        ]
+      : rawIncludes;
+
 
 
 
