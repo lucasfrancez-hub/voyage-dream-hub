@@ -240,6 +240,22 @@ export function buildCamilaTools(conversation: WaConversation) {
             const regime = /all\s*inclusive|tudo\s*incluso/i.test(mealText)
               ? "All Inclusive"
               : /café|cafe|manhã|manha/i.test(mealText) ? "Café da Manhã" : null;
+            const flightInfo = (f: any) => {
+              if (!f || typeof f !== "object") return null;
+              const segs = Array.isArray(f.segments) ? f.segments : [];
+              const numSegs = segs.length;
+              const paradas = numSegs > 1 ? numSegs - 1 : 0;
+              const conexoes = numSegs > 1
+                ? segs.slice(0, -1).map((s: any) => s?.to_city || s?.to_iata).filter(Boolean)
+                : [];
+              return {
+                direto: paradas === 0,
+                paradas,
+                conexoes,
+                cia: f.airline ?? null,
+                duracao: f.duration ?? null,
+              };
+            };
             return {
               slug: p.slug,
               titulo: p.title,
@@ -256,8 +272,11 @@ export function buildCamilaTools(conversation: WaConversation) {
               tem_imagem: !!p.image_url,
               servicos_inclusos: servicos,
               servicos_detalhe: detalhes,
+              voo_ida: flightInfo(p.outbound_flight),
+              voo_volta: flightInfo(p.return_flight),
               link: `https://pedidos.viaair.tur.br/w/${p.slug}`,
             };
+
           }),
         };
       },
