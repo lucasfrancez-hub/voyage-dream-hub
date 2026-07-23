@@ -180,29 +180,48 @@ function DisparosPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : tab === "campanhas" ? (
-        <CampanhasList
-          campanhas={campanhas}
-          destinos={destinos}
-          onEdit={(id) => setShowEditor({ id })}
-          onCancelar={async (id) => {
-            if (!(await confirm({ title: "Cancelar campanha?", description: "Ela não será mais enviada." }))) return;
-            await doCancelar({ data: { id } });
-            toast.success("Campanha cancelada");
-            load();
-          }}
-          onExcluir={async (id) => {
-            if (!(await confirm({ title: "Excluir campanha?", description: "Essa ação não pode ser desfeita." }))) return;
-            await doExcluir({ data: { id } });
-            toast.success("Excluída");
-            load();
-          }}
-          onDisparar={async (id) => {
-            if (!(await confirm({ title: "Disparar agora?", description: "Será enviada imediatamente para todos os destinos selecionados." }))) return;
-            await doDisparar({ data: { id } });
-            toast.success("Enviando…");
-            load();
-          }}
-        />
+        <>
+          <AgendaProgramada
+            campanhas={campanhas}
+            destinos={destinos}
+            onEdit={(id) => setShowEditor({ id })}
+            onCancelar={async (id) => {
+              if (!(await confirm({ title: "Cancelar campanha?", description: "Ela não será mais enviada." }))) return;
+              await doCancelar({ data: { id } });
+              toast.success("Campanha cancelada");
+              load();
+            }}
+            onDisparar={async (id) => {
+              if (!(await confirm({ title: "Disparar agora?", description: "Será enviada imediatamente para todos os destinos selecionados." }))) return;
+              await doDisparar({ data: { id } });
+              toast.success("Enviando…");
+              load();
+            }}
+          />
+          <CampanhasList
+            campanhas={campanhas}
+            destinos={destinos}
+            onEdit={(id) => setShowEditor({ id })}
+            onCancelar={async (id) => {
+              if (!(await confirm({ title: "Cancelar campanha?", description: "Ela não será mais enviada." }))) return;
+              await doCancelar({ data: { id } });
+              toast.success("Campanha cancelada");
+              load();
+            }}
+            onExcluir={async (id) => {
+              if (!(await confirm({ title: "Excluir campanha?", description: "Essa ação não pode ser desfeita." }))) return;
+              await doExcluir({ data: { id } });
+              toast.success("Excluída");
+              load();
+            }}
+            onDisparar={async (id) => {
+              if (!(await confirm({ title: "Disparar agora?", description: "Será enviada imediatamente para todos os destinos selecionados." }))) return;
+              await doDisparar({ data: { id } });
+              toast.success("Enviando…");
+              load();
+            }}
+          />
+        </>
       ) : (
         <DestinosList destinos={destinos} onChanged={load} />
       )}
