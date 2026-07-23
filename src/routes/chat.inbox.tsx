@@ -651,6 +651,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                       senderLabel={senderLabel}
                       status={m.direction === "outbound" ? "delivered" : undefined}
                       deleted={!!m.deleted_at}
+                      replied={!!m.wa_message_id && repliedIds.has(m.wa_message_id)}
                       reply={
                         m.reply_to_wa_id
                           ? { snippet: m.reply_to_snippet ?? "mensagem", sender: m.reply_to_sender ?? null }
