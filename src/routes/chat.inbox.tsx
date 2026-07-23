@@ -505,9 +505,16 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     : null;
 
   const sendMut = useMutation({
-    mutationFn: async (content: string) => sendFn({ data: { conversation_id: conv.id, content } }),
+    mutationFn: async (content: string) => sendFn({ data: {
+      conversation_id: conv.id,
+      content,
+      reply_to_wa_id: replyTo?.wa_id ?? null,
+      reply_to_snippet: replyTo?.snippet ?? null,
+      reply_to_sender: replyTo?.sender ?? null,
+    } }),
     onSuccess: () => {
       setInput("");
+      setReplyTo(null);
       qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
       onRefetch();
     },
