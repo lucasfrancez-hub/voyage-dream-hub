@@ -1312,6 +1312,13 @@ function CampanhaEditor({
 
   const canais = destinos.filter((d) => d.tipo === "channel");
   const grupos = destinos.filter((d) => d.tipo === "group");
+  const destinosSelecionados = destinos.filter((d) => selecionados.has(d.id));
+  const somenteCanais = destinosSelecionados.length > 0 && destinosSelecionados.every((d) => d.tipo === "channel");
+
+  useEffect(() => {
+    if (!somenteCanais) return;
+    setBlocos((atuais) => atuais.filter((bloco) => bloco.tipo !== "image" && bloco.tipo !== "video"));
+  }, [somenteCanais]);
 
   return (
     <>
@@ -1406,9 +1413,9 @@ function CampanhaEditor({
                   </button>
                   <span className="text-muted-foreground/40 px-1">·</span>
                   <button onClick={() => addBloco("text")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Texto</button>
-                  <button onClick={() => addBloco("image")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Imagem</button>
+                  {!somenteCanais && <button onClick={() => addBloco("image")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Imagem</button>}
                   <button onClick={() => addBloco("document")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ PDF</button>
-                  <button onClick={() => addBloco("video")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Vídeo</button>
+                  {!somenteCanais && <button onClick={() => addBloco("video")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Vídeo</button>}
                 </div>
               </div>
               {blocos.length === 0 ? (
@@ -1450,6 +1457,7 @@ function CampanhaEditor({
     </div>
     {showPicker && (
       <PackagePicker
+        includeImage={!somenteCanais}
         onClose={() => setShowPicker(false)}
         onPick={(blocosNovos) => {
           setBlocos((b) => [...b, ...blocosNovos]);
@@ -1461,7 +1469,7 @@ function CampanhaEditor({
   );
 }
 
-function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: Bloco[]) => void }) {
+function PackagePicker({ includeImage, onClose, onPick }: { includeImage: boolean; onClose: () => void; onPick: (b: Bloco[]) => void }) {
   const [pacotes, setPacotes] = useState<{ id: string; slug: string; title: string; destination: string | null; origin: string | null; image_url: string | null; caption: string; price_per_person: number | null; going_date: string | null; return_date: string | null; nights: number | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [origin, setOrigin] = useState("");
@@ -1484,7 +1492,7 @@ function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: B
 
   function insert(p: typeof pacotes[number]) {
     const blocos: Bloco[] = [];
-    if (p.image_url) {
+    if (includeImage && p.image_url) {
       blocos.push({ tipo: "image", midia_url: p.image_url, midia_caption: null, texto: null, midia_filename: null });
     }
     blocos.push({ tipo: "text", texto: p.caption, midia_url: null, midia_caption: null, midia_filename: null });
@@ -1499,7 +1507,9 @@ function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: B
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Package className="h-5 w-5 text-brand-orange" /> Selecionar pacote pronto
             </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Insere imagem + legenda formatada (editável).</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {includeImage ? "Insere imagem + legenda formatada (editável)." : "Para canais, insere somente o texto com preview do link."}
+            </p>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-muted"><X className="h-4 w-4" /></button>
         </div>
