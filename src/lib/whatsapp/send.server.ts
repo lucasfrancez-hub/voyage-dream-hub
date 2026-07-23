@@ -49,11 +49,12 @@ async function uazPost(path: string, body: Record<string, unknown>): Promise<{ i
   }
 }
 
-async function uazSendText(to: string, body: string): Promise<{ id: string | null; error?: string }> {
+async function uazSendText(to: string, body: string, replyId?: string | null): Promise<{ id: string | null; error?: string }> {
   return uazPost("/send/text", {
     number: normalizePhone(to),
     text: body.slice(0, 4090),
     linkPreview: true,
+    ...(replyId ? { replyid: replyId } : {}),
   });
 }
 
