@@ -35,6 +35,8 @@ export type FeedArtData = {
   };
   mealPlanLabel?: string | null;
   ticketsLabel?: string | null;
+  ticketsParks?: string[] | null;
+
 };
 
 
