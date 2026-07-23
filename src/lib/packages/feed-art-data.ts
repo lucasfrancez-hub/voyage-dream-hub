@@ -6,6 +6,8 @@
 import type { FeedArtData } from "@/components/packages/PackageFeedArt";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 import { generatePackageTagline } from "@/lib/packages/ai.functions";
+import { classifyMealPlan, mealPlanLabel, type MealPlanKind } from "@/lib/packages/meal-plan";
+
 
 const FONTS_HREF =
   "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Dancing+Script:wght@600;700&display=swap";
