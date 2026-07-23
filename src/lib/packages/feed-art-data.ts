@@ -247,6 +247,7 @@ export type FeedInputPkg = {
   tripadvisor_address?: string | null;
   services?: PackageServices | null;
   meal_plan?: string | null;
+  supplier_name?: string | null;
 };
 
 
@@ -261,6 +262,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
   ]);
 
   const pessoas = Math.max(1, Number(pkg.base_occupancy) || 2);
+  const isCativa = /cativa/i.test(pkg.supplier_name ?? "");
   return {
     backgroundDataUrl: bg,
     estado: deriveState(pkg.destination, pkg.tripadvisor_address),
@@ -274,8 +276,9 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     estrelas: pkg.hotel_stars,
     quantidadePessoas: pessoas,
     apartamento: APT_LABEL[pessoas] || `de ${pessoas} pessoas`,
-    parcelas: 10,
+    parcelas: isCativa ? 15 : 10,
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
+
     inclusos: detectIncludes(pkg.includes, pkg.services ?? null),
     mealPlanLabel: deriveMealPlanLabel(pkg.meal_plan, pkg.includes),
     ticketsLabel: (pkg.services?.tickets?.parks ?? [])
