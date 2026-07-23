@@ -628,28 +628,47 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           grouped.map((g) => (
             <div key={g.date}>
               <DateDivider label={g.label} />
-              {g.messages.map((m) => (
-                <div key={m.id} className="mb-1">
-                  <WhatsAppBubble
-                    side={m.direction === "inbound" ? "in" : "out"}
-                    content={m.deleted_at ? "🚫 Esta mensagem foi apagada" : m.content}
-                    timestamp={m.created_at}
-                    senderLabel={
-                      m.direction === "inbound"
-                        ? (conv.display_name ?? conv.wa_phone)
-                        : m.sender === "camila"
-                          ? (conv.agent_slug === "roberto" ? "Roberto" : "Camila")
-                        : m.sender === "human"
-                          ? (firstName(m.sender_full_name) ?? "Atendente")
-                        : m.sender === "system"
-                          ? "Sistema"
-                        : undefined
-                    }
-                    status={m.direction === "outbound" ? "delivered" : undefined}
-                    deleted={!!m.deleted_at}
-                  />
-                </div>
-              ))}
+              {g.messages.map((m) => {
+                const senderLabel =
+                  m.direction === "inbound"
+                    ? (conv.display_name ?? conv.wa_phone)
+                    : m.sender === "camila"
+                      ? (conv.agent_slug === "roberto" ? "Roberto" : "Camila")
+                    : m.sender === "human"
+                      ? (firstName(m.sender_full_name) ?? "Atendente")
+                    : m.sender === "system"
+                      ? "Sistema"
+                    : undefined;
+                return (
+                  <div key={m.id} className="mb-1">
+                    <WhatsAppBubble
+                      side={m.direction === "inbound" ? "in" : "out"}
+                      content={m.content}
+                      timestamp={m.created_at}
+                      senderLabel={senderLabel}
+                      status={m.direction === "outbound" ? "delivered" : undefined}
+                      deleted={!!m.deleted_at}
+                      reply={
+                        m.reply_to_wa_id
+                          ? { snippet: m.reply_to_snippet ?? "mensagem", sender: m.reply_to_sender ?? null }
+                          : null
+                      }
+                      onReply={
+                        m.deleted_at || !m.wa_message_id
+                          ? undefined
+                          : () => {
+                              const preview = m.content.replace(/^\[\[media:[^\]]+\]\]\n?/, "").slice(0, 240) || "mensagem";
+                              setReplyTo({
+                                wa_id: m.wa_message_id!,
+                                snippet: preview,
+                                sender: senderLabel ?? null,
+                              });
+                            }
+                      }
+                    />
+                  </div>
+                );
+              })}
             </div>
           ))
         )}
