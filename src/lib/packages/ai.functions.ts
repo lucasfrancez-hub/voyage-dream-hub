@@ -1029,7 +1029,9 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
     "cancelamento": { "enabled": true, "cobertura": "8.000", "moeda": "BRL" },
     "transfer": { "enabled": true, "sentido": "in_out" },
     "city_tour": { "enabled": false, "detalhe": "" },
+    "passeios": ["City Tour Panorâmico", "Vinhedo Concha y Toro"],
     "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
+
     "outros": []
 
   },
