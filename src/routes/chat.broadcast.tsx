@@ -1388,8 +1388,10 @@ function CampanhaEditor({
 
   const canais = destinos.filter((d) => d.tipo === "channel");
   const grupos = destinos.filter((d) => d.tipo === "group");
+  const igStories = destinos.filter((d) => d.tipo === "instagram_story");
   const destinosSelecionados = destinos.filter((d) => selecionados.has(d.id));
   const somenteCanais = destinosSelecionados.length > 0 && destinosSelecionados.every((d) => d.tipo === "channel");
+  const temIgStory = destinosSelecionados.some((d) => d.tipo === "instagram_story");
 
   useEffect(() => {
     if (!somenteCanais) return;
