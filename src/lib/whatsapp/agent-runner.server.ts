@@ -274,13 +274,18 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       ?.flatMap((s) => s.toolCalls ?? [])
       .map((tc) => ({ name: tc.toolName, input: tc.input }));
 
-    await saveMessage({
-      conversation_id: conv.id,
-      direction: "outbound",
-      sender: agent.slug === "roberto" ? "camila" : "camila", // sender enum only allows camila/human/system; we track agent separately
-      content: text,
-      tool_calls: toolCallsSummary && toolCallsSummary.length > 0 ? toolCallsSummary : null,
-    });
+    const { splitToBubbles } = await import("./send.server");
+    const bubbles = splitToBubbles(text);
+    for (let i = 0; i < bubbles.length; i++) {
+      await saveMessage({
+        conversation_id: conv.id,
+        direction: "outbound",
+        sender: agent.slug === "roberto" ? "camila" : "camila",
+        content: bubbles[i],
+        // tool_calls e reply só no primeiro balão
+        tool_calls: i === 0 && toolCallsSummary && toolCallsSummary.length > 0 ? toolCallsSummary : null,
+      });
+    }
 
     // Marca agente atendente
     await supabaseAdmin

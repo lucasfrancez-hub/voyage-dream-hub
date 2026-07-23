@@ -166,13 +166,17 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
     ?.flatMap((s) => s.toolCalls ?? [])
     .map((tc) => ({ name: tc.toolName, input: tc.input }));
 
-  await saveMessage({
-    conversation_id: conv.id,
-    direction: "outbound",
-    sender: "camila",
-    content: text,
-    tool_calls: toolCallsSummary && toolCallsSummary.length > 0 ? toolCallsSummary : null,
-  });
+  const { splitToBubbles } = await import("./send.server");
+  const bubbles = splitToBubbles(text);
+  for (let i = 0; i < bubbles.length; i++) {
+    await saveMessage({
+      conversation_id: conv.id,
+      direction: "outbound",
+      sender: "camila",
+      content: bubbles[i],
+      tool_calls: i === 0 && toolCallsSummary && toolCallsSummary.length > 0 ? toolCallsSummary : null,
+    });
+  }
 
   const sent = await sendWhatsAppBubbles(conv.wa_phone, text);
   const failed = sent.filter((s) => s.error);
