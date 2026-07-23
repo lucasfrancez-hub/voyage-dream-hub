@@ -671,7 +671,6 @@ function AdminPackages() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <IgnoredHotelsBell />
           <MultiPackageImportButton
             onExtracted={async (list) => {
               if (!list.length) return;
@@ -686,12 +685,13 @@ function AdminPackages() {
               setEditingState(list[0]);
             }}
           />
+          <IgnoredHotelsBell packages={packages || []} />
           <button
             type="button"
             onClick={backfillHotelPhotos}
             disabled={backfilling}
             title="Atualizar fotos dos hotéis (busca no TripAdvisor as fotos dos pacotes sem imagens)"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-brand-orange transition-colors disabled:opacity-60"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-brand-orange transition-colors disabled:opacity-60"
           >
             {backfilling ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -699,6 +699,7 @@ function AdminPackages() {
               <RefreshCw className="h-4 w-4" />
             )}
           </button>
+
           <button
             type="button"
             title="Novo pacote"
