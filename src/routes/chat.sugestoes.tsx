@@ -105,7 +105,7 @@ function SugestoesPage() {
       title: "Descartar sugestão?",
       description: "Ela some da lista. Você pode gerar novas depois.",
       confirmText: "Descartar",
-      variant: "destructive",
+      destructive: true,
     });
     if (!ok) return;
     try {
