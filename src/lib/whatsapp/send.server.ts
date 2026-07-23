@@ -54,7 +54,10 @@ async function uazSendText(to: string, body: string, replyId?: string | null): P
     number: normalizePhone(to),
     text: body.slice(0, 4090),
     linkPreview: true,
-    ...(replyId ? { replyid: replyId } : {}),
+    // UazAPI aceita `replyid` (camelCase/lowercase varia entre versões) —
+    // enviamos ambas as chaves pra maximizar compatibilidade e o quote
+    // aparecer nativo no WhatsApp do cliente.
+    ...(replyId ? { replyid: replyId, replyId, quoted: replyId } : {}),
   });
 }
 

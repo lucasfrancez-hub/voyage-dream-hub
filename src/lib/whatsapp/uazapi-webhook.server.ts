@@ -142,37 +142,55 @@ export async function processUazPayload(raw: unknown) {
   for (const m of rawList) {
     const fromMe = m.fromMe ?? m.key?.fromMe ?? false;
 
-    // Detecta deleção "apagar para todos" (protocolMessage REVOKE ou evento delete/revoke)
+    // Detecta deleção "apagar para todos" (protocolMessage REVOKE ou evento delete/revoke/update)
     const anyM = m as unknown as {
       messageStubType?: string;
-      message?: { protocolMessage?: { type?: string | number; key?: { id?: string } } };
+      messageStubParameters?: string[];
+      message?: { protocolMessage?: { type?: string | number; key?: { id?: string; remoteJid?: string } } };
       wasDeleted?: boolean;
       isDeleted?: boolean;
+      deleted?: boolean;
+      status?: string;
+      update?: { message?: unknown; messageStubType?: string };
     };
     const protoType = anyM.message?.protocolMessage?.type;
     const isRevoke =
-      isDelete ||
       anyM.wasDeleted === true ||
       anyM.isDeleted === true ||
+      anyM.deleted === true ||
       anyM.messageStubType === "REVOKE" ||
+      anyM.update?.messageStubType === "REVOKE" ||
       protoType === "REVOKE" ||
-      protoType === 0;
+      protoType === 0 ||
+      (isDelete && (anyM.update?.message === null || protoType != null || anyM.messageStubType != null));
 
     if (isRevoke) {
       const targetId =
         anyM.message?.protocolMessage?.key?.id ??
+        anyM.messageStubParameters?.[0] ??
         m.id ??
         m.messageid ??
         m.key?.id;
       if (targetId) {
-        await adminForDeletes
+        const { data: upd, error: uErr } = await adminForDeletes
           .from("wa_messages")
           .update({
             deleted_at: new Date().toISOString(),
             deleted_by_customer: !fromMe,
           })
-          .eq("wa_message_id", targetId);
-        console.log("[uazapi] mensagem marcada como apagada:", targetId, "fromMe=", fromMe);
+          .eq("wa_message_id", targetId)
+          .select("id");
+        console.log(
+          "[uazapi] REVOKE detectado — target:",
+          targetId,
+          "fromMe=",
+          fromMe,
+          "rows=",
+          upd?.length ?? 0,
+          uErr ? `erro=${uErr.message}` : "",
+        );
+      } else {
+        console.warn("[uazapi] REVOKE sem targetId identificável — payload:", JSON.stringify(m).slice(0, 500));
       }
       continue;
     }
