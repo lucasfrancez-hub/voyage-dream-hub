@@ -16,6 +16,8 @@ interface Props {
   senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
   status?: "sent" | "delivered" | "read";
   deleted?: boolean;
+  /** Marca visual "respondida" — aparece uma setinha ↩ ao lado do horário */
+  replied?: boolean;
   /** Prévia da mensagem citada (reply/quote) */
   reply?: { sender?: string | null; snippet: string } | null;
   /** Handler pra "Responder" — clica na setinha que aparece no hover */
