@@ -295,6 +295,62 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       .update({ agent_slug: agent.slug })
       .eq("id", conv.id);
 
+    // FALLBACK DE ESCALAÇÃO: se a IA anunciou que está passando pro comercial
+    // mas NÃO chamou a tool escalar_para_humano, marca aguardando_humano
+    // mesmo assim pra aparecer "atendimento necessário" no painel.
+    try {
+      const lower = text.toLowerCase();
+      const handoffPhrases = [
+        "passar pro time",
+        "passar para o time",
+        "passei pro time",
+        "passei para o time",
+        "passar pro comercial",
+        "passar para o comercial",
+        "passei pro comercial",
+        "passei para o comercial",
+        "encaminhar pro comercial",
+        "encaminhar para o comercial",
+        "encaminhando pro comercial",
+        "encaminhando para o comercial",
+        "encaminhei pro comercial",
+        "encaminhei para o comercial",
+        "repassar pro comercial",
+        "repassar para o comercial",
+        "repassei pro comercial",
+        "repassei para o comercial",
+        "time comercial",
+        "setor comercial",
+        "consultor entra em contato",
+        "consultor vai entrar em contato",
+        "vou passar pro time",
+      ];
+      const mentionedHandoff = handoffPhrases.some((p) => lower.includes(p));
+      const calledEscalate = (toolCallsSummary ?? []).some(
+        (tc) => tc.name === "escalar_para_humano" || tc.name === "transferir_para_atendente",
+      );
+      const existingTags = ((conv as { tags?: string[] | null }).tags ?? []) as string[];
+      const alreadyWaiting = existingTags.includes("aguardando_humano");
+      if (mentionedHandoff && !calledEscalate && !alreadyWaiting) {
+        const newTags = Array.from(new Set([...existingTags, "aguardando_humano", "escalada_implicita"]));
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({ tags: newTags, assigned_to: null, priority: "normal" })
+          .eq("id", conv.id);
+        const { recordHandoff } = await import("./tools.server");
+        await recordHandoff({
+          conversation_id: conv.id,
+          from_mode: "ai",
+          to_mode: "ai",
+          reason: "aguardando_humano:escalada_implicita",
+          briefing: "IA anunciou encaminhamento pro comercial sem chamar a tool — escalação inferida do texto.",
+        }).catch(() => {});
+        console.log(`[agent:${agent.slug}] escalação implícita detectada em conv ${conv.id}`);
+      }
+    } catch (e) {
+      console.warn("[agent] fallback de escalação falhou:", e);
+    }
+
     const prefix = buildSenderPrefix(agent.nome);
     const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix);
     const failed = sent.filter((s) => s.error);
