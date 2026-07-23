@@ -246,7 +246,7 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     enviar_pacote: tool({
       description:
-        "Envia o FOLDER completo do pacote pelo WhatsApp: imagem do header + descritivo formatado (origem, datas, hotel, refeição, serviços inclusos) + formas de pagamento (Pix com 5% off, cartão 10x sem juros, boleto 10x mediante aprovação, boleto sem análise de crédito até a data da viagem) + link. NUNCA use o termo 'assessoria completa' nem 'assessoria' em nenhum lugar. Use SEMPRE que o cliente demonstrar interesse num pacote específico. NÃO exige CPF nem confirmação — pacote é conteúdo público. Depois de chamar, responda com UM balão curto só perguntando 'O que você achou?' (ou variação natural).",
+        "Envia o FOLDER completo do pacote pelo WhatsApp: imagem do header + descritivo formatado (origem, datas, hotel, refeição, serviços inclusos) + formas de pagamento (Pix com 5% off, Visa e Master em 15x sem juros, demais bandeiras em 10x sem juros, boleto 10x mediante aprovação, boleto sem análise de crédito até a data da viagem) + link. NUNCA use o termo 'assessoria completa' nem 'assessoria' em nenhum lugar. Use SEMPRE que o cliente demonstrar interesse num pacote específico. NÃO exige CPF nem confirmação — pacote é conteúdo público. Depois de chamar, responda com UM balão curto só perguntando 'O que você achou?' (ou variação natural).",
       inputSchema: z.object({
         slug: z.string().describe("slug do pacote (vem de buscar_pacotes)"),
         quantidade_adultos: z.number().int().nullable().describe("adultos para calcular Pix total; padrão = base_occupancy (geralmente 2)"),
