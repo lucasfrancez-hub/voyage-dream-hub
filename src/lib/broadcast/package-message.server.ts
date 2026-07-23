@@ -32,6 +32,10 @@ export type BroadcastPackage = {
   origin: string | null;
   image_url: string | null;
   caption: string;
+  price_per_person: number | null;
+  going_date: string | null;
+  return_date: string | null;
+  nights: number | null;
 };
 
 function brl2(n: number) {
