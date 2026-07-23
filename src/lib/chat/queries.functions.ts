@@ -486,6 +486,7 @@ export const sendHumanReply = createServerFn({ method: "POST" })
     await sendWhatsAppBubbles(conv.wa_phone, content, prefix, {
       replyId: data.reply_to_wa_id ?? null,
     });
+    await clearAwaitingHumanTag(conv.id);
     return { ok: true };
   });
 
