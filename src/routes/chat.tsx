@@ -40,6 +40,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> = {
   "/chat/agentes": { title: "Agentes IA", subtitle: "Camila (dia) · Roberto (plantão)" },
   "/chat/fluxos": { title: "Fluxos", subtitle: "Automações" },
   "/chat/broadcast": { title: "Broadcast", subtitle: "Campanhas e templates" },
+  "/chat/sugestoes": { title: "Sugestões IA", subtitle: "Rotas quentes por origem — aprove pra virar campanha" },
   "/chat/crm": { title: "CRM", subtitle: "Pipeline de vendas" },
   "/chat/agenda": { title: "Agenda", subtitle: "Compromissos e follow-ups" },
   "/chat/pastas": { title: "Pastas", subtitle: "Organização de conversas" },
