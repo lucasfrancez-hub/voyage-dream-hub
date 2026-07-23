@@ -13,133 +13,13 @@ function normalizePhone(raw: string): string {
   return digits;
 }
 
-function uazConfigured(): boolean {
-  return !!(process.env.UAZAPI_URL && process.env.UAZAPI_TOKEN);
-}
+// ================== Meta Cloud API ==================
 
-// ================== UazAPI ==================
-
-async function uazPost(path: string, body: Record<string, unknown>): Promise<{ id: string | null; error?: string }> {
-  const base = process.env.UAZAPI_URL!.replace(/\/+$/, "");
-  const token = process.env.UAZAPI_TOKEN!;
-  try {
-    const res = await fetch(`${base}${path}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        token,
-      },
-      body: JSON.stringify(body),
-    });
-    const raw = await res.text();
-    let data: { id?: string; messageid?: string; message?: { id?: string }; error?: string; response?: string } = {};
-    try { data = JSON.parse(raw); } catch { /* keep empty */ }
-    console.log("[uazapi]", path, "status=", res.status, "ok=", res.ok);
-    if (!res.ok) {
-      const msg = data.error ?? data.response ?? `HTTP ${res.status}: ${raw.slice(0, 200)}`;
-      console.error("[uazapi] falha:", msg);
-      return { id: null, error: msg };
-    }
-    const id = data.id ?? data.messageid ?? data.message?.id ?? null;
-    return { id };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[uazapi] exception:", msg);
-    return { id: null, error: msg };
-  }
-}
-
-async function uazSendText(to: string, body: string, replyId?: string | null): Promise<{ id: string | null; error?: string }> {
-  return uazPost("/send/text", {
-    number: normalizePhone(to),
-    text: body.slice(0, 4090),
-    linkPreview: true,
-    // UazAPI v2 usa `replyid` (minúsculo) pra citar/responder uma mensagem.
-    ...(replyId ? { replyid: replyId } : {}),
-  });
-}
-
-
-function mimeForType(type: "image" | "document" | "video" | "audio", filename?: string): string {
-  if (type === "image") return "image/jpeg";
-  if (type === "video") return "video/mp4";
-  if (type === "audio") return "audio/mpeg";
-  const ext = (filename ?? "").toLowerCase().split(".").pop() ?? "";
-  if (ext === "pdf") return "application/pdf";
-  if (ext === "png") return "image/png";
-  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
-  return "application/octet-stream";
-}
-
-async function uazSendMedia(
+async function metaSendText(
   to: string,
-  type: "image" | "document" | "video" | "audio",
-  link: string,
-  opts: { caption?: string | null; filename?: string } = {},
+  body: string,
+  replyId?: string | null,
 ): Promise<{ id: string | null; error?: string }> {
-  // Baixa o arquivo no worker e envia como data URI base64 — o processador da
-  // UazAPI falha (HTTP 400/404) tentando buscar URLs assinadas do Supabase,
-  // então nunca caímos de volta para a URL crua.
-  let dataUri: string;
-  try {
-    const dl = await fetch(link);
-    if (!dl.ok) {
-      const msg = `download falhou (${dl.status})`;
-      console.error("[uazapi] " + msg, link.slice(0, 120));
-      return { id: null, error: msg };
-    }
-    const buf = new Uint8Array(await dl.arrayBuffer());
-    let bin = "";
-    const chunk = 0x8000;
-    for (let i = 0; i < buf.length; i += chunk) {
-      bin += String.fromCharCode(...buf.subarray(i, i + chunk));
-    }
-    const b64 = btoa(bin);
-    const mime = mimeForType(type, opts.filename);
-    dataUri = `data:${mime};base64,${b64}`;
-    console.log("[uazapi] download ok:", buf.length, "bytes", mime);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[uazapi] exceção no download:", msg);
-    return { id: null, error: `download exception: ${msg}` };
-  }
-  return uazPost("/send/media", {
-    number: normalizePhone(to),
-    type,
-    file: dataUri,
-    ...(opts.caption ? { text: opts.caption.slice(0, 1024) } : {}),
-    ...(opts.filename ? { docName: opts.filename.slice(0, 240) } : {}),
-  });
-}
-
-async function uazSendMediaBytes(
-  to: string,
-  type: "image" | "document" | "video" | "audio",
-  bytes: Uint8Array,
-  opts: { caption?: string | null; filename?: string } = {},
-): Promise<{ id: string | null; error?: string }> {
-  if (bytes.byteLength === 0) return { id: null, error: "arquivo vazio" };
-
-  let bin = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  const mime = mimeForType(type, opts.filename);
-  const dataUri = `data:${mime};base64,${btoa(bin)}`;
-
-  return uazPost("/send/media", {
-    number: normalizePhone(to),
-    type,
-    file: dataUri,
-    ...(opts.caption ? { text: opts.caption.slice(0, 1024) } : {}),
-    ...(opts.filename ? { docName: opts.filename.slice(0, 240) } : {}),
-  });
-}
-
-// ================== Meta (fallback) ==================
-
-async function metaSendText(to: string, body: string): Promise<{ id: string | null; error?: string }> {
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId) return { id: null, error: "WhatsApp credentials missing" };
@@ -149,6 +29,7 @@ async function metaSendText(to: string, body: string): Promise<{ id: string | nu
     messaging_product: "whatsapp",
     recipient_type: "individual",
     to: normalizePhone(to),
+    ...(replyId ? { context: { message_id: replyId } } : {}),
     type: "text",
     text: { preview_url: true, body: body.slice(0, 4090) },
   };
@@ -219,34 +100,7 @@ async function metaSendMedia(to: string, extra: Record<string, unknown>): Promis
 
 export async function sendWhatsAppText(to: string, body: string, replyId?: string | null): Promise<{ id: string | null; error?: string }> {
   // Chat oficial: sempre Meta. Reply nativo usa context.message_id.
-  if (replyId) {
-    const token = process.env.WHATSAPP_ACCESS_TOKEN;
-    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    if (!token || !phoneId) return { id: null, error: "WhatsApp credentials missing" };
-    const url = `https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/messages`;
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: normalizePhone(to),
-          context: { message_id: replyId },
-          type: "text",
-          text: { preview_url: true, body: body.slice(0, 4090) },
-        }),
-      });
-      const rawText = await res.text();
-      let data: { messages?: Array<{ id: string }>; error?: { message: string } } = {};
-      try { data = JSON.parse(rawText); } catch { /* keep empty */ }
-      if (!res.ok) return { id: null, error: data.error?.message ?? `HTTP ${res.status}` };
-      return { id: data.messages?.[0]?.id ?? null };
-    } catch (err) {
-      return { id: null, error: err instanceof Error ? err.message : String(err) };
-    }
-  }
-  return metaSendText(to, body);
+  return metaSendText(to, body, replyId);
 }
 
 /**
