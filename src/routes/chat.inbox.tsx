@@ -30,7 +30,6 @@ type Msg = Awaited<ReturnType<typeof listMessages>>[number];
 const FOLDERS = [
   { key: "all", label: "Todas", icon: InboxIcon },
   { key: "unread", label: "Não lidas", icon: InboxIcon },
-  { key: "ai", label: "Com IA", icon: Bot },
   { key: "human", label: "Humano", icon: Users },
   { key: "resolved", label: "Arquivadas", icon: Archive },
 ] as const;
