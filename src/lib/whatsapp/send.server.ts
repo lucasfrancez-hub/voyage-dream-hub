@@ -42,7 +42,11 @@ async function metaSendText(
       });
       const rawText = await res.text();
       let data: { messages?: Array<{ id: string }>; error?: { message: string } } = {};
-      try { data = JSON.parse(rawText); } catch { /* keep empty */ }
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        /* keep empty */
+      }
       if (res.ok) {
         const id = data.messages?.[0]?.id ?? null;
         if (!id) return { id: null, error: "Meta aceitou o envio sem retornar o ID da mensagem" };
@@ -64,7 +68,10 @@ async function metaSendText(
   return { id: null, error: "Falha inesperada ao enviar pela Meta" };
 }
 
-async function metaSendMedia(to: string, extra: Record<string, unknown>): Promise<{ id: string | null; error?: string }> {
+async function metaSendMedia(
+  to: string,
+  extra: Record<string, unknown>,
+): Promise<{ id: string | null; error?: string }> {
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId) return { id: null, error: "WhatsApp credentials missing" };
@@ -83,7 +90,11 @@ async function metaSendMedia(to: string, extra: Record<string, unknown>): Promis
     });
     const rawText = await res.text();
     let data: { messages?: Array<{ id: string }>; error?: { message: string } } = {};
-    try { data = JSON.parse(rawText); } catch { /* keep empty */ }
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      /* keep empty */
+    }
     if (!res.ok) {
       const msg = data.error?.message ?? `HTTP ${res.status}: ${rawText.slice(0, 200)}`;
       console.error("[whatsapp/meta media] falha:", msg);
@@ -98,13 +109,20 @@ async function metaSendMedia(to: string, extra: Record<string, unknown>): Promis
 
 // ================== API pública (mantém assinaturas) ==================
 
-export async function sendWhatsAppText(to: string, body: string, replyId?: string | null): Promise<{ id: string | null; error?: string }> {
+export async function sendWhatsAppText(
+  to: string,
+  body: string,
+  replyId?: string | null,
+): Promise<{ id: string | null; error?: string }> {
   // Chat oficial: sempre Meta. Reply nativo usa context.message_id.
   return metaSendText(to, body, replyId);
 }
 
 /** Indicador "digitando…" oficial da Meta. */
-export async function sendWhatsAppTypingIndicator(inbound_wa_message_id: string, to?: string): Promise<void> {
+export async function sendWhatsAppTypingIndicator(
+  inbound_wa_message_id: string,
+  to?: string,
+): Promise<void> {
   void to;
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -155,7 +173,7 @@ export async function sendWhatsAppBubbles(
   // oficial viram mais de um trecho, sem espera artificial entre eles.
   for (let i = 0; i < bubbles.length; i++) {
     const body = bubbles[i];
-    const replyId = i === 0 ? opts?.replyId ?? null : null;
+    const replyId = i === 0 ? (opts?.replyId ?? null) : null;
     try {
       const r = await sendWhatsAppText(to, body, replyId);
       out.push({ text: body, ...r });
@@ -176,7 +194,10 @@ export async function sendWhatsAppImage(
   link: string,
   caption?: string | null,
 ): Promise<{ id: string | null; error?: string }> {
-  return metaSendMedia(to, { type: "image", image: { link, ...(caption ? { caption: caption.slice(0, 1024) } : {}) } });
+  return metaSendMedia(to, {
+    type: "image",
+    image: { link, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+  });
 }
 
 export async function sendWhatsAppDocument(
@@ -187,7 +208,11 @@ export async function sendWhatsAppDocument(
 ): Promise<{ id: string | null; error?: string }> {
   return metaSendMedia(to, {
     type: "document",
-    document: { link, filename: filename.slice(0, 240), ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+    document: {
+      link,
+      filename: filename.slice(0, 240),
+      ...(caption ? { caption: caption.slice(0, 1024) } : {}),
+    },
   });
 }
 
@@ -232,4 +257,3 @@ export async function sendWhatsAppImageBytes(
     image: { link: fallbackLink, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
   });
 }
-
