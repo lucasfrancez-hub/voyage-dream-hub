@@ -46,7 +46,7 @@ type PackageRow = {
   supplier_name: string | null;
 };
 
-export async function generateBroadcastSuggestions(userId: string) {
+export async function generateBroadcastSuggestions(userId: string | null) {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
 
