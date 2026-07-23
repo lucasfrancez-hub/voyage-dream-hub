@@ -257,8 +257,9 @@ const CSS = `
 
 .vstory-swoosh{position:absolute;width:100%;height:14px;bottom:-6px;left:0;color:var(--brand-orange)}
 .vstory-bottom{display:flex;flex-direction:column;gap:14px}
-.glass-panel{background:rgba(0,0,0,.30);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.30);border-radius:20px}
-.glass-panel-dark{background:rgba(15,15,15,.55);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);border-radius:20px}
+.glass-panel{background:rgba(0,0,0,.42);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.30);border-radius:20px}
+.glass-panel-dark{background:rgba(15,15,15,.68);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.14);border-radius:20px}
+
 .vstory-info{width:100%;padding:20px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .vstory-info-col{display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;min-width:0}
 .vstory-info-col-hotel{max-width:150px}
