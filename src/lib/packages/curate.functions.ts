@@ -99,12 +99,17 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
 
       const svc = p.services ?? {};
       const services_lines: string[] = [];
+      const fmtCob = (raw: string) => {
+        const n = Number(String(raw).replace(/\./g, "").replace(",", "."));
+        if (!isFinite(n) || n === 0) return raw;
+        return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+      };
       if (svc.seguro?.enabled) {
         const cob = svc.seguro.cobertura?.toString().trim();
         const moeda = svc.seguro.moeda || "USD";
         services_lines.push(
           cob
-            ? `🛡️ Seguro Viagem ${moeda} ${cob} por pessoa`
+            ? `🛡️ Seguro Viagem ${moeda} ${fmtCob(cob)} por pessoa`
             : `🛡️ Seguro Viagem`,
         );
       }
@@ -113,13 +118,14 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         const moeda = svc.cancelamento.moeda || "BRL";
         services_lines.push(
           cob
-            ? `🧾 Cobertura para cancelamento involuntário ${moeda} ${cob} por pessoa`
+            ? `🧾 Cobertura para cancelamento involuntário ${moeda} ${fmtCob(cob)} por pessoa`
             : `🧾 Cobertura para cancelamento involuntário`,
         );
       }
       if (svc.transfer?.enabled) {
         services_lines.push(`🚐 Transfer aeroporto ↔ hotel (${sentidoLabel(svc.transfer.sentido)})`);
       }
+
       if (svc.city_tour?.enabled) {
         const det = svc.city_tour.detalhe?.trim();
         services_lines.push(det ? `🗺️ City Tour — ${det}` : `🗺️ City Tour`);
