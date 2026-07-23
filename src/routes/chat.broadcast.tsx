@@ -324,90 +324,119 @@ function CalendarioMes({
     onPickDay(local);
   }
 
+  const destMap = useMemo(() => new Map(destinos.map((d) => [d.id, d])), [destinos]);
+  function campanhaTipo(c: Campanha): "channel" | "group" | "mixed" {
+    let ch = 0, gr = 0;
+    for (const id of c.destino_ids) {
+      const d = destMap.get(id);
+      if (d?.tipo === "channel") ch++;
+      else if (d?.tipo === "group") gr++;
+    }
+    if (ch > 0 && gr === 0) return "channel";
+    if (gr > 0 && ch === 0) return "group";
+    return "mixed";
+  }
+  const chipCls: Record<"channel" | "group" | "mixed", string> = {
+    channel: "bg-indigo-500/10 border-l-2 border-indigo-500 text-indigo-400 hover:bg-indigo-500/20",
+    group: "bg-emerald-500/10 border-l-2 border-emerald-500 text-emerald-400 hover:bg-emerald-500/20",
+    mixed: "bg-brand-orange/10 border-l-2 border-brand-orange text-brand-orange hover:bg-brand-orange/20",
+  };
+
   return (
-    <section className="rounded-2xl border border-border bg-card overflow-hidden">
-      <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border">
+    <section className="overflow-hidden">
+      <header className="flex items-center justify-between gap-2 px-5 py-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold capitalize">{mesLabel}</h2>
+        </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
-            className="p-1.5 rounded-full hover:bg-muted"
+            onClick={() => setCursor(new Date(hoje.getFullYear(), hoje.getMonth(), 1))}
+            className="text-xs rounded-md border border-border px-3 py-1.5 hover:border-brand-orange"
           >
-            <ChevronLeft className="h-4 w-4" />
+            Hoje
           </button>
-          <h2 className="text-lg font-semibold capitalize">{mesLabel}</h2>
-          <button
-            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
-            className="p-1.5 rounded-full hover:bg-muted"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-        <button
-          onClick={() => setCursor(new Date(hoje.getFullYear(), hoje.getMonth(), 1))}
-          className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
-        >
-          Hoje
-        </button>
-      </header>
-      <div className="grid grid-cols-7 text-[11px] uppercase tracking-wide text-muted-foreground bg-muted/40">
-        {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((d) => (
-          <div key={d} className="px-2 py-1.5 text-center">{d}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7">
-        {cells.map((cell, i) => {
-          const evs = cell.iso ? eventos.get(cell.iso) ?? [] : [];
-          const isToday = cell.date && isSameDay(cell.date, hoje);
-          return (
-            <div
-              key={i}
-              className={`min-h-[92px] border-t border-l border-border p-1.5 text-xs ${
-                (i + 1) % 7 === 0 ? "border-r" : ""
-              } ${cell.date ? "cursor-pointer hover:bg-muted/40" : "bg-muted/10"}`}
-              onClick={() => cell.iso && openDay(cell.iso)}
+          <div className="flex gap-1">
+            <button
+              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
+              className="p-2 rounded-md border border-border hover:bg-muted"
             >
-              {cell.date && (
-                <div className="flex items-center justify-between mb-1">
-                  <span
-                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
-                      isToday ? "bg-brand-orange text-white font-semibold" : "text-foreground"
-                    }`}
-                  >
-                    {cell.date.getDate()}
-                  </span>
-                  {evs.length > 0 && (
-                    <span className="text-[10px] text-muted-foreground">{evs.length}</span>
-                  )}
-                </div>
-              )}
-              <div className="space-y-0.5">
-                {evs.slice(0, 3).map((c) => {
-                  const hora = new Date(c.scheduled_at!).toLocaleTimeString("pt-BR", {
-                    timeZone: "America/Sao_Paulo",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPickCampanha(c.id);
-                      }}
-                      className="w-full text-left truncate rounded px-1.5 py-0.5 text-[10px] bg-brand-orange/15 text-brand-orange hover:bg-brand-orange/25"
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
+              className="p-2 rounded-md border border-border hover:bg-muted"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </header>
+      <div className="px-5 py-4">
+        <div className="grid grid-cols-7 gap-px bg-border border border-border rounded-lg overflow-hidden">
+          {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((d) => (
+            <div key={d} className="bg-card p-2 text-center text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              {d}
+            </div>
+          ))}
+          {cells.map((cell, i) => {
+            const evs = cell.iso ? eventos.get(cell.iso) ?? [] : [];
+            const isToday = cell.date && isSameDay(cell.date, hoje);
+            return (
+              <div
+                key={i}
+                className={`min-h-[100px] p-2 text-xs transition-colors ${
+                  cell.date
+                    ? `bg-card cursor-pointer hover:bg-muted/40 ${isToday ? "ring-1 ring-inset ring-brand-orange/40" : ""}`
+                    : "bg-muted/20"
+                }`}
+                onClick={() => cell.iso && openDay(cell.iso)}
+              >
+                {cell.date && (
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span
+                      className={`text-sm font-medium ${
+                        isToday ? "text-brand-orange font-bold" : "text-foreground"
+                      }`}
                     >
-                      <span className="font-medium">{hora}</span> {c.nome}
-                    </button>
-                  );
-                })}
-                {evs.length > 3 && (
-                  <div className="text-[10px] text-muted-foreground px-1">
-                    +{evs.length - 3} mais
+                      {cell.date.getDate()}
+                    </span>
+                    {evs.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground">{evs.length}</span>
+                    )}
                   </div>
                 )}
+                <div className="space-y-1">
+                  {evs.slice(0, 2).map((c) => {
+                    const hora = new Date(c.scheduled_at!).toLocaleTimeString("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+                    const tipo = campanhaTipo(c);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPickCampanha(c.id);
+                        }}
+                        className={`w-full text-left rounded-r p-1 ${chipCls[tipo]}`}
+                      >
+                        <p className="text-[10px] font-bold truncate">{c.nome}</p>
+                        <p className="text-[9px] opacity-70 uppercase">
+                          {hora} • {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"}
+                        </p>
+                      </button>
+                    );
+                  })}
+                  {evs.length > 2 && (
+                    <div className="text-[10px] text-muted-foreground px-1">
+                      +{evs.length - 2} mais
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
           );
         })}
       </div>
