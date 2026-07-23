@@ -105,24 +105,16 @@ function SugestoesPage() {
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-6">
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 p-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
-            <Sparkles className="h-5 w-5 text-orange-500" />
-            Sugestões de campanhas
-          </h1>
+      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-slate-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 p-5">
+        <div className="rounded-xl bg-orange-500/10 p-2.5">
+          <Sparkles className="h-5 w-5 text-orange-500" />
+        </div>
+        <div className="flex-1">
+          <h1 className="text-xl font-semibold text-slate-900">Sugestões de campanhas</h1>
           <p className="mt-1 text-sm text-slate-600">
-            A IA analisa seus pacotes ativos, sazonalidade e origens cadastradas pra sugerir o que postar essa semana — em qual canal e horário. Você aprova, ela vira rascunho em Broadcast.
+            A IA analisa seus pacotes ativos todo dia às <b>08h</b> e sugere aqui o que postar — em qual canal (WhatsApp, Feed, Story) e no melhor horário. Você só aprova ou descarta.
           </p>
         </div>
-        <button
-          onClick={handleGerar}
-          disabled={generating}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-orange-600 disabled:opacity-60"
-        >
-          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {generating ? "Analisando pacotes…" : "Gerar sugestões agora"}
-        </button>
       </div>
 
       {/* Loading */}
