@@ -173,8 +173,9 @@ Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("p
 🗓️ {DD a DD/MÊS EM CAIXA ALTA} ({N noites})
 🏨 {Hotel} {estrelas em ★} — {regime, ex.: Café da Manhã / All Inclusive}
 
-{SE E SOMENTE SE "services_emoji_line" NÃO for vazio, adicione uma linha em branco e depois EXATAMENTE essa linha só com os emojis (sem título, sem texto, sem asteriscos, sem descrição), copiando o valor de "services_emoji_line" como está. Ex.: 🛡️ 🚐 🗺️}
-{SE "services_emoji_line" estiver vazio, NÃO inclua nada.}
+{SE "services_lines" tiver 1+ item, adicione uma linha em branco e depois UMA LINHA por item de "services_lines", EXATAMENTE como está (o emoji já vem no início). Sem título, sem "SERVIÇOS INCLUSOS", sem asteriscos, sem alterar o texto. Depois outra linha em branco antes das formas de pagamento.}
+{SE "services_lines" estiver vazio, NÃO inclua nada.}
+
 
 
 
