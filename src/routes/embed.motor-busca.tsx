@@ -40,16 +40,20 @@ export const Route = createFileRoute("/embed/motor-busca")({
   ssr: false,
 });
 
-// Paleta VIA AIR
+// Paleta VIA AIR — Deep Blue Glass
 const BRAND = {
   bgOuter: "transparent",
-  cardBg: "#0a1622",
-  cardBorder: "rgba(255,255,255,0.08)",
-  text: "#F1F5F9",
-  textMuted: "#94A3B8",
-  fieldBg: "#0f1e2c",
-  fieldBorder: "rgba(255,255,255,0.12)",
+  // Fundo do card: azul profundo translúcido com blur (vidro)
+  cardBg: "rgba(10, 22, 44, 0.72)",
+  cardBorder: "transparent",
+  text: "#F8FAFC",
+  textMuted: "#B8C5DB",
+  // Campos: leve realce translúcido sobre o card azul
+  fieldBg: "rgba(255,255,255,0.06)",
+  fieldBorder: "rgba(255,255,255,0.10)",
   fieldBorderHover: "rgba(242,107,31,0.55)",
+  // Trilho das abas (segmented control atrás dos pills)
+  tabTrackBg: "rgba(255,255,255,0.05)",
   primary: "#F26B1F",
   primaryHover: "#e0591a",
   primaryText: "#FFFFFF",
@@ -62,49 +66,71 @@ const SHADOW_CSS = `
 /* Esconde bloco de "Não autorizado" quando o widget renderiza em domínio não liberado (dev/preview) */
 .unauthorized, .not-authorized, [class*="unauthorized"], [class*="notAuthorized"] { display: none !important; }
 
-/* Card principal */
+/* Card principal — vidro azul, sem borda branca */
 .mat-card, .search-container, .search-form, [class*="container"] > form {
   background: ${BRAND.cardBg} !important;
   color: ${BRAND.text} !important;
-  border: 1px solid ${BRAND.cardBorder} !important;
-  border-radius: 20px !important;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.35) !important;
+  border: 0 !important;
+  border-radius: 22px !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(18px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
 }
 
-/* Tabs (Voos / Hotéis / Pacotes ...) — aba ativa vira pill laranja */
+/* Trilho das tabs — segmented control atrás dos pills */
+.mat-tab-header, .mat-tab-nav-bar {
+  border-bottom-color: transparent !important;
+  background: ${BRAND.tabTrackBg} !important;
+  border-radius: 999px !important;
+  padding: 4px !important;
+  display: inline-flex !important;
+  width: auto !important;
+}
+.mat-tab-labels, .mat-tab-links { gap: 2px !important; }
+
+/* Tabs — aba ativa vira CAIXINHA laranja com texto branco */
 .mat-tab-label, .mat-tab-link {
   color: ${BRAND.textMuted} !important;
   opacity: 1 !important;
   font-weight: 500 !important;
   border-radius: 999px !important;
   min-width: 0 !important;
-  padding: 0 18px !important;
+  padding: 0 20px !important;
   height: 40px !important;
-  margin: 6px 4px !important;
+  margin: 0 !important;
   transition: background .2s ease, color .2s ease !important;
 }
-.mat-tab-label:hover:not(.mat-tab-label-active) { background: rgba(255,255,255,0.05) !important; color: ${BRAND.text} !important; }
+.mat-tab-label:hover:not(.mat-tab-label-active) { background: rgba(255,255,255,0.06) !important; color: ${BRAND.text} !important; }
 .mat-tab-label-active, .mat-tab-link-active {
   color: #FFFFFF !important;
   background: ${BRAND.primary} !important;
   font-weight: 600 !important;
   box-shadow: 0 6px 18px rgba(242,107,31,0.35) !important;
 }
-.mat-ink-bar { background-color: transparent !important; }
-.mat-tab-header { border-bottom-color: transparent !important; }
+.mat-ink-bar { background-color: transparent !important; height: 0 !important; }
 .mat-icon, mat-icon, .material-icons, .material-symbols-outlined { color: ${BRAND.text} !important; }
 .mat-tab-label:not(.mat-tab-label-active) .mat-icon { color: ${BRAND.textMuted} !important; }
 .mat-tab-label-active .mat-icon, .mat-tab-link-active .mat-icon { color: #FFFFFF !important; }
 
-/* Chips secundários (Ida e volta, 1 Viajante) */
+/* Chips secundários (Ida e volta, 1 Viajante) — também viram caixinha quando ativos */
 .mat-button, .mat-flat-button, .mat-stroked-button, .mat-menu-trigger {
   color: ${BRAND.text} !important;
   background: transparent !important;
   border-radius: 999px !important;
+  border-color: transparent !important;
 }
-.mat-button:hover, .mat-stroked-button:hover { background: rgba(255,255,255,0.04) !important; }
+.mat-button:hover, .mat-stroked-button:hover, .mat-menu-trigger:hover {
+  background: rgba(255,255,255,0.06) !important;
+}
+.mat-button[aria-pressed="true"], .mat-flat-button[aria-pressed="true"],
+.mat-stroked-button.mat-accent, .mat-flat-button.mat-accent, .mat-button.mat-accent,
+.mat-button-toggle-checked, .mat-button-toggle-checked .mat-button-toggle-label-content {
+  background: ${BRAND.primary} !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(242,107,31,0.35) !important;
+}
 
-/* Form fields (De onde / Para onde / Datas) */
+/* Form fields (De onde / Para onde / Datas) — sem borda branca dura */
 .mat-form-field { color: ${BRAND.text} !important; width: 100% !important; }
 .mat-form-field-appearance-outline .mat-form-field-outline,
 .mat-form-field-appearance-outline .mat-form-field-outline-thick {
@@ -135,9 +161,10 @@ const SHADOW_CSS = `
   background: ${BRAND.primary} !important;
   color: ${BRAND.primaryText} !important;
   border-radius: 14px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.02em !important;
-  box-shadow: 0 8px 24px rgba(242,107,31,0.35) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 10px 28px rgba(242,107,31,0.40) !important;
   transition: background .2s ease, transform .2s ease !important;
 }
 .mat-raised-button:hover, .search-button:hover, button[type="submit"]:hover {
@@ -159,11 +186,13 @@ const GLOBAL_OVERLAY_CSS = `
 .cdk-overlay-container .mat-menu-panel,
 .cdk-overlay-container .mat-select-panel,
 .cdk-overlay-container .mat-datepicker-content {
-  background: ${BRAND.cardBg} !important;
+  background: rgba(10,22,44,0.92) !important;
   color: ${BRAND.text} !important;
-  border: 1px solid ${BRAND.cardBorder} !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
   border-radius: 14px !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.45) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.55) !important;
+  backdrop-filter: blur(18px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
 }
 .cdk-overlay-container .mat-option, .cdk-overlay-container .mat-menu-item {
   color: ${BRAND.text} !important;
@@ -171,11 +200,11 @@ const GLOBAL_OVERLAY_CSS = `
 .cdk-overlay-container .mat-option:hover:not(.mat-option-disabled),
 .cdk-overlay-container .mat-menu-item:hover:not([disabled]),
 .cdk-overlay-container .mat-option.mat-active {
-  background: rgba(242,107,31,0.10) !important;
+  background: rgba(242,107,31,0.12) !important;
 }
 .cdk-overlay-container .mat-option.mat-selected:not(.mat-option-multiple) {
-  background: rgba(242,107,31,0.18) !important;
-  color: ${BRAND.text} !important;
+  background: rgba(242,107,31,0.22) !important;
+  color: #FFFFFF !important;
 }
 .cdk-overlay-container .mat-option-text { color: inherit !important; }
 
@@ -193,7 +222,7 @@ const GLOBAL_OVERLAY_CSS = `
   color: ${BRAND.primaryText} !important;
 }
 .cdk-overlay-container .mat-calendar-body-in-range::before {
-  background: rgba(242,107,31,0.15) !important;
+  background: rgba(242,107,31,0.18) !important;
 }
 .cdk-overlay-container .mat-calendar-previous-button,
 .cdk-overlay-container .mat-calendar-next-button,
