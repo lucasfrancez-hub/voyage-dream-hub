@@ -55,32 +55,19 @@ const CHANNEL_META: Record<string, { label: string; icon: typeof MessageCircle; 
 
 function SugestoesPage() {
   const list = useServerFn(listSuggestions);
-  const gerar = useServerFn(gerarSuggestions);
   const aprovar = useServerFn(aprovarSuggestion);
   const descartar = useServerFn(descartarSuggestion);
-  const [generating, setGenerating] = useState(false);
 
   const q = useQuery({
     queryKey: ["broadcast-suggestions"],
     queryFn: () => list(),
+    // Recarrega a cada 5 min pra pegar novas sugestões geradas pelo cron
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const suggestions = (q.data?.suggestions ?? []) as unknown as Suggestion[];
   const pending = suggestions.filter((s) => s.status === "pending");
   const approved = suggestions.filter((s) => s.status === "approved");
-
-  async function handleGerar() {
-    setGenerating(true);
-    try {
-      const res = await gerar();
-      toast.success(res.message || `${res.created} sugestões geradas`);
-      await q.refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao gerar sugestões");
-    } finally {
-      setGenerating(false);
-    }
-  }
 
   async function handleAprovar(id: string) {
     const ok = await confirm({
