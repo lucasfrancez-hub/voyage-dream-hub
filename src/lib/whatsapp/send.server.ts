@@ -280,6 +280,7 @@ export async function sendWhatsAppBubbles(
   to: string,
   fullText: string,
   prefix?: string | null,
+  opts?: { replyId?: string | null },
 ): Promise<Array<{ text: string; id: string | null; error?: string }>> {
   const bubbles = fullText
     .split(/\n+/)
@@ -297,7 +298,9 @@ export async function sendWhatsAppBubbles(
       if (looksLikeHotelHeader) delay += 3500 + Math.floor(Math.random() * 2500);
       await new Promise((r) => setTimeout(r, delay));
     }
-    const r = await sendWhatsAppText(to, body);
+    // O reply/quote só faz sentido no primeiro balão da sequência.
+    const replyId = i === 0 ? opts?.replyId ?? null : null;
+    const r = await sendWhatsAppText(to, body, replyId);
     out.push({ text: body, ...r });
   }
   return out;
