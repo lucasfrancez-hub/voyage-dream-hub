@@ -71,21 +71,21 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
                 const igUserId = d.jid.replace(/^ig_story:/, "");
                 const { data: acc } = await supabaseAdmin
                   .from("instagram_accounts")
-                  .select("id, access_token")
+                  .select("id")
                   .eq("ig_user_id", igUserId)
                   .maybeSingle();
-                if (!acc?.access_token) {
-                  r = { id: null, error: "conta IG sem token" };
+                if (!acc?.id || !m.midia_url || m.tipo !== "image") {
+                  r = { id: null, error: "Story exige bloco de imagem com URL" };
                 } else {
                   const { publishInstagramMedia } = await import("@/lib/instagram/publish.server");
                   try {
-                    const media_type = m.tipo === "video" ? "STORIES" : "STORIES";
-                    const res = await publishInstagramMedia(acc.access_token, igUserId, {
-                      media_type,
-                      image_url: m.tipo === "image" ? m.midia_url ?? undefined : undefined,
-                      video_url: m.tipo === "video" ? m.midia_url ?? undefined : undefined,
+                    const res = await publishInstagramMedia({
+                      accountId: acc.id,
+                      mediaType: "story_image",
+                      imageUrls: [m.midia_url],
+                      caption: m.texto ?? undefined,
                     });
-                    r = { id: res.media_id ?? null, error: res.error ?? null };
+                    r = { id: res.id ?? null, error: null };
                   } catch (e) {
                     r = { id: null, error: e instanceof Error ? e.message : "erro IG" };
                   }
