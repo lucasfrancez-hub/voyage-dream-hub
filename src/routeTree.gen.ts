@@ -74,6 +74,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
+import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/api/public/hooks/broadcast-dispatch'
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
@@ -415,6 +416,12 @@ const ApiPublicBpIdRoute = ApiPublicBpIdRouteImport.update({
   path: '/api/public/bp/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksBroadcastDispatchRoute =
+  ApiPublicHooksBroadcastDispatchRouteImport.update({
+    id: '/api/public/hooks/broadcast-dispatch',
+    path: '/api/public/hooks/broadcast-dispatch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksCheckFlightChangesRoute =
   ApiPublicHooksCheckFlightChangesRouteImport.update({
     id: '/api/public/hooks/check-flight-changes',
@@ -546,6 +553,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
+  '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -623,6 +631,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
+  '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -702,6 +711,7 @@ export interface FileRoutesById {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
+  '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -782,6 +792,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
     | '/api/public/bp/$id'
+    | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -859,6 +870,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/pacotes/$slug'
     | '/api/public/bp/$id'
+    | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -937,6 +949,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
     | '/api/public/bp/$id'
+    | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -982,6 +995,7 @@ export interface RootRouteChildren {
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
+  ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -1451,6 +1465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBpIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/broadcast-dispatch': {
+      id: '/api/public/hooks/broadcast-dispatch'
+      path: '/api/public/hooks/broadcast-dispatch'
+      fullPath: '/api/public/hooks/broadcast-dispatch'
+      preLoaderRoute: typeof ApiPublicHooksBroadcastDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/check-flight-changes': {
       id: '/api/public/hooks/check-flight-changes'
       path: '/api/public/hooks/check-flight-changes'
@@ -1680,6 +1701,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
+  ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
   ApiPublicHooksCheckFlightChangesRoute: ApiPublicHooksCheckFlightChangesRoute,
   ApiPublicHooksCloseInactiveProtocolsRoute:
     ApiPublicHooksCloseInactiveProtocolsRoute,
