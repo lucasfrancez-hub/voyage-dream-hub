@@ -15,7 +15,7 @@ import {
 } from "@/lib/instagram/queries.functions";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-export const Route = createFileRoute("/_authenticated/admin/instagram")({
+export const Route = createFileRoute("/admin/instagram")({
   component: InstagramAdminPage,
   head: () => ({
     meta: [

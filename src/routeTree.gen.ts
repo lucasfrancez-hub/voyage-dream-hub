@@ -31,6 +31,7 @@ import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
@@ -58,7 +59,6 @@ import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
-import { Route as AuthenticatedAdminInstagramRouteImport } from './routes/_authenticated/admin.instagram'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
@@ -197,6 +197,11 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminInstagramRoute = AdminInstagramRouteImport.update({
+  id: '/instagram',
+  path: '/instagram',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminInstalarExtensaoRoute = AdminInstalarExtensaoRouteImport.update({
   id: '/instalar-extensao',
   path: '/instalar-extensao',
@@ -332,12 +337,6 @@ const WSlugRoute = WSlugRouteImport.update({
   path: '/w/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminInstagramRoute =
-  AuthenticatedAdminInstagramRouteImport.update({
-    id: '/_authenticated/admin/instagram',
-    path: '/admin/instagram',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -511,6 +510,7 @@ export interface FileRoutesByFullPath {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -538,7 +538,6 @@ export interface FileRoutesByFullPath {
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
   '/pacotes/': typeof PacotesIndexRoute
-  '/admin/instagram': typeof AuthenticatedAdminInstagramRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
@@ -589,6 +588,7 @@ export interface FileRoutesByTo {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -616,7 +616,6 @@ export interface FileRoutesByTo {
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
   '/pacotes': typeof PacotesIndexRoute
-  '/admin/instagram': typeof AuthenticatedAdminInstagramRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
@@ -669,6 +668,7 @@ export interface FileRoutesById {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
@@ -696,7 +696,6 @@ export interface FileRoutesById {
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
   '/pacotes/': typeof PacotesIndexRoute
-  '/_authenticated/admin/instagram': typeof AuthenticatedAdminInstagramRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
@@ -750,6 +749,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -777,7 +777,6 @@ export interface FileRouteTypes {
     | '/protocolo/$protocoloId'
     | '/w/$slug'
     | '/pacotes/'
-    | '/admin/instagram'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
@@ -828,6 +827,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -855,7 +855,6 @@ export interface FileRouteTypes {
     | '/protocolo/$protocoloId'
     | '/w/$slug'
     | '/pacotes'
-    | '/admin/instagram'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
@@ -907,6 +906,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
@@ -934,7 +934,6 @@ export interface FileRouteTypes {
     | '/protocolo/$protocoloId'
     | '/w/$slug'
     | '/pacotes/'
-    | '/_authenticated/admin/instagram'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
@@ -986,7 +985,6 @@ export interface RootRouteChildren {
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   WSlugRoute: typeof WSlugRoute
-  AuthenticatedAdminInstagramRoute: typeof AuthenticatedAdminInstagramRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
@@ -1164,6 +1162,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/instagram': {
+      id: '/admin/instagram'
+      path: '/instagram'
+      fullPath: '/admin/instagram'
+      preLoaderRoute: typeof AdminInstagramRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/instalar-extensao': {
@@ -1353,13 +1358,6 @@ declare module '@tanstack/react-router' {
       path: '/w/$slug'
       fullPath: '/w/$slug'
       preLoaderRoute: typeof WSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/admin/instagram': {
-      id: '/_authenticated/admin/instagram'
-      path: '/admin/instagram'
-      fullPath: '/admin/instagram'
-      preLoaderRoute: typeof AuthenticatedAdminInstagramRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/pedidos/': {
@@ -1573,6 +1571,7 @@ interface AdminRouteChildren {
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminInstagramRoute: typeof AdminInstagramRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
@@ -1594,6 +1593,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminInstagramRoute: AdminInstagramRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
@@ -1679,7 +1679,6 @@ const rootRouteChildren: RootRouteChildren = {
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   WSlugRoute: WSlugRoute,
-  AuthenticatedAdminInstagramRoute: AuthenticatedAdminInstagramRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
