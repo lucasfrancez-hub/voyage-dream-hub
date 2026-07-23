@@ -182,32 +182,7 @@ export async function sendWhatsAppBubbles(
   prefix?: string | null,
   opts?: { replyId?: string | null },
 ): Promise<Array<{ text: string; id: string | null; error?: string }>> {
-  const paragraphs = fullText
-    .split(/\n{2,}/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => s.charAt(0).toLocaleUpperCase("pt-BR") + s.slice(1));
-
-  // Um balão por parágrafo. O prefixo (ex.: assinatura do agente) entra
-  // colado no primeiro balão, sem virar bolha própria.
-  const rawBubbles = paragraphs.length ? paragraphs : [fullText.trim()].filter(Boolean);
-  if (prefix?.trim() && rawBubbles.length) {
-    rawBubbles[0] = `${prefix.trim()}\n${rawBubbles[0]}`;
-  }
-
-  // Se algum parágrafo passar do limite oficial da Meta (~4096), quebra.
-  const bubbles: string[] = [];
-  for (const p of rawBubbles) {
-    let remaining = p;
-    while (remaining.length > 4000) {
-      let splitAt = remaining.lastIndexOf(" ", 4000);
-      if (splitAt < 1) splitAt = 4000;
-      bubbles.push(remaining.slice(0, splitAt).trim());
-      remaining = remaining.slice(splitAt).trim();
-    }
-    if (remaining) bubbles.push(remaining);
-  }
-
+  const bubbles = splitToBubbles(fullText, prefix);
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
   for (let i = 0; i < bubbles.length; i++) {
     const body = bubbles[i];
