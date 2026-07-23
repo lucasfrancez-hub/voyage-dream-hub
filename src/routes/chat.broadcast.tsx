@@ -291,6 +291,8 @@ function CalendarioMes({
 }) {
   const hoje = new Date();
   const [cursor, setCursor] = useState(() => new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+  const [popoverIso, setPopoverIso] = useState<string | null>(null);
+
 
   const eventos = useMemo(() => {
     const map = new Map<string, Campanha[]>();
