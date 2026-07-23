@@ -3685,7 +3685,63 @@ function MultiPackageImportButton({
   );
 }
 
+function IgnoredHotelsBell() {
+  const { ids, restoreAll } = useIgnoredHotels();
+  const [open, setOpen] = useState(false);
+  const count = ids.size;
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={
+            count > 0
+              ? `${count} alerta(s) ignorado(s) — clique para restaurar`
+              : "Nenhum alerta ignorado"
+          }
+          className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-brand-orange transition-colors"
+        >
+          <Bell className="h-4 w-4" />
+          {count > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-orange text-white text-[10px] font-bold flex items-center justify-center shadow-[0_2px_6px_rgba(242,107,31,0.45)]">
+              {count}
+            </span>
+          )}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        {count === 0 ? (
+          <div className="px-3 py-4 text-[11px] text-muted-foreground text-center">
+            Nenhuma notificação ignorada.
+          </div>
+        ) : (
+          <>
+            <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
+              Alertas ignorados
+            </div>
+            <div className="px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
+              {count} hotel(is) sem vínculo com TripAdvisor foram ignorados no alerta.
+            </div>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                restoreAll();
+                setOpen(false);
+              }}
+              className="text-brand-orange font-semibold cursor-pointer"
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-2" /> Restaurar todos
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function UnlinkedHotelsAlert({
+
   packages,
   onOpen,
 }: {
