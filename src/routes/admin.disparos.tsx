@@ -343,7 +343,6 @@ function DestinosList({ destinos, onChanged }: { destinos: Destino[]; onChanged:
       title: "Remover destino?",
       description: `"${d.nome}" será removido da lista de disparos.`,
       confirmText: "Remover",
-      variant: "destructive",
     });
     if (!ok) return;
     try {
