@@ -337,7 +337,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
           .from("wa_conversations")
           .update({ tags: newTags, assigned_to: null, priority: "normal" })
           .eq("id", conv.id);
-        const { recordHandoff } = await import("./tools.server");
+        const { recordHandoff } = await import("./conversation.server");
         await recordHandoff({
           conversation_id: conv.id,
           from_mode: "ai",
