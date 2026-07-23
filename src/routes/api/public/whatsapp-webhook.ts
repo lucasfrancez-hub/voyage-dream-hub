@@ -267,12 +267,13 @@ async function processPayload(payload: WhatsAppPayload) {
 
         let waitMs: number;
         if ((recentBurst ?? 0) >= 2) {
-          waitMs = 4 * 60 * 1000; // rajada → espera mais
+          waitMs = 3 * 60 * 1000; // rajada → cap de 3min (máx. inicial)
         } else if (convState?.ai_debounce_until) {
-          waitMs = 3 * 60 * 1000; // janela já aberta → padrão
+          waitMs = 2 * 60 * 1000; // janela já aberta → follow-up mais curto
         } else {
           waitMs = 90 * 1000; // mensagem isolada após silêncio → responde rápido
         }
+
 
         await supabaseAdmin
           .from("wa_conversations")
