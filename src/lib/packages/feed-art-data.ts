@@ -313,8 +313,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     ticketsParks: (pkg.services?.tickets?.parks ?? [])
       .map((p) => String(p ?? "").trim())
       .filter(Boolean),
-
-
-
+    passeiosList: normalizePasseios(pkg.services ?? null),
   };
 }
+
