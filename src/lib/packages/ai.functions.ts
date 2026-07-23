@@ -866,7 +866,9 @@ Regras:
 - cancelamento = Protec Travel, flexibilidade tarifária ou cobertura de cancelamento involuntário; é separado do seguro. Extraia valor e moeda.
 - transfer/traslado de chegada e saída = enabled true e sentido in_out.
 - tickets = INGRESSOS de parques/atrações (Disney, Universal, SeaWorld, LEGOLAND, Busch Gardens, Volcano Bay, Aquatica, Discovery Cove etc.). Preencha parks com nomes CURTOS (["Disney","Universal"]); agrupe todos os parques Disney sob "Disney" e todos Universal sob "Universal".
+- passeios = ARRAY com cada passeio/tour/city tour/excursão incluído. Detecte blocos "# Passeio", "# City tour", "# Tour", "# Excursão" e itens da seção "Inclui" como "Passeio a X". Nome CURTO em pt-BR sem sufixos FD/HD/MD/PREMIUM/PRIVATIVO/REGULAR/SIC. Dedup case-insensitive. NÃO inclua ingressos de parques aqui.
 - Não invente valores.`,
+
 
               },
               {
