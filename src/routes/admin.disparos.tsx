@@ -238,6 +238,128 @@ function DisparosPage() {
   );
 }
 
+function AgendaProgramada({
+  campanhas,
+  destinos,
+  onEdit,
+  onCancelar,
+  onDisparar,
+}: {
+  campanhas: Campanha[];
+  destinos: Destino[];
+  onEdit: (id: string) => void;
+  onCancelar: (id: string) => void;
+  onDisparar: (id: string) => void;
+}) {
+  const destMap = useMemo(() => new Map(destinos.map((d) => [d.id, d])), [destinos]);
+  const agora = Date.now();
+  const programadas = useMemo(
+    () =>
+      campanhas
+        .filter((c) => c.status === "agendada" && c.scheduled_at)
+        .sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime()),
+    [campanhas],
+  );
+
+  const grupos = useMemo(() => {
+    const map = new Map<string, Campanha[]>();
+    for (const c of programadas) {
+      const dia = new Date(c.scheduled_at!).toLocaleDateString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        weekday: "short",
+        day: "2-digit",
+        month: "long",
+      });
+      const arr = map.get(dia) ?? [];
+      arr.push(c);
+      map.set(dia, arr);
+    }
+    return Array.from(map.entries());
+  }, [programadas]);
+
+  if (programadas.length === 0) return null;
+
+  return (
+    <section className="rounded-xl border border-brand-orange/30 bg-brand-orange/5 p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <CalendarClock className="h-5 w-5 text-brand-orange" />
+        <h2 className="font-semibold">Agenda de programação</h2>
+        <span className="text-xs text-muted-foreground">
+          ({programadas.length} {programadas.length === 1 ? "campanha agendada" : "campanhas agendadas"})
+        </span>
+      </div>
+
+      <div className="space-y-4">
+        {grupos.map(([dia, lista]) => (
+          <div key={dia}>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{dia}</p>
+            <div className="space-y-2">
+              {lista.map((c) => {
+                const when = new Date(c.scheduled_at!);
+                const hora = when.toLocaleTimeString("pt-BR", {
+                  timeZone: "America/Sao_Paulo",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+                const atrasada = when.getTime() < agora;
+                return (
+                  <div
+                    key={c.id}
+                    className="rounded-lg border border-border bg-card p-3 flex items-center gap-3"
+                  >
+                    <div className="w-16 shrink-0 text-center">
+                      <div className={`text-lg font-semibold ${atrasada ? "text-amber-500" : "text-brand-orange"}`}>
+                        {hora}
+                      </div>
+                      {atrasada && <div className="text-[10px] text-amber-500 uppercase">atrasada</div>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{c.nome}</p>
+                      <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 mt-0.5">
+                        <span>{c.destino_ids.length} destinos</span>
+                        {c.destino_ids.slice(0, 3).map((id) => {
+                          const d = destMap.get(id);
+                          if (!d) return null;
+                          return (
+                            <span key={id}>
+                              {d.tipo === "channel" ? "📢" : "👥"} {d.nome}
+                            </span>
+                          );
+                        })}
+                        {c.destino_ids.length > 3 && <span>+{c.destino_ids.length - 3}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => onEdit(c.id)}
+                        className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => onDisparar(c.id)}
+                        className="inline-flex items-center gap-1 text-xs rounded-full bg-emerald-500/15 text-emerald-500 px-3 py-1.5 hover:bg-emerald-500/25"
+                      >
+                        <Send className="h-3 w-3" /> Enviar agora
+                      </button>
+                      <button
+                        onClick={() => onCancelar(c.id)}
+                        className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-red-500 hover:text-red-500"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function CampanhasList({
   campanhas,
   destinos,
