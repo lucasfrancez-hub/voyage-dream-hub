@@ -1,0 +1,1 @@
+ALTER TABLE public.wa_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ; ALTER TABLE public.wa_messages ADD COLUMN IF NOT EXISTS deleted_by_customer BOOLEAN NOT NULL DEFAULT false;
