@@ -677,6 +677,200 @@ function StatCard({ label, value, tone }: { label: string; value: number; tone: 
 
 
 
+// ==================== Kanban Board (dashboard de coisas a fazer) ====================
+
+type KanbanCard = {
+  key: string;
+  title: string;
+  subtitle?: string;
+  meta?: string;
+  onClick?: () => void;
+};
+type KanbanColumn = {
+  key: string;
+  title: string;
+  hint: string;
+  tone: string; // tailwind classes p/ acento
+  cards: KanbanCard[];
+  emptyLabel: string;
+  action?: { label: string; onClick: () => void };
+};
+
+function KanbanBoard({
+  campanhas,
+  destinos,
+  onEditCampanha,
+  onGoDestinos,
+  onSync,
+  syncing,
+}: {
+  campanhas: Campanha[];
+  destinos: Destino[];
+  onEditCampanha: (id: string) => void;
+  onGoDestinos: () => void;
+  onSync: () => void;
+  syncing: boolean;
+}) {
+  const columns = useMemo<KanbanColumn[]>(() => {
+    const semana = 7 * 24 * 60 * 60 * 1000;
+    const agora = Date.now();
+
+    const rascunhos: KanbanCard[] = campanhas
+      .filter((c) => c.status === "rascunho")
+      .slice(0, 12)
+      .map((c) => ({
+        key: c.id,
+        title: c.nome || "Sem nome",
+        subtitle: `${c.destino_ids.length} destino${c.destino_ids.length === 1 ? "" : "s"}`,
+        meta: new Date(c.created_at).toLocaleDateString("pt-BR"),
+        onClick: () => onEditCampanha(c.id),
+      }));
+
+    const semSync: KanbanCard[] = destinos
+      .filter((d) => !d.ultima_sync || agora - new Date(d.ultima_sync).getTime() > semana)
+      .slice(0, 12)
+      .map((d) => ({
+        key: d.id,
+        title: d.nome,
+        subtitle: d.tipo === "channel" ? "Canal" : "Grupo",
+        meta: d.ultima_sync
+          ? `sync ${new Date(d.ultima_sync).toLocaleDateString("pt-BR")}`
+          : "nunca sincronizado",
+      }));
+
+    const semPermissao: KanbanCard[] = destinos
+      .filter((d) => d.ativo && !d.pode_postar)
+      .slice(0, 12)
+      .map((d) => ({
+        key: d.id,
+        title: d.nome,
+        subtitle: d.tipo === "channel" ? "Canal" : "Grupo",
+        meta: "sem permissão de postar",
+      }));
+
+    const falhas: KanbanCard[] = campanhas
+      .filter((c) => c.status === "falhou" && c.sent_at && agora - new Date(c.sent_at).getTime() < semana)
+      .slice(0, 12)
+      .map((c) => ({
+        key: c.id,
+        title: c.nome || "Sem nome",
+        subtitle: `${c.destino_ids.length} destino${c.destino_ids.length === 1 ? "" : "s"}`,
+        meta: c.sent_at ? new Date(c.sent_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "",
+        onClick: () => onEditCampanha(c.id),
+      }));
+
+    return [
+      {
+        key: "rascunhos",
+        title: "Rascunhos",
+        hint: "Sem agenda definida",
+        tone: "border-amber-500/50 bg-amber-500/5 text-amber-400",
+        cards: rascunhos,
+        emptyLabel: "Sem rascunhos abertos",
+      },
+      {
+        key: "sem-sync",
+        title: "Sem sync 7d+",
+        hint: "Destinos desatualizados",
+        tone: "border-sky-500/50 bg-sky-500/5 text-sky-400",
+        cards: semSync,
+        emptyLabel: "Todos sincronizados",
+        action: { label: syncing ? "Sincronizando…" : "Sincronizar agora", onClick: onSync },
+      },
+      {
+        key: "sem-permissao",
+        title: "Sem permissão",
+        hint: "Bot não pode postar",
+        tone: "border-red-500/50 bg-red-500/5 text-red-400",
+        cards: semPermissao,
+        emptyLabel: "Todos os destinos com permissão",
+        action: semPermissao.length ? { label: "Abrir destinos", onClick: onGoDestinos } : undefined,
+      },
+      {
+        key: "falhas",
+        title: "Falhas 7d",
+        hint: "Campanhas com erro",
+        tone: "border-rose-500/50 bg-rose-500/5 text-rose-400",
+        cards: falhas,
+        emptyLabel: "Nenhuma falha recente",
+      },
+    ];
+  }, [campanhas, destinos, onEditCampanha, onGoDestinos, onSync, syncing]);
+
+  return (
+    <section className="rounded-2xl border border-border bg-card/50 overflow-hidden">
+      <header className="px-5 py-4 border-b border-border flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Coisas a fazer</h2>
+          <p className="text-xs text-muted-foreground">Painel operacional — cada coluna é um problema a resolver.</p>
+        </div>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+          {columns.reduce((a, c) => a + c.cards.length, 0)} pendências
+        </span>
+      </header>
+      <div className="p-4 overflow-x-auto">
+        <div className="flex gap-3 min-w-max lg:grid lg:grid-cols-4 lg:min-w-0">
+          {columns.map((col) => (
+            <div
+              key={col.key}
+              className="w-72 lg:w-auto flex-shrink-0 rounded-xl border border-border bg-background/40 flex flex-col"
+            >
+              <div className={`px-3 py-2.5 border-b border-border flex items-center justify-between rounded-t-xl ${col.tone}`}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wide truncate">{col.title}</h3>
+                    <span className="text-[10px] font-bold rounded-full bg-background/60 px-1.5 py-0.5 tabular-nums">
+                      {col.cards.length}
+                    </span>
+                  </div>
+                  <p className="text-[10px] opacity-70 truncate">{col.hint}</p>
+                </div>
+              </div>
+              <div className="p-2 space-y-2 flex-1 min-h-[80px]">
+                {col.cards.length === 0 ? (
+                  <div className="py-6 text-center text-[11px] text-muted-foreground italic">
+                    {col.emptyLabel}
+                  </div>
+                ) : (
+                  col.cards.map((card) => (
+                    <button
+                      key={card.key}
+                      type="button"
+                      onClick={card.onClick}
+                      disabled={!card.onClick}
+                      className="w-full text-left rounded-lg bg-card border border-border px-3 py-2 hover:border-brand-orange transition-colors disabled:cursor-default disabled:hover:border-border"
+                    >
+                      <p className="text-xs font-semibold truncate">{card.title}</p>
+                      {card.subtitle && (
+                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">{card.subtitle}</p>
+                      )}
+                      {card.meta && (
+                        <p className="text-[10px] text-muted-foreground/70 mt-1 tabular-nums">{card.meta}</p>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+              {col.action && (
+                <div className="p-2 border-t border-border">
+                  <button
+                    onClick={col.action.onClick}
+                    className="w-full text-[11px] font-semibold text-brand-orange hover:bg-brand-orange/10 py-1.5 rounded-md"
+                  >
+                    {col.action.label}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+
 function AgendaProgramada({
   campanhas,
   destinos,
