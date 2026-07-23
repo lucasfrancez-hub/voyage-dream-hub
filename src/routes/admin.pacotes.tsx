@@ -3589,12 +3589,13 @@ function MultiPackageImportButton({
           const f = e.dataTransfer.files?.[0];
           if (f) void handleFile(f);
         }}
-        className={`inline-flex items-center justify-center gap-2 bg-transparent hover:bg-brand-orange/10 text-brand-orange border border-brand-orange/60 px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition-all active:scale-95 ${
+        className={`inline-flex items-center justify-center gap-1.5 bg-transparent hover:bg-brand-orange/10 text-brand-orange border border-brand-orange/60 h-9 px-3 rounded-full font-bold uppercase tracking-wider text-[11px] transition-all active:scale-95 ${
           dragging ? "ring-2 ring-brand-orange bg-brand-orange/10" : ""
         }`}
         title="Importar pacote(s) — clique ou arraste o PDF aqui"
       >
-        <FileUp className="h-4 w-4" strokeWidth={2.5} /> {busy ? "Importando…" : "Importar"}
+        <FileUp className="h-3.5 w-3.5" strokeWidth={2.5} /> {busy ? "Importando…" : "Importar"}
+
       </button>
 
       {open && (
