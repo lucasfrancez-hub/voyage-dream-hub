@@ -542,7 +542,7 @@ export type Database = {
           ig_user_id: string
           is_default: boolean
           metadata: Json
-          page_id: string
+          page_id: string | null
           profile_picture_url: string | null
           token_expires_at: string | null
           updated_at: string
@@ -558,7 +558,7 @@ export type Database = {
           ig_user_id: string
           is_default?: boolean
           metadata?: Json
-          page_id: string
+          page_id?: string | null
           profile_picture_url?: string | null
           token_expires_at?: string | null
           updated_at?: string
@@ -574,7 +574,7 @@ export type Database = {
           ig_user_id?: string
           is_default?: boolean
           metadata?: Json
-          page_id?: string
+          page_id?: string | null
           profile_picture_url?: string | null
           token_expires_at?: string | null
           updated_at?: string
