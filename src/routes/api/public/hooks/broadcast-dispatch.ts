@@ -48,8 +48,13 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
             .in("id", camp.destino_ids as string[]);
 
           let ok = 0, fail = 0;
+          const isChannel = (jid: string) => /@newsletter|@broadcast|channel/i.test(jid);
           for (const d of destinos ?? []) {
             for (const m of msgs ?? []) {
+              // Em canais o WhatsApp já gera preview da URL no texto — pular
+              // blocos de imagem para não duplicar a arte.
+              if (isChannel(d.jid) && (m.tipo === "image" || m.tipo === "video")) continue;
+
               // Idempotência: pula se já enviado (retry seguro)
               const { data: existente } = await supabaseAdmin
                 .from("wa_broadcast_envios")
@@ -68,6 +73,7 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
                 midia_caption: m.midia_caption,
                 botoes: m.botoes,
               });
+
 
               const row = {
                 campanha_id: camp.id,
