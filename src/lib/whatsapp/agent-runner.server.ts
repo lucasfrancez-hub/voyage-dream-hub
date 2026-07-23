@@ -81,19 +81,22 @@ async function loadAgents(): Promise<Agent[]> {
 
 function pickAgent(agents: Agent[], stickySlug?: string | null): Agent | null {
   if (!agents.length) return null;
+  // stickiness ABSOLUTA: se essa conversa já foi atendida por um agente ATIVO,
+  // continua com ele até o protocolo encerrar — não alterna IA no meio do fluxo,
+  // mesmo que a janela de horário dele tenha virado.
+  if (stickySlug) {
+    const kept = agents.find((a) => a.slug === stickySlug);
+    if (kept) return kept;
+  }
+  // Sem sticky (protocolo novo): escolhe entre os que estão na janela agora.
   const now = currentHourInSaoPaulo();
   const inWindow = agents.filter((a) =>
     isInWindow(now, hmToDecimal(a.horario_inicio), hmToDecimal(a.horario_fim)),
   );
   if (!inWindow.length) return null;
-  // stickiness: se o agente que já atendeu essa conversa ainda está em janela, reusa.
-  if (stickySlug) {
-    const kept = inWindow.find((a) => a.slug === stickySlug);
-    if (kept) return kept;
-  }
-  // senão, escolhe aleatório entre os disponíveis (rotativo, "primeiro que atende").
   return inWindow[Math.floor(Math.random() * inWindow.length)];
 }
+
 
 
 function firstAvailableAusencia(agents: Agent[]): string | null {

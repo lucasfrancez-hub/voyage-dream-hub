@@ -184,8 +184,10 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
 
             await supabaseAdmin
               .from("wa_conversations")
-              .update({ protocolo_ativo_id: null })
+              // limpa agent_slug: próximo protocolo pode escolher outra IA
+              .update({ protocolo_ativo_id: null, agent_slug: null })
               .eq("id", proto.conversation_id);
+
 
             const encerramentoMsg = `Atendimento encerrado, protocolo ${proto.numero}.`;
 
