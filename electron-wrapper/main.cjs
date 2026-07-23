@@ -10,7 +10,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 640,
     backgroundColor: '#0F172A',
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'default',
     title: 'VIA AIR',
     icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
