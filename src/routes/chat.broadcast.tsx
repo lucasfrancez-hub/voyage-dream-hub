@@ -392,15 +392,16 @@ function CalendarioMes({
           {cells.map((cell, i) => {
             const evs = cell.iso ? eventos.get(cell.iso) ?? [] : [];
             const isToday = cell.date && isSameDay(cell.date, hoje);
+            const isOpen = cell.iso && popoverIso === cell.iso;
             return (
               <div
                 key={i}
-                className={`min-h-[100px] p-2 text-xs transition-colors ${
+                className={`relative min-h-[100px] p-2 text-xs transition-colors ${
                   cell.date
-                    ? `bg-card cursor-pointer hover:bg-muted/40 ${isToday ? "ring-1 ring-inset ring-brand-orange/40" : ""}`
+                    ? `bg-card cursor-pointer hover:bg-muted/40 ${isToday ? "ring-1 ring-inset ring-brand-orange/40" : ""} ${isOpen ? "z-20" : ""}`
                     : "bg-muted/20"
                 }`}
-                onClick={() => cell.iso && openDay(cell.iso)}
+                onClick={() => cell.iso && setPopoverIso(cell.iso)}
               >
                 {cell.date && (
                   <div className="flex items-center justify-between mb-1.5">
@@ -447,9 +448,82 @@ function CalendarioMes({
                     </div>
                   )}
                 </div>
+                {isOpen && cell.iso && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPopoverIso(null);
+                      }}
+                    />
+                    <div
+                      className="absolute left-1/2 top-full z-30 mt-1 w-64 -translate-x-1/2 rounded-xl border border-border bg-popover shadow-2xl backdrop-blur"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                        <p className="text-xs font-semibold capitalize">
+                          {cell.date!.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setPopoverIso(null)}
+                          className="rounded-full p-1 hover:bg-muted"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto p-2 space-y-1">
+                        {evs.length === 0 && (
+                          <p className="text-[11px] text-muted-foreground px-2 py-3 text-center">
+                            Nenhuma campanha agendada.
+                          </p>
+                        )}
+                        {evs.map((c) => {
+                          const hora = new Date(c.scheduled_at!).toLocaleTimeString("pt-BR", {
+                            timeZone: "America/Sao_Paulo",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          });
+                          const tipo = campanhaTipo(c);
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                setPopoverIso(null);
+                                onPickCampanha(c.id);
+                              }}
+                              className={`w-full text-left rounded-md p-2 ${chipCls[tipo]}`}
+                            >
+                              <p className="text-xs font-semibold truncate">{c.nome}</p>
+                              <p className="text-[10px] opacity-70 uppercase">
+                                {hora} • {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"} • {c.destino_ids.length} destino{c.destino_ids.length > 1 ? "s" : ""}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="border-t border-border p-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const iso = cell.iso!;
+                            setPopoverIso(null);
+                            openDay(iso);
+                          }}
+                          className="w-full rounded-md bg-brand-orange px-3 py-1.5 text-[11px] font-semibold text-white hover:opacity-90"
+                        >
+                          + Nova campanha nesse dia
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             );
           })}
+
         </div>
       </div>
     </section>
