@@ -98,14 +98,37 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       const boleto_ate_data_viagem = d !== null && d >= 60;
 
       const svc = p.services ?? {};
-      const services_emojis: string[] = [];
-      if (svc.seguro?.enabled) services_emojis.push("🛡️");
-      if (svc.cancelamento?.enabled) services_emojis.push("🧾");
-      if (svc.transfer?.enabled) services_emojis.push("🚐");
-      if (svc.city_tour?.enabled) services_emojis.push("🗺️");
-      const outrosCount = (svc.outros ?? []).filter((e) => (e || "").trim()).length;
-      for (let i = 0; i < outrosCount; i++) services_emojis.push("✨");
-      const services_emoji_line = services_emojis.join(" ");
+      const services_lines: string[] = [];
+      if (svc.seguro?.enabled) {
+        const cob = svc.seguro.cobertura?.toString().trim();
+        const moeda = svc.seguro.moeda || "USD";
+        services_lines.push(
+          cob
+            ? `🛡️ Seguro Viagem ${moeda} ${cob} por pessoa`
+            : `🛡️ Seguro Viagem`,
+        );
+      }
+      if (svc.cancelamento?.enabled) {
+        const cob = svc.cancelamento.cobertura?.toString().trim();
+        const moeda = svc.cancelamento.moeda || "BRL";
+        services_lines.push(
+          cob
+            ? `🧾 Cobertura para cancelamento involuntário ${moeda} ${cob} por pessoa`
+            : `🧾 Cobertura para cancelamento involuntário`,
+        );
+      }
+      if (svc.transfer?.enabled) {
+        services_lines.push(`🚐 Transfer aeroporto ↔ hotel (${sentidoLabel(svc.transfer.sentido)})`);
+      }
+      if (svc.city_tour?.enabled) {
+        const det = svc.city_tour.detalhe?.trim();
+        services_lines.push(det ? `🗺️ City Tour — ${det}` : `🗺️ City Tour`);
+      }
+      for (const extra of svc.outros ?? []) {
+        const t = (extra || "").trim();
+        if (t) services_lines.push(`✨ ${t}`);
+      }
+
 
 
       return {
