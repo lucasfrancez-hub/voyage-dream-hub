@@ -198,19 +198,23 @@ function deriveMealPlanLabel(
   mealPlan: string | null | undefined,
   list: string[] | null | undefined,
 ): string {
-  let kind: MealPlanKind = classifyMealPlan(mealPlan ?? "");
-  if (!kind) {
-    for (const raw of list ?? []) {
-      const k = classifyMealPlan(String(raw ?? ""));
-      // Priorizar all inclusive > pensão completa > meia pensão > café
-      if (k === "all_inclusive") { kind = k; break; }
-      if (k === "pensao_completa" && kind !== "all_inclusive") kind = k;
-      else if (k === "meia_pensao" && kind !== "pensao_completa" && kind !== "all_inclusive") kind = k;
-      else if (k === "cafe" && !kind) kind = k;
-    }
+  const priority = ["all_inclusive", "pensao_completa", "meia_pensao", "cafe"] as const;
+  const candidates: MealPlanKind[] = [];
+  const primary = classifyMealPlan(mealPlan ?? "");
+  if (primary) candidates.push(primary);
+  for (const raw of list ?? []) {
+    const k = classifyMealPlan(String(raw ?? ""));
+    if (k) candidates.push(k);
   }
-  return mealPlanLabel(kind) || "Café da Manhã";
+  let best: MealPlanKind = null;
+  let bestRank = priority.length;
+  for (const c of candidates) {
+    const idx = priority.indexOf(c as (typeof priority)[number]);
+    if (idx !== -1 && idx < bestRank) { best = c; bestRank = idx; }
+  }
+  return mealPlanLabel(best) || "Café da Manhã";
 }
+
 
 
 async function toDataUrl(url: string): Promise<string> {
