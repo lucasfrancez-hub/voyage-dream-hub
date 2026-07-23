@@ -562,7 +562,7 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     escalar_para_humano: tool({
       description:
-        "Transfere a conversa pro atendimento humano (nova cotação, alteração/cancelamento de voo pela cia, reclamação, algo fora do seu escopo). Marca a conversa como mode=human com prioridade e briefing pro painel do atendente. DEPOIS de chamar essa tool, envie APENAS UMA mensagem curta avisando que passou pro time humano e ENCERRE — a IA sai do ar automaticamente e o atendente assume. Preencha os campos estruturados com o que já foi coletado.",
+        "Sinaliza que a conversa precisa ser assumida pelo time comercial humano (nova cotação, alteração/cancelamento de voo pela cia, reclamação, algo fora do seu escopo). Marca prioridade + briefing pro painel do atendente e adiciona a tag 'aguardando_humano'. IMPORTANTE: você (IA) CONTINUA respondendo normalmente até um atendente humano de fato assumir — se o cliente mandar mais mensagens depois, siga atendendo com naturalidade. Preencha os campos estruturados com o que já foi coletado.",
 
       inputSchema: z.object({
         motivo: z
@@ -616,9 +616,10 @@ export function buildCamilaTools(conversation: WaConversation) {
         await supabaseAdmin
           .from("wa_conversations")
           .update({
-            // Ao escalar, transfere de fato pra humano: a IA para de responder
-            // e a conversa aparece no painel como "aguardando atendimento".
-            mode: "human",
+            // NÃO troca mode pra "human" aqui: a IA continua atendendo até um
+            // atendente humano de fato assumir (assumir = enviar mensagem pelo
+            // painel, o que já troca mode=human em queries.functions.ts).
+            // Só marca prioridade e a tag "aguardando_humano" pro painel.
             priority: prioridade ?? "normal",
             tags: newTags,
           })
@@ -632,18 +633,20 @@ export function buildCamilaTools(conversation: WaConversation) {
             .eq("id", conversation.protocolo_ativo_id);
         }
 
+        // Registra o pedido de handoff pro painel, mas mantém from_mode/to_mode
+        // sinalizando que ainda estamos em IA aguardando humano assumir.
         await recordHandoff({
           conversation_id: conversation.id,
           from_mode: "ai",
-          to_mode: "human",
-          reason: motivo,
+          to_mode: "ai",
+          reason: `aguardando_humano:${motivo}`,
           briefing,
         });
 
         return {
           ok: true,
           instrucao:
-            "Envie UMA mensagem curta (2 a 4 linhas) avisando que já passou pro time comercial assumir daqui. OBRIGATÓRIO informar o horário de atendimento comercial: das 09h às 21h (se estiver dentro do horário: 'em breve um dos nossos consultores entra em contato por aqui'; se estiver FORA desse horário: 'nosso comercial atende das 09h às 21h, então logo no início do expediente um consultor te chama por aqui'). SEMPRE agradeça com a expressão 'obrigado pela preferência' — NUNCA use 'obrigado pela paciência'. Encerre — NÃO faça mais perguntas nem siga respondendo, o atendente humano vai continuar.",
+            "Envie UMA mensagem curta (2 a 4 linhas) avisando que já sinalizou pro time comercial. OBRIGATÓRIO informar o horário de atendimento comercial: das 09h às 21h (se estiver dentro do horário: 'em breve um dos nossos consultores entra em contato por aqui'; se estiver FORA desse horário: 'nosso comercial atende das 09h às 21h, então logo no início do expediente um consultor te chama por aqui'). SEMPRE agradeça com a expressão 'obrigado pela preferência' — NUNCA use 'obrigado pela paciência'. IMPORTANTE: você (IA) CONTINUA no atendimento — se o cliente mandar mais alguma coisa depois (dúvida, complemento, mudança), siga respondendo normalmente com naturalidade até o atendente humano assumir. Não fale 'não posso mais responder' nem se despeça de vez.",
         };
       },
     }),
