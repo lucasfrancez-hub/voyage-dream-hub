@@ -106,6 +106,11 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           style={{ color: "color-mix(in oklab, var(--chat-bubble-fg) 55%, transparent)" }}
         >
           <span>{formatTime(timestamp)}</span>
+          {replied && (
+            <span title="Respondida" className="flex items-center gap-0.5 text-[10px]" style={{ color: "var(--brand-orange)" }}>
+              <CornerUpLeft className="h-3 w-3" />
+            </span>
+          )}
           {isOut && status && (
             status === "read" ? (
               <CheckCheck className="h-3 w-3 text-blue-500" />
