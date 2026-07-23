@@ -164,6 +164,19 @@ export const salvarCampanha = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const { data: destinosSelecionados, error: destinosError } = await supabaseAdmin
+      .from("wa_broadcast_destinos")
+      .select("id, tipo")
+      .in("id", data.destino_ids);
+    if (destinosError) throw new Error(destinosError.message);
+    const somenteCanais =
+      (destinosSelecionados?.length ?? 0) > 0 &&
+      (destinosSelecionados ?? []).every((destino) => destino.tipo === "channel");
+    const mensagens = somenteCanais
+      ? data.mensagens.filter((mensagem) => mensagem.tipo !== "image" && mensagem.tipo !== "video")
+      : data.mensagens;
+    if (mensagens.length === 0) throw new Error("Adicione ao menos uma mensagem de texto para o canal");
+
     const payload = {
       nome: data.nome.trim(),
       destino_ids: data.destino_ids,
@@ -184,8 +197,10 @@ export const salvarCampanha = createServerFn({ method: "POST" })
       campanhaId = novo.id;
     }
 
-    const blocos = data.mensagens.map((m, i) => ({
-      campanha_id: campanhaId!,
+    if (!campanhaId) throw new Error("Não foi possível salvar a campanha");
+
+    const blocos = mensagens.map((m, i) => ({
+      campanha_id: campanhaId,
       ordem: i,
       tipo: m.tipo,
       texto: m.texto ?? null,
@@ -197,7 +212,7 @@ export const salvarCampanha = createServerFn({ method: "POST" })
     const { error: mErr } = await supabaseAdmin.from("wa_broadcast_mensagens").insert(blocos as never);
     if (mErr) throw new Error(mErr.message);
 
-    return { id: campanhaId! };
+    return { id: campanhaId };
   });
 
 export const cancelarCampanha = createServerFn({ method: "POST" })
