@@ -150,7 +150,7 @@ export const Route = createFileRoute("/api/public/test-flight-alert")({
 
         buttons = buttons.map((b) => ({ ...b, id: b.id.replace(":PENDING:", `:${alertRow.id}:`) }));
 
-        const provider = uazConfiguredCheck() ? "uazapi" : "meta";
+        const provider = "meta";
         let sent: { id: string | null; error?: string };
         let via: string;
         try {
@@ -204,6 +204,3 @@ export const Route = createFileRoute("/api/public/test-flight-alert")({
   },
 });
 
-function uazConfiguredCheck(): boolean {
-  return !!(process.env.UAZAPI_URL && process.env.UAZAPI_TOKEN);
-}

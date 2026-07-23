@@ -46,7 +46,7 @@ const STATIC_PAGES: Array<{ title: string; subtitle: string; to: string; keyword
   { title: "Fluxos", subtitle: "Automações", to: "/chat/fluxos", keywords: ["fluxos", "automação", "bot"] },
   { title: "Pastas", subtitle: "Organização", to: "/chat/pastas", keywords: ["pastas", "tags"] },
   { title: "Agentes", subtitle: "IA / agentes", to: "/chat/agentes", keywords: ["agentes", "ia", "camila", "roberto"] },
-  { title: "Configurações do chat", subtitle: "WhatsApp / UazAPI", to: "/chat/config", keywords: ["config chat", "uazapi", "whatsapp config"] },
+  { title: "Configurações do chat", subtitle: "WhatsApp", to: "/chat/config", keywords: ["config chat", "whatsapp config"] },
 ];
 
 export const searchGlobal = createServerFn({ method: "POST" })

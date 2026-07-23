@@ -1,7 +1,5 @@
 /**
- * Envia mensagem interativa com botões.
- * Provedor principal: UazAPI (/send/menu type=button).
- * Fallback: Meta Cloud API (interactive buttons).
+ * Envia mensagem interativa com botões via Meta Cloud API.
  * SERVER-ONLY.
  */
 
@@ -13,49 +11,7 @@ function normalizePhone(raw: string): string {
   return digits;
 }
 
-function uazConfigured(): boolean {
-  return !!(process.env.UAZAPI_URL && process.env.UAZAPI_TOKEN);
-}
-
 export type WaButton = { id: string; title: string };
-
-async function uazSendButtons(input: {
-  to: string;
-  body: string;
-  buttons: WaButton[];
-  footer?: string;
-}): Promise<{ id: string | null; error?: string }> {
-  const base = process.env.UAZAPI_URL!.replace(/\/+$/, "");
-  const token = process.env.UAZAPI_TOKEN!;
-  const payload = {
-    number: normalizePhone(input.to),
-    type: "button",
-    text: input.body.slice(0, 1024),
-    footerText: input.footer?.slice(0, 60) ?? "",
-    choices: input.buttons.slice(0, 3).map((b) => b.title.slice(0, 20)),
-  };
-  try {
-    const res = await fetch(`${base}/send/menu`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", token },
-      body: JSON.stringify(payload),
-    });
-    const raw = await res.text();
-    let data: { id?: string; messageid?: string; message?: { id?: string }; error?: string; response?: string } = {};
-    try { data = JSON.parse(raw); } catch { /* keep empty */ }
-    console.log("[uazapi/send-buttons] status=", res.status, "ok=", res.ok);
-    if (!res.ok) {
-      const msg = data.error ?? data.response ?? `HTTP ${res.status}: ${raw.slice(0, 200)}`;
-      console.error("[uazapi/send-buttons] falha:", msg);
-      return { id: null, error: msg };
-    }
-    return { id: data.id ?? data.messageid ?? data.message?.id ?? null };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[uazapi/send-buttons] exception:", msg);
-    return { id: null, error: msg };
-  }
-}
 
 async function metaSendButtons(input: {
   to: string;
@@ -114,6 +70,5 @@ export async function sendWhatsAppButtons(input: {
   buttons: WaButton[]; // até 3
   footer?: string;
 }): Promise<{ id: string | null; error?: string }> {
-  if (uazConfigured()) return uazSendButtons(input);
   return metaSendButtons(input);
 }
