@@ -145,7 +145,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         url: `${baseUrl}/w/${p.slug}`,
         days_until_departure: d,
         boleto_ate_data_viagem,
-        services_emoji_line,
+        services_lines,
 
       };
     });
