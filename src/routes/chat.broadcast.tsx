@@ -1207,6 +1207,7 @@ function DestinosList({ destinos, onChanged }: { destinos: Destino[]; onChanged:
 
   const grupos = destinos.filter((d) => d.tipo === "group");
   const canais = destinos.filter((d) => d.tipo === "channel");
+  const igStories = destinos.filter((d) => d.tipo === "instagram_story");
 
   return (
     <div className="space-y-6">
