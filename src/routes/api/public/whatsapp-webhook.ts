@@ -69,6 +69,14 @@ type WhatsAppPayload = {
             button_reply?: { id: string; title: string };
             list_reply?: { id: string; title: string };
           };
+          // Meta envia isso quando a mensagem é uma resposta (reply) a outra
+          context?: {
+            from?: string;
+            id?: string;
+            forwarded?: boolean;
+          };
+          // Meta sinaliza "apagar para todos" com type=unsupported + errors[code=131051]
+          errors?: Array<{ code?: number; title?: string; message?: string }>;
           timestamp?: string;
         }>;
         contacts?: Array<{ wa_id: string; profile?: { name?: string } }>;
