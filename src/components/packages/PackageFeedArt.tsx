@@ -126,17 +126,30 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
   const mealChipLabel = mealLabelRaw.includes(" ")
     ? mealLabelRaw.replace(/\s+/, "\n")
     : mealLabelRaw;
-  const ticketsChipLabel = (() => {
-    const raw = (data.ticketsLabel || "").trim();
-    if (!raw) return "Ingressos";
-    // Se couber em ~14 chars total (ex.: "Disney · Univ."), usa o label; senão mantém "Ingressos"
-    return raw.length <= 16 ? raw.replace(/\s*·\s*/g, "\n") : "Ingressos";
-  })();
-  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) => {
-    if (it.key === "cafeDaManha") return { ...it, label: mealChipLabel };
-    if (it.key === "ingressos") return { ...it, label: ticketsChipLabel };
-    return it;
+  const parks = (data.ticketsParks ?? []).map((p) => String(p ?? "").trim()).filter(Boolean);
+  const formatParkLabel = (park: string) => {
+    // Ex.: "Universal 2 dias + Epic" -> "Ingresso\nUniv. 2d + Epic"
+    const compact = park
+      .replace(/\bUniversal\b/gi, "Univ.")
+      .replace(/\bdias?\b/gi, "d")
+      .replace(/\s+/g, " ")
+      .trim();
+    return `Ingresso\n${compact}`;
+  };
+  const includes = INCLUDES.flatMap((it) => {
+    if (!data.inclusos[it.key]) return [];
+    if (it.key === "cafeDaManha") return [{ ...it, label: mealChipLabel }];
+    if (it.key === "ingressos") {
+      if (parks.length === 0) return [{ ...it, label: "Ingressos" }];
+      return parks.map((park, idx) => ({
+        key: `ingressos-${idx}` as unknown as IncludeItem["key"],
+        label: formatParkLabel(park),
+        icon: I.ticket,
+      }));
+    }
+    return [it];
   });
+
 
 
   const { top, bottom } = splitDestino(data.destino);
