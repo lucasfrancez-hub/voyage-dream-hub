@@ -1,0 +1,1 @@
+UPDATE public.wa_conversations SET mode = 'resolved' WHERE LENGTH(wa_phone) > 13 OR LENGTH(wa_phone) < 10;
