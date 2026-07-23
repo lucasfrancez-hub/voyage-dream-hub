@@ -712,9 +712,10 @@ function AdminPackages() {
               }
               setEditing({ ...emptyForm });
             }}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-brand-orange hover:bg-[#ff7b30] text-white transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-orange hover:bg-[#ff7b30] text-white transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(242,107,31,0.2)]"
           >
-            <Plus className="h-5 w-5" strokeWidth={3} />
+            <Plus className="h-4 w-4" strokeWidth={3} />
+
           </button>
         </div>
 
