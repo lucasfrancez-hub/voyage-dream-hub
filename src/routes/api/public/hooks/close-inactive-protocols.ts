@@ -34,18 +34,25 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
         const closed: string[] = [];
         const skipped: string[] = [];
 
-        // Se o protocolo está aguardando o time comercial (último handoff → human
-        // sem resposta humana desde então), NÃO contar como inatividade. O relógio
-        // só volta a andar depois que a gente responder.
+        // Se o protocolo está aguardando o time comercial (último handoff foi
+        // escalada pra humano — seja to_mode=human, seja to_mode=ai com reason
+        // "aguardando_humano:*" que a IA usa quando continua respondendo até
+        // alguém assumir), NÃO contar como inatividade. O relógio só volta a
+        // andar depois que a gente (humano) responder.
         async function isAwaitingHuman(conversationId: string): Promise<boolean> {
           const { data: lastHandoff } = await supabaseAdmin
             .from("wa_handoff_events")
-            .select("to_mode, created_at")
+            .select("to_mode, reason, created_at")
             .eq("conversation_id", conversationId)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
-          if (!lastHandoff || lastHandoff.to_mode !== "human") return false;
+          if (!lastHandoff) return false;
+          const awaiting =
+            lastHandoff.to_mode === "human" ||
+            (typeof lastHandoff.reason === "string" &&
+              lastHandoff.reason.startsWith("aguardando_humano"));
+          if (!awaiting) return false;
           const { count } = await supabaseAdmin
             .from("wa_messages")
             .select("id", { count: "exact", head: true })
