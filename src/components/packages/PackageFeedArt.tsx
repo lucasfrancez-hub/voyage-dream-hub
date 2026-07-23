@@ -107,8 +107,24 @@ const INCLUDES: IncludeItem[] = [
   { key: "seguroViagem",      label: "Seguro\nViagem",     icon: I.shield },
   { key: "esimInternacional", label: "eSIM\nIntl.",        icon: I.wifi },
   { key: "ingressos",         label: "Ingressos",          icon: I.ticket },
+  { key: "passeios",          label: "Passeios",           icon: I.mapPin },
   { key: "maisServicos",      label: "E mais\nserviços",   icon: I.bus },
 ];
+
+const CHIP_CAP = 8;
+
+function shortenPasseio(raw: string): string {
+  const t = raw.replace(/\s+/g, " ").trim();
+  // remove sufixos de duração comuns: FD, HD, MD, PREMIUM, PRIVATIVO, REGULAR
+  const cleaned = t
+    .replace(/\b(FD|HD|MD|FULL\s*DAY|HALF\s*DAY|PREMIUM|PRIVATIVO|REGULAR)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  const words = cleaned.split(/\s+/);
+  const short = words.slice(0, 3).join(" ");
+  return short.length <= 18 ? short : short.slice(0, 17) + "…";
+}
+
 
 
 function splitDestino(destino: string) {
