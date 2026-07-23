@@ -2460,6 +2460,68 @@ function ServicesEditor({
           )}
         </div>
 
+        {/* Ingressos (parques/atrações) */}
+        <div className="rounded-xl border border-border bg-background/60 p-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-brand-orange"
+              checked={!!tickets.enabled}
+              onChange={(e) =>
+                patch({
+                  tickets: {
+                    ...tickets,
+                    enabled: e.target.checked,
+                    parks: parks.length ? parks : [""],
+                  },
+                })
+              }
+            />
+            <span className="text-sm font-medium">🎟️ Ingressos (parques / atrações)</span>
+            <span className="text-[11px] text-muted-foreground">— ex.: Disney, Universal, SeaWorld</span>
+          </label>
+          {tickets.enabled && (
+            <div className="mt-2 space-y-2">
+              {(parks.length ? parks : [""]).map((park, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <input
+                    className={inpClass}
+                    placeholder="Nome do parque / atração"
+                    value={park ?? ""}
+                    onChange={(e) => {
+                      const next = [...(parks.length ? parks : [""])];
+                      next[idx] = e.target.value;
+                      patch({ tickets: { ...tickets, enabled: true, parks: next } });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = (parks.length ? parks : [""]).filter((_, i) => i !== idx);
+                      patch({ tickets: { ...tickets, enabled: next.length > 0, parks: next } });
+                    }}
+                    className="rounded-lg border border-border px-2 hover:bg-muted"
+                    aria-label="Remover"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  patch({ tickets: { ...tickets, enabled: true, parks: [...(parks.length ? parks : [""]), ""] } })
+                }
+                className="text-xs text-brand-orange hover:underline"
+              >
+                + Adicionar parque
+              </button>
+            </div>
+          )}
+        </div>
+
+
+
         {/* Outros */}
         <div className="rounded-xl border border-border bg-background/60 p-3">
           <div className="flex items-center justify-between mb-2">
