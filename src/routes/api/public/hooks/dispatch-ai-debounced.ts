@@ -31,11 +31,10 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
 
         const dispatched: string[] = [];
         for (const conv of due ?? []) {
-          // LEASE: empurra o debounce 5min pra frente antes de rodar. Se o
-          // worker crashar no meio (CPU limit / timeout), o próximo tick
-          // depois de 5min pega de novo e reprocessa. Só zeramos DEPOIS que
-          // runAgent termina com sucesso.
-          const leaseUntil = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          // LEASE curto: worker do Cloudflare cai em ~30s se travar. Se der
+          // ruim, o próximo tick (a cada 30s) reprocessa em até 90s no pior
+          // caso — bem dentro do orçamento total de 3min de resposta.
+          const leaseUntil = new Date(Date.now() + 90 * 1000).toISOString();
           const { error: leaseErr } = await supabaseAdmin
             .from("wa_conversations")
             .update({ ai_debounce_until: leaseUntil })

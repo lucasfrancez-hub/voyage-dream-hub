@@ -274,10 +274,36 @@ async function processPayload(payload: WhatsAppPayload) {
           waitMs = 90 * 1000; // mensagem isolada após silêncio → responde rápido
         }
 
+        // CAP ABSOLUTO: nunca deixar a IA demorar mais que 3min a contar da
+        // PRIMEIRA mensagem não respondida do cliente. Se novas mensagens
+        // continuarem chegando, elas NÃO podem empurrar o deadline pra além
+        // desse teto.
+        const { data: lastOutbound } = await supabaseAdmin
+          .from("wa_messages")
+          .select("created_at")
+          .eq("conversation_id", conv.id)
+          .eq("direction", "outbound")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const { data: firstPending } = await supabaseAdmin
+          .from("wa_messages")
+          .select("created_at")
+          .eq("conversation_id", conv.id)
+          .eq("direction", "inbound")
+          .gt("created_at", lastOutbound?.created_at ?? "1970-01-01")
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        const desiredAt = Date.now() + waitMs;
+        const hardCapAt = firstPending?.created_at
+          ? new Date(firstPending.created_at).getTime() + 3 * 60 * 1000
+          : desiredAt;
+        const finalAt = Math.min(desiredAt, hardCapAt);
 
         await supabaseAdmin
           .from("wa_conversations")
-          .update({ ai_debounce_until: new Date(Date.now() + waitMs).toISOString() })
+          .update({ ai_debounce_until: new Date(finalAt).toISOString() })
           .eq("id", conv.id);
 
       }
