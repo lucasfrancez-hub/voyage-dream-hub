@@ -608,13 +608,17 @@ export const startOutboundConversation = createServerFn({ method: "POST" })
       })
       .eq("id", conv.id);
 
-    await saveMessage({
-      conversation_id: conv.id,
-      direction: "outbound",
-      sender: "human",
-      content,
-      sender_user_id: context.userId,
-    });
+    const { splitToBubbles } = await import("@/lib/whatsapp/send.server");
+    const bubbles = splitToBubbles(content);
+    for (const b of bubbles) {
+      await saveMessage({
+        conversation_id: conv.id,
+        direction: "outbound",
+        sender: "human",
+        content: b,
+        sender_user_id: context.userId,
+      });
+    }
 
     await sendWhatsAppBubbles(phone, content, prefix);
     return { ok: true, conversation_id: conv.id };
