@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle, Sun, Moon, Megaphone } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -37,7 +37,7 @@ function AdminLayout() {
   const [role, setRole] = useState<Role | undefined>(undefined);
   const isAdmin = role === "admin";
   const isPartner = role === "partner";
-  const isMarketing = role === "marketing" || role === "admin";
+  // marketing role is redirected to /chat/broadcast on entry
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "dark";
     return (window.localStorage.getItem("admin-theme") as "dark" | "light") || "dark";
