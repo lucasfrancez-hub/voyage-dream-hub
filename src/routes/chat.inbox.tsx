@@ -55,7 +55,9 @@ function InboxPage() {
     refetchInterval: 15_000,
   });
 
-  const [channel, setChannel] = useState<"whatsapp" | "instagram_dm" | "instagram_comments">("whatsapp");
+  const [channel, _setChannel] = useState<"whatsapp" | "instagram_dm" | "instagram_comments">("whatsapp");
+  const setChannel = (_c: "whatsapp" | "instagram_dm" | "instagram_comments") => _setChannel("whatsapp");
+
   const [folder, setFolder] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
