@@ -217,6 +217,27 @@ function InboxPage() {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
+            {/* Abas de canal (WhatsApp | Instagram) */}
+            <div className="mt-2 flex gap-1 rounded-lg bg-slate-100 p-0.5">
+              <button
+                onClick={() => { setChannel("whatsapp"); setActiveId(null); }}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  channel === "whatsapp" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500",
+                )}
+              >
+                <MessageCircle className="h-3 w-3" /> WhatsApp
+              </button>
+              <button
+                onClick={() => { setChannel("instagram"); setActiveId(null); }}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  channel === "instagram" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500",
+                )}
+              >
+                <Instagram className="h-3 w-3" /> Instagram
+              </button>
+            </div>
             <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {FOLDERS.map((f) => (
                 <button
@@ -237,7 +258,9 @@ function InboxPage() {
 
           </div>
           <div className="flex-1 space-y-1 overflow-y-auto p-2">
-            {filtered.length === 0 ? (
+            {channel === "instagram" ? (
+              <InstagramList folder={folder} search={search} activeId={activeId} onSelect={setActiveId} />
+            ) : filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
             ) : (
               filtered.map((c) => <ConvItem key={c.id} conv={c} active={activeId === c.id} onClick={() => setActiveId(c.id)} attendantName={c.assigned_to ? attendantMap[c.assigned_to] ?? null : null} />)
