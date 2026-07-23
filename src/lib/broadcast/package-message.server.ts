@@ -228,3 +228,4 @@ export async function listBroadcastPackages(filter: { origin?: string; destinati
       nights,
     };
   });
+}
