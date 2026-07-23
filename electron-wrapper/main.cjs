@@ -1,7 +1,7 @@
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
 
-const APP_URL = 'https://pedidos.viaair.tur.br/';
+const APP_URL = 'https://pedidos.viaair.tur.br/admin/pacotes';
 
 function createWindow() {
   const win = new BrowserWindow({
