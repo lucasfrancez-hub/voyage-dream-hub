@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Lock, ArrowLeft, ShieldCheck, Copy, Smartphone, Mail } from "lucide-react";
+import { Loader2, Lock, ArrowLeft, ShieldCheck, Copy, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
@@ -302,17 +302,6 @@ function AuthPage() {
                   placeholder="000000"
                   autoFocus
                 />
-                <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={trustDevice}
-                    onChange={(e) => setTrustDevice(e.target.checked)}
-                    className="mt-0.5 accent-[hsl(var(--brand-orange))]"
-                  />
-                  <span>
-                    Confiar neste dispositivo por 30 dias (pula apenas o código por e-mail nas próximas vezes deste navegador — o código do autenticador continua sendo pedido)
-                  </span>
-                </label>
                 <div className="flex gap-2">
                   <button
                     type="submit"
@@ -408,18 +397,6 @@ function AuthPage() {
                   placeholder="000000"
                   autoFocus
                 />
-                <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={trustDevice}
-                    onChange={(e) => setTrustDevice(e.target.checked)}
-                    className="mt-0.5 accent-[hsl(var(--brand-orange))]"
-                  />
-                  <span className="inline-flex items-center gap-1">
-                    <Smartphone className="h-3.5 w-3.5" />
-                    Confiar neste dispositivo por 30 dias (pula o código por e-mail — o autenticador continua obrigatório)
-                  </span>
-                </label>
                 <button
                   type="submit"
                   disabled={loading || otp.length !== 6}
@@ -479,9 +456,9 @@ function AuthPage() {
                 </button>
               </form>
 
-              <p className="mt-4 w-full text-center text-xs text-muted-foreground">
-                Acesso restrito. Novos usuários são criados pelo gestor no painel administrativo.
-              </p>
+              <div className="mt-4 flex justify-center text-muted-foreground/60">
+                <Lock className="h-4 w-4" aria-label="Acesso restrito" />
+              </div>
             </>
           )}
         </div>
