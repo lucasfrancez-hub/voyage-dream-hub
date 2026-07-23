@@ -8,6 +8,30 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Sem permissão");
 }
 
+const ServicesSchema = z
+  .object({
+    seguro: z
+      .object({ enabled: z.boolean().optional(), cobertura: z.string().nullable().optional(), moeda: z.string().nullable().optional() })
+      .partial()
+      .optional(),
+    cancelamento: z
+      .object({ enabled: z.boolean().optional(), cobertura: z.string().nullable().optional(), moeda: z.string().nullable().optional() })
+      .partial()
+      .optional(),
+    transfer: z
+      .object({ enabled: z.boolean().optional(), sentido: z.enum(["in", "out", "in_out"]).nullable().optional() })
+      .partial()
+      .optional(),
+    city_tour: z
+      .object({ enabled: z.boolean().optional(), detalhe: z.string().nullable().optional() })
+      .partial()
+      .optional(),
+    outros: z.array(z.string()).optional(),
+  })
+  .partial()
+  .nullable()
+  .optional();
+
 const PackageBrief = z.object({
   title: z.string(),
   destination: z.string(),
@@ -21,6 +45,7 @@ const PackageBrief = z.object({
   hotel_stars: z.number().nullable().optional(),
   meal_plan: z.string().nullable().optional(),
   slug: z.string(),
+  services: ServicesSchema,
 });
 
 export const generateCurationCopy = createServerFn({ method: "POST" })
