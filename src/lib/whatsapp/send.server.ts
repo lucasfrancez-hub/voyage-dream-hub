@@ -1,7 +1,7 @@
 /**
- * Envia mensagens pelo WhatsApp.
- * Provedor principal: UazAPI (não-oficial, QR Code — self-hosted em viaair.uazapi.com).
- * Fallback: Meta Cloud API (se UAZAPI_URL/UAZAPI_TOKEN não estiverem configurados).
+ * Envia mensagens pelo WhatsApp oficial da VIA AIR.
+ * O chat, alertas e automações usam exclusivamente a Meta Cloud API.
+ * UazAPI fica restrita ao módulo independente de broadcast.
  * SERVER-ONLY — nunca importar de rotas/componentes.
  */
 
@@ -152,25 +152,35 @@ async function metaSendText(to: string, body: string): Promise<{ id: string | nu
     type: "text",
     text: { preview_url: true, body: body.slice(0, 4090) },
   };
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const rawText = await res.text();
-    let data: { messages?: Array<{ id: string }>; error?: { message: string } } = {};
-    try { data = JSON.parse(rawText); } catch { /* keep empty */ }
-    if (!res.ok) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const rawText = await res.text();
+      let data: { messages?: Array<{ id: string }>; error?: { message: string } } = {};
+      try { data = JSON.parse(rawText); } catch { /* keep empty */ }
+      if (res.ok) {
+        const id = data.messages?.[0]?.id ?? null;
+        if (!id) return { id: null, error: "Meta aceitou o envio sem retornar o ID da mensagem" };
+        return { id };
+      }
+
       const msg = data.error?.message ?? `HTTP ${res.status}: ${rawText.slice(0, 200)}`;
-      console.error("[whatsapp/meta send] falha:", msg);
-      return { id: null, error: msg };
+      const transient = res.status === 408 || res.status === 429 || res.status >= 500;
+      console.error(`[whatsapp/meta send] tentativa ${attempt}/3 falhou:`, msg);
+      if (!transient || attempt === 3) return { id: null, error: msg };
+      await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[whatsapp/meta send] tentativa ${attempt}/3 gerou exceção:`, msg);
+      if (attempt === 3) return { id: null, error: msg };
+      await new Promise((resolve) => setTimeout(resolve, attempt * 250));
     }
-    return { id: data.messages?.[0]?.id ?? null };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { id: null, error: msg };
   }
+  return { id: null, error: "Falha inesperada ao enviar pela Meta" };
 }
 
 async function metaSendMedia(to: string, extra: Record<string, unknown>): Promise<{ id: string | null; error?: string }> {
@@ -208,8 +218,7 @@ async function metaSendMedia(to: string, extra: Record<string, unknown>): Promis
 // ================== API pública (mantém assinaturas) ==================
 
 export async function sendWhatsAppText(to: string, body: string, replyId?: string | null): Promise<{ id: string | null; error?: string }> {
-  if (uazConfigured()) return uazSendText(to, body, replyId);
-  // Meta: reply via context.message_id
+  // Chat oficial: sempre Meta. Reply nativo usa context.message_id.
   if (replyId) {
     const token = process.env.WHATSAPP_ACCESS_TOKEN;
     const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -244,19 +253,7 @@ export async function sendWhatsAppText(to: string, body: string, replyId?: strin
  * Indicador "digitando…" — UazAPI usa /message/presence, Meta usa typing_indicator.
  */
 export async function sendWhatsAppTypingIndicator(inbound_wa_message_id: string, to?: string): Promise<void> {
-  if (uazConfigured() && to) {
-    try {
-      const base = process.env.UAZAPI_URL!.replace(/\/+$/, "");
-      await fetch(`${base}/message/presence`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token: process.env.UAZAPI_TOKEN! },
-        body: JSON.stringify({ number: normalizePhone(to), presence: "composing", delay: 2000 }),
-      });
-    } catch (err) {
-      console.warn("[uazapi/typing] falhou:", err instanceof Error ? err.message : err);
-    }
-    return;
-  }
+  void to;
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId || !inbound_wa_message_id) return;
@@ -290,27 +287,17 @@ export async function sendWhatsAppBubbles(
     .filter(Boolean)
     .map((s) => s.charAt(0).toLocaleUpperCase("pt-BR") + s.slice(1));
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
-  // Orçamento total de delays entre balões: no máximo ~8s pra caber
-  // dentro da janela de 30s do Worker mesmo com 8+ bolhas + latência UazAPI.
-  const MAX_TOTAL_DELAY_MS = 8000;
-  let spent = 0;
+  // Sem espera artificial entre balões: a geração da IA já consumiu parte da
+  // execução do worker. Cada resposta da Meta confirma que o trecho foi aceito
+  // antes de avançarmos para o próximo, preservando a ordem sem perder o final.
   for (let i = 0; i < bubbles.length; i++) {
     const body = i === 0 && prefix ? `${prefix}\n${bubbles[i]}` : bubbles[i];
-    if (i > 0) {
-      const prevLen = bubbles[i - 1].length;
-      const remaining = Math.max(0, MAX_TOTAL_DELAY_MS - spent);
-      const perBubble = Math.min(1600, 400 + prevLen * 18);
-      const delay = Math.min(perBubble, remaining);
-      if (delay > 0) {
-        await new Promise((r) => setTimeout(r, delay));
-        spent += delay;
-      }
-    }
     const replyId = i === 0 ? opts?.replyId ?? null : null;
     try {
       const r = await sendWhatsAppText(to, body, replyId);
       out.push({ text: body, ...r });
       if (r.error) console.warn(`[bubbles] falha #${i + 1}:`, r.error);
+      else console.log(`[bubbles/meta] trecho #${i + 1}/${bubbles.length} aceito:`, r.id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[bubbles] exception #${i + 1}:`, msg);
@@ -326,7 +313,6 @@ export async function sendWhatsAppImage(
   link: string,
   caption?: string | null,
 ): Promise<{ id: string | null; error?: string }> {
-  if (uazConfigured()) return uazSendMedia(to, "image", link, { caption });
   return metaSendMedia(to, { type: "image", image: { link, ...(caption ? { caption: caption.slice(0, 1024) } : {}) } });
 }
 
@@ -336,7 +322,6 @@ export async function sendWhatsAppDocument(
   filename: string,
   caption?: string | null,
 ): Promise<{ id: string | null; error?: string }> {
-  if (uazConfigured()) return uazSendMedia(to, "document", link, { caption, filename });
   return metaSendMedia(to, {
     type: "document",
     document: { link, filename: filename.slice(0, 240), ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
@@ -354,9 +339,7 @@ export async function sendWhatsAppDocumentBytes(
   caption?: string | null,
   fallbackLink?: string,
 ): Promise<{ id: string | null; error?: string }> {
-  if (uazConfigured()) {
-    return uazSendMediaBytes(to, "document", bytes, { caption, filename });
-  }
+  void bytes;
   if (!fallbackLink) return { id: null, error: "URL do documento ausente" };
   return metaSendMedia(to, {
     type: "document",
@@ -379,9 +362,7 @@ export async function sendWhatsAppImageBytes(
   caption?: string | null,
   fallbackLink?: string,
 ): Promise<{ id: string | null; error?: string }> {
-  if (uazConfigured()) {
-    return uazSendMediaBytes(to, "image", bytes, { caption, filename });
-  }
+  void bytes;
   if (!fallbackLink) return { id: null, error: "URL da imagem ausente" };
   return metaSendMedia(to, {
     type: "image",
