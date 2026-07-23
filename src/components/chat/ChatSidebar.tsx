@@ -25,7 +25,7 @@ const ITEMS = [
   { to: "/chat/inbox", label: "Caixa de Entrada", icon: MessageSquare },
   { to: "/chat/protocolos", label: "Protocolos", icon: FileText },
   { to: "/chat/contatos", label: "Contatos", icon: Users },
-  { to: "/chat/agentes", label: "Agente IA", icon: Bot },
+  { to: "/chat/agentes", label: "Automações", icon: Bot },
   { to: "/chat/fluxos", label: "Fluxos", icon: Workflow },
   { to: "/chat/broadcast", label: "Broadcast", icon: Megaphone },
   { to: "/chat/crm", label: "Funil de Venda", icon: Kanban },
