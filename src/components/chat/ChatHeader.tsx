@@ -1,20 +1,8 @@
 import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
-import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { listOnlineAgents } from "@/lib/chat/online-agents.functions";
 
-function currentAgents(): string[] {
-  const fmt = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    hour: "2-digit",
-    hour12: false,
-  });
-  const h = Number(fmt.format(new Date()));
-  // Dia (08–18): Camila, Nath, Fabrício
-  if (h >= 8 && h < 18) return ["Camila", "Nath", "Fabrício"];
-  // Reforço noturno (18–20): Roberto, Maria, Giovani
-  if (h >= 18 && h < 20) return ["Roberto", "Maria", "Giovani"];
-  // Noite/madrugada (20–08): Roberto
-  return ["Roberto"];
-}
 
 
 
@@ -29,7 +17,14 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "dark", onToggleTheme, onOpenMobileNav }: ChatHeaderProps) {
-  const agents = useMemo(currentAgents, []);
+  const fetchOnline = useServerFn(listOnlineAgents);
+  const { data: agentsData } = useQuery({
+    queryKey: ["chat-online-agents"],
+    queryFn: () => fetchOnline({}),
+    refetchInterval: 60_000, // revalida de minuto em minuto
+    staleTime: 30_000,
+  });
+  const agents: string[] = (agentsData ?? []).map((a: { nome: string }) => a.nome);
   const displayName = (userFullName?.trim())
     || (userEmail ? userEmail.split("@")[0]!.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : null);
   return (
