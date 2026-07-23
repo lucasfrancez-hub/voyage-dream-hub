@@ -94,9 +94,17 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
     : /pensao\s*completa/i.test(mealLabelRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ? "Pensão Comp."
     : /meia\s*pensao/i.test(mealLabelRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ? "Meia Pensão"
     : "Café";
-  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) =>
-    it.key === "cafeDaManha" ? { ...it, label: shortMeal } : it,
-  );
+  const ticketsShort = (() => {
+    const raw = (data.ticketsLabel || "").trim();
+    if (!raw) return "Ingressos";
+    return raw.length <= 14 ? raw : "Ingressos";
+  })();
+  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) => {
+    if (it.key === "cafeDaManha") return { ...it, label: shortMeal };
+    if (it.key === "ingressos") return { ...it, label: ticketsShort };
+    return it;
+  });
+
 
   const { top, bottom } = splitDestino(data.destino);
   const stars = data.estrelas && data.estrelas > 0 ? Math.max(1, Math.min(5, Math.round(data.estrelas))) : 0;
