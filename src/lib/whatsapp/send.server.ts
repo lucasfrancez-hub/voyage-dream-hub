@@ -103,9 +103,7 @@ export async function sendWhatsAppText(to: string, body: string, replyId?: strin
   return metaSendText(to, body, replyId);
 }
 
-/**
- * Indicador "digitando…" — UazAPI usa /message/presence, Meta usa typing_indicator.
- */
+/** Indicador "digitando…" oficial da Meta. */
 export async function sendWhatsAppTypingIndicator(inbound_wa_message_id: string, to?: string): Promise<void> {
   void to;
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
@@ -135,17 +133,28 @@ export async function sendWhatsAppBubbles(
   prefix?: string | null,
   opts?: { replyId?: string | null },
 ): Promise<Array<{ text: string; id: string | null; error?: string }>> {
-  const bubbles = fullText
+  const paragraphs = fullText
     .split(/\n+/)
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => s.charAt(0).toLocaleUpperCase("pt-BR") + s.slice(1));
+  const completeText = [prefix?.trim(), paragraphs.join("\n\n")].filter(Boolean).join("\n");
+  const bubbles: string[] = [];
+  let remaining = completeText;
+  while (remaining.length > 4000) {
+    let splitAt = remaining.lastIndexOf("\n\n", 4000);
+    if (splitAt < 1) splitAt = remaining.lastIndexOf(" ", 4000);
+    if (splitAt < 1) splitAt = 4000;
+    bubbles.push(remaining.slice(0, splitAt).trim());
+    remaining = remaining.slice(splitAt).trim();
+  }
+  if (remaining) bubbles.push(remaining);
+
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
-  // Sem espera artificial entre balões: a geração da IA já consumiu parte da
-  // execução do worker. Cada resposta da Meta confirma que o trecho foi aceito
-  // antes de avançarmos para o próximo, preservando a ordem sem perder o final.
+  // Uma resposta normal cabe em um único envio Meta. Só textos acima do limite
+  // oficial viram mais de um trecho, sem espera artificial entre eles.
   for (let i = 0; i < bubbles.length; i++) {
-    const body = i === 0 && prefix ? `${prefix}\n${bubbles[i]}` : bubbles[i];
+    const body = bubbles[i];
     const replyId = i === 0 ? opts?.replyId ?? null : null;
     try {
       const r = await sendWhatsAppText(to, body, replyId);
