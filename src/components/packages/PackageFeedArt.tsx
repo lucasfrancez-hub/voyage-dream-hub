@@ -155,7 +155,8 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
       .trim();
     return `Ingresso\n${compact}`;
   };
-  const includes = INCLUDES.flatMap((it) => {
+  const passeios = (data.passeiosList ?? []).map((p) => String(p ?? "").trim()).filter(Boolean);
+  const rawIncludes = INCLUDES.flatMap((it) => {
     if (!data.inclusos[it.key]) return [];
     if (it.key === "cafeDaManha") return [{ ...it, label: mealChipLabel }];
     if (it.key === "ingressos") {
@@ -166,8 +167,28 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
         icon: I.ticket,
       }));
     }
+    if (it.key === "passeios") {
+      if (passeios.length === 0) return [];
+      return passeios.map((p, idx) => ({
+        key: `passeios-${idx}` as unknown as IncludeItem["key"],
+        label: shortenPasseio(p),
+        icon: I.mapPin,
+      }));
+    }
     return [it];
   });
+  const includes =
+    rawIncludes.length > CHIP_CAP
+      ? [
+          ...rawIncludes.slice(0, CHIP_CAP - 1),
+          {
+            key: "maisServicos" as IncludeItem["key"],
+            label: `+${rawIncludes.length - (CHIP_CAP - 1)}\nserviços`,
+            icon: I.bus,
+          },
+        ]
+      : rawIncludes;
+
 
 
 
