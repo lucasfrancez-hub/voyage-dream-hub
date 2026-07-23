@@ -368,9 +368,12 @@ function ConvItem({ conv, active, onClick, attendantName }: { conv: Conv; active
       : conv.mode === "human" && attendantName
         ? { label: firstName(attendantName) || attendantName, icon: "human" as const }
         : null;
+  // "Atendimento necessário" aparece sempre que a IA sinalizou que precisa de humano
+  // (tag aguardando_humano) OU o modo é humano sem atendente. A tag só é removida
+  // quando um humano envia a primeira resposta (ver sendHumanReply/sendHumanMedia).
   const needsHuman =
-    !conv.assigned_to &&
-    ((conv.tags ?? []).includes("aguardando_humano") || conv.mode === "human");
+    (conv.tags ?? []).includes("aguardando_humano") ||
+    (conv.mode === "human" && !conv.assigned_to);
   return (
     <button
       onClick={onClick}
