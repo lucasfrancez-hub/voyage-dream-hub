@@ -150,16 +150,10 @@ Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("p
 🗓️ {DD a DD/MÊS EM CAIXA ALTA} ({N noites})
 🏨 {Hotel} {estrelas em ★} — {regime, ex.: Café da Manhã / All Inclusive}
 
-{SE E SOMENTE SE o item tiver "services_lines" com pelo menos 1 item, adicione um bloco em branco antes e depois com o título:}
-*SERVIÇOS INCLUSOS:*
-{Uma linha por item de "services_lines", cada linha começando com o emoji apropriado:
- • 🛡️ para "Seguro viagem …"
- • 🧾 para "Cobertura de cancelamento …"
- • 🚐 para "Transfer …"
- • 🗺️ para "City tour …"
- • ✨ para qualquer outro item de "outros" que não caia nas categorias acima.
-NÃO invente serviços — use SÓ o texto exato de services_lines, adicionando apenas o emoji na frente.}
-{SE "services_lines" estiver vazio, NÃO inclua esse bloco.}
+{SE E SOMENTE SE "services_emoji_line" NÃO for vazio, adicione uma linha em branco e depois EXATAMENTE essa linha só com os emojis (sem título, sem texto, sem asteriscos, sem descrição), copiando o valor de "services_emoji_line" como está. Ex.: 🛡️ 🚐 🗺️}
+{SE "services_emoji_line" estiver vazio, NÃO inclua nada.}
+
+
 
 *FORMAS DE PAGAMENTO:*
 🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S) _(5% de desconto já aplicado)_
