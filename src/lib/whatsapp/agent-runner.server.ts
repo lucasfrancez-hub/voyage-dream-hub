@@ -280,12 +280,14 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       await saveMessage({
         conversation_id: conv.id,
         direction: "outbound",
-        sender: agent.slug === "roberto" ? "camila" : "camila",
+        sender: "camila",
+        agent_slug: agent.slug,
         content: bubbles[i],
         // tool_calls e reply só no primeiro balão
         tool_calls: i === 0 && toolCallsSummary && toolCallsSummary.length > 0 ? toolCallsSummary : null,
       });
     }
+
 
     // Marca agente atendente
     await supabaseAdmin
