@@ -152,25 +152,32 @@ export async function sendWhatsAppBubbles(
   opts?: { replyId?: string | null },
 ): Promise<Array<{ text: string; id: string | null; error?: string }>> {
   const paragraphs = fullText
-    .split(/\n+/)
+    .split(/\n{2,}/)
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => s.charAt(0).toLocaleUpperCase("pt-BR") + s.slice(1));
-  const completeText = [prefix?.trim(), paragraphs.join("\n\n")].filter(Boolean).join("\n");
-  const bubbles: string[] = [];
-  let remaining = completeText;
-  while (remaining.length > 4000) {
-    let splitAt = remaining.lastIndexOf("\n\n", 4000);
-    if (splitAt < 1) splitAt = remaining.lastIndexOf(" ", 4000);
-    if (splitAt < 1) splitAt = 4000;
-    bubbles.push(remaining.slice(0, splitAt).trim());
-    remaining = remaining.slice(splitAt).trim();
+
+  // Um balão por parágrafo. O prefixo (ex.: assinatura do agente) entra
+  // colado no primeiro balão, sem virar bolha própria.
+  const rawBubbles = paragraphs.length ? paragraphs : [fullText.trim()].filter(Boolean);
+  if (prefix?.trim() && rawBubbles.length) {
+    rawBubbles[0] = `${prefix.trim()}\n${rawBubbles[0]}`;
   }
-  if (remaining) bubbles.push(remaining);
+
+  // Se algum parágrafo passar do limite oficial da Meta (~4096), quebra.
+  const bubbles: string[] = [];
+  for (const p of rawBubbles) {
+    let remaining = p;
+    while (remaining.length > 4000) {
+      let splitAt = remaining.lastIndexOf(" ", 4000);
+      if (splitAt < 1) splitAt = 4000;
+      bubbles.push(remaining.slice(0, splitAt).trim());
+      remaining = remaining.slice(splitAt).trim();
+    }
+    if (remaining) bubbles.push(remaining);
+  }
 
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
-  // Uma resposta normal cabe em um único envio Meta. Só textos acima do limite
-  // oficial viram mais de um trecho, sem espera artificial entre eles.
   for (let i = 0; i < bubbles.length; i++) {
     const body = bubbles[i];
     const replyId = i === 0 ? (opts?.replyId ?? null) : null;
@@ -178,16 +185,23 @@ export async function sendWhatsAppBubbles(
       const r = await sendWhatsAppText(to, body, replyId);
       out.push({ text: body, ...r });
       if (r.error) console.warn(`[bubbles] falha #${i + 1}:`, r.error);
-      else console.log(`[bubbles/meta] trecho #${i + 1}/${bubbles.length} aceito:`, r.id);
+      else console.log(`[bubbles/meta] balão #${i + 1}/${bubbles.length} aceito:`, r.id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[bubbles] exception #${i + 1}:`, msg);
       out.push({ text: body, id: null, error: msg });
       // continua para os próximos balões — não aborta a sequência
     }
+    // pequena pausa entre balões pra chegarem em ordem no WhatsApp,
+    // sem estourar o tempo do worker (máx ~1s total mesmo com muitos balões)
+    if (i < bubbles.length - 1) {
+      const gap = Math.min(400, Math.floor(1000 / Math.max(1, bubbles.length - 1)));
+      await new Promise((r) => setTimeout(r, gap));
+    }
   }
   return out;
 }
+
 
 export async function sendWhatsAppImage(
   to: string,
