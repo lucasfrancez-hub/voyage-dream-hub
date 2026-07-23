@@ -28,10 +28,24 @@ type Msg = Awaited<ReturnType<typeof listMessages>>[number];
 
 const FOLDERS = [
   { key: "all", label: "Todas", icon: InboxIcon },
+  { key: "unread", label: "Não lidas", icon: InboxIcon },
   { key: "ai", label: "Com IA", icon: Bot },
   { key: "human", label: "Humano", icon: Users },
   { key: "resolved", label: "Arquivadas", icon: Archive },
 ] as const;
+
+const AGENT_LABEL: Record<string, string> = {
+  camila: "Camila",
+  nath: "Nath",
+  fabricio: "Fabrício",
+  roberto: "Roberto",
+  maria: "Maria",
+  giovani: "Giovani",
+};
+function agentLabel(slug?: string | null) {
+  if (!slug) return "IA";
+  return AGENT_LABEL[slug] ?? (slug.charAt(0).toUpperCase() + slug.slice(1));
+}
 
 function InboxPage() {
   const listFn = useServerFn(listConversations);
@@ -57,11 +71,24 @@ function InboxPage() {
     });
   };
 
+  const attendantsFn = useServerFn(listAttendants);
+  const { data: attendants = [] } = useQuery({
+    queryKey: ["chat", "attendants"],
+    queryFn: () => attendantsFn(),
+    staleTime: 60_000,
+  });
+  const attendantMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const a of attendants) m[a.id] = a.full_name ?? "";
+    return m;
+  }, [attendants]);
+
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
       if (folder === "ai" && c.mode !== "ai") return false;
       if (folder === "human" && c.mode !== "human" && !(c.tags ?? []).includes("aguardando_humano")) return false;
       if (folder === "resolved" && c.mode !== "resolved") return false;
+      if (folder === "unread" && (c.unread_count ?? 0) <= 0) return false;
 
       if (search) {
         const s = search.toLowerCase();
@@ -208,7 +235,7 @@ function InboxPage() {
             {filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
             ) : (
-              filtered.map((c) => <ConvItem key={c.id} conv={c} active={activeId === c.id} onClick={() => setActiveId(c.id)} />)
+              filtered.map((c) => <ConvItem key={c.id} conv={c} active={activeId === c.id} onClick={() => setActiveId(c.id)} attendantName={c.assigned_to ? attendantMap[c.assigned_to] ?? null : null} />)
             )}
           </div>
         </aside>
@@ -326,11 +353,18 @@ function NewConversationDialog({
 }
 
 
-function ConvItem({ conv, active, onClick }: { conv: Conv; active: boolean; onClick: () => void }) {
+function ConvItem({ conv, active, onClick, attendantName }: { conv: Conv; active: boolean; onClick: () => void; attendantName?: string | null }) {
   const time = conv.last_message_at
     ? new Date(conv.last_message_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
     : "";
   const initials = (conv.display_name ?? conv.wa_phone).slice(0, 2).toUpperCase();
+  const stage = FUNNEL_STAGES.find((s) => s.key === conv.funnel_stage);
+  const attendingBy =
+    conv.mode === "ai"
+      ? { label: agentLabel(conv.agent_slug), icon: "ai" as const }
+      : conv.mode === "human" && attendantName
+        ? { label: firstName(attendantName) || attendantName, icon: "human" as const }
+        : null;
   return (
     <button
       onClick={onClick}
@@ -350,9 +384,35 @@ function ConvItem({ conv, active, onClick }: { conv: Conv; active: boolean; onCl
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="truncate text-sm font-medium text-slate-900">{conv.display_name ?? conv.wa_phone}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <span className="truncate text-sm font-medium text-slate-900">{conv.display_name ?? conv.wa_phone}</span>
+            {stage && (
+              <span
+                className={cn(
+                  "shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-medium leading-none",
+                  stage.pill,
+                )}
+                title={`Funil: ${stage.label}`}
+              >
+                {stage.label}
+              </span>
+            )}
+          </div>
           <span className="shrink-0 text-[10px] text-slate-400">{time}</span>
         </div>
+        {attendingBy && (
+          <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-slate-500">
+            {attendingBy.icon === "ai" ? (
+              <Bot className="h-3 w-3 text-emerald-500" />
+            ) : (
+              <User className="h-3 w-3 text-[#F26B1F]" />
+            )}
+            <span className="truncate">
+              {attendingBy.icon === "ai" ? "IA " : "Atendente "}
+              <b className="font-semibold text-slate-700">{attendingBy.label}</b>
+            </span>
+          </div>
+        )}
         {conv.mode === "human" && !conv.assigned_to && (
           <div className="mt-0.5 mb-1 inline-flex items-center gap-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-[#F26B1F]">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#F26B1F]" />
@@ -362,8 +422,6 @@ function ConvItem({ conv, active, onClick }: { conv: Conv; active: boolean; onCl
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-xs text-slate-500">{conv.last_message_preview ?? "—"}</span>
           <div className="flex shrink-0 items-center gap-1">
-            {conv.mode === "ai" && <Bot className="h-3 w-3 text-emerald-500" />}
-            {conv.mode === "human" && <User className="h-3 w-3 text-[#F26B1F]" />}
             {(conv.unread_count ?? 0) > 0 && (
               <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
             )}
