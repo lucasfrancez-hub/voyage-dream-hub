@@ -66,7 +66,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                 </a>
               )}
               {text && (
-                <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{text}</div>
+                <div className={cn("whitespace-pre-wrap break-words text-sm leading-relaxed", deleted && "italic opacity-70")}>{text}</div>
               )}
             </>
           );
