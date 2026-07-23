@@ -227,7 +227,7 @@ function AuthPage() {
         }
       }
       toast.success("Autenticador ativado. Bem-vindo!");
-      navigate({ to: "/admin" });
+      navigate({ to: redirectTo });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Código inválido");
     } finally {
