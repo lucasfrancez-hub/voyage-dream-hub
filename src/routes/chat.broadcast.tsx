@@ -1513,7 +1513,7 @@ function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: B
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 grid sm:grid-cols-2 gap-3">
+        <div className="flex-1 overflow-y-auto p-4 grid content-start items-start auto-rows-max sm:grid-cols-2 gap-3">
           {loading && pacotes.length === 0 ? (
             <div className="col-span-full py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : pacotes.length === 0 ? (
@@ -1524,7 +1524,7 @@ function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: B
                 key={p.id}
                 type="button"
                 onClick={() => insert(p)}
-                className="flex flex-col w-full text-left rounded-xl border border-border bg-card overflow-hidden hover:border-brand-orange hover:shadow-lg transition-all group"
+                className="flex min-h-[246px] flex-col w-full text-left rounded-xl border border-border bg-card overflow-hidden hover:border-brand-orange hover:shadow-lg transition-all group"
               >
                 <div className="relative w-full h-40 bg-muted flex-shrink-0">
                   {p.image_url ? (
