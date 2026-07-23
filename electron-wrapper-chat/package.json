@@ -1,0 +1,10 @@
+{
+  "name": "viaair-chat",
+  "version": "1.0.0",
+  "description": "VIA AIR Chat - Atendimento",
+  "main": "main.cjs",
+  "author": "VIA AIR",
+  "devDependencies": {
+    "electron": "^32.0.0"
+  }
+}
