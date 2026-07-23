@@ -76,7 +76,7 @@ export const listProtocoloMessages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     let { data: rows, error } = await context.supabase
       .from("wa_messages")
-      .select("id, direction, sender, content, created_at, sender_user_id")
+      .select("id, direction, sender, content, created_at, sender_user_id, agent_slug")
       .eq("protocolo_id", data.protocolo_id)
       .order("created_at", { ascending: true })
       .limit(1000);
@@ -103,7 +103,7 @@ export const listProtocoloMessages = createServerFn({ method: "POST" })
         const toTs = proto.closed_at ?? new Date().toISOString();
         const { data: winRows } = await context.supabase
           .from("wa_messages")
-          .select("id, direction, sender, content, created_at, sender_user_id")
+          .select("id, direction, sender, content, created_at, sender_user_id, agent_slug")
           .eq("conversation_id", proto.conversation_id)
           .gt("created_at", fromTs)
           .lte("created_at", toTs)
@@ -364,7 +364,7 @@ export const listMessages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("wa_messages")
-      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, deleted_at, wa_message_id, reply_to_wa_id, reply_to_snippet, reply_to_sender")
+      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, agent_slug, deleted_at, wa_message_id, reply_to_wa_id, reply_to_snippet, reply_to_sender")
       .eq("conversation_id", data.conversation_id)
       .order("created_at", { ascending: true })
       .limit(500);

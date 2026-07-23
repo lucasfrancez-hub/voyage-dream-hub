@@ -1,0 +1,1 @@
+ALTER TABLE public.wa_messages ADD COLUMN IF NOT EXISTS agent_slug text;
