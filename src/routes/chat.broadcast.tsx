@@ -1524,9 +1524,9 @@ function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: B
                 key={p.id}
                 type="button"
                 onClick={() => insert(p)}
-                className="text-left rounded-xl border border-border bg-card overflow-hidden hover:border-brand-orange hover:shadow-lg transition-all group"
+                className="flex flex-col w-full text-left rounded-xl border border-border bg-card overflow-hidden hover:border-brand-orange hover:shadow-lg transition-all group"
               >
-                <div className="relative aspect-[4/3] bg-muted">
+                <div className="relative w-full h-40 bg-muted flex-shrink-0">
                   {p.image_url ? (
                     <img src={p.image_url} alt="" className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
                   ) : (
@@ -1536,7 +1536,7 @@ function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: B
                     <p className="text-xs font-mono text-white/80 truncate">/{p.slug}</p>
                   </div>
                 </div>
-                <div className="p-3">
+                <div className="p-3 flex-1 flex flex-col">
                   <p className="text-sm font-semibold truncate">{p.title}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {p.origin ? `De ${p.origin} · ` : ""}{p.destination ?? ""}
@@ -1548,6 +1548,7 @@ function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: B
                   </div>
                 </div>
               </button>
+
             ))
           )}
         </div>
