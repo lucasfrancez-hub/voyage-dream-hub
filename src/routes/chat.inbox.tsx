@@ -421,6 +421,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ wa_id: string; snippet: string; sender: string | null } | null>(null);
   const wallpaper = useWallpaper();
   const sendMediaFn = useServerFn(sendHumanMedia);
   const fileRef = useRef<HTMLInputElement>(null);
