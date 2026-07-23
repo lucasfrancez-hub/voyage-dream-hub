@@ -178,25 +178,45 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     buscar_pacotes: tool({
       description:
-        "Lista pacotes disponíveis no admin, opcionalmente filtrados por destino. Retorna a lista SÓ pra você escolher — não envia nada ao cliente. Depois use enviar_pacote (folder completo com imagem + preços) ou enviar_link_pacote.",
+        "Lista pacotes disponíveis no admin, opcionalmente filtrados por destino e origem. Retorna a lista SÓ pra você escolher — não envia nada ao cliente. SEMPRE informe 'origem' quando souber a cidade do cliente: a busca prioriza pacotes saindo dessa cidade e, se não houver, retorna também as opções de outras origens marcadas como fallback. Depois use enviar_pacote (folder completo com imagem + preços) ou enviar_link_pacote.",
       inputSchema: z.object({
         destino: z.string().nullable().describe("Cidade/país (ex: 'Buenos Aires', 'Nordeste')"),
+        origem: z.string().nullable().describe("Cidade/origem preferida do cliente (ex: 'Curitiba'). Pacotes dessa origem vêm primeiro; se não houver, entram os de outras origens."),
         limit: z.number().nullable().describe("Máximo de resultados, padrão 5"),
       }),
-      execute: async ({ destino, limit }) => {
-        let q = supabaseAdmin
+      execute: async ({ destino, origem, limit }) => {
+        const cap = limit ?? 5;
+        let base = supabaseAdmin
           .from("packages")
           .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services")
           .eq("is_active", true)
-          .order("going_date", { ascending: true })
-          .limit(limit ?? 5);
-        if (destino) q = q.ilike("destination", `%${destino}%`);
+          .order("going_date", { ascending: true });
+        if (destino) base = base.ilike("destination", `%${destino}%`);
 
-        const { data, error } = await q;
-        if (error) return { error: error.message };
+        let data: any[] = [];
+        if (origem) {
+          const { data: match, error: e1 } = await base.ilike("origin", `%${origem}%`).limit(cap);
+          if (e1) return { error: e1.message };
+          data = match ?? [];
+          if (data.length < cap) {
+            let base2 = supabaseAdmin
+              .from("packages")
+              .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services")
+              .eq("is_active", true)
+              .order("going_date", { ascending: true });
+            if (destino) base2 = base2.ilike("destination", `%${destino}%`);
+            const { data: rest } = await base2.not("origin", "ilike", `%${origem}%`).limit(cap - data.length);
+            data = [...data, ...(rest ?? [])];
+          }
+        } else {
+          const { data: all, error } = await base.limit(cap);
+          if (error) return { error: error.message };
+          data = all ?? [];
+        }
         if (!data || data.length === 0) {
           return { encontrados: 0, mensagem: "Nenhum pacote pronto para esse filtro. Posso montar uma proposta personalizada com o time comercial." };
         }
+
         return {
           encontrados: data.length,
           pacotes: data.map((p) => {
