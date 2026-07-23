@@ -71,9 +71,6 @@
   --ring: var(--brand-orange);
 }
 
-/* Blindagem contra CSS de terceiros (ex.: widget onertravel) que também
-   define --primary no :root com verde. html:root tem especificidade maior,
-   então nossas variáveis de marca sempre vencem. */
 html:root {
   --primary: var(--brand-orange);
   --primary-foreground: oklch(0.16 0.025 235);
