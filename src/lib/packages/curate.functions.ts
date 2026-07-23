@@ -139,10 +139,11 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         const parks = (svc.tickets.parks ?? [])
           .map((p) => String(p ?? "").trim())
           .filter(Boolean);
-        if (parks.length) {
-          services_lines.push(`🎟️ Ingressos: ${parks.join(", ")}`);
+        for (const park of parks) {
+          services_lines.push(`🎟️ Ingresso ${park}`);
         }
       }
+
       for (const extra of svc.outros ?? []) {
         const t = (extra || "").trim();
         if (t) services_lines.push(`✨ ${t}`);
