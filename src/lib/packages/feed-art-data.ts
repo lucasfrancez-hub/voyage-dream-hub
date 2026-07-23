@@ -278,6 +278,11 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
     inclusos: detectIncludes(pkg.includes, pkg.services ?? null),
     mealPlanLabel: deriveMealPlanLabel(pkg.meal_plan, pkg.includes),
+    ticketsLabel: (pkg.services?.tickets?.parks ?? [])
+      .map((p) => String(p ?? "").trim())
+      .filter(Boolean)
+      .join(" · ") || null,
+
 
   };
 }
