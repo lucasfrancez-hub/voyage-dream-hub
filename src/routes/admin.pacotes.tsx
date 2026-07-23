@@ -671,7 +671,6 @@ function AdminPackages() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <IgnoredHotelsBell />
           <MultiPackageImportButton
             onExtracted={async (list) => {
               if (!list.length) return;
@@ -686,12 +685,13 @@ function AdminPackages() {
               setEditingState(list[0]);
             }}
           />
+          <IgnoredHotelsBell packages={packages || []} />
           <button
             type="button"
             onClick={backfillHotelPhotos}
             disabled={backfilling}
             title="Atualizar fotos dos hotéis (busca no TripAdvisor as fotos dos pacotes sem imagens)"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-brand-orange transition-colors disabled:opacity-60"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-brand-orange transition-colors disabled:opacity-60"
           >
             {backfilling ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -699,6 +699,7 @@ function AdminPackages() {
               <RefreshCw className="h-4 w-4" />
             )}
           </button>
+
           <button
             type="button"
             title="Novo pacote"
@@ -711,9 +712,10 @@ function AdminPackages() {
               }
               setEditing({ ...emptyForm });
             }}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-brand-orange hover:bg-[#ff7b30] text-white transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(242,107,31,0.2)]"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-orange hover:bg-[#ff7b30] text-white transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(242,107,31,0.2)]"
           >
-            <Plus className="h-5 w-5" strokeWidth={3} />
+            <Plus className="h-4 w-4" strokeWidth={3} />
+
           </button>
         </div>
 
@@ -3587,12 +3589,13 @@ function MultiPackageImportButton({
           const f = e.dataTransfer.files?.[0];
           if (f) void handleFile(f);
         }}
-        className={`inline-flex items-center justify-center gap-2 bg-transparent hover:bg-brand-orange/10 text-brand-orange border border-brand-orange/60 px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition-all active:scale-95 ${
+        className={`inline-flex items-center justify-center gap-1.5 bg-transparent hover:bg-brand-orange/10 text-brand-orange border border-brand-orange/60 h-9 px-3 rounded-full font-bold uppercase tracking-wider text-[11px] transition-all active:scale-95 ${
           dragging ? "ring-2 ring-brand-orange bg-brand-orange/10" : ""
         }`}
         title="Importar pacote(s) — clique ou arraste o PDF aqui"
       >
-        <FileUp className="h-4 w-4" strokeWidth={2.5} /> {busy ? "Importando…" : "Importar"}
+        <FileUp className="h-3.5 w-3.5" strokeWidth={2.5} /> {busy ? "Importando…" : "Importar"}
+
       </button>
 
       {open && (
@@ -3685,10 +3688,14 @@ function MultiPackageImportButton({
   );
 }
 
-function IgnoredHotelsBell() {
-  const { ids, restoreAll } = useIgnoredHotels();
+function IgnoredHotelsBell({ packages }: { packages: PackageRow[] }) {
+  const { ids, restore, restoreAll } = useIgnoredHotels();
   const [open, setOpen] = useState(false);
-  const count = ids.size;
+  const items = useMemo(
+    () => (packages || []).filter((p) => ids.has(p.id)),
+    [packages, ids],
+  );
+  const count = items.length;
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -3697,48 +3704,70 @@ function IgnoredHotelsBell() {
           type="button"
           title={
             count > 0
-              ? `${count} alerta(s) ignorado(s) — clique para restaurar`
+              ? `${count} alerta(s) ignorado(s) — clique para ver`
               : "Nenhum alerta ignorado"
           }
-          className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-brand-orange transition-colors"
+          className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-brand-orange transition-colors"
         >
           <Bell className="h-4 w-4" />
           {count > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-orange text-white text-[10px] font-bold flex items-center justify-center shadow-[0_2px_6px_rgba(242,107,31,0.45)]">
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-brand-orange text-white text-[9px] font-bold flex items-center justify-center shadow-[0_2px_6px_rgba(242,107,31,0.45)]">
               {count}
             </span>
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
-        {count === 0 ? (
-          <div className="px-3 py-4 text-[11px] text-muted-foreground text-center">
-            Nenhuma notificação ignorada.
-          </div>
-        ) : (
-          <>
-            <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
-              Alertas ignorados
-            </div>
-            <div className="px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
-              {count} hotel(is) sem vínculo com TripAdvisor foram ignorados no alerta.
-            </div>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.preventDefault();
+      <DropdownMenuContent align="end" className="w-72 p-0">
+        <div className="px-3 py-2 flex items-center justify-between border-b border-border">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Alertas ignorados
+          </span>
+          {count > 0 && (
+            <button
+              type="button"
+              onClick={() => {
                 restoreAll();
                 setOpen(false);
               }}
-              className="text-brand-orange font-semibold cursor-pointer"
+              className="text-[10px] font-semibold text-brand-orange hover:text-[#ff8846]"
             >
-              <RefreshCw className="h-3.5 w-3.5 mr-2" /> Restaurar todos
-            </DropdownMenuItem>
-          </>
+              Restaurar todos
+            </button>
+          )}
+        </div>
+        {count === 0 ? (
+          <div className="px-3 py-6 text-[11px] text-muted-foreground text-center">
+            Nenhuma notificação ignorada.
+          </div>
+        ) : (
+          <div className="max-h-[280px] overflow-auto py-1">
+            {items.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-muted/40 group"
+              >
+                <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-medium truncate">{p.hotel_name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{p.destination}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => restore(p.id)}
+                  title="Restaurar no alerta"
+                  className="opacity-60 group-hover:opacity-100 text-brand-orange hover:text-[#ff8846] p-1"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+
 
 function UnlinkedHotelsAlert({
 
@@ -3761,25 +3790,8 @@ function UnlinkedHotelsAlert({
     [packages, ignored],
   );
   const hasIgnored = ignored.size > 0;
-  if (dismissed || unlinked.length === 0) {
-    if (hasIgnored && !dismissed && unlinked.length === 0) {
-      return (
-        <div className="mb-3 flex items-center justify-between gap-2 bg-[#1C252E] border border-slate-800 rounded-full pl-3 pr-2 py-1.5 shadow-xl shadow-black/20">
-          <span className="text-[11px] text-slate-400">
-            {ignored.size} hotel(is) ignorado(s) no alerta de TripAdvisor.
-          </span>
-          <button
-            type="button"
-            onClick={restoreAll}
-            className="text-[11px] font-semibold text-[#F26B1F] hover:text-[#ff8846] px-2 py-0.5 rounded-full"
-          >
-            Restaurar
-          </button>
-        </div>
-      );
-    }
-    return null;
-  }
+  if (dismissed || unlinked.length === 0) return null;
+
 
   if (!expanded) {
     return (
