@@ -624,7 +624,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                 <div key={m.id} className="mb-1">
                   <WhatsAppBubble
                     side={m.direction === "inbound" ? "in" : "out"}
-                    content={m.content}
+                    content={m.deleted_at ? "🚫 Esta mensagem foi apagada" : m.content}
                     timestamp={m.created_at}
                     senderLabel={
                       m.direction === "inbound"
@@ -638,6 +638,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                         : undefined
                     }
                     status={m.direction === "outbound" ? "delivered" : undefined}
+                    deleted={!!m.deleted_at}
                   />
                 </div>
               ))}
