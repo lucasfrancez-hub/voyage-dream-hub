@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Lock, ArrowLeft, ShieldCheck, Copy, Smartphone, Mail } from "lucide-react";
+import { Loader2, Lock, ArrowLeft, ShieldCheck, Copy, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
