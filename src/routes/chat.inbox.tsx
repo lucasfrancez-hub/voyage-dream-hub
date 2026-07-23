@@ -2,12 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo } from "@/lib/chat/queries.functions";
-import { listInstagramConversations, listInstagramMessages, sendInstagramReply } from "@/lib/instagram/queries.functions";
+import { listInstagramConversations, listInstagramMessages, sendInstagramReply, listInstagramComments, triggerAutoReplyComment } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
@@ -30,7 +30,6 @@ type Msg = Awaited<ReturnType<typeof listMessages>>[number];
 const FOLDERS = [
   { key: "all", label: "Todas", icon: InboxIcon },
   { key: "unread", label: "Não lidas", icon: InboxIcon },
-  { key: "ai", label: "Com IA", icon: Bot },
   { key: "human", label: "Humano", icon: Users },
   { key: "resolved", label: "Arquivadas", icon: Archive },
 ] as const;
@@ -56,7 +55,7 @@ function InboxPage() {
     refetchInterval: 15_000,
   });
 
-  const [channel, setChannel] = useState<"whatsapp" | "instagram">("whatsapp");
+  const [channel, setChannel] = useState<"whatsapp" | "instagram_dm" | "instagram_comments">("whatsapp");
   const [folder, setFolder] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -217,7 +216,7 @@ function InboxPage() {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            {/* Abas de canal (WhatsApp | Instagram) */}
+            {/* Abas de canal (WhatsApp | Direct | Comentários) */}
             <div className="mt-2 flex gap-1 rounded-lg bg-slate-100 p-0.5">
               <button
                 onClick={() => { setChannel("whatsapp"); setActiveId(null); }}
@@ -229,13 +228,22 @@ function InboxPage() {
                 <MessageCircle className="h-3 w-3" /> WhatsApp
               </button>
               <button
-                onClick={() => { setChannel("instagram"); setActiveId(null); }}
+                onClick={() => { setChannel("instagram_dm"); setActiveId(null); }}
                 className={cn(
                   "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  channel === "instagram" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500",
+                  channel === "instagram_dm" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500",
                 )}
               >
-                <Instagram className="h-3 w-3" /> Instagram
+                <Instagram className="h-3 w-3" /> Direct
+              </button>
+              <button
+                onClick={() => { setChannel("instagram_comments"); setActiveId(null); }}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  channel === "instagram_comments" ? "bg-white text-purple-600 shadow-sm" : "text-slate-500",
+                )}
+              >
+                <MessageSquare className="h-3 w-3" /> Comentários
               </button>
             </div>
             <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -258,8 +266,10 @@ function InboxPage() {
 
           </div>
           <div className="flex-1 space-y-1 overflow-y-auto p-2">
-            {channel === "instagram" ? (
+            {channel === "instagram_dm" ? (
               <InstagramList folder={folder} search={search} activeId={activeId} onSelect={setActiveId} />
+            ) : channel === "instagram_comments" ? (
+              <InstagramCommentsList search={search} />
             ) : filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
             ) : (
@@ -1553,6 +1563,116 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
             <div className="truncate text-xs text-slate-500">{c.last_message_preview ?? "—"}</div>
           </div>
         </button>
+      ))}
+    </>
+  );
+}
+
+// ============ Instagram Comments list (embedded) ============
+
+function InstagramCommentsList({ search }: { search: string }) {
+  const listFn = useServerFn(listInstagramComments);
+  const replyFn = useServerFn(triggerAutoReplyComment);
+  const qc = useQueryClient();
+  const { data: comments = [], isLoading } = useQuery({
+    queryKey: ["ig", "comments"],
+    queryFn: () => listFn(),
+    refetchInterval: 15_000,
+  });
+  const [replyingId, setReplyingId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const filtered = comments.filter((c) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (c.from_username ?? "").toLowerCase().includes(s) || (c.text ?? "").toLowerCase().includes(s);
+  });
+
+  async function submit(id: string) {
+    if (!replyText.trim()) return;
+    setSending(true);
+    try {
+      await replyFn({ data: { id, public_reply: replyText.trim() } });
+      toast.success("Resposta publicada");
+      setReplyingId(null);
+      setReplyText("");
+      qc.invalidateQueries({ queryKey: ["ig", "comments"] });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro ao publicar";
+      toast.error(message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (isLoading) return <div className="p-6 text-center text-xs text-slate-400">Carregando…</div>;
+  if (filtered.length === 0) return <div className="p-6 text-center text-xs text-slate-400">Nenhum comentário</div>;
+
+  return (
+    <>
+      {filtered.map((c) => (
+        <div
+          key={c.id}
+          className="rounded-lg border border-slate-100 bg-white p-2.5 shadow-sm"
+        >
+          <div className="flex items-start gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
+              <Instagram className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1">
+                <span className="truncate text-xs font-semibold text-slate-900">@{c.from_username ?? "usuário"}</span>
+                <Heart className="h-3 w-3 text-pink-500" />
+                {c.auto_replied_at && (
+                  <span className="ml-auto rounded-full bg-emerald-50 px-1.5 text-[9px] font-medium text-emerald-600">respondido</span>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs text-slate-700">{c.text}</p>
+              {c.media_permalink && (
+                <a href={c.media_permalink} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-pink-600">
+                  <ExternalLink className="h-2.5 w-2.5" /> ver publicação
+                </a>
+              )}
+              {replyingId === c.id ? (
+                <div className="mt-2 space-y-1.5">
+                  <textarea
+                    autoFocus
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Escreva sua resposta pública…"
+                    rows={2}
+                    className="w-full resize-none rounded-md border border-slate-200 px-2 py-1.5 text-xs focus:border-pink-500 focus:outline-none"
+                  />
+                  <div className="flex justify-end gap-1">
+                    <button
+                      onClick={() => { setReplyingId(null); setReplyText(""); }}
+                      className="rounded-md px-2 py-1 text-[11px] text-slate-500 hover:bg-slate-100"
+                      disabled={sending}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => submit(c.id)}
+                      disabled={sending || !replyText.trim()}
+                      className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-pink-500 to-orange-500 px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50"
+                    >
+                      {sending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                      Publicar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setReplyingId(c.id); setReplyText(""); }}
+                  className="mt-1 inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-1 text-[10px] font-medium text-slate-600 hover:bg-pink-50 hover:text-pink-600"
+                >
+                  <MessageSquare className="h-3 w-3" /> Responder
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       ))}
     </>
   );
