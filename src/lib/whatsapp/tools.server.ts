@@ -186,7 +186,7 @@ export function buildCamilaTools(conversation: WaConversation) {
       execute: async ({ destino, limit }) => {
         let q = supabaseAdmin
           .from("packages")
-          .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url")
+          .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services")
           .eq("is_active", true)
           .order("going_date", { ascending: true })
           .limit(limit ?? 5);
@@ -199,24 +199,50 @@ export function buildCamilaTools(conversation: WaConversation) {
         }
         return {
           encontrados: data.length,
-          pacotes: data.map((p) => ({
-            slug: p.slug,
-            titulo: p.title,
-            destino: p.destination,
-            origem: p.origin,
-            ida: fmtDate(p.going_date),
-            volta: fmtDate(p.return_date),
-            noites: p.nights,
-            hotel: p.hotel_name,
-            estrelas: p.hotel_stars,
-            preco_por_pessoa: fmtMoney(Number(p.price_per_person)),
-            ocupacao_base: p.base_occupancy,
-            tem_imagem: !!p.image_url,
-            link: `https://pedidos.viaair.tur.br/w/${p.slug}`,
-          })),
+          pacotes: data.map((p) => {
+            const svc: any = p.services ?? {};
+            const servicos: string[] = [];
+            const detalhes: Record<string, string> = {};
+            if (svc.seguro?.enabled) { servicos.push("seguro"); if (svc.seguro.cobertura) detalhes.seguro = `${svc.seguro.moeda || "USD"} ${svc.seguro.cobertura} por pessoa`; }
+            if (svc.cancelamento?.enabled) { servicos.push("cancelamento"); if (svc.cancelamento.cobertura) detalhes.cancelamento = `${svc.cancelamento.moeda || "BRL"} ${svc.cancelamento.cobertura} por pessoa`; }
+            if (svc.transfer?.enabled) { servicos.push("transfer"); detalhes.transfer = svc.transfer.sentido === "in" ? "só chegada" : svc.transfer.sentido === "out" ? "só saída" : "ida e volta"; }
+            if (svc.city_tour?.enabled) { servicos.push("city_tour"); if (svc.city_tour.detalhe) detalhes.city_tour = svc.city_tour.detalhe; }
+            if (svc.tickets?.enabled) {
+              const parks = (svc.tickets.parks ?? []).map((x: any) => String(x ?? "").trim()).filter(Boolean);
+              if (parks.length) { servicos.push("ingressos"); detalhes.ingressos = parks.join(", "); }
+            }
+            for (const extra of svc.outros ?? []) {
+              const t = (extra || "").trim();
+              if (t) servicos.push(t.toLowerCase());
+            }
+            const mealText = String(p.meal_plan ?? "");
+            const regime = /all\s*inclusive|tudo\s*incluso/i.test(mealText)
+              ? "All Inclusive"
+              : /café|cafe|manhã|manha/i.test(mealText) ? "Café da Manhã" : null;
+            return {
+              slug: p.slug,
+              titulo: p.title,
+              destino: p.destination,
+              origem: p.origin,
+              ida: fmtDate(p.going_date),
+              volta: fmtDate(p.return_date),
+              noites: p.nights,
+              hotel: p.hotel_name,
+              estrelas: p.hotel_stars,
+              regime,
+              preco_por_pessoa: fmtMoney(Number(p.price_per_person)),
+              ocupacao_base: p.base_occupancy,
+              tem_imagem: !!p.image_url,
+              servicos_inclusos: servicos,
+              servicos_detalhe: detalhes,
+              link: `https://pedidos.viaair.tur.br/w/${p.slug}`,
+            };
+          }),
         };
       },
     }),
+
+
 
     enviar_pacote: tool({
       description:
