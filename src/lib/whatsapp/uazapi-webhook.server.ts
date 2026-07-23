@@ -70,7 +70,11 @@ function extractText(m: UazMessage): string | null {
 export async function processUazPayload(raw: unknown) {
   const payload = raw as UazPayload;
   const event = (payload.event ?? payload.EventType ?? "").toLowerCase();
-  if (event && !event.includes("message")) {
+  const isDelete =
+    event.includes("delete") ||
+    event.includes("revoke") ||
+    event.includes("update");
+  if (event && !event.includes("message") && !isDelete) {
     console.log("[uazapi] evento ignorado:", event);
     return;
   }
@@ -88,14 +92,54 @@ export async function processUazPayload(raw: unknown) {
   const { getOrCreateConversation, saveMessage } = await import(
     "@/lib/whatsapp/conversation.server"
   );
+  const { supabaseAdmin: adminForDeletes } = await import(
+    "@/integrations/supabase/client.server"
+  );
 
   for (const m of rawList) {
     const fromMe = m.fromMe ?? m.key?.fromMe ?? false;
+
+    // Detecta deleção "apagar para todos" (protocolMessage REVOKE ou evento delete/revoke)
+    const anyM = m as unknown as {
+      messageStubType?: string;
+      message?: { protocolMessage?: { type?: string | number; key?: { id?: string } } };
+      wasDeleted?: boolean;
+      isDeleted?: boolean;
+    };
+    const protoType = anyM.message?.protocolMessage?.type;
+    const isRevoke =
+      isDelete ||
+      anyM.wasDeleted === true ||
+      anyM.isDeleted === true ||
+      anyM.messageStubType === "REVOKE" ||
+      protoType === "REVOKE" ||
+      protoType === 0;
+
+    if (isRevoke) {
+      const targetId =
+        anyM.message?.protocolMessage?.key?.id ??
+        m.id ??
+        m.messageid ??
+        m.key?.id;
+      if (targetId) {
+        await adminForDeletes
+          .from("wa_messages")
+          .update({
+            deleted_at: new Date().toISOString(),
+            deleted_by_customer: !fromMe,
+          })
+          .eq("wa_message_id", targetId);
+        console.log("[uazapi] mensagem marcada como apagada:", targetId, "fromMe=", fromMe);
+      }
+      continue;
+    }
+
     if (fromMe) continue;
 
     const jid = pickJid(m);
     const phone = jidToPhone(jid);
     if (!phone) continue;
+
 
 
     const wa_message_id = m.id ?? m.messageid ?? m.key?.id ?? `${phone}-${Date.now()}`;
