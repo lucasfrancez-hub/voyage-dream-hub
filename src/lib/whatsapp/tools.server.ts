@@ -202,7 +202,7 @@ export function buildCamilaTools(conversation: WaConversation) {
           if (data.length < cap) {
             let base2 = supabaseAdmin
               .from("packages")
-              .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services")
+              .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight")
               .eq("is_active", true)
               .order("going_date", { ascending: true });
             if (destino) base2 = base2.ilike("destination", `%${destino}%`);
