@@ -984,8 +984,11 @@ export const extractMultiplePackagesFromDocument = createServerFn({ method: "POS
     let totalCount = 0;
     try {
       const countRes = await callGemini(
-        `Você conta blocos de orçamento em um documento de operadora turística. Cada bloco começa com um cabeçalho no padrão "Orcamento N:" ou "Orçamento N:" (ex.: "Orcamento 1: 617381", "Orcamento 7: 617387"). Retorne APENAS JSON no formato { "count": <número>, "numbers": [1,2,3,...] } onde "numbers" lista TODOS os N encontrados, em ordem. Se só houver um único orçamento sem cabeçalho numerado, retorne { "count": 1, "numbers": [1] }.`,
-        "Conte TODOS os cabeçalhos 'Orcamento N' presentes no documento e liste os números N. Não pule nenhum.",
+        `Você conta blocos de orçamento em um documento de operadora turística (Infotera/Cativa/Visual/CVC/Azul/Flytour). Cada bloco pode começar de duas formas:
+(A) Cabeçalho numerado "Orcamento N:" / "Orçamento N:" (ex.: "Orcamento 1: 617381", "Orcamento 7: 617387").
+(B) SEM numeração — Infotera/Cativa costumam repetir o MESMO número de orçamento no rodapé de várias páginas mas cada opção começa com um novo bloco de cabeçalho contendo "Incluso: Hospedagem/Serviços/Aéreo" + dados de contato + "Datas" + "Valores" + "Total com taxas" + "Pacote Total (N Adultos)" + "Nº de noites". Cada vez que esse cabeçalho completo se repete = NOVO orçamento (nova opção de hotel/data/valor), mesmo que o número "Orcamento: XXXXX" no rodapé seja idêntico em todas as páginas.
+Conte TODOS os blocos, tipo A ou B. Retorne APENAS JSON: { "count": <número>, "numbers": [1,2,3,...] }. Se for tipo B, use 1,2,3… na ordem de aparição. Se realmente só houver um único bloco, retorne { "count": 1, "numbers": [1] }.`,
+        "Conte TODOS os blocos de orçamento (numerados 'Orcamento N' OU repetições completas do cabeçalho Incluso/Datas/Valores/Total com taxas/Pacote Total). Não pule nenhum e não conte a mesma opção duas vezes.",
         4000,
       );
       totalCount =
@@ -1000,6 +1003,8 @@ export const extractMultiplePackagesFromDocument = createServerFn({ method: "POS
 O documento normalmente é um arquivo de operadora (Visual Turismo / Infotera / CVC / Azul Viagens / Flytour) que contém vários orçamentos concatenados.
 
 Cada orçamento começa com um cabeçalho no padrão "Orcamento N: <número>" ou "Orçamento N: <número>" (ex.: "Orcamento 1: 617381", "Orcamento 2: 617381"). Cada bloco tem sua própria hospedagem, datas, valores, ida e volta com conexões — até o próximo cabeçalho "Orcamento (N+1)".
+
+IMPORTANTE (padrão Infotera/Cativa SEM numeração): quando o documento repetir o mesmo número "Orcamento: XXXXX" em todas as páginas mas contiver VÁRIAS opções, cada opção é identificada pela repetição do cabeçalho completo "Incluso: Hospedagem/Serviços/Aéreo + Datas + Valores + Total com taxas + Pacote Total (N Adultos) + Nº de noites". Trate cada repetição como um pacote separado, com index 1, 2, 3… na ordem de aparição, mesmo que hotel/datas sejam diferentes (ou até semelhantes). NÃO deduplique nessa etapa — devolva todos.
 
 Devolva APENAS um JSON válido (sem markdown):
 { "packages": [ { "index": N, ...pacote N... }, ... ] }
