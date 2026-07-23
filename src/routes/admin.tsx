@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle, Sun, Moon, Megaphone } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -37,7 +37,7 @@ function AdminLayout() {
   const [role, setRole] = useState<Role | undefined>(undefined);
   const isAdmin = role === "admin";
   const isPartner = role === "partner";
-  const isMarketing = role === "marketing" || role === "admin";
+  // marketing role is redirected to /chat/broadcast on entry
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "dark";
     return (window.localStorage.getItem("admin-theme") as "dark" | "light") || "dark";
@@ -126,7 +126,7 @@ function AdminLayout() {
     if (pathname !== "/admin") return;
     if (isAdmin) navigate({ to: "/admin/dashboard" });
     else if (isPartner) navigate({ to: "/admin/pedidos" });
-    else if (role === "marketing") navigate({ to: "/admin/disparos" });
+    else if (role === "marketing") { if (typeof window !== "undefined") window.location.replace("/chat/broadcast"); }
   }, [pathname, isAdmin, isPartner, role, navigate]);
 
 
@@ -212,21 +212,11 @@ function AdminLayout() {
       </div>
     );
   }
-  if (role === "marketing" && !pathname.startsWith("/admin/disparos")) {
+  if (role === "marketing") {
+    if (typeof window !== "undefined") window.location.replace("/chat/broadcast");
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center">
-        <div>
-          <h1 className="text-2xl font-semibold">Área restrita</h1>
-          <p className="mt-2 text-muted-foreground text-sm">
-            Sua conta de marketing só tem acesso a Disparos.
-          </p>
-          <button
-            className="mt-4 text-brand-orange hover:underline"
-            onClick={() => navigate({ to: "/admin/disparos" })}
-          >
-            Ir para Disparos
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
       </div>
     );
   }
@@ -247,7 +237,6 @@ function AdminLayout() {
                 ? <PedidosNav pathname={pathname} />
                 : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
               <CartaoNav pathname={pathname} />
-              {isMarketing && <NavItem to="/admin/disparos" icon={Megaphone} label="Disparos" active={pathname.startsWith("/admin/disparos")} />}
               {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
             </nav>
 
@@ -304,7 +293,7 @@ function AdminLayout() {
               ? <PedidosNav pathname={pathname} />
               : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
             <CartaoNav pathname={pathname} />
-            {isMarketing && <NavItem to="/admin/disparos" icon={Megaphone} label="Disparos" active={pathname.startsWith("/admin/disparos")} />}
+            
             {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
           </div>
         </nav>
