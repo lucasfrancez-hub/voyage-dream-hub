@@ -1536,12 +1536,35 @@ function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: B
                     <p className="text-xs font-mono text-white/80 truncate">/{p.slug}</p>
                   </div>
                 </div>
-                <div className="p-3 flex-1 flex flex-col">
+                <div className="p-3 flex-1 flex flex-col gap-1">
                   <p className="text-sm font-semibold truncate">{p.title}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {p.origin ? `De ${p.origin} · ` : ""}{p.destination ?? ""}
                   </p>
-                  <div className="mt-2 flex items-center justify-end">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {(() => {
+                      const dd = (s: string | null) => {
+                        if (!s) return null;
+                        try {
+                          const d = new Date(s + "T12:00:00");
+                          return String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+                        } catch { return null; }
+                      };
+                      const d1 = dd(p.going_date);
+                      const d2 = dd(p.return_date);
+                      return d1 && d2 ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium">
+                          🗓️ {d1} a {d2}{p.nights ? ` · ${p.nights}n` : ""}
+                        </span>
+                      ) : null;
+                    })()}
+                    {p.price_per_person ? (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 text-[11px] font-semibold">
+                        R$ {p.price_per_person.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/pp
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-auto pt-2 flex items-center justify-end">
                     <span className="text-[11px] font-bold text-brand-orange uppercase tracking-wide inline-flex items-center gap-1">
                       Inserir <Plus className="h-3 w-3" />
                     </span>
