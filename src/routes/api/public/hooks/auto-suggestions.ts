@@ -10,17 +10,10 @@ export const Route = createFileRoute("/api/public/hooks/auto-suggestions")({
       POST: async () => {
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          // Descobre um usuário admin/marketing pra registrar o autor
-          const { data: role } = await supabaseAdmin
-            .from("user_roles")
-            .select("user_id")
-            .in("role", ["admin", "marketing"])
-            .limit(1)
-            .maybeSingle();
-          const userId = role?.user_id ?? "00000000-0000-0000-0000-000000000000";
-
           const { generateBroadcastSuggestions } = await import("@/lib/broadcast/suggestions.server");
-          const res = await generateBroadcastSuggestions(userId);
+          // cron não tem sessão — grava sem autor
+          void supabaseAdmin;
+          const res = await generateBroadcastSuggestions(null);
           return Response.json({ ok: true, ...res, ts: new Date().toISOString() });
         } catch (err) {
           console.error("[auto-suggestions] error", err);
