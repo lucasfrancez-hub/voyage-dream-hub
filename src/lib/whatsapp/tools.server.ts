@@ -226,19 +226,21 @@ export function buildCamilaTools(conversation: WaConversation) {
         quantidade_adultos: z.number().int().nullable().describe("adultos para calcular Pix total; padrão = base_occupancy (geralmente 2)"),
       }),
       execute: async ({ slug, quantidade_adultos }) => {
-        const [{ data: pkg }, { data: storedCopy }] = await Promise.all([
-          supabaseAdmin
-            .from("packages")
-            .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active, services")
-            .eq("slug", slug)
-            .maybeSingle(),
-          supabaseAdmin
-            .from("package_ai_copy")
-            .select("text, package_id")
-            .eq("channel", "whatsapp")
-            .maybeSingle()
-            .then((r) => r).catch(() => ({ data: null })),
-        ]) as any;
+        const { data: pkg } = await supabaseAdmin
+          .from("packages")
+          .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active, services")
+          .eq("slug", slug)
+          .maybeSingle();
+        const storedCopyRes = pkg
+          ? await supabaseAdmin
+              .from("package_ai_copy")
+              .select("text, package_id")
+              .eq("channel", "whatsapp")
+              .eq("package_id", (pkg as any).id)
+              .maybeSingle()
+          : { data: null };
+        const storedCopy: any = (storedCopyRes as any).data;
+
         if (!pkg || !pkg.is_active) return { error: "Pacote não encontrado ou inativo" };
 
         const qtd = quantidade_adultos && quantidade_adultos > 0 ? quantidade_adultos : (pkg.base_occupancy ?? 2);
