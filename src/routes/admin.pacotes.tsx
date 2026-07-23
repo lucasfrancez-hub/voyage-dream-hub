@@ -1364,10 +1364,15 @@ function PackageEditorModal({
       const det = (svc.city_tour.detalhe ?? "").trim();
       list.push(det ? `City Tour — ${det}` : "City Tour");
     }
+    if (svc.tickets?.enabled) {
+      const parks = (svc.tickets.parks ?? []).map((p) => String(p ?? "").trim()).filter(Boolean);
+      if (parks.length) list.push(`Ingressos: ${parks.join(", ")}`);
+    }
     for (const o of svc.outros ?? []) {
       const t = String(o ?? "").trim();
       if (t) list.push(t);
     }
+
     return list;
   }, [
     editing.outbound_flight,
