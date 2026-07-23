@@ -1,7 +1,10 @@
 {
   "name": "viaair",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "VIA AIR - Plataforma interna",
   "main": "main.cjs",
-  "author": "VIA AIR"
+  "author": "VIA AIR",
+  "devDependencies": {
+    "electron": "^32.0.0"
+  }
 }
