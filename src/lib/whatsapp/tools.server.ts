@@ -630,6 +630,10 @@ export function buildCamilaTools(conversation: WaConversation) {
             // Só marca prioridade e a tag "aguardando_humano" pro painel.
             priority: prioridade ?? "normal",
             tags: newTags,
+            // Escalada genérica é pra TODO MUNDO ver — libera assigned_to
+            // pra conversa aparecer como "não atribuída" no painel de todos
+            // os atendentes ativos, não fica travada com um só.
+            assigned_to: null,
           })
           .eq("id", conversation.id);
 
@@ -651,11 +655,25 @@ export function buildCamilaTools(conversation: WaConversation) {
           briefing,
         });
 
+        // Checa horário comercial (America/Sao_Paulo, 09:00–21:00)
+        const hourSP = Number(
+          new Intl.DateTimeFormat("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+            hour: "2-digit",
+            hour12: false,
+          }).format(new Date()),
+        );
+        const dentroDoHorario = hourSP >= 9 && hourSP < 21;
+
+        const instrucao = dentroDoHorario
+          ? "Envie UMA mensagem curta (2 a 3 linhas) confirmando que já anotou tudo e passou pro time comercial, e que em breve um consultor entra em contato por aqui mesmo. NÃO mencione horário de atendimento (o cliente já está DENTRO do horário comercial 09h–21h). SEMPRE agradeça com 'obrigado pela preferência' — NUNCA 'obrigado pela paciência'. IMPORTANTE: você (IA) CONTINUA no atendimento — se o cliente mandar mais alguma coisa depois, siga respondendo com naturalidade até o atendente humano assumir. Não se despeça de vez."
+          : "Envie UMA mensagem curta (2 a 4 linhas) avisando que já sinalizou pro time comercial. Como está FORA do horário comercial, informe que o comercial atende das 09h às 21h e que logo no início do expediente um consultor entra em contato por aqui. SEMPRE agradeça com 'obrigado pela preferência' — NUNCA 'obrigado pela paciência'. IMPORTANTE: você (IA) CONTINUA no atendimento — se o cliente mandar mais alguma coisa depois, siga respondendo com naturalidade até o atendente humano assumir. Não se despeça de vez.";
+
         return {
           ok: true,
-          instrucao:
-            "Envie UMA mensagem curta (2 a 4 linhas) avisando que já sinalizou pro time comercial. OBRIGATÓRIO informar o horário de atendimento comercial: das 09h às 21h (se estiver dentro do horário: 'em breve um dos nossos consultores entra em contato por aqui'; se estiver FORA desse horário: 'nosso comercial atende das 09h às 21h, então logo no início do expediente um consultor te chama por aqui'). SEMPRE agradeça com a expressão 'obrigado pela preferência' — NUNCA use 'obrigado pela paciência'. IMPORTANTE: você (IA) CONTINUA no atendimento — se o cliente mandar mais alguma coisa depois (dúvida, complemento, mudança), siga respondendo normalmente com naturalidade até o atendente humano assumir. Não fale 'não posso mais responder' nem se despeça de vez.",
+          instrucao,
         };
+
       },
     }),
 
