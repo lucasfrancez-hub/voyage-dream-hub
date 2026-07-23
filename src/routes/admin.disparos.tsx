@@ -597,9 +597,13 @@ function CampanhaEditor({
 
             {/* Blocos */}
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                 <h3 className="text-sm font-medium">Mensagens ({blocos.length} blocos)</h3>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
+                  <button onClick={() => setShowPicker(true)} className="text-xs rounded-full bg-brand-orange/10 text-brand-orange px-3 py-1 hover:bg-brand-orange/20 inline-flex items-center gap-1 font-medium">
+                    <Package className="h-3 w-3" /> Pacote pronto
+                  </button>
+                  <span className="text-xs text-muted-foreground px-1">·</span>
                   <button onClick={() => addBloco("text")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ Texto</button>
                   <button onClick={() => addBloco("image")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ Imagem</button>
                   <button onClick={() => addBloco("document")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ PDF</button>
