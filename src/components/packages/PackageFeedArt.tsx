@@ -21,6 +21,7 @@ export type FeedArtData = {
   quantidadePessoas: number;
   apartamento: string;
   parcelas: number;
+  isCativa?: boolean;
   valorTotal: number;
   inclusos: {
     aereo: boolean;
