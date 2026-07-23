@@ -12,6 +12,8 @@ import {
   excluirCampanha,
   dispararAgora,
   getCampanha,
+  adicionarDestinoPorLink,
+  excluirDestino,
 } from "@/lib/broadcast/broadcast.functions";
 import { confirm } from "@/lib/confirm";
 
