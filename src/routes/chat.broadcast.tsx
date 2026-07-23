@@ -1218,8 +1218,8 @@ function CampanhaEditor({
     {showPicker && (
       <PackagePicker
         onClose={() => setShowPicker(false)}
-        onPick={(bloco) => {
-          setBlocos((b) => [...b, bloco]);
+        onPick={(blocosNovos) => {
+          setBlocos((b) => [...b, ...blocosNovos]);
           setShowPicker(false);
         }}
       />
