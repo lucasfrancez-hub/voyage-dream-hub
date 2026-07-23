@@ -31,13 +31,16 @@ export type FeedArtData = {
     seguroViagem: boolean;
     esimInternacional: boolean;
     ingressos: boolean;
+    passeios: boolean;
     maisServicos: boolean;
   };
   mealPlanLabel?: string | null;
   ticketsLabel?: string | null;
   ticketsParks?: string[] | null;
+  passeiosList?: string[] | null;
 
 };
+
 
 
 
