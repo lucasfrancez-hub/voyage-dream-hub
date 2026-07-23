@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio } from "lucide-react";
+import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search } from "lucide-react";
 import {
   listCampanhas,
   listDestinos,
@@ -14,6 +14,7 @@ import {
   getCampanha,
   adicionarDestinoPorLink,
   excluirDestino,
+  listPacotesProntos,
 } from "@/lib/broadcast/broadcast.functions";
 import { confirm } from "@/lib/confirm";
 
