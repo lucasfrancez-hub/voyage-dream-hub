@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/instagram-webhook")({
         const mode = url.searchParams.get("hub.mode");
         const token = url.searchParams.get("hub.verify_token");
         const challenge = url.searchParams.get("hub.challenge");
-        const expected = process.env.META_IG_VERIFY_TOKEN ?? process.env.WHATSAPP_VERIFY_TOKEN_USER;
+        const expected = process.env.META_IG_VERIFY_TOKEN_V2 ?? process.env.META_IG_VERIFY_TOKEN ?? process.env.WHATSAPP_VERIFY_TOKEN_USER;
         if (mode === "subscribe" && token && expected && token === expected) {
           return new Response(challenge ?? "", { status: 200 });
         }
