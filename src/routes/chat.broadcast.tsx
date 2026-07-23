@@ -1228,7 +1228,7 @@ function CampanhaEditor({
   );
 }
 
-function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: Bloco) => void }) {
+function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: Bloco[]) => void }) {
   const [pacotes, setPacotes] = useState<{ id: string; slug: string; title: string; destination: string | null; origin: string | null; image_url: string | null; caption: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [origin, setOrigin] = useState("");
@@ -1249,53 +1249,71 @@ function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: B
   }
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  function insert(p: typeof pacotes[number]) {
+    const blocos: Bloco[] = [];
+    if (p.image_url) {
+      blocos.push({ tipo: "image", midia_url: p.image_url, midia_caption: null, texto: null, midia_filename: null });
+    }
+    blocos.push({ tipo: "text", texto: p.caption, midia_url: null, midia_caption: null, midia_filename: null });
+    onPick(blocos);
+  }
+
   return (
     <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
-      <div className="w-full max-w-3xl bg-background border border-border rounded-2xl my-4 flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Package className="h-5 w-5 text-brand-orange" /> Selecionar pacote pronto
-          </h2>
+      <div className="w-full max-w-4xl bg-background border border-border rounded-2xl my-4 flex flex-col max-h-[90vh] shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-border bg-gradient-to-r from-brand-orange/10 to-transparent">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Package className="h-5 w-5 text-brand-orange" /> Selecionar pacote pronto
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Insere imagem + legenda formatada (editável).</p>
+          </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-muted"><X className="h-4 w-4" /></button>
         </div>
         <div className="p-4 border-b border-border grid sm:grid-cols-3 gap-2">
-          <input value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Origem (ex: Curitiba)" className="rounded-md border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
-          <input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Destino (ex: Orlando)" className="rounded-md border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
+          <input value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Origem (ex: Curitiba)" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
+          <input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Destino (ex: Orlando)" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
           <div className="flex gap-2">
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Título…" className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
-            <button onClick={load} disabled={loading} className="rounded-md bg-brand-orange px-3 py-2 text-white text-sm disabled:opacity-50 inline-flex items-center gap-1">
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Título ou slug…" className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
+            <button onClick={load} disabled={loading} className="rounded-lg bg-brand-orange px-3 py-2 text-white text-sm disabled:opacity-50 inline-flex items-center gap-1">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto p-4 grid sm:grid-cols-2 gap-3">
           {loading && pacotes.length === 0 ? (
-            <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            <div className="col-span-full py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : pacotes.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-12">Nenhum pacote encontrado com esses filtros.</p>
+            <p className="col-span-full text-sm text-muted-foreground text-center py-12">Nenhum pacote encontrado com esses filtros.</p>
           ) : (
             pacotes.map((p) => (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => onPick({ tipo: "image", midia_url: p.image_url ?? "", midia_caption: p.caption, texto: null, midia_filename: null })}
-                className="w-full text-left rounded-lg border border-border bg-card p-3 hover:border-brand-orange flex gap-3 items-start"
+                onClick={() => insert(p)}
+                className="text-left rounded-xl border border-border bg-card overflow-hidden hover:border-brand-orange hover:shadow-lg transition-all group"
               >
-                {p.image_url ? (
-                  <img src={p.image_url} alt="" className="h-16 w-16 rounded-md object-cover shrink-0" loading="lazy" />
-                ) : (
-                  <div className="h-16 w-16 rounded-md bg-muted shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{p.title}</p>
+                <div className="relative aspect-[4/3] bg-muted">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt="" className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground"><Package className="h-8 w-8" /></div>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                    <p className="text-xs font-mono text-white/80 truncate">/{p.slug}</p>
+                  </div>
+                </div>
+                <div className="p-3">
+                  <p className="text-sm font-semibold truncate">{p.title}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {p.origin ? `De ${p.origin} · ` : ""}{p.destination ?? ""}
                   </p>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1 whitespace-pre-line">
-                    {p.caption.split("\n").slice(0, 3).join(" · ")}
-                  </p>
+                  <div className="mt-2 flex items-center justify-end">
+                    <span className="text-[11px] font-bold text-brand-orange uppercase tracking-wide inline-flex items-center gap-1">
+                      Inserir <Plus className="h-3 w-3" />
+                    </span>
+                  </div>
                 </div>
-                <span className="text-xs text-brand-orange shrink-0 self-center">Inserir</span>
               </button>
             ))
           )}
