@@ -364,7 +364,7 @@ export const listMessages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("wa_messages")
-      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, deleted_at")
+      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, deleted_at, wa_message_id, reply_to_wa_id, reply_to_snippet, reply_to_sender")
       .eq("conversation_id", data.conversation_id)
       .order("created_at", { ascending: true })
       .limit(500);
@@ -428,6 +428,9 @@ export const sendHumanReply = createServerFn({ method: "POST" })
     z.object({
       conversation_id: z.string().uuid(),
       content: z.string().min(1).max(4000),
+      reply_to_wa_id: z.string().nullish(),
+      reply_to_snippet: z.string().nullish(),
+      reply_to_sender: z.string().nullish(),
     }).parse(data),
   )
   .handler(async ({ data, context }) => {
@@ -471,9 +474,14 @@ export const sendHumanReply = createServerFn({ method: "POST" })
       sender: "human",
       content,
       sender_user_id: context.userId,
+      reply_to_wa_id: data.reply_to_wa_id ?? null,
+      reply_to_snippet: data.reply_to_snippet ?? null,
+      reply_to_sender: data.reply_to_sender ?? null,
     });
 
-    await sendWhatsAppBubbles(conv.wa_phone, content, prefix);
+    await sendWhatsAppBubbles(conv.wa_phone, content, prefix, {
+      replyId: data.reply_to_wa_id ?? null,
+    });
     return { ok: true };
   });
 

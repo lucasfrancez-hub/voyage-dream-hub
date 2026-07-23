@@ -421,6 +421,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ wa_id: string; snippet: string; sender: string | null } | null>(null);
   const wallpaper = useWallpaper();
   const sendMediaFn = useServerFn(sendHumanMedia);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -504,9 +505,16 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     : null;
 
   const sendMut = useMutation({
-    mutationFn: async (content: string) => sendFn({ data: { conversation_id: conv.id, content } }),
+    mutationFn: async (content: string) => sendFn({ data: {
+      conversation_id: conv.id,
+      content,
+      reply_to_wa_id: replyTo?.wa_id ?? null,
+      reply_to_snippet: replyTo?.snippet ?? null,
+      reply_to_sender: replyTo?.sender ?? null,
+    } }),
     onSuccess: () => {
       setInput("");
+      setReplyTo(null);
       qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
       onRefetch();
     },
@@ -620,28 +628,47 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           grouped.map((g) => (
             <div key={g.date}>
               <DateDivider label={g.label} />
-              {g.messages.map((m) => (
-                <div key={m.id} className="mb-1">
-                  <WhatsAppBubble
-                    side={m.direction === "inbound" ? "in" : "out"}
-                    content={m.deleted_at ? "🚫 Esta mensagem foi apagada" : m.content}
-                    timestamp={m.created_at}
-                    senderLabel={
-                      m.direction === "inbound"
-                        ? (conv.display_name ?? conv.wa_phone)
-                        : m.sender === "camila"
-                          ? (conv.agent_slug === "roberto" ? "Roberto" : "Camila")
-                        : m.sender === "human"
-                          ? (firstName(m.sender_full_name) ?? "Atendente")
-                        : m.sender === "system"
-                          ? "Sistema"
-                        : undefined
-                    }
-                    status={m.direction === "outbound" ? "delivered" : undefined}
-                    deleted={!!m.deleted_at}
-                  />
-                </div>
-              ))}
+              {g.messages.map((m) => {
+                const senderLabel =
+                  m.direction === "inbound"
+                    ? (conv.display_name ?? conv.wa_phone)
+                    : m.sender === "camila"
+                      ? (conv.agent_slug === "roberto" ? "Roberto" : "Camila")
+                    : m.sender === "human"
+                      ? (firstName(m.sender_full_name) ?? "Atendente")
+                    : m.sender === "system"
+                      ? "Sistema"
+                    : undefined;
+                return (
+                  <div key={m.id} className="mb-1">
+                    <WhatsAppBubble
+                      side={m.direction === "inbound" ? "in" : "out"}
+                      content={m.content}
+                      timestamp={m.created_at}
+                      senderLabel={senderLabel}
+                      status={m.direction === "outbound" ? "delivered" : undefined}
+                      deleted={!!m.deleted_at}
+                      reply={
+                        m.reply_to_wa_id
+                          ? { snippet: m.reply_to_snippet ?? "mensagem", sender: m.reply_to_sender ?? null }
+                          : null
+                      }
+                      onReply={
+                        m.deleted_at || !m.wa_message_id
+                          ? undefined
+                          : () => {
+                              const preview = m.content.replace(/^\[\[media:[^\]]+\]\]\n?/, "").slice(0, 240) || "mensagem";
+                              setReplyTo({
+                                wa_id: m.wa_message_id!,
+                                snippet: preview,
+                                sender: senderLabel ?? null,
+                              });
+                            }
+                      }
+                    />
+                  </div>
+                );
+              })}
             </div>
           ))
         )}
@@ -649,6 +676,23 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
 
       {/* Composer */}
       <div className="shrink-0 border-t border-slate-200 bg-white p-3">
+        {replyTo && (
+          <div className="mb-2 flex items-start gap-2 rounded-md border-l-4 border-[#F26B1F] bg-orange-50 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-semibold text-[#F26B1F]">
+                Respondendo{replyTo.sender ? ` a ${firstName(replyTo.sender)}` : ""}
+              </div>
+              <div className="line-clamp-2 text-xs text-slate-700">{replyTo.snippet}</div>
+            </div>
+            <button
+              onClick={() => setReplyTo(null)}
+              title="Cancelar resposta"
+              className="rounded-md p-1 text-slate-500 hover:bg-orange-100"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {pendingFile && (
           <div className="mb-2 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-2">
             {pendingFile.kind === "image" && pendingFile.previewUrl ? (

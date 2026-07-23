@@ -173,6 +173,12 @@ export async function saveMessage(input: {
   sender_user_id?: string | null;
   /** Se true, não abre/atualiza protocolo (usado pela mensagem de encerramento por inatividade). */
   skip_protocolo?: boolean;
+  /** Reply/quote — id da mensagem WhatsApp original que este balão cita. */
+  reply_to_wa_id?: string | null;
+  /** Trecho da mensagem citada, pra renderizar preview no balão. */
+  reply_to_snippet?: string | null;
+  /** Nome/participante da mensagem citada. */
+  reply_to_sender?: string | null;
 }): Promise<WaMessage | null> {
   // Dedupe manual quando temos wa_message_id
   if (input.wa_message_id) {
@@ -206,6 +212,9 @@ export async function saveMessage(input: {
       tool_calls: (input.tool_calls ?? null) as never,
       sender_user_id: input.sender_user_id ?? null,
       protocolo_id: protocoloId,
+      reply_to_wa_id: input.reply_to_wa_id ?? null,
+      reply_to_snippet: input.reply_to_snippet ?? null,
+      reply_to_sender: input.reply_to_sender ?? null,
     })
     .select("*")
     .single();
