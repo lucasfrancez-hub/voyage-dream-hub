@@ -575,7 +575,9 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
         tripadvisor_address: pkg.tripadvisor_address ?? null,
         meal_plan: (pkg as { meal_plan?: string | null }).meal_plan ?? null,
         services: (pkg as { services?: unknown }).services ?? null,
+        supplier_name: (pkg as { supplier_name?: string | null }).supplier_name ?? null,
       };
+
 
       let delivery: "downloaded" | "shared" | "cancelled";
       if (kind === "feed") {
