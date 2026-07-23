@@ -202,7 +202,7 @@ _{Gancho de UMA linha, CRIATIVO E ORIGINAL, 100% conectado ao destino específic
 Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("preço redondo", "oportunidade imperdível", "não perca"), sem emoji dentro do gancho, sem repetir o nome do destino se ele já apareceu no título acima. SEMPRE envolva a frase inteira em underscores para itálico no WhatsApp: _frase_.}_
 
 ✈️ Saindo de {origem}
-🗓️ {DD a DD/MÊS EM CAIXA ALTA} ({N noites})
+🗓️ {DD/MM a DD/MM} ({N noites})
 🏨 {Hotel} {estrelas em ★} — {regime, ex.: Café da Manhã / All Inclusive}
 
 {SE "services_lines" tiver 1+ item, adicione uma linha em branco e depois UMA LINHA por item de "services_lines", EXATAMENTE como está (o emoji já vem no início). Sem título, sem "SERVIÇOS INCLUSOS", sem asteriscos, sem alterar o texto. Depois outra linha em branco antes das formas de pagamento.}
