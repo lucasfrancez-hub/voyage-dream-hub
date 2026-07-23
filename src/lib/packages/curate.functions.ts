@@ -213,7 +213,8 @@ Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("p
 
 *FORMAS DE PAGAMENTO:*
 🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S) _(5% de desconto já aplicado)_
-💳 *Cartão de crédito:* 10x de {valor por parcela do total cheio}
+💳 *Cartão Visa/Master:* 15x de {total / 15}
+💳 *Demais bandeiras:* 10x de {total / 10}
 📄 *Boleto bancário:* até 10x mediante aprovação
 {SE E SOMENTE SE o item tiver "boleto_ate_data_viagem": true, adicione esta linha extra logo abaixo:}
 📄 *Boleto parcelado:* até a data da viagem (sem análise de crédito)
@@ -229,7 +230,7 @@ REGRAS FIRMES:
 - Sem markdown de heading (#), sem hashtags.
 - Nunca invente dados; use SÓ os fornecidos.
 - Mês em CAIXA ALTA (JANEIRO, FEVEREIRO…). Data no formato "15 a 22/SETEMBRO".
-- Valor do PIX = total x 0,95 (5% off). Cartão = total / 10.
+- Valor do PIX = total x 0,95 (5% off). Cartão Visa/Master = total / 15. Demais bandeiras = total / 10.
 - A linha "Boleto parcelado até a data da viagem" só aparece quando "boleto_ate_data_viagem" do item for true (antecedência mínima de 60 dias). Nunca inclua se for false.
 - Se houver mais de 1 pacote, gere um bloco por pacote separado por uma linha em branco, e repita a assinatura "✨ Para mais informações…" só UMA vez no fim.`
 

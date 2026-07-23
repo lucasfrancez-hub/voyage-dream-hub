@@ -273,7 +273,8 @@ export function buildCamilaTools(conversation: WaConversation) {
         const priceP = Number(pkg.price_per_person) || 0;
         const total = priceP * qtd;
         const pixTotal = total * 0.95;
-        const parcelaCartao = total / 10;
+        const parcelaVisaMaster = total / 15;
+        const parcelaOutrasBandeiras = total / 10;
 
         const link = `https://pedidos.viaair.tur.br/w/${pkg.slug}`;
 
@@ -383,7 +384,8 @@ export function buildCamilaTools(conversation: WaConversation) {
           lines.push("");
           lines.push(`*FORMAS DE PAGAMENTO:*`);
           lines.push(`🤑 *PIX:* ${brl2(pixTotal)} PARA ${qtd} ADULTO${qtd === 1 ? "" : "S"} _(5% de desconto já aplicado)_`);
-          lines.push(`💳 *Cartão de crédito:* 10x de ${brl2(parcelaCartao)}`);
+          lines.push(`💳 *Cartão Visa/Master:* 15x de ${brl2(parcelaVisaMaster)}`);
+          lines.push(`💳 *Demais bandeiras:* 10x de ${brl2(parcelaOutrasBandeiras)}`);
           lines.push(`📄 *Boleto bancário:* até 10x mediante aprovação`);
           if (boletoAteViagem) lines.push(`📄 *Boleto parcelado:* até a data da viagem (sem análise de crédito)`);
           lines.push(`*sem juros em qualquer forma de pagamento*`);
