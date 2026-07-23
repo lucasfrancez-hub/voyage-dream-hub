@@ -85,6 +85,8 @@ function InboxPage() {
 
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
+      // Arquivadas só aparecem na aba "Arquivadas".
+      if (folder !== "resolved" && c.mode === "resolved") return false;
       if (folder === "ai" && c.mode !== "ai") return false;
       if (folder === "human" && c.mode !== "human" && !(c.tags ?? []).includes("aguardando_humano")) return false;
       if (folder === "resolved" && c.mode !== "resolved") return false;
