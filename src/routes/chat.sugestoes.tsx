@@ -129,7 +129,7 @@ function SugestoesPage() {
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
           <Sparkles className="mx-auto mb-3 h-10 w-10 text-slate-300" />
           <p className="text-sm font-medium text-slate-700">Nenhuma sugestão ainda</p>
-          <p className="mt-1 text-xs text-slate-500">Clique em "Gerar sugestões agora" pra IA analisar seus pacotes.</p>
+          <p className="mt-1 text-xs text-slate-500">A IA roda todo dia às 08h. Assim que houver pacotes ativos com origem definida, as sugestões aparecem aqui automaticamente.</p>
         </div>
       )}
 
