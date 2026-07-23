@@ -1004,6 +1004,8 @@ O documento normalmente é um arquivo de operadora (Visual Turismo / Infotera / 
 
 Cada orçamento começa com um cabeçalho no padrão "Orcamento N: <número>" ou "Orçamento N: <número>" (ex.: "Orcamento 1: 617381", "Orcamento 2: 617381"). Cada bloco tem sua própria hospedagem, datas, valores, ida e volta com conexões — até o próximo cabeçalho "Orcamento (N+1)".
 
+IMPORTANTE (padrão Infotera/Cativa SEM numeração): quando o documento repetir o mesmo número "Orcamento: XXXXX" em todas as páginas mas contiver VÁRIAS opções, cada opção é identificada pela repetição do cabeçalho completo "Incluso: Hospedagem/Serviços/Aéreo + Datas + Valores + Total com taxas + Pacote Total (N Adultos) + Nº de noites". Trate cada repetição como um pacote separado, com index 1, 2, 3… na ordem de aparição, mesmo que hotel/datas sejam diferentes (ou até semelhantes). NÃO deduplique nessa etapa — devolva todos.
+
 Devolva APENAS um JSON válido (sem markdown):
 { "packages": [ { "index": N, ...pacote N... }, ... ] }
 
