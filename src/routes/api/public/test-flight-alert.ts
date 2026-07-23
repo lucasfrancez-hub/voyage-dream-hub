@@ -204,6 +204,3 @@ export const Route = createFileRoute("/api/public/test-flight-alert")({
   },
 });
 
-function uazConfiguredCheck(): boolean {
-  return !!(process.env.UAZAPI_URL && process.env.UAZAPI_TOKEN);
-}
