@@ -39,6 +39,7 @@ type Pkg = {
   includes?: string[] | null;
   room_type?: string | null;
   tripadvisor_address?: string | null;
+  services?: import("@/lib/packages/feed-art-data").PackageServices | null;
 };
 
 type Group = {
