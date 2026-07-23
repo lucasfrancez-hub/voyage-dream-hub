@@ -113,7 +113,15 @@ function ChatLayout() {
 
   useEffect(() => {
     if (session === undefined) return;
-    if (!session) { navigate({ to: "/auth", search: { redirect: pathname || "/chat/inbox" } as any }); return; }
+    if (!session) {
+      const target = pathname && pathname.startsWith("/chat") ? pathname : "/chat/inbox";
+      if (typeof window !== "undefined") {
+        window.location.replace(`/auth?redirect=${encodeURIComponent(target)}`);
+      } else {
+        navigate({ to: "/auth", search: { redirect: target } as any });
+      }
+      return;
+    }
     (async () => {
       const { data, error } = await supabase
         .from("user_roles")
