@@ -210,7 +210,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const recentSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data: sysRows } = await supabaseAdmin
     .from("wa_messages")
-    .select("id, conversation_id, direction, sender, content, wa_message_id, tool_calls, protocolo_id, created_at")
+    .select("id, conversation_id, direction, sender, content, wa_message_id, tool_calls, protocolo_id, created_at, deleted_at")
     .eq("conversation_id", conv.id)
     .eq("sender", "system")
     .eq("direction", "outbound")
@@ -224,10 +224,16 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   }
   merged.sort((a, b) => a.created_at.localeCompare(b.created_at));
 
-  const messages: ModelMessage[] = merged.map((m) => ({
-    role: m.sender === "customer" ? "user" : "assistant",
-    content: m.content,
-  }));
+  const messages: ModelMessage[] = merged.map((m) => {
+    const wasDeleted = !!(m as { deleted_at?: string | null }).deleted_at;
+    const content = wasDeleted
+      ? `[MENSAGEM APAGADA PELO CLIENTE — ignore, não responda a esta mensagem específica] ${m.content}`
+      : m.content;
+    return {
+      role: m.sender === "customer" ? "user" : "assistant",
+      content,
+    };
+  });
 
   const { count: outboundNoProto } = await supabaseAdmin
     .from("wa_messages")
