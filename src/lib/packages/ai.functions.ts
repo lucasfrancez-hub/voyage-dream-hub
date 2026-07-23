@@ -1035,6 +1035,8 @@ Regras (aplicar em CADA pacote):
 - services.cancelamento: serviço separado do seguro. enabled=true para "Cobertura de Cancelamento Involuntário de Viagem", "Protec Travel" ou flexibilidade tarifária; extraia cobertura e moeda.
 - services.transfer: enabled=true para transfer/traslado. "chegada e saída", "IN/OUT" ou ida e volta significa sentido="in_out".
 - services.city_tour: enabled=true quando houver city tour ou passeio incluído. Outros extras explícitos vão em services.outros.
+- services.tickets: enabled=true quando o pacote inclui INGRESSOS de parques/atrações (Disney, Walt Disney World, Magic Kingdom, Epcot, Universal, Universal Studios, Islands of Adventure, Volcano Bay, SeaWorld, Busch Gardens, LEGOLAND, Aquatica, Discovery Cove...). parks = lista com nomes CURTOS dos parques (["Disney","Universal"]); agrupe todos os parques Disney sob "Disney" e todos os Universal sob "Universal", sem duplicar. Não coloque ingressos em services.outros.
+
 - Cidade em português.
 
 Retorne SÓ o JSON.`;
