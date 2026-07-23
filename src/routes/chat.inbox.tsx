@@ -215,13 +215,13 @@ function InboxPage() {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-2 flex gap-1">
+            <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {FOLDERS.map((f) => (
                 <button
                   key={f.key}
                   onClick={() => setFolder(f.key)}
                   className={cn(
-                    "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors",
+                    "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
                     folder === f.key
                       ? "bg-orange-50 text-[#F26B1F]"
                       : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
@@ -232,6 +232,7 @@ function InboxPage() {
                 </button>
               ))}
             </div>
+
           </div>
           <div className="flex-1 space-y-1 overflow-y-auto p-2">
             {filtered.length === 0 ? (
