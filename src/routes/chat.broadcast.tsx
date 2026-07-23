@@ -741,18 +741,20 @@ function DestinoGroup({ title, icon: Icon, items, onDelete }: { title: string; i
 
 function CampanhaEditor({
   id,
+  presetDate,
   destinos,
   onClose,
   onSaved,
 }: {
   id?: string;
+  presetDate?: string;
   destinos: Destino[];
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [nome, setNome] = useState("");
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
-  const [scheduled, setScheduled] = useState("");
+  const [scheduled, setScheduled] = useState(presetDate ?? "");
   const [obs, setObs] = useState("");
   const [blocos, setBlocos] = useState<Bloco[]>([{ tipo: "text", texto: "" }]);
   const [saving, setSaving] = useState(false);
