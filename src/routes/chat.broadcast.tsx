@@ -1113,12 +1113,18 @@ function CampanhaEditor({
   return (
     <>
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
-      <div className="w-full max-w-4xl bg-background border border-border rounded-2xl my-4">
-        <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background z-10">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Megaphone className="h-5 w-5 text-brand-orange" />
-            {id ? "Editar campanha" : "Nova campanha"}
-          </h2>
+      <div className="w-full max-w-4xl bg-background border border-border rounded-2xl my-4 shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-gradient-to-r from-brand-orange/10 via-background to-background z-10 rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-8 rounded-full bg-brand-orange" />
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Megaphone className="h-5 w-5 text-brand-orange" />
+                {id ? "Editar campanha" : "Nova campanha"}
+              </h2>
+              <p className="text-xs text-muted-foreground">{id ? "Ajuste os blocos e destinos." : "Monte a mensagem e escolha para onde disparar."}</p>
+            </div>
+          </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
@@ -1129,68 +1135,92 @@ function CampanhaEditor({
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="p-4 space-y-6">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <label className="text-sm">
-                <span className="text-xs uppercase text-muted-foreground">Nome da campanha</span>
-                <input
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  placeholder="Ex: Promoção Orlando Novembro"
+          <div className="p-5 space-y-5">
+            {/* Secão 1: identificação */}
+            <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <span className="inline-flex w-5 h-5 rounded-full bg-brand-orange/15 text-brand-orange items-center justify-center text-[10px] font-black">1</span>
+                Identificação
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="text-sm">
+                  <span className="text-[11px] uppercase text-muted-foreground font-medium">Nome da campanha</span>
+                  <input
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-orange focus:outline-none"
+                    placeholder="Ex: Promoção Orlando Novembro"
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="text-[11px] uppercase text-muted-foreground font-medium">Agendar para (09h-21h BRT)</span>
+                  <input
+                    type="datetime-local"
+                    value={scheduled}
+                    onChange={(e) => setScheduled(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-orange focus:outline-none"
+                  />
+                </label>
+              </div>
+              <label className="text-sm block">
+                <span className="text-[11px] uppercase text-muted-foreground font-medium">Observações internas (marketing)</span>
+                <textarea
+                  value={obs}
+                  onChange={(e) => setObs(e.target.value)}
+                  rows={2}
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-orange focus:outline-none"
+                  placeholder="Contexto interno, referências, campanha-mãe…"
                 />
               </label>
-              <label className="text-sm">
-                <span className="text-xs uppercase text-muted-foreground">Agendar para (opcional, 09h-21h BRT)</span>
-                <input
-                  type="datetime-local"
-                  value={scheduled}
-                  onChange={(e) => setScheduled(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
-              </label>
-            </div>
+            </section>
 
-            <label className="text-sm block">
-              <span className="text-xs uppercase text-muted-foreground">Observações internas (marketing)</span>
-              <textarea
-                value={obs}
-                onChange={(e) => setObs(e.target.value)}
-                rows={2}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-              />
-            </label>
-
-            {/* Destinos */}
-            <div>
-              <h3 className="text-sm font-medium mb-2">Destinos ({selecionados.size} selecionados)</h3>
-              <div className="grid md:grid-cols-2 gap-4">
+            {/* Secão 2: destinos */}
+            <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  <span className="inline-flex w-5 h-5 rounded-full bg-brand-orange/15 text-brand-orange items-center justify-center text-[10px] font-black">2</span>
+                  Destinos
+                </div>
+                <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
+              </div>
+              <div className="grid md:grid-cols-2 gap-3">
                 <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
                 <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
               </div>
-            </div>
+            </section>
 
-            {/* Blocos */}
-            <div>
-              <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-                <h3 className="text-sm font-medium">Mensagens ({blocos.length} blocos)</h3>
+            {/* Secão 3: mensagens */}
+            <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  <span className="inline-flex w-5 h-5 rounded-full bg-brand-orange/15 text-brand-orange items-center justify-center text-[10px] font-black">3</span>
+                  Mensagens
+                  <span className="text-muted-foreground font-normal normal-case tracking-normal">({blocos.length} bloco{blocos.length === 1 ? "" : "s"})</span>
+                </div>
                 <div className="flex items-center gap-1 flex-wrap">
-                  <button onClick={() => setShowPicker(true)} className="text-xs rounded-full bg-brand-orange/10 text-brand-orange px-3 py-1 hover:bg-brand-orange/20 inline-flex items-center gap-1 font-medium">
+                  <button onClick={() => setShowPicker(true)} className="text-xs rounded-full bg-brand-orange text-white px-3 py-1.5 hover:opacity-90 inline-flex items-center gap-1 font-semibold shadow-sm shadow-brand-orange/30">
                     <Package className="h-3 w-3" /> Pacote pronto
                   </button>
-                  <span className="text-xs text-muted-foreground px-1">·</span>
-                  <button onClick={() => addBloco("text")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ Texto</button>
-                  <button onClick={() => addBloco("image")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ Imagem</button>
-                  <button onClick={() => addBloco("document")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ PDF</button>
-                  <button onClick={() => addBloco("video")} className="text-xs rounded-full border border-border px-3 py-1 hover:border-brand-orange">+ Vídeo</button>
+                  <span className="text-muted-foreground/40 px-1">·</span>
+                  <button onClick={() => addBloco("text")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Texto</button>
+                  <button onClick={() => addBloco("image")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Imagem</button>
+                  <button onClick={() => addBloco("document")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ PDF</button>
+                  <button onClick={() => addBloco("video")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Vídeo</button>
                 </div>
               </div>
-              <div className="space-y-2">
-                {blocos.map((b, i) => (
-                  <BlocoEditor key={i} idx={i} bloco={b} onChange={(p) => updateBloco(i, p)} onRemove={() => removeBloco(i)} />
-                ))}
-              </div>
-            </div>
+              {blocos.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border py-8 text-center">
+                  <Package className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Adicione um <button onClick={() => setShowPicker(true)} className="text-brand-orange font-semibold hover:underline">pacote pronto</button> ou blocos manuais.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {blocos.map((b, i) => (
+                    <BlocoEditor key={i} idx={i} bloco={b} onChange={(p) => updateBloco(i, p)} onRemove={() => removeBloco(i)} />
+                  ))}
+                </div>
+              )}
+            </section>
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
               <button onClick={onClose} className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange">
@@ -1206,9 +1236,9 @@ function CampanhaEditor({
               <button
                 onClick={() => salvar("agendada")}
                 disabled={saving || !scheduled}
-                className="text-sm rounded-full bg-brand-orange px-4 py-2 text-white font-medium hover:opacity-90 disabled:opacity-50"
+                className="text-sm rounded-full bg-brand-orange px-5 py-2 text-white font-semibold hover:opacity-90 disabled:opacity-50 shadow-lg shadow-brand-orange/25 inline-flex items-center gap-1"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Agendar envio"}
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Agendar envio</>}
               </button>
             </div>
           </div>
@@ -1218,8 +1248,8 @@ function CampanhaEditor({
     {showPicker && (
       <PackagePicker
         onClose={() => setShowPicker(false)}
-        onPick={(bloco) => {
-          setBlocos((b) => [...b, bloco]);
+        onPick={(blocosNovos) => {
+          setBlocos((b) => [...b, ...blocosNovos]);
           setShowPicker(false);
         }}
       />
@@ -1228,7 +1258,7 @@ function CampanhaEditor({
   );
 }
 
-function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: Bloco) => void }) {
+function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: Bloco[]) => void }) {
   const [pacotes, setPacotes] = useState<{ id: string; slug: string; title: string; destination: string | null; origin: string | null; image_url: string | null; caption: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [origin, setOrigin] = useState("");
@@ -1249,53 +1279,71 @@ function PackagePicker({ onClose, onPick }: { onClose: () => void; onPick: (b: B
   }
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  function insert(p: typeof pacotes[number]) {
+    const blocos: Bloco[] = [];
+    if (p.image_url) {
+      blocos.push({ tipo: "image", midia_url: p.image_url, midia_caption: null, texto: null, midia_filename: null });
+    }
+    blocos.push({ tipo: "text", texto: p.caption, midia_url: null, midia_caption: null, midia_filename: null });
+    onPick(blocos);
+  }
+
   return (
     <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
-      <div className="w-full max-w-3xl bg-background border border-border rounded-2xl my-4 flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Package className="h-5 w-5 text-brand-orange" /> Selecionar pacote pronto
-          </h2>
+      <div className="w-full max-w-4xl bg-background border border-border rounded-2xl my-4 flex flex-col max-h-[90vh] shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-border bg-gradient-to-r from-brand-orange/10 to-transparent">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Package className="h-5 w-5 text-brand-orange" /> Selecionar pacote pronto
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Insere imagem + legenda formatada (editável).</p>
+          </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-muted"><X className="h-4 w-4" /></button>
         </div>
         <div className="p-4 border-b border-border grid sm:grid-cols-3 gap-2">
-          <input value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Origem (ex: Curitiba)" className="rounded-md border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
-          <input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Destino (ex: Orlando)" className="rounded-md border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
+          <input value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Origem (ex: Curitiba)" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
+          <input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Destino (ex: Orlando)" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
           <div className="flex gap-2">
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Título…" className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
-            <button onClick={load} disabled={loading} className="rounded-md bg-brand-orange px-3 py-2 text-white text-sm disabled:opacity-50 inline-flex items-center gap-1">
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Título ou slug…" className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm" onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
+            <button onClick={load} disabled={loading} className="rounded-lg bg-brand-orange px-3 py-2 text-white text-sm disabled:opacity-50 inline-flex items-center gap-1">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto p-4 grid sm:grid-cols-2 gap-3">
           {loading && pacotes.length === 0 ? (
-            <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            <div className="col-span-full py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : pacotes.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-12">Nenhum pacote encontrado com esses filtros.</p>
+            <p className="col-span-full text-sm text-muted-foreground text-center py-12">Nenhum pacote encontrado com esses filtros.</p>
           ) : (
             pacotes.map((p) => (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => onPick({ tipo: "image", midia_url: p.image_url ?? "", midia_caption: p.caption, texto: null, midia_filename: null })}
-                className="w-full text-left rounded-lg border border-border bg-card p-3 hover:border-brand-orange flex gap-3 items-start"
+                onClick={() => insert(p)}
+                className="text-left rounded-xl border border-border bg-card overflow-hidden hover:border-brand-orange hover:shadow-lg transition-all group"
               >
-                {p.image_url ? (
-                  <img src={p.image_url} alt="" className="h-16 w-16 rounded-md object-cover shrink-0" loading="lazy" />
-                ) : (
-                  <div className="h-16 w-16 rounded-md bg-muted shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{p.title}</p>
+                <div className="relative aspect-[4/3] bg-muted">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt="" className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground"><Package className="h-8 w-8" /></div>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                    <p className="text-xs font-mono text-white/80 truncate">/{p.slug}</p>
+                  </div>
+                </div>
+                <div className="p-3">
+                  <p className="text-sm font-semibold truncate">{p.title}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {p.origin ? `De ${p.origin} · ` : ""}{p.destination ?? ""}
                   </p>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1 whitespace-pre-line">
-                    {p.caption.split("\n").slice(0, 3).join(" · ")}
-                  </p>
+                  <div className="mt-2 flex items-center justify-end">
+                    <span className="text-[11px] font-bold text-brand-orange uppercase tracking-wide inline-flex items-center gap-1">
+                      Inserir <Plus className="h-3 w-3" />
+                    </span>
+                  </div>
                 </div>
-                <span className="text-xs text-brand-orange shrink-0 self-center">Inserir</span>
               </button>
             ))
           )}

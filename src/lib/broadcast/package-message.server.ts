@@ -183,7 +183,10 @@ export async function listBroadcastPackages(filter: { origin?: string; destinati
     .limit(200);
   if (filter.origin) q = q.ilike("origin", `%${filter.origin}%`);
   if (filter.destination) q = q.ilike("destination", `%${filter.destination}%`);
-  if (filter.search) q = q.ilike("title", `%${filter.search}%`);
+  if (filter.search) {
+    const s = filter.search.trim();
+    q = q.or(`title.ilike.%${s}%,slug.ilike.%${s}%,destination.ilike.%${s}%`);
+  }
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as PkgRow[];
