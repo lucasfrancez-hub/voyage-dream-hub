@@ -212,12 +212,17 @@ export async function processUazPayload(raw: unknown) {
       conv.mode = "ai";
     }
 
+    const quoted = extractQuoted(m);
+
     const saved = await saveMessage({
       conversation_id: conv.id,
       direction: "inbound",
       sender: "customer",
       content,
       wa_message_id,
+      reply_to_wa_id: quoted?.id ?? null,
+      reply_to_snippet: quoted?.snippet ?? null,
+      reply_to_sender: quoted?.sender ?? null,
     });
     if (!saved) continue;
 
