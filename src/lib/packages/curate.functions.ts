@@ -8,6 +8,30 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Sem permissão");
 }
 
+const ServicesSchema = z
+  .object({
+    seguro: z
+      .object({ enabled: z.boolean().optional(), cobertura: z.string().nullable().optional(), moeda: z.string().nullable().optional() })
+      .partial()
+      .optional(),
+    cancelamento: z
+      .object({ enabled: z.boolean().optional(), cobertura: z.string().nullable().optional(), moeda: z.string().nullable().optional() })
+      .partial()
+      .optional(),
+    transfer: z
+      .object({ enabled: z.boolean().optional(), sentido: z.enum(["in", "out", "in_out"]).nullable().optional() })
+      .partial()
+      .optional(),
+    city_tour: z
+      .object({ enabled: z.boolean().optional(), detalhe: z.string().nullable().optional() })
+      .partial()
+      .optional(),
+    outros: z.array(z.string()).optional(),
+  })
+  .partial()
+  .nullable()
+  .optional();
+
 const PackageBrief = z.object({
   title: z.string(),
   destination: z.string(),
@@ -21,6 +45,7 @@ const PackageBrief = z.object({
   hotel_stars: z.number().nullable().optional(),
   meal_plan: z.string().nullable().optional(),
   slug: z.string(),
+  services: ServicesSchema,
 });
 
 export const generateCurationCopy = createServerFn({ method: "POST" })
@@ -59,6 +84,9 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       return Math.round((t - Date.now()) / 86400000);
     };
 
+    const sentidoLabel = (s?: string | null) =>
+      s === "in" ? "somente chegada" : s === "out" ? "somente saída" : "ida e volta (chegada e saída)";
+
     const items = data.packages.map((p) => {
       const occ = p.base_occupancy ?? 2;
       const total = Number(p.price_per_person) * occ;
@@ -68,6 +96,39 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       const stars = p.hotel_stars ? "★".repeat(Math.min(5, Math.max(1, p.hotel_stars))) : "";
       const d = daysUntil(p.going_date);
       const boleto_ate_data_viagem = d !== null && d >= 60;
+
+      const svc = p.services ?? {};
+      const services_lines: string[] = [];
+      if (svc.seguro?.enabled) {
+        const cob = svc.seguro.cobertura?.toString().trim();
+        const moeda = svc.seguro.moeda || "USD";
+        services_lines.push(
+          cob
+            ? `Seguro viagem com cobertura médica de ${moeda} ${cob} por pessoa`
+            : `Seguro viagem com assistência médica`,
+        );
+      }
+      if (svc.cancelamento?.enabled) {
+        const cob = svc.cancelamento.cobertura?.toString().trim();
+        const moeda = svc.cancelamento.moeda || "BRL";
+        services_lines.push(
+          cob
+            ? `Cobertura de cancelamento involuntário de ${moeda} ${cob} por pessoa`
+            : `Cobertura de cancelamento involuntário de viagem`,
+        );
+      }
+      if (svc.transfer?.enabled) {
+        services_lines.push(`Transfer aeroporto ↔ hotel (${sentidoLabel(svc.transfer.sentido)})`);
+      }
+      if (svc.city_tour?.enabled) {
+        const det = svc.city_tour.detalhe?.trim();
+        services_lines.push(det ? `City tour: ${det}` : `City tour incluso`);
+      }
+      for (const extra of svc.outros ?? []) {
+        const t = (extra || "").trim();
+        if (t) services_lines.push(t);
+      }
+
       return {
         title: p.title,
         destination: p.destination,
@@ -82,6 +143,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         url: `${baseUrl}/w/${p.slug}`,
         days_until_departure: d,
         boleto_ate_data_viagem,
+        services_lines,
       };
     });
 
@@ -107,6 +169,17 @@ Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("p
 ✈️ Saindo de {origem}
 🗓️ {DD a DD/MÊS EM CAIXA ALTA} ({N noites})
 🏨 {Hotel} {estrelas em ★} — {regime, ex.: Café da Manhã / All Inclusive}
+
+{SE E SOMENTE SE o item tiver "services_lines" com pelo menos 1 item, adicione um bloco em branco antes e depois com o título:}
+*SERVIÇOS INCLUSOS:*
+{Uma linha por item de "services_lines", cada linha começando com o emoji apropriado:
+ • 🛡️ para "Seguro viagem …"
+ • 🧾 para "Cobertura de cancelamento …"
+ • 🚐 para "Transfer …"
+ • 🗺️ para "City tour …"
+ • ✨ para qualquer outro item de "outros" que não caia nas categorias acima.
+NÃO invente serviços — use SÓ o texto exato de services_lines, adicionando apenas o emoji na frente.}
+{SE "services_lines" estiver vazio, NÃO inclua esse bloco.}
 
 *FORMAS DE PAGAMENTO:*
 🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S) _(5% de desconto já aplicado)_

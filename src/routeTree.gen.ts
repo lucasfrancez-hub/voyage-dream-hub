@@ -52,7 +52,6 @@ import { Route as ChatInboxRouteImport } from './routes/chat.inbox'
 import { Route as ChatPastasRouteImport } from './routes/chat.pastas'
 import { Route as ChatProtocolosRouteImport } from './routes/chat.protocolos'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
-import { Route as EmbedMotorBuscaRouteImport } from './routes/embed.motor-busca'
 import { Route as EmbedPacotesDestaqueRouteImport } from './routes/embed.pacotes-destaque'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
@@ -302,11 +301,6 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EmbedMotorBuscaRoute = EmbedMotorBuscaRouteImport.update({
-  id: '/embed/motor-busca',
-  path: '/embed/motor-busca',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const EmbedPacotesDestaqueRoute = EmbedPacotesDestaqueRouteImport.update({
   id: '/embed/pacotes-destaque',
   path: '/embed/pacotes-destaque',
@@ -530,7 +524,6 @@ export interface FileRoutesByFullPath {
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -608,7 +601,6 @@ export interface FileRoutesByTo {
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -688,7 +680,6 @@ export interface FileRoutesById {
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -769,7 +760,6 @@ export interface FileRouteTypes {
     | '/chat/pastas'
     | '/chat/protocolos'
     | '/email/unsubscribe'
-    | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -847,7 +837,6 @@ export interface FileRouteTypes {
     | '/chat/pastas'
     | '/chat/protocolos'
     | '/email/unsubscribe'
-    | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -926,7 +915,6 @@ export interface FileRouteTypes {
     | '/chat/pastas'
     | '/chat/protocolos'
     | '/email/unsubscribe'
-    | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -980,7 +968,6 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   ValidacaoRoute: typeof ValidacaoRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
-  EmbedMotorBuscaRoute: typeof EmbedMotorBuscaRoute
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
@@ -1308,13 +1295,6 @@ declare module '@tanstack/react-router' {
       path: '/email/unsubscribe'
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/embed/motor-busca': {
-      id: '/embed/motor-busca'
-      path: '/embed/motor-busca'
-      fullPath: '/embed/motor-busca'
-      preLoaderRoute: typeof EmbedMotorBuscaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/embed/pacotes-destaque': {
@@ -1686,7 +1666,6 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   ValidacaoRoute: ValidacaoRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
-  EmbedMotorBuscaRoute: EmbedMotorBuscaRoute,
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
