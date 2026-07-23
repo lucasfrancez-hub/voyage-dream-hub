@@ -773,11 +773,25 @@ export function buildCamilaTools(conversation: WaConversation) {
 
         // Match único: transfere agora.
         const alvo = list[0];
-        // Nome curto pra usar na mensagem ao cliente: primeiro + último (se
-        // tiver sobrenome), senão só o primeiro. Sempre em negrito no WhatsApp.
+        // Nome curto: só primeiro nome se for ÚNICO entre todos os atendentes
+        // admins; se houver outro admin com o mesmo primeiro nome, usa
+        // primeiro + último pra desambiguar. Sempre em negrito no WhatsApp.
         const partes = (alvo.full_name ?? "").trim().split(/\s+/).filter(Boolean);
-        const nomeCurto = partes.length >= 2 ? `${partes[0]} ${partes[partes.length - 1]}` : (partes[0] ?? alvo.full_name ?? "");
+        const primeiro = partes[0] ?? (alvo.full_name ?? "");
+        const ultimo = partes.length >= 2 ? partes[partes.length - 1] : "";
+        const { data: allAdmins } = await supabaseAdmin
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", adminIds);
+        const primeiroNorm = primeiro.toLowerCase();
+        const conflita = (allAdmins ?? []).some((a) => {
+          if (a.id === alvo.id) return false;
+          const p0 = (a.full_name ?? "").trim().split(/\s+/)[0]?.toLowerCase();
+          return p0 === primeiroNorm;
+        });
+        const nomeCurto = conflita && ultimo ? `${primeiro} ${ultimo}` : primeiro;
         const nomeBold = `*${nomeCurto}*`;
+
         const existingTags = conversation.tags ?? [];
         const newTags = Array.from(new Set([...existingTags, "transferencia_nominal", "aguardando_humano"]));
         await supabaseAdmin
