@@ -1268,11 +1268,6 @@ function CampanhaEditor({
       const n = new Set(s);
       if (n.has(destId)) n.delete(destId);
       else n.add(destId);
-      const destinosSelecionados = destinos.filter((d) => n.has(d.id));
-      const somenteCanais = destinosSelecionados.length > 0 && destinosSelecionados.every((d) => d.tipo === "channel");
-      if (somenteCanais) {
-        setBlocos((atuais) => atuais.filter((bloco) => bloco.tipo !== "image" && bloco.tipo !== "video"));
-      }
       return n;
     });
   }
@@ -1319,6 +1314,11 @@ function CampanhaEditor({
   const grupos = destinos.filter((d) => d.tipo === "group");
   const destinosSelecionados = destinos.filter((d) => selecionados.has(d.id));
   const somenteCanais = destinosSelecionados.length > 0 && destinosSelecionados.every((d) => d.tipo === "channel");
+
+  useEffect(() => {
+    if (!somenteCanais) return;
+    setBlocos((atuais) => atuais.filter((bloco) => bloco.tipo !== "image" && bloco.tipo !== "video"));
+  }, [somenteCanais]);
 
   return (
     <>
@@ -1413,9 +1413,9 @@ function CampanhaEditor({
                   </button>
                   <span className="text-muted-foreground/40 px-1">·</span>
                   <button onClick={() => addBloco("text")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Texto</button>
-                  <button onClick={() => addBloco("image")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Imagem</button>
+                  {!somenteCanais && <button onClick={() => addBloco("image")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Imagem</button>}
                   <button onClick={() => addBloco("document")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ PDF</button>
-                  <button onClick={() => addBloco("video")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Vídeo</button>
+                  {!somenteCanais && <button onClick={() => addBloco("video")} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">+ Vídeo</button>}
                 </div>
               </div>
               {blocos.length === 0 ? (
