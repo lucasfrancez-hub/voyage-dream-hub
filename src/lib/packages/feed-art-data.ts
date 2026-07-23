@@ -112,9 +112,11 @@ export type PackageServices = {
   };
   transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null };
   city_tour?: { enabled?: boolean; detalhe?: string | null };
+  passeios?: string[] | null;
   tickets?: { enabled?: boolean; parks?: string[] | null };
   outros?: string[];
 };
+
 
 
 export const SEGURO_MOEDA_SYMBOL: Record<SeguroMoeda, string> = {
