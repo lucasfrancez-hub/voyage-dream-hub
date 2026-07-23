@@ -1,7 +1,7 @@
 import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
 import { useMemo } from "react";
 
-function currentAgents(): { nome: string; online: boolean } {
+function currentAgents(): string[] {
   const fmt = new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
     hour: "2-digit",
@@ -9,12 +9,13 @@ function currentAgents(): { nome: string; online: boolean } {
   });
   const h = Number(fmt.format(new Date()));
   // Dia (08–18): Camila, Nath, Fabrício
-  if (h >= 8 && h < 18) return { nome: "Camila, Nath e Fabrício", online: true };
+  if (h >= 8 && h < 18) return ["Camila", "Nath", "Fabrício"];
   // Reforço noturno (18–20): Roberto, Maria, Giovani
-  if (h >= 18 && h < 20) return { nome: "Roberto, Maria e Giovani", online: true };
+  if (h >= 18 && h < 20) return ["Roberto", "Maria", "Giovani"];
   // Noite/madrugada (20–08): Roberto
-  return { nome: "Roberto", online: true };
+  return ["Roberto"];
 }
+
 
 
 interface ChatHeaderProps {
@@ -28,7 +29,7 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "dark", onToggleTheme, onOpenMobileNav }: ChatHeaderProps) {
-  const agent = useMemo(currentAgents, []);
+  const agents = useMemo(currentAgents, []);
   const displayName = (userFullName?.trim())
     || (userEmail ? userEmail.split("@")[0]!.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : null);
   return (
@@ -49,7 +50,7 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
         </div>
       </div>
 
-      <div className="hidden md:flex relative w-72">
+      <div className="hidden md:flex relative w-56 lg:w-72">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
           type="text"
@@ -58,22 +59,33 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
         />
       </div>
 
-      <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-        </span>
-        <span className="text-xs font-medium text-slate-700">{agent.nome} atendendo</span>
+      {/* Lista dos atendentes online (um chip por pessoa) */}
+      <div className="hidden sm:flex items-center gap-1.5" title="Atendentes online agora">
+        {agents.map((nome) => (
+          <span
+            key={nome}
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            <span className="text-xs font-medium text-slate-700">{nome}</span>
+          </span>
+        ))}
       </div>
 
-      {/* Compact online indicator on mobile */}
-      <div className="sm:hidden flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+      {/* Mobile: um único chip com contagem + iniciais */}
+      <div className="sm:hidden flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1" title={`Online: ${agents.join(", ")}`}>
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
         </span>
-        <span className="text-[11px] font-medium text-slate-700">{agent.nome}</span>
+        <span className="text-[11px] font-medium text-slate-700">
+          {agents.length === 1 ? agents[0] : `${agents.length} online`}
+        </span>
       </div>
+
 
       <button
         className="hidden sm:inline-flex rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
