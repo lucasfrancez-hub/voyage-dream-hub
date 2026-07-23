@@ -235,7 +235,7 @@ function InboxPage() {
             {filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
             ) : (
-              filtered.map((c) => <ConvItem key={c.id} conv={c} active={activeId === c.id} onClick={() => setActiveId(c.id)} />)
+              filtered.map((c) => <ConvItem key={c.id} conv={c} active={activeId === c.id} onClick={() => setActiveId(c.id)} attendantName={c.assigned_to ? attendantMap[c.assigned_to] ?? null : null} />)
             )}
           </div>
         </aside>
