@@ -191,9 +191,8 @@ html:root {
   background: var(--gradient-blue);
 }
 
-/* Widget container */
-#wrapper { width: 100%; }
-#wrapper befly-widget { display: block; width: 100%; }
+
+
 
 /* O módulo /chat ainda possui utilitários legados claros; esta camada os
    converte para as superfícies semânticas escuras sem afetar o restante. */
