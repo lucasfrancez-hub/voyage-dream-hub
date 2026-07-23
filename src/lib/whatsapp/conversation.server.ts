@@ -174,6 +174,8 @@ export async function saveMessage(input: {
   wa_message_id?: string | null;
   tool_calls?: unknown | null;
   sender_user_id?: string | null;
+  /** Slug do agente de IA que enviou (camila, roberto, nath, fabricio, maria, giovani…). */
+  agent_slug?: string | null;
   /** Se true, não abre/atualiza protocolo (usado pela mensagem de encerramento por inatividade). */
   skip_protocolo?: boolean;
   /** Reply/quote — id da mensagem WhatsApp original que este balão cita. */
@@ -214,6 +216,7 @@ export async function saveMessage(input: {
       wa_message_id: input.wa_message_id ?? null,
       tool_calls: (input.tool_calls ?? null) as never,
       sender_user_id: input.sender_user_id ?? null,
+      agent_slug: input.agent_slug ?? null,
       protocolo_id: protocoloId,
       reply_to_wa_id: input.reply_to_wa_id ?? null,
       reply_to_snippet: input.reply_to_snippet ?? null,
@@ -221,6 +224,7 @@ export async function saveMessage(input: {
     })
     .select("*")
     .single();
+
   if (error) {
     console.error("[wa/saveMessage] error:", error.message);
     return null;
