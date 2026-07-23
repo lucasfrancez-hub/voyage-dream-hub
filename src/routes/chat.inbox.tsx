@@ -71,11 +71,24 @@ function InboxPage() {
     });
   };
 
+  const attendantsFn = useServerFn(listAttendants);
+  const { data: attendants = [] } = useQuery({
+    queryKey: ["chat", "attendants"],
+    queryFn: () => attendantsFn(),
+    staleTime: 60_000,
+  });
+  const attendantMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const a of attendants) m[a.id] = a.full_name ?? "";
+    return m;
+  }, [attendants]);
+
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
       if (folder === "ai" && c.mode !== "ai") return false;
       if (folder === "human" && c.mode !== "human" && !(c.tags ?? []).includes("aguardando_humano")) return false;
       if (folder === "resolved" && c.mode !== "resolved") return false;
+      if (folder === "unread" && (c.unread_count ?? 0) <= 0) return false;
 
       if (search) {
         const s = search.toLowerCase();
