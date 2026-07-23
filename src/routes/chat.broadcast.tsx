@@ -23,8 +23,8 @@ export const Route = createFileRoute("/chat/broadcast")({
   component: DisparosPage,
   head: () => ({
     meta: [
-      { title: "Disparos WhatsApp — VIA AIR" },
-      { name: "description", content: "Central de disparos em massa para canais e grupos WhatsApp da VIA AIR." },
+      { title: "Broadcast — VIA AIR Chat" },
+      { name: "description", content: "Central de campanhas WhatsApp com calendário e agenda de programação." },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
