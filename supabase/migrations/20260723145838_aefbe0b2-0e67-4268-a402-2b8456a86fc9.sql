@@ -1,0 +1,1 @@
+update public.wa_conversations set ai_debounce_until = now() - interval '1 minute' where id = 'ea1d8023-6054-41b9-8ed5-951014dca598' and ai_debounce_until is null;

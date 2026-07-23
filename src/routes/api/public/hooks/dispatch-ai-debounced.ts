@@ -31,15 +31,18 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
 
         const dispatched: string[] = [];
         for (const conv of due ?? []) {
-          // Limpa antes de rodar pra evitar dupla execução se o próximo tick
-          // pegar antes desta chamada terminar.
-          const { error: clearErr } = await supabaseAdmin
+          // LEASE: empurra o debounce 5min pra frente antes de rodar. Se o
+          // worker crashar no meio (CPU limit / timeout), o próximo tick
+          // depois de 5min pega de novo e reprocessa. Só zeramos DEPOIS que
+          // runAgent termina com sucesso.
+          const leaseUntil = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          const { error: leaseErr } = await supabaseAdmin
             .from("wa_conversations")
-            .update({ ai_debounce_until: null })
+            .update({ ai_debounce_until: leaseUntil })
             .eq("id", conv.id)
-            .eq("ai_debounce_until", conv.ai_debounce_until); // guard: só limpa se ninguém empurrou pra frente
-          if (clearErr) {
-            console.warn(`[dispatch-ai-debounced] falha ao limpar debounce ${conv.id}:`, clearErr);
+            .eq("ai_debounce_until", conv.ai_debounce_until); // guard: só pega se ninguém já empurrou
+          if (leaseErr) {
+            console.warn(`[dispatch-ai-debounced] falha ao pegar lease ${conv.id}:`, leaseErr);
             continue;
           }
 
@@ -61,9 +64,19 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             }
 
             await runAgent({ wa_phone: conv.wa_phone, profile_name: conv.display_name });
+
+            // Sucesso: só agora zeramos o debounce. Se uma nova mensagem chegou
+            // durante o processamento, ela já empurrou o lease pra outra data
+            // (guard abaixo impede que a gente sobrescreva).
+            await supabaseAdmin
+              .from("wa_conversations")
+              .update({ ai_debounce_until: null })
+              .eq("id", conv.id)
+              .eq("ai_debounce_until", leaseUntil);
             dispatched.push(conv.id);
           } catch (e) {
             console.error(`[dispatch-ai-debounced] erro runAgent ${conv.id}:`, e);
+            // Não zera: o lease de 5min garante retry automático.
           }
 
         }
