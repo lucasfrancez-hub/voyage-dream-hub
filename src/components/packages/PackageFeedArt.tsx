@@ -32,7 +32,9 @@ export type FeedArtData = {
     esimInternacional: boolean;
     maisServicos: boolean;
   };
+  mealPlanLabel?: string | null;
 };
+
 
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
