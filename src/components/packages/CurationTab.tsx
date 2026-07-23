@@ -513,6 +513,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
             going_date: pkg.going_date, return_date: pkg.return_date, nights: pkg.nights,
             price_per_person: Number(pkg.price_per_person), base_occupancy: pkg.base_occupancy ?? 2,
             hotel_name: pkg.hotel_name, hotel_stars: pkg.hotel_stars, meal_plan: pkg.meal_plan, slug: pkg.slug,
+            services: (pkg.services ?? null) as any,
           }],
           baseUrl,
         },
