@@ -184,7 +184,7 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
   return {
     aereo: /aereo|voo|passag|avia/.test(s),
     hotel: /hotel|hospedagem|resort|pousada|acomoda/.test(s),
-    cafeDaManha: /cafe da manha|cafe|breakfast|acm|map|fap|all inclusive/.test(s),
+    cafeDaManha: /cafe da manha|cafe|breakfast|acm|map|fap|all inclusive|meia pensao|pensao completa|tudo incluso/.test(s),
     bagagem23kg: /bagagem|despachad|23\s*kg|23kg/.test(s),
     transfer: groupServices ? false : (transferOn || /transfer|traslado/.test(s)),
     seguroViagem: groupServices ? false : (seguroOn || /seguro/.test(s)),
@@ -192,6 +192,26 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
     maisServicos: groupServices,
   };
 }
+
+/** Deriva rótulo do regime (all inclusive, meia pensão, etc.) para o chip de refeições. */
+function deriveMealPlanLabel(
+  mealPlan: string | null | undefined,
+  list: string[] | null | undefined,
+): string {
+  let kind: MealPlanKind = classifyMealPlan(mealPlan ?? "");
+  if (!kind) {
+    for (const raw of list ?? []) {
+      const k = classifyMealPlan(String(raw ?? ""));
+      // Priorizar all inclusive > pensão completa > meia pensão > café
+      if (k === "all_inclusive") { kind = k; break; }
+      if (k === "pensao_completa" && kind !== "all_inclusive") kind = k;
+      else if (k === "meia_pensao" && kind !== "pensao_completa" && kind !== "all_inclusive") kind = k;
+      else if (k === "cafe" && !kind) kind = k;
+    }
+  }
+  return mealPlanLabel(kind) || "Café da Manhã";
+}
+
 
 async function toDataUrl(url: string): Promise<string> {
   const res = await fetchProxiedImage({ data: { url } });
