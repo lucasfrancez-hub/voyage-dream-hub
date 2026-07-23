@@ -271,10 +271,12 @@ function DisparosPage() {
 
 function CalendarioMes({
   campanhas,
+  destinos,
   onPickDay,
   onPickCampanha,
 }: {
   campanhas: Campanha[];
+  destinos: Destino[];
   onPickDay: (iso: string) => void;
   onPickCampanha: (id: string) => void;
 }) {
