@@ -676,6 +676,23 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
 
       {/* Composer */}
       <div className="shrink-0 border-t border-slate-200 bg-white p-3">
+        {replyTo && (
+          <div className="mb-2 flex items-start gap-2 rounded-md border-l-4 border-[#F26B1F] bg-orange-50 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-semibold text-[#F26B1F]">
+                Respondendo{replyTo.sender ? ` a ${firstName(replyTo.sender)}` : ""}
+              </div>
+              <div className="line-clamp-2 text-xs text-slate-700">{replyTo.snippet}</div>
+            </div>
+            <button
+              onClick={() => setReplyTo(null)}
+              title="Cancelar resposta"
+              className="rounded-md p-1 text-slate-500 hover:bg-orange-100"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {pendingFile && (
           <div className="mb-2 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-2">
             {pendingFile.kind === "image" && pendingFile.previewUrl ? (
