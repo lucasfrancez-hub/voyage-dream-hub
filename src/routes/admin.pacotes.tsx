@@ -1374,7 +1374,7 @@ function PackageEditorModal({
     }
     if (svc.tickets?.enabled) {
       const parks = (svc.tickets.parks ?? []).map((p) => String(p ?? "").trim()).filter(Boolean);
-      if (parks.length) list.push(`Ingressos: ${parks.join(", ")}`);
+      for (const park of parks) list.push(`Ingresso para ${park}`);
     }
     for (const o of svc.outros ?? []) {
       const t = String(o ?? "").trim();
