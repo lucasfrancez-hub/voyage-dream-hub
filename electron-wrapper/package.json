@@ -1,0 +1,7 @@
+{
+  "name": "viaair",
+  "version": "1.0.0",
+  "description": "VIA AIR - Plataforma interna",
+  "main": "main.cjs",
+  "author": "VIA AIR"
+}
