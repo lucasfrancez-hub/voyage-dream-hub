@@ -28,7 +28,7 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "dark", onToggleTheme, onOpenMobileNav }: ChatHeaderProps) {
-  const agent = useMemo(currentAgent, []);
+  const agent = useMemo(currentAgents, []);
   const displayName = (userFullName?.trim())
     || (userEmail ? userEmail.split("@")[0]!.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : null);
   return (
