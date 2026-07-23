@@ -1,16 +1,21 @@
 import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
 import { useMemo } from "react";
 
-function currentAgent(): { nome: string; online: boolean } {
+function currentAgents(): { nome: string; online: boolean } {
   const fmt = new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
     hour: "2-digit",
     hour12: false,
   });
   const h = Number(fmt.format(new Date()));
-  if (h >= 8 && h < 18) return { nome: "Camila", online: true };
+  // Dia (08–18): Camila, Nath, Fabrício
+  if (h >= 8 && h < 18) return { nome: "Camila, Nath e Fabrício", online: true };
+  // Reforço noturno (18–20): Roberto, Maria, Giovani
+  if (h >= 18 && h < 20) return { nome: "Roberto, Maria e Giovani", online: true };
+  // Noite/madrugada (20–08): Roberto
   return { nome: "Roberto", online: true };
 }
+
 
 interface ChatHeaderProps {
   title: string;
