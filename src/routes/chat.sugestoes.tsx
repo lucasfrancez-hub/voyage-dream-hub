@@ -1,12 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sparkles, Loader2, Check, X, ExternalLink, MapPin, Clock, Calendar, Megaphone, Instagram, MessageCircle } from "lucide-react";
 import {
   listSuggestions,
-  gerarSuggestions,
   aprovarSuggestion,
   descartarSuggestion,
 } from "@/lib/broadcast/suggestions.functions";
