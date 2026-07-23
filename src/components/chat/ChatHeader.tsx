@@ -1,20 +1,8 @@
 import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
-import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { listOnlineAgents } from "@/lib/chat/online-agents.functions";
 
-function currentAgents(): string[] {
-  const fmt = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    hour: "2-digit",
-    hour12: false,
-  });
-  const h = Number(fmt.format(new Date()));
-  // Dia (08–18): Camila, Nath, Fabrício
-  if (h >= 8 && h < 18) return ["Camila", "Nath", "Fabrício"];
-  // Reforço noturno (18–20): Roberto, Maria, Giovani
-  if (h >= 18 && h < 20) return ["Roberto", "Maria", "Giovani"];
-  // Noite/madrugada (20–08): Roberto
-  return ["Roberto"];
-}
 
 
 
