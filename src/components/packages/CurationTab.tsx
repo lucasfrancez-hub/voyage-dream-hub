@@ -571,7 +571,10 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
         includes: pkg.includes ?? null, hotel_name: pkg.hotel_name, hotel_stars: pkg.hotel_stars,
         room_type: pkg.room_type ?? null, base_occupancy: pkg.base_occupancy ?? 2,
         tripadvisor_address: pkg.tripadvisor_address ?? null,
+        meal_plan: (pkg as { meal_plan?: string | null }).meal_plan ?? null,
+        services: (pkg as { services?: unknown }).services ?? null,
       };
+
       let delivery: "downloaded" | "shared" | "cancelled";
       if (kind === "feed") {
         const { generatePackageFeedArt } = await import("@/lib/packages/feed-art");

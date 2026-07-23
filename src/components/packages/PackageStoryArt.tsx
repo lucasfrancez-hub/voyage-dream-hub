@@ -82,7 +82,16 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
   const parcelas = data.parcelas || 10;
   const valorParcela = (data.valorTotal || 0) / parcelas;
   const [reais, centavos] = BRL(valorParcela).split(",");
-  const includes = INCLUDES.filter((it) => data.inclusos[it.key]);
+  const mealLabelRaw = (data.mealPlanLabel || "Café da Manhã").trim();
+  const shortMeal =
+    /all\s*inclusive/i.test(mealLabelRaw) ? "All Incl."
+    : /pensao\s*completa/i.test(mealLabelRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ? "Pensão Comp."
+    : /meia\s*pensao/i.test(mealLabelRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ? "Meia Pensão"
+    : "Café";
+  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) =>
+    it.key === "cafeDaManha" ? { ...it, label: shortMeal } : it,
+  );
+
   const { top, bottom } = splitDestino(data.destino);
   const stars = data.estrelas && data.estrelas > 0 ? Math.max(1, Math.min(5, Math.round(data.estrelas))) : 0;
   const apto = data.apartamento || APT_LABEL[data.quantidadePessoas] || "";
@@ -248,8 +257,9 @@ const CSS = `
 
 .vstory-swoosh{position:absolute;width:100%;height:14px;bottom:-6px;left:0;color:var(--brand-orange)}
 .vstory-bottom{display:flex;flex-direction:column;gap:14px}
-.glass-panel{background:rgba(0,0,0,.30);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.30);border-radius:20px}
-.glass-panel-dark{background:rgba(15,15,15,.55);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);border-radius:20px}
+.glass-panel{background:rgba(0,0,0,.42);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.30);border-radius:20px}
+.glass-panel-dark{background:rgba(15,15,15,.68);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.14);border-radius:20px}
+
 .vstory-info{width:100%;padding:20px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .vstory-info-col{display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;min-width:0}
 .vstory-info-col-hotel{max-width:150px}

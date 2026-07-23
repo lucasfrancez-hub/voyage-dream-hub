@@ -32,7 +32,9 @@ export type FeedArtData = {
     esimInternacional: boolean;
     maisServicos: boolean;
   };
+  mealPlanLabel?: string | null;
 };
+
 
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -109,7 +111,14 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
   const parcelas = data.parcelas || 10;
   const valorParcela = (data.valorTotal || 0) / parcelas;
   const [reais, centavos] = BRL(valorParcela).split(",");
-  const includes = INCLUDES.filter((it) => data.inclusos[it.key]);
+  const mealLabelRaw = (data.mealPlanLabel || "Café da Manhã").trim();
+  const mealChipLabel = mealLabelRaw.includes(" ")
+    ? mealLabelRaw.replace(/\s+/, "\n")
+    : mealLabelRaw;
+  const includes = INCLUDES.filter((it) => data.inclusos[it.key]).map((it) =>
+    it.key === "cafeDaManha" ? { ...it, label: mealChipLabel } : it,
+  );
+
   const { top, bottom } = splitDestino(data.destino);
   const stars = data.estrelas && data.estrelas > 0 ? Math.max(1, Math.min(5, Math.round(data.estrelas))) : 0;
 
@@ -288,8 +297,9 @@ const CSS = `
 .vfeed-swoosh{position:absolute;width:100%;height:16px;bottom:-4px;left:0;color:var(--brand-orange)}
 
 .vfeed-bottom{display:flex;flex-direction:column;gap:16px}
-.glass-panel{background:rgba(0,0,0,.30);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.30);border-radius:16px}
-.glass-panel-dark{background:rgba(15,15,15,.55);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);border-radius:16px}
+.glass-panel{background:rgba(0,0,0,.42);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.30);border-radius:16px}
+.glass-panel-dark{background:rgba(15,15,15,.68);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.14);border-radius:16px}
+
 .vfeed-info{display:inline-flex;align-self:flex-start;padding:20px 24px;align-items:center;gap:20px}
 .vfeed-info-col{display:flex;flex-direction:column;align-items:center;text-align:center;flex-shrink:0}
 .vfeed-info-col-plane{width:110px}

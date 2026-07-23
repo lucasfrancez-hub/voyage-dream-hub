@@ -6,6 +6,8 @@
 import type { FeedArtData } from "@/components/packages/PackageFeedArt";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 import { generatePackageTagline } from "@/lib/packages/ai.functions";
+import { classifyMealPlan, mealPlanLabel, type MealPlanKind } from "@/lib/packages/meal-plan";
+
 
 const FONTS_HREF =
   "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Dancing+Script:wght@600;700&display=swap";
@@ -182,7 +184,7 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
   return {
     aereo: /aereo|voo|passag|avia/.test(s),
     hotel: /hotel|hospedagem|resort|pousada|acomoda/.test(s),
-    cafeDaManha: /cafe da manha|cafe|breakfast|acm|map|fap|all inclusive/.test(s),
+    cafeDaManha: /cafe da manha|cafe|breakfast|acm|map|fap|all inclusive|meia pensao|pensao completa|tudo incluso/.test(s),
     bagagem23kg: /bagagem|despachad|23\s*kg|23kg/.test(s),
     transfer: groupServices ? false : (transferOn || /transfer|traslado/.test(s)),
     seguroViagem: groupServices ? false : (seguroOn || /seguro/.test(s)),
@@ -190,6 +192,31 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
     maisServicos: groupServices,
   };
 }
+
+/** Deriva rótulo do regime (all inclusive, meia pensão, etc.) para o chip de refeições. */
+function deriveMealPlanLabel(
+  mealPlan: string | null | undefined,
+  list: string[] | null | undefined,
+): string {
+  const priority: readonly string[] = ["all_inclusive", "pensao_completa", "meia_pensao", "cafe"];
+  const candidates: MealPlanKind[] = [];
+  const primary = classifyMealPlan(mealPlan ?? "");
+  if (primary) candidates.push(primary);
+  for (const raw of list ?? []) {
+    const k = classifyMealPlan(String(raw ?? ""));
+    if (k) candidates.push(k);
+  }
+  let best: MealPlanKind = null;
+  let bestRank = priority.length;
+  for (const c of candidates) {
+    const idx = c ? priority.indexOf(c) : -1;
+    if (idx !== -1 && idx < bestRank) { best = c; bestRank = idx; }
+  }
+
+  return mealPlanLabel(best) || "Café da Manhã";
+}
+
+
 
 async function toDataUrl(url: string): Promise<string> {
   const res = await fetchProxiedImage({ data: { url } });
@@ -213,7 +240,9 @@ export type FeedInputPkg = {
   base_occupancy: number;
   tripadvisor_address?: string | null;
   services?: PackageServices | null;
+  meal_plan?: string | null;
 };
+
 
 export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> {
   if (!pkg.image_url) throw new Error("Cadastre a URL da imagem de capa para gerar a arte.");
@@ -242,5 +271,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     parcelas: 10,
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
     inclusos: detectIncludes(pkg.includes, pkg.services ?? null),
+    mealPlanLabel: deriveMealPlanLabel(pkg.meal_plan, pkg.includes),
+
   };
 }
