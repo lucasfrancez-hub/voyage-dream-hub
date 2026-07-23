@@ -559,8 +559,24 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
       wa_message_id: sendRes.id,
     });
 
+    await clearAwaitingHumanTag(conv.id);
     return { ok: true };
   });
+
+async function clearAwaitingHumanTag(conversationId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: cur } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("tags")
+    .eq("id", conversationId)
+    .maybeSingle();
+  const tags = (cur?.tags ?? []) as string[];
+  if (!tags.includes("aguardando_humano")) return;
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({ tags: tags.filter((t) => t !== "aguardando_humano") })
+    .eq("id", conversationId);
+}
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
