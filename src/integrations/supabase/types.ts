@@ -68,6 +68,72 @@ export type Database = {
         }
         Relationships: []
       }
+      broadcast_suggestions: {
+        Row: {
+          approved_by: string | null
+          campaign_id: string | null
+          created_at: string
+          created_by: string | null
+          destination: string
+          id: string
+          origin: string
+          package_id: string | null
+          reasoning: string | null
+          status: string
+          suggested_channels: string[]
+          suggested_day: string | null
+          suggested_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          destination: string
+          id?: string
+          origin: string
+          package_id?: string | null
+          reasoning?: string | null
+          status?: string
+          suggested_channels?: string[]
+          suggested_day?: string | null
+          suggested_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          destination?: string
+          id?: string
+          origin?: string
+          package_id?: string | null
+          reasoning?: string | null
+          status?: string
+          suggested_channels?: string[]
+          suggested_day?: string | null
+          suggested_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_suggestions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "wa_broadcast_campanhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_suggestions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checkin_training_scripts: {
         Row: {
           airline: string
