@@ -1540,7 +1540,16 @@ function PackageEditorModal({
                       ...(previousServices.city_tour ?? {}),
                       ...(importedServices.city_tour ?? {}),
                     },
+                    tickets: {
+                      ...(previousServices.tickets ?? {}),
+                      ...(importedServices.tickets ?? {}),
+                      parks:
+                        (importedServices.tickets?.parks && importedServices.tickets.parks.length
+                          ? importedServices.tickets.parks
+                          : previousServices.tickets?.parks) ?? [],
+                    },
                     outros: importedServices.outros ?? previousServices.outros ?? [],
+
                   },
                 });
               }}
