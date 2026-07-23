@@ -228,9 +228,19 @@ export function buildCamilaTools(conversation: WaConversation) {
       execute: async ({ slug, quantidade_adultos }) => {
         const { data: pkg } = await supabaseAdmin
           .from("packages")
-          .select("slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active")
+          .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active, services")
           .eq("slug", slug)
           .maybeSingle();
+        const storedCopyRes = pkg
+          ? await supabaseAdmin
+              .from("package_ai_copy")
+              .select("text, package_id")
+              .eq("channel", "whatsapp")
+              .eq("package_id", (pkg as any).id)
+              .maybeSingle()
+          : { data: null };
+        const storedCopy: any = (storedCopyRes as any).data;
+
         if (!pkg || !pkg.is_active) return { error: "Pacote não encontrado ou inativo" };
 
         const qtd = quantidade_adultos && quantidade_adultos > 0 ? quantidade_adultos : (pkg.base_occupancy ?? 2);
@@ -239,59 +249,126 @@ export function buildCamilaTools(conversation: WaConversation) {
         const pixTotal = total * 0.95;
         const parcelaCartao = total / 10;
 
-        const brl = (n: number) =>
-          n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-        const includesArr: string[] = Array.isArray(pkg.includes) ? (pkg.includes as string[]) : [];
-        const mealText = String(pkg.meal_plan ?? "");
-        const hasBreakfast =
-          /café|cafe|breakfast|manhã|manha/i.test(mealText) ||
-          includesArr.some((i) => /café|cafe|manhã|manha/i.test(String(i)));
-        const hasAllInclusive =
-          /all\s*inclusive|tudo\s*incluso/i.test(mealText) ||
-          includesArr.some((i) => /all\s*inclusive|tudo\s*incluso/i.test(String(i)));
-
-        const dateRange = (() => {
-          try {
-            const d1 = new Date(String(pkg.going_date) + "T12:00:00");
-            const d2 = new Date(String(pkg.return_date) + "T12:00:00");
-            const mes = d1.toLocaleDateString("pt-BR", { month: "long" }).toUpperCase();
-            const sameMonth = d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear();
-            if (sameMonth) return `${d1.getDate()} a ${d2.getDate()}/${mes}`;
-            return `${d1.toLocaleDateString("pt-BR")} a ${d2.toLocaleDateString("pt-BR")}`;
-          } catch {
-            return `${fmtDate(pkg.going_date)} a ${fmtDate(pkg.return_date)}`;
-          }
-        })();
-
         const link = `https://pedidos.viaair.tur.br/w/${pkg.slug}`;
-        const title = String(pkg.title || pkg.destination || "PACOTE").toUpperCase();
 
-        const pixFmt = pixTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        const parcelaFmt = parcelaCartao.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        // Se existe copy curada pra este pacote no WhatsApp, reusa (mesma estrutura da curadoria)
+        // apenas retirando a linha "Para mais informações me chame aqui 📲 <telefone>".
+        let caption: string | null = null;
+        if (storedCopy?.text && storedCopy?.package_id === pkg.id) {
+          caption = String(storedCopy.text)
+            .split("\n")
+            .filter((l: string) => !/Para mais informações me chame aqui/i.test(l) && !/^\s*4499826-1137\s*$/.test(l))
+            .join("\n")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim();
+        }
 
-        const lines: string[] = [];
-        lines.push(`*${title}*`);
-        lines.push("");
-        if (pkg.origin) lines.push(`✈️ Saindo de ${pkg.origin}`);
-        lines.push(`🗓️ ${dateRange}`);
-        const hotelLine = pkg.hotel_name
-          ? `🏨 Hospedagem no ${pkg.hotel_name}${pkg.hotel_stars ? ` (${pkg.hotel_stars}★)` : ""}`
-          : `🏨 Hospedagem`;
-        lines.push(hotelLine);
-        if (hasAllInclusive) lines.push(`🍽 All inclusive`);
-        else if (hasBreakfast) lines.push(`☕ Café da Manhã`);
-        lines.push(`👩🏻‍💻 Assessoria completa`);
-        lines.push("");
-        lines.push(`*FORMAS DE PAGAMENTO:*`);
-        lines.push(`🤑 *PIX:* ${pixFmt} PARA ${qtd} ADULTO${qtd === 1 ? "" : "S"}`);
-        lines.push(`💳 *Cartão de crédito:* 10x de ${parcelaFmt}`);
-        lines.push(`📄 *Boleto bancário:* até 10x mediante aprovação`);
-        lines.push(`*sem juros em qualquer forma de pagamento e boleto sem análise até a data da viagem*`);
-        lines.push("");
-        lines.push(`✨ Para mais informações me chame aqui 📲 4499826-1137`);
-        lines.push(link);
-        const caption = lines.join("\n");
+        if (!caption) {
+          // Fallback determinístico com as MESMAS regras da curadoria
+          const brl2 = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const dateRange = (() => {
+            try {
+              const d1 = new Date(String(pkg.going_date) + "T12:00:00");
+              const d2 = new Date(String(pkg.return_date) + "T12:00:00");
+              const dd = (d: Date) => String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+              return `${dd(d1)} a ${dd(d2)}`;
+            } catch {
+              return `${fmtDate(pkg.going_date)} a ${fmtDate(pkg.return_date)}`;
+            }
+          })();
+          const nights = (() => {
+            try {
+              const d1 = new Date(String(pkg.going_date) + "T12:00:00").getTime();
+              const d2 = new Date(String(pkg.return_date) + "T12:00:00").getTime();
+              const n = Math.round((d2 - d1) / 86400000);
+              return n > 0 ? n : null;
+            } catch { return null; }
+          })();
+          const daysUntil = (() => {
+            try {
+              const t = new Date(String(pkg.going_date) + "T12:00:00").getTime();
+              return Math.round((t - Date.now()) / 86400000);
+            } catch { return null; }
+          })();
+          const boletoAteViagem = daysUntil !== null && daysUntil >= 60;
+
+          const includesArr: string[] = Array.isArray(pkg.includes) ? (pkg.includes as string[]) : [];
+          const mealText = String(pkg.meal_plan ?? "");
+          const hasBreakfast =
+            /café|cafe|breakfast|manhã|manha/i.test(mealText) ||
+            includesArr.some((i) => /café|cafe|manhã|manha/i.test(String(i)));
+          const hasAllInclusive =
+            /all\s*inclusive|tudo\s*incluso/i.test(mealText) ||
+            includesArr.some((i) => /all\s*inclusive|tudo\s*incluso/i.test(String(i)));
+          const regime = hasAllInclusive ? "All Inclusive" : hasBreakfast ? "Café da Manhã" : "";
+          const stars = pkg.hotel_stars ? "★".repeat(Math.min(5, Math.max(1, Number(pkg.hotel_stars)))) : "";
+
+          // Services (idêntico à curadoria)
+          const fmtCob = (raw: string) => {
+            const s = String(raw).trim().replace(/[^\d.,-]/g, "");
+            let n: number;
+            if (s.includes(",")) n = Number(s.replace(/\./g, "").replace(",", "."));
+            else if (/^\d+\.\d{1,2}$/.test(s)) n = Number(s);
+            else n = Number(s.replace(/\./g, ""));
+            if (!isFinite(n) || n === 0) return raw;
+            return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+          };
+          const sentidoLabel = (s?: string | null) =>
+            s === "in" ? "somente chegada" : s === "out" ? "somente saída" : "ida e volta (chegada e saída)";
+          const svc: any = pkg.services ?? {};
+          const services_lines: string[] = [];
+          if (svc.seguro?.enabled) {
+            const cob = svc.seguro.cobertura?.toString().trim();
+            const moeda = svc.seguro.moeda || "USD";
+            services_lines.push(cob ? `🛡️ Seguro Viagem ${moeda} ${fmtCob(cob)} por pessoa` : `🛡️ Seguro Viagem`);
+          }
+          if (svc.cancelamento?.enabled) {
+            const cob = svc.cancelamento.cobertura?.toString().trim();
+            const moeda = svc.cancelamento.moeda || "BRL";
+            services_lines.push(cob ? `🧾 Cobertura para cancelamento involuntário ${moeda} ${fmtCob(cob)} por pessoa` : `🧾 Cobertura para cancelamento involuntário`);
+          }
+          if (svc.transfer?.enabled) services_lines.push(`🚐 Transfer aeroporto ↔ hotel (${sentidoLabel(svc.transfer.sentido)})`);
+          if (svc.city_tour?.enabled) {
+            const det = svc.city_tour.detalhe?.trim();
+            services_lines.push(det ? `🗺️ City Tour — ${det}` : `🗺️ City Tour`);
+          }
+          if (svc.tickets?.enabled) {
+            const parks = (svc.tickets.parks ?? []).map((p: any) => String(p ?? "").trim()).filter(Boolean);
+            for (const park of parks) services_lines.push(`🎟️ Ingresso ${park}`);
+          }
+          for (const extra of svc.outros ?? []) {
+            const t = (extra || "").trim();
+            if (t) services_lines.push(`✨ ${t}`);
+          }
+
+          const title = String(pkg.title || pkg.destination || "PACOTE").toUpperCase();
+          const lines: string[] = [];
+          lines.push(`*${title}*`);
+          lines.push("");
+          if (pkg.origin) lines.push(`✈️ Saindo de ${pkg.origin}`);
+          lines.push(`🗓️ ${dateRange}${nights ? ` (${nights} noites)` : ""}`);
+          if (pkg.hotel_name) {
+            lines.push(`🏨 ${pkg.hotel_name}${stars ? ` ${stars}` : ""}${regime ? ` — ${regime}` : ""}`);
+          }
+          if (services_lines.length) {
+            lines.push("");
+            for (const s of services_lines) lines.push(s);
+          }
+          lines.push("");
+          lines.push(`*FORMAS DE PAGAMENTO:*`);
+          lines.push(`🤑 *PIX:* ${brl2(pixTotal)} PARA ${qtd} ADULTO${qtd === 1 ? "" : "S"} _(5% de desconto já aplicado)_`);
+          lines.push(`💳 *Cartão de crédito:* 10x de ${brl2(parcelaCartao)}`);
+          lines.push(`📄 *Boleto bancário:* até 10x mediante aprovação`);
+          if (boletoAteViagem) lines.push(`📄 *Boleto parcelado:* até a data da viagem (sem análise de crédito)`);
+          lines.push(`*sem juros em qualquer forma de pagamento*`);
+          lines.push("");
+          lines.push(link);
+          caption = lines.join("\n");
+        } else {
+          // Garante que o link do pacote esteja presente
+          if (!caption.includes(link)) caption = `${caption}\n${link}`;
+        }
+
 
         const { sendWhatsAppImage, sendWhatsAppText } = await import("./send.server");
         const { saveMessage } = await import("./conversation.server");
