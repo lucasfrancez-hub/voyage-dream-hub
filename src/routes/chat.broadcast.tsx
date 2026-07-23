@@ -437,10 +437,148 @@ function CalendarioMes({
                   )}
                 </div>
               </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </section>
+  );
+}
+
+// ==================== Sidebar de próximos disparos (dentro do card do calendário) ====================
+
+function AgendaSidebar({
+  campanhas,
+  destinos,
+  onPick,
+  onNew,
+}: {
+  campanhas: Campanha[];
+  destinos: Destino[];
+  onPick: (id: string) => void;
+  onNew: () => void;
+}) {
+  const destMap = useMemo(() => new Map(destinos.map((d) => [d.id, d])), [destinos]);
+  const proximos = useMemo(
+    () =>
+      campanhas
+        .filter((c) => c.status === "agendada" && c.scheduled_at)
+        .sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime())
+        .slice(0, 6),
+    [campanhas],
+  );
+
+  function tipoDe(c: Campanha): "channel" | "group" | "mixed" {
+    let ch = 0, gr = 0;
+    for (const id of c.destino_ids) {
+      const d = destMap.get(id);
+      if (d?.tipo === "channel") ch++;
+      else if (d?.tipo === "group") gr++;
+    }
+    if (ch > 0 && gr === 0) return "channel";
+    if (gr > 0 && ch === 0) return "group";
+    return "mixed";
+  }
+
+  const tagCls: Record<"channel" | "group" | "mixed", string> = {
+    channel: "bg-indigo-500/10 text-indigo-400",
+    group: "bg-emerald-500/10 text-emerald-400",
+    mixed: "bg-brand-orange/10 text-brand-orange",
+  };
+
+  const hoje = new Date();
+  const amanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+  function labelDia(dt: Date): string {
+    if (
+      dt.getFullYear() === hoje.getFullYear() &&
+      dt.getMonth() === hoje.getMonth() &&
+      dt.getDate() === hoje.getDate()
+    )
+      return "HOJE";
+    if (
+      dt.getFullYear() === amanha.getFullYear() &&
+      dt.getMonth() === amanha.getMonth() &&
+      dt.getDate() === amanha.getDate()
+    )
+      return "AMANHÃ";
+    return dt
+      .toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })
+      .toUpperCase();
+  }
+
+  return (
+    <aside className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-muted/20 p-5 flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Próximos disparos
+        </h3>
+        {proximos.length > 0 && (
+          <span className="px-2 py-0.5 bg-brand-orange/10 text-brand-orange text-[10px] font-bold rounded">
+            {proximos.length} {proximos.length === 1 ? "TOTAL" : "TOTAIS"}
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-3 flex-1">
+        {proximos.length === 0 ? (
+          <div className="p-6 border border-dashed border-border rounded-xl text-center">
+            <div className="w-10 h-10 bg-muted/60 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CalendarClock className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <p className="text-xs font-medium text-muted-foreground">Nada agendado</p>
+            <button
+              onClick={onNew}
+              className="mt-2 text-[10px] font-bold text-brand-orange uppercase hover:underline"
+            >
+              Agendar novo
+            </button>
+          </div>
+        ) : (
+          proximos.map((c, idx) => {
+            const dt = new Date(c.scheduled_at!);
+            const hora = dt.toLocaleTimeString("pt-BR", {
+              timeZone: "America/Sao_Paulo",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            const tipo = tipoDe(c);
+            return (
+              <div key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => onPick(c.id)}
+                  className="group w-full text-left"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                      {labelDia(dt)} • {hora}
+                    </span>
+                    <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded uppercase ${tagCls[tipo]}`}>
+                      {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-medium text-foreground group-hover:text-brand-orange transition-colors truncate">
+                    {c.nome}
+                  </h4>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {c.destino_ids.length}{" "}
+                    {c.destino_ids.length === 1 ? "destino" : "destinos"}
+                  </p>
+                </button>
+                {idx < proximos.length - 1 && <div className="h-px bg-border mt-3" />}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="mt-6 pt-4 border-t border-border">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>09h — 21h (BRT)</span>
+        </div>
+      </div>
+    </aside>
   );
 }
 
