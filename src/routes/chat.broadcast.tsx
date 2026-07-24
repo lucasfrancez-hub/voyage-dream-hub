@@ -391,7 +391,7 @@ function BroadcastSuggestions({
         <span className="px-2 py-0.5 bg-orange-100 text-brand-orange text-[10px] font-bold rounded-full uppercase tracking-tight">Recomendado</span>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {suggestions.map((suggestion) => (
           <SuggestionCard key={suggestion.id} suggestion={suggestion} onApprove={onApprove} onDismiss={onDismiss} />
         ))}
