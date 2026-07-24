@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Search, Loader2, UserPlus, Users } from "lucide-react";
+import { Search, Loader2, UserPlus, Users, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { searchPeople } from "@/lib/people.functions";
+import { searchPeople, getPerson } from "@/lib/people.functions";
+import { PersonEditorDialog } from "@/components/PersonEditorDialog";
 
 export type PickedPerson = {
   id: string;
@@ -28,9 +29,11 @@ type Props = {
 
 export function PeopleSearchDialog({ open, onOpenChange, onPick }: Props) {
   const search = useServerFn(searchPeople);
+  const fetchPerson = useServerFn(getPerson);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<PickedPerson[]>([]);
   const [searched, setSearched] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const mut = useMutation({
     mutationFn: async (query: string) => search({ data: { q: query } }),
@@ -41,7 +44,6 @@ export function PeopleSearchDialog({ open, onOpenChange, onPick }: Props) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
-  // Ao abrir, já carrega os primeiros contatos (ordem alfabética)
   useEffect(() => {
     if (open && !searched) mut.mutate("");
      
@@ -56,7 +58,28 @@ export function PeopleSearchDialog({ open, onOpenChange, onPick }: Props) {
     if (!v) { setQ(""); setResults([]); setSearched(false); }
   }
 
+  async function handleCreated(id: string) {
+    try {
+      const res = await fetchPerson({ data: { id } });
+      const p = res.person;
+      const picked: PickedPerson = {
+        id: p.id,
+        name: p.name,
+        cpf: p.cpf ?? null,
+        birth_date: p.birth_date ?? null,
+        phone: p.phone ?? null,
+        mobile_phone: p.mobile_phone ?? null,
+        passport_number: p.passport_number ?? null,
+      };
+      onPick(picked);
+      handleClose(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao carregar pessoa");
+    }
+  }
+
   return (
+    <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -83,8 +106,11 @@ export function PeopleSearchDialog({ open, onOpenChange, onPick }: Props) {
           {mut.isPending && results.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground text-center">Carregando…</div>
           ) : results.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground text-center">
-              {searched ? "Nenhum resultado. Tente outro termo." : "Digite para filtrar."}
+            <div className="p-6 text-sm text-muted-foreground text-center flex flex-col items-center gap-3">
+              <span>{searched ? "Nenhum resultado. Tente outro termo." : "Digite para filtrar."}</span>
+              <Button size="sm" onClick={() => setEditorOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Cadastrar pessoa
+              </Button>
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -112,10 +138,20 @@ export function PeopleSearchDialog({ open, onOpenChange, onPick }: Props) {
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex items-center justify-between gap-2 sm:justify-between">
+          <Button variant="outline" size="sm" onClick={() => setEditorOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Cadastrar pessoa
+          </Button>
           <Button variant="ghost" onClick={() => handleClose(false)}>Fechar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <PersonEditorDialog
+      personId={"novo"}
+      open={editorOpen}
+      onOpenChange={setEditorOpen}
+      onSaved={handleCreated}
+    />
+    </>
   );
 }
