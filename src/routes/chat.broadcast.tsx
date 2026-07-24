@@ -242,7 +242,7 @@ function DisparosPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t === "calendario" ? "Calendário" : t === "sugestoes" ? "Sugestões IA" : t === "campanhas" ? "Campanhas" : "Destinos"}
+              {t === "calendario" ? "Calendário" : t === "sugestoes" ? "Sugestões" : t === "campanhas" ? "Campanhas" : "Destinos"}
               <span className="text-xs opacity-60 ml-1">({count})</span>
             </button>
           );
