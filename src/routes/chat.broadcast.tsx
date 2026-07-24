@@ -417,37 +417,28 @@ function CalendarioMes({
                     )}
                   </div>
                 )}
-                <div className="space-y-1">
-                  {evs.slice(0, 2).map((c) => {
-                    const hora = new Date(c.scheduled_at!).toLocaleTimeString("pt-BR", {
-                      timeZone: "America/Sao_Paulo",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    });
+                <div className="flex flex-wrap gap-1">
+                  {evs.slice(0, 8).map((c) => {
                     const tipo = campanhaTipo(c);
+                    const dotCls =
+                      tipo === "channel"
+                        ? "bg-indigo-500"
+                        : tipo === "group"
+                        ? "bg-emerald-500"
+                        : "bg-brand-orange";
                     return (
-                      <button
+                      <span
                         key={c.id}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onPickCampanha(c.id);
-                        }}
-                        className={`w-full text-left rounded-r p-1 ${chipCls[tipo]}`}
-                      >
-                        <p className="text-[10px] font-bold truncate">{c.nome}</p>
-                        <p className="text-[9px] opacity-70 uppercase">
-                          {hora} • {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"}
-                        </p>
-                      </button>
+                        className={`h-1.5 w-1.5 rounded-full ${dotCls}`}
+                        aria-label={c.nome}
+                      />
                     );
                   })}
-                  {evs.length > 2 && (
-                    <div className="text-[10px] text-muted-foreground px-1">
-                      +{evs.length - 2} mais
-                    </div>
+                  {evs.length > 8 && (
+                    <span className="text-[9px] text-muted-foreground leading-none">+{evs.length - 8}</span>
                   )}
                 </div>
+
                 {isOpen && cell.iso && (
                   <>
                     <div
