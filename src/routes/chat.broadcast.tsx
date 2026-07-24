@@ -242,7 +242,7 @@ function DisparosPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t === "calendario" ? "Calendário" : t === "sugestoes" ? "Sugestões IA" : t === "campanhas" ? "Campanhas" : "Destinos"}
+              {t === "calendario" ? "Calendário" : t === "sugestoes" ? "Sugestões" : t === "campanhas" ? "Campanhas" : "Destinos"}
               <span className="text-xs opacity-60 ml-1">({count})</span>
             </button>
           );
@@ -385,14 +385,12 @@ function BroadcastSuggestions({
   }
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-start gap-3 border-b border-border pb-4">
-        <div className="rounded-md bg-accent p-2 text-brand-orange"><Sparkles className="h-5 w-5" /></div>
-        <div>
-          <h2 className="font-semibold">Sugestões para os próximos envios</h2>
-          <p className="text-sm text-muted-foreground">Ajuste data, horário e canal antes de aprovar.</p>
-        </div>
+    <section className="space-y-6">
+      <div className="flex items-center gap-3 border-b border-border pb-3">
+        <h2 className="text-xl font-bold text-foreground">Sugestões</h2>
+        <span className="px-2 py-0.5 bg-orange-100 text-brand-orange text-[10px] font-bold rounded-full uppercase tracking-tight">Recomendado</span>
       </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         {suggestions.map((suggestion) => (
           <SuggestionCard key={suggestion.id} suggestion={suggestion} onApprove={onApprove} onDismiss={onDismiss} />
@@ -423,43 +421,66 @@ function SuggestionCard({
   const [channel, setChannel] = useState<string>(suggestion.suggested_channels[0] || "whatsapp");
 
   return (
-    <article className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      {pkg?.image_url && <img src={pkg.image_url} alt={pkg.title} className="h-36 w-full object-cover" loading="lazy" />}
-      <div className="space-y-3 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {suggestion.origin} → {suggestion.destination}</div>
-            <h3 className="line-clamp-2 font-semibold">{pkg?.title || suggestion.destination}</h3>
-          </div>
-          {pkg && <span className="shrink-0 text-sm font-semibold text-brand-orange">R$ {Number(pkg.price_per_person).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>}
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      {pkg?.image_url && (
+        <img src={pkg.image_url} alt={pkg.title} className="h-32 w-full object-cover" loading="lazy" />
+      )}
+      <div className="border-b border-border/60 p-4">
+        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <span>{suggestion.origin}</span>
+          <svg className="h-3 w-3 text-muted-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 8l4 4m0 0l-4 4m4-4H3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <span>{suggestion.destination}</span>
         </div>
-        {suggestion.reasoning && <p className="text-sm text-muted-foreground">{suggestion.reasoning}</p>}
-        <div className="grid gap-3 rounded-md bg-muted p-3 sm:grid-cols-3">
-          <label className="block">
-            <span className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" /> Data</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm" />
+        <h3 className="mt-1.5 line-clamp-2 text-base font-bold text-foreground">{pkg?.title || suggestion.destination}</h3>
+        {pkg && (
+          <p className="mt-0.5 text-lg font-black text-brand-orange">
+            R$ {Number(pkg.price_per_person).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+          </p>
+        )}
+      </div>
+      <div className="flex-1 space-y-3 p-4">
+        {suggestion.reasoning && (
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{suggestion.reasoning}</p>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <label className="space-y-1">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground">Data</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-medium outline-none transition-all focus:border-brand-orange focus:ring-2 focus:ring-orange-100" />
           </label>
-          <label className="block">
-            <span className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><Clock className="h-3.5 w-3.5" /> Horário</span>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm" />
-          </label>
-          <label className="block">
-            <span className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><Radio className="h-3.5 w-3.5" /> Canal</span>
-            <select value={channel} onChange={(e) => setChannel(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm">
-              <option value="whatsapp">WhatsApp</option>
-              <option value="instagram_feed">Instagram Feed</option>
-              <option value="instagram_story">Instagram Story</option>
-            </select>
+          <label className="space-y-1">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground">Horário</span>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-medium outline-none transition-all focus:border-brand-orange focus:ring-2 focus:ring-orange-100" />
           </label>
         </div>
-        <div className="flex gap-2 pt-1">
-          <Button onClick={() => onApprove(suggestion.id, { date: date || undefined, time: time || undefined, channel })} className="flex-1"><Check className="h-4 w-4" /> Aprovar</Button>
-          <Button variant="outline" onClick={() => onDismiss(suggestion.id)} aria-label="Descartar sugestão"><X className="h-4 w-4" /> Descartar</Button>
-        </div>
+        <label className="block space-y-1">
+          <span className="text-[10px] font-bold uppercase text-muted-foreground">Canal</span>
+          <select value={channel} onChange={(e) => setChannel(e.target.value)} className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-medium outline-none transition-all focus:border-brand-orange focus:ring-2 focus:ring-orange-100">
+            <option value="whatsapp">WhatsApp</option>
+            <option value="instagram_feed">Instagram Feed</option>
+            <option value="instagram_story">Instagram Story</option>
+          </select>
+        </label>
+      </div>
+      <div className="flex gap-2 border-t border-border/60 bg-muted/40 p-4">
+        <button
+          type="button"
+          onClick={() => onDismiss(suggestion.id)}
+          className="flex-1 rounded-xl border border-border bg-background py-2 text-xs font-bold text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
+        >
+          Descartar
+        </button>
+        <button
+          type="button"
+          onClick={() => onApprove(suggestion.id, { date: date || undefined, time: time || undefined, channel })}
+          className="flex-[2] rounded-xl bg-brand-orange py-2 text-xs font-bold text-white shadow-sm shadow-orange-200 transition-all hover:opacity-90 active:scale-95"
+        >
+          Aprovar
+        </button>
       </div>
     </article>
   );
 }
+
 
 
 
@@ -540,10 +561,16 @@ function CalendarioMes({
     mixed: "bg-brand-orange/15 border-l-2 border-brand-orange text-orange-700 dark:text-orange-300 hover:bg-brand-orange/25",
   };
   const modalItemCls: Record<"channel" | "group" | "mixed", string> = {
-    channel: "bg-indigo-600 hover:bg-indigo-700 text-white border-l-4 border-indigo-900",
-    group: "bg-emerald-600 hover:bg-emerald-700 text-white border-l-4 border-emerald-900",
-    mixed: "bg-brand-orange hover:opacity-90 text-white border-l-4 border-orange-800",
+    channel: "bg-violet-50/60 border-l-4 border-violet-500 hover:bg-violet-50 text-violet-900",
+    group: "bg-emerald-50/60 border-l-4 border-emerald-500 hover:bg-emerald-50 text-emerald-900",
+    mixed: "bg-orange-50/60 border-l-4 border-brand-orange hover:bg-orange-50 text-orange-900",
   };
+  const modalBadgeCls: Record<"channel" | "group" | "mixed", string> = {
+    channel: "bg-violet-100 text-violet-700",
+    group: "bg-emerald-100 text-emerald-700",
+    mixed: "bg-orange-100 text-orange-700",
+  };
+
 
 
   return (
@@ -640,21 +667,26 @@ function CalendarioMes({
       </div>
 
       <Dialog open={!!popoverIso} onOpenChange={(o) => { if (!o) setPopoverIso(null); }}>
-        <DialogContent className="max-w-lg !bg-card !backdrop-blur-none border-border shadow-2xl">
+        <DialogContent className="max-w-md !bg-card !backdrop-blur-none border-border shadow-2xl p-0 overflow-hidden">
           {popoverIso && (() => {
             const [y, m, d] = popoverIso.split("-").map(Number);
             const dt = new Date(y, m - 1, d);
             const evs = eventos.get(popoverIso) ?? [];
+            const weekday = dt.toLocaleDateString("pt-BR", { weekday: "long" });
+            const dayLabel = dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
             return (
               <>
-                <DialogHeader>
-                  <DialogTitle className="capitalize">
-                    {dt.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+                <DialogHeader className="p-6 pb-4 border-b border-border">
+                  <DialogTitle className="text-lg font-bold text-foreground capitalize">
+                    {weekday}, {dayLabel}
                   </DialogTitle>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium mt-1">
+                    Cronograma de disparos
+                  </p>
                 </DialogHeader>
-                <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-1">
+                <div className="p-4 max-h-[55vh] overflow-y-auto space-y-2">
                   {evs.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-6">
+                    <p className="text-sm text-muted-foreground text-center py-8">
                       Nenhuma campanha agendada para esse dia.
                     </p>
                   )}
@@ -665,6 +697,7 @@ function CalendarioMes({
                       minute: "2-digit",
                     });
                     const tipo = campanhaTipo(c);
+                    const tipoLabel = tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto";
                     return (
                       <button
                         key={c.id}
@@ -673,17 +706,20 @@ function CalendarioMes({
                           setPopoverIso(null);
                           onPickCampanha(c.id);
                         }}
-                        className={`w-full text-left rounded-lg p-3 transition-colors ${modalItemCls[tipo]}`}
+                        className={`w-full text-left rounded-xl p-3 transition-colors ${modalItemCls[tipo]}`}
                       >
-                        <p className="text-sm font-semibold truncate">{c.nome}</p>
-                        <p className="text-xs opacity-70 uppercase mt-0.5">
-                          {hora} • {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"} • {c.destino_ids.length} destino{c.destino_ids.length > 1 ? "s" : ""}
-                        </p>
+                        <h3 className="text-sm font-semibold truncate">{c.nome}</h3>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${modalBadgeCls[tipo]}`}>{hora}</span>
+                          <span className="text-[10px] font-medium opacity-80 uppercase tracking-wider">
+                            {tipoLabel} • {c.destino_ids.length} destino{c.destino_ids.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
                 </div>
-                <div className="pt-2 border-t border-border">
+                <div className="p-4 bg-muted/40 border-t border-border">
                   <button
                     type="button"
                     onClick={() => {
@@ -691,9 +727,10 @@ function CalendarioMes({
                       setPopoverIso(null);
                       openDay(iso);
                     }}
-                    className="w-full rounded-md bg-brand-orange px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+                    className="w-full py-2.5 rounded-xl bg-brand-orange text-white text-sm font-bold hover:opacity-90 transition-colors flex items-center justify-center gap-2"
                   >
-                    + Nova campanha nesse dia
+                    <Plus className="h-4 w-4" />
+                    Nova campanha nesse dia
                   </button>
                 </div>
               </>
@@ -704,6 +741,7 @@ function CalendarioMes({
     </section>
   );
 }
+
 
 
 // ==================== Sidebar de próximos disparos (dentro do card do calendário) ====================
