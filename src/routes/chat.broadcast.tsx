@@ -461,8 +461,7 @@ function SuggestionCard({
   );
 }
 
-  );
-}
+
 
 // ==================== Calendário estilo macOS ====================
 
