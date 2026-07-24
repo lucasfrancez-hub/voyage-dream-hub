@@ -503,10 +503,16 @@ function CalendarioMes({
     return "mixed";
   }
   const chipCls: Record<"channel" | "group" | "mixed", string> = {
-    channel: "bg-indigo-500/10 border-l-2 border-indigo-500 text-indigo-400 hover:bg-indigo-500/20",
-    group: "bg-emerald-500/10 border-l-2 border-emerald-500 text-emerald-400 hover:bg-emerald-500/20",
-    mixed: "bg-brand-orange/10 border-l-2 border-brand-orange text-brand-orange hover:bg-brand-orange/20",
+    channel: "bg-indigo-500/15 border-l-2 border-indigo-500 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/25",
+    group: "bg-emerald-500/15 border-l-2 border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25",
+    mixed: "bg-brand-orange/15 border-l-2 border-brand-orange text-orange-700 dark:text-orange-300 hover:bg-brand-orange/25",
   };
+  const modalItemCls: Record<"channel" | "group" | "mixed", string> = {
+    channel: "bg-indigo-600 hover:bg-indigo-700 text-white border-l-4 border-indigo-900",
+    group: "bg-emerald-600 hover:bg-emerald-700 text-white border-l-4 border-emerald-900",
+    mixed: "bg-brand-orange hover:opacity-90 text-white border-l-4 border-orange-800",
+  };
+
 
   return (
     <section className="overflow-hidden">
@@ -602,7 +608,7 @@ function CalendarioMes({
       </div>
 
       <Dialog open={!!popoverIso} onOpenChange={(o) => { if (!o) setPopoverIso(null); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg !bg-card !backdrop-blur-none border-border shadow-2xl">
           {popoverIso && (() => {
             const [y, m, d] = popoverIso.split("-").map(Number);
             const dt = new Date(y, m - 1, d);
@@ -635,7 +641,7 @@ function CalendarioMes({
                           setPopoverIso(null);
                           onPickCampanha(c.id);
                         }}
-                        className={`w-full text-left rounded-lg p-3 ${chipCls[tipo]}`}
+                        className={`w-full text-left rounded-lg p-3 transition-colors ${modalItemCls[tipo]}`}
                       >
                         <p className="text-sm font-semibold truncate">{c.nome}</p>
                         <p className="text-xs opacity-70 uppercase mt-0.5">
