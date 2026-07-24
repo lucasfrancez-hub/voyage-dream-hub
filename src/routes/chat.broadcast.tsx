@@ -385,14 +385,12 @@ function BroadcastSuggestions({
   }
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-start gap-3 border-b border-border pb-4">
-        <div className="rounded-md bg-accent p-2 text-brand-orange"><Sparkles className="h-5 w-5" /></div>
-        <div>
-          <h2 className="font-semibold">Sugestões para os próximos envios</h2>
-          <p className="text-sm text-muted-foreground">Ajuste data, horário e canal antes de aprovar.</p>
-        </div>
+    <section className="space-y-6">
+      <div className="flex items-center gap-3 border-b border-border pb-3">
+        <h2 className="text-xl font-bold text-foreground">Sugestões</h2>
+        <span className="px-2 py-0.5 bg-orange-100 text-brand-orange text-[10px] font-bold rounded-full uppercase tracking-tight">Recomendado</span>
       </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         {suggestions.map((suggestion) => (
           <SuggestionCard key={suggestion.id} suggestion={suggestion} onApprove={onApprove} onDismiss={onDismiss} />
