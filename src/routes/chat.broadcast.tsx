@@ -153,22 +153,23 @@ function DisparosPage() {
     }
   }
 
-  async function approve(id: string) {
+  async function approve(id: string, overrides?: { date?: string; time?: string; channel?: string }) {
     const ok = await confirm({
       title: "Aprovar sugestão?",
-      description: "A campanha será criada como rascunho na data e horário recomendados. Você poderá revisar os destinos antes do envio.",
+      description: "A campanha será criada como rascunho na data, horário e canal escolhidos. Você poderá revisar os destinos antes do envio.",
       confirmText: "Aprovar e criar campanha",
     });
     if (!ok) return;
     try {
-      await approveSuggestion({ data: { id } });
-      toast.success("Campanha criada no horário recomendado");
+      await approveSuggestion({ data: { id, ...overrides } });
+      toast.success("Campanha criada");
       await load();
       setTab("campanhas");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível aprovar");
     }
   }
+
 
   async function dismiss(id: string) {
     const ok = await confirm({
