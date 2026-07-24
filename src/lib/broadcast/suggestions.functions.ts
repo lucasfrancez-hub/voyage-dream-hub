@@ -56,7 +56,7 @@ export const descartarSuggestion = createServerFn({ method: "POST" })
  */
 export const aprovarSuggestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string }) => d)
+  .inputValidator((d: { id: string; date?: string; time?: string; channel?: string }) => d)
   .handler(async ({ context, data }) => {
     await ensureMarketing(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -73,10 +73,11 @@ export const aprovarSuggestion = createServerFn({ method: "POST" })
     const pkg = sug.packages as { id: string; slug: string; title: string } | null;
     if (!pkg) throw new Error("Pacote da sugestão foi removido");
 
-    // Calcula scheduled_at usando a data concreta sugerida. Sugestões antigas
-    // guardavam um intervalo textual; elas são convertidas para o próximo dia válido.
-    const [hh, mm] = String(sug.suggested_time || "10:00").split(":").map(Number);
-    const suggestedDay = String(sug.suggested_day || "");
+    // Overrides do usuário têm precedência; senão usa o sugerido pela IA.
+    const finalTime = data.time || sug.suggested_time || "10:00";
+    const finalDay = data.date || sug.suggested_day || "";
+    const [hh, mm] = String(finalTime).split(":").map(Number);
+    const suggestedDay = String(finalDay);
     const now = new Date();
     const brazilCalendar = new Date(now.getTime() - 3 * 60 * 60 * 1000);
     const allowedDays = suggestedDay.toLowerCase().includes("terça")
@@ -104,7 +105,8 @@ export const aprovarSuggestion = createServerFn({ method: "POST" })
     }
     if (!scheduled) throw new Error("Não foi possível calcular a data sugerida");
 
-    const canal = (sug.suggested_channels as string[])[0] || "whatsapp";
+    const canal = data.channel || (sug.suggested_channels as string[])[0] || "whatsapp";
+
     const nome = `[Sugestão IA] ${sug.origin} → ${sug.destination}`;
 
     const { data: camp, error: campErr } = await supabaseAdmin
