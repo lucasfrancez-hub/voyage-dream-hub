@@ -608,7 +608,7 @@ function CalendarioMes({
       </div>
 
       <Dialog open={!!popoverIso} onOpenChange={(o) => { if (!o) setPopoverIso(null); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg !bg-card !backdrop-blur-none border-border shadow-2xl">
           {popoverIso && (() => {
             const [y, m, d] = popoverIso.split("-").map(Number);
             const dt = new Date(y, m - 1, d);
