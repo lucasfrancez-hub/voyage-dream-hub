@@ -1723,11 +1723,14 @@ function PackagePicker({ includeImage, onClose, onPick }: { includeImage: boolea
   function insert(p: typeof pacotes[number]) {
     const blocos: Bloco[] = [];
     if (includeImage && p.image_url) {
-      blocos.push({ tipo: "image", midia_url: p.image_url, midia_caption: null, texto: null, midia_filename: null });
+      // Imagem + legenda no MESMO bloco — WhatsApp envia como uma única mensagem
+      blocos.push({ tipo: "image", midia_url: p.image_url, midia_caption: p.caption, texto: null, midia_filename: null });
+    } else {
+      blocos.push({ tipo: "text", texto: p.caption, midia_url: null, midia_caption: null, midia_filename: null });
     }
-    blocos.push({ tipo: "text", texto: p.caption, midia_url: null, midia_caption: null, midia_filename: null });
     onPick(blocos);
   }
+
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
