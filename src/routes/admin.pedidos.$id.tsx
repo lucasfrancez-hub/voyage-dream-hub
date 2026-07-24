@@ -3126,7 +3126,15 @@ function ItemDialog({
               // Volta é opcional: descarta trechos de volta vazios (sem origem/destino)
               effectiveTitle = segmentTitle(details);
             }
-            if (!effectiveTitle) { toast.error("Preencha os dados do trecho"); return; }
+            if (!effectiveTitle) {
+              if (kind === "hotel") {
+                effectiveTitle = String(details.hotel_name ?? details.city ?? "Hospedagem").trim() || "Hospedagem";
+              } else if (kind !== "flight") {
+                effectiveTitle = String(details.description ?? kind).trim() || "Item";
+              } else {
+                toast.error("Preencha os dados do trecho"); return;
+              }
+            }
 
 
             // Deriva status final (não deixa o usuário salvar um status incoerente)
