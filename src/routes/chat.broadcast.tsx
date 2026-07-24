@@ -1393,9 +1393,9 @@ function CampanhaEditor({
 
   return (
     <>
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
-      <div className="w-full max-w-4xl bg-background border border-border rounded-2xl my-4 shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-gradient-to-r from-brand-orange/10 via-background to-background z-10 rounded-t-2xl">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3">
+      <div className="w-full max-w-4xl bg-background border border-border rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-background rounded-t-2xl shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-1 h-8 rounded-full bg-brand-orange" />
             <div>
@@ -1416,7 +1416,7 @@ function CampanhaEditor({
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="p-5 space-y-5">
+          <div className="p-5 space-y-5 overflow-y-auto flex-1">
             {/* Secão 1: identificação */}
             <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
