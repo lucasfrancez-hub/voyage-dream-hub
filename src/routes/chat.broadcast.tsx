@@ -547,19 +547,18 @@ function CalendarioMes({
           {cells.map((cell, i) => {
             const evs = cell.iso ? eventos.get(cell.iso) ?? [] : [];
             const isToday = cell.date && isSameDay(cell.date, hoje);
-            const isOpen = cell.iso && popoverIso === cell.iso;
             return (
               <div
                 key={i}
-                className={`relative min-h-[100px] p-2 text-xs transition-colors ${
+                className={`relative min-h-[110px] p-1.5 text-xs transition-colors ${
                   cell.date
-                    ? `bg-card cursor-pointer hover:bg-muted/40 ${isToday ? "ring-1 ring-inset ring-brand-orange/40" : ""} ${isOpen ? "z-20" : ""}`
+                    ? `bg-card cursor-pointer hover:bg-muted/40 ${isToday ? "ring-1 ring-inset ring-brand-orange/40" : ""}`
                     : "bg-muted/20"
                 }`}
                 onClick={() => cell.iso && setPopoverIso(cell.iso)}
               >
                 {cell.date && (
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between mb-1 px-0.5">
                     <span
                       className={`text-sm font-medium ${
                         isToday ? "text-brand-orange font-bold" : "text-foreground"
@@ -572,109 +571,102 @@ function CalendarioMes({
                     )}
                   </div>
                 )}
-                <div className="flex flex-wrap gap-1">
-                  {evs.slice(0, 8).map((c) => {
+                <div className="space-y-1">
+                  {evs.slice(0, 3).map((c) => {
                     const tipo = campanhaTipo(c);
-                    const dotCls =
-                      tipo === "channel"
-                        ? "bg-indigo-500"
-                        : tipo === "group"
-                        ? "bg-emerald-500"
-                        : "bg-brand-orange";
+                    const hora = new Date(c.scheduled_at!).toLocaleTimeString("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
                     return (
-                      <span
+                      <div
                         key={c.id}
-                        className={`h-1.5 w-1.5 rounded-full ${dotCls}`}
-                        aria-label={c.nome}
-                      />
+                        className={`rounded px-1.5 py-0.5 truncate ${chipCls[tipo]}`}
+                        title={`${c.nome} — ${hora}`}
+                      >
+                        <p className="text-[10px] font-semibold truncate leading-tight">{c.nome}</p>
+                        <p className="text-[9px] opacity-70 leading-tight">{hora} • {tipo === "channel" ? "CANAL" : tipo === "group" ? "GRUPO" : "MISTO"}</p>
+                      </div>
                     );
                   })}
-                  {evs.length > 8 && (
-                    <span className="text-[9px] text-muted-foreground leading-none">+{evs.length - 8}</span>
+                  {evs.length > 3 && (
+                    <p className="text-[9px] text-muted-foreground px-1">+{evs.length - 3} mais</p>
                   )}
                 </div>
-
-                {isOpen && cell.iso && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPopoverIso(null);
-                      }}
-                    />
-                    <div
-                      className="absolute left-1/2 top-full z-30 mt-1 w-64 -translate-x-1/2 rounded-xl border border-border bg-popover shadow-2xl backdrop-blur"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                        <p className="text-xs font-semibold capitalize">
-                          {cell.date!.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setPopoverIso(null)}
-                          className="rounded-full p-1 hover:bg-muted"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto p-2 space-y-1">
-                        {evs.length === 0 && (
-                          <p className="text-[11px] text-muted-foreground px-2 py-3 text-center">
-                            Nenhuma campanha agendada.
-                          </p>
-                        )}
-                        {evs.map((c) => {
-                          const hora = new Date(c.scheduled_at!).toLocaleTimeString("pt-BR", {
-                            timeZone: "America/Sao_Paulo",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          });
-                          const tipo = campanhaTipo(c);
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => {
-                                setPopoverIso(null);
-                                onPickCampanha(c.id);
-                              }}
-                              className={`w-full text-left rounded-md p-2 ${chipCls[tipo]}`}
-                            >
-                              <p className="text-xs font-semibold truncate">{c.nome}</p>
-                              <p className="text-[10px] opacity-70 uppercase">
-                                {hora} • {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"} • {c.destino_ids.length} destino{c.destino_ids.length > 1 ? "s" : ""}
-                              </p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="border-t border-border p-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const iso = cell.iso!;
-                            setPopoverIso(null);
-                            openDay(iso);
-                          }}
-                          className="w-full rounded-md bg-brand-orange px-3 py-1.5 text-[11px] font-semibold text-white hover:opacity-90"
-                        >
-                          + Nova campanha nesse dia
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
             );
           })}
 
         </div>
       </div>
+
+      <Dialog open={!!popoverIso} onOpenChange={(o) => { if (!o) setPopoverIso(null); }}>
+        <DialogContent className="max-w-lg">
+          {popoverIso && (() => {
+            const [y, m, d] = popoverIso.split("-").map(Number);
+            const dt = new Date(y, m - 1, d);
+            const evs = eventos.get(popoverIso) ?? [];
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="capitalize">
+                    {dt.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-1">
+                  {evs.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-6">
+                      Nenhuma campanha agendada para esse dia.
+                    </p>
+                  )}
+                  {evs.map((c) => {
+                    const hora = new Date(c.scheduled_at!).toLocaleTimeString("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+                    const tipo = campanhaTipo(c);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setPopoverIso(null);
+                          onPickCampanha(c.id);
+                        }}
+                        className={`w-full text-left rounded-lg p-3 ${chipCls[tipo]}`}
+                      >
+                        <p className="text-sm font-semibold truncate">{c.nome}</p>
+                        <p className="text-xs opacity-70 uppercase mt-0.5">
+                          {hora} • {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"} • {c.destino_ids.length} destino{c.destino_ids.length > 1 ? "s" : ""}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const iso = popoverIso!;
+                      setPopoverIso(null);
+                      openDay(iso);
+                    }}
+                    className="w-full rounded-md bg-brand-orange px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+                  >
+                    + Nova campanha nesse dia
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
+
 
 // ==================== Sidebar de próximos disparos (dentro do card do calendário) ====================
 
