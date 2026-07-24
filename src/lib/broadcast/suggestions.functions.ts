@@ -73,16 +73,36 @@ export const aprovarSuggestion = createServerFn({ method: "POST" })
     const pkg = sug.packages as { id: string; slug: string; title: string } | null;
     if (!pkg) throw new Error("Pacote da sugestão foi removido");
 
-    // Calcula scheduled_at pro próximo horário sugerido (dia útil mais próximo às HH:mm)
+    // Calcula scheduled_at usando a data concreta sugerida. Sugestões antigas
+    // guardavam um intervalo textual; elas são convertidas para o próximo dia válido.
     const [hh, mm] = String(sug.suggested_time || "10:00").split(":").map(Number);
-    const scheduled = new Date();
-    scheduled.setHours(hh || 10, mm || 0, 0, 0);
-    if (scheduled.getTime() < Date.now() + 30 * 60 * 1000) {
-      // Se já passou (ou faltam <30min), joga pra amanhã
-      scheduled.setDate(scheduled.getDate() + 1);
+    const suggestedDay = String(sug.suggested_day || "");
+    const now = new Date();
+    const brazilCalendar = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const allowedDays = suggestedDay.toLowerCase().includes("terça")
+      ? [2, 4]
+      : suggestedDay.toLowerCase().includes("quarta")
+        ? [3, 5]
+        : [1, 2, 3, 4, 5];
+    let scheduled: Date | null = /^\d{4}-\d{2}-\d{2}$/.test(suggestedDay)
+      ? new Date(`${suggestedDay}T${String(hh || 10).padStart(2, "0")}:${String(mm || 0).padStart(2, "0")}:00-03:00`)
+      : null;
+
+    if (!scheduled || scheduled.getTime() < now.getTime() + 30 * 60 * 1000) {
+      scheduled = null;
+      for (let offset = 0; offset <= 14; offset++) {
+        const day = new Date(brazilCalendar);
+        day.setUTCDate(day.getUTCDate() + offset);
+        if (!allowedDays.includes(day.getUTCDay())) continue;
+        const isoDay = `${day.getUTCFullYear()}-${String(day.getUTCMonth() + 1).padStart(2, "0")}-${String(day.getUTCDate()).padStart(2, "0")}`;
+        const candidate = new Date(`${isoDay}T${String(hh || 10).padStart(2, "0")}:${String(mm || 0).padStart(2, "0")}:00-03:00`);
+        if (candidate.getTime() >= now.getTime() + 30 * 60 * 1000) {
+          scheduled = candidate;
+          break;
+        }
+      }
     }
-    // Pula domingo
-    if (scheduled.getDay() === 0) scheduled.setDate(scheduled.getDate() + 1);
+    if (!scheduled) throw new Error("Não foi possível calcular a data sugerida");
 
     const canal = (sug.suggested_channels as string[])[0] || "whatsapp";
     const nome = `[Sugestão IA] ${sug.origin} → ${sug.destination}`;
