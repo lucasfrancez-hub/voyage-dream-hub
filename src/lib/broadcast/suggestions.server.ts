@@ -15,14 +15,37 @@ import { generateText, Output, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
 import { canonOrigin, originKey } from "@/lib/packages/origin";
 
-// Janelas fixas comprovadas por canal — evita depender de dado histórico.
-const TIME_SLOTS: Record<string, { day: string; time: string }> = {
-  whatsapp: { day: "Terça ou Quinta", time: "10:00" },
-  whatsapp_pm: { day: "Terça ou Quinta", time: "19:00" },
-  instagram_feed: { day: "Quarta ou Sexta", time: "12:00" },
-  instagram_story: { day: "Segunda a Sexta", time: "08:00" },
-  instagram_story_pm: { day: "Segunda a Sexta", time: "21:00" },
+// Janelas comprovadas por canal. O dia é convertido para uma data concreta
+// antes de salvar, para a equipe conseguir aprovar e agendar sem adivinhar.
+const TIME_SLOTS: Record<string, { weekdays: number[]; time: string }> = {
+  whatsapp: { weekdays: [2, 4], time: "10:00" },
+  whatsapp_pm: { weekdays: [2, 4], time: "19:00" },
+  instagram_feed: { weekdays: [3, 5], time: "12:00" },
+  instagram_story: { weekdays: [1, 2, 3, 4, 5], time: "08:00" },
+  instagram_story_pm: { weekdays: [1, 2, 3, 4, 5], time: "21:00" },
 };
+
+function nextSuggestedDate(weekdays: number[], time: string) {
+  const brazilOffsetMs = 3 * 60 * 60 * 1000;
+  const now = new Date();
+  const brazilCalendar = new Date(now.getTime() - brazilOffsetMs);
+  const [hour = 10, minute = 0] = time.split(":").map(Number);
+
+  for (let offset = 0; offset <= 14; offset++) {
+    const candidateCalendar = new Date(brazilCalendar);
+    candidateCalendar.setUTCDate(candidateCalendar.getUTCDate() + offset);
+    if (!weekdays.includes(candidateCalendar.getUTCDay())) continue;
+
+    const year = candidateCalendar.getUTCFullYear();
+    const month = String(candidateCalendar.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(candidateCalendar.getUTCDate()).padStart(2, "0");
+    const date = `${year}-${month}-${day}`;
+    const instant = new Date(`${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00-03:00`);
+    if (instant.getTime() >= now.getTime() + 30 * 60 * 1000) return date;
+  }
+
+  return brazilCalendar.toISOString().slice(0, 10);
+}
 
 const SuggestionSchema = z.object({
   suggestions: z.array(
@@ -150,7 +173,7 @@ Retorne JSON com o array "suggestions".`;
           package_id: pkg.id,
           suggested_channels: [s.channel],
           suggested_time: slot.time,
-          suggested_day: slot.day,
+          suggested_day: nextSuggestedDate(slot.weekdays, slot.time),
           reasoning: s.reasoning,
           created_by: userId,
         });

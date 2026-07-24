@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search, CalendarClock, ChevronLeft, ChevronRight, Instagram } from "lucide-react";
+import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search, CalendarClock, ChevronLeft, ChevronRight, Instagram, Sparkles, Check, MapPin, Clock } from "lucide-react";
 import {
   listCampanhas,
   listDestinos,
@@ -16,7 +16,9 @@ import {
   excluirDestino,
   listPacotesProntos,
 } from "@/lib/broadcast/broadcast.functions";
+import { aprovarSuggestion, descartarSuggestion, listSuggestions } from "@/lib/broadcast/suggestions.functions";
 import { confirm } from "@/lib/confirm";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/chat/broadcast")({
   ssr: false,
@@ -56,6 +58,25 @@ type Campanha = {
   created_at: string;
 };
 
+type BroadcastSuggestion = {
+  id: string;
+  origin: string;
+  destination: string;
+  suggested_channels: string[];
+  suggested_time: string | null;
+  suggested_day: string | null;
+  reasoning: string | null;
+  status: "pending" | "approved" | "dismissed";
+  packages: {
+    id: string;
+    title: string;
+    image_url: string | null;
+    price_per_person: number;
+    going_date: string | null;
+    nights: number | null;
+  } | null;
+};
+
 type Bloco = {
   tipo: "text" | "image" | "video" | "document" | "buttons";
   texto?: string | null;
@@ -84,9 +105,10 @@ const STATUS_COLOR: Record<Campanha["status"], string> = {
 };
 
 function DisparosPage() {
-  const [tab, setTab] = useState<"calendario" | "campanhas" | "destinos">("calendario");
+  const [tab, setTab] = useState<"calendario" | "sugestoes" | "campanhas" | "destinos">("calendario");
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [destinos, setDestinos] = useState<Destino[]>([]);
+  const [suggestions, setSuggestions] = useState<BroadcastSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showEditor, setShowEditor] = useState<null | { id?: string; presetDate?: string }>(null);
@@ -97,13 +119,17 @@ function DisparosPage() {
   const doCancelar = useServerFn(cancelarCampanha);
   const doExcluir = useServerFn(excluirCampanha);
   const doDisparar = useServerFn(dispararAgora);
+  const fetchSuggestions = useServerFn(listSuggestions);
+  const approveSuggestion = useServerFn(aprovarSuggestion);
+  const dismissSuggestion = useServerFn(descartarSuggestion);
 
   async function load() {
     setLoading(true);
     try {
-      const [c, d] = await Promise.all([fetchCamp(), fetchDest()]);
+      const [c, d, s] = await Promise.all([fetchCamp(), fetchDest(), fetchSuggestions()]);
       setCampanhas((c.campanhas ?? []) as Campanha[]);
       setDestinos((d.destinos ?? []) as Destino[]);
+      setSuggestions((s.suggestions ?? []) as unknown as BroadcastSuggestion[]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao carregar");
     } finally {
@@ -123,6 +149,40 @@ function DisparosPage() {
       toast.error(e instanceof Error ? e.message : "Erro na sincronização");
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function approve(id: string) {
+    const ok = await confirm({
+      title: "Aprovar sugestão?",
+      description: "A campanha será criada como rascunho na data e horário recomendados. Você poderá revisar os destinos antes do envio.",
+      confirmText: "Aprovar e criar campanha",
+    });
+    if (!ok) return;
+    try {
+      await approveSuggestion({ data: { id } });
+      toast.success("Campanha criada no horário recomendado");
+      await load();
+      setTab("campanhas");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível aprovar");
+    }
+  }
+
+  async function dismiss(id: string) {
+    const ok = await confirm({
+      title: "Descartar sugestão?",
+      description: "Ela será removida das sugestões pendentes.",
+      confirmText: "Descartar",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await dismissSuggestion({ data: { id } });
+      toast.success("Sugestão descartada");
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível descartar");
     }
   }
 
@@ -161,10 +221,12 @@ function DisparosPage() {
       </div>
 
       <div className="inline-flex bg-muted/50 p-1 rounded-lg self-start overflow-x-auto">
-        {(["calendario", "campanhas", "destinos"] as const).map((t) => {
+        {(["calendario", "sugestoes", "campanhas", "destinos"] as const).map((t) => {
           const count =
             t === "calendario"
               ? campanhas.filter((c) => c.status === "agendada" && c.scheduled_at).length
+              : t === "sugestoes"
+              ? suggestions.filter((suggestion) => suggestion.status === "pending").length
               : t === "campanhas"
               ? campanhas.length
               : destinos.length;
@@ -178,7 +240,7 @@ function DisparosPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t === "calendario" ? "Calendário" : t === "campanhas" ? "Campanhas" : "Destinos"}
+              {t === "calendario" ? "Calendário" : t === "sugestoes" ? "Sugestões IA" : t === "campanhas" ? "Campanhas" : "Destinos"}
               <span className="text-xs opacity-60 ml-1">({count})</span>
             </button>
           );
@@ -234,6 +296,12 @@ function DisparosPage() {
           />
 
         </div>
+      ) : tab === "sugestoes" ? (
+        <BroadcastSuggestions
+          suggestions={suggestions.filter((suggestion) => suggestion.status === "pending")}
+          onApprove={approve}
+          onDismiss={dismiss}
+        />
       ) : tab === "campanhas" ? (
         <CampanhasList
           campanhas={campanhas}
@@ -273,6 +341,92 @@ function DisparosPage() {
       )}
       </div>
     </div>
+  );
+}
+
+function resolveSuggestionDate(dayText: string | null, timeText: string | null) {
+  const time = timeText || "10:00";
+  const [hours = 10, minutes = 0] = time.split(":").map(Number);
+  if (dayText && /^\d{4}-\d{2}-\d{2}$/.test(dayText)) {
+    return new Date(`${dayText}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00-03:00`);
+  }
+
+  const normalized = (dayText || "").toLowerCase();
+  const allowedDays = normalized.includes("terça") ? [2, 4] : normalized.includes("quarta") ? [3, 5] : [1, 2, 3, 4, 5];
+  const now = new Date();
+  for (let offset = 0; offset <= 14; offset++) {
+    const candidate = new Date(now);
+    candidate.setDate(candidate.getDate() + offset);
+    candidate.setHours(hours, minutes, 0, 0);
+    if (allowedDays.includes(candidate.getDay()) && candidate.getTime() >= now.getTime() + 30 * 60 * 1000) return candidate;
+  }
+  return null;
+}
+
+function BroadcastSuggestions({
+  suggestions,
+  onApprove,
+  onDismiss,
+}: {
+  suggestions: BroadcastSuggestion[];
+  onApprove: (id: string) => void;
+  onDismiss: (id: string) => void;
+}) {
+  if (suggestions.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-border bg-card px-6 py-14 text-center">
+        <Sparkles className="mx-auto mb-3 h-9 w-9 text-muted-foreground" />
+        <p className="font-medium">Nenhuma sugestão pendente</p>
+        <p className="mt-1 text-sm text-muted-foreground">As próximas recomendações aparecerão aqui com data e horário de envio.</p>
+      </div>
+    );
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-start gap-3 border-b border-border pb-4">
+        <div className="rounded-md bg-accent p-2 text-brand-orange"><Sparkles className="h-5 w-5" /></div>
+        <div>
+          <h2 className="font-semibold">Sugestões para os próximos envios</h2>
+          <p className="text-sm text-muted-foreground">Pacotes, canal, data e horário recomendados para cada campanha.</p>
+        </div>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {suggestions.map((suggestion) => {
+          const pkg = suggestion.packages;
+          const recommendedAt = resolveSuggestionDate(suggestion.suggested_day, suggestion.suggested_time);
+          return (
+            <article key={suggestion.id} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+              {pkg?.image_url && <img src={pkg.image_url} alt={pkg.title} className="h-36 w-full object-cover" loading="lazy" />}
+              <div className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {suggestion.origin} → {suggestion.destination}</div>
+                    <h3 className="line-clamp-2 font-semibold">{pkg?.title || suggestion.destination}</h3>
+                  </div>
+                  {pkg && <span className="shrink-0 text-sm font-semibold text-brand-orange">R$ {Number(pkg.price_per_person).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>}
+                </div>
+                {suggestion.reasoning && <p className="text-sm text-muted-foreground">{suggestion.reasoning}</p>}
+                <div className="grid gap-2 rounded-md bg-muted p-3 sm:grid-cols-2">
+                  <div>
+                    <span className="block text-xs text-muted-foreground">Envio recomendado</span>
+                    <span className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold"><CalendarClock className="h-4 w-4 text-brand-orange" /> {recommendedAt ? recommendedAt.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" }) : "Próximo dia útil"}</span>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-muted-foreground">Horário e canal</span>
+                    <span className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold"><Clock className="h-4 w-4 text-brand-orange" /> {suggestion.suggested_time || "10:00"} · {suggestion.suggested_channels[0] === "whatsapp" ? "WhatsApp" : suggestion.suggested_channels[0] === "instagram_feed" ? "Instagram Feed" : "Instagram Story"}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button onClick={() => onApprove(suggestion.id)} className="flex-1"><Check className="h-4 w-4" /> Aprovar</Button>
+                  <Button variant="outline" onClick={() => onDismiss(suggestion.id)} aria-label="Descartar sugestão"><X className="h-4 w-4" /> Descartar</Button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
