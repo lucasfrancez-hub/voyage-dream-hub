@@ -275,7 +275,7 @@ export function NfseCard({
     cpfCnpj: "",
     email: "",
     phone: "",
-    valor: String(order.totalPrice ?? 0),
+    valor: String(computeValorServicos(detail)),
     discriminacao: defaultDisc,
     cep: "",
     logradouro: "",
