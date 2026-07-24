@@ -19,6 +19,7 @@ import {
 import { aprovarSuggestion, descartarSuggestion, listSuggestions } from "@/lib/broadcast/suggestions.functions";
 import { confirm } from "@/lib/confirm";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/chat/broadcast")({
   ssr: false,
