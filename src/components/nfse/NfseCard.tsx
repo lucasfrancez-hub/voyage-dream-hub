@@ -109,7 +109,8 @@ function buildAutoDescricao(detail: OrderDetail): string {
   const volta = fmtBR(dates[dates.length - 1]);
   const periodo = ida && volta && ida !== volta ? `${ida} a ${volta}` : (ida || "");
 
-  const cabecalho = [tipos, destino, periodo].filter(Boolean).join(" - ");
+  const tipoComDestino = destino ? `${tipos} em ${destino}` : tipos;
+  const cabecalho = [tipoComDestino, periodo].filter(Boolean).join(" - ");
 
   const pax = detail.passengers.map((p) => p.full_name.trim()).filter(Boolean);
   const linhaPax = pax.length
@@ -119,6 +120,26 @@ function buildAutoDescricao(detail: OrderDetail): string {
   return [cabecalho || `Serviços de agenciamento de viagens — pedido #${detail.order.orderNumber}`, linhaPax]
     .filter(Boolean)
     .join("\n\n");
+}
+
+function computeValorServicos(detail: OrderDetail): number {
+  const t = Number(detail.order.totalPrice ?? 0);
+  if (t > 0) return t;
+  const exp = Number(detail.order.expectedTotal ?? 0);
+  if (exp > 0) return exp;
+  const sumFin = (detail.financials ?? []).reduce((s, f) => {
+    const v = Number(f.total) || Number(f.sale_value) || 0;
+    return s + v;
+  }, 0);
+  if (sumFin > 0) return sumFin;
+  const sumItems = (detail.items ?? [])
+    .filter((i) => i.status !== "cancelled")
+    .reduce((s, i) => {
+      const d = (i.details ?? {}) as Record<string, unknown>;
+      const v = Number(d.value ?? d.price ?? d.total ?? 0);
+      return s + (Number.isFinite(v) ? v : 0);
+    }, 0);
+  return sumItems;
 }
 
 
@@ -160,7 +181,7 @@ export function buildInitialNfseForm(detail: OrderDetail, personData: PersonBund
     cpfCnpj: doc,
     email: primaryEmail || pStr("email") || order.payerEmail || order.email || "",
     phone: primaryPhone || pStr("mobile_phone") || pStr("phone") || order.payerPhone || "",
-    valor: String(order.totalPrice ?? 0),
+    valor: String(computeValorServicos(detail)),
     discriminacao: buildAutoDescricao(detail),
     cep: pStr("zip") || order.payerZip || "",
     logradouro: pStr("address") || order.payerAddress || "",
@@ -254,7 +275,7 @@ export function NfseCard({
     cpfCnpj: "",
     email: "",
     phone: "",
-    valor: String(order.totalPrice ?? 0),
+    valor: String(computeValorServicos(detail)),
     discriminacao: defaultDisc,
     cep: "",
     logradouro: "",
@@ -283,7 +304,7 @@ export function NfseCard({
       cpfCnpj: doc,
       email: primaryEmail || pStr("email") || order.payerEmail || order.email || "",
       phone: primaryPhone || pStr("mobile_phone") || pStr("phone") || order.payerPhone || "",
-      valor: String(order.totalPrice ?? 0),
+      valor: String(computeValorServicos(detail)),
       discriminacao: defaultDisc,
       cep: pStr("zip") || order.payerZip || "",
       logradouro: pStr("address") || order.payerAddress || "",
