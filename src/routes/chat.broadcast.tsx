@@ -641,7 +641,7 @@ function CalendarioMes({
                           setPopoverIso(null);
                           onPickCampanha(c.id);
                         }}
-                        className={`w-full text-left rounded-lg p-3 ${chipCls[tipo]}`}
+                        className={`w-full text-left rounded-lg p-3 transition-colors ${modalItemCls[tipo]}`}
                       >
                         <p className="text-sm font-semibold truncate">{c.nome}</p>
                         <p className="text-xs opacity-70 uppercase mt-0.5">
