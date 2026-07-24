@@ -646,21 +646,26 @@ function CalendarioMes({
       </div>
 
       <Dialog open={!!popoverIso} onOpenChange={(o) => { if (!o) setPopoverIso(null); }}>
-        <DialogContent className="max-w-lg !bg-card !backdrop-blur-none border-border shadow-2xl">
+        <DialogContent className="max-w-md !bg-card !backdrop-blur-none border-border shadow-2xl p-0 overflow-hidden">
           {popoverIso && (() => {
             const [y, m, d] = popoverIso.split("-").map(Number);
             const dt = new Date(y, m - 1, d);
             const evs = eventos.get(popoverIso) ?? [];
+            const weekday = dt.toLocaleDateString("pt-BR", { weekday: "long" });
+            const dayLabel = dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
             return (
               <>
-                <DialogHeader>
-                  <DialogTitle className="capitalize">
-                    {dt.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+                <DialogHeader className="p-6 pb-4 border-b border-border">
+                  <DialogTitle className="text-lg font-bold text-foreground capitalize">
+                    {weekday}, {dayLabel}
                   </DialogTitle>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium mt-1">
+                    Cronograma de disparos
+                  </p>
                 </DialogHeader>
-                <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-1">
+                <div className="p-4 max-h-[55vh] overflow-y-auto space-y-2">
                   {evs.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-6">
+                    <p className="text-sm text-muted-foreground text-center py-8">
                       Nenhuma campanha agendada para esse dia.
                     </p>
                   )}
@@ -671,6 +676,7 @@ function CalendarioMes({
                       minute: "2-digit",
                     });
                     const tipo = campanhaTipo(c);
+                    const tipoLabel = tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto";
                     return (
                       <button
                         key={c.id}
@@ -679,17 +685,20 @@ function CalendarioMes({
                           setPopoverIso(null);
                           onPickCampanha(c.id);
                         }}
-                        className={`w-full text-left rounded-lg p-3 transition-colors ${modalItemCls[tipo]}`}
+                        className={`w-full text-left rounded-xl p-3 transition-colors ${modalItemCls[tipo]}`}
                       >
-                        <p className="text-sm font-semibold truncate">{c.nome}</p>
-                        <p className="text-xs opacity-70 uppercase mt-0.5">
-                          {hora} • {tipo === "channel" ? "Canal" : tipo === "group" ? "Grupo" : "Misto"} • {c.destino_ids.length} destino{c.destino_ids.length > 1 ? "s" : ""}
-                        </p>
+                        <h3 className="text-sm font-semibold truncate">{c.nome}</h3>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${modalBadgeCls[tipo]}`}>{hora}</span>
+                          <span className="text-[10px] font-medium opacity-80 uppercase tracking-wider">
+                            {tipoLabel} • {c.destino_ids.length} destino{c.destino_ids.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
                 </div>
-                <div className="pt-2 border-t border-border">
+                <div className="p-4 bg-muted/40 border-t border-border">
                   <button
                     type="button"
                     onClick={() => {
@@ -697,9 +706,10 @@ function CalendarioMes({
                       setPopoverIso(null);
                       openDay(iso);
                     }}
-                    className="w-full rounded-md bg-brand-orange px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+                    className="w-full py-2.5 rounded-xl bg-brand-orange text-white text-sm font-bold hover:opacity-90 transition-colors flex items-center justify-center gap-2"
                   >
-                    + Nova campanha nesse dia
+                    <Plus className="h-4 w-4" />
+                    Nova campanha nesse dia
                   </button>
                 </div>
               </>
@@ -710,6 +720,7 @@ function CalendarioMes({
     </section>
   );
 }
+
 
 
 // ==================== Sidebar de próximos disparos (dentro do card do calendário) ====================
