@@ -423,43 +423,66 @@ function SuggestionCard({
   const [channel, setChannel] = useState<string>(suggestion.suggested_channels[0] || "whatsapp");
 
   return (
-    <article className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      {pkg?.image_url && <img src={pkg.image_url} alt={pkg.title} className="h-36 w-full object-cover" loading="lazy" />}
-      <div className="space-y-3 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {suggestion.origin} → {suggestion.destination}</div>
-            <h3 className="line-clamp-2 font-semibold">{pkg?.title || suggestion.destination}</h3>
-          </div>
-          {pkg && <span className="shrink-0 text-sm font-semibold text-brand-orange">R$ {Number(pkg.price_per_person).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>}
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      {pkg?.image_url && (
+        <img src={pkg.image_url} alt={pkg.title} className="h-32 w-full object-cover" loading="lazy" />
+      )}
+      <div className="border-b border-border/60 p-4">
+        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <span>{suggestion.origin}</span>
+          <svg className="h-3 w-3 text-muted-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 8l4 4m0 0l-4 4m4-4H3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <span>{suggestion.destination}</span>
         </div>
-        {suggestion.reasoning && <p className="text-sm text-muted-foreground">{suggestion.reasoning}</p>}
-        <div className="grid gap-3 rounded-md bg-muted p-3 sm:grid-cols-3">
-          <label className="block">
-            <span className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" /> Data</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm" />
+        <h3 className="mt-1.5 line-clamp-2 text-base font-bold text-foreground">{pkg?.title || suggestion.destination}</h3>
+        {pkg && (
+          <p className="mt-0.5 text-lg font-black text-brand-orange">
+            R$ {Number(pkg.price_per_person).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+          </p>
+        )}
+      </div>
+      <div className="flex-1 space-y-3 p-4">
+        {suggestion.reasoning && (
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{suggestion.reasoning}</p>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <label className="space-y-1">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground">Data</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-medium outline-none transition-all focus:border-brand-orange focus:ring-2 focus:ring-orange-100" />
           </label>
-          <label className="block">
-            <span className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><Clock className="h-3.5 w-3.5" /> Horário</span>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm" />
-          </label>
-          <label className="block">
-            <span className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><Radio className="h-3.5 w-3.5" /> Canal</span>
-            <select value={channel} onChange={(e) => setChannel(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm">
-              <option value="whatsapp">WhatsApp</option>
-              <option value="instagram_feed">Instagram Feed</option>
-              <option value="instagram_story">Instagram Story</option>
-            </select>
+          <label className="space-y-1">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground">Horário</span>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-medium outline-none transition-all focus:border-brand-orange focus:ring-2 focus:ring-orange-100" />
           </label>
         </div>
-        <div className="flex gap-2 pt-1">
-          <Button onClick={() => onApprove(suggestion.id, { date: date || undefined, time: time || undefined, channel })} className="flex-1"><Check className="h-4 w-4" /> Aprovar</Button>
-          <Button variant="outline" onClick={() => onDismiss(suggestion.id)} aria-label="Descartar sugestão"><X className="h-4 w-4" /> Descartar</Button>
-        </div>
+        <label className="block space-y-1">
+          <span className="text-[10px] font-bold uppercase text-muted-foreground">Canal</span>
+          <select value={channel} onChange={(e) => setChannel(e.target.value)} className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-medium outline-none transition-all focus:border-brand-orange focus:ring-2 focus:ring-orange-100">
+            <option value="whatsapp">WhatsApp</option>
+            <option value="instagram_feed">Instagram Feed</option>
+            <option value="instagram_story">Instagram Story</option>
+          </select>
+        </label>
+      </div>
+      <div className="flex gap-2 border-t border-border/60 bg-muted/40 p-4">
+        <button
+          type="button"
+          onClick={() => onDismiss(suggestion.id)}
+          className="flex-1 rounded-xl border border-border bg-background py-2 text-xs font-bold text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
+        >
+          Descartar
+        </button>
+        <button
+          type="button"
+          onClick={() => onApprove(suggestion.id, { date: date || undefined, time: time || undefined, channel })}
+          className="flex-[2] rounded-xl bg-brand-orange py-2 text-xs font-bold text-white shadow-sm shadow-orange-200 transition-all hover:opacity-90 active:scale-95"
+        >
+          Aprovar
+        </button>
       </div>
     </article>
   );
 }
+
 
 
 
