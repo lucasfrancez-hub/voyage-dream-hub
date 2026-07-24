@@ -181,7 +181,7 @@ export function buildInitialNfseForm(detail: OrderDetail, personData: PersonBund
     cpfCnpj: doc,
     email: primaryEmail || pStr("email") || order.payerEmail || order.email || "",
     phone: primaryPhone || pStr("mobile_phone") || pStr("phone") || order.payerPhone || "",
-    valor: String(order.totalPrice ?? 0),
+    valor: String(computeValorServicos(detail)),
     discriminacao: buildAutoDescricao(detail),
     cep: pStr("zip") || order.payerZip || "",
     logradouro: pStr("address") || order.payerAddress || "",
