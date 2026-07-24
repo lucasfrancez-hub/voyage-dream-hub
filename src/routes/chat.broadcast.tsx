@@ -418,7 +418,7 @@ function SuggestionCard({
       : "";
   const [date, setDate] = useState(initialDate);
   const [time, setTime] = useState(suggestion.suggested_time || "10:00");
-  const [channel, setChannel] = useState<string>(suggestion.suggested_channels[0] || "whatsapp");
+  const [channel, setChannel] = useState<string>(suggestion.suggested_channels[0] || "channel");
 
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -455,10 +455,11 @@ function SuggestionCard({
         <label className="block space-y-1">
           <span className="text-[10px] font-bold uppercase text-muted-foreground">Canal</span>
           <select value={channel} onChange={(e) => setChannel(e.target.value)} className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-medium outline-none transition-all focus:border-brand-orange focus:ring-2 focus:ring-orange-100">
-            <option value="whatsapp">WhatsApp</option>
-            <option value="instagram_feed">Instagram Feed</option>
-            <option value="instagram_story">Instagram Story</option>
+            <option value="channel">Canal de WhatsApp</option>
+            <option value="group">Grupo de WhatsApp</option>
+            <option value="instagram_story">Story do Instagram</option>
           </select>
+
         </label>
       </div>
       <div className="flex gap-2 border-t border-border/60 bg-muted/40 p-4">
