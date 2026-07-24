@@ -371,7 +371,7 @@ function BroadcastSuggestions({
   onDismiss,
 }: {
   suggestions: BroadcastSuggestion[];
-  onApprove: (id: string) => void;
+  onApprove: (id: string, overrides?: { date?: string; time?: string; channel?: string }) => void;
   onDismiss: (id: string) => void;
 }) {
   if (suggestions.length === 0) {
@@ -390,45 +390,77 @@ function BroadcastSuggestions({
         <div className="rounded-md bg-accent p-2 text-brand-orange"><Sparkles className="h-5 w-5" /></div>
         <div>
           <h2 className="font-semibold">Sugestões para os próximos envios</h2>
-          <p className="text-sm text-muted-foreground">Pacotes, canal, data e horário recomendados para cada campanha.</p>
+          <p className="text-sm text-muted-foreground">Ajuste data, horário e canal antes de aprovar.</p>
         </div>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        {suggestions.map((suggestion) => {
-          const pkg = suggestion.packages;
-          const recommendedAt = resolveSuggestionDate(suggestion.suggested_day, suggestion.suggested_time);
-          return (
-            <article key={suggestion.id} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-              {pkg?.image_url && <img src={pkg.image_url} alt={pkg.title} className="h-36 w-full object-cover" loading="lazy" />}
-              <div className="space-y-3 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {suggestion.origin} → {suggestion.destination}</div>
-                    <h3 className="line-clamp-2 font-semibold">{pkg?.title || suggestion.destination}</h3>
-                  </div>
-                  {pkg && <span className="shrink-0 text-sm font-semibold text-brand-orange">R$ {Number(pkg.price_per_person).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>}
-                </div>
-                {suggestion.reasoning && <p className="text-sm text-muted-foreground">{suggestion.reasoning}</p>}
-                <div className="grid gap-2 rounded-md bg-muted p-3 sm:grid-cols-2">
-                  <div>
-                    <span className="block text-xs text-muted-foreground">Envio recomendado</span>
-                    <span className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold"><CalendarClock className="h-4 w-4 text-brand-orange" /> {recommendedAt ? recommendedAt.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" }) : "Próximo dia útil"}</span>
-                  </div>
-                  <div>
-                    <span className="block text-xs text-muted-foreground">Horário e canal</span>
-                    <span className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold"><Clock className="h-4 w-4 text-brand-orange" /> {suggestion.suggested_time || "10:00"} · {suggestion.suggested_channels[0] === "whatsapp" ? "WhatsApp" : suggestion.suggested_channels[0] === "instagram_feed" ? "Instagram Feed" : "Instagram Story"}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <Button onClick={() => onApprove(suggestion.id)} className="flex-1"><Check className="h-4 w-4" /> Aprovar</Button>
-                  <Button variant="outline" onClick={() => onDismiss(suggestion.id)} aria-label="Descartar sugestão"><X className="h-4 w-4" /> Descartar</Button>
-                </div>
-              </div>
-            </article>
-          );
-        })}
+        {suggestions.map((suggestion) => (
+          <SuggestionCard key={suggestion.id} suggestion={suggestion} onApprove={onApprove} onDismiss={onDismiss} />
+        ))}
       </div>
     </section>
+  );
+}
+
+function SuggestionCard({
+  suggestion,
+  onApprove,
+  onDismiss,
+}: {
+  suggestion: BroadcastSuggestion;
+  onApprove: (id: string, overrides?: { date?: string; time?: string; channel?: string }) => void;
+  onDismiss: (id: string) => void;
+}) {
+  const pkg = suggestion.packages;
+  const recommendedAt = resolveSuggestionDate(suggestion.suggested_day, suggestion.suggested_time);
+  const initialDate = /^\d{4}-\d{2}-\d{2}$/.test(suggestion.suggested_day || "")
+    ? (suggestion.suggested_day as string)
+    : recommendedAt
+      ? `${recommendedAt.getFullYear()}-${String(recommendedAt.getMonth() + 1).padStart(2, "0")}-${String(recommendedAt.getDate()).padStart(2, "0")}`
+      : "";
+  const [date, setDate] = useState(initialDate);
+  const [time, setTime] = useState(suggestion.suggested_time || "10:00");
+  const [channel, setChannel] = useState<string>(suggestion.suggested_channels[0] || "whatsapp");
+
+  return (
+    <article className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      {pkg?.image_url && <img src={pkg.image_url} alt={pkg.title} className="h-36 w-full object-cover" loading="lazy" />}
+      <div className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {suggestion.origin} → {suggestion.destination}</div>
+            <h3 className="line-clamp-2 font-semibold">{pkg?.title || suggestion.destination}</h3>
+          </div>
+          {pkg && <span className="shrink-0 text-sm font-semibold text-brand-orange">R$ {Number(pkg.price_per_person).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>}
+        </div>
+        {suggestion.reasoning && <p className="text-sm text-muted-foreground">{suggestion.reasoning}</p>}
+        <div className="grid gap-3 rounded-md bg-muted p-3 sm:grid-cols-3">
+          <label className="block">
+            <span className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><CalendarClock className="h-3.5 w-3.5" /> Data</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm" />
+          </label>
+          <label className="block">
+            <span className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><Clock className="h-3.5 w-3.5" /> Horário</span>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm" />
+          </label>
+          <label className="block">
+            <span className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><Radio className="h-3.5 w-3.5" /> Canal</span>
+            <select value={channel} onChange={(e) => setChannel(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm">
+              <option value="whatsapp">WhatsApp</option>
+              <option value="instagram_feed">Instagram Feed</option>
+              <option value="instagram_story">Instagram Story</option>
+            </select>
+          </label>
+        </div>
+        <div className="flex gap-2 pt-1">
+          <Button onClick={() => onApprove(suggestion.id, { date: date || undefined, time: time || undefined, channel })} className="flex-1"><Check className="h-4 w-4" /> Aprovar</Button>
+          <Button variant="outline" onClick={() => onDismiss(suggestion.id)} aria-label="Descartar sugestão"><X className="h-4 w-4" /> Descartar</Button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
   );
 }
 
