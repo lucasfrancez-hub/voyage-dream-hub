@@ -540,10 +540,16 @@ function CalendarioMes({
     mixed: "bg-brand-orange/15 border-l-2 border-brand-orange text-orange-700 dark:text-orange-300 hover:bg-brand-orange/25",
   };
   const modalItemCls: Record<"channel" | "group" | "mixed", string> = {
-    channel: "bg-indigo-600 hover:bg-indigo-700 text-white border-l-4 border-indigo-900",
-    group: "bg-emerald-600 hover:bg-emerald-700 text-white border-l-4 border-emerald-900",
-    mixed: "bg-brand-orange hover:opacity-90 text-white border-l-4 border-orange-800",
+    channel: "bg-violet-50/60 border-l-4 border-violet-500 hover:bg-violet-50 text-violet-900",
+    group: "bg-emerald-50/60 border-l-4 border-emerald-500 hover:bg-emerald-50 text-emerald-900",
+    mixed: "bg-orange-50/60 border-l-4 border-brand-orange hover:bg-orange-50 text-orange-900",
   };
+  const modalBadgeCls: Record<"channel" | "group" | "mixed", string> = {
+    channel: "bg-violet-100 text-violet-700",
+    group: "bg-emerald-100 text-emerald-700",
+    mixed: "bg-orange-100 text-orange-700",
+  };
+
 
 
   return (
