@@ -418,7 +418,7 @@ function SuggestionCard({
       : "";
   const [date, setDate] = useState(initialDate);
   const [time, setTime] = useState(suggestion.suggested_time || "10:00");
-  const [channel, setChannel] = useState<string>(suggestion.suggested_channels[0] || "whatsapp");
+  const [channel, setChannel] = useState<string>(suggestion.suggested_channels[0] || "channel");
 
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
