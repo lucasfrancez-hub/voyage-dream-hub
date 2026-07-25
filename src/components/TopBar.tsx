@@ -16,10 +16,7 @@ type TopBarProps = {
 const SITE_URL = "https://viaair.tur.br";
 
 const NAV_ITEMS: { label: string; href: string }[] = [
-  { label: "Buscar", href: `${SITE_URL}/#buscar` },
-  { label: "Destinos", href: `${SITE_URL}/#destinos` },
-  { label: "Serviços", href: `${SITE_URL}/#servicos` },
-  { label: "Corporativo", href: `${SITE_URL}/#corporativo` },
+  { label: "Página inicial", href: SITE_URL },
   { label: "Sobre", href: `${SITE_URL}/#sobre` },
   { label: "Contato", href: `${SITE_URL}/#contato` },
 ];
