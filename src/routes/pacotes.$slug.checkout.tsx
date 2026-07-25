@@ -94,9 +94,9 @@ function Checkout() {
     if (pkg?.base_occupancy) setAdults(pkg.base_occupancy);
   }, [pkg?.base_occupancy]);
 
-  // Grow / shrink the travelers list to always match adults + children.
+  // Grow / shrink the travelers list. Per-unit uses adults=qty as one adult per unit.
   useEffect(() => {
-    const total = Math.max(1, adults + children);
+    const total = Math.max(1, isPerUnit ? adults : adults + children);
     setTravelers((prev) => {
       if (prev.length === total) return prev;
       if (prev.length < total) {
@@ -104,7 +104,7 @@ function Checkout() {
       }
       return prev.slice(0, total);
     });
-  }, [adults, children]);
+  }, [adults, children, isPerUnit]);
 
   function updateTraveler(index: number, patch: Partial<Traveler>) {
     setTravelers((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
