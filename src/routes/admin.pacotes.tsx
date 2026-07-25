@@ -2420,10 +2420,12 @@ function ServicesEditor({
   value,
   onChange,
   inpClass,
+  kind = "package",
 }: {
   value: PackageServices;
   onChange: (next: PackageServices) => void;
   inpClass: string;
+  kind?: PackageKind;
 }) {
   const v = value ?? {};
   const seguro = v.seguro ?? {};
@@ -2432,6 +2434,11 @@ function ServicesEditor({
   const tickets = v.tickets ?? {};
   const parks = (tickets.parks ?? []) as string[];
   const outros = v.outros ?? [];
+  const showCancelamento = kind === "package" || kind === "cruise";
+  const showCityTour = kind === "package";
+  const showTickets = kind === "package" || kind === "service";
+  const showOutros = kind !== "service";
+
 
 
   function patch(p: Partial<PackageServices>) {
