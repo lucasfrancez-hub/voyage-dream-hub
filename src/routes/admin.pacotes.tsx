@@ -2118,8 +2118,17 @@ function PackageEditorModal({
               </div>
             )}
 
-            {tab === "hotel" && (
+            {tab === "hotel" && kind === "cruise" && (
+              <CruiseEditor
+                value={(editing.services ?? {}) as PackageServices}
+                onChange={(next) => setEditing({ ...editing, services: next })}
+                inpClass={inp}
+              />
+            )}
+
+            {tab === "hotel" && kind !== "cruise" && (
               <div className="grid sm:grid-cols-2 gap-3">
+
                 <FormField label="Hotel" wide>
                   <HotelAutocomplete
                     value={editing.hotel_name ?? ""}
