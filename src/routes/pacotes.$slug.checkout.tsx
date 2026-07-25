@@ -34,7 +34,7 @@ function Checkout() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle();
@@ -79,6 +79,11 @@ function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [preferredDate, setPreferredDate] = useState("");
+
+  const isPerUnit = (pkg as any)?.pricing_mode === "per_unit";
+  const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
+  const maxUnits = Math.min(9, Math.max(1, Number((pkg as any)?.max_units) || 9));
 
   function patchBoleto(patch: Partial<BoletoData>) {
     setBoleto((prev) => ({ ...prev, ...patch }));
