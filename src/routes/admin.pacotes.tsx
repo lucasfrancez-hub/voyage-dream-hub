@@ -2563,8 +2563,10 @@ function ServicesEditor({
             </div>
           )}
         </div>
+        )}
 
         {/* Transfer */}
+
         <div className="rounded-xl border border-border bg-background/60 p-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
