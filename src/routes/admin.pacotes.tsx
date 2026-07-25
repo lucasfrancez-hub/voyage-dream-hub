@@ -356,7 +356,7 @@ function AdminPackages() {
       return sortDir === "asc" ? bc - ac : ac - bc;
     });
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
+  }, [packages, originFilter, destinationFilter, monthFilter, kindFilter, sortDir, sortMode]);
 
   const hasActiveFilters =
     originFilter !== "all" ||
