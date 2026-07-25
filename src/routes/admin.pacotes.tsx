@@ -1775,11 +1775,19 @@ function PackageEditorModal({
                 <FormField label="Slug (URL, auto)">
                   <input
                     className={inp}
-                    value={editing.slug || derived.slug || ""}
+                    value={
+                      editing.slug ||
+                      (derived.slug
+                        ? !editing.id && nextNumber
+                          ? `${derived.slug.replace(/[-#]\d+$/, "")}-${nextNumber}`
+                          : derived.slug
+                        : "")
+                    }
                     onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
                     placeholder="aracaju-abril-2027"
                   />
                 </FormField>
+
                 <FormField label="Ordem de exibição">
                   <input
                     type="number"
