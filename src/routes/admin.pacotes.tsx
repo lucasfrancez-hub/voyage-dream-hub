@@ -1979,22 +1979,50 @@ function PackageEditorModal({
 
             {tab === "dates" && (
               <div className="grid sm:grid-cols-2 gap-3">
-                <FormField label="Data ida">
-                  <input
-                    type="date"
-                    className={inp}
-                    value={editing.going_date ?? ""}
-                    onChange={(e) => setEditing({ ...editing, going_date: e.target.value })}
-                  />
+                <FormField label="Modo de data" wide>
+                  <div className="flex gap-2">
+                    {([
+                      { v: "fixed", label: "Data fixa" },
+                      { v: "flexible", label: "Cliente escolhe a data" },
+                    ] as const).map((o) => {
+                      const active = (editing.date_mode ?? "fixed") === o.v;
+                      return (
+                        <button
+                          type="button"
+                          key={o.v}
+                          onClick={() => setEditing({ ...editing, date_mode: o.v })}
+                          className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                            active
+                              ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                              : "border-border hover:border-brand-orange/50"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </FormField>
-                <FormField label="Data volta">
-                  <input
-                    type="date"
-                    className={inp}
-                    value={editing.return_date ?? ""}
-                    onChange={(e) => setEditing({ ...editing, return_date: e.target.value })}
-                  />
-                </FormField>
+                {(editing.date_mode ?? "fixed") === "fixed" && (
+                  <>
+                    <FormField label="Data ida">
+                      <input
+                        type="date"
+                        className={inp}
+                        value={editing.going_date ?? ""}
+                        onChange={(e) => setEditing({ ...editing, going_date: e.target.value })}
+                      />
+                    </FormField>
+                    <FormField label="Data volta">
+                      <input
+                        type="date"
+                        className={inp}
+                        value={editing.return_date ?? ""}
+                        onChange={(e) => setEditing({ ...editing, return_date: e.target.value })}
+                      />
+                    </FormField>
+                  </>
+                )}
                 <FormField label="Noites">
                   <input
                     type="number"
