@@ -322,6 +322,7 @@ function AdminPackages() {
 
   const displayPackages = useMemo(() => {
     const filtered = (packages || []).filter((p) => {
+      if (kindFilter !== "all" && (p.kind ?? "package") !== kindFilter) return false;
       if (originFilter !== "all" && originKey(p.origin) !== originKey(originFilter)) return false;
       if (destinationFilter !== "all" && p.destination !== destinationFilter) return false;
       if (monthFilter !== "all") {
