@@ -1423,6 +1423,11 @@ function PackageEditorModal({
               ? "OUT"
               : "IN/OUT";
       list.push(`Transfer ${label} (Aeroporto ↔ Hotel)`);
+      const pickups = (svc.transfer.pickup_points ?? "")
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      for (const p of pickups) list.push(`Embarque do transfer: ${p}`);
     }
     if (svc.city_tour?.enabled) {
       const det = (svc.city_tour.detalhe ?? "").trim();
