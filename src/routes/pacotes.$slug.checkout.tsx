@@ -112,8 +112,9 @@ function Checkout() {
 
   const subtotalPrice = useMemo(() => {
     if (!pkg) return 0;
-    return Number(pkg.price_per_person) * (adults + children);
-  }, [pkg, adults, children]);
+    const units = isPerUnit ? adults : (adults + children);
+    return Number(pkg.price_per_person) * units;
+  }, [pkg, adults, children, isPerUnit]);
 
   const PIX_DISCOUNT = 0.05;
   const taxesAmount = Number(pkg?.taxes ?? 0);
@@ -122,7 +123,7 @@ function Checkout() {
   const totalPrice = subtotalPrice - pixDiscountValue;
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
-  const occupancyMismatch = !!pkg && adults + children !== baseOccupancy;
+  const occupancyMismatch = !isPerUnit && !!pkg && adults + children !== baseOccupancy;
 
   const boletoCpfDigits = boleto.cpf.replace(/\D/g, "");
   const boletoNameNorm = boleto.full_name.trim().toLowerCase();
