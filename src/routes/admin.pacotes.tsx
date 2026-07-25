@@ -2782,6 +2782,68 @@ function ServicesEditor({
   );
 }
 
+function CruiseEditor({
+  value,
+  onChange,
+  inpClass,
+}: {
+  value: PackageServices;
+  onChange: (next: PackageServices) => void;
+  inpClass: string;
+}) {
+  const cruise = value?.cruise ?? {};
+  const patch = (p: Partial<NonNullable<PackageServices["cruise"]>>) =>
+    onChange({ ...value, cruise: { ...cruise, ...p } });
+  return (
+    <div className="grid sm:grid-cols-2 gap-3">
+      <FormField label="Companhia do cruzeiro">
+        <input
+          className={inpClass}
+          placeholder="Ex.: MSC Cruzeiros, Costa Cruzeiros"
+          value={cruise.company ?? ""}
+          onChange={(e) => patch({ company: e.target.value })}
+        />
+      </FormField>
+      <FormField label="Navio">
+        <input
+          className={inpClass}
+          placeholder="Ex.: MSC Seaview"
+          value={cruise.ship ?? ""}
+          onChange={(e) => patch({ ship: e.target.value })}
+        />
+      </FormField>
+      <FormField label="Tipo de cabine">
+        <select
+          className={inpClass}
+          value={cruise.cabin_type ?? ""}
+          onChange={(e) => patch({ cabin_type: e.target.value })}
+        >
+          <option value="">— Não informado —</option>
+          <option value="Interna">Interna</option>
+          <option value="Externa">Externa (com vista)</option>
+          <option value="Externa com varanda">Externa com varanda</option>
+          <option value="Suíte">Suíte</option>
+          <option value="Suíte com varanda">Suíte com varanda</option>
+          <option value="Yacht Club">Yacht Club</option>
+        </select>
+      </FormField>
+      <FormField label="Regime a bordo">
+        <select
+          className={inpClass}
+          value={cruise.board_regime ?? ""}
+          onChange={(e) => patch({ board_regime: e.target.value })}
+        >
+          <option value="">— Não informado —</option>
+          <option value="Pensão completa">Pensão completa</option>
+          <option value="All inclusive">All inclusive</option>
+          <option value="Bebidas inclusas">Bebidas inclusas</option>
+        </select>
+      </FormField>
+    </div>
+  );
+}
+
+
 function cleanFlight(f: FlightInfo | null | undefined): FlightInfo | null {
   if (!f) return null;
   const normalizedBaggage = normalizeFlightBaggage(f) as FlightInfo;
