@@ -710,23 +710,41 @@ function AdminPackages() {
             )}
           </button>
 
-          <button
-            type="button"
-            title="Novo pacote"
-            onClick={async () => {
-              try {
-                const base = await nextPackageBaseNumber();
-                setPendingNumbers([base]);
-              } catch {
-                setPendingNumbers(null);
-              }
-              setEditing({ ...emptyForm });
-            }}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-orange hover:bg-[#ff7b30] text-white transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(242,107,31,0.2)]"
-          >
-            <Plus className="h-4 w-4" strokeWidth={3} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                title="Novo cadastro"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-orange hover:bg-[#ff7b30] text-white transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(242,107,31,0.2)]"
+              >
+                <Plus className="h-4 w-4" strokeWidth={3} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              {([
+                { k: "package", label: "Pacote", Icon: PackageIcon },
+                { k: "service", label: "Ingresso / Serviço", Icon: Ticket },
+                { k: "cruise", label: "Cruzeiro", Icon: Ship },
+              ] as { k: PackageKind; label: string; Icon: typeof PackageIcon }[]).map(({ k, label, Icon }) => (
+                <DropdownMenuItem
+                  key={k}
+                  onSelect={async () => {
+                    try {
+                      const base = await nextPackageBaseNumber();
+                      setPendingNumbers([base]);
+                    } catch {
+                      setPendingNumbers(null);
+                    }
+                    setEditing({ ...emptyForm, kind: k });
+                  }}
+                  className="gap-2"
+                >
+                  <Icon className="h-4 w-4 text-brand-orange" /> {label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          </button>
         </div>
 
       </div>
