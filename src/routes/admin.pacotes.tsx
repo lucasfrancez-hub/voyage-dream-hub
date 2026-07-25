@@ -767,6 +767,34 @@ function AdminPackages() {
         </button>
       </div>
 
+      {view === "list" && (
+        <div className="mb-4 inline-flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
+          {([
+            { k: "all", label: "Todos", Icon: ListIcon },
+            { k: "package", label: "Pacotes", Icon: PackageIcon },
+            { k: "service", label: "Ingressos", Icon: Ticket },
+            { k: "cruise", label: "Cruzeiros", Icon: Ship },
+          ] as { k: "all" | PackageKind; label: string; Icon: typeof ListIcon }[]).map(({ k, label, Icon }) => {
+            const active = kindFilter === k;
+            const count = k === "all"
+              ? (packages || []).length
+              : (packages || []).filter((p) => (p.kind ?? "package") === k).length;
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setKindFilter(k)}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${active ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Icon className="h-3.5 w-3.5" /> {label}
+                <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${active ? "bg-white/20" : "bg-muted"}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+
       {view === "curadoria" ? (
         <CurationTab
           packages={(packages || []) as any}
