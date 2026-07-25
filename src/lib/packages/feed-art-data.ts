@@ -110,7 +110,7 @@ export type PackageServices = {
     cobertura?: string | null;
     moeda?: SeguroMoeda | null;
   };
-  transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null };
+  transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null; pickup_points?: string | null };
   city_tour?: { enabled?: boolean; detalhe?: string | null };
   passeios?: string[] | null;
   tickets?: { enabled?: boolean; parks?: string[] | null };
