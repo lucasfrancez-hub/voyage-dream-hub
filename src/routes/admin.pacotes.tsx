@@ -160,6 +160,7 @@ type PackageRow = {
 const emptyForm: Partial<PackageRow> = {
   slug: "",
   title: "",
+  kind: "package",
   destination: "",
   origin: "",
   going_date: "",
