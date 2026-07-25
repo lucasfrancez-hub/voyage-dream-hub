@@ -708,19 +708,30 @@ function Checkout() {
                 <div className="font-medium">{pkg.title}</div>
                 <div className="text-muted-foreground text-xs">{pkg.destination}</div>
                 <div className="text-muted-foreground text-xs">
-                  {formatDateRange(pkg.going_date, pkg.return_date)}
+                  {isFlexibleDate
+                    ? (preferredDate ? `Data desejada: ${preferredDate.split("-").reverse().join("/")}` : "Data à escolher")
+                    : formatDateRange(pkg.going_date, pkg.return_date)}
                 </div>
               </div>
               <div className="mt-5 space-y-2 text-sm border-t border-border pt-4">
-                <SummaryLine
-                  label={`Adultos × ${adults}`}
-                  value={formatBRL(Number(pkg.price_per_person) * adults)}
-                />
-                {children > 0 && (
+                {isPerUnit ? (
                   <SummaryLine
-                    label={`Crianças × ${children}`}
-                    value={formatBRL(Number(pkg.price_per_person) * children)}
+                    label={`Ingressos × ${adults}`}
+                    value={formatBRL(Number(pkg.price_per_person) * adults)}
                   />
+                ) : (
+                  <>
+                    <SummaryLine
+                      label={`Adultos × ${adults}`}
+                      value={formatBRL(Number(pkg.price_per_person) * adults)}
+                    />
+                    {children > 0 && (
+                      <SummaryLine
+                        label={`Crianças × ${children}`}
+                        value={formatBRL(Number(pkg.price_per_person) * children)}
+                      />
+                    )}
+                  </>
                 )}
                 {Number(pkg.taxes ?? 0) > 0 && (
                   <SummaryLine
