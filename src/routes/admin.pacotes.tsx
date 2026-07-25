@@ -120,10 +120,13 @@ type FlightInfo = {
   segments?: FlightSegment[];
 };
 
+type PackageKind = "package" | "service" | "cruise";
+
 type PackageRow = {
   id: string;
   slug: string;
   title: string;
+  kind: PackageKind;
   destination: string;
   origin: string | null;
   going_date: string | null;
