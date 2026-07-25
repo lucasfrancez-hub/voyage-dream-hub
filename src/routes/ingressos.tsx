@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Ticket, Calendar as CalendarIcon, MapPin } from "lucide-react";
+import { Ticket, Calendar as CalendarIcon, MapPin, Building2, Plane, Shield, Bus } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
