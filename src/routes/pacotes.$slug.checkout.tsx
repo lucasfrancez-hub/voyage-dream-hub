@@ -351,9 +351,9 @@ function Checkout() {
           Preencha seus dados e escolha a forma de pagamento. Nosso time confirma sua reserva em seguida.
         </p>
 
-        <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
         {!isPerUnit && (
           <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+
             Este pacote foi montado para{" "}
             <span className="text-foreground font-medium">
               {baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}
