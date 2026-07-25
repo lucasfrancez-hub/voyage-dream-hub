@@ -493,7 +493,7 @@ function AdminPackages() {
       kind: (pkg.kind ?? "package") as PackageKind,
       date_mode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
       pricing_mode: (pkg.pricing_mode ?? "per_occupancy") as "per_occupancy" | "per_unit",
-      max_units: Math.min(99, Math.max(1, Number(pkg.max_units) || 9)),
+      max_units: Math.min(9, Math.max(1, Number(pkg.max_units) || 9)),
     } as any;
     const savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
