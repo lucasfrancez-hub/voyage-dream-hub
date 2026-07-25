@@ -155,6 +155,9 @@ type PackageRow = {
   tripadvisor_address: string | null;
   tripadvisor_photos: string[] | null;
   services: PackageServices | null;
+  date_mode: "fixed" | "flexible";
+  pricing_mode: "per_occupancy" | "per_unit";
+  max_units: number;
 };
 
 const emptyForm: Partial<PackageRow> = {
@@ -185,6 +188,9 @@ const emptyForm: Partial<PackageRow> = {
   return_flight: null,
   supplier_name: "",
   services: {},
+  date_mode: "fixed",
+  pricing_mode: "per_occupancy",
+  max_units: 9,
 };
 
 function AdminPackages() {
@@ -485,6 +491,9 @@ function AdminPackages() {
         pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
       services: (pkg.services ?? {}) as any,
       kind: (pkg.kind ?? "package") as PackageKind,
+      date_mode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
+      pricing_mode: (pkg.pricing_mode ?? "per_occupancy") as "per_occupancy" | "per_unit",
+      max_units: Math.min(99, Math.max(1, Number(pkg.max_units) || 9)),
     } as any;
     const savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
