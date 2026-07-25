@@ -484,6 +484,7 @@ function AdminPackages() {
       tripadvisor_photos:
         pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
       services: (pkg.services ?? {}) as any,
+      kind: (pkg.kind ?? "package") as PackageKind,
     } as any;
     const savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
