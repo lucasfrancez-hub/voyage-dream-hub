@@ -23,6 +23,9 @@ import {
   SlidersHorizontal,
   ArrowUp,
   ArrowDown,
+  Ticket,
+  Ship,
+  Package as PackageIcon,
 } from "lucide-react";
 import {
   Select,
@@ -117,10 +120,13 @@ type FlightInfo = {
   segments?: FlightSegment[];
 };
 
+type PackageKind = "package" | "service" | "cruise";
+
 type PackageRow = {
   id: string;
   slug: string;
   title: string;
+  kind: PackageKind;
   destination: string;
   origin: string | null;
   going_date: string | null;
@@ -154,6 +160,7 @@ type PackageRow = {
 const emptyForm: Partial<PackageRow> = {
   slug: "",
   title: "",
+  kind: "package",
   destination: "",
   origin: "",
   going_date: "",
@@ -198,6 +205,7 @@ function AdminPackages() {
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [kindFilter, setKindFilter] = useState<"all" | PackageKind>("all");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [sortMode, setSortMode] = useState<
     "manual" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
@@ -314,6 +322,7 @@ function AdminPackages() {
 
   const displayPackages = useMemo(() => {
     const filtered = (packages || []).filter((p) => {
+      if (kindFilter !== "all" && (p.kind ?? "package") !== kindFilter) return false;
       if (originFilter !== "all" && originKey(p.origin) !== originKey(originFilter)) return false;
       if (destinationFilter !== "all" && p.destination !== destinationFilter) return false;
       if (monthFilter !== "all") {
@@ -347,7 +356,7 @@ function AdminPackages() {
       return sortDir === "asc" ? bc - ac : ac - bc;
     });
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
+  }, [packages, originFilter, destinationFilter, monthFilter, kindFilter, sortDir, sortMode]);
 
   const hasActiveFilters =
     originFilter !== "all" ||
@@ -475,6 +484,7 @@ function AdminPackages() {
       tripadvisor_photos:
         pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
       services: (pkg.services ?? {}) as any,
+      kind: (pkg.kind ?? "package") as PackageKind,
     } as any;
     const savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
@@ -700,23 +710,41 @@ function AdminPackages() {
             )}
           </button>
 
-          <button
-            type="button"
-            title="Novo pacote"
-            onClick={async () => {
-              try {
-                const base = await nextPackageBaseNumber();
-                setPendingNumbers([base]);
-              } catch {
-                setPendingNumbers(null);
-              }
-              setEditing({ ...emptyForm });
-            }}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-orange hover:bg-[#ff7b30] text-white transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(242,107,31,0.2)]"
-          >
-            <Plus className="h-4 w-4" strokeWidth={3} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                title="Novo cadastro"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-orange hover:bg-[#ff7b30] text-white transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(242,107,31,0.2)]"
+              >
+                <Plus className="h-4 w-4" strokeWidth={3} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              {([
+                { k: "package", label: "Pacote", Icon: PackageIcon },
+                { k: "service", label: "Ingresso / Serviço", Icon: Ticket },
+                { k: "cruise", label: "Cruzeiro", Icon: Ship },
+              ] as { k: PackageKind; label: string; Icon: typeof PackageIcon }[]).map(({ k, label, Icon }) => (
+                <DropdownMenuItem
+                  key={k}
+                  onSelect={async () => {
+                    try {
+                      const base = await nextPackageBaseNumber();
+                      setPendingNumbers([base]);
+                    } catch {
+                      setPendingNumbers(null);
+                    }
+                    setEditing({ ...emptyForm, kind: k });
+                  }}
+                  className="gap-2"
+                >
+                  <Icon className="h-4 w-4 text-brand-orange" /> {label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          </button>
         </div>
 
       </div>
@@ -738,6 +766,34 @@ function AdminPackages() {
           <SparklesIcon className="h-3.5 w-3.5" /> Curadoria IA
         </button>
       </div>
+
+      {view === "list" && (
+        <div className="mb-4 inline-flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
+          {([
+            { k: "all", label: "Todos", Icon: ListIcon },
+            { k: "package", label: "Pacotes", Icon: PackageIcon },
+            { k: "service", label: "Ingressos", Icon: Ticket },
+            { k: "cruise", label: "Cruzeiros", Icon: Ship },
+          ] as { k: "all" | PackageKind; label: string; Icon: typeof ListIcon }[]).map(({ k, label, Icon }) => {
+            const active = kindFilter === k;
+            const count = k === "all"
+              ? (packages || []).length
+              : (packages || []).filter((p) => (p.kind ?? "package") === k).length;
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setKindFilter(k)}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${active ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Icon className="h-3.5 w-3.5" /> {label}
+                <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${active ? "bg-white/20" : "bg-muted"}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
 
       {view === "curadoria" ? (
         <CurationTab

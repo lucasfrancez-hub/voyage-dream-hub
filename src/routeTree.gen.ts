@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChatRouteImport } from './routes/chat'
+import { Route as CruzeirosRouteImport } from './routes/cruzeiros'
 import { Route as EmbedTesteRouteImport } from './routes/embed-teste'
 import { Route as ExclusaoDeDadosRouteImport } from './routes/exclusao-de-dados'
+import { Route as IngressosRouteImport } from './routes/ingressos'
 import { Route as MinhasReservasRouteImport } from './routes/minhas-reservas'
 import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as PagarRouteImport } from './routes/pagar'
@@ -109,6 +111,11 @@ const ChatRoute = ChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CruzeirosRoute = CruzeirosRouteImport.update({
+  id: '/cruzeiros',
+  path: '/cruzeiros',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmbedTesteRoute = EmbedTesteRouteImport.update({
   id: '/embed-teste',
   path: '/embed-teste',
@@ -117,6 +124,11 @@ const EmbedTesteRoute = EmbedTesteRouteImport.update({
 const ExclusaoDeDadosRoute = ExclusaoDeDadosRouteImport.update({
   id: '/exclusao-de-dados',
   path: '/exclusao-de-dados',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IngressosRoute = IngressosRouteImport.update({
+  id: '/ingressos',
+  path: '/ingressos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MinhasReservasRoute = MinhasReservasRouteImport.update({
@@ -505,8 +517,10 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
+  '/cruzeiros': typeof CruzeirosRoute
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
+  '/ingressos': typeof IngressosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
@@ -586,8 +600,10 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
+  '/cruzeiros': typeof CruzeirosRoute
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
+  '/ingressos': typeof IngressosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
@@ -667,8 +683,10 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
+  '/cruzeiros': typeof CruzeirosRoute
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
+  '/ingressos': typeof IngressosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
@@ -750,8 +768,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/chat'
+    | '/cruzeiros'
     | '/embed-teste'
     | '/exclusao-de-dados'
+    | '/ingressos'
     | '/minhas-reservas'
     | '/pacotes'
     | '/pagar'
@@ -831,8 +851,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/chat'
+    | '/cruzeiros'
     | '/embed-teste'
     | '/exclusao-de-dados'
+    | '/ingressos'
     | '/minhas-reservas'
     | '/pagar'
     | '/pagar-boleto'
@@ -911,8 +933,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/chat'
+    | '/cruzeiros'
     | '/embed-teste'
     | '/exclusao-de-dados'
+    | '/ingressos'
     | '/minhas-reservas'
     | '/pacotes'
     | '/pagar'
@@ -993,8 +1017,10 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   ChatRoute: typeof ChatRouteWithChildren
+  CruzeirosRoute: typeof CruzeirosRoute
   EmbedTesteRoute: typeof EmbedTesteRoute
   ExclusaoDeDadosRoute: typeof ExclusaoDeDadosRoute
+  IngressosRoute: typeof IngressosRoute
   MinhasReservasRoute: typeof MinhasReservasRoute
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
@@ -1064,6 +1090,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cruzeiros': {
+      id: '/cruzeiros'
+      path: '/cruzeiros'
+      fullPath: '/cruzeiros'
+      preLoaderRoute: typeof CruzeirosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/embed-teste': {
       id: '/embed-teste'
       path: '/embed-teste'
@@ -1076,6 +1109,13 @@ declare module '@tanstack/react-router' {
       path: '/exclusao-de-dados'
       fullPath: '/exclusao-de-dados'
       preLoaderRoute: typeof ExclusaoDeDadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ingressos': {
+      id: '/ingressos'
+      path: '/ingressos'
+      fullPath: '/ingressos'
+      preLoaderRoute: typeof IngressosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/minhas-reservas': {
@@ -1704,8 +1744,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   ChatRoute: ChatRouteWithChildren,
+  CruzeirosRoute: CruzeirosRoute,
   EmbedTesteRoute: EmbedTesteRoute,
   ExclusaoDeDadosRoute: ExclusaoDeDadosRoute,
+  IngressosRoute: IngressosRoute,
   MinhasReservasRoute: MinhasReservasRoute,
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
@@ -1749,13 +1791,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

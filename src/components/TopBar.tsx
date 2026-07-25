@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, MessageCircle, Ticket } from "lucide-react";
+import { ArrowLeft, MessageCircle, Ticket, Ship, Package as PackageIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { WHATSAPP_PHONE } from "@/lib/checkout-config";
@@ -57,7 +57,16 @@ export function TopBar({
           <img src={viaAirLogo.url} alt="Via Air" className="h-9 w-auto" />
         </a>
 
-        <nav className="hidden lg:flex items-center gap-7">
+        <nav className="hidden lg:flex items-center gap-6">
+          <Link to="/ingressos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
+            <Ticket className="h-3.5 w-3.5" /> Ingressos
+          </Link>
+          <Link to="/cruzeiros" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
+            <Ship className="h-3.5 w-3.5" /> Cruzeiros
+          </Link>
+          <Link to="/pacotes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
+            <PackageIcon className="h-3.5 w-3.5" /> Pacotes
+          </Link>
           {NAV_ITEMS.map((item) => (
             <a
               key={item.label}

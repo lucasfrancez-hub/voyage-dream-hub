@@ -1,70 +1,54 @@
-# Instagram + Meta App Review — Plano
+## O que vai mudar
 
-Escopo travado pelas suas respostas: DMs, respostas automáticas de comentários, publicação de Story e Feed, abas WhatsApp/Instagram na caixa de entrada, e um MP4 de demonstração gravado no sandbox.
+### 1. Classificar cada registro por tipo
+Adiciono uma coluna `kind` na tabela `packages` com três valores:
+- `package` — pacote completo (o que já existe)
+- `service` — serviço/ingresso (Rock in Rio, transfers, etc.), pode ter hotel opcional
+- `cruise` — cruzeiro
 
-## 1. Fundação (mesma arquitetura do WhatsApp)
+Migração: adiciona a coluna com default `package`, backfill em todos os registros atuais como `package`.
 
-**Migração de banco** (`instagram_*`):
-- `instagram_accounts`: `ig_user_id`, `page_id`, `username`, `access_token` (criptografado), `token_expires_at`, `webhook_verify_token`.
-- `instagram_conversations`: espelho de `whatsapp_conversations` com `ig_user_id`/`ig_thread_id`.
-- `instagram_messages`: DM inbound/outbound + reply threading.
-- `instagram_comments`: `media_id`, `comment_id`, `parent_id`, `from_username`, `text`, `auto_replied_at`.
-- `instagram_media`: registros de posts/stories publicados (`media_type`, `permalink`, `caption`, `published_at`, `scheduled_for`).
-- RLS + GRANT em todas.
+### 2. Botão "+" no admin de pacotes
+O botão + vira um menu dropdown com três opções:
+- **Pacote** (fluxo atual, aéreo + hotel)
+- **Serviço / Ingresso** (destino como cidade/evento, imagem, preço, descrição, hotel opcional, transfers/ingressos via `services`; sem aéreo obrigatório)
+- **Cruzeiro** (navio, cabine, porto embarque/desembarque, noites — reaproveita `hotel_name`/`destination` como navio/porto por enquanto, com rótulos ajustados no formulário)
 
-**Secrets** (via `add_secret` no próximo turno):
-`META_APP_ID`, `META_APP_SECRET`, `META_IG_VERIFY_TOKEN`, `META_IG_LONG_LIVED_TOKEN`, `META_IG_BUSINESS_ID`, `META_PAGE_ID`.
+Cada opção abre o mesmo `PackageEditor` com o `kind` já definido e campos irrelevantes ocultos.
 
-## 2. Webhook + envio (`/api/public/instagram/webhook`)
+### 3. Filtro por tipo na listagem admin
+Na lista `/admin/pacotes`, adiciono abas rápidas: **Pacotes** · **Ingressos** · **Cruzeiros**. Cada aba filtra por `kind`.
 
-- GET → hub challenge (verify token).
-- POST → validação HMAC `x-hub-signature-256`, roteamento:
-  - `messages` → `instagram_messages` + reaproveita `dispatch-ai-debounced` (mesmo agente Camila/Roberto/Maria/Giovani, mesma stickiness).
-  - `comments` → `instagram_comments` + auto-resposta (regra: IA responde pública curta + DM ao autor com pacote sugerido).
-  - `mentions` → mesmo pipeline de comentários.
+### 4. Duas páginas públicas novas, bem-feitas
 
-**Envio** (`src/lib/instagram/send.server.ts`): DM texto, DM com botão de link (pacote), reply a comentário, DM privado ao autor do comentário — reaproveita `splitToBubbles` e adaptive debounce.
+**`/ingressos`** — vitrine exclusiva de serviços/ingressos
+- Layout tipo grid de cards, hero destacando "Ingressos e experiências"
+- Cada card: imagem grande, título do evento/serviço, cidade, data, "a partir de R$ X", botão "Reservar"
+- Clique leva para `/pacotes/[slug]` (fluxo de checkout já existe e funciona com qualquer pacote)
 
-**Publicação** (`src/lib/instagram/publish.server.ts`): Story (imagem/vídeo), Feed foto única, carrossel, Reels — fluxo `POST /media` → `POST /media_publish`. Botões no admin de pacotes prontos: "Publicar Story" / "Publicar Feed".
+**`/cruzeiros`** — vitrine exclusiva de cruzeiros
+- Layout mais imersivo (foto grande do navio, chips com noites/porto/cabine)
+- Cards: imagem do navio, nome do cruzeiro, porto de embarque → desembarque, noites a bordo, "a partir de R$ X"
+- Clique leva para `/pacotes/[slug]`
 
-## 3. Caixa de entrada — abas WhatsApp | Instagram
+Ambas com `head()` próprio (title/description/og) e responsivas.
 
-Em `src/routes/chat.inbox.tsx`:
-- Duas abas no topo (`WhatsApp` | `Instagram`) trocam a fonte da lista (`channel` param).
-- Filtros existentes (Minha caixa, Não lidas, Aguardando humano, Arquivadas, funil) permanecem por baixo, atuando sobre o canal ativo.
-- Badge de contador de não lidas em cada aba.
-- Bubble adaptada com ícone Instagram + link pra thread; comentários aparecem como card inline.
+### 5. Página `/pacotes` continua igual
+Mostra apenas `kind = 'package'`. Ingressos e cruzeiros saem daqui e ganham suas próprias vitrines. O carrossel embed e a busca da IA (Camila) continuam considerando só pacotes por enquanto — se depois quiser incluir, é fácil.
 
-## 4. Gravação de demo pra Meta App Review
-
-Script Playwright headless + ffmpeg em `scripts/record-meta-demo.mjs`:
-1. Login mock no admin.
-2. Abre Caixa de entrada → alterna aba pra Instagram → mostra DM chegando (seed).
-3. IA sugere resposta → humano aprova → envia.
-4. Vai em `/admin/instagram/comentarios` → mostra comentário respondido automaticamente + DM privado enviado.
-5. Vai em `/admin/pacotes` → clica "Publicar Story" → mostra preview → confirma → registra `instagram_media`.
-6. Mesma coisa para Feed.
-7. Legenda sobreposta em cada cena explicando permissão usada (`instagram_business_manage_messages`, `_manage_comments`, `_content_publish`).
-
-Saída: `/mnt/documents/meta-app-review-instagram.mp4` (1280x800, ~90s, MP4 h264 mudo — Meta aceita sem áudio).
-
-## 5. Ordem de execução
-
-1. Migração + tipos + secrets scaffold.
-2. Webhook + verify + HMAC.
-3. DM inbound/outbound + integração com agent-runner (Camila reaproveitada).
-4. Comentários auto-reply.
-5. Publicação Story/Feed + UI no admin de pacotes.
-6. Abas WhatsApp/Instagram na inbox.
-7. Script de gravação + geração do MP4.
-8. Página `/admin/instagram/setup` com passo-a-passo (Facebook Page → IG Business → App Meta → tokens → webhook URL) e link do MP4 pra você anexar na revisão.
+### 6. Menu de navegação
+No header público adiciono links **Pacotes · Ingressos · Cruzeiros** para os clientes acharem as novas páginas.
 
 ## Detalhes técnicos
 
-- Endpoints: `graph.facebook.com/v21.0/{ig-user-id}/messages`, `/media`, `/media_publish`, `/{comment-id}/replies`.
-- Webhook URL fixa: `https://project--{id}.lovable.app/api/public/instagram/webhook`.
-- Token de longa duração renovado por cron (`/api/public/hooks/refresh-ig-token`) a cada 45 dias.
-- Rate limit Meta: 200 chamadas/hora/usuário — respeitar via fila reutilizando `broadcast-dispatch` pattern.
-- Reuso máximo: `agent-runner`, `dispatch-ai-debounced`, `splitToBubbles`, `camila-prompt`, confirm dialogs, RLS pattern.
+- Reuso `packages` (não crio tabelas novas) — mais simples de manter, e o checkout/pedido já funciona
+- Campos escondidos por tipo no editor:
+  - `service`: some aéreo obrigatório e categoria de quarto; mantém hotel opcional
+  - `cruise`: rótulos de "hotel" viram "navio/cabine", "destino" vira "porto"
+- Vitrines novas usam o mesmo query hook, filtrando por `kind` no lado do cliente
+- Slugs continuam únicos entre todos os tipos
 
-Confirma que posso seguir? Se sim, começo pela migração + webhook + abas na inbox (partes que não precisam dos secrets ainda) e no fim gero o MP4 de demonstração.
+## O que fica fora deste passo (podemos fazer depois se quiser)
+- Widget embed separado para ingressos/cruzeiros no WordPress
+- Broadcast/IA reconhecer ingressos e cruzeiros como categoria diferente
+- Campos 100% dedicados a cruzeiro (companhia marítima, itinerário porto a porto por dia)

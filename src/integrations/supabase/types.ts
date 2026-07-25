@@ -1808,6 +1808,7 @@ export type Database = {
           includes: string[] | null
           is_active: boolean
           itinerary: string | null
+          kind: string
           meal_plan: string | null
           nights: number | null
           origin: string | null
@@ -1843,6 +1844,7 @@ export type Database = {
           includes?: string[] | null
           is_active?: boolean
           itinerary?: string | null
+          kind?: string
           meal_plan?: string | null
           nights?: number | null
           origin?: string | null
@@ -1878,6 +1880,7 @@ export type Database = {
           includes?: string[] | null
           is_active?: boolean
           itinerary?: string | null
+          kind?: string
           meal_plan?: string | null
           nights?: number | null
           origin?: string | null
