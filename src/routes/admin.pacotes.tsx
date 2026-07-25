@@ -2315,7 +2315,9 @@ function PackageEditorModal({
                   value={(editing.services ?? {}) as PackageServices}
                   onChange={(next) => setEditing({ ...editing, services: next })}
                   inpClass={inp}
+                  kind={kind}
                 />
+
 
                 <div className="sm:col-span-2">
                   <div className="mb-1 flex items-center justify-between gap-3">
