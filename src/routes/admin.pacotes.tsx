@@ -1352,20 +1352,22 @@ function PackageEditorModal({
     if (!editing.origin && derived.originCity) patch.origin = derived.originCity;
     if (!editing.title && derived.title) patch.title = derived.title;
     const currentSlug = editing.slug || derived.slug || "";
-    if (currentSlug) {
-      const needsNumber =
-        !editing.id && nextNumber && !/-\d+$/.test(currentSlug) && !/#\d+$/.test(currentSlug);
-      if (needsNumber) {
-        const base = currentSlug.replace(/[-#]\d+$/, "");
-        patch.slug = `${base}-${nextNumber}`;
+    if (currentSlug && !editing.id) {
+      const base = currentSlug.replace(/[-#]\d+$/, "");
+      if (nextNumber) {
+        const desired = `${base}-${nextNumber}`;
+        if (currentSlug !== desired) patch.slug = desired;
       } else if (!editing.slug && derived.slug) {
         patch.slug = derived.slug;
       }
+    } else if (currentSlug && !editing.slug && derived.slug) {
+      patch.slug = derived.slug;
     }
 
     if (Object.keys(patch).length) setEditing({ ...editing, ...patch });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derived.destCity, derived.originCity, derived.title, derived.slug, nextNumber]);
+
 
   // Auto-preencher seguro quando fornecedor é GTA (padrão BRONZE AL = US$ 12.000 por pessoa).
   useEffect(() => {
@@ -1773,11 +1775,19 @@ function PackageEditorModal({
                 <FormField label="Slug (URL, auto)">
                   <input
                     className={inp}
-                    value={editing.slug || derived.slug || ""}
+                    value={
+                      editing.slug ||
+                      (derived.slug
+                        ? !editing.id && nextNumber
+                          ? `${derived.slug.replace(/[-#]\d+$/, "")}-${nextNumber}`
+                          : derived.slug
+                        : "")
+                    }
                     onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
                     placeholder="aracaju-abril-2027"
                   />
                 </FormField>
+
                 <FormField label="Ordem de exibição">
                   <input
                     type="number"
