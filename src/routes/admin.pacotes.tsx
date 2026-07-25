@@ -23,6 +23,9 @@ import {
   SlidersHorizontal,
   ArrowUp,
   ArrowDown,
+  Ticket,
+  Ship,
+  Package as PackageIcon,
 } from "lucide-react";
 import {
   Select,
