@@ -352,21 +352,24 @@ function Checkout() {
         </p>
 
         <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-          Este pacote foi montado para{" "}
-          <span className="text-foreground font-medium">
-            {baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}
-          </span>
-          . Para outra quantidade de viajantes, prefira solicitar um orçamento personalizado{" "}
-          <a
-            href={customQuoteWhatsappUrl(pkg.title)}
-            target="_blank"
-            rel="noreferrer"
-            className="text-brand-orange hover:underline font-medium inline-flex items-center gap-1"
-          >
-            <MessageCircle className="h-3 w-3" /> pelo WhatsApp
-          </a>
-          .
-        </div>
+        {!isPerUnit && (
+          <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            Este pacote foi montado para{" "}
+            <span className="text-foreground font-medium">
+              {baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}
+            </span>
+            . Para outra quantidade de viajantes, prefira solicitar um orçamento personalizado{" "}
+            <a
+              href={customQuoteWhatsappUrl(pkg.title)}
+              target="_blank"
+              rel="noreferrer"
+              className="text-brand-orange hover:underline font-medium inline-flex items-center gap-1"
+            >
+              <MessageCircle className="h-3 w-3" /> pelo WhatsApp
+            </a>
+            .
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
           {/* Left: form */}
