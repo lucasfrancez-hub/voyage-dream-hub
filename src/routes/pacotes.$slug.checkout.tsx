@@ -168,6 +168,12 @@ function Checkout() {
       return;
     }
 
+    if (isFlexibleDate && !preferredDate) {
+      toast.error("Escolha a data desejada.");
+      return;
+    }
+
+
     if (payment === "boleto") {
       const err = validateBoleto(boleto, isThirdPartyFinancier);
       if (err) {
