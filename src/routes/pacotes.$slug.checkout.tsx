@@ -374,52 +374,92 @@ function Checkout() {
         <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
           {/* Left: form */}
           <div className="space-y-6">
-            {/* Viajantes — contagem */}
-            <Card title="Quantos viajantes?">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Field label={`Adultos (pacote para ${baseOccupancy})`}>
+            {isFlexibleDate && (
+              <Card title="Data desejada">
+                <Field label="Escolha a data para a sua reserva *">
                   <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={adults}
-                    onChange={(e) => setAdults(Math.max(1, Number(e.target.value) || 1))}
+                    type="date"
+                    required
+                    value={preferredDate}
+                    onChange={(e) => setPreferredDate(e.target.value)}
+                    min={new Date().toISOString().slice(0, 10)}
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Crianças* (até 12 anos)">
-                  <input
-                    type="number"
-                    min={0}
-                    max={10}
-                    value={children}
-                    onChange={(e) => setChildren(Math.max(0, Number(e.target.value) || 0))}
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Preencha os dados de cada passageiro abaixo.
-              </p>
-              {occupancyMismatch && (
-                <div className="mt-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs">
-                  Este pacote foi montado para{" "}
-                  <strong>{baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}</strong>. Você
-                  selecionou {adults} adulto{adults > 1 ? "s" : ""}
-                  {children > 0 && ` + ${children} criança${children > 1 ? "s" : ""}`}. O valor pode
-                  variar — recomendamos{" "}
-                  <a
-                    href={customQuoteWhatsappUrl(pkg.title)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-brand-orange hover:underline font-medium"
-                  >
-                    solicitar um orçamento personalizado no WhatsApp
-                  </a>
-                  .
-                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Nosso time confirma a disponibilidade para essa data ao processar a reserva.
+                </p>
+              </Card>
+            )}
+            {/* Viajantes / quantidade */}
+            <Card title={isPerUnit ? "Quantidade" : "Quantos viajantes?"}>
+              {isPerUnit ? (
+                <>
+                  <Field label={`Quantidade de ingressos (1 a ${maxUnits})`}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={maxUnits}
+                      value={adults}
+                      onChange={(e) =>
+                        setAdults(Math.min(maxUnits, Math.max(1, Number(e.target.value) || 1)))
+                      }
+                      className={inputCls}
+                    />
+                  </Field>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Cada ingresso é individual. Preencha os dados de cada pessoa abaixo.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Field label={`Adultos (pacote para ${baseOccupancy})`}>
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={adults}
+                        onChange={(e) => setAdults(Math.max(1, Number(e.target.value) || 1))}
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="Crianças* (até 12 anos)">
+                      <input
+                        type="number"
+                        min={0}
+                        max={10}
+                        value={children}
+                        onChange={(e) => setChildren(Math.max(0, Number(e.target.value) || 0))}
+                        className={inputCls}
+                      />
+                    </Field>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Preencha os dados de cada passageiro abaixo.
+                  </p>
+                  {occupancyMismatch && (
+                    <div className="mt-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs">
+                      Este pacote foi montado para{" "}
+                      <strong>{baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}</strong>. Você
+                      selecionou {adults} adulto{adults > 1 ? "s" : ""}
+                      {children > 0 && ` + ${children} criança${children > 1 ? "s" : ""}`}. O valor
+                      pode variar — recomendamos{" "}
+                      <a
+                        href={customQuoteWhatsappUrl(pkg.title)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-brand-orange hover:underline font-medium"
+                      >
+                        solicitar um orçamento personalizado no WhatsApp
+                      </a>
+                      .
+                    </div>
+                  )}
+                </>
               )}
             </Card>
+
 
             {/* Um formulário por passageiro */}
             {travelers.map((t, i) => {
