@@ -464,10 +464,10 @@ function Checkout() {
             {/* Um formulário por passageiro */}
             {travelers.map((t, i) => {
               const isPrimary = i === 0;
-              const isChild = i >= adults;
+              const isChild = !isPerUnit && i >= adults;
               const title = isPrimary
-                ? "Passageiro 1 (responsável pela reserva)"
-                : `Passageiro ${i + 1}${isChild ? " (criança)" : ""}`;
+                ? (isPerUnit ? "Ingresso 1 (responsável pela reserva)" : "Passageiro 1 (responsável pela reserva)")
+                : (isPerUnit ? `Ingresso ${i + 1}` : `Passageiro ${i + 1}${isChild ? " (criança)" : ""}`);
               return (
                 <Card key={i} title={title}>
                   <div className="grid sm:grid-cols-2 gap-4">
