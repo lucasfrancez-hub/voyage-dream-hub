@@ -90,9 +90,16 @@ function Checkout() {
   }
 
   // Once the package loads, default the passenger count to its base occupancy.
+  // Defaults: base occupancy for packages, single unit for per-unit tickets.
   useEffect(() => {
-    if (pkg?.base_occupancy) setAdults(pkg.base_occupancy);
-  }, [pkg?.base_occupancy]);
+    if (!pkg) return;
+    if ((pkg as any).pricing_mode === "per_unit") {
+      setAdults(1);
+      setChildren(0);
+    } else if (pkg.base_occupancy) {
+      setAdults(pkg.base_occupancy);
+    }
+  }, [pkg?.id]);
 
   // Grow / shrink the travelers list. Per-unit uses adults=qty as one adult per unit.
   useEffect(() => {
