@@ -121,8 +121,26 @@ function IngressosPage() {
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <CalendarIcon className="h-3.5 w-3.5 text-brand-orange" />
                       {formatDateRange(p.going_date, p.return_date)}
+                      {p.nights ? <span>· {p.nights} noites</span> : null}
                     </div>
                   )}
+                  {(() => {
+                    const svc = (p as any).services || {};
+                    const chips: { icon: any; label: string }[] = [];
+                    if (p.hotel_name) chips.push({ icon: Building2, label: p.hotel_name });
+                    if (p.origin) chips.push({ icon: Plane, label: `Aéreo de ${p.origin}` });
+                    if (svc?.transfer?.enabled) chips.push({ icon: Bus, label: "Transfer" });
+                    if (svc?.insurance?.enabled) chips.push({ icon: Shield, label: "Seguro" });
+                    return chips.length ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {chips.map((c, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                            <c.icon className="h-3 w-3 text-brand-orange" /> {c.label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
                   <div className="mt-auto pt-3 border-t border-border">
                     <div className="text-xs text-muted-foreground">a partir de</div>
                     <div className="text-2xl font-display font-bold text-brand-orange">
