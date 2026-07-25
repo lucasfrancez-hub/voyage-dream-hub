@@ -1560,7 +1560,8 @@ function PackageEditorModal({
     }
   }
 
-  const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  const kind: PackageKind = (editing.kind ?? "package") as PackageKind;
+  const allTabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     {
       id: "dates",
       label: "DATAS E PREÇOS",
@@ -1568,17 +1569,29 @@ function PackageEditorModal({
     },
     {
       id: "hotel",
-      label: "HOSPEDAGEM",
-      icon: <Building2 className="h-4 w-4" strokeWidth={1.75} />,
+      label: kind === "cruise" ? "CRUZEIRO" : "HOSPEDAGEM",
+      icon: kind === "cruise"
+        ? <Ship className="h-4 w-4" strokeWidth={1.75} />
+        : <Building2 className="h-4 w-4" strokeWidth={1.75} />,
     },
     { id: "flights", label: "AÉREOS", icon: <Plane className="h-4 w-4" strokeWidth={1.75} /> },
     {
       id: "extras",
-      label: "EXTRAS E INCLUSOS",
+      label: kind === "service" ? "SERVIÇOS DO INGRESSO" : "EXTRAS E INCLUSOS",
       icon: <ListChecks className="h-4 w-4" strokeWidth={1.75} />,
     },
     { id: "about", label: "SOBRE O PACOTE", icon: <Info className="h-4 w-4" strokeWidth={1.75} /> },
   ];
+  const tabs = allTabs.filter((t) => {
+    if (kind === "service") return t.id !== "hotel" && t.id !== "flights";
+    if (kind === "cruise") return true; // hotel tab is repurposed as CRUZEIRO
+    return true;
+  });
+  useEffect(() => {
+    if (!tabs.find((t) => t.id === tab)) setTab(tabs[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind]);
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
