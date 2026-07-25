@@ -34,7 +34,7 @@ function Checkout() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle();
@@ -79,19 +79,31 @@ function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [preferredDate, setPreferredDate] = useState("");
+
+  const isPerUnit = (pkg as any)?.pricing_mode === "per_unit";
+  const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
+  const maxUnits = Math.min(9, Math.max(1, Number((pkg as any)?.max_units) || 9));
 
   function patchBoleto(patch: Partial<BoletoData>) {
     setBoleto((prev) => ({ ...prev, ...patch }));
   }
 
   // Once the package loads, default the passenger count to its base occupancy.
+  // Defaults: base occupancy for packages, single unit for per-unit tickets.
   useEffect(() => {
-    if (pkg?.base_occupancy) setAdults(pkg.base_occupancy);
-  }, [pkg?.base_occupancy]);
+    if (!pkg) return;
+    if ((pkg as any).pricing_mode === "per_unit") {
+      setAdults(1);
+      setChildren(0);
+    } else if (pkg.base_occupancy) {
+      setAdults(pkg.base_occupancy);
+    }
+  }, [pkg?.id]);
 
-  // Grow / shrink the travelers list to always match adults + children.
+  // Grow / shrink the travelers list. Per-unit uses adults=qty as one adult per unit.
   useEffect(() => {
-    const total = Math.max(1, adults + children);
+    const total = Math.max(1, isPerUnit ? adults : adults + children);
     setTravelers((prev) => {
       if (prev.length === total) return prev;
       if (prev.length < total) {
@@ -99,7 +111,7 @@ function Checkout() {
       }
       return prev.slice(0, total);
     });
-  }, [adults, children]);
+  }, [adults, children, isPerUnit]);
 
   function updateTraveler(index: number, patch: Partial<Traveler>) {
     setTravelers((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
@@ -107,8 +119,9 @@ function Checkout() {
 
   const subtotalPrice = useMemo(() => {
     if (!pkg) return 0;
-    return Number(pkg.price_per_person) * (adults + children);
-  }, [pkg, adults, children]);
+    const units = isPerUnit ? adults : (adults + children);
+    return Number(pkg.price_per_person) * units;
+  }, [pkg, adults, children, isPerUnit]);
 
   const PIX_DISCOUNT = 0.05;
   const taxesAmount = Number(pkg?.taxes ?? 0);
@@ -117,7 +130,7 @@ function Checkout() {
   const totalPrice = subtotalPrice - pixDiscountValue;
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
-  const occupancyMismatch = !!pkg && adults + children !== baseOccupancy;
+  const occupancyMismatch = !isPerUnit && !!pkg && adults + children !== baseOccupancy;
 
   const boletoCpfDigits = boleto.cpf.replace(/\D/g, "");
   const boletoNameNorm = boleto.full_name.trim().toLowerCase();
@@ -154,6 +167,12 @@ function Checkout() {
       toast.error(`Preencha o nome completo do passageiro ${missingName + 1}.`);
       return;
     }
+
+    if (isFlexibleDate && !preferredDate) {
+      toast.error("Escolha a data desejada.");
+      return;
+    }
+
 
     if (payment === "boleto") {
       const err = validateBoleto(boleto, isThirdPartyFinancier);
@@ -193,8 +212,11 @@ function Checkout() {
             title: pkg.title,
             destination: pkg.destination,
             origin: pkg.origin ?? null,
-            going_date: pkg.going_date,
-            return_date: pkg.return_date,
+            going_date: isFlexibleDate ? (preferredDate || null) : pkg.going_date,
+            return_date: isFlexibleDate ? null : pkg.return_date,
+            date_mode: (pkg as any).date_mode ?? "fixed",
+            pricing_mode: (pkg as any).pricing_mode ?? "per_occupancy",
+            preferred_date: isFlexibleDate ? preferredDate : null,
             nights: pkg.nights ?? null,
             price_per_person: pkg.price_per_person,
             taxes: pkg.taxes,
@@ -329,80 +351,123 @@ function Checkout() {
           Preencha seus dados e escolha a forma de pagamento. Nosso time confirma sua reserva em seguida.
         </p>
 
-        <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-          Este pacote foi montado para{" "}
-          <span className="text-foreground font-medium">
-            {baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}
-          </span>
-          . Para outra quantidade de viajantes, prefira solicitar um orçamento personalizado{" "}
-          <a
-            href={customQuoteWhatsappUrl(pkg.title)}
-            target="_blank"
-            rel="noreferrer"
-            className="text-brand-orange hover:underline font-medium inline-flex items-center gap-1"
-          >
-            <MessageCircle className="h-3 w-3" /> pelo WhatsApp
-          </a>
-          .
-        </div>
+        {!isPerUnit && (
+          <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+
+            Este pacote foi montado para{" "}
+            <span className="text-foreground font-medium">
+              {baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}
+            </span>
+            . Para outra quantidade de viajantes, prefira solicitar um orçamento personalizado{" "}
+            <a
+              href={customQuoteWhatsappUrl(pkg.title)}
+              target="_blank"
+              rel="noreferrer"
+              className="text-brand-orange hover:underline font-medium inline-flex items-center gap-1"
+            >
+              <MessageCircle className="h-3 w-3" /> pelo WhatsApp
+            </a>
+            .
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
           {/* Left: form */}
           <div className="space-y-6">
-            {/* Viajantes — contagem */}
-            <Card title="Quantos viajantes?">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Field label={`Adultos (pacote para ${baseOccupancy})`}>
+            {isFlexibleDate && (
+              <Card title="Data desejada">
+                <Field label="Escolha a data para a sua reserva *">
                   <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={adults}
-                    onChange={(e) => setAdults(Math.max(1, Number(e.target.value) || 1))}
+                    type="date"
+                    required
+                    value={preferredDate}
+                    onChange={(e) => setPreferredDate(e.target.value)}
+                    min={new Date().toISOString().slice(0, 10)}
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Crianças* (até 12 anos)">
-                  <input
-                    type="number"
-                    min={0}
-                    max={10}
-                    value={children}
-                    onChange={(e) => setChildren(Math.max(0, Number(e.target.value) || 0))}
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Preencha os dados de cada passageiro abaixo.
-              </p>
-              {occupancyMismatch && (
-                <div className="mt-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs">
-                  Este pacote foi montado para{" "}
-                  <strong>{baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}</strong>. Você
-                  selecionou {adults} adulto{adults > 1 ? "s" : ""}
-                  {children > 0 && ` + ${children} criança${children > 1 ? "s" : ""}`}. O valor pode
-                  variar — recomendamos{" "}
-                  <a
-                    href={customQuoteWhatsappUrl(pkg.title)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-brand-orange hover:underline font-medium"
-                  >
-                    solicitar um orçamento personalizado no WhatsApp
-                  </a>
-                  .
-                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Nosso time confirma a disponibilidade para essa data ao processar a reserva.
+                </p>
+              </Card>
+            )}
+            {/* Viajantes / quantidade */}
+            <Card title={isPerUnit ? "Quantidade" : "Quantos viajantes?"}>
+              {isPerUnit ? (
+                <>
+                  <Field label={`Quantidade de ingressos (1 a ${maxUnits})`}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={maxUnits}
+                      value={adults}
+                      onChange={(e) =>
+                        setAdults(Math.min(maxUnits, Math.max(1, Number(e.target.value) || 1)))
+                      }
+                      className={inputCls}
+                    />
+                  </Field>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Cada ingresso é individual. Preencha os dados de cada pessoa abaixo.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Field label={`Adultos (pacote para ${baseOccupancy})`}>
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={adults}
+                        onChange={(e) => setAdults(Math.max(1, Number(e.target.value) || 1))}
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="Crianças* (até 12 anos)">
+                      <input
+                        type="number"
+                        min={0}
+                        max={10}
+                        value={children}
+                        onChange={(e) => setChildren(Math.max(0, Number(e.target.value) || 0))}
+                        className={inputCls}
+                      />
+                    </Field>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Preencha os dados de cada passageiro abaixo.
+                  </p>
+                  {occupancyMismatch && (
+                    <div className="mt-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 p-3 text-xs">
+                      Este pacote foi montado para{" "}
+                      <strong>{baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}</strong>. Você
+                      selecionou {adults} adulto{adults > 1 ? "s" : ""}
+                      {children > 0 && ` + ${children} criança${children > 1 ? "s" : ""}`}. O valor
+                      pode variar — recomendamos{" "}
+                      <a
+                        href={customQuoteWhatsappUrl(pkg.title)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-brand-orange hover:underline font-medium"
+                      >
+                        solicitar um orçamento personalizado no WhatsApp
+                      </a>
+                      .
+                    </div>
+                  )}
+                </>
               )}
             </Card>
+
 
             {/* Um formulário por passageiro */}
             {travelers.map((t, i) => {
               const isPrimary = i === 0;
-              const isChild = i >= adults;
+              const isChild = !isPerUnit && i >= adults;
               const title = isPrimary
-                ? "Passageiro 1 (responsável pela reserva)"
-                : `Passageiro ${i + 1}${isChild ? " (criança)" : ""}`;
+                ? (isPerUnit ? "Ingresso 1 (responsável pela reserva)" : "Passageiro 1 (responsável pela reserva)")
+                : (isPerUnit ? `Ingresso ${i + 1}` : `Passageiro ${i + 1}${isChild ? " (criança)" : ""}`);
               return (
                 <Card key={i} title={title}>
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -643,19 +708,30 @@ function Checkout() {
                 <div className="font-medium">{pkg.title}</div>
                 <div className="text-muted-foreground text-xs">{pkg.destination}</div>
                 <div className="text-muted-foreground text-xs">
-                  {formatDateRange(pkg.going_date, pkg.return_date)}
+                  {isFlexibleDate
+                    ? (preferredDate ? `Data desejada: ${preferredDate.split("-").reverse().join("/")}` : "Data à escolher")
+                    : formatDateRange(pkg.going_date, pkg.return_date)}
                 </div>
               </div>
               <div className="mt-5 space-y-2 text-sm border-t border-border pt-4">
-                <SummaryLine
-                  label={`Adultos × ${adults}`}
-                  value={formatBRL(Number(pkg.price_per_person) * adults)}
-                />
-                {children > 0 && (
+                {isPerUnit ? (
                   <SummaryLine
-                    label={`Crianças × ${children}`}
-                    value={formatBRL(Number(pkg.price_per_person) * children)}
+                    label={`Ingressos × ${adults}`}
+                    value={formatBRL(Number(pkg.price_per_person) * adults)}
                   />
+                ) : (
+                  <>
+                    <SummaryLine
+                      label={`Adultos × ${adults}`}
+                      value={formatBRL(Number(pkg.price_per_person) * adults)}
+                    />
+                    {children > 0 && (
+                      <SummaryLine
+                        label={`Crianças × ${children}`}
+                        value={formatBRL(Number(pkg.price_per_person) * children)}
+                      />
+                    )}
+                  </>
                 )}
                 {Number(pkg.taxes ?? 0) > 0 && (
                   <SummaryLine

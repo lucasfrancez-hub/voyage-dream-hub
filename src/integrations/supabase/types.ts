@@ -1799,6 +1799,7 @@ export type Database = {
           base_occupancy: number
           bed_type: string | null
           created_at: string
+          date_mode: string
           destination: string
           going_date: string | null
           hotel_name: string | null
@@ -1809,11 +1810,13 @@ export type Database = {
           is_active: boolean
           itinerary: string | null
           kind: string
+          max_units: number
           meal_plan: string | null
           nights: number | null
           origin: string | null
           outbound_flight: Json | null
           price_per_person: number
+          pricing_mode: string
           return_date: string | null
           return_flight: Json | null
           room_category: string | null
@@ -1835,6 +1838,7 @@ export type Database = {
           base_occupancy?: number
           bed_type?: string | null
           created_at?: string
+          date_mode?: string
           destination: string
           going_date?: string | null
           hotel_name?: string | null
@@ -1845,11 +1849,13 @@ export type Database = {
           is_active?: boolean
           itinerary?: string | null
           kind?: string
+          max_units?: number
           meal_plan?: string | null
           nights?: number | null
           origin?: string | null
           outbound_flight?: Json | null
           price_per_person: number
+          pricing_mode?: string
           return_date?: string | null
           return_flight?: Json | null
           room_category?: string | null
@@ -1871,6 +1877,7 @@ export type Database = {
           base_occupancy?: number
           bed_type?: string | null
           created_at?: string
+          date_mode?: string
           destination?: string
           going_date?: string | null
           hotel_name?: string | null
@@ -1881,11 +1888,13 @@ export type Database = {
           is_active?: boolean
           itinerary?: string | null
           kind?: string
+          max_units?: number
           meal_plan?: string | null
           nights?: number | null
           origin?: string | null
           outbound_flight?: Json | null
           price_per_person?: number
+          pricing_mode?: string
           return_date?: string | null
           return_flight?: Json | null
           room_category?: string | null

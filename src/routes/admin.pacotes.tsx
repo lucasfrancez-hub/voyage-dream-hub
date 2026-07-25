@@ -155,6 +155,9 @@ type PackageRow = {
   tripadvisor_address: string | null;
   tripadvisor_photos: string[] | null;
   services: PackageServices | null;
+  date_mode: "fixed" | "flexible";
+  pricing_mode: "per_occupancy" | "per_unit";
+  max_units: number;
 };
 
 const emptyForm: Partial<PackageRow> = {
@@ -185,6 +188,9 @@ const emptyForm: Partial<PackageRow> = {
   return_flight: null,
   supplier_name: "",
   services: {},
+  date_mode: "fixed",
+  pricing_mode: "per_occupancy",
+  max_units: 9,
 };
 
 function AdminPackages() {
@@ -472,8 +478,8 @@ function AdminPackages() {
       nights: pkg.nights ? Number(pkg.nights) : null,
       hotel_stars: pkg.hotel_stars ? Number(pkg.hotel_stars) : null,
       sort_order: Number(pkg.sort_order) || 0,
-      going_date: pkg.going_date || null,
-      return_date: pkg.return_date || null,
+      going_date: (pkg.date_mode ?? "fixed") === "flexible" ? null : (pkg.going_date || null),
+      return_date: (pkg.date_mode ?? "fixed") === "flexible" ? null : (pkg.return_date || null),
       base_occupancy: Number(pkg.base_occupancy) || 2,
       outbound_flight: cleanFlight(pkg.outbound_flight),
       return_flight: cleanFlight(pkg.return_flight),
@@ -485,6 +491,9 @@ function AdminPackages() {
         pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
       services: (pkg.services ?? {}) as any,
       kind: (pkg.kind ?? "package") as PackageKind,
+      date_mode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
+      pricing_mode: (pkg.pricing_mode ?? "per_occupancy") as "per_occupancy" | "per_unit",
+      max_units: Math.min(9, Math.max(1, Number(pkg.max_units) || 9)),
     } as any;
     const savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
@@ -1970,22 +1979,50 @@ function PackageEditorModal({
 
             {tab === "dates" && (
               <div className="grid sm:grid-cols-2 gap-3">
-                <FormField label="Data ida">
-                  <input
-                    type="date"
-                    className={inp}
-                    value={editing.going_date ?? ""}
-                    onChange={(e) => setEditing({ ...editing, going_date: e.target.value })}
-                  />
+                <FormField label="Modo de data" wide>
+                  <div className="flex gap-2">
+                    {([
+                      { v: "fixed", label: "Data fixa" },
+                      { v: "flexible", label: "Cliente escolhe a data" },
+                    ] as const).map((o) => {
+                      const active = (editing.date_mode ?? "fixed") === o.v;
+                      return (
+                        <button
+                          type="button"
+                          key={o.v}
+                          onClick={() => setEditing({ ...editing, date_mode: o.v })}
+                          className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                            active
+                              ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                              : "border-border hover:border-brand-orange/50"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </FormField>
-                <FormField label="Data volta">
-                  <input
-                    type="date"
-                    className={inp}
-                    value={editing.return_date ?? ""}
-                    onChange={(e) => setEditing({ ...editing, return_date: e.target.value })}
-                  />
-                </FormField>
+                {(editing.date_mode ?? "fixed") === "fixed" && (
+                  <>
+                    <FormField label="Data ida">
+                      <input
+                        type="date"
+                        className={inp}
+                        value={editing.going_date ?? ""}
+                        onChange={(e) => setEditing({ ...editing, going_date: e.target.value })}
+                      />
+                    </FormField>
+                    <FormField label="Data volta">
+                      <input
+                        type="date"
+                        className={inp}
+                        value={editing.return_date ?? ""}
+                        onChange={(e) => setEditing({ ...editing, return_date: e.target.value })}
+                      />
+                    </FormField>
+                  </>
+                )}
                 <FormField label="Noites">
                   <input
                     type="number"
@@ -1994,18 +2031,57 @@ function PackageEditorModal({
                     onChange={(e) => setEditing({ ...editing, nights: Number(e.target.value) })}
                   />
                 </FormField>
-                <FormField label="Ocupação base (adultos)">
-                  <input
-                    type="number"
-                    min={1}
-                    max={10}
-                    className={inp}
-                    value={editing.base_occupancy ?? 2}
-                    onChange={(e) =>
-                      setEditing({ ...editing, base_occupancy: Number(e.target.value) })
-                    }
-                  />
+                <FormField label="Modo de preço" wide>
+                  <div className="flex gap-2">
+                    {([
+                      { v: "per_occupancy", label: "Por ocupação (pacote fechado)" },
+                      { v: "per_unit", label: "Individual (por unidade)" },
+                    ] as const).map((o) => {
+                      const active = (editing.pricing_mode ?? "per_occupancy") === o.v;
+                      return (
+                        <button
+                          type="button"
+                          key={o.v}
+                          onClick={() => setEditing({ ...editing, pricing_mode: o.v })}
+                          className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                            active
+                              ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                              : "border-border hover:border-brand-orange/50"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </FormField>
+                {(editing.pricing_mode ?? "per_occupancy") === "per_occupancy" ? (
+                  <FormField label="Ocupação base (adultos)">
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      className={inp}
+                      value={editing.base_occupancy ?? 2}
+                      onChange={(e) =>
+                        setEditing({ ...editing, base_occupancy: Number(e.target.value) })
+                      }
+                    />
+                  </FormField>
+                ) : (
+                  <FormField label="Máx. por reserva (1 a 9)">
+                    <input
+                      type="number"
+                      min={1}
+                      max={9}
+                      className={inp}
+                      value={editing.max_units ?? 9}
+                      onChange={(e) =>
+                        setEditing({ ...editing, max_units: Math.min(9, Math.max(1, Number(e.target.value) || 1)) })
+                      }
+                    />
+                  </FormField>
+                )}
                 <FormField label="Preço por pessoa *">
                   <input
                     type="number"

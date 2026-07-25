@@ -35,7 +35,7 @@ function IngressosPage() {
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,base_occupancy,sort_order,kind,hotel_name,hotel_stars,meal_plan,services")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,base_occupancy,sort_order,kind,hotel_name,hotel_stars,meal_plan,services,date_mode,pricing_mode,max_units")
         .eq("is_active", true)
         .eq("kind", "service")
         .or(`going_date.is.null,going_date.gte.${today}`)
@@ -117,13 +117,18 @@ function IngressosPage() {
                 </div>
                 <div className="p-5 flex flex-col gap-3 flex-1">
                   <h2 className="font-semibold text-lg leading-snug">{p.title}</h2>
-                  {p.going_date && (
+                  {p.going_date ? (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <CalendarIcon className="h-3.5 w-3.5 text-brand-orange" />
                       {formatDateRange(p.going_date, p.return_date)}
                       {p.nights ? <span>· {p.nights} noites</span> : null}
                     </div>
-                  )}
+                  ) : (p as any).date_mode === "flexible" ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <CalendarIcon className="h-3.5 w-3.5 text-brand-orange" />
+                      Data à escolher
+                    </div>
+                  ) : null}
                   {(() => {
                     const svc = (p as any).services || {};
                     const chips: { icon: any; label: string }[] = [];
@@ -144,9 +149,13 @@ function IngressosPage() {
                   <div className="mt-auto pt-3 border-t border-border">
                     <div className="text-xs text-muted-foreground">a partir de</div>
                     <div className="text-2xl font-display font-bold text-brand-orange">
-                      {formatBRL(Number(p.price_per_person) * (p.base_occupancy ?? 1))}
+                      {formatBRL(Number(p.price_per_person) * ((p as any).pricing_mode === "per_unit" ? 1 : (p.base_occupancy ?? 1)))}
                     </div>
+                    {(p as any).pricing_mode === "per_unit" && (
+                      <div className="text-[11px] text-muted-foreground mt-0.5">por unidade</div>
+                    )}
                   </div>
+
                 </div>
               </Link>
             ))}
