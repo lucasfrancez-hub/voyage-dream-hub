@@ -2723,11 +2723,14 @@ function ServicesEditor({
             </div>
           )}
         </div>
+        )}
 
 
 
         {/* Outros */}
+        {showOutros && (
         <div className="rounded-xl border border-border bg-background/60 p-3">
+
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-brand-orange" />
