@@ -1560,7 +1560,8 @@ function PackageEditorModal({
     }
   }
 
-  const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  const kind: PackageKind = (editing.kind ?? "package") as PackageKind;
+  const allTabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     {
       id: "dates",
       label: "DATAS E PREÇOS",
@@ -1568,17 +1569,29 @@ function PackageEditorModal({
     },
     {
       id: "hotel",
-      label: "HOSPEDAGEM",
-      icon: <Building2 className="h-4 w-4" strokeWidth={1.75} />,
+      label: kind === "cruise" ? "CRUZEIRO" : "HOSPEDAGEM",
+      icon: kind === "cruise"
+        ? <Ship className="h-4 w-4" strokeWidth={1.75} />
+        : <Building2 className="h-4 w-4" strokeWidth={1.75} />,
     },
     { id: "flights", label: "AÉREOS", icon: <Plane className="h-4 w-4" strokeWidth={1.75} /> },
     {
       id: "extras",
-      label: "EXTRAS E INCLUSOS",
+      label: kind === "service" ? "SERVIÇOS DO INGRESSO" : "EXTRAS E INCLUSOS",
       icon: <ListChecks className="h-4 w-4" strokeWidth={1.75} />,
     },
     { id: "about", label: "SOBRE O PACOTE", icon: <Info className="h-4 w-4" strokeWidth={1.75} /> },
   ];
+  const tabs = allTabs.filter((t) => {
+    if (kind === "service") return t.id !== "hotel" && t.id !== "flights";
+    if (kind === "cruise") return true; // hotel tab is repurposed as CRUZEIRO
+    return true;
+  });
+  useEffect(() => {
+    if (!tabs.find((t) => t.id === tab)) setTab(tabs[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind]);
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -2105,8 +2118,17 @@ function PackageEditorModal({
               </div>
             )}
 
-            {tab === "hotel" && (
+            {tab === "hotel" && kind === "cruise" && (
+              <CruiseEditor
+                value={(editing.services ?? {}) as PackageServices}
+                onChange={(next) => setEditing({ ...editing, services: next })}
+                inpClass={inp}
+              />
+            )}
+
+            {tab === "hotel" && kind !== "cruise" && (
               <div className="grid sm:grid-cols-2 gap-3">
+
                 <FormField label="Hotel" wide>
                   <HotelAutocomplete
                     value={editing.hotel_name ?? ""}
@@ -2293,7 +2315,9 @@ function PackageEditorModal({
                   value={(editing.services ?? {}) as PackageServices}
                   onChange={(next) => setEditing({ ...editing, services: next })}
                   inpClass={inp}
+                  kind={kind}
                 />
+
 
                 <div className="sm:col-span-2">
                   <div className="mb-1 flex items-center justify-between gap-3">
@@ -2396,10 +2420,12 @@ function ServicesEditor({
   value,
   onChange,
   inpClass,
+  kind = "package",
 }: {
   value: PackageServices;
   onChange: (next: PackageServices) => void;
   inpClass: string;
+  kind?: PackageKind;
 }) {
   const v = value ?? {};
   const seguro = v.seguro ?? {};
@@ -2408,6 +2434,11 @@ function ServicesEditor({
   const tickets = v.tickets ?? {};
   const parks = (tickets.parks ?? []) as string[];
   const outros = v.outros ?? [];
+  const showCancelamento = kind === "package" || kind === "cruise";
+  const showCityTour = kind === "package";
+  const showTickets = kind === "package" || kind === "service";
+  const showOutros = kind !== "service";
+
 
 
   function patch(p: Partial<PackageServices>) {
@@ -2470,7 +2501,9 @@ function ServicesEditor({
         </div>
 
         {/* Cobertura de cancelamento involuntário */}
+        {showCancelamento && (
         <div className="rounded-xl border border-border bg-background/60 p-3">
+
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -2530,8 +2563,10 @@ function ServicesEditor({
             </div>
           )}
         </div>
+        )}
 
         {/* Transfer */}
+
         <div className="rounded-xl border border-border bg-background/60 p-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -2601,7 +2636,9 @@ function ServicesEditor({
         </div>
 
         {/* City tour */}
+        {showCityTour && (
         <div className="rounded-xl border border-border bg-background/60 p-3">
+
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -2623,9 +2660,12 @@ function ServicesEditor({
             </div>
           )}
         </div>
+        )}
 
         {/* Ingressos (parques/atrações) */}
+        {showTickets && (
         <div className="rounded-xl border border-border bg-background/60 p-3">
+
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -2683,11 +2723,14 @@ function ServicesEditor({
             </div>
           )}
         </div>
+        )}
 
 
 
         {/* Outros */}
+        {showOutros && (
         <div className="rounded-xl border border-border bg-background/60 p-3">
+
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-brand-orange" />
@@ -2732,10 +2775,74 @@ function ServicesEditor({
             ))}
           </div>
         </div>
+        )}
       </div>
+
     </div>
   );
 }
+
+function CruiseEditor({
+  value,
+  onChange,
+  inpClass,
+}: {
+  value: PackageServices;
+  onChange: (next: PackageServices) => void;
+  inpClass: string;
+}) {
+  const cruise = value?.cruise ?? {};
+  const patch = (p: Partial<NonNullable<PackageServices["cruise"]>>) =>
+    onChange({ ...value, cruise: { ...cruise, ...p } });
+  return (
+    <div className="grid sm:grid-cols-2 gap-3">
+      <FormField label="Companhia do cruzeiro">
+        <input
+          className={inpClass}
+          placeholder="Ex.: MSC Cruzeiros, Costa Cruzeiros"
+          value={cruise.company ?? ""}
+          onChange={(e) => patch({ company: e.target.value })}
+        />
+      </FormField>
+      <FormField label="Navio">
+        <input
+          className={inpClass}
+          placeholder="Ex.: MSC Seaview"
+          value={cruise.ship ?? ""}
+          onChange={(e) => patch({ ship: e.target.value })}
+        />
+      </FormField>
+      <FormField label="Tipo de cabine">
+        <select
+          className={inpClass}
+          value={cruise.cabin_type ?? ""}
+          onChange={(e) => patch({ cabin_type: e.target.value })}
+        >
+          <option value="">— Não informado —</option>
+          <option value="Interna">Interna</option>
+          <option value="Externa">Externa (com vista)</option>
+          <option value="Externa com varanda">Externa com varanda</option>
+          <option value="Suíte">Suíte</option>
+          <option value="Suíte com varanda">Suíte com varanda</option>
+          <option value="Yacht Club">Yacht Club</option>
+        </select>
+      </FormField>
+      <FormField label="Regime a bordo">
+        <select
+          className={inpClass}
+          value={cruise.board_regime ?? ""}
+          onChange={(e) => patch({ board_regime: e.target.value })}
+        >
+          <option value="">— Não informado —</option>
+          <option value="Pensão completa">Pensão completa</option>
+          <option value="All inclusive">All inclusive</option>
+          <option value="Bebidas inclusas">Bebidas inclusas</option>
+        </select>
+      </FormField>
+    </div>
+  );
+}
+
 
 function cleanFlight(f: FlightInfo | null | undefined): FlightInfo | null {
   if (!f) return null;

@@ -114,8 +114,15 @@ export type PackageServices = {
   city_tour?: { enabled?: boolean; detalhe?: string | null };
   passeios?: string[] | null;
   tickets?: { enabled?: boolean; parks?: string[] | null };
+  cruise?: {
+    company?: string | null;
+    ship?: string | null;
+    cabin_type?: string | null;
+    board_regime?: string | null;
+  };
   outros?: string[];
 };
+
 
 
 
