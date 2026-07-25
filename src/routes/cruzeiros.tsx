@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Ship, Calendar as CalendarIcon, MapPin } from "lucide-react";
+import { Ship, Calendar as CalendarIcon, MapPin, Plane, Bus, Shield, Ticket } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -35,7 +35,7 @@ function CruzeirosPage() {
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,image_url,summary,base_occupancy,sort_order,kind")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,image_url,summary,base_occupancy,sort_order,kind,services")
         .eq("is_active", true)
         .eq("kind", "cruise")
         .or(`going_date.is.null,going_date.gte.${today}`)
@@ -124,6 +124,23 @@ function CruzeirosPage() {
                       {p.nights ? ` · ${p.nights} noites` : ""}
                     </div>
                   )}
+                  {(() => {
+                    const svc = (p as any).services || {};
+                    const chips: { icon: any; label: string }[] = [];
+                    if (p.origin) chips.push({ icon: Plane, label: `Aéreo de ${p.origin}` });
+                    if (svc?.transfer?.enabled) chips.push({ icon: Bus, label: "Transfer" });
+                    if (svc?.insurance?.enabled) chips.push({ icon: Shield, label: "Seguro" });
+                    if (svc?.tickets?.enabled) chips.push({ icon: Ticket, label: "Passeios" });
+                    return chips.length ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {chips.map((c, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                            <c.icon className="h-3 w-3 text-brand-orange" /> {c.label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
                   <div className="mt-auto pt-3 border-t border-border">
                     <div className="text-xs text-muted-foreground">a partir de</div>
                     <div className="text-2xl font-display font-bold text-brand-orange">
