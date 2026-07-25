@@ -2031,18 +2031,57 @@ function PackageEditorModal({
                     onChange={(e) => setEditing({ ...editing, nights: Number(e.target.value) })}
                   />
                 </FormField>
-                <FormField label="Ocupação base (adultos)">
-                  <input
-                    type="number"
-                    min={1}
-                    max={10}
-                    className={inp}
-                    value={editing.base_occupancy ?? 2}
-                    onChange={(e) =>
-                      setEditing({ ...editing, base_occupancy: Number(e.target.value) })
-                    }
-                  />
+                <FormField label="Modo de preço" wide>
+                  <div className="flex gap-2">
+                    {([
+                      { v: "per_occupancy", label: "Por ocupação (pacote fechado)" },
+                      { v: "per_unit", label: "Individual (por unidade)" },
+                    ] as const).map((o) => {
+                      const active = (editing.pricing_mode ?? "per_occupancy") === o.v;
+                      return (
+                        <button
+                          type="button"
+                          key={o.v}
+                          onClick={() => setEditing({ ...editing, pricing_mode: o.v })}
+                          className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                            active
+                              ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                              : "border-border hover:border-brand-orange/50"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </FormField>
+                {(editing.pricing_mode ?? "per_occupancy") === "per_occupancy" ? (
+                  <FormField label="Ocupação base (adultos)">
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      className={inp}
+                      value={editing.base_occupancy ?? 2}
+                      onChange={(e) =>
+                        setEditing({ ...editing, base_occupancy: Number(e.target.value) })
+                      }
+                    />
+                  </FormField>
+                ) : (
+                  <FormField label="Máx. por reserva (1 a 9)">
+                    <input
+                      type="number"
+                      min={1}
+                      max={9}
+                      className={inp}
+                      value={editing.max_units ?? 9}
+                      onChange={(e) =>
+                        setEditing({ ...editing, max_units: Math.min(9, Math.max(1, Number(e.target.value) || 1)) })
+                      }
+                    />
+                  </FormField>
+                )}
                 <FormField label="Preço por pessoa *">
                   <input
                     type="number"
