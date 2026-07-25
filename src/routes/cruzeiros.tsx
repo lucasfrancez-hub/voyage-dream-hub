@@ -35,7 +35,7 @@ function CruzeirosPage() {
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,image_url,summary,base_occupancy,sort_order,kind")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,image_url,summary,base_occupancy,sort_order,kind,services")
         .eq("is_active", true)
         .eq("kind", "cruise")
         .or(`going_date.is.null,going_date.gte.${today}`)
