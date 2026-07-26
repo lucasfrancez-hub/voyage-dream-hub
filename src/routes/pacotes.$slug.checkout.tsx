@@ -27,8 +27,11 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : undefined;
     const addonsRaw = typeof s?.addons === "string" ? s.addons : "";
     const addons = addonsRaw ? addonsRaw : undefined;
-    return { qty, date, addons };
+    const addonDatesRaw = typeof s?.addonDates === "string" ? s.addonDates : "";
+    const addonDates = addonDatesRaw ? addonDatesRaw : undefined;
+    return { qty, date, addons, addonDates };
   },
+
 });
 
 
