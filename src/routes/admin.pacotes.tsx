@@ -2970,7 +2970,17 @@ function AddonsEditor({
       </div>
       {suggestions && suggestions.length > 0 && (() => {
         const existingNames = new Set(addons.map((a) => (a.name ?? "").trim().toLowerCase()));
-        const remaining = suggestions.filter((s) => !existingNames.has((s.title ?? "").trim().toLowerCase()));
+        const remaining = suggestions.filter((s) => {
+          const inner = (s.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
+          if (inner.length > 0) {
+            // já adicionou pelo menos uma variante do ingresso? esconde a sugestão
+            return !inner.some((a) =>
+              existingNames.has(`${s.title} — ${(a.name ?? "").trim()}`.toLowerCase()) ||
+              existingNames.has((a.name ?? "").trim().toLowerCase()),
+            );
+          }
+          return !existingNames.has((s.title ?? "").trim().toLowerCase());
+        });
         if (remaining.length === 0) return null;
         return (
           <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
@@ -2979,32 +2989,58 @@ function AddonsEditor({
               Ingressos em {destination ?? "este destino"} — clique para adicionar como opcional
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {remaining.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() =>
-                    onChange([
-                      ...addons,
-                      {
-                        name: s.title,
-                        description: null,
-                        price: Number(s.price_per_person ?? 0),
-                        per: "unit",
-                      },
-                    ])
-                  }
-                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:border-emerald-500 hover:bg-emerald-500/10 transition"
-                  title={`Adicionar "${s.title}" como opcional`}
-                >
-                  + {s.title}
-                  {s.price_per_person != null && s.price_per_person > 0 && (
-                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                      {formatBRL(Number(s.price_per_person))}
-                    </span>
-                  )}
-                </button>
-              ))}
+              {remaining.map((s) => {
+                const inner = (s.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
+                const variantCount = inner.length;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      if (variantCount > 0) {
+                        // Cada variante do ingresso (ex.: "1 dia | 1 parque", "4 dias | 4 parques")
+                        // vira um opcional individual, mantendo preço por dia da semana e sub-opções
+                        // (Fast Pass, Express Pass). Prefixa o nome com o título do ingresso pra
+                        // evitar duplicidade quando houver vários ingressos do mesmo hub.
+                        const expanded = inner.map((a) => ({
+                          ...a,
+                          name: `${s.title} — ${a.name ?? ""}`.trim().replace(/\s+—\s*$/, ""),
+                        }));
+                        onChange([...addons, ...expanded]);
+                      } else {
+                        onChange([
+                          ...addons,
+                          {
+                            name: s.title,
+                            description: null,
+                            price: Number(s.price_per_person ?? 0),
+                            per: "unit",
+                          },
+                        ]);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:border-emerald-500 hover:bg-emerald-500/10 transition"
+                    title={
+                      variantCount > 0
+                        ? `Adicionar ${variantCount} variante${variantCount === 1 ? "" : "s"} de "${s.title}" (com Fast Pass e preço por dia da semana)`
+                        : `Adicionar "${s.title}" como opcional`
+                    }
+                  >
+                    + {s.title}
+                    {variantCount > 0 ? (
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                        {variantCount} var.
+                      </span>
+                    ) : (
+                      s.price_per_person != null && s.price_per_person > 0 && (
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                          {formatBRL(Number(s.price_per_person))}
+                        </span>
+                      )
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         );
