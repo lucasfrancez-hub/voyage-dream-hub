@@ -2468,6 +2468,17 @@ function PackageEditorModal({
                   kind={kind}
                   destination={editing.destination ?? null}
                   suggestions={addonSuggestions}
+                  onEditSource={(sourceId) => {
+                    const source = allPackages?.find((pkg) => pkg.id === sourceId);
+                    if (!source) {
+                      toast.error("Ingresso original não encontrado");
+                      return;
+                    }
+                    setEditingState(source);
+                    setDrafts(null);
+                    setDraftIndex(0);
+                    setTab("extras");
+                  }}
                 />
 
 
