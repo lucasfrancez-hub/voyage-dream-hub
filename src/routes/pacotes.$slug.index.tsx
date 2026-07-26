@@ -1076,7 +1076,14 @@ function PreCheckoutDialog({
           {/* Left: Calendar */}
           {isFlexibleDate && (
             <div className="p-6 lg:p-8 flex flex-col">
-              <CalendarMonthNav>
+              {(() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const maxDate = new Date(today);
+                maxDate.setMonth(maxDate.getMonth() + 11);
+                const maxMonth = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+                return (
+              <CalendarMonthNav maxMonth={maxMonth}>
                 {(month, setMonth) => (
                   <CalendarUI
                     mode="single"
@@ -1091,11 +1098,13 @@ function PreCheckoutDialog({
                       const day = String(d.getDate()).padStart(2, "0");
                       setDate(`${y}-${m}-${day}`);
                     }}
-                    disabled={{ before: new Date() }}
+                    disabled={{ before: new Date(), after: maxDate }}
                     initialFocus
                     captionLayout="dropdown"
-                    fromYear={new Date().getFullYear()}
-                    toYear={new Date().getFullYear() + 3}
+                    startMonth={new Date(today.getFullYear(), today.getMonth(), 1)}
+                    endMonth={maxMonth}
+                    fromYear={today.getFullYear()}
+                    toYear={maxDate.getFullYear()}
                     className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
                     classNames={{
                       root: "w-full",
@@ -1108,11 +1117,14 @@ function PreCheckoutDialog({
                   />
                 )}
               </CalendarMonthNav>
+                );
+              })()}
               <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">
                 * Preços podem variar de acordo com a data selecionada
               </div>
             </div>
           )}
+
 
           {/* Right: Addons */}
           {hasAddons && (
