@@ -3020,6 +3020,12 @@ function AddonsEditor({
               onChange={(next) => patchAt(idx, { price_by_weekday: next })}
               inpClass={inpClass}
             />
+            <SubOptionsEditor
+              value={a.sub_options ?? []}
+              onChange={(next) => patchAt(idx, { sub_options: next })}
+              inpClass={inpClass}
+              parentName={a.name ?? ""}
+            />
           </div>
         ))}
       </div>
