@@ -313,7 +313,7 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
               {/* Divisor "O pacote inclui" */}
               <div className="vfeed-inc-div">
                 <div className="vfeed-inc-line" />
-                <h3>O Pacote Inclui</h3>
+                <h3>{data.kind === "service" ? "O Ingresso Inclui" : "O Pacote Inclui"}</h3>
                 <div className="vfeed-inc-line" />
               </div>
 
