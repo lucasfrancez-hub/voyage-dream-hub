@@ -86,7 +86,7 @@ export const Route = createFileRoute('/api/public/itau-pix-webhook')({
                   order_id: cob.order_id,
                   status: 'paid',
                   method: 'pix',
-                  amount: Number(valor ?? 0) || null,
+                  amount: Number(valor ?? 0) || 0,
                   description: `Pix Itaú — txid ${txid}`,
                   paid_at: horario,
                 })
