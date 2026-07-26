@@ -8,6 +8,9 @@ import { forwardRef, Fragment, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 
 export type FeedArtData = {
+  kind?: "package" | "service" | "cruise";
+  dateMode?: "fixed" | "flexible";
+  title?: string;
   backgroundDataUrl: string;
   estado?: string | null;
   destino: string;
