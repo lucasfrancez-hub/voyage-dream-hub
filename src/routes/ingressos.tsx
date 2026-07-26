@@ -132,15 +132,19 @@ function IngressosPage() {
       <TopBar backHref="https://viaair.tur.br" backLabel="Voltar ao site" />
       <main>
         {/* HERO */}
-        <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-orange/25 via-background to-background" />
+        <section className="relative overflow-hidden -mt-px">
+          {/* base: mesma cor do TopBar pra colar sem linha */}
+          <div className="absolute inset-0 bg-background" />
+          {/* glow laranja suave saindo do topo, esvaindo pro fundo */}
           <div
-            className="absolute inset-0 opacity-40"
+            className="absolute inset-0"
             style={{
               backgroundImage:
-                "radial-gradient(circle at 20% 20%, hsl(var(--brand-orange-rgb, 24 90% 53%) / 0.35) 0%, transparent 40%), radial-gradient(circle at 80% 60%, hsl(var(--brand-orange-rgb, 24 90% 53%) / 0.25) 0%, transparent 45%)",
+                "radial-gradient(120% 90% at 15% -10%, hsl(var(--brand-orange-rgb, 24 90% 53%) / 0.28) 0%, transparent 55%), radial-gradient(90% 70% at 85% 20%, hsl(var(--brand-orange-rgb, 24 90% 53%) / 0.18) 0%, transparent 60%)",
             }}
           />
+          {/* fade final pro background pra emendar com o grid abaixo */}
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-background" />
           <div className="relative mx-auto max-w-7xl px-6 pt-14 pb-10 md:pt-20 md:pb-16">
             <div className="max-w-3xl">
               <span className="inline-flex items-center gap-2 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-brand-orange">
