@@ -3362,10 +3362,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      increment_short_link_click: {
-        Args: { p_slug: string }
-        Returns: undefined
-      }
       is_partner_order_owner: { Args: { _order_id: string }; Returns: boolean }
       materialize_order_from_snapshot: {
         Args: { _order_id: string }
