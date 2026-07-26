@@ -77,8 +77,7 @@ function IngressosPage() {
   });
 
   const list = items ?? [];
-  const featured = list[0];
-  const rest = list.slice(1);
+
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -143,17 +142,15 @@ function IngressosPage() {
             </div>
           )}
 
-          {/* DESTAQUE */}
-          {featured && <FeaturedTicket pkg={featured} />}
-
-          {/* GRID */}
-          {rest.length > 0 && (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {rest.map((p, idx) => (
-                <TicketCard key={p.id} pkg={p} eager={idx === 0} />
+          {/* GRID (destaque + demais, todos 3 por linha) */}
+          {list.length > 0 && (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {list.map((p, idx) => (
+                <TicketCard key={p.id} pkg={p} eager={idx < 3} />
               ))}
             </div>
           )}
+
         </section>
       </main>
       <ContactFooter />
@@ -177,10 +174,19 @@ function chipsFor(p: any) {
   if (!isTicket && p.hotel_name) chips.push({ icon: Building2, label: p.hotel_name });
   if (!isTicket && p.origin) chips.push({ icon: Plane, label: `Aéreo de ${p.origin}` });
   if (isTicket && p.hotel_name) chips.push({ icon: Building2, label: p.hotel_name });
+  if (svc?.tickets?.enabled) {
+    const parks = (svc.tickets.parks ?? []).filter((x: any) => String(x ?? "").trim());
+    if (parks.length) {
+      for (const park of parks) chips.push({ icon: Ticket, label: `Ingresso: ${park}` });
+    } else {
+      chips.push({ icon: Ticket, label: "Ingresso incluso" });
+    }
+  }
   if (svc?.transfer?.enabled) chips.push({ icon: Bus, label: "Transfer" });
   if (svc?.insurance?.enabled) chips.push({ icon: Shield, label: "Seguro" });
   return chips;
 }
+
 
 function FeaturedTicket({ pkg: p }: { pkg: any }) {
   const dateBlock = parseDateBlock(p.going_date);
