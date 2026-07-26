@@ -20,7 +20,11 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
   validateSearch: (s: Record<string, unknown>) => {
     const raw = Number(s?.qty);
     const qty = Number.isFinite(raw) && raw > 0 ? Math.min(9, Math.floor(raw)) : undefined;
-    return { qty };
+    const dateRaw = typeof s?.date === "string" ? s.date : "";
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : undefined;
+    const addonsRaw = typeof s?.addons === "string" ? s.addons : "";
+    const addons = addonsRaw ? addonsRaw : undefined;
+    return { qty, date, addons };
   },
 });
 
