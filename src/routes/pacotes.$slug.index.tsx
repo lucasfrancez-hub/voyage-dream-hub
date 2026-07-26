@@ -1088,9 +1088,8 @@ function PreCheckoutDialog({
                             {priceIsAssumed ? "A partir de " : ""}
                             <span className="text-foreground font-semibold">{formatBRL(a.price)}</span>
                             <span> {a.per === "order" ? "por reserva" : `× ${units}`}</span>
-                            {a.tierLabel && (
-                              <span className="ml-1 text-brand-orange font-semibold">• {a.tierLabel}</span>
-                            )}
+
+
                         </div>
 
                         </div>
