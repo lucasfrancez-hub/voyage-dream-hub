@@ -2583,13 +2583,7 @@ function ticketSuggestionToAddon(
 ): NonNullable<PackageServices["addons"]>[number] {
   const ticketExtras = (suggestion.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
   const ticketLabel = suggestion.services?.tickets?.parks?.filter(Boolean).join(" • ") || null;
-  const ticketWeekdayPrices = (
-    (suggestion.services?.tickets as { price_by_weekday?: NonNullable<PackageServices["addons"]>[number]["price_by_weekday"] } | undefined)
-      ?.price_by_weekday ??
-    (suggestion.services as PackageServices & { price_by_weekday?: NonNullable<PackageServices["addons"]>[number]["price_by_weekday"] } | null)
-      ?.price_by_weekday ??
-    []
-  );
+  const ticketWeekdayPrices = suggestion.services?.tickets?.price_by_weekday ?? [];
   return {
     id: `ticket-${suggestion.id}`,
     source_package_id: suggestion.id,
@@ -2944,6 +2938,15 @@ function ServicesEditor({
               >
                 + Adicionar parque
               </button>
+              {kind === "service" && (
+                <WeekdayPricingEditor
+                  tiers={tickets.price_by_weekday ?? []}
+                  onChange={(next) =>
+                    patch({ tickets: { ...tickets, enabled: true, parks, price_by_weekday: next } })
+                  }
+                  inpClass={inpClass}
+                />
+              )}
             </div>
           )}
         </div>
