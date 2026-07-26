@@ -403,10 +403,12 @@ function PackageDetails() {
         <aside className="lg:sticky lg:top-6 h-fit">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
             <div className="text-xs text-muted-foreground">
-              Preço para {baseOccupancy === 1 ? "1 pessoa" : `${baseOccupancy} pessoas`}
+              {isPerUnit
+                ? "Preço por ingresso"
+                : `Preço para ${baseOccupancy === 1 ? "1 pessoa" : `${baseOccupancy} pessoas`}`}
             </div>
             <div className="mt-1 text-3xl font-display font-bold text-brand-orange">
-              {formatBRL(Number(pkg.price_per_person) * baseOccupancy)}
+              {formatBRL(Number(pkg.price_per_person) * (isPerUnit ? 1 : baseOccupancy))}
             </div>
             {pkg.taxes ? (
               <div className="text-xs text-muted-foreground mt-1">
@@ -416,28 +418,36 @@ function PackageDetails() {
 
             <dl className="mt-6 space-y-3 text-sm">
               <Row label="Destino" value={pkg.destination} />
-              {pkg.origin && <Row label="Origem" value={pkg.origin} />}
-              {pkg.going_date && <Row label="Ida" value={formatDateBR(pkg.going_date)} />}
-              {pkg.return_date && <Row label="Volta" value={formatDateBR(pkg.return_date)} />}
-              {pkg.nights != null && <Row label="Noites" value={String(pkg.nights)} />}
+              {isTicket ? (
+                eventDateLabel && <Row label="Data do evento" value={eventDateLabel} />
+              ) : (
+                <>
+                  {pkg.origin && <Row label="Origem" value={pkg.origin} />}
+                  {pkg.going_date && <Row label="Ida" value={formatDateBR(pkg.going_date)} />}
+                  {pkg.return_date && <Row label="Volta" value={formatDateBR(pkg.return_date)} />}
+                  {pkg.nights != null && <Row label="Noites" value={String(pkg.nights)} />}
+                </>
+              )}
             </dl>
 
-            <div className="mt-5 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-              Este pacote foi montado para{" "}
-              <span className="text-foreground font-medium">
-                {pkg.base_occupancy ?? 2} adulto{(pkg.base_occupancy ?? 2) > 1 ? "s" : ""}
-              </span>
-              . Precisa de outra quantidade de viajantes?{" "}
-              <a
-                href={customQuoteWhatsappUrl(pkg.title)}
-                target="_blank"
-                rel="noreferrer"
-                className="text-brand-orange hover:underline font-medium"
-              >
-                Fale no WhatsApp
-              </a>
-              .
-            </div>
+            {!isPerUnit && (
+              <div className="mt-5 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Este pacote foi montado para{" "}
+                <span className="text-foreground font-medium">
+                  {pkg.base_occupancy ?? 2} adulto{(pkg.base_occupancy ?? 2) > 1 ? "s" : ""}
+                </span>
+                . Precisa de outra quantidade de viajantes?{" "}
+                <a
+                  href={customQuoteWhatsappUrl(pkg.title)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brand-orange hover:underline font-medium"
+                >
+                  Fale no WhatsApp
+                </a>
+                .
+              </div>
+            )}
 
             <Link
               to="/pacotes/$slug/checkout"
