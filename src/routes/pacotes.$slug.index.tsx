@@ -973,25 +973,35 @@ function PreCheckoutDialog({
 
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
+  const pickIcon = (name: string): LucideIcon => {
+    const n = name.toLowerCase();
+    if (/express|fura|fast|skip|vip|priorit/.test(n)) return Zap;
+    if (/refei|meal|almo|jant|food|bebid/.test(n)) return Utensils;
+    if (/transfer|traslado|bus|van/.test(n)) return Bus;
+    if (/hotel|quarto|cama|room/.test(n)) return BedDouble;
+    if (/seguro|shield|proteç/.test(n)) return ShieldCheck;
+    return Sparkles;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden border-border bg-card shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-3xl">
+      <DialogContent className="max-w-[420px] p-0 gap-0 overflow-hidden border-border bg-card shadow-2xl rounded-2xl flex flex-col max-h-[88vh]">
         {/* Header */}
-        <div className="p-6 pb-0">
+        <div className="px-5 pt-5 pb-3 shrink-0">
           <DialogHeader className="text-left space-y-1">
-            <DialogTitle className="font-display text-xl tracking-tight">
+            <DialogTitle className="font-display text-lg leading-tight tracking-tight">
               Escolha sua data{hasAddons ? " e adicionais" : ""}
             </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Selecione o dia e personalize sua experiência
+            <p className="text-xs text-muted-foreground">
+              Personalize sua experiência
             </p>
           </DialogHeader>
         </div>
 
-        <div className="max-h-[65vh] overflow-y-auto">
-          {/* Calendário inline */}
+        <div className="flex-1 overflow-y-auto px-5">
+          {/* Calendário compacto */}
           {isFlexibleDate && (
-            <div className="p-6">
+            <div className="mb-5 bg-muted/30 rounded-xl p-2 border border-border/50">
               <CalendarUI
                 mode="single"
                 locale={ptBR}
@@ -1005,77 +1015,102 @@ function PreCheckoutDialog({
                 }}
                 disabled={{ before: new Date() }}
                 initialFocus
-                className={cn("p-0 pointer-events-auto w-full")}
+                className={cn("p-0 pointer-events-auto w-full [&_.rdp-day]:h-8 [&_.rdp-day]:w-8 [&_.rdp-day]:text-xs [&_.rdp-head_cell]:text-[10px]")}
               />
             </div>
           )}
 
           {/* Adicionais */}
           {hasAddons && (
-            <div className="px-6 pb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+            <div className="pb-5 space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   Serviços adicionais
                 </h3>
-                {weekdayShortName && (
+                {weekdayShortName ? (
                   <span className="px-2 py-0.5 bg-brand-orange/10 text-brand-orange text-[10px] font-bold rounded-full uppercase tracking-wider">
                     {weekdayShortName}
                   </span>
-                )}
-                {!weekdayShortName && isFlexibleDate && (
+                ) : isFlexibleDate ? (
                   <span className="px-2 py-0.5 bg-muted text-muted-foreground text-[10px] font-bold rounded-full uppercase tracking-wider">
                     Escolha a data
                   </span>
-                )}
+                ) : null}
               </div>
 
               <div className="space-y-3">
-                {addons.map((a) => {
+                {addons.map((a, idx) => {
                   const isSel = !!selected[a.key];
                   const units = a.per === "order" ? 1 : Math.max(1, qty);
-                  const line = a.price * units;
                   const priceIsAssumed = a.hasWeekdayPricing && weekday == null;
+                  const Icon = pickIcon(a.name);
+                  const isFeatured = idx === 0;
                   return (
-                    <button
-                      key={a.key}
-                      type="button"
-                      onClick={() => setSelected((s) => ({ ...s, [a.key]: !s[a.key] }))}
-                      className={cn(
-                        "group relative w-full p-4 rounded-2xl flex items-center justify-between transition-all text-left",
-                        isSel
-                          ? "bg-brand-orange/5 border-2 border-brand-orange"
-                          : "bg-background border border-border hover:border-border/80",
-                      )}
-                    >
-                      <div className="flex flex-col min-w-0 pr-3">
-                        <span className="font-medium text-sm text-foreground">{a.name}</span>
-                        {a.description && (
-                          <span className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.description}</span>
-                        )}
-                        <span className="text-xs text-muted-foreground mt-1">
-                          {priceIsAssumed ? "A partir de " : ""}
-                          <span className="text-foreground font-semibold">{formatBRL(a.price)}</span>
-                          <span className="text-muted-foreground"> {a.per === "order" ? "por reserva" : `× ${units}`}</span>
-                          {a.tierLabel && (
-                            <span className="ml-2 text-brand-orange font-semibold">• {a.tierLabel}</span>
-                          )}
-                        </span>
-                      </div>
-                      {/* Toggle switch */}
-                      <div
-                        className={cn(
-                          "shrink-0 w-11 h-6 rounded-full relative transition-colors",
-                          isSel ? "bg-brand-orange" : "bg-muted border border-border",
-                        )}
-                      >
+                    <div key={a.key} className="relative group">
+                      {isFeatured && (
                         <div
                           className={cn(
-                            "absolute top-1 w-4 h-4 rounded-full transition-all shadow-sm",
-                            isSel ? "right-1 bg-white" : "left-1 bg-muted-foreground/60",
+                            "absolute -inset-[1px] bg-gradient-to-r from-brand-orange to-amber-400 rounded-xl blur-[2px] transition-opacity pointer-events-none",
+                            isSel ? "opacity-60" : "opacity-25 group-hover:opacity-50",
                           )}
                         />
-                      </div>
-                    </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSelected((s) => ({ ...s, [a.key]: !s[a.key] }))}
+                        className={cn(
+                          "relative w-full p-4 rounded-xl flex items-center gap-3 text-left transition-all",
+                          "bg-card border",
+                          isSel ? "border-brand-orange/60" : "border-border/70 hover:border-border",
+                        )}
+                      >
+                        {/* Icon */}
+                        <div
+                          className={cn(
+                            "w-11 h-11 rounded-lg flex items-center justify-center shrink-0",
+                            isFeatured
+                              ? "bg-gradient-to-br from-brand-orange to-amber-500 shadow-[0_0_15px_rgba(242,107,31,0.35)]"
+                              : "bg-muted",
+                          )}
+                        >
+                          <Icon className={cn("h-5 w-5", isFeatured ? "text-white" : "text-muted-foreground")} />
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-bold text-foreground truncate">{a.name}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            {priceIsAssumed ? "A partir de " : ""}
+                            <span className="text-foreground font-semibold">{formatBRL(a.price)}</span>
+                            <span> {a.per === "order" ? "por reserva" : `× ${units}`}</span>
+                            {a.tierLabel && (
+                              <span className="ml-1 text-brand-orange font-semibold">• {a.tierLabel}</span>
+                            )}
+                          </div>
+                          {isFeatured && (
+                            <div className="mt-1.5 inline-flex items-center gap-1 bg-amber-400/10 border border-amber-400/25 px-1.5 py-0.5 rounded text-[9px] font-bold text-amber-500 uppercase tracking-wider">
+                              <Star className="h-2.5 w-2.5 fill-current" />
+                              Mais vendido
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Toggle */}
+                        <div
+                          className={cn(
+                            "shrink-0 w-10 h-5 rounded-full relative transition-colors",
+                            isSel ? "bg-brand-orange" : "bg-muted border border-border",
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "absolute top-[2px] w-4 h-4 rounded-full transition-all shadow-sm",
+                              isSel ? "left-[calc(100%-1.125rem)] bg-white" : "left-[2px] bg-muted-foreground/60",
+                            )}
+                          />
+                        </div>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -1084,18 +1119,18 @@ function PreCheckoutDialog({
         </div>
 
         {/* Footer resumo */}
-        <div className="p-6 bg-muted/20 border-t border-border">
-          <div className="flex items-center justify-between mb-4">
+        <div className="p-5 pt-4 bg-card border-t border-border shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.35)]">
+          <div className="flex items-end justify-between mb-3">
             <div>
-              <span className="text-muted-foreground text-xs block uppercase tracking-wider font-bold">
+              <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-bold">
                 Total estimado
               </span>
-              <span className="font-display text-2xl font-black text-foreground">
+              <span className="font-display text-2xl font-black text-foreground leading-tight">
                 {formatBRL(total)}
               </span>
             </div>
             <div className="text-right">
-              <span className="text-brand-orange text-xs block font-medium">
+              <span className="text-brand-orange text-xs font-medium">
                 {qty} {qty === 1 ? "ingresso" : "ingressos"}
                 {selectedCount > 0 && ` + ${selectedCount} ${selectedCount === 1 ? "adicional" : "adicionais"}`}
               </span>
@@ -1105,12 +1140,12 @@ function PreCheckoutDialog({
           <Button
             onClick={handleContinue}
             disabled={!canContinue}
-            className="w-full bg-brand-orange hover:bg-brand-orange/90 text-primary-foreground font-bold py-4 h-auto rounded-2xl transition-all shadow-[0_8px_30px_rgba(242,107,31,0.3)] active:scale-[0.98]"
+            className="w-full bg-brand-orange hover:bg-brand-orange/90 text-primary-foreground font-bold py-3.5 h-auto rounded-xl transition-all shadow-[0_8px_30px_rgba(242,107,31,0.3)] active:scale-[0.98] group"
           >
             Continuar para checkout
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Button>
-          <p className="text-center text-[10px] text-muted-foreground/70 mt-4 uppercase tracking-widest">
+          <p className="text-center text-[9px] text-muted-foreground/70 mt-3 uppercase tracking-wider">
             Sujeito à disponibilidade • Cancelamento conforme política
           </p>
         </div>
