@@ -2937,6 +2937,24 @@ function AddonsEditor({
               value={a.description ?? ""}
               onChange={(e) => patchAt(idx, { description: e.target.value })}
             />
+            <div className="grid gap-2 sm:grid-cols-[auto_1fr] items-center">
+              <label className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/5 px-2.5 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="accent-emerald-600"
+                  checked={!!a.recommended}
+                  onChange={(e) => patchAt(idx, { recommended: e.target.checked })}
+                />
+                Recomendado
+              </label>
+              <input
+                className={inpClass}
+                placeholder="Motivo (opcional) — ex.: Combo 2 parques sai mais barato"
+                value={a.recommended_reason ?? ""}
+                onChange={(e) => patchAt(idx, { recommended_reason: e.target.value })}
+                disabled={!a.recommended}
+              />
+            </div>
             <WeekdayPricingEditor
               tiers={a.price_by_weekday ?? []}
               onChange={(next) => patchAt(idx, { price_by_weekday: next })}
