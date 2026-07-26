@@ -121,6 +121,15 @@ export type PackageServices = {
     board_regime?: string | null;
   };
   outros?: string[];
+  /** Serviços adicionais opcionais oferecidos no checkout (ex.: fura-fila, foto oficial). */
+  addons?: Array<{
+    id?: string;
+    name: string;
+    description?: string | null;
+    price: number;
+    /** 'unit' = multiplica pelo número de ingressos/viajantes; 'order' = valor fixo por reserva. */
+    per?: "unit" | "order";
+  }>;
 };
 
 
