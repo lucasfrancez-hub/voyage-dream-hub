@@ -170,9 +170,13 @@ function priceFrom(p: any) {
 
 function chipsFor(p: any) {
   const svc = p.services || {};
+  const isTicket = p.kind === "service";
   const chips: { icon: any; label: string }[] = [];
-  if (p.hotel_name) chips.push({ icon: Building2, label: p.hotel_name });
-  if (p.origin) chips.push({ icon: Plane, label: `Aéreo de ${p.origin}` });
+  // Para ingressos não faz sentido mostrar "Aéreo de X" — a origem é
+  // apenas ponto de referência do transfer.
+  if (!isTicket && p.hotel_name) chips.push({ icon: Building2, label: p.hotel_name });
+  if (!isTicket && p.origin) chips.push({ icon: Plane, label: `Aéreo de ${p.origin}` });
+  if (isTicket && p.hotel_name) chips.push({ icon: Building2, label: p.hotel_name });
   if (svc?.transfer?.enabled) chips.push({ icon: Bus, label: "Transfer" });
   if (svc?.insurance?.enabled) chips.push({ icon: Shield, label: "Seguro" });
   return chips;
