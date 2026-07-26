@@ -263,6 +263,14 @@ function Checkout() {
             pricing_mode: (pkg as any).pricing_mode ?? "per_occupancy",
             preferred_date: isFlexibleDate ? preferredDate : null,
             pickup_point: pickupPoint || null,
+            addons_selected: addonsList
+              .filter((a) => selectedAddons[a.key])
+              .map((a) => {
+                const units = isPerUnit ? adults : (adults + children);
+                const qty = a.per === "order" ? 1 : Math.max(1, units);
+                return { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null };
+              }),
+            addons_total: addonsTotal,
 
             nights: pkg.nights ?? null,
             price_per_person: pkg.price_per_person,
