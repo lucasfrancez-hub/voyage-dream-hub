@@ -77,8 +77,7 @@ function IngressosPage() {
   });
 
   const list = items ?? [];
-  const featured = list[0];
-  const rest = list.slice(1);
+
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
