@@ -2002,6 +2002,7 @@ function PackageEditorModal({
 
             {tab === "dates" && (
               <div className="grid sm:grid-cols-2 gap-3">
+                {kind !== "package" && (
                 <FormField label="Modo de data" wide>
                   <div className="flex gap-2">
                     {([
@@ -2026,6 +2027,8 @@ function PackageEditorModal({
                     })}
                   </div>
                 </FormField>
+                )}
+
                 {(editing.date_mode ?? "fixed") === "fixed" && (
                   <>
                     <FormField label="Data ida">
@@ -2054,6 +2057,7 @@ function PackageEditorModal({
                     onChange={(e) => setEditing({ ...editing, nights: Number(e.target.value) })}
                   />
                 </FormField>
+                {kind !== "package" && (
                 <FormField label="Modo de preço" wide>
                   <div className="flex gap-2">
                     {([
@@ -2078,6 +2082,8 @@ function PackageEditorModal({
                     })}
                   </div>
                 </FormField>
+                )}
+
                 {(editing.pricing_mode ?? "per_occupancy") === "per_occupancy" ? (
                   <FormField label="Ocupação base (adultos)">
                     <input
