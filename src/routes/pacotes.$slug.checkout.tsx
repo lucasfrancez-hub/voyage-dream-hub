@@ -37,7 +37,7 @@ const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
   const { slug } = Route.useParams();
-  const { qty: qtyFromSearch } = Route.useSearch();
+  const { qty: qtyFromSearch, date: dateFromSearch, addons: addonsFromSearch } = Route.useSearch();
   const navigate = useNavigate();
 
 
