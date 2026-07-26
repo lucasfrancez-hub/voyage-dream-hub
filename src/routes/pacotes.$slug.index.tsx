@@ -881,8 +881,10 @@ function TicketDetailsView({
 
 function CalendarMonthNav({
   children,
+  maxMonth,
 }: {
   children: (month: Date, setMonth: (d: Date) => void) => React.ReactNode;
+  maxMonth?: Date;
 }) {
   const [month, setMonth] = useState<Date>(() => {
     const d = new Date();
@@ -898,6 +900,10 @@ function CalendarMonthNav({
   const canGoBack =
     month.getFullYear() > today.getFullYear() ||
     (month.getFullYear() === today.getFullYear() && month.getMonth() > today.getMonth());
+  const canGoForward =
+    !maxMonth ||
+    month.getFullYear() < maxMonth.getFullYear() ||
+    (month.getFullYear() === maxMonth.getFullYear() && month.getMonth() < maxMonth.getMonth());
   const go = (delta: number) => {
     const next = new Date(month);
     next.setMonth(next.getMonth() + delta);
@@ -924,6 +930,7 @@ function CalendarMonthNav({
           size="icon"
           className="pointer-events-auto h-10 w-10 rounded-full shadow-md"
           onClick={() => go(1)}
+          disabled={!canGoForward}
           aria-label="Próximo mês"
           title="Próximo mês"
         >
@@ -934,6 +941,7 @@ function CalendarMonthNav({
     </div>
   );
 }
+
 
 function PreCheckoutDialog({
   open,
