@@ -468,7 +468,7 @@ function Checkout() {
         <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
           {/* Left: form */}
           <div className="space-y-6">
-            {isFlexibleDate && (
+            {isFlexibleDate && !isService && (
               <Card title="Data desejada">
                 <Field label="Escolha a data para a sua reserva *">
                   <input
