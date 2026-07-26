@@ -610,7 +610,16 @@ function TicketDetailsView({
   const isFlexibleDate = pkg?.date_mode === "flexible";
   const rawAddons: any[] = Array.isArray(services?.addons) ? services.addons : [];
   const hasAddons = rawAddons.some(
-    (a) => a && a.name && (Number(a.price) > 0 || (a.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0)),
+    (a) =>
+      a &&
+      a.name &&
+      (Number(a.price) > 0 ||
+        (a.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0) ||
+        (a.sub_options ?? []).some(
+          (s: any) =>
+            Number(s?.price) > 0 ||
+            (s?.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0),
+        )),
   );
   const [preOpen, setPreOpen] = useState(false);
 
@@ -997,7 +1006,11 @@ function PreCheckoutDialog({
         if (!a || !a.name) return false;
         const tiers = (a.price_by_weekday ?? []) as any[];
         const subs = (a.sub_options ?? []) as any[];
-        const hasSubPrice = subs.some((s) => Number(s?.price) > 0);
+        const hasSubPrice = subs.some(
+          (s) =>
+            Number(s?.price) > 0 ||
+            (s?.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0),
+        );
         return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0) || hasSubPrice;
       })
       .map((a: any, i: number) => {
@@ -1006,7 +1019,7 @@ function PreCheckoutDialog({
         const addonDateStr = addonDates[key] || date || pkg?.going_date || "";
         const m = String(addonDateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
         const wd = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay() : null;
-        const tier = wd != null ? tiers.find((t: any) => (t.days ?? []).includes(wd)) : null;
+        const tier = wd != null ? tiers.find((t: any) => (t.days ?? []).map(Number).includes(wd)) : null;
         const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
         const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
         const price = tier ? Number(tier.price) : assumed;
@@ -1017,7 +1030,7 @@ function PreCheckoutDialog({
           })
           .map((s, j) => {
             const subTiers = (s.price_by_weekday ?? []) as any[];
-            const subTier = wd != null ? subTiers.find((t: any) => (t.days ?? []).includes(wd)) : null;
+            const subTier = wd != null ? subTiers.find((t: any) => (t.days ?? []).map(Number).includes(wd)) : null;
             const subTierPrices = subTiers.map((t) => Number(t?.price)).filter((n) => n > 0);
             const subAssumed = Number(s.price) > 0 ? Number(s.price) : (subTierPrices.length ? Math.min(...subTierPrices) : 0);
             return {
