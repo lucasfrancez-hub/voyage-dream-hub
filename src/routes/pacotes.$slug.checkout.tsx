@@ -640,6 +640,54 @@ function Checkout() {
 
                         </div>
                       </label>
+                      {checked && a.subs.length > 0 && (
+                        <div className="ml-6 mt-1 mb-2 space-y-1.5 border-l-2 border-brand-orange/30 pl-3">
+                          <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                            Complementos para “{a.name}”
+                          </div>
+                          {a.subs.map((sub: any) => {
+                            const subChecked = !!selectedAddons[sub.key];
+                            const subQty = sub.per === "order" ? 1 : Math.max(1, units);
+                            const subLine = sub.price * subQty;
+                            return (
+                              <label
+                                key={sub.key}
+                                className={`flex cursor-pointer gap-2 rounded-lg border p-2 transition text-xs ${
+                                  subChecked
+                                    ? "border-brand-orange bg-brand-orange/5"
+                                    : "border-border bg-background hover:border-brand-orange/50"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="mt-0.5 h-3.5 w-3.5 accent-brand-orange"
+                                  checked={subChecked}
+                                  onChange={(e) =>
+                                    setSelectedAddons((prev) => ({ ...prev, [sub.key]: e.target.checked }))
+                                  }
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                    <span className="font-semibold">{sub.name}</span>
+                                    <span className="font-bold text-brand-orange">
+                                      + {formatBRL(subLine)}
+                                      {sub.per !== "order" && subQty > 1 && (
+                                        <span className="ml-1 font-normal text-muted-foreground">
+                                          ({formatBRL(sub.price)} × {subQty})
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                  {sub.description && (
+                                    <p className="mt-0.5 text-muted-foreground">{sub.description}</p>
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                      </React.Fragment>
                     );
                   })}
                 </div>
