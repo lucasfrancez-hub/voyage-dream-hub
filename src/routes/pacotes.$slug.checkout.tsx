@@ -542,6 +542,12 @@ function Checkout() {
                           )}
                           <p className="mt-1 text-[11px] text-muted-foreground">
                             {a.per === "order" ? "Valor único por reserva" : "Por pessoa/ingresso"}
+                            {a.hasWeekdayPricing && addonWeekday != null && a.tierLabel && (
+                              <> · <span className="text-brand-orange">Preço {a.tierLabel}</span></>
+                            )}
+                            {a.hasWeekdayPricing && addonWeekday == null && (
+                              <> · <span className="text-amber-600">o preço varia por dia da semana — escolha a data acima</span></>
+                            )}
                           </p>
                         </div>
                       </label>
