@@ -985,7 +985,7 @@ function PreCheckoutDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-4xl p-0 gap-0 overflow-hidden border-border bg-card shadow-2xl rounded-3xl flex flex-col max-h-[92vh]">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-4xl p-0 gap-0 overflow-hidden border-border bg-card/80 backdrop-blur-2xl shadow-2xl rounded-3xl flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="px-6 py-5 shrink-0 border-b border-border/60 flex items-start justify-between gap-4">
           <DialogHeader className="text-left space-y-1">
@@ -1023,7 +1023,8 @@ function PreCheckoutDialog({
                 }}
                 disabled={{ before: new Date() }}
                 initialFocus
-                className={cn("p-0 pointer-events-auto mx-auto")}
+                className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
+                classNames={{ root: "w-full", months: "w-full", month: "w-full flex flex-col gap-4" }}
               />
               <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">
                 * Preços podem variar de acordo com a data selecionada
