@@ -881,8 +881,10 @@ function TicketDetailsView({
 
 function CalendarMonthNav({
   children,
+  maxMonth,
 }: {
   children: (month: Date, setMonth: (d: Date) => void) => React.ReactNode;
+  maxMonth?: Date;
 }) {
   const [month, setMonth] = useState<Date>(() => {
     const d = new Date();
@@ -898,6 +900,10 @@ function CalendarMonthNav({
   const canGoBack =
     month.getFullYear() > today.getFullYear() ||
     (month.getFullYear() === today.getFullYear() && month.getMonth() > today.getMonth());
+  const canGoForward =
+    !maxMonth ||
+    month.getFullYear() < maxMonth.getFullYear() ||
+    (month.getFullYear() === maxMonth.getFullYear() && month.getMonth() < maxMonth.getMonth());
   const go = (delta: number) => {
     const next = new Date(month);
     next.setMonth(next.getMonth() + delta);
@@ -924,6 +930,7 @@ function CalendarMonthNav({
           size="icon"
           className="pointer-events-auto h-10 w-10 rounded-full shadow-md"
           onClick={() => go(1)}
+          disabled={!canGoForward}
           aria-label="Próximo mês"
           title="Próximo mês"
         >
@@ -934,6 +941,7 @@ function CalendarMonthNav({
     </div>
   );
 }
+
 
 function PreCheckoutDialog({
   open,
@@ -1068,7 +1076,14 @@ function PreCheckoutDialog({
           {/* Left: Calendar */}
           {isFlexibleDate && (
             <div className="p-6 lg:p-8 flex flex-col">
-              <CalendarMonthNav>
+              {(() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const maxDate = new Date(today);
+                maxDate.setMonth(maxDate.getMonth() + 11);
+                const maxMonth = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+                return (
+              <CalendarMonthNav maxMonth={maxMonth}>
                 {(month, setMonth) => (
                   <CalendarUI
                     mode="single"
@@ -1083,11 +1098,13 @@ function PreCheckoutDialog({
                       const day = String(d.getDate()).padStart(2, "0");
                       setDate(`${y}-${m}-${day}`);
                     }}
-                    disabled={{ before: new Date() }}
+                    disabled={{ before: new Date(), after: maxDate }}
                     initialFocus
                     captionLayout="dropdown"
-                    fromYear={new Date().getFullYear()}
-                    toYear={new Date().getFullYear() + 3}
+                    startMonth={new Date(today.getFullYear(), today.getMonth(), 1)}
+                    endMonth={maxMonth}
+                    fromYear={today.getFullYear()}
+                    toYear={maxDate.getFullYear()}
                     className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
                     classNames={{
                       root: "w-full",
@@ -1100,11 +1117,14 @@ function PreCheckoutDialog({
                   />
                 )}
               </CalendarMonthNav>
+                );
+              })()}
               <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">
                 * Preços podem variar de acordo com a data selecionada
               </div>
             </div>
           )}
+
 
           {/* Right: Addons */}
           {hasAddons && (
