@@ -1559,7 +1559,12 @@ function PreCheckoutDialog({
                     <div className="mb-3 text-white/60 text-xs uppercase tracking-widest font-bold">
                       Data de: <span className="text-brand-orange">{active.label}</span>
                     </div>
-                    <CalendarMonthNav>
+                    <CalendarMonthNav
+                      maxMonth={calTo}
+                      minMonth={calFrom}
+                      initialMonth={isAddonSlot && tripStart ? tripStart : undefined}
+                      resetKey={active.key}
+                    >
                       {(month, setMonth) => (
                         <CalendarUI
                           key={active.key}
@@ -1570,6 +1575,10 @@ function PreCheckoutDialog({
                           selected={active.value ? new Date(active.value + "T00:00:00") : undefined}
                           onDayClick={(d, mods) => {
                             if (mods?.disabled) return;
+                            if (isAddonSlot && tripStart && tripEnd && (d < tripStart || d > tripEnd)) {
+                              toast.error("Data indisponível", { description: "O adicional deve ocorrer durante a viagem." });
+                              return;
+                            }
                             if (d > maxDate) {
                               toast.error("Data indisponível", { description: "Só aceitamos reservas com até 11 meses de antecedência." });
                               return;
@@ -1578,15 +1587,25 @@ function PreCheckoutDialog({
                             const m = String(d.getMonth() + 1).padStart(2, "0");
                             const day = String(d.getDate()).padStart(2, "0");
                             active.setValue(`${y}-${m}-${day}`);
-                            // Auto-advance to next empty slot
                             const nextEmpty = slots.find((s) => s.key !== active.key && !s.value && s.key !== active.key);
                             if (nextEmpty && slots.length > 1) {
                               setTimeout(() => setActiveDateKey(nextEmpty.key), 200);
                             }
                           }}
-                          disabled={{ before: new Date() }}
-                          modifiers={{ tooFar: { after: maxDate } }}
-                          modifiersClassNames={{ tooFar: "text-destructive line-through opacity-70 hover:!bg-destructive/10" }}
+                          disabled={
+                            isAddonSlot && tripStart && tripEnd
+                              ? [{ before: tripStart }, { after: tripEnd }]
+                              : { before: new Date() }
+                          }
+                          modifiers={
+                            isAddonSlot && tripStart && tripEnd
+                              ? { outside: [{ before: tripStart }, { after: tripEnd }] }
+                              : { tooFar: { after: maxDate } }
+                          }
+                          modifiersClassNames={{
+                            tooFar: "text-destructive line-through opacity-70 hover:!bg-destructive/10",
+                            outside: "text-destructive line-through opacity-60",
+                          }}
                           initialFocus
                           captionLayout="dropdown"
                           fromYear={today.getFullYear()}
