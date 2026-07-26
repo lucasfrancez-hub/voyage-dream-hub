@@ -2030,33 +2030,47 @@ function PackageEditorModal({
                 )}
 
                 {(editing.date_mode ?? "fixed") === "fixed" && (
-                  <>
-                    <FormField label="Data ida">
+                  kind === "service" ? (
+                    <FormField label="Data do evento / uso">
                       <input
                         type="date"
                         className={inp}
                         value={editing.going_date ?? ""}
-                        onChange={(e) => setEditing({ ...editing, going_date: e.target.value })}
+                        onChange={(e) => setEditing({ ...editing, going_date: e.target.value, return_date: e.target.value })}
                       />
                     </FormField>
-                    <FormField label="Data volta">
-                      <input
-                        type="date"
-                        className={inp}
-                        value={editing.return_date ?? ""}
-                        onChange={(e) => setEditing({ ...editing, return_date: e.target.value })}
-                      />
-                    </FormField>
-                  </>
+                  ) : (
+                    <>
+                      <FormField label="Data ida">
+                        <input
+                          type="date"
+                          className={inp}
+                          value={editing.going_date ?? ""}
+                          onChange={(e) => setEditing({ ...editing, going_date: e.target.value })}
+                        />
+                      </FormField>
+                      <FormField label="Data volta">
+                        <input
+                          type="date"
+                          className={inp}
+                          value={editing.return_date ?? ""}
+                          onChange={(e) => setEditing({ ...editing, return_date: e.target.value })}
+                        />
+                      </FormField>
+                    </>
+                  )
                 )}
-                <FormField label="Noites">
-                  <input
-                    type="number"
-                    className={inp}
-                    value={editing.nights ?? 0}
-                    onChange={(e) => setEditing({ ...editing, nights: Number(e.target.value) })}
-                  />
-                </FormField>
+                {kind !== "service" && (
+                  <FormField label="Noites">
+                    <input
+                      type="number"
+                      className={inp}
+                      value={editing.nights ?? 0}
+                      onChange={(e) => setEditing({ ...editing, nights: Number(e.target.value) })}
+                    />
+                  </FormField>
+                )}
+
                 {kind !== "package" && (
                 <FormField label="Modo de preço" wide>
                   <div className="flex gap-2">
