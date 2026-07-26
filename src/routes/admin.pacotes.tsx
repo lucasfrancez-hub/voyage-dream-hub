@@ -2908,6 +2908,47 @@ function AddonsEditor({
           + Adicionar opcional
         </button>
       </div>
+      {suggestions && suggestions.length > 0 && (() => {
+        const existingNames = new Set(addons.map((a) => (a.name ?? "").trim().toLowerCase()));
+        const remaining = suggestions.filter((s) => !existingNames.has((s.title ?? "").trim().toLowerCase()));
+        if (remaining.length === 0) return null;
+        return (
+          <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
+            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              <Sparkles className="h-3 w-3" />
+              Ingressos em {destination ?? "este destino"} — clique para adicionar como opcional
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {remaining.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() =>
+                    onChange([
+                      ...addons,
+                      {
+                        name: s.title,
+                        description: null,
+                        price: Number(s.price_per_person ?? 0),
+                        per: "unit",
+                      },
+                    ])
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:border-emerald-500 hover:bg-emerald-500/10 transition"
+                  title={`Adicionar "${s.title}" como opcional`}
+                >
+                  + {s.title}
+                  {s.price_per_person != null && s.price_per_person > 0 && (
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                      {formatBRL(Number(s.price_per_person))}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
       {addons.length === 0 && (
         <p className="text-xs text-muted-foreground">
           Ex.: fura-fila, foto oficial, refeição extra, upgrade de assento. Ficam ocultos se não houver nenhum.
