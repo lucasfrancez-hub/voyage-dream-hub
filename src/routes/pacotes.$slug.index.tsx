@@ -883,24 +883,38 @@ function TicketDetailsView({
 function CalendarMonthNav({
   children,
   maxMonth,
+  minMonth,
+  initialMonth,
+  resetKey,
 }: {
   children: (month: Date, setMonth: (d: Date) => void) => React.ReactNode;
   maxMonth?: Date;
+  minMonth?: Date;
+  initialMonth?: Date;
+  resetKey?: string;
 }) {
   const [month, setMonth] = useState<Date>(() => {
-    const d = new Date();
+    const d = initialMonth ? new Date(initialMonth) : new Date();
     d.setDate(1);
     return d;
   });
-  const today = useMemo(() => {
-    const d = new Date();
+  useEffect(() => {
+    if (initialMonth) {
+      const d = new Date(initialMonth);
+      d.setDate(1);
+      setMonth(d);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
+  const lowerBound = useMemo(() => {
+    const d = new Date(minMonth ?? new Date());
     d.setHours(0, 0, 0, 0);
     d.setDate(1);
     return d;
-  }, []);
+  }, [minMonth]);
   const canGoBack =
-    month.getFullYear() > today.getFullYear() ||
-    (month.getFullYear() === today.getFullYear() && month.getMonth() > today.getMonth());
+    month.getFullYear() > lowerBound.getFullYear() ||
+    (month.getFullYear() === lowerBound.getFullYear() && month.getMonth() > lowerBound.getMonth());
   const canGoForward =
     !maxMonth ||
     month.getFullYear() < maxMonth.getFullYear() ||
@@ -942,6 +956,7 @@ function CalendarMonthNav({
     </div>
   );
 }
+
 
 
 function PreCheckoutDialog({
