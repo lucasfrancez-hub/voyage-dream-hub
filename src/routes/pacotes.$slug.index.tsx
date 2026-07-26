@@ -538,3 +538,316 @@ function InfoTile({
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Ticket / event detail view (kind === "service")
+// ---------------------------------------------------------------------------
+
+const MONTHS_ABBR = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+const WEEK_ABBR = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+
+function parseEventDate(iso: string | null | undefined) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return {
+    day: String(d).padStart(2, "0"),
+    month: MONTHS_ABBR[m - 1],
+    year: String(y),
+    dow: WEEK_ABBR[date.getUTCDay()],
+  };
+}
+
+function chipIconForInclude(text: string): LucideIcon {
+  const v = text.toLocaleLowerCase("pt-BR");
+  if (/transfer|traslado|van|\btransporte\b/.test(v)) return Bus;
+  if (/seguro/.test(v)) return ShieldCheck;
+  if (/hotel|hosped|pousada|resort/.test(v)) return Hotel;
+  if (/ingresso|entrada|acesso|pulseira|credencial/.test(v)) return Ticket;
+  if (/embarque|ponto de encontro/.test(v)) return MapPin;
+  return Check;
+}
+
+function TicketDetailsView({
+  pkg,
+  eventDateLabel,
+}: {
+  pkg: any;
+  eventDateLabel: string | null;
+}) {
+  const services = (pkg.services ?? {}) as any;
+  const transferSvc = services.transfer ?? {};
+  const insuranceSvc = services.insurance ?? {};
+  const pickupPoints: string[] = Array.isArray(transferSvc?.pickup_points)
+    ? transferSvc.pickup_points.filter((s: any) => typeof s === "string" && s.trim())
+    : typeof transferSvc?.pickup_points === "string"
+      ? String(transferSvc.pickup_points)
+          .split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+
+  const dateBlock = parseEventDate(pkg.going_date);
+  const price = Number(pkg.price_per_person) || 0;
+  const includes: string[] = Array.isArray(pkg.includes) ? pkg.includes : [];
+
+  const [qty, setQty] = useState(1);
+  const maxUnits = Math.max(1, Math.min(9, Number(pkg.max_units) || 9));
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <TopBar backTo="/ingressos" backLabel="Todos os ingressos" />
+
+      <div className="mx-auto max-w-6xl w-full px-4 md:px-6 py-8 md:py-12 flex flex-col lg:flex-row gap-8">
+        {/* Main column */}
+        <div className="flex-1 space-y-10 min-w-0">
+          {/* Hero split */}
+          <div className="relative bg-card rounded-3xl overflow-hidden border border-border shadow-[var(--shadow-card)]">
+            <div className="flex flex-col md:flex-row">
+              <div className="md:w-1/2 relative min-h-[280px] md:min-h-[380px]">
+                {pkg.image_url && (
+                  <img
+                    src={pkg.image_url}
+                    alt={pkg.title}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent md:bg-gradient-to-r md:from-transparent md:to-card/40" />
+                <div className="absolute top-5 left-5 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 bg-brand-orange text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
+                    <Ticket className="h-3 w-3" /> Ingresso
+                  </span>
+                  {pkg.destination && (
+                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-white/10">
+                      <MapPin className="h-3 w-3" /> {pkg.destination}
+                    </span>
+                  )}
+                </div>
+                {dateBlock && (
+                  <div className="absolute bottom-5 left-5 bg-card border border-border p-3 rounded-xl flex flex-col items-center min-w-[92px] shadow-2xl">
+                    <span className="text-brand-orange text-[10px] font-extrabold uppercase tracking-widest">
+                      {dateBlock.dow}
+                    </span>
+                    <span className="font-display text-3xl font-black leading-none my-1">
+                      {dateBlock.day}
+                    </span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">
+                      {dateBlock.month} / {dateBlock.year}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="md:w-1/2 p-7 md:p-10 flex flex-col justify-center">
+                <h1 className="font-display text-3xl md:text-4xl font-extrabold leading-tight mb-4">
+                  {pkg.title}
+                </h1>
+                {pkg.summary && (
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-5">
+                    {pkg.summary}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {eventDateLabel && (
+                    <div className="bg-muted/40 border border-border px-3 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold">
+                      <Calendar className="h-4 w-4 text-brand-orange" />
+                      {eventDateLabel}
+                    </div>
+                  )}
+                  {pkg.destination && (
+                    <div className="bg-muted/40 border border-border px-3 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold">
+                      <MapPin className="h-4 w-4 text-brand-orange" />
+                      {pkg.destination}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sobre o ingresso */}
+          {pkg.summary && (
+            <section>
+              <SectionHeader>Sobre o ingresso</SectionHeader>
+              <p className="text-muted-foreground leading-relaxed">{pkg.summary}</p>
+            </section>
+          )}
+
+          {/* O que está incluso */}
+          {includes.length > 0 && (
+            <section>
+              <SectionHeader>O que está incluso</SectionHeader>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {includes.map((item) => {
+                  const Icon = chipIconForInclude(item);
+                  return (
+                    <div
+                      key={item}
+                      className="bg-card p-4 rounded-2xl border border-border flex items-start gap-3"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-brand-orange/10 flex items-center justify-center text-brand-orange shrink-0">
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="text-sm font-medium leading-snug pt-1.5">
+                        {item}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Ponto de encontro / Transfer */}
+          {(pickupPoints.length > 0 || pkg.itinerary || transferSvc?.enabled) && (
+            <section>
+              <SectionHeader>Ponto de encontro / Transfer</SectionHeader>
+              <div className="bg-card border border-border rounded-3xl p-6 md:p-8 space-y-6">
+                {pickupPoints.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-3">
+                      Locais de embarque
+                    </h3>
+                    <ul className="grid sm:grid-cols-2 gap-2">
+                      {pickupPoints.map((point) => (
+                        <li
+                          key={point}
+                          className="flex items-start gap-3 text-sm bg-muted/30 border border-border rounded-xl px-3 py-2.5"
+                        >
+                          <MapPin className="h-4 w-4 mt-0.5 text-brand-orange shrink-0" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {pkg.itinerary && (
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-3">
+                      Detalhes do transfer
+                    </h3>
+                    <WhatsAppText className="text-sm text-muted-foreground leading-relaxed">
+                      {pkg.itinerary}
+                    </WhatsAppText>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {insuranceSvc?.enabled && (
+            <section>
+              <SectionHeader>Seguro incluso</SectionHeader>
+              <div className="bg-card border border-border rounded-2xl p-5 flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-brand-orange/10 flex items-center justify-center text-brand-orange shrink-0">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div className="text-sm">
+                  <p className="font-semibold">Seguro de eventos</p>
+                  {insuranceSvc?.coverage && (
+                    <p className="text-muted-foreground mt-1">
+                      Cobertura: {insuranceSvc.coverage}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* Reservation sidebar */}
+        <aside className="lg:w-[380px] shrink-0">
+          <div className="lg:sticky lg:top-6 bg-card border border-border p-7 md:p-8 rounded-[2rem] shadow-[var(--shadow-card)]">
+            <div className="mb-6">
+              <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em] mb-2">
+                Preço por ingresso
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-brand-orange text-2xl font-bold">R$</span>
+                <span className="font-display text-4xl md:text-5xl font-black">
+                  {price.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              {eventDateLabel && (
+                <div className="mt-3 inline-flex items-center gap-1.5 bg-brand-orange/10 text-brand-orange text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">
+                  <Calendar className="h-3 w-3" /> {eventDateLabel}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-foreground uppercase tracking-widest block">
+                Quantidade
+              </label>
+              <div className="flex items-center justify-between bg-muted/40 border border-border p-2 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setQty((n) => Math.max(1, n - 1))}
+                  disabled={qty <= 1}
+                  className="w-11 h-11 flex items-center justify-center bg-background hover:bg-muted rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Diminuir quantidade"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="font-display text-2xl font-black tabular-nums">
+                  {String(qty).padStart(2, "0")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQty((n) => Math.min(maxUnits, n + 1))}
+                  disabled={qty >= maxUnits}
+                  className="w-11 h-11 flex items-center justify-center bg-brand-orange text-primary-foreground hover:opacity-90 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Aumentar quantidade"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground text-center">
+                Total: <strong className="text-foreground">{(price * qty).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
+              </p>
+            </div>
+
+            <Link
+              to="/pacotes/$slug/checkout"
+              params={{ slug: pkg.slug }}
+              search={{ qty }}
+              className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-orange px-6 py-4 font-bold uppercase tracking-widest text-sm text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition group"
+            >
+              Reservar agora
+              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+
+            <div className="mt-8 pt-6 border-t border-border space-y-3">
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-semibold">
+                <div className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-emerald-500">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                Ambiente seguro e criptografado
+              </div>
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-semibold">
+                <div className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-brand-orange">
+                  <Zap className="w-4 h-4" />
+                </div>
+                Confirmação por e-mail e WhatsApp
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <ContactFooter whatsappMessage={`Olá! Tenho interesse no ingresso ${pkg.title} e quero mais informações.`} />
+    </div>
+  );
+}
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-4 mb-5">
+      <h2 className="text-brand-orange text-sm font-black uppercase tracking-[0.3em]">
+        {children}
+      </h2>
+      <div className="h-px flex-1 bg-gradient-to-r from-brand-orange/30 to-transparent" />
+    </div>
+  );
+}
