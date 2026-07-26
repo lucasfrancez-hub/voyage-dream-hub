@@ -205,7 +205,7 @@ function IngressosPage() {
                       : "border border-border bg-card text-muted-foreground hover:border-brand-orange/60 hover:text-foreground"
                   }`}
                 >
-                  <Sparkles className="h-3 w-3" /> {cat.label}{" "}
+                  {cat.label}{" "}
                   <span className="opacity-70">({eventCounts[cat.key]})</span>
                 </button>
               ))}
