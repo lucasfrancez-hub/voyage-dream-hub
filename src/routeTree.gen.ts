@@ -33,6 +33,7 @@ import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminEncurtadorRouteImport } from './routes/admin.encurtador'
 import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
@@ -57,6 +58,7 @@ import { Route as ChatProtocolosRouteImport } from './routes/chat.protocolos'
 import { Route as ChatSugestoesRouteImport } from './routes/chat.sugestoes'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as EmbedPacotesDestaqueRouteImport } from './routes/embed.pacotes-destaque'
+import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
@@ -211,6 +213,11 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminEncurtadorRoute = AdminEncurtadorRouteImport.update({
+  id: '/encurtador',
+  path: '/encurtador',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminInstagramRoute = AdminInstagramRouteImport.update({
   id: '/instagram',
   path: '/instagram',
@@ -329,6 +336,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
 const EmbedPacotesDestaqueRoute = EmbedPacotesDestaqueRouteImport.update({
   id: '/embed/pacotes-destaque',
   path: '/embed/pacotes-destaque',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LSlugRoute = LSlugRouteImport.update({
+  id: '/l/$slug',
+  path: '/l/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrcamentoTokenRoute = OrcamentoTokenRouteImport.update({
@@ -537,6 +549,7 @@ export interface FileRoutesByFullPath {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/encurtador': typeof AdminEncurtadorRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
@@ -561,6 +574,7 @@ export interface FileRoutesByFullPath {
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
+  '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
@@ -619,6 +633,7 @@ export interface FileRoutesByTo {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/encurtador': typeof AdminEncurtadorRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
@@ -643,6 +658,7 @@ export interface FileRoutesByTo {
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
+  '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
@@ -703,6 +719,7 @@ export interface FileRoutesById {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/encurtador': typeof AdminEncurtadorRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
@@ -727,6 +744,7 @@ export interface FileRoutesById {
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
+  '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
@@ -788,6 +806,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/encurtador'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
@@ -812,6 +831,7 @@ export interface FileRouteTypes {
     | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/pacotes-destaque'
+    | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
@@ -870,6 +890,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/encurtador'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
@@ -894,6 +915,7 @@ export interface FileRouteTypes {
     | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/pacotes-destaque'
+    | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
@@ -953,6 +975,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/encurtador'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
@@ -977,6 +1000,7 @@ export interface FileRouteTypes {
     | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/pacotes-destaque'
+    | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
@@ -1033,6 +1057,7 @@ export interface RootRouteChildren {
   ValidacaoRoute: typeof ValidacaoRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
+  LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   WSlugRoute: typeof WSlugRoute
@@ -1230,6 +1255,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDashboardRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/encurtador': {
+      id: '/admin/encurtador'
+      path: '/encurtador'
+      fullPath: '/admin/encurtador'
+      preLoaderRoute: typeof AdminEncurtadorRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/instagram': {
       id: '/admin/instagram'
       path: '/instagram'
@@ -1396,6 +1428,13 @@ declare module '@tanstack/react-router' {
       path: '/embed/pacotes-destaque'
       fullPath: '/embed/pacotes-destaque'
       preLoaderRoute: typeof EmbedPacotesDestaqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/l/$slug': {
+      id: '/l/$slug'
+      path: '/l/$slug'
+      fullPath: '/l/$slug'
+      preLoaderRoute: typeof LSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orcamento/$token': {
@@ -1651,6 +1690,7 @@ interface AdminRouteChildren {
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminEncurtadorRoute: typeof AdminEncurtadorRoute
   AdminInstagramRoute: typeof AdminInstagramRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
@@ -1673,6 +1713,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminEncurtadorRoute: AdminEncurtadorRoute,
   AdminInstagramRoute: AdminInstagramRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
@@ -1760,6 +1801,7 @@ const rootRouteChildren: RootRouteChildren = {
   ValidacaoRoute: ValidacaoRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
+  LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   WSlugRoute: WSlugRoute,

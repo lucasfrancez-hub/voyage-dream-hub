@@ -386,6 +386,13 @@ function CartaoNav({ pathname }: { pathname: string }) {
             <span className="text-xs text-muted-foreground">Cartões salvos com segurança</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/encurtador" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Encurtador de URL</span>
+            <span className="text-xs text-muted-foreground">Links curtos /l/xxxxxx</span>
+          </Link>
+        </DropdownMenuItem>
+
       </DropdownMenuContent>
     </DropdownMenu>
   );

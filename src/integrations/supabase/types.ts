@@ -2594,6 +2594,36 @@ export type Database = {
           },
         ]
       }
+      short_links: {
+        Row: {
+          click_count: number
+          created_at: string
+          created_by: string | null
+          label: string | null
+          last_click_at: string | null
+          slug: string
+          target_url: string
+        }
+        Insert: {
+          click_count?: number
+          created_at?: string
+          created_by?: string | null
+          label?: string | null
+          last_click_at?: string | null
+          slug: string
+          target_url: string
+        }
+        Update: {
+          click_count?: number
+          created_at?: string
+          created_by?: string | null
+          label?: string | null
+          last_click_at?: string | null
+          slug?: string
+          target_url?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
