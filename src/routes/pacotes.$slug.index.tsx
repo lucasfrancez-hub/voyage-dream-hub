@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -883,24 +883,38 @@ function TicketDetailsView({
 function CalendarMonthNav({
   children,
   maxMonth,
+  minMonth,
+  initialMonth,
+  resetKey,
 }: {
   children: (month: Date, setMonth: (d: Date) => void) => React.ReactNode;
   maxMonth?: Date;
+  minMonth?: Date;
+  initialMonth?: Date;
+  resetKey?: string;
 }) {
   const [month, setMonth] = useState<Date>(() => {
-    const d = new Date();
+    const d = initialMonth ? new Date(initialMonth) : new Date();
     d.setDate(1);
     return d;
   });
-  const today = useMemo(() => {
-    const d = new Date();
+  useEffect(() => {
+    if (initialMonth) {
+      const d = new Date(initialMonth);
+      d.setDate(1);
+      setMonth(d);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
+  const lowerBound = useMemo(() => {
+    const d = new Date(minMonth ?? new Date());
     d.setHours(0, 0, 0, 0);
     d.setDate(1);
     return d;
-  }, []);
+  }, [minMonth]);
   const canGoBack =
-    month.getFullYear() > today.getFullYear() ||
-    (month.getFullYear() === today.getFullYear() && month.getMonth() > today.getMonth());
+    month.getFullYear() > lowerBound.getFullYear() ||
+    (month.getFullYear() === lowerBound.getFullYear() && month.getMonth() > lowerBound.getMonth());
   const canGoForward =
     !maxMonth ||
     month.getFullYear() < maxMonth.getFullYear() ||
@@ -942,6 +956,7 @@ function CalendarMonthNav({
     </div>
   );
 }
+
 
 
 function PreCheckoutDialog({
@@ -1471,6 +1486,19 @@ function PreCheckoutDialog({
             today.setHours(0, 0, 0, 0);
             const maxDate = new Date(today);
             maxDate.setMonth(maxDate.getMonth() + 11);
+            const parseYMD = (s?: string | null) => {
+              const m = s?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+              return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+            };
+            const tripStart = parseYMD(date) || parseYMD(pkg.going_date);
+            let tripEnd = parseYMD(pkg.return_date);
+            if (tripStart && !tripEnd && pkg.nights != null) {
+              tripEnd = new Date(tripStart);
+              tripEnd.setDate(tripEnd.getDate() + Number(pkg.nights));
+            }
+            const isAddonSlot = active.key !== "__pkg";
+            const calFrom = isAddonSlot && tripStart ? tripStart : today;
+            const calTo = isAddonSlot && tripEnd ? tripEnd : maxDate;
             const activeWd = (() => {
               const m = active.value.match(/^(\d{4})-(\d{2})-(\d{2})/);
               if (!m) return null;
@@ -1531,7 +1559,12 @@ function PreCheckoutDialog({
                     <div className="mb-3 text-white/60 text-xs uppercase tracking-widest font-bold">
                       Data de: <span className="text-brand-orange">{active.label}</span>
                     </div>
-                    <CalendarMonthNav>
+                    <CalendarMonthNav
+                      maxMonth={calTo}
+                      minMonth={calFrom}
+                      initialMonth={isAddonSlot && tripStart ? tripStart : undefined}
+                      resetKey={active.key}
+                    >
                       {(month, setMonth) => (
                         <CalendarUI
                           key={active.key}
@@ -1542,6 +1575,10 @@ function PreCheckoutDialog({
                           selected={active.value ? new Date(active.value + "T00:00:00") : undefined}
                           onDayClick={(d, mods) => {
                             if (mods?.disabled) return;
+                            if (isAddonSlot && tripStart && tripEnd && (d < tripStart || d > tripEnd)) {
+                              toast.error("Data indisponível", { description: "O adicional deve ocorrer durante a viagem." });
+                              return;
+                            }
                             if (d > maxDate) {
                               toast.error("Data indisponível", { description: "Só aceitamos reservas com até 11 meses de antecedência." });
                               return;
@@ -1550,15 +1587,25 @@ function PreCheckoutDialog({
                             const m = String(d.getMonth() + 1).padStart(2, "0");
                             const day = String(d.getDate()).padStart(2, "0");
                             active.setValue(`${y}-${m}-${day}`);
-                            // Auto-advance to next empty slot
                             const nextEmpty = slots.find((s) => s.key !== active.key && !s.value && s.key !== active.key);
                             if (nextEmpty && slots.length > 1) {
                               setTimeout(() => setActiveDateKey(nextEmpty.key), 200);
                             }
                           }}
-                          disabled={{ before: new Date() }}
-                          modifiers={{ tooFar: { after: maxDate } }}
-                          modifiersClassNames={{ tooFar: "text-destructive line-through opacity-70 hover:!bg-destructive/10" }}
+                          disabled={
+                            isAddonSlot && tripStart && tripEnd
+                              ? [{ before: tripStart }, { after: tripEnd }]
+                              : { before: new Date() }
+                          }
+                          modifiers={
+                            isAddonSlot && tripStart && tripEnd
+                              ? { outside: [{ before: tripStart }, { after: tripEnd }] }
+                              : { tooFar: { after: maxDate } }
+                          }
+                          modifiersClassNames={{
+                            tooFar: "text-destructive line-through opacity-70 hover:!bg-destructive/10",
+                            outside: "text-destructive line-through opacity-60",
+                          }}
                           initialFocus
                           captionLayout="dropdown"
                           fromYear={today.getFullYear()}
