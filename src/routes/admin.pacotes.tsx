@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Plus,
   Pencil,
+  ExternalLink,
   Trash2,
   Copy,
   EyeOff,
@@ -2613,6 +2614,14 @@ function ticketSuggestionToAddon(
   };
 }
 
+function sourcePackageIdFromAddonId(addonId?: string) {
+  if (!addonId?.startsWith("ticket-")) return undefined;
+  const candidate = addonId.slice("ticket-".length);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
+    ? candidate
+    : undefined;
+}
+
 function ServicesEditor({
   value,
   onChange,
@@ -2620,6 +2629,7 @@ function ServicesEditor({
   kind = "package",
   destination,
   suggestions,
+  onEditSource,
 }: {
   value: PackageServices;
   onChange: (next: PackageServices) => void;
@@ -2627,6 +2637,7 @@ function ServicesEditor({
   kind?: PackageKind;
   destination?: string | null;
   suggestions?: AddonSuggestion[];
+  onEditSource?: (sourceId: string) => void;
 }) {
   const v = value ?? {};
   const seguro = v.seguro ?? {};
@@ -3012,6 +3023,7 @@ function ServicesEditor({
           kind={kind}
           destination={destination ?? null}
           suggestions={suggestions ?? []}
+          onEditSource={onEditSource}
         />
       </div>
 
@@ -3026,6 +3038,7 @@ function AddonsEditor({
   kind,
   destination,
   suggestions,
+  onEditSource,
 }: {
   value: NonNullable<PackageServices["addons"]>;
   onChange: (next: NonNullable<PackageServices["addons"]>) => void;
@@ -3033,6 +3046,7 @@ function AddonsEditor({
   kind: PackageKind;
   destination?: string | null;
   suggestions?: AddonSuggestion[];
+  onEditSource?: (sourceId: string) => void;
 }) {
   const addons = value ?? [];
   const patchAt = (idx: number, p: Partial<NonNullable<PackageServices["addons"]>[number]>) => {
@@ -3120,6 +3134,22 @@ function AddonsEditor({
       <div className="space-y-2">
         {addons.map((a, idx) => (
           <div key={idx} className="rounded-lg border border-border bg-background p-2 space-y-2">
+            {(() => {
+              const sourceId = a.source_package_id ?? sourcePackageIdFromAddonId(a.id);
+              return sourceId && onEditSource ? (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => onEditSource(sourceId)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-brand-orange/30 px-2 py-1 text-[11px] font-medium text-brand-orange hover:bg-brand-orange/10"
+                    title="Abrir o ingresso original para editar preços e subopções"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Editar ingresso original
+                  </button>
+                </div>
+              ) : null;
+            })()}
             <div className="grid gap-2 sm:grid-cols-[1fr_140px_140px_auto]">
               <input
                 className={inpClass}
