@@ -1366,6 +1366,29 @@ function PackageEditorModal({
     [editing.outbound_flight, editing.going_date, editing.destination, editing.origin],
   );
 
+  // Ingressos/serviços com o mesmo destino canônico — sugeridos como opcionais no editor.
+  const addonSuggestions = useMemo<AddonSuggestion[]>(() => {
+    const destKey = destinationKey(editing.destination ?? "");
+    if (!destKey || !allPackages?.length) return [];
+    return allPackages
+      .filter(
+        (p) =>
+          p.id !== editing.id &&
+          p.is_active !== false &&
+          (p as any).kind === "service" &&
+          destinationKey(p.destination ?? "") === destKey,
+      )
+      .slice(0, 12)
+      .map((p) => ({
+        id: p.id,
+        title: p.title ?? "",
+        price_per_person: p.price_per_person ?? null,
+        image_url: p.image_url ?? null,
+        destination: p.destination ?? null,
+      }));
+  }, [allPackages, editing.id, editing.destination]);
+
+
   // Auto-fill empty fields when derived values become available
   useEffect(() => {
     const patch: Partial<PackageRow> = {};
