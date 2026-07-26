@@ -2333,6 +2333,8 @@ function PackageEditorModal({
                     <option value="1 casal + 1 solteiro">1 casal + 1 solteiro</option>
                     <option value="1 casal + 2 solteiros">1 casal + 2 solteiros</option>
                     <option value="3 camas de solteiro">3 camas de solteiro</option>
+                    <option value="2 camas queen">2 camas queen</option>
+                    <option value="2 camas king">2 camas king</option>
                     <option value="Cama de casal + sofá-cama">Cama de casal + sofá-cama</option>
                   </select>
                 </FormField>
