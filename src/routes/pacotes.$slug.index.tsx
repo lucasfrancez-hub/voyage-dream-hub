@@ -35,7 +35,6 @@ import {
   DoorOpen,
   Ticket,
   Calendar as CalendarIcon,
-  Check,
   Bus,
   Minus,
   Plus,
