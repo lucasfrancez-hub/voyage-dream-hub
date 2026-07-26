@@ -879,6 +879,61 @@ function TicketDetailsView({
   );
 }
 
+function CalendarMonthNav({
+  children,
+}: {
+  children: (month: Date, setMonth: (d: Date) => void) => React.ReactNode;
+}) {
+  const [month, setMonth] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d;
+  });
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(1);
+    return d;
+  }, []);
+  const canGoBack =
+    month.getFullYear() > today.getFullYear() ||
+    (month.getFullYear() === today.getFullYear() && month.getMonth() > today.getMonth());
+  const go = (delta: number) => {
+    const next = new Date(month);
+    next.setMonth(next.getMonth() + delta);
+    setMonth(next);
+  };
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 rounded-full border-border/70"
+          onClick={() => go(-1)}
+          disabled={!canGoBack}
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1" />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 rounded-full border-border/70"
+          onClick={() => go(1)}
+          aria-label="Próximo mês"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+      {children(month, setMonth)}
+    </div>
+  );
+}
+
 function PreCheckoutDialog({
   open,
   onOpenChange,
