@@ -1051,11 +1051,24 @@ function Checkout() {
                     const units = isPerUnit ? adults : (adults + children);
                     const qty = a.per === "order" ? 1 : Math.max(1, units);
                     return (
-                      <SummaryLine
-                        key={a.key}
-                        label={`+ ${a.name}${a.per !== "order" && qty > 1 ? ` × ${qty}` : ""}`}
-                        value={formatBRL(a.price * qty)}
-                      />
+                      <Fragment key={a.key}>
+                        <SummaryLine
+                          label={`+ ${a.name}${a.per !== "order" && qty > 1 ? ` × ${qty}` : ""}`}
+                          value={formatBRL(a.price * qty)}
+                        />
+                        {a.subs
+                          .filter((sub: any) => selectedAddons[sub.key])
+                          .map((sub: any) => {
+                            const sQty = sub.per === "order" ? 1 : Math.max(1, units);
+                            return (
+                              <SummaryLine
+                                key={sub.key}
+                                label={`  └ ${sub.name}${sub.per !== "order" && sQty > 1 ? ` × ${sQty}` : ""}`}
+                                value={formatBRL(sub.price * sQty)}
+                              />
+                            );
+                          })}
+                      </Fragment>
                     );
                   })}
                 {payment === "pix" && pixDiscountValue > 0 && (
