@@ -266,7 +266,7 @@ function PackageDetails() {
           {pkg.summary && (
             <section>
               <h2 className="text-xl font-semibold">Sobre o pacote</h2>
-              <p className="mt-3 text-muted-foreground leading-relaxed">{pkg.summary}</p>
+              <p className="mt-3 text-muted-foreground leading-relaxed whitespace-pre-line">{pkg.summary}</p>
             </section>
           )}
 
@@ -644,7 +644,7 @@ function TicketDetailsView({
                   {pkg.title}
                 </h1>
                 {pkg.summary && (
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-5">
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-5 whitespace-pre-line">
                     {pkg.summary}
                   </p>
                 )}
@@ -670,7 +670,7 @@ function TicketDetailsView({
           {pkg.summary && (
             <section>
               <SectionHeader>Sobre o ingresso</SectionHeader>
-              <p className="text-muted-foreground leading-relaxed">{pkg.summary}</p>
+              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{pkg.summary}</p>
             </section>
           )}
 
