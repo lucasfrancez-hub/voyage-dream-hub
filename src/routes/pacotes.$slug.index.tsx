@@ -1037,8 +1037,9 @@ function PreCheckoutDialog({
   const hasAddons = addons.length > 0;
   const selectedAddons = useMemo(() => addons.filter((a) => selected[a.key]), [addons, selected]);
   const hasSubs = selectedAddons.some((a) => a.subs.length > 0);
-  const anySelectedNeedsDate = selectedAddons.some((a) => a.hasWeekdayPricing);
+  const anySelectedNeedsDate = selectedAddons.length > 0;
   const showDateStep = isFlexibleDate || anySelectedNeedsDate;
+
 
   // Build step flow dynamically
   const steps = useMemo(() => {
