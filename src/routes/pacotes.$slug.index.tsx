@@ -966,65 +966,70 @@ function PreCheckoutDialog({
 
   const hasAddons = addons.length > 0;
 
+  const weekdayShortName = useMemo(() => {
+    if (weekday == null) return null;
+    return ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"][weekday];
+  }, [weekday]);
+
+  const selectedCount = Object.values(selected).filter(Boolean).length;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="font-display text-xl">
-            Escolha sua data{hasAddons ? " e adicionais" : ""}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden border-border bg-card shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-3xl">
+        {/* Header */}
+        <div className="p-6 pb-0">
+          <DialogHeader className="text-left space-y-1">
+            <DialogTitle className="font-display text-xl tracking-tight">
+              Escolha sua data{hasAddons ? " e adicionais" : ""}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Selecione o dia e personalize sua experiência
+            </p>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-5 py-2 max-h-[60vh] overflow-y-auto">
+        <div className="max-h-[65vh] overflow-y-auto">
+          {/* Calendário inline */}
           {isFlexibleDate && (
-            <div className="space-y-2">
-              <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
-                Data desejada
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      "w-full flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3 text-sm text-left hover:border-brand-orange/60 transition",
-                      !date && "text-muted-foreground",
-                    )}
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-brand-orange" />
-                      {date
-                        ? format(new Date(date + "T00:00:00"), "PPP", { locale: ptBR })
-                        : "Selecione uma data"}
-                    </span>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarUI
-                    mode="single"
-                    locale={ptBR}
-                    selected={date ? new Date(date + "T00:00:00") : undefined}
-                    onSelect={(d) => {
-                      if (!d) return;
-                      const y = d.getFullYear();
-                      const m = String(d.getMonth() + 1).padStart(2, "0");
-                      const day = String(d.getDate()).padStart(2, "0");
-                      setDate(`${y}-${m}-${day}`);
-                    }}
-                    disabled={{ before: new Date() }}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+            <div className="p-6">
+              <CalendarUI
+                mode="single"
+                locale={ptBR}
+                selected={date ? new Date(date + "T00:00:00") : undefined}
+                onSelect={(d) => {
+                  if (!d) return;
+                  const y = d.getFullYear();
+                  const m = String(d.getMonth() + 1).padStart(2, "0");
+                  const day = String(d.getDate()).padStart(2, "0");
+                  setDate(`${y}-${m}-${day}`);
+                }}
+                disabled={{ before: new Date() }}
+                initialFocus
+                className={cn("p-0 pointer-events-auto w-full")}
+              />
             </div>
           )}
 
+          {/* Adicionais */}
           {hasAddons && (
-            <div className="space-y-2">
-              <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
-                Serviços adicionais (opcional)
-              </label>
-              <div className="space-y-2">
+            <div className="px-6 pb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  Serviços adicionais
+                </h3>
+                {weekdayShortName && (
+                  <span className="px-2 py-0.5 bg-brand-orange/10 text-brand-orange text-[10px] font-bold rounded-full uppercase tracking-wider">
+                    {weekdayShortName}
+                  </span>
+                )}
+                {!weekdayShortName && isFlexibleDate && (
+                  <span className="px-2 py-0.5 bg-muted text-muted-foreground text-[10px] font-bold rounded-full uppercase tracking-wider">
+                    Escolha a data
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-3">
                 {addons.map((a) => {
                   const isSel = !!selected[a.key];
                   const units = a.per === "order" ? 1 : Math.max(1, qty);
@@ -1035,38 +1040,40 @@ function PreCheckoutDialog({
                       key={a.key}
                       type="button"
                       onClick={() => setSelected((s) => ({ ...s, [a.key]: !s[a.key] }))}
-                      className={`w-full text-left rounded-2xl border p-4 transition ${
+                      className={cn(
+                        "group relative w-full p-4 rounded-2xl flex items-center justify-between transition-all text-left",
                         isSel
-                          ? "border-brand-orange bg-brand-orange/5"
-                          : "border-border bg-card hover:border-brand-orange/40"
-                      }`}
+                          ? "bg-brand-orange/5 border-2 border-brand-orange"
+                          : "bg-background border border-border hover:border-border/80",
+                      )}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="font-semibold text-sm">{a.name}</div>
-                          {a.description && (
-                            <div className="text-xs text-muted-foreground mt-0.5">{a.description}</div>
-                          )}
+                      <div className="flex flex-col min-w-0 pr-3">
+                        <span className="font-medium text-sm text-foreground">{a.name}</span>
+                        {a.description && (
+                          <span className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.description}</span>
+                        )}
+                        <span className="text-xs text-muted-foreground mt-1">
+                          {priceIsAssumed ? "A partir de " : ""}
+                          <span className="text-foreground font-semibold">{formatBRL(a.price)}</span>
+                          <span className="text-muted-foreground"> {a.per === "order" ? "por reserva" : `× ${units}`}</span>
                           {a.tierLabel && (
-                            <div className="mt-1 inline-block text-[10px] font-bold uppercase tracking-wider text-brand-orange">
-                              {a.tierLabel}
-                            </div>
+                            <span className="ml-2 text-brand-orange font-semibold">• {a.tierLabel}</span>
                           )}
-                          {priceIsAssumed && (
-                            <div className="mt-1 text-[10px] text-muted-foreground">
-                              O valor final depende do dia da semana escolhido.
-                            </div>
+                        </span>
+                      </div>
+                      {/* Toggle switch */}
+                      <div
+                        className={cn(
+                          "shrink-0 w-11 h-6 rounded-full relative transition-colors",
+                          isSel ? "bg-brand-orange" : "bg-muted border border-border",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "absolute top-1 w-4 h-4 rounded-full transition-all shadow-sm",
+                            isSel ? "right-1 bg-white" : "left-1 bg-muted-foreground/60",
                           )}
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="font-bold text-sm">
-                            {priceIsAssumed && <span className="text-[10px] font-normal text-muted-foreground mr-1">a partir de</span>}
-                            {formatBRL(line)}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {a.per === "order" ? "por reserva" : `${formatBRL(a.price)} × ${units}`}
-                          </div>
-                        </div>
+                        />
                       </div>
                     </button>
                   );
@@ -1074,29 +1081,39 @@ function PreCheckoutDialog({
               </div>
             </div>
           )}
-
-          <div className="border-t border-border pt-4 flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
-              Total estimado
-            </span>
-            <span className="font-display text-2xl font-black text-brand-orange">
-              {formatBRL(total)}
-            </span>
-          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Voltar
-          </Button>
+        {/* Footer resumo */}
+        <div className="p-6 bg-muted/20 border-t border-border">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <span className="text-muted-foreground text-xs block uppercase tracking-wider font-bold">
+                Total estimado
+              </span>
+              <span className="font-display text-2xl font-black text-foreground">
+                {formatBRL(total)}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-brand-orange text-xs block font-medium">
+                {qty} {qty === 1 ? "ingresso" : "ingressos"}
+                {selectedCount > 0 && ` + ${selectedCount} ${selectedCount === 1 ? "adicional" : "adicionais"}`}
+              </span>
+            </div>
+          </div>
+
           <Button
             onClick={handleContinue}
             disabled={!canContinue}
-            className="bg-brand-orange text-primary-foreground hover:opacity-90"
+            className="w-full bg-brand-orange hover:bg-brand-orange/90 text-primary-foreground font-bold py-4 h-auto rounded-2xl transition-all shadow-[0_8px_30px_rgba(242,107,31,0.3)] active:scale-[0.98]"
           >
-            Continuar para checkout <ArrowRight className="ml-2 h-4 w-4" />
+            Continuar para checkout
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-        </DialogFooter>
+          <p className="text-center text-[10px] text-muted-foreground/70 mt-4 uppercase tracking-widest">
+            Sujeito à disponibilidade • Cancelamento conforme política
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );
