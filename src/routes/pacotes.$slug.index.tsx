@@ -4,6 +4,11 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 import {
   MapPin,
@@ -602,7 +607,9 @@ function TicketDetailsView({
   const maxUnits = Math.max(1, Math.min(9, Number(pkg.max_units) || 9));
   const isFlexibleDate = pkg?.date_mode === "flexible";
   const rawAddons: any[] = Array.isArray(services?.addons) ? services.addons : [];
-  const hasAddons = rawAddons.some((a) => a && a.name && Number(a.price) > 0);
+  const hasAddons = rawAddons.some(
+    (a) => a && a.name && (Number(a.price) > 0 || (a.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0)),
+  );
   const [preOpen, setPreOpen] = useState(false);
 
   return (
@@ -901,20 +908,30 @@ function PreCheckoutDialog({
 
   const addons = useMemo(() => {
     return rawAddons
-      .filter((a: any) => a && a.name && Number(a.price) > 0)
+      .filter((a: any) => {
+        if (!a || !a.name) return false;
+        const tiers = (a.price_by_weekday ?? []) as any[];
+        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0);
+      })
       .map((a: any, i: number) => {
+        const tiers = (a.price_by_weekday ?? []) as any[];
         const tier =
           weekday != null
-            ? (a.price_by_weekday ?? []).find((t: any) => (t.days ?? []).includes(weekday))
+            ? tiers.find((t: any) => (t.days ?? []).includes(weekday))
             : null;
-        const price = tier ? Number(tier.price) : Number(a.price);
+        // Preço assumido quando a data ainda não foi escolhida:
+        // usa o preço base se >0, senão o menor preço configurado nas faixas.
+        const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
+        const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
+        const price = tier ? Number(tier.price) : assumed;
         return {
           ...a,
           key: a.id || `${a.name}-${i}`,
           per: (a.per ?? "unit") as "unit" | "order",
           price,
           tierLabel: tier?.label ?? null,
-          hasWeekdayPricing: (a.price_by_weekday?.length ?? 0) > 0,
+          hasWeekdayPricing: tiers.length > 0,
+          assumedFromMin: !tier && Number(a.price) <= 0 && tierPrices.length > 0,
         };
       });
   }, [rawAddons, weekday]);
@@ -964,37 +981,65 @@ function PreCheckoutDialog({
               <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                 Data desejada
               </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3 py-3 text-sm"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      "w-full flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3 text-sm text-left hover:border-brand-orange/60 transition",
+                      !date && "text-muted-foreground",
+                    )}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-brand-orange" />
+                      {date
+                        ? format(new Date(date + "T00:00:00"), "PPP", { locale: ptBR })
+                        : "Selecione uma data"}
+                    </span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarUI
+                    mode="single"
+                    locale={ptBR}
+                    selected={date ? new Date(date + "T00:00:00") : undefined}
+                    onSelect={(d) => {
+                      if (!d) return;
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, "0");
+                      const day = String(d.getDate()).padStart(2, "0");
+                      setDate(`${y}-${m}-${day}`);
+                    }}
+                    disabled={{ before: new Date() }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
           {hasAddons && (
             <div className="space-y-2">
               <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
-                Serviços adicionais {isFlexibleDate && !date ? "(escolha a data para ver os preços)" : "(opcional)"}
+                Serviços adicionais (opcional)
               </label>
               <div className="space-y-2">
                 {addons.map((a) => {
                   const isSel = !!selected[a.key];
                   const units = a.per === "order" ? 1 : Math.max(1, qty);
                   const line = a.price * units;
-                  const pricingUnavailable = a.hasWeekdayPricing && weekday == null;
+                  const priceIsAssumed = a.hasWeekdayPricing && weekday == null;
                   return (
                     <button
                       key={a.key}
                       type="button"
-                      disabled={pricingUnavailable}
                       onClick={() => setSelected((s) => ({ ...s, [a.key]: !s[a.key] }))}
                       className={`w-full text-left rounded-2xl border p-4 transition ${
                         isSel
                           ? "border-brand-orange bg-brand-orange/5"
                           : "border-border bg-card hover:border-brand-orange/40"
-                      } ${pricingUnavailable ? "opacity-50 cursor-not-allowed" : ""}`}
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -1007,14 +1052,17 @@ function PreCheckoutDialog({
                               {a.tierLabel}
                             </div>
                           )}
-                          {pricingUnavailable && (
-                            <div className="mt-1 text-[10px] text-yellow-500">
-                              Preço varia por data — escolha a data
+                          {priceIsAssumed && (
+                            <div className="mt-1 text-[10px] text-muted-foreground">
+                              O valor final depende do dia da semana escolhido.
                             </div>
                           )}
                         </div>
                         <div className="text-right shrink-0">
-                          <div className="font-bold text-sm">{formatBRL(line)}</div>
+                          <div className="font-bold text-sm">
+                            {priceIsAssumed && <span className="text-[10px] font-normal text-muted-foreground mr-1">a partir de</span>}
+                            {formatBRL(line)}
+                          </div>
                           <div className="text-[10px] text-muted-foreground">
                             {a.per === "order" ? "por reserva" : `${formatBRL(a.price)} × ${units}`}
                           </div>
