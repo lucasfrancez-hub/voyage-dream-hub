@@ -8,6 +8,9 @@ import { forwardRef, Fragment, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 
 export type FeedArtData = {
+  kind?: "package" | "service" | "cruise";
+  dateMode?: "fixed" | "flexible";
+  title?: string;
   backgroundDataUrl: string;
   estado?: string | null;
   destino: string;
@@ -253,34 +256,64 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
               <div className="vfeed-info glass-panel">
                 <div className="vfeed-info-col">
                   <div className="vfeed-info-icon">{I.calendar}</div>
-                  <p className="vfeed-info-strong">{data.dataIda}</p>
-                  <p className="vfeed-info-mid">até {data.dataVolta}</p>
-                  {data.noites ? <p className="vfeed-info-small">{data.noites} noites</p> : null}
+                  {data.dateMode === "flexible" || !data.dataIda ? (
+                    <>
+                      <p className="vfeed-info-strong">Data flexível</p>
+                      <p className="vfeed-info-mid">você escolhe</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="vfeed-info-strong">{data.dataIda}</p>
+                      {data.dataVolta && data.dataVolta !== data.dataIda ? (
+                        <p className="vfeed-info-mid">até {data.dataVolta}</p>
+                      ) : null}
+                      {data.noites ? <p className="vfeed-info-small">{data.noites} noites</p> : null}
+                    </>
+                  )}
                 </div>
                 <div className="vfeed-info-div" />
-                <div className="vfeed-info-col vfeed-info-col-plane">
-                  <div className="vfeed-info-icon">{I.plane}</div>
-                  <p className="vfeed-info-mid">Saída de</p>
-                  <p className="vfeed-info-strong">{data.origem}</p>
-                </div>
-                <div className="vfeed-info-div" />
-                <div className="vfeed-info-col vfeed-info-col-hotel">
-                  <div className="vfeed-info-icon">{I.building}</div>
-                  <p className="vfeed-info-hotel">{data.hotel}</p>
-                  {stars > 0 ? (
-                    <div className="vfeed-stars">
-                      {Array.from({ length: stars }).map((_, i) => (
-                        <span key={i}>{I.star}</span>
-                      ))}
+                {data.kind === "service" ? (
+                  <>
+                    <div className="vfeed-info-col vfeed-info-col-plane">
+                      <div className="vfeed-info-icon">{I.ticket}</div>
+                      <p className="vfeed-info-mid">Ingresso</p>
+                      <p className="vfeed-info-strong">
+                        {(data.ticketsParks?.[0] || data.title || "Oficial").slice(0, 40)}
+                      </p>
                     </div>
-                  ) : null}
-                </div>
+                    <div className="vfeed-info-div" />
+                    <div className="vfeed-info-col vfeed-info-col-hotel">
+                      <div className="vfeed-info-icon">{I.mapPin}</div>
+                      <p className="vfeed-info-hotel">{data.destino}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="vfeed-info-col vfeed-info-col-plane">
+                      <div className="vfeed-info-icon">{I.plane}</div>
+                      <p className="vfeed-info-mid">Saída de</p>
+                      <p className="vfeed-info-strong">{data.origem}</p>
+                    </div>
+                    <div className="vfeed-info-div" />
+                    <div className="vfeed-info-col vfeed-info-col-hotel">
+                      <div className="vfeed-info-icon">{I.building}</div>
+                      <p className="vfeed-info-hotel">{data.hotel}</p>
+                      {stars > 0 ? (
+                        <div className="vfeed-stars">
+                          {Array.from({ length: stars }).map((_, i) => (
+                            <span key={i}>{I.star}</span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Divisor "O pacote inclui" */}
               <div className="vfeed-inc-div">
                 <div className="vfeed-inc-line" />
-                <h3>O Pacote Inclui</h3>
+                <h3>{data.kind === "service" ? "O Ingresso Inclui" : "O Pacote Inclui"}</h3>
                 <div className="vfeed-inc-line" />
               </div>
 
@@ -310,13 +343,22 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                     </div>
                     <div className="vfeed-price-bar" />
                     <p className="vfeed-price-total">
-                      Total do pacote: <span>R$ {BRL(data.valorTotal)}</span>
+                      {data.kind === "service" ? "Valor do ingresso: " : "Total do pacote: "}
+                      <span>R$ {BRL(data.valorTotal)}</span>
                     </p>
                     <div className="vfeed-price-bar" />
                   </div>
                   <div className="vfeed-price-pay">
                     <div className="vfeed-inc-icon">{I.card}</div>
-                    {data.isCativa ? (
+                    {data.kind === "service" ? (
+                      <p>
+                        {data.isCativa
+                          ? "15x sem juros no cartão Visa e Amex"
+                          : "Parcele no cartão em até 10x sem juros"}
+                        <br />
+                        <span style={{ opacity: 0.7, fontSize: "10px" }}>*Sem boleto para ingressos.</span>
+                      </p>
+                    ) : data.isCativa ? (
                       <p>15x sem juros no cartão Visa e Amex<br/>Boleto bancário em até 10x<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
                     ) : (
                       <p>No cartão e boleto bancário sem juros<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
@@ -326,12 +368,20 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
 
                 <div className="vfeed-side">
                   <div className="vfeed-side-card glass-panel-dark">
-                    <div className="vfeed-side-icon">{I.users}</div>
-                    <p>
-                      Valor para {data.quantidadePessoas} {data.quantidadePessoas === 1 ? "pessoa" : "pessoas"}
-                      <br />
-                      em apartamento {data.apartamento}
-                    </p>
+                    <div className="vfeed-side-icon">{data.kind === "service" ? I.ticket : I.users}</div>
+                    {data.kind === "service" ? (
+                      <p>
+                        Preço por ingresso
+                        <br />
+                        até 9 unidades por pedido
+                      </p>
+                    ) : (
+                      <p>
+                        Valor para {data.quantidadePessoas} {data.quantidadePessoas === 1 ? "pessoa" : "pessoas"}
+                        <br />
+                        em apartamento {data.apartamento}
+                      </p>
+                    )}
                   </div>
                   <div className="vfeed-side-card glass-panel-dark">
                     <div className="vfeed-side-icon">{I.info}</div>

@@ -212,32 +212,62 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
 
             {/* BOTTOM */}
             <div className="vstory-bottom">
-              {/* Flight & Hotel Info */}
+              {/* Info panel */}
               <div className="vstory-info glass-panel">
                 <div className="vstory-info-col">
                   <div className="vstory-info-icon">{I.calendar}</div>
-                  <p className="vstory-info-strong">{data.dataIda}</p>
-                  <p className="vstory-info-small">até {data.dataVolta}</p>
-                  {nightsLabel ? <p className="vstory-info-small">{nightsLabel}</p> : null}
+                  {data.dateMode === "flexible" || !data.dataIda ? (
+                    <>
+                      <p className="vstory-info-strong">Data flexível</p>
+                      <p className="vstory-info-small">você escolhe</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="vstory-info-strong">{data.dataIda}</p>
+                      {data.dataVolta && data.dataVolta !== data.dataIda ? (
+                        <p className="vstory-info-small">até {data.dataVolta}</p>
+                      ) : null}
+                      {nightsLabel ? <p className="vstory-info-small">{nightsLabel}</p> : null}
+                    </>
+                  )}
                 </div>
                 <div className="vstory-info-div" />
-                <div className="vstory-info-col">
-                  <div className="vstory-info-icon">{I.plane}</div>
-                  <p className="vstory-info-small">Saída de</p>
-                  <p className="vstory-info-strong">{data.origem}</p>
-                </div>
-                <div className="vstory-info-div" />
-                <div className="vstory-info-col vstory-info-col-hotel">
-                  <div className="vstory-info-icon">{I.building}</div>
-                  <p className="vstory-info-hotel">{data.hotel}</p>
-                  {stars > 0 ? (
-                    <div className="vstory-stars">
-                      {Array.from({ length: stars }).map((_, i) => (
-                        <span key={i}>{I.star}</span>
-                      ))}
+                {data.kind === "service" ? (
+                  <>
+                    <div className="vstory-info-col">
+                      <div className="vstory-info-icon">{I.ticket}</div>
+                      <p className="vstory-info-small">Ingresso</p>
+                      <p className="vstory-info-strong">
+                        {((data.ticketsParks?.[0] || data.title || "Oficial") as string).slice(0, 22)}
+                      </p>
                     </div>
-                  ) : null}
-                </div>
+                    <div className="vstory-info-div" />
+                    <div className="vstory-info-col vstory-info-col-hotel">
+                      <div className="vstory-info-icon">{I.mapPin}</div>
+                      <p className="vstory-info-hotel">{data.destino}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="vstory-info-col">
+                      <div className="vstory-info-icon">{I.plane}</div>
+                      <p className="vstory-info-small">Saída de</p>
+                      <p className="vstory-info-strong">{data.origem}</p>
+                    </div>
+                    <div className="vstory-info-div" />
+                    <div className="vstory-info-col vstory-info-col-hotel">
+                      <div className="vstory-info-icon">{I.building}</div>
+                      <p className="vstory-info-hotel">{data.hotel}</p>
+                      {stars > 0 ? (
+                        <div className="vstory-stars">
+                          {Array.from({ length: stars }).map((_, i) => (
+                            <span key={i}>{I.star}</span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Includes */}
@@ -263,22 +293,33 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                 </div>
                 <div className="vstory-price-bar" />
                 <p className="vstory-price-total">
-                  Total do pacote: <span>R$ {BRL(data.valorTotal)}</span>
+                  {data.kind === "service" ? "Valor do ingresso: " : "Total do pacote: "}
+                  <span>R$ {BRL(data.valorTotal)}</span>
                 </p>
               </div>
 
               {/* Info Boxes */}
               <div className="vstory-side">
                 <div className="vstory-side-card glass-panel-dark">
-                  <div className="vstory-side-icon">{I.users}</div>
-                  <p>
-                    Valor para {data.quantidadePessoas} {data.quantidadePessoas === 1 ? "pessoa" : "pessoas"}
-                    {apto ? ` em apto ${apto}` : ""}
-                  </p>
+                  <div className="vstory-side-icon">{data.kind === "service" ? I.ticket : I.users}</div>
+                  {data.kind === "service" ? (
+                    <p>Preço por ingresso — até 9 unidades por pedido</p>
+                  ) : (
+                    <p>
+                      Valor para {data.quantidadePessoas} {data.quantidadePessoas === 1 ? "pessoa" : "pessoas"}
+                      {apto ? ` em apto ${apto}` : ""}
+                    </p>
+                  )}
                 </div>
                 <div className="vstory-side-card glass-panel-dark">
                   <div className="vstory-side-icon">{I.card}</div>
-                  {data.isCativa ? (
+                  {data.kind === "service" ? (
+                    <p>
+                      {data.isCativa ? "15x sem juros no cartão Visa e Amex" : "Cartão em até 10x sem juros"}
+                      <br />
+                      <span className="vstory-side-fine">*Sem boleto para ingressos.</span>
+                    </p>
+                  ) : data.isCativa ? (
                     <p>
                       15x sem juros no cartão Visa e Amex
                       <br />

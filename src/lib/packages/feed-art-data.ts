@@ -211,7 +211,11 @@ function countServices(services?: PackageServices | null): number {
   return n;
 }
 
-function detectIncludes(list: string[] | null | undefined, services?: PackageServices | null) {
+function detectIncludes(
+  list: string[] | null | undefined,
+  services?: PackageServices | null,
+  kind?: "package" | "service" | "cruise" | null,
+) {
   const s = (list ?? []).map((x) => norm(x)).join(" | ");
   const svcCount = countServices(services);
   const groupServices = svcCount >= 2;
@@ -219,16 +223,18 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
   const transferOn = !!services?.transfer?.enabled;
   const ticketsOn = !!services?.tickets?.enabled && (services?.tickets?.parks ?? []).some((p) => p && p.trim());
   const passeiosOn = normalizePasseios(services).length > 0;
+  const isService = kind === "service";
   return {
-    aereo: /aereo|voo|passag|avia/.test(s),
-    hotel: /hotel|hospedagem|resort|pousada|acomoda/.test(s),
-    cafeDaManha: /cafe da manha|cafe|breakfast|acm|map|fap|all inclusive|meia pensao|pensao completa|tudo incluso/.test(s),
-    bagagem23kg: /bagagem|despachad|23\s*kg|23kg/.test(s),
+    // Ingresso não tem aéreo / hotel / café / bagagem por padrão
+    aereo: isService ? false : /aereo|voo|passag|avia/.test(s),
+    hotel: isService ? false : /hotel|hospedagem|resort|pousada|acomoda/.test(s),
+    cafeDaManha: isService ? false : /cafe da manha|cafe|breakfast|acm|map|fap|all inclusive|meia pensao|pensao completa|tudo incluso/.test(s),
+    bagagem23kg: isService ? false : /bagagem|despachad|23\s*kg|23kg/.test(s),
     transfer: groupServices ? false : (transferOn || /transfer|traslado/.test(s)),
     seguroViagem: groupServices ? false : (seguroOn || /seguro/.test(s)),
-    esimInternacional: /esim|chip|internet/.test(s),
-    ingressos: ticketsOn,
-    passeios: passeiosOn, // sempre exibe quando houver
+    esimInternacional: isService ? false : /esim|chip|internet/.test(s),
+    ingressos: ticketsOn || isService,
+    passeios: passeiosOn,
     maisServicos: groupServices,
   };
 }
@@ -284,22 +290,36 @@ export type FeedInputPkg = {
   services?: PackageServices | null;
   meal_plan?: string | null;
   supplier_name?: string | null;
+  kind?: "package" | "service" | "cruise" | null;
+  date_mode?: "fixed" | "flexible" | null;
+  pricing_mode?: "per_occupancy" | "per_unit" | null;
+  title?: string | null;
 };
 
 
 export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> {
   if (!pkg.image_url) throw new Error("Cadastre a URL da imagem de capa para gerar a arte.");
 
+  const isService = pkg.kind === "service";
+
   const [bg, tagline] = await Promise.all([
     toDataUrl(pkg.image_url),
     generatePackageTagline({ data: { destination: pkg.destination } })
       .then((r) => r.text)
-      .catch(() => `Descubra ${pkg.destination}.`),
+      .catch(() => `Viva ${pkg.destination}.`),
   ]);
 
-  const pessoas = Math.max(1, Number(pkg.base_occupancy) || 2);
+  // Para ingressos: preço por unidade, base 1. Para pacotes: preço x ocupação.
+  const pessoas = isService ? 1 : Math.max(1, Number(pkg.base_occupancy) || 2);
   const isCativa = /cativa/i.test(pkg.supplier_name ?? "");
+  const parks = (pkg.services?.tickets?.parks ?? [])
+    .map((p) => String(p ?? "").trim())
+    .filter(Boolean);
+
   return {
+    kind: (pkg.kind ?? "package") as "package" | "service" | "cruise",
+    dateMode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
+    title: pkg.title ?? "",
     backgroundDataUrl: bg,
     estado: deriveState(pkg.destination, pkg.tripadvisor_address),
     destino: pkg.destination,
@@ -311,20 +331,15 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     hotel: pkg.hotel_name || "",
     estrelas: pkg.hotel_stars,
     quantidadePessoas: pessoas,
-    apartamento: APT_LABEL[pessoas] || `de ${pessoas} pessoas`,
+    apartamento: isService ? "" : (APT_LABEL[pessoas] || `de ${pessoas} pessoas`),
     parcelas: isCativa ? 15 : 10,
     isCativa,
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
 
-    inclusos: detectIncludes(pkg.includes, pkg.services ?? null),
+    inclusos: detectIncludes(pkg.includes, pkg.services ?? null, pkg.kind ?? null),
     mealPlanLabel: deriveMealPlanLabel(pkg.meal_plan, pkg.includes),
-    ticketsLabel: (pkg.services?.tickets?.parks ?? [])
-      .map((p) => String(p ?? "").trim())
-      .filter(Boolean)
-      .join(" · ") || null,
-    ticketsParks: (pkg.services?.tickets?.parks ?? [])
-      .map((p) => String(p ?? "").trim())
-      .filter(Boolean),
+    ticketsLabel: parks.join(" · ") || null,
+    ticketsParks: parks,
     passeiosList: normalizePasseios(pkg.services ?? null),
   };
 }
