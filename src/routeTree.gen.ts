@@ -18,7 +18,6 @@ import { Route as EmbedTesteRouteImport } from './routes/embed-teste'
 import { Route as ExclusaoDeDadosRouteImport } from './routes/exclusao-de-dados'
 import { Route as IngressosRouteImport } from './routes/ingressos'
 import { Route as MinhasReservasRouteImport } from './routes/minhas-reservas'
-import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
@@ -138,11 +137,6 @@ const IngressosRoute = IngressosRouteImport.update({
 const MinhasReservasRoute = MinhasReservasRouteImport.update({
   id: '/minhas-reservas',
   path: '/minhas-reservas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PacotesRoute = PacotesRouteImport.update({
-  id: '/pacotes',
-  path: '/pacotes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PagarRoute = PagarRouteImport.update({
@@ -546,7 +540,6 @@ export interface FileRoutesByFullPath {
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
-  '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
@@ -720,7 +713,6 @@ export interface FileRoutesById {
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
-  '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
@@ -809,7 +801,6 @@ export interface FileRouteTypes {
     | '/exclusao-de-dados'
     | '/ingressos'
     | '/minhas-reservas'
-    | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
     | '/politica-de-privacidade'
@@ -982,7 +973,6 @@ export interface FileRouteTypes {
     | '/exclusao-de-dados'
     | '/ingressos'
     | '/minhas-reservas'
-    | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
     | '/politica-de-privacidade'
@@ -1070,7 +1060,6 @@ export interface RootRouteChildren {
   ExclusaoDeDadosRoute: typeof ExclusaoDeDadosRoute
   IngressosRoute: typeof IngressosRoute
   MinhasReservasRoute: typeof MinhasReservasRoute
-  PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
   PagarBoletoRoute: typeof PagarBoletoRoute
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
@@ -1174,13 +1163,6 @@ declare module '@tanstack/react-router' {
       path: '/minhas-reservas'
       fullPath: '/minhas-reservas'
       preLoaderRoute: typeof MinhasReservasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pacotes': {
-      id: '/pacotes'
-      path: '/pacotes'
-      fullPath: '/pacotes'
-      preLoaderRoute: typeof PacotesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pagar': {
@@ -1803,23 +1785,6 @@ const ChatRouteChildren: ChatRouteChildren = {
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
 
-interface PacotesRouteChildren {
-  PacotesAdminRoute: typeof PacotesAdminRoute
-  PacotesIndexRoute: typeof PacotesIndexRoute
-  PacotesSlugCheckoutRoute: typeof PacotesSlugCheckoutRoute
-  PacotesSlugIndexRoute: typeof PacotesSlugIndexRoute
-}
-
-const PacotesRouteChildren: PacotesRouteChildren = {
-  PacotesAdminRoute: PacotesAdminRoute,
-  PacotesIndexRoute: PacotesIndexRoute,
-  PacotesSlugCheckoutRoute: PacotesSlugCheckoutRoute,
-  PacotesSlugIndexRoute: PacotesSlugIndexRoute,
-}
-
-const PacotesRouteWithChildren =
-  PacotesRoute._addFileChildren(PacotesRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -1830,7 +1795,6 @@ const rootRouteChildren: RootRouteChildren = {
   ExclusaoDeDadosRoute: ExclusaoDeDadosRoute,
   IngressosRoute: IngressosRoute,
   MinhasReservasRoute: MinhasReservasRoute,
-  PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
   PagarBoletoRoute: PagarBoletoRoute,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
@@ -1875,3 +1839,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
