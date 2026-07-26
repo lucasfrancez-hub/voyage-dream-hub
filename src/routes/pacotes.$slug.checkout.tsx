@@ -427,7 +427,7 @@ function Checkout() {
       setSuccess(true);
 
       if (payment === "pix") {
-        // Não abre WhatsApp: notifica admin por e-mail e mostra tela de sucesso.
+        // Notifica admin (mantido) e tenta gerar QR Pix via Itaú
         const kindLabel =
           (pkg as any)?.kind === "cruise"
             ? "Cruzeiro"
@@ -452,7 +452,17 @@ function Checkout() {
         } catch (err) {
           console.error("[checkout] pix notify falhou", err);
         }
+        try {
+          const cob = await criarPix({ data: { orderId: newId, valorEsperado: totalPrice } });
+          setPixInfo(cob);
+        } catch (err) {
+          console.error("[checkout] pix cobrança falhou", err);
+          toast.warning(
+            "Pedido registrado! Nossa equipe vai enviar o QR Pix por e-mail em instantes.",
+          );
+        }
       }
+
 
 
     } catch (err) {
