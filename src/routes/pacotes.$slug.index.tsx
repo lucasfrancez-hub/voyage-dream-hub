@@ -1083,10 +1083,11 @@ function PreCheckoutDialog({
                             {a.name}
                           </div>
                           {a.description && (
-                            <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-snug whitespace-pre-line">
+                            <p className="text-[11px] text-muted-foreground mt-1 leading-snug whitespace-pre-line break-words">
                               {a.description}
                             </p>
                           )}
+
                           <div className="mt-2 flex items-baseline gap-1 flex-wrap">
                             {priceIsAssumed && (
                               <span className="text-[10px] text-muted-foreground">A partir de</span>
