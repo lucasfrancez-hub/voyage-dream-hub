@@ -807,7 +807,9 @@ function AdminPackages() {
 
       {view === "curadoria" ? (
         <CurationTab
-          packages={(packages || []) as any}
+          packages={((packages || []) as any[]).filter(
+            (p) => !p?.kind || p.kind === "package",
+          ) as any}
           onRefresh={() => qc.invalidateQueries({ queryKey: ["admin", "packages"] })}
         />
       ) : (
