@@ -10,6 +10,8 @@ import {
   Hotel,
   Check,
   ArrowLeft,
+  AlertTriangle,
+
   ArrowRight,
   Star,
   MessageCircle,
