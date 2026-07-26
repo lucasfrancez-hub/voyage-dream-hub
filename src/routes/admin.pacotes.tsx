@@ -2859,6 +2859,8 @@ function ServicesEditor({
           onChange={(next) => patch({ addons: next })}
           inpClass={inpClass}
           kind={kind}
+          destination={destination ?? null}
+          suggestions={suggestions ?? []}
         />
       </div>
 
@@ -2871,11 +2873,15 @@ function AddonsEditor({
   onChange,
   inpClass,
   kind,
+  destination,
+  suggestions,
 }: {
   value: NonNullable<PackageServices["addons"]>;
   onChange: (next: NonNullable<PackageServices["addons"]>) => void;
   inpClass: string;
   kind: PackageKind;
+  destination?: string | null;
+  suggestions?: AddonSuggestion[];
 }) {
   const addons = value ?? [];
   const patchAt = (idx: number, p: Partial<NonNullable<PackageServices["addons"]>[number]>) => {
