@@ -18,7 +18,8 @@ import {
   Check,
   ArrowLeft,
   AlertTriangle,
-
+  ChevronLeft,
+  ChevronRight,
   ArrowRight,
   Star,
   MessageCircle,
@@ -878,6 +879,61 @@ function TicketDetailsView({
   );
 }
 
+function CalendarMonthNav({
+  children,
+}: {
+  children: (month: Date, setMonth: (d: Date) => void) => React.ReactNode;
+}) {
+  const [month, setMonth] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d;
+  });
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(1);
+    return d;
+  }, []);
+  const canGoBack =
+    month.getFullYear() > today.getFullYear() ||
+    (month.getFullYear() === today.getFullYear() && month.getMonth() > today.getMonth());
+  const go = (delta: number) => {
+    const next = new Date(month);
+    next.setMonth(next.getMonth() + delta);
+    setMonth(next);
+  };
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 rounded-full border-border/70"
+          onClick={() => go(-1)}
+          disabled={!canGoBack}
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1" />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 rounded-full border-border/70"
+          onClick={() => go(1)}
+          aria-label="Próximo mês"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+      {children(month, setMonth)}
+    </div>
+  );
+}
+
 function PreCheckoutDialog({
   open,
   onOpenChange,
@@ -1010,32 +1066,35 @@ function PreCheckoutDialog({
           {/* Left: Calendar */}
           {isFlexibleDate && (
             <div className="p-6 lg:p-8 flex flex-col">
-              <CalendarUI
-                mode="single"
-                locale={ptBR}
-                selected={date ? new Date(date + "T00:00:00") : undefined}
-                onSelect={(d) => {
-                  if (!d) return;
-                  const y = d.getFullYear();
-                  const m = String(d.getMonth() + 1).padStart(2, "0");
-                  const day = String(d.getDate()).padStart(2, "0");
-                  setDate(`${y}-${m}-${day}`);
-                }}
-                disabled={{ before: new Date() }}
-                initialFocus
-                captionLayout="dropdown"
-                hideNavigation={false}
-                fromYear={new Date().getFullYear()}
-                toYear={new Date().getFullYear() + 3}
-                className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
-                classNames={{
-                  root: "w-full",
-                  months: "w-full",
-                  month: "w-full flex flex-col gap-4",
-                  month_caption: "relative flex h-(--cell-size) w-full items-center justify-center gap-2 px-(--cell-size)",
-                  nav: "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 pointer-events-none [&>button]:pointer-events-auto",
-                }}
-              />
+              <CalendarMonthNav>
+                {(month, setMonth) => (
+                  <CalendarUI
+                    mode="single"
+                    locale={ptBR}
+                    month={month}
+                    onMonthChange={setMonth}
+                    selected={date ? new Date(date + "T00:00:00") : undefined}
+                    onSelect={(d) => {
+                      if (!d) return;
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, "0");
+                      const day = String(d.getDate()).padStart(2, "0");
+                      setDate(`${y}-${m}-${day}`);
+                    }}
+                    disabled={{ before: new Date() }}
+                    initialFocus
+                    captionLayout="dropdown"
+                    fromYear={new Date().getFullYear()}
+                    toYear={new Date().getFullYear() + 3}
+                    className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
+                    classNames={{
+                      root: "w-full",
+                      months: "w-full",
+                      month: "w-full flex flex-col gap-4",
+                    }}
+                  />
+                )}
+              </CalendarMonthNav>
               <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">
                 * Preços podem variar de acordo com a data selecionada
               </div>
