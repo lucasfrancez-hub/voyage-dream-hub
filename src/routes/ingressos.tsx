@@ -13,7 +13,16 @@ import {
   Bus,
   Sparkles,
   ArrowRight,
+  SlidersHorizontal,
 } from "lucide-react";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
@@ -196,33 +205,32 @@ function IngressosPage() {
 
           {/* FILTRO POR EVENTO */}
           {!isLoading && list.length > 0 && availableCategories.length > 0 && (
-            <div className="mb-6 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveEvent("")}
-                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
-                  activeEvent === ""
-                    ? "bg-brand-orange text-primary-foreground shadow-lg"
-                    : "border border-border bg-card text-muted-foreground hover:border-brand-orange/60 hover:text-foreground"
-                }`}
-              >
-                Todos <span className="opacity-70">({list.length})</span>
-              </button>
-              {availableCategories.map((cat) => (
-                <button
-                  key={cat.key}
-                  type="button"
-                  onClick={() => setActiveEvent(cat.key)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
-                    activeEvent === cat.key
-                      ? "bg-brand-orange text-primary-foreground shadow-lg"
-                      : "border border-border bg-card text-muted-foreground hover:border-brand-orange/60 hover:text-foreground"
-                  }`}
+            <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card/60 px-4 py-3">
+              <div className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtrar por
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Evento
+                </label>
+                <Select
+                  value={activeEvent || "all"}
+                  onValueChange={(v) => setActiveEvent(v === "all" ? "" : v)}
                 >
-                  {cat.label}{" "}
-                  <span className="opacity-70">({eventCounts[cat.key]})</span>
-                </button>
-              ))}
+                  <SelectTrigger className="h-10 w-[220px] bg-background">
+                    <SelectValue placeholder="Todos os eventos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os eventos ({list.length})</SelectItem>
+                    {availableCategories.map((cat) => (
+                      <SelectItem key={cat.key} value={cat.key}>
+                        {cat.label} ({eventCounts[cat.key]})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
