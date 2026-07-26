@@ -1093,6 +1093,9 @@ function PreCheckoutDialog({
                       root: "w-full",
                       months: "w-full",
                       month: "w-full flex flex-col gap-4",
+                      nav: "hidden",
+                      button_previous: "hidden",
+                      button_next: "hidden",
                     }}
                   />
                 )}
