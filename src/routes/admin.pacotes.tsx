@@ -1453,14 +1453,17 @@ function PackageEditorModal({
     });
 
     if (JSON.stringify(current) === JSON.stringify(normalizedCurrent)) return;
-    setEditing({
-      ...editing,
-      services: {
-        ...(editing.services ?? {}),
-        addons: normalizedCurrent,
-      },
+    setEditing((latest) => {
+      if (!latest || latest.id !== editing.id) return latest;
+      return {
+        ...latest,
+        services: {
+          ...(latest.services ?? {}),
+          addons: normalizedCurrent,
+        },
+      };
     });
-  }, [addonSuggestions, editing, setEditing]);
+  }, [addonSuggestions]);
 
 
   // Auto-fill empty fields when derived values become available
@@ -2474,7 +2477,9 @@ function PackageEditorModal({
                       toast.error("Ingresso original não encontrado");
                       return;
                     }
-                    setEditing(source);
+                    setDrafts(null);
+                    setDraftIndex(0);
+                    setEditingState({ ...source });
                     setTab("extras");
                   }}
                 />
@@ -3105,7 +3110,10 @@ function AddonsEditor({
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => onChange([...addons, ticketSuggestionToAddon(s)])}
+                    onClick={() => {
+                      const selected = ticketSuggestionToAddon(s);
+                      onChange([...addons, selected]);
+                    }}
                     className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:border-emerald-500 hover:bg-emerald-500/10 transition"
                     title={
                       extrasCount > 0
