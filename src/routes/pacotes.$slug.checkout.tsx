@@ -141,6 +141,27 @@ function Checkout() {
   const subtotalPrice = useMemo(() => {
     if (!pkg) return 0;
     const units = isPerUnit ? adults : (adults + children);
+  const addonsList = useMemo(() => {
+    const raw = ((pkg as any)?.services?.addons ?? []) as Array<{
+      id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order";
+    }>;
+    return raw
+      .filter((a) => a && a.name && Number(a.price) > 0)
+      .map((a, i) => ({ ...a, key: a.id || `${a.name}-${i}`, per: a.per ?? "unit", price: Number(a.price) }));
+  }, [pkg]);
+
+  const addonsTotal = useMemo(() => {
+    const units = isPerUnit ? adults : (adults + children);
+    return addonsList.reduce((sum, a) => {
+      if (!selectedAddons[a.key]) return sum;
+      const qty = a.per === "order" ? 1 : Math.max(1, units);
+      return sum + a.price * qty;
+    }, 0);
+  }, [addonsList, selectedAddons, adults, children, isPerUnit]);
+
+  const subtotalPrice = useMemo(() => {
+    if (!pkg) return 0;
+    const units = isPerUnit ? adults : (adults + children);
     return Number(pkg.price_per_person) * units;
   }, [pkg, adults, children, isPerUnit]);
 
@@ -148,7 +169,7 @@ function Checkout() {
   const taxesAmount = Number(pkg?.taxes ?? 0);
   const pixDiscountBase = Math.max(0, subtotalPrice - taxesAmount);
   const pixDiscountValue = payment === "pix" ? pixDiscountBase * PIX_DISCOUNT : 0;
-  const totalPrice = subtotalPrice - pixDiscountValue;
+  const totalPrice = subtotalPrice - pixDiscountValue + addonsTotal;
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
   const occupancyMismatch = !isPerUnit && !!pkg && adults + children !== baseOccupancy;
