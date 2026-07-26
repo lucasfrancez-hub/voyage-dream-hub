@@ -644,7 +644,7 @@ function TicketDetailsView({
                   {pkg.title}
                 </h1>
                 {pkg.summary && (
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-5">
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-5 whitespace-pre-line">
                     {pkg.summary}
                   </p>
                 )}
