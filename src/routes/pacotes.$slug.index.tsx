@@ -699,7 +699,7 @@ function TicketDetailsView({
           {/* Ponto de encontro / Transfer */}
           {(pickupPoints.length > 0 || pkg.itinerary || transferSvc?.enabled) && (
             <section>
-              <SectionHeader>Ponto de encontro / Transfer</SectionHeader>
+              <SectionHeader>Detalhes do serviço</SectionHeader>
               <div className="bg-card border border-border rounded-3xl p-6 md:p-8 space-y-6">
                 {pickupPoints.length > 0 && (
                   <div>
