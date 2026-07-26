@@ -80,9 +80,19 @@ function Checkout() {
   const [success, setSuccess] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [preferredDate, setPreferredDate] = useState("");
+  const [pickupPoint, setPickupPoint] = useState("");
 
   const isPerUnit = (pkg as any)?.pricing_mode === "per_unit";
   const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
+  const isService = (pkg as any)?.kind === "service";
+  const transferSvc = (pkg as any)?.services?.transfer ?? {};
+  const pickupOptions: string[] = isService && transferSvc?.enabled
+    ? String(transferSvc.pickup_points ?? "")
+        .split("\n")
+        .map((s: string) => s.trim())
+        .filter(Boolean)
+    : [];
+
   const maxUnits = Math.min(9, Math.max(1, Number((pkg as any)?.max_units) || 9));
 
   function patchBoleto(patch: Partial<BoletoData>) {
