@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,6 @@ import {
   Home,
   DoorOpen,
   Ticket,
-  Calendar as CalendarIcon,
   Bus,
   Minus,
   Plus,
@@ -610,16 +609,7 @@ function TicketDetailsView({
   const isFlexibleDate = pkg?.date_mode === "flexible";
   const rawAddons: any[] = Array.isArray(services?.addons) ? services.addons : [];
   const hasAddons = rawAddons.some(
-    (a) =>
-      a &&
-      a.name &&
-      (Number(a.price) > 0 ||
-        (a.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0) ||
-        (a.sub_options ?? []).some(
-          (s: any) =>
-            Number(s?.price) > 0 ||
-            (s?.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0),
-        )),
+    (a) => a && a.name && (Number(a.price) > 0 || (a.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0)),
   );
   const [preOpen, setPreOpen] = useState(false);
 
@@ -892,38 +882,24 @@ function TicketDetailsView({
 function CalendarMonthNav({
   children,
   maxMonth,
-  minMonth,
-  initialMonth,
-  resetKey,
 }: {
   children: (month: Date, setMonth: (d: Date) => void) => React.ReactNode;
   maxMonth?: Date;
-  minMonth?: Date;
-  initialMonth?: Date;
-  resetKey?: string;
 }) {
   const [month, setMonth] = useState<Date>(() => {
-    const d = initialMonth ? new Date(initialMonth) : new Date();
+    const d = new Date();
     d.setDate(1);
     return d;
   });
-  useEffect(() => {
-    if (initialMonth) {
-      const d = new Date(initialMonth);
-      d.setDate(1);
-      setMonth(d);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetKey]);
-  const lowerBound = useMemo(() => {
-    const d = new Date(minMonth ?? new Date());
+  const today = useMemo(() => {
+    const d = new Date();
     d.setHours(0, 0, 0, 0);
     d.setDate(1);
     return d;
-  }, [minMonth]);
+  }, []);
   const canGoBack =
-    month.getFullYear() > lowerBound.getFullYear() ||
-    (month.getFullYear() === lowerBound.getFullYear() && month.getMonth() > lowerBound.getMonth());
+    month.getFullYear() > today.getFullYear() ||
+    (month.getFullYear() === today.getFullYear() && month.getMonth() > today.getMonth());
   const canGoForward =
     !maxMonth ||
     month.getFullYear() < maxMonth.getFullYear() ||
@@ -967,7 +943,6 @@ function CalendarMonthNav({
 }
 
 
-
 function PreCheckoutDialog({
   open,
   onOpenChange,
@@ -988,10 +963,6 @@ function PreCheckoutDialog({
   const navigate = useNavigate();
   const [date, setDate] = useState<string>(isFlexibleDate ? "" : (pkg.going_date ?? ""));
   const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [addonDates, setAddonDates] = useState<Record<string, string>>({});
-  const [activeDateKey, setActiveDateKey] = useState<string>("__pkg");
-  const [stepIdx, setStepIdx] = useState(0);
-
 
   const weekday = useMemo<number | null>(() => {
     const raw = date || pkg?.going_date || "";
@@ -1005,150 +976,49 @@ function PreCheckoutDialog({
       .filter((a: any) => {
         if (!a || !a.name) return false;
         const tiers = (a.price_by_weekday ?? []) as any[];
-        const subs = (a.sub_options ?? []) as any[];
-        const hasSubPrice = subs.some(
-          (s) =>
-            Number(s?.price) > 0 ||
-            (s?.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0),
-        );
-        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0) || hasSubPrice;
+        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0);
       })
       .map((a: any, i: number) => {
-        const key = a.id || `${a.name}-${i}`;
         const tiers = (a.price_by_weekday ?? []) as any[];
-        const addonDateStr = addonDates[key] || date || pkg?.going_date || "";
-        const m = String(addonDateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
-        const wd = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay() : null;
-        const tier = wd != null ? tiers.find((t: any) => (t.days ?? []).map(Number).includes(wd)) : null;
+        const tier =
+          weekday != null
+            ? tiers.find((t: any) => (t.days ?? []).includes(weekday))
+            : null;
+        // Preço assumido quando a data ainda não foi escolhida:
+        // usa o preço base se >0, senão o menor preço configurado nas faixas.
         const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
         const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
         const price = tier ? Number(tier.price) : assumed;
-        const subs = ((a.sub_options ?? []) as any[])
-          .filter((s) => {
-            const subTiers = (s?.price_by_weekday ?? []) as any[];
-            return s && s.name && (Number(s.price) >= 0 || subTiers.some((t) => Number(t?.price) > 0));
-          })
-          .map((s, j) => {
-            const subTiers = (s.price_by_weekday ?? []) as any[];
-            const subTier = wd != null ? subTiers.find((t: any) => (t.days ?? []).map(Number).includes(wd)) : null;
-            const subTierPrices = subTiers.map((t) => Number(t?.price)).filter((n) => n > 0);
-            const subAssumed = Number(s.price) > 0 ? Number(s.price) : (subTierPrices.length ? Math.min(...subTierPrices) : 0);
-            return {
-              ...s,
-              key: `${key}::${s.id || `${s.name}-${j}`}`,
-              price: subTier ? Number(subTier.price) : subAssumed,
-              per: (s.per ?? "unit") as "unit" | "order",
-              tierLabel: subTier?.label ?? null,
-              hasWeekdayPricing: subTiers.length > 0,
-            };
-          });
         return {
           ...a,
-          key,
+          key: a.id || `${a.name}-${i}`,
           per: (a.per ?? "unit") as "unit" | "order",
           price,
           tierLabel: tier?.label ?? null,
           hasWeekdayPricing: tiers.length > 0,
           assumedFromMin: !tier && Number(a.price) <= 0 && tierPrices.length > 0,
-          addonDate: addonDates[key] || "",
-          subs,
         };
       })
       .sort((a: any, b: any) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
-  }, [rawAddons, weekday, addonDates, date, pkg]);
-
+  }, [rawAddons, weekday]);
 
   const addonsTotal = useMemo(() => {
     return addons.reduce((sum, a) => {
       if (!selected[a.key]) return sum;
       const units = a.per === "order" ? 1 : Math.max(1, qty);
-      let s = sum + a.price * units;
-      for (const sub of a.subs) {
-        if (!selected[sub.key]) continue;
-        const subUnits = sub.per === "order" ? 1 : Math.max(1, qty);
-        s += sub.price * subUnits;
-      }
-      return s;
+      return sum + a.price * units;
     }, 0);
   }, [addons, selected, qty]);
 
   const total = basePrice * qty + addonsTotal;
-
-  const hasAddons = addons.length > 0;
-  const selectedAddons = useMemo(() => addons.filter((a) => selected[a.key]), [addons, selected]);
-  const hasSubs = selectedAddons.some((a) => a.subs.length > 0);
-  const anySelectedNeedsDate = selectedAddons.length > 0;
-  const showDateStep = isFlexibleDate || anySelectedNeedsDate;
-
-
-  // Build step flow dynamically
-  const steps = useMemo(() => {
-    const list: { id: "addons" | "date" | "subs" | "summary"; label: string }[] = [];
-    if (hasAddons) list.push({ id: "addons", label: "Opcionais" });
-    if (showDateStep) list.push({ id: "date", label: "Datas" });
-    if (hasSubs) list.push({ id: "subs", label: "Extras" });
-    list.push({ id: "summary", label: "Resumo" });
-    return list;
-  }, [hasAddons, showDateStep, hasSubs]);
-
-  const currentStep = steps[Math.min(stepIdx, steps.length - 1)]?.id ?? "summary";
-  const isFirstStep = stepIdx === 0;
-  const isLastStep = stepIdx >= steps.length - 1;
-
-  const missingAddonDates = useMemo(
-    () => selectedAddons.filter((a) => !addonDates[a.key]),
-    [selectedAddons, addonDates],
-  );
-
-  const canAdvance = useMemo(() => {
-    if (currentStep === "date") {
-      if (isFlexibleDate && !date) return false;
-      if (missingAddonDates.length > 0) return false;
-    }
-    return true;
-  }, [currentStep, date, isFlexibleDate, missingAddonDates]);
-
-  function handleNext() {
-    if (currentStep === "date") {
-      if (isFlexibleDate && !date) {
-        toast.error("Escolha a data do pacote");
-        return;
-      }
-      if (missingAddonDates.length > 0) {
-        toast.error("Escolha a data de cada adicional", {
-          description: missingAddonDates.map((a) => a.name).join(", "),
-        });
-        return;
-      }
-    }
-    setStepIdx((i) => Math.min(i + 1, steps.length - 1));
-  }
-  function handleBack() {
-    setStepIdx((i) => Math.max(i - 1, 0));
-  }
+  const canContinue = !isFlexibleDate || !!date;
 
   function handleContinue() {
     if (isFlexibleDate && !date) {
       toast.error("Escolha uma data para continuar");
       return;
     }
-    const missing = selectedAddons.filter((a) => !addonDates[a.key]);
-    if (missing.length > 0) {
-      toast.error("Escolha a data de cada adicional", {
-        description: missing.map((a) => a.name).join(", "),
-      });
-      return;
-    }
-    const selectedKeys: string[] = [];
-    const datePairs: string[] = [];
-    for (const a of addons) {
-      if (!selected[a.key]) continue;
-      selectedKeys.push(a.key);
-      if (addonDates[a.key]) datePairs.push(`${a.key}:${addonDates[a.key]}`);
-      for (const sub of a.subs) {
-        if (selected[sub.key]) selectedKeys.push(sub.key);
-      }
-    }
+    const selectedKeys = Object.entries(selected).filter(([, v]) => v).map(([k]) => k);
     navigate({
       to: "/pacotes/$slug/checkout",
       params: { slug: pkg.slug },
@@ -1156,11 +1026,11 @@ function PreCheckoutDialog({
         qty,
         ...(date ? { date } : {}),
         ...(selectedKeys.length ? { addons: selectedKeys.join(",") } : {}),
-        ...(datePairs.length ? { addonDates: datePairs.join(",") } : {}),
       },
     });
   }
 
+  const hasAddons = addons.length > 0;
 
   const weekdayShortName = useMemo(() => {
     if (weekday == null) return null;
@@ -1179,258 +1049,115 @@ function PreCheckoutDialog({
     return Sparkles;
   };
 
-  const isPackageKind = (pkg?.kind ?? "package") === "package";
-
-  // Non-package (ingressos, cruzeiros, serviços): manter dialog simples (sem wizard)
-  if (!isPackageKind) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-4xl p-0 gap-0 overflow-hidden border-border bg-card/80 backdrop-blur-2xl shadow-2xl rounded-3xl flex flex-col max-h-[92vh]">
-          <div className="px-6 py-5 shrink-0 border-b border-border/60">
-            <DialogHeader className="text-left space-y-1">
-              <DialogTitle className="font-display text-xl leading-tight tracking-tight">
-                Escolha sua data{hasAddons ? " e adicionais" : ""}
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground">Personalize sua experiência para o dia da visita</p>
-            </DialogHeader>
-          </div>
-
-          <div className={cn("flex-1 overflow-y-auto grid grid-cols-1", isFlexibleDate && hasAddons ? "lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border/60" : "")}>
-            {isFlexibleDate && (
-              <div className="p-6 lg:p-8 flex flex-col">
-                {(() => {
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  const maxDate = new Date(today);
-                  maxDate.setMonth(maxDate.getMonth() + 11);
-                  return (
-                    <CalendarMonthNav>
-                      {(month, setMonth) => (
-                        <CalendarUI
-                          mode="single"
-                          locale={ptBR}
-                          month={month}
-                          onMonthChange={setMonth}
-                          selected={date ? new Date(date + "T00:00:00") : undefined}
-                          onDayClick={(d, mods) => {
-                            if (mods?.disabled) return;
-                            if (d > maxDate) {
-                              toast.error("Data indisponível", { description: "Só aceitamos reservas com até 11 meses de antecedência." });
-                              return;
-                            }
-                            const y = d.getFullYear();
-                            const m = String(d.getMonth() + 1).padStart(2, "0");
-                            const day = String(d.getDate()).padStart(2, "0");
-                            setDate(`${y}-${m}-${day}`);
-                          }}
-                          disabled={{ before: new Date() }}
-                          modifiers={{ tooFar: { after: maxDate } }}
-                          modifiersClassNames={{ tooFar: "text-destructive line-through opacity-70 hover:!bg-destructive/10" }}
-                          initialFocus
-                          captionLayout="dropdown"
-                          fromYear={today.getFullYear()}
-                          toYear={today.getFullYear() + 3}
-                          className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
-                          classNames={{ root: "w-full", months: "w-full", month: "w-full flex flex-col gap-4", nav: "hidden", button_previous: "hidden", button_next: "hidden" }}
-                        />
-                      )}
-                    </CalendarMonthNav>
-                  );
-                })()}
-                <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">* Preços podem variar de acordo com a data selecionada</div>
-              </div>
-            )}
-
-            {hasAddons && (
-              <div className="p-6 lg:p-8 bg-background/40 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Serviços adicionais</h3>
-                  {weekdayShortName ? (
-                    <span className="px-2 py-0.5 bg-brand-orange/10 text-brand-orange text-[10px] font-bold rounded-full uppercase tracking-wider">{weekdayShortName}</span>
-                  ) : isFlexibleDate ? (
-                    <span className="px-2 py-0.5 bg-muted text-muted-foreground text-[10px] font-bold rounded-full uppercase tracking-wider">Escolha a data</span>
-                  ) : null}
-                </div>
-                <div className="space-y-3">
-                  {addons.map((a) => {
-                    const isSel = !!selected[a.key];
-                    const units = a.per === "order" ? 1 : Math.max(1, qty);
-                    const Icon = pickIcon(a.name);
-                    return (
-                      <div key={a.key} className="space-y-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelected((s) => ({ ...s, [a.key]: !s[a.key] }))}
-                          className={cn("relative w-full p-4 rounded-2xl text-left transition-all bg-card border", isSel ? "border-brand-orange/60 ring-1 ring-brand-orange/40" : "border-border/70 hover:border-border")}
-                        >
-                          <div className="flex items-start gap-4 pr-14">
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-muted border border-border/60">
-                              <Icon className={cn("h-5 w-5", isSel ? "text-brand-orange" : "text-muted-foreground")} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-bold text-foreground break-words leading-tight">{a.name}</div>
-                              {a.description && <p className="text-[11px] text-muted-foreground mt-1 leading-snug whitespace-pre-line break-words">{a.description}</p>}
-                              <div className="mt-2 flex items-baseline gap-1 flex-wrap">
-                                <span className="text-sm font-bold text-foreground">{formatBRL(a.price)}</span>
-                                <span className="text-[10px] text-muted-foreground">{a.per === "order" ? "por reserva" : `× ${units}`}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="absolute top-4 right-4">
-                            <div className={cn("w-10 h-5 rounded-full relative transition-colors", isSel ? "bg-brand-orange" : "bg-muted border border-border")}>
-                              <div className={cn("absolute top-[2px] w-4 h-4 rounded-full transition-all shadow-sm", isSel ? "left-[calc(100%-1.125rem)] bg-white" : "left-[2px] bg-muted-foreground/60")} />
-                            </div>
-                          </div>
-                        </button>
-                        {isSel && a.subs.length > 0 && (
-                          <div className="ml-4 pl-4 border-l-2 border-brand-orange/30 space-y-2">
-                            <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider pt-1">Complementos para "{a.name}"</div>
-                            {a.subs.map((sub: any) => {
-                              const subSel = !!selected[sub.key];
-                              const subUnits = sub.per === "order" ? 1 : Math.max(1, qty);
-                              return (
-                                <button
-                                  key={sub.key}
-                                  type="button"
-                                  onClick={() => setSelected((s) => ({ ...s, [sub.key]: !s[sub.key] }))}
-                                  className={cn("relative w-full p-3 rounded-xl text-left transition-all bg-card border", subSel ? "border-brand-orange/60 ring-1 ring-brand-orange/40" : "border-border/70 hover:border-border")}
-                                >
-                                  <div className="flex items-start gap-3 pr-12">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-xs font-bold text-foreground break-words leading-tight">{sub.name}</div>
-                                      {sub.description && <p className="text-[11px] text-muted-foreground mt-1 leading-snug whitespace-pre-line break-words">{sub.description}</p>}
-                                      <div className="mt-1.5 flex items-baseline gap-1 flex-wrap">
-                                        <span className="text-xs font-bold text-foreground">{formatBRL(sub.price)}</span>
-                                        <span className="text-[10px] text-muted-foreground">{sub.per === "order" ? "por reserva" : `× ${subUnits}`}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="absolute top-3 right-3">
-                                    <div className={cn("rounded-full relative transition-colors", subSel ? "bg-brand-orange" : "bg-muted border border-border")} style={{ width: 36, height: 18 }}>
-                                      <div className={cn("absolute top-[2px] w-3.5 h-3.5 rounded-full transition-all shadow-sm", subSel ? "left-[calc(100%-1rem)] bg-white" : "left-[2px] bg-muted-foreground/60")} />
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="p-5 lg:p-6 bg-muted/30 border-t border-border shrink-0">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total estimado</span>
-                  <span className="text-[10px] bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-full font-bold">
-                    {qty} {qty === 1 ? "ingresso" : "ingressos"}
-                    {selectedCount > 0 && ` + ${selectedCount} ${selectedCount === 1 ? "adicional" : "adicionais"}`}
-                  </span>
-                </div>
-                <div className="font-display text-2xl lg:text-3xl font-black text-foreground leading-tight mt-1">{formatBRL(total)}</div>
-              </div>
-              <Button
-                onClick={handleContinue}
-                disabled={isFlexibleDate && !date}
-                className="flex-1 sm:flex-none sm:min-w-[240px] bg-brand-orange hover:bg-brand-orange/90 text-primary-foreground font-bold py-4 h-auto px-6 rounded-2xl transition-all shadow-[0_8px_30px_rgba(242,107,31,0.3)] active:scale-[0.98] group"
-              >
-                Continuar para checkout
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
-
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setStepIdx(0); }}>
-      <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-5xl p-0 gap-0 overflow-hidden border-white/10 bg-[#0a0a0a]/95 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] rounded-[2rem] flex flex-col max-h-[92vh] relative">
-        {/* Ambient glows */}
-        <div className="pointer-events-none absolute -bottom-24 -left-24 w-64 h-64 bg-brand-orange/10 blur-[120px] rounded-full" />
-        <div className="pointer-events-none absolute -top-24 -right-24 w-64 h-64 bg-brand-orange/5 blur-[120px] rounded-full" />
-
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-4xl p-0 gap-0 overflow-hidden border-border bg-card/80 backdrop-blur-2xl shadow-2xl rounded-3xl flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="px-6 md:px-10 pt-8 pb-5 shrink-0 border-b border-white/5 relative">
-          <div className="flex justify-between items-start gap-4 mb-6">
-            <DialogHeader className="text-left space-y-1">
-              <span className="text-brand-orange text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase">
-                VIA AIR Experience
-              </span>
-              <DialogTitle className="font-display text-xl md:text-3xl font-bold tracking-tight text-white">
-                Personalize sua viagem
-              </DialogTitle>
-            </DialogHeader>
-            <div className="text-right shrink-0 hidden sm:block">
-              <div className="text-white/40 text-[10px] uppercase tracking-widest">Total estimado</div>
-              <div className="text-xl md:text-2xl font-bold text-white">{formatBRL(total)}</div>
-            </div>
-          </div>
-
-          {/* Stepper */}
-          <div className="flex items-center gap-2 md:gap-4 overflow-x-auto">
-            {steps.map((s, i) => {
-              const isActive = i === stepIdx;
-              const isDone = i < stepIdx;
-              return (
-                <div key={s.id} className="flex items-center gap-2 md:gap-4 shrink-0">
-                  <div className={cn("flex items-center gap-2 md:gap-3", !isActive && !isDone && "opacity-30")}>
-                    <div
-                      className={cn(
-                        "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-bold transition-all",
-                        isActive
-                          ? "bg-brand-orange text-black shadow-[0_0_20px_rgba(242,107,31,0.4)]"
-                          : isDone
-                            ? "bg-brand-orange/20 text-brand-orange border border-brand-orange/40"
-                            : "border border-white/30 text-white",
-                      )}
-                    >
-                      {isDone ? <Check className="h-4 w-4" /> : i + 1}
-                    </div>
-                    <span className={cn("text-xs md:text-sm font-medium whitespace-nowrap", isActive ? "text-white" : "text-white/70")}>
-                      {s.label}
-                    </span>
-                  </div>
-                  {i < steps.length - 1 && <div className="h-px bg-white/10 w-6 md:w-16" />}
-                </div>
-              );
-            })}
-          </div>
+        <div className="px-6 py-5 shrink-0 border-b border-border/60 flex items-start justify-between gap-4">
+          <DialogHeader className="text-left space-y-1">
+            <DialogTitle className="font-display text-xl leading-tight tracking-tight">
+              Escolha sua data{hasAddons ? " e adicionais" : ""}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Personalize sua experiência para o dia da visita
+            </p>
+          </DialogHeader>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-10">
-          {currentStep === "addons" && (
-            <div className="animate-fade-in">
-              <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                  <h3 className="text-white text-lg md:text-xl font-bold">Escolha seus opcionais</h3>
-                  <p className="text-white/50 text-sm mt-1">Selecione o que quer incluir. Você escolhe as datas no próximo passo.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelected({});
-                    setStepIdx((i) => Math.min(i + 1, steps.length - 1));
-                  }}
-                  className="text-xs md:text-sm text-white/60 hover:text-white underline underline-offset-4 decoration-white/30 hover:decoration-white transition-colors whitespace-nowrap"
-                >
-                  Não quero adicionais →
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Split content */}
+        <div
+          className={cn(
+            "flex-1 overflow-y-auto grid grid-cols-1",
+            isFlexibleDate && hasAddons
+              ? "lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border/60"
+              : "",
+          )}
+        >
+          {/* Left: Calendar */}
+          {isFlexibleDate && (
+            <div className="p-6 lg:p-8 flex flex-col">
+              {(() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const maxDate = new Date(today);
+                maxDate.setMonth(maxDate.getMonth() + 11);
+                
+                return (
+              <CalendarMonthNav>
+                {(month, setMonth) => (
+                  <CalendarUI
+                    mode="single"
+                    locale={ptBR}
+                    month={month}
+                    onMonthChange={setMonth}
+                    selected={date ? new Date(date + "T00:00:00") : undefined}
+                    onDayClick={(d, mods) => {
+                      if (mods?.disabled) return;
+                      if (d > maxDate) {
+                        toast.error("Data indisponível", {
+                          description: "Só aceitamos reservas com até 11 meses de antecedência.",
+                        });
+                        return;
+                      }
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, "0");
+                      const day = String(d.getDate()).padStart(2, "0");
+                      setDate(`${y}-${m}-${day}`);
+                    }}
+                    disabled={{ before: new Date() }}
+                    modifiers={{ tooFar: { after: maxDate } }}
+                    modifiersClassNames={{
+                      tooFar: "text-destructive line-through opacity-70 hover:!bg-destructive/10",
+                    }}
+                    initialFocus
+                    captionLayout="dropdown"
+                    fromYear={today.getFullYear()}
+                    toYear={today.getFullYear() + 3}
+                    className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
+                    classNames={{
+                      root: "w-full",
+                      months: "w-full",
+                      month: "w-full flex flex-col gap-4",
+                      nav: "hidden",
+                      button_previous: "hidden",
+                      button_next: "hidden",
+                    }}
+                  />
+                )}
+              </CalendarMonthNav>
+                );
+              })()}
 
+              <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">
+                * Preços podem variar de acordo com a data selecionada
+              </div>
+            </div>
+          )}
+
+
+          {/* Right: Addons */}
+          {hasAddons && (
+            <div className="p-6 lg:p-8 bg-background/40 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  Serviços adicionais
+                </h3>
+                {weekdayShortName ? (
+                  <span className="px-2 py-0.5 bg-brand-orange/10 text-brand-orange text-[10px] font-bold rounded-full uppercase tracking-wider">
+                    {weekdayShortName}
+                  </span>
+                ) : isFlexibleDate ? (
+                  <span className="px-2 py-0.5 bg-muted text-muted-foreground text-[10px] font-bold rounded-full uppercase tracking-wider">
+                    Escolha a data
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="space-y-3">
                 {addons.map((a) => {
                   const isSel = !!selected[a.key];
                   const units = a.per === "order" ? 1 : Math.max(1, qty);
+                  const priceIsAssumed = a.hasWeekdayPricing && weekday == null;
                   const Icon = pickIcon(a.name);
                   const isRecommended = !!a.recommended;
                   return (
@@ -1439,39 +1166,76 @@ function PreCheckoutDialog({
                       type="button"
                       onClick={() => setSelected((s) => ({ ...s, [a.key]: !s[a.key] }))}
                       className={cn(
-                        "relative group cursor-pointer text-left p-5 rounded-3xl border transition-all duration-300",
+                        "relative w-full p-4 rounded-2xl text-left transition-all bg-card border",
                         isSel
-                          ? "bg-gradient-to-br from-white/10 to-transparent border-brand-orange/60 shadow-[0_0_40px_rgba(242,107,31,0.15)]"
-                          : "bg-white/5 hover:bg-white/10 border-white/5 hover:border-white/20",
+                          ? "border-brand-orange/60 ring-1 ring-brand-orange/40 shadow-[0_8px_24px_-12px_rgba(242,107,31,0.45)]"
+                          : isRecommended
+                            ? "border-emerald-500/50 ring-1 ring-emerald-500/20 hover:border-emerald-500/70"
+                            : "border-border/70 hover:border-border",
                       )}
                     >
-                      {isSel && (
-                        <div className="absolute -top-3 -right-3 bg-brand-orange text-black text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tight">
-                          Selecionado
+                      {isRecommended && (
+                        <div className="absolute -top-2 left-4 flex items-center gap-1 rounded-full bg-emerald-500 text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-md">
+                          <Sparkles className="h-3 w-3" />
+                          Recomendado
                         </div>
                       )}
-                      {!isSel && isRecommended && (
-                        <div className="absolute -top-3 left-4 bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tight flex items-center gap-1">
-                          <Sparkles className="h-3 w-3" /> Recomendado
-                        </div>
-                      )}
-                      <div className={cn("w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors", isSel ? "bg-brand-orange/20" : "bg-white/5 group-hover:bg-brand-orange/10")}>
-                        <Icon className={cn("h-6 w-6 md:h-7 md:w-7 transition-colors", isSel ? "text-brand-orange" : "text-white/40 group-hover:text-brand-orange")} />
-                      </div>
-                      <h4 className="text-white font-bold text-base md:text-lg mb-1 leading-tight">{a.name}</h4>
-                      {a.description && (
-                        <p className="text-white/50 text-xs leading-relaxed mb-4 line-clamp-3">{a.description}</p>
-                      )}
-                      <div className="flex justify-between items-end mt-4">
-                        <div>
-                          {a.hasWeekdayPricing && (
-                            <span className="block text-[10px] text-white/30 uppercase tracking-widest">A partir de</span>
+                      <div className="flex items-start gap-4 pr-14">
+                        <div
+                          className={cn(
+                            "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-muted border border-border/60 transition-colors",
                           )}
-                          <span className="text-lg font-bold text-white">{formatBRL(a.price)}</span>
-                          <span className="ml-1 text-[10px] text-white/40">{a.per === "order" ? "por reserva" : `× ${units}`}</span>
+                        >
+                          <Icon
+                            className={cn(
+                              "h-5 w-5 transition-colors",
+                              isSel ? "text-brand-orange" : isRecommended ? "text-emerald-600" : "text-muted-foreground",
+                            )}
+                          />
                         </div>
-                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center transition-all", isSel ? "bg-brand-orange" : "border border-white/20 group-hover:border-brand-orange")}>
-                          {isSel ? <Check className="h-5 w-5 text-black" strokeWidth={3} /> : <Plus className="h-4 w-4 text-white/40 group-hover:text-brand-orange" />}
+
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-bold text-foreground break-words leading-tight">
+                            {a.name}
+                          </div>
+                          {a.description && (
+                            <p className="text-[11px] text-muted-foreground mt-1 leading-snug whitespace-pre-line break-words">
+                              {a.description}
+                            </p>
+                          )}
+                          {isRecommended && a.recommended_reason && (
+                            <p className="mt-2 inline-flex items-start gap-1 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2 py-1 text-[11px] font-medium leading-snug">
+                              <Sparkles className="h-3 w-3 mt-[2px] shrink-0" />
+                              <span className="break-words">{a.recommended_reason}</span>
+                            </p>
+                          )}
+
+                          <div className="mt-2 flex items-baseline gap-1 flex-wrap">
+                            {priceIsAssumed && (
+                              <span className="text-[10px] text-muted-foreground">A partir de</span>
+                            )}
+                            <span className="text-sm font-bold text-foreground">{formatBRL(a.price)}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {a.per === "order" ? "por reserva" : `× ${units}`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Toggle */}
+                      <div className="absolute top-4 right-4">
+                        <div
+                          className={cn(
+                            "w-10 h-5 rounded-full relative transition-colors",
+                            isSel ? "bg-brand-orange" : "bg-muted border border-border",
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "absolute top-[2px] w-4 h-4 rounded-full transition-all shadow-sm",
+                              isSel ? "left-[calc(100%-1.125rem)] bg-white" : "left-[2px] bg-muted-foreground/60",
+                            )}
+                          />
                         </div>
                       </div>
                     </button>
@@ -1480,348 +1244,37 @@ function PreCheckoutDialog({
               </div>
             </div>
           )}
-
-          {currentStep === "date" && (() => {
-            const slots: { key: string; label: string; sub: string; value: string; setValue: (v: string) => void; needsWeekday: boolean }[] = [];
-            if (isFlexibleDate) {
-              slots.push({
-                key: "__pkg",
-                label: pkg.title || pkg.name || "Pacote",
-                sub: "Data principal",
-                value: date,
-                setValue: setDate,
-                needsWeekday: false,
-              });
-            }
-            for (const a of selectedAddons) {
-              slots.push({
-                key: a.key,
-                label: a.name,
-                sub: a.hasWeekdayPricing ? "Preço varia por dia" : "Adicional",
-                value: addonDates[a.key] || "",
-                setValue: (v: string) => setAddonDates((prev) => ({ ...prev, [a.key]: v })),
-                needsWeekday: a.hasWeekdayPricing,
-              });
-            }
-            const activeKey = slots.find((s) => s.key === activeDateKey) ? activeDateKey : slots[0]?.key ?? "__pkg";
-            const active = slots.find((s) => s.key === activeKey) ?? slots[0];
-            if (!active) return null;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const maxDate = new Date(today);
-            maxDate.setMonth(maxDate.getMonth() + 11);
-            const parseYMD = (s?: string | null) => {
-              const m = s?.match(/^(\d{4})-(\d{2})-(\d{2})/);
-              return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
-            };
-            const tripStart = parseYMD(date) || parseYMD(pkg.going_date);
-            let tripEnd = parseYMD(pkg.return_date);
-            if (tripStart && !tripEnd && pkg.nights != null) {
-              tripEnd = new Date(tripStart);
-              tripEnd.setDate(tripEnd.getDate() + Number(pkg.nights));
-            }
-            const isAddonSlot = active.key !== "__pkg";
-            const calFrom = isAddonSlot && tripStart ? tripStart : today;
-            const calTo = isAddonSlot && tripEnd ? tripEnd : maxDate;
-            const activeWd = (() => {
-              const m = active.value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-              if (!m) return null;
-              return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay();
-            })();
-            const activeWdLabel = activeWd == null ? null : ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"][activeWd];
-
-            return (
-              <div className="animate-fade-in">
-                <div className="mb-6">
-                  <h3 className="text-white text-lg md:text-xl font-bold">Escolha as datas</h3>
-                  <p className="text-white/50 text-sm mt-1">
-                    {slots.length > 1
-                      ? "Cada adicional pode ter uma data diferente. Selecione abaixo e escolha o dia."
-                      : "Selecione o dia da sua visita."}
-                  </p>
-                </div>
-
-                {slots.length > 1 && (
-                  <div className="mb-5 flex flex-wrap gap-2">
-                    {slots.map((s) => {
-                      const isActive = s.key === activeKey;
-                      const filled = !!s.value;
-                      return (
-                        <button
-                          key={s.key}
-                          type="button"
-                          onClick={() => setActiveDateKey(s.key)}
-                          className={cn(
-                            "group flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl border text-left transition-all",
-                            isActive
-                              ? "bg-brand-orange/15 border-brand-orange/60 shadow-[0_0_20px_rgba(242,107,31,0.15)]"
-                              : filled
-                                ? "bg-white/5 border-emerald-500/40 hover:border-emerald-500/60"
-                                : "bg-white/5 border-white/10 hover:border-white/25",
-                          )}
-                        >
-                          <div className={cn(
-                            "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-                            isActive ? "bg-brand-orange text-black" : filled ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10 text-white/50",
-                          )}>
-                            {filled ? <Check className="h-4 w-4" strokeWidth={3} /> : <CalendarIcon className="h-3.5 w-3.5" />}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-white text-xs font-bold leading-tight truncate max-w-[180px]">{s.label}</div>
-                            <div className="text-[10px] text-white/50 leading-tight mt-0.5">
-                              {filled ? format(new Date(s.value + "T00:00:00"), "dd 'de' MMM", { locale: ptBR }) : s.sub}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-                  <div className="bg-white/5 border border-white/10 rounded-3xl p-4 md:p-6">
-                    <div className="mb-3 text-white/60 text-xs uppercase tracking-widest font-bold">
-                      Data de: <span className="text-brand-orange">{active.label}</span>
-                    </div>
-                    <CalendarMonthNav
-                      maxMonth={calTo}
-                      minMonth={calFrom}
-                      initialMonth={isAddonSlot && tripStart ? tripStart : undefined}
-                      resetKey={active.key}
-                    >
-                      {(month, setMonth) => (
-                        <CalendarUI
-                          key={active.key}
-                          mode="single"
-                          locale={ptBR}
-                          month={month}
-                          onMonthChange={setMonth}
-                          selected={active.value ? new Date(active.value + "T00:00:00") : undefined}
-                          onDayClick={(d, mods) => {
-                            if (mods?.disabled) return;
-                            if (isAddonSlot && tripStart && tripEnd && (d < tripStart || d > tripEnd)) {
-                              toast.error("Data indisponível", { description: "O adicional deve ocorrer durante a viagem." });
-                              return;
-                            }
-                            if (d > maxDate) {
-                              toast.error("Data indisponível", { description: "Só aceitamos reservas com até 11 meses de antecedência." });
-                              return;
-                            }
-                            const y = d.getFullYear();
-                            const m = String(d.getMonth() + 1).padStart(2, "0");
-                            const day = String(d.getDate()).padStart(2, "0");
-                            active.setValue(`${y}-${m}-${day}`);
-                            const nextEmpty = slots.find((s) => s.key !== active.key && !s.value && s.key !== active.key);
-                            if (nextEmpty && slots.length > 1) {
-                              setTimeout(() => setActiveDateKey(nextEmpty.key), 200);
-                            }
-                          }}
-                          disabled={
-                            isAddonSlot && tripStart && tripEnd
-                              ? [{ before: tripStart }, { after: tripEnd }]
-                              : { before: new Date() }
-                          }
-                          modifiers={
-                            isAddonSlot && tripStart && tripEnd
-                              ? { outside: [{ before: tripStart }, { after: tripEnd }] }
-                              : { tooFar: { after: maxDate } }
-                          }
-                          modifiersClassNames={{
-                            tooFar: "text-destructive line-through opacity-70 hover:!bg-destructive/10",
-                            outside: "text-destructive line-through opacity-60",
-                          }}
-                          initialFocus
-                          captionLayout="dropdown"
-                          fromYear={today.getFullYear()}
-                          toYear={today.getFullYear() + 3}
-                          className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
-                          classNames={{ root: "w-full", months: "w-full", month: "w-full flex flex-col gap-4", nav: "hidden", button_previous: "hidden", button_next: "hidden" }}
-                        />
-                      )}
-                    </CalendarMonthNav>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="bg-white/5 border border-white/10 rounded-3xl p-5">
-                      <div className="text-white/40 text-[10px] uppercase tracking-widest">Data para {active.label}</div>
-                      <div className="text-white text-xl font-bold mt-1">
-                        {active.value ? format(new Date(active.value + "T00:00:00"), "dd 'de' MMMM", { locale: ptBR }) : "—"}
-                      </div>
-                      {activeWdLabel && (
-                        <span className="mt-2 inline-block px-2 py-0.5 bg-brand-orange/15 text-brand-orange text-[10px] font-bold rounded-full uppercase tracking-wider">
-                          {activeWdLabel}
-                        </span>
-                      )}
-                    </div>
-                    {missingAddonDates.length > 0 && (
-                      <div className="bg-amber-500/5 border border-amber-500/20 rounded-3xl p-4 text-xs text-white/70 leading-relaxed">
-                        Falta escolher a data de: <span className="text-white font-semibold">{missingAddonDates.map((a) => a.name).join(", ")}</span>
-                      </div>
-                    )}
-                    {anySelectedNeedsDate && missingAddonDates.length === 0 && (
-                      <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-4 text-xs text-white/70 leading-relaxed">
-                        Todas as datas foram escolhidas. Você pode avançar.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-
-          {currentStep === "subs" && (
-            <div className="animate-fade-in space-y-6">
-              <div>
-                <h3 className="text-white text-lg md:text-xl font-bold">Adicione extras</h3>
-                <p className="text-white/50 text-sm mt-1">Complementos para os opcionais que você selecionou.</p>
-              </div>
-              {selectedAddons.filter((a) => a.subs.length > 0).map((a) => (
-                <div key={a.key} className="bg-white/5 border border-white/10 rounded-3xl p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-brand-orange/20 flex items-center justify-center">
-                      {(() => { const I = pickIcon(a.name); return <I className="h-5 w-5 text-brand-orange" />; })()}
-                    </div>
-                    <div>
-                      <div className="text-white font-bold text-sm md:text-base">Complementos para "{a.name}"</div>
-                      <div className="text-white/40 text-xs">Escolha um ou mais opcionais abaixo</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {a.subs.map((sub: any) => {
-                      const subSel = !!selected[sub.key];
-                      const subUnits = sub.per === "order" ? 1 : Math.max(1, qty);
-                      return (
-                        <button
-                          key={sub.key}
-                          type="button"
-                          onClick={() => setSelected((s) => ({ ...s, [sub.key]: !s[sub.key] }))}
-                          className={cn(
-                            "relative text-left p-4 rounded-2xl border transition-all",
-                            subSel
-                              ? "bg-gradient-to-br from-white/10 to-transparent border-brand-orange/60 shadow-[0_0_30px_rgba(242,107,31,0.1)]"
-                              : sub.recommended
-                                ? "bg-white/5 border-emerald-500/40 hover:border-emerald-500/60"
-                                : "bg-white/5 border-white/10 hover:border-white/20",
-                          )}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-white font-bold text-sm">{sub.name}</span>
-                                {sub.recommended && (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 text-emerald-400 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider">
-                                    <Sparkles className="h-2.5 w-2.5" /> Recomendado
-                                  </span>
-                                )}
-                              </div>
-                              {sub.description && <p className="text-white/50 text-[11px] mt-1 leading-snug">{sub.description}</p>}
-                              <div className="mt-2 text-sm font-bold text-white">
-                                {formatBRL(sub.price)}
-                                <span className="ml-1 text-[10px] text-white/40">{sub.per === "order" ? "por reserva" : `× ${subUnits}`}</span>
-                              </div>
-                            </div>
-                            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", subSel ? "bg-brand-orange" : "border border-white/20")}>
-                              {subSel ? <Check className="h-5 w-5 text-black" strokeWidth={3} /> : <Plus className="h-4 w-4 text-white/40" />}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {currentStep === "summary" && (
-            <div className="animate-fade-in space-y-5">
-              <div>
-                <h3 className="text-white text-lg md:text-xl font-bold">Revise seu pedido</h3>
-                <p className="text-white/50 text-sm mt-1">Confirme os detalhes antes de continuar para o pagamento.</p>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 rounded-3xl p-5 space-y-3">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="min-w-0">
-                    <div className="text-white font-bold text-base">{pkg.title || pkg.name}</div>
-                    <div className="text-white/40 text-xs mt-1">
-                      {qty} {qty === 1 ? "ingresso" : "ingressos"}
-                      {date && ` • ${format(new Date(date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}`}
-                    </div>
-                  </div>
-                  <div className="text-white font-bold shrink-0">{formatBRL(basePrice * qty)}</div>
-                </div>
-
-                {selectedAddons.length > 0 && (
-                  <div className="border-t border-white/10 pt-3 space-y-2">
-                    {selectedAddons.map((a) => {
-                      const units = a.per === "order" ? 1 : Math.max(1, qty);
-                      return (
-                        <div key={a.key}>
-                          <div className="flex justify-between items-baseline gap-4">
-                            <span className="text-white/80 text-sm min-w-0 truncate">{a.name}</span>
-                            <span className="text-white text-sm font-semibold shrink-0">{formatBRL(a.price * units)}</span>
-                          </div>
-                          {a.subs.filter((s: any) => selected[s.key]).map((sub: any) => {
-                            const subUnits = sub.per === "order" ? 1 : Math.max(1, qty);
-                            return (
-                              <div key={sub.key} className="flex justify-between items-baseline gap-4 pl-4 mt-1">
-                                <span className="text-white/50 text-xs min-w-0 truncate">+ {sub.name}</span>
-                                <span className="text-white/70 text-xs shrink-0">{formatBRL(sub.price * subUnits)}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <div className="border-t border-white/10 pt-3 flex justify-between items-baseline">
-                  <span className="text-white/60 text-xs uppercase tracking-widest font-bold">Total</span>
-                  <span className="text-brand-orange text-2xl font-black">{formatBRL(total)}</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 md:px-10 py-5 md:py-6 bg-black/40 border-t border-white/5 shrink-0 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={isFirstStep}
-            className="px-4 md:px-6 py-3 text-white/40 hover:text-white transition-colors text-sm font-semibold tracking-wide disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            Voltar
-          </button>
-          <div className="flex items-center gap-4 md:gap-6">
-            <div className="hidden sm:block text-right">
-              <div className="text-[10px] text-white/40 uppercase tracking-widest">
-                {qty} {qty === 1 ? "ingresso" : "ingressos"}{selectedCount > 0 ? ` + ${selectedCount}` : ""}
+        <div className="p-5 lg:p-6 bg-muted/30 border-t border-border shrink-0">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  Total estimado
+                </span>
+                <span className="text-[10px] bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-full font-bold">
+                  {qty} {qty === 1 ? "ingresso" : "ingressos"}
+                  {selectedCount > 0 && ` + ${selectedCount} ${selectedCount === 1 ? "adicional" : "adicionais"}`}
+                </span>
               </div>
-              <div className="text-sm text-white font-bold">{formatBRL(total)}</div>
+              <div className="font-display text-2xl lg:text-3xl font-black text-foreground leading-tight mt-1">
+                {formatBRL(total)}
+              </div>
             </div>
-            {isLastStep ? (
-              <Button
-                onClick={handleContinue}
-                className="bg-brand-orange hover:bg-[#ff7a2e] text-black px-6 md:px-10 py-3 md:py-4 h-auto rounded-2xl font-bold text-sm transition-all shadow-[0_10px_30px_-5px_rgba(242,107,31,0.4)] active:scale-95"
-              >
-                Continuar para pagamento
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleNext}
-                disabled={!canAdvance}
-                className="bg-brand-orange hover:bg-[#ff7a2e] text-black px-6 md:px-10 py-3 md:py-4 h-auto rounded-2xl font-bold text-sm transition-all shadow-[0_10px_30px_-5px_rgba(242,107,31,0.4)] active:scale-95 disabled:opacity-50"
-              >
-                Próximo passo
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            )}
+            <Button
+              onClick={handleContinue}
+              disabled={!canContinue}
+              className="flex-1 sm:flex-none sm:min-w-[240px] bg-brand-orange hover:bg-brand-orange/90 text-primary-foreground font-bold py-4 h-auto px-6 rounded-2xl transition-all shadow-[0_8px_30px_rgba(242,107,31,0.3)] active:scale-[0.98] group"
+            >
+              Continuar para checkout
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Button>
           </div>
+          <p className="text-center text-[10px] text-muted-foreground/80 mt-4 uppercase tracking-widest font-medium">
+            Sujeito à disponibilidade • Cancelamento conforme política
+          </p>
         </div>
       </DialogContent>
     </Dialog>

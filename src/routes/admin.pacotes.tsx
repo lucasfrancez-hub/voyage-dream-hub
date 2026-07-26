@@ -5,7 +5,6 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Plus,
   Pencil,
-  ExternalLink,
   Trash2,
   Copy,
   EyeOff,
@@ -45,8 +44,6 @@ import {
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL } from "@/lib/format";
-import { destinationKey } from "@/lib/packages/destination";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
@@ -1226,7 +1223,6 @@ function AdminPackages() {
           switchDraft={switchDraft}
           closeCurrentDraft={closeCurrentDraft}
           nextNumber={pendingNumbers?.[draftIndex] ?? pendingNumbers?.[0] ?? null}
-          allPackages={packages ?? []}
         />
       )}
     </div>
@@ -1259,7 +1255,6 @@ type PackageEditorModalProps = {
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
   nextNumber?: number | null;
-  allPackages?: PackageRow[];
 };
 
 type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
@@ -1331,7 +1326,6 @@ function PackageEditorModal({
   switchDraft,
   closeCurrentDraft,
   nextNumber,
-  allPackages,
 }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
@@ -1367,110 +1361,6 @@ function PackageEditorModal({
     () => deriveFromFlights(editing),
     [editing.outbound_flight, editing.going_date, editing.destination, editing.origin],
   );
-
-  // Ingressos/serviços com o mesmo destino canônico — sugeridos como opcionais no editor.
-  const addonSuggestions = useMemo<AddonSuggestion[]>(() => {
-    const destKey = destinationKey(editing.destination ?? "");
-    if (!destKey || !allPackages?.length) return [];
-    // Mapa de cidades-hub → palavras-chave que aparecem no destino dos ingressos
-    // (ex.: pacote "Orlando" deve sugerir ingressos cadastrados como "Disney",
-    // "Universal", "SeaWorld", "Beto Carrero", etc.).
-    const HUBS: Record<string, string[]> = {
-      orlando: ["orlando", "disney", "universal", "seaworld", "sea world", "epic", "magic kingdom", "epcot", "hollywood studios", "animal kingdom", "islands of adventure", "volcano bay", "busch gardens", "kennedy"],
-      "sao paulo": ["sao paulo", "interlagos"],
-      "rio de janeiro": ["rio de janeiro", "cidade do rock", "rock in rio"],
-      paris: ["paris", "disneyland paris", "eurodisney"],
-      "los angeles": ["los angeles", "disneyland", "universal studios hollywood"],
-      tokyo: ["tokyo", "toquio", "tokyo disney", "disneysea"],
-      "hong kong": ["hong kong", "hong kong disneyland"],
-      shanghai: ["shanghai", "xangai", "shanghai disney"],
-      cancun: ["cancun", "xcaret", "xel-ha", "xelha", "xplor"],
-      "punta cana": ["punta cana", "scape park"],
-      "penha": ["penha", "beto carrero", "beto carreiro"],
-      "balneario camboriu": ["balneario camboriu", "beto carrero", "beto carreiro", "unipraias"],
-    };
-    const keywords = HUBS[destKey] ?? [destKey];
-    const matches = (svcDest: string) => {
-      const k = destinationKey(svcDest);
-      if (!k) return false;
-      if (k === destKey) return true;
-      return keywords.some((kw) => k.includes(kw) || kw.includes(k));
-    };
-    return allPackages
-      .filter(
-        (p) =>
-          p.id !== editing.id &&
-          p.is_active !== false &&
-          (p as any).kind === "service" &&
-          matches(p.destination ?? ""),
-      )
-      .slice(0, 24)
-      .map((p) => ({
-        id: p.id,
-        title: p.title ?? "",
-        price_per_person: p.price_per_person ?? null,
-        image_url: p.image_url ?? null,
-        destination: p.destination ?? null,
-        services: (p.services ?? null) as PackageServices | null,
-      }));
-  }, [allPackages, editing.id, editing.destination]);
-
-  // Atualiza somente os ingressos que já foram escolhidos. As sugestões nunca
-  // entram automaticamente: o usuário decide quais adicionar no editor abaixo.
-  useEffect(() => {
-    if (editing.kind !== "package" || addonSuggestions.length === 0) return;
-    const current = (editing.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
-    if (current.length === 0) return;
-    const suggestionsById = new Map(addonSuggestions.map((suggestion) => [suggestion.id, suggestion]));
-    const suggestionsByName = new Map(
-      addonSuggestions.map((suggestion) => [suggestion.title.trim().toLowerCase(), suggestion]),
-    );
-    const suggestionsByLegacyExtraName = new Map<string, AddonSuggestion>();
-    addonSuggestions.forEach((suggestion) => {
-      (suggestion.services?.addons ?? []).forEach((extra) => {
-        const extraName = (extra.name ?? "").trim().toLowerCase();
-        if (extraName) suggestionsByLegacyExtraName.set(extraName, suggestion);
-        const prefixedName = `${suggestion.title} — ${extra.name ?? ""}`.trim().toLowerCase();
-        if (extraName) suggestionsByLegacyExtraName.set(prefixedName, suggestion);
-      });
-    });
-    const representedSourceIds = new Set<string>();
-    let changed = false;
-    const normalizedCurrent = current.flatMap((addon) => {
-      const normalizedName = (addon.name ?? "").trim().toLowerCase();
-      const suggestion =
-        (addon.source_package_id ? suggestionsById.get(addon.source_package_id) : undefined) ??
-        suggestionsByName.get(normalizedName) ??
-        suggestionsByLegacyExtraName.get(normalizedName);
-
-      // Reconstrói apenas o ingresso selecionado a partir da origem. Assim ele
-      // recebe os Express/Fast Pass como subs, com todas as faixas semanais.
-      if (suggestion) {
-        if (representedSourceIds.has(suggestion.id)) {
-          changed = true;
-          return [];
-        }
-        representedSourceIds.add(suggestion.id);
-        const hydrated = ticketSuggestionToAddon(suggestion);
-        if (JSON.stringify(addon) !== JSON.stringify(hydrated)) changed = true;
-        return [hydrated];
-      }
-      return [addon];
-    });
-
-    if (!changed) return;
-    setEditing((latest) => {
-      if (!latest || latest.id !== editing.id) return latest;
-      return {
-        ...latest,
-        services: {
-          ...(latest.services ?? {}),
-          addons: normalizedCurrent,
-        },
-      };
-    });
-  }, [addonSuggestions, editing.services?.addons]);
-
 
   // Auto-fill empty fields when derived values become available
   useEffect(() => {
@@ -2391,8 +2281,6 @@ function PackageEditorModal({
                     <option value="1 casal + 1 solteiro">1 casal + 1 solteiro</option>
                     <option value="1 casal + 2 solteiros">1 casal + 2 solteiros</option>
                     <option value="3 camas de solteiro">3 camas de solteiro</option>
-                    <option value="2 camas queen">2 camas queen</option>
-                    <option value="2 camas king">2 camas king</option>
                     <option value="Cama de casal + sofá-cama">Cama de casal + sofá-cama</option>
                   </select>
                 </FormField>
@@ -2475,19 +2363,7 @@ function PackageEditorModal({
                   onChange={(next) => setEditing({ ...editing, services: next })}
                   inpClass={inp}
                   kind={kind}
-                  destination={editing.destination ?? null}
-                  suggestions={addonSuggestions}
-                  onEditSource={(sourceId) => {
-                    const source = allPackages?.find((pkg) => pkg.id === sourceId);
-                    if (!source) {
-                      toast.error("Ingresso original não encontrado");
-                      return;
-                    }
-                    setEditing({ ...source });
-                    setTab("extras");
-                  }}
                 />
-
 
 
                 <div className="sm:col-span-2">
@@ -2587,75 +2463,16 @@ function FormField({
   );
 }
 
-export type AddonSuggestion = {
-  id: string;
-  title: string;
-  price_per_person: number | null;
-  image_url: string | null;
-  destination: string | null;
-  /** Serviços do próprio ingresso (ingressos podem ter variantes/Fast Pass como addons com weekday+sub_options). */
-  services?: PackageServices | null;
-};
-
-function ticketSuggestionToAddon(
-  suggestion: AddonSuggestion,
-): NonNullable<PackageServices["addons"]>[number] {
-  const ticketExtras = (suggestion.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
-  const ticketLabel = suggestion.services?.tickets?.parks?.filter(Boolean).join(" • ") || null;
-  const ticketWeekdayPrices = suggestion.services?.tickets?.price_by_weekday ?? [];
-  return {
-    id: `ticket-${suggestion.id}`,
-    source_package_id: suggestion.id,
-    name: suggestion.title,
-    description: ticketLabel,
-    price: Number(suggestion.price_per_person ?? 0),
-    per: "unit",
-    price_by_weekday: ticketWeekdayPrices.map((tier) => ({
-      label: tier.label ?? "",
-      days: (tier.days ?? []).map(Number).filter(Number.isFinite),
-      price: Number(tier.price ?? 0),
-    })),
-    sub_options: ticketExtras.map((extra, index) => ({
-      id: extra.id || `ticket-${suggestion.id}-extra-${index}`,
-      name: extra.name,
-      description: extra.description ?? null,
-      price: Number(extra.price ?? 0),
-      per: extra.per ?? "unit",
-      recommended: !!extra.recommended,
-      recommended_reason: extra.recommended_reason ?? null,
-      price_by_weekday: (extra.price_by_weekday ?? []).map((tier) => ({
-        label: tier.label ?? "",
-        days: (tier.days ?? []).map(Number).filter(Number.isFinite),
-        price: Number(tier.price ?? 0),
-      })),
-    })),
-  };
-}
-
-function sourcePackageIdFromAddonId(addonId?: string) {
-  if (!addonId?.startsWith("ticket-")) return undefined;
-  const candidate = addonId.slice("ticket-".length);
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
-    ? candidate
-    : undefined;
-}
-
 function ServicesEditor({
   value,
   onChange,
   inpClass,
   kind = "package",
-  destination,
-  suggestions,
-  onEditSource,
 }: {
   value: PackageServices;
   onChange: (next: PackageServices) => void;
   inpClass: string;
   kind?: PackageKind;
-  destination?: string | null;
-  suggestions?: AddonSuggestion[];
-  onEditSource?: (sourceId: string) => void;
 }) {
   const v = value ?? {};
   const seguro = v.seguro ?? {};
@@ -2967,15 +2784,6 @@ function ServicesEditor({
               >
                 + Adicionar parque
               </button>
-              {kind === "service" && (
-                <WeekdayPricingEditor
-                  tiers={tickets.price_by_weekday ?? []}
-                  onChange={(next) =>
-                    patch({ tickets: { ...tickets, enabled: true, parks, price_by_weekday: next } })
-                  }
-                  inpClass={inpClass}
-                />
-              )}
             </div>
           )}
         </div>
@@ -3039,9 +2847,6 @@ function ServicesEditor({
           onChange={(next) => patch({ addons: next })}
           inpClass={inpClass}
           kind={kind}
-          destination={destination ?? null}
-          suggestions={suggestions ?? []}
-          onEditSource={onEditSource}
         />
       </div>
 
@@ -3054,17 +2859,11 @@ function AddonsEditor({
   onChange,
   inpClass,
   kind,
-  destination,
-  suggestions,
-  onEditSource,
 }: {
   value: NonNullable<PackageServices["addons"]>;
   onChange: (next: NonNullable<PackageServices["addons"]>) => void;
   inpClass: string;
   kind: PackageKind;
-  destination?: string | null;
-  suggestions?: AddonSuggestion[];
-  onEditSource?: (sourceId: string) => void;
 }) {
   const addons = value ?? [];
   const patchAt = (idx: number, p: Partial<NonNullable<PackageServices["addons"]>[number]>) => {
@@ -3091,62 +2890,6 @@ function AddonsEditor({
           + Adicionar opcional
         </button>
       </div>
-      {suggestions && suggestions.length > 0 && (() => {
-        const existingNames = new Set(addons.map((a) => (a.name ?? "").trim().toLowerCase()));
-        const existingSourceIds = new Set(addons.map((a) => a.source_package_id).filter(Boolean));
-        const remaining = suggestions.filter((s) => {
-          return !existingSourceIds.has(s.id) && !existingNames.has((s.title ?? "").trim().toLowerCase());
-        });
-        if (remaining.length === 0) return null;
-        return (
-          <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
-            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-              <Sparkles className="h-3 w-3" />
-              Ingressos em {destination ?? "este destino"} — clique para adicionar como opcional
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {remaining.map((s) => {
-                const extrasCount = (s.services?.addons ?? []).length;
-                const variableExtrasCount = (s.services?.addons ?? []).filter(
-                  (extra) => (extra.price_by_weekday ?? []).length > 0,
-                ).length;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => {
-                      const selected = ticketSuggestionToAddon(s);
-                      onChange([...addons, selected]);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:border-emerald-500 hover:bg-emerald-500/10 transition"
-                    title={
-                      extrasCount > 0
-                        ? `Adicionar "${s.title}" com ${extrasCount} opcional${extrasCount === 1 ? "" : "is"} (Express/Fast Pass)`
-                        : `Adicionar "${s.title}" como opcional`
-                    }
-                  >
-                    + {s.title}
-                    {extrasCount > 0 ? (
-                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                        {extrasCount} sub{extrasCount === 1 ? "" : "s"}
-                        {variableExtrasCount > 0
-                          ? ` · ${variableExtrasCount} com valor semanal`
-                          : ""}
-                      </span>
-                    ) : (
-                      s.price_per_person != null && s.price_per_person > 0 && (
-                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                          {formatBRL(Number(s.price_per_person))}
-                        </span>
-                      )
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
       {addons.length === 0 && (
         <p className="text-xs text-muted-foreground">
           Ex.: fura-fila, foto oficial, refeição extra, upgrade de assento. Ficam ocultos se não houver nenhum.
@@ -3155,22 +2898,6 @@ function AddonsEditor({
       <div className="space-y-2">
         {addons.map((a, idx) => (
           <div key={idx} className="rounded-lg border border-border bg-background p-2 space-y-2">
-            {(() => {
-              const sourceId = a.source_package_id ?? sourcePackageIdFromAddonId(a.id);
-              return sourceId && onEditSource ? (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => onEditSource(sourceId)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-brand-orange/30 px-2 py-1 text-[11px] font-medium text-brand-orange hover:bg-brand-orange/10"
-                    title="Abrir o ingresso original para editar preços e subopções"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    Editar ingresso original
-                  </button>
-                </div>
-              ) : null;
-            })()}
             <div className="grid gap-2 sm:grid-cols-[1fr_140px_140px_auto]">
               <input
                 className={inpClass}
@@ -3233,121 +2960,9 @@ function AddonsEditor({
               onChange={(next) => patchAt(idx, { price_by_weekday: next })}
               inpClass={inpClass}
             />
-            <SubOptionsEditor
-              value={a.sub_options ?? []}
-              onChange={(next) => patchAt(idx, { sub_options: next })}
-              inpClass={inpClass}
-              parentName={a.name ?? ""}
-            />
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-type AddonSubOption = NonNullable<NonNullable<PackageServices["addons"]>[number]["sub_options"]>[number];
-
-function SubOptionsEditor({
-  value,
-  onChange,
-  inpClass,
-  parentName,
-}: {
-  value: AddonSubOption[];
-  onChange: (next: AddonSubOption[]) => void;
-  inpClass: string;
-  parentName: string;
-}) {
-  const subs = value ?? [];
-  const enabled = subs.length > 0;
-  const patchSub = (idx: number, p: Partial<AddonSubOption>) =>
-    onChange(subs.map((s, i) => (i === idx ? { ...s, ...p } : s)));
-  return (
-    <div className="rounded-lg border border-brand-orange/20 bg-brand-orange/[0.03] p-2">
-      <div className="flex items-center justify-between">
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            className="h-3.5 w-3.5 accent-brand-orange"
-            checked={enabled}
-            onChange={(e) =>
-              onChange(e.target.checked ? [{ name: "", description: "", price: 0, per: "unit" }] : [])
-            }
-          />
-          Sub-opções (aparecem quando o cliente marca “{parentName || "este opcional"}”)
-        </label>
-        {enabled && (
-          <button
-            type="button"
-            className="text-xs text-brand-orange hover:underline"
-            onClick={() => onChange([...subs, { name: "", description: "", price: 0, per: "unit" }])}
-          >
-            + Nova sub-opção
-          </button>
-        )}
-      </div>
-      {enabled && (
-        <div className="mt-2 space-y-2">
-          {subs.map((s, idx) => (
-            <div key={idx} className="rounded-md border border-border bg-background p-2 space-y-2">
-              <div className="grid gap-2 sm:grid-cols-[1fr_120px_120px_auto]">
-                <input
-                  className={inpClass}
-                  placeholder="Nome (ex.: Fast Pass 1 dia)"
-                  value={s.name ?? ""}
-                  onChange={(e) => patchSub(idx, { name: e.target.value })}
-                />
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  className={inpClass}
-                  placeholder="Preço"
-                  value={s.price ?? 0}
-                  onChange={(e) => patchSub(idx, { price: Number(e.target.value) || 0 })}
-                />
-                <select
-                  className={inpClass}
-                  value={s.per ?? "unit"}
-                  onChange={(e) => patchSub(idx, { per: e.target.value as "unit" | "order" })}
-                >
-                  <option value="unit">por pessoa</option>
-                  <option value="order">por reserva</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={() => onChange(subs.filter((_, i) => i !== idx))}
-                  className="rounded-md border border-border px-2 hover:bg-muted"
-                  aria-label="Remover sub-opção"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <input
-                className={inpClass}
-                placeholder="Descrição curta (opcional)"
-                value={s.description ?? ""}
-                onChange={(e) => patchSub(idx, { description: e.target.value })}
-              />
-              <label className="inline-flex items-center gap-2 text-[11px] text-emerald-700 dark:text-emerald-400 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  className="accent-emerald-600"
-                  checked={!!s.recommended}
-                  onChange={(e) => patchSub(idx, { recommended: e.target.checked })}
-                />
-                Recomendada
-              </label>
-              <WeekdayPricingEditor
-                tiers={s.price_by_weekday ?? []}
-                onChange={(next) => patchSub(idx, { price_by_weekday: next })}
-                inpClass={inpClass}
-              />
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

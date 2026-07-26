@@ -113,16 +113,7 @@ export type PackageServices = {
   transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null; pickup_points?: string | null };
   city_tour?: { enabled?: boolean; detalhe?: string | null };
   passeios?: string[] | null;
-  tickets?: {
-    enabled?: boolean;
-    parks?: string[] | null;
-    /** Faixas de preço do ingresso por dia da semana (0=domingo, 6=sábado). */
-    price_by_weekday?: Array<{
-      label?: string;
-      days: number[];
-      price: number;
-    }>;
-  };
+  tickets?: { enabled?: boolean; parks?: string[] | null };
   cruise?: {
     company?: string | null;
     ship?: string | null;
@@ -148,24 +139,6 @@ export type PackageServices = {
       days: number[];
       price: number;
     }>;
-    /** Sub-opções aparecem embaixo quando o pai é selecionado (ex.: Fast Pass do ingresso Universal). */
-    sub_options?: Array<{
-      id?: string;
-      name: string;
-      description?: string | null;
-      price: number;
-      per?: "unit" | "order";
-      recommended?: boolean;
-      recommended_reason?: string | null;
-      /** Faixas próprias do complemento (ex.: Express Pass muda conforme o dia escolhido para o ingresso). */
-      price_by_weekday?: Array<{
-        label?: string;
-        days: number[];
-        price: number;
-      }>;
-    }>;
-    /** ID do ingresso cadastrado que originou este opcional. */
-    source_package_id?: string;
   }>;
 };
 

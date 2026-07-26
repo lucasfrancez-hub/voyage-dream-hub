@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CreditCard, QrCode, FileText, Loader2, Check, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,11 +27,8 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : undefined;
     const addonsRaw = typeof s?.addons === "string" ? s.addons : "";
     const addons = addonsRaw ? addonsRaw : undefined;
-    const addonDatesRaw = typeof s?.addonDates === "string" ? s.addonDates : "";
-    const addonDates = addonDatesRaw ? addonDatesRaw : undefined;
-    return { qty, date, addons, addonDates };
+    return { qty, date, addons };
   },
-
 });
 
 
@@ -43,7 +40,7 @@ const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
   const { slug } = Route.useParams();
-  const { qty: qtyFromSearch, date: dateFromSearch, addons: addonsFromSearch, addonDates: addonDatesFromSearch } = Route.useSearch();
+  const { qty: qtyFromSearch, date: dateFromSearch, addons: addonsFromSearch } = Route.useSearch();
   const navigate = useNavigate();
   const notifyPix = useServerFn(notifyPixOrder);
 
@@ -105,14 +102,6 @@ function Checkout() {
   const [preferredDate, setPreferredDate] = useState("");
   const [pickupPoint, setPickupPoint] = useState("");
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
-  const addonDates = useMemo(() => {
-    const entries: string[] = (addonDatesFromSearch ?? "").split(",").filter(Boolean);
-    const pairs = entries.flatMap((entry: string) => {
-      const match = entry.match(/^(.*):(\d{4}-\d{2}-\d{2})$/);
-      return match ? [[match[1], match[2]] as const] : [];
-    });
-    return Object.fromEntries(pairs) as Record<string, string>;
-  }, [addonDatesFromSearch]);
 
   // Polling de status do Pix — verifica a cada 5s se o pagamento caiu
   useEffect(() => {
@@ -206,79 +195,41 @@ function Checkout() {
     const raw = ((pkg as any)?.services?.addons ?? []) as Array<{
       id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order";
       price_by_weekday?: Array<{ label?: string; days: number[]; price: number }>;
-      sub_options?: Array<{ id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order"; price_by_weekday?: Array<{ label?: string; days: number[]; price: number }> }>;
     }>;
     return raw
       .filter((a) => {
         if (!a || !a.name) return false;
         const tiers = (a.price_by_weekday ?? []) as any[];
-        const subs = (a.sub_options ?? []) as any[];
-        return (
-          Number(a.price) > 0 ||
-          tiers.some((t) => Number(t?.price) > 0) ||
-          subs.some(
-            (s) =>
-              Number(s?.price) > 0 ||
-              (s?.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0),
-          )
-        );
+        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0);
       })
       .map((a, i) => {
-        const key = a.id || `${a.name}-${i}`;
-        const ownDate = addonDates[key] || preferredDate || (pkg as any)?.going_date || "";
-        const ownMatch = String(ownDate).match(/^(\d{4})-(\d{2})-(\d{2})/);
-        const ownWeekday = ownMatch ? new Date(Number(ownMatch[1]), Number(ownMatch[2]) - 1, Number(ownMatch[3])).getDay() : addonWeekday;
         const tiers = (a.price_by_weekday ?? []) as any[];
         const tier =
-          ownWeekday != null
-            ? tiers.find((t: any) => (t.days ?? []).map(Number).includes(ownWeekday))
+          addonWeekday != null
+            ? tiers.find((t: any) => (t.days ?? []).includes(addonWeekday))
             : null;
         const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
         const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
         const price = tier ? Number(tier.price) : assumed;
-        const subs = ((a.sub_options ?? []) as any[])
-          .filter((s) => s && s.name)
-          .map((s, j) => {
-            const subTiers = (s.price_by_weekday ?? []) as any[];
-            const subTier = ownWeekday != null ? subTiers.find((t: any) => (t.days ?? []).map(Number).includes(ownWeekday)) : null;
-            const subTierPrices = subTiers.map((t) => Number(t?.price)).filter((n) => n > 0);
-            const subAssumed = Number(s.price) > 0 ? Number(s.price) : (subTierPrices.length ? Math.min(...subTierPrices) : 0);
-            return {
-              ...s,
-              key: `${key}::${s.id || `${s.name}-${j}`}`,
-              price: subTier ? Number(subTier.price) : subAssumed,
-              per: (s.per ?? "unit") as "unit" | "order",
-              tierLabel: subTier?.label ?? null,
-              hasWeekdayPricing: subTiers.length > 0,
-            };
-          });
         return {
           ...a,
-          key,
+          key: a.id || `${a.name}-${i}`,
           per: a.per ?? "unit",
           price,
           tierLabel: tier?.label ?? null,
           hasWeekdayPricing: tiers.length > 0,
-          subs,
         };
       });
-  }, [pkg, addonWeekday, addonDates, preferredDate]);
+  }, [pkg, addonWeekday]);
 
   const addonsTotal = useMemo(() => {
     const units = isPerUnit ? adults : (adults + children);
     return addonsList.reduce((sum, a) => {
       if (!selectedAddons[a.key]) return sum;
       const qty = a.per === "order" ? 1 : Math.max(1, units);
-      let s = sum + a.price * qty;
-      for (const sub of a.subs) {
-        if (!selectedAddons[sub.key]) continue;
-        const subQty = sub.per === "order" ? 1 : Math.max(1, units);
-        s += sub.price * subQty;
-      }
-      return s;
+      return sum + a.price * qty;
     }, 0);
   }, [addonsList, selectedAddons, adults, children, isPerUnit]);
-
 
 
   const subtotalPrice = useMemo(() => {
@@ -390,25 +341,10 @@ function Checkout() {
             pickup_point: pickupPoint || null,
             addons_selected: addonsList
               .filter((a) => selectedAddons[a.key])
-              .flatMap((a) => {
+              .map((a) => {
                 const units = isPerUnit ? adults : (adults + children);
                 const qty = a.per === "order" ? 1 : Math.max(1, units);
-                const parent = { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null, date: addonDates[a.key] ?? null };
-                const subs = a.subs
-                  .filter((sub: any) => selectedAddons[sub.key])
-                  .map((sub: any) => {
-                    const sQty = sub.per === "order" ? 1 : Math.max(1, units);
-                    return {
-                      name: `${a.name} — ${sub.name}`,
-                      price: sub.price,
-                      per: sub.per,
-                      qty: sQty,
-                      subtotal: sub.price * sQty,
-                      description: sub.description ?? null,
-                      parent: a.name,
-                    };
-                  });
-                return [parent, ...subs];
+                return { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null };
               }),
             addons_total: addonsTotal,
 
@@ -645,8 +581,8 @@ function Checkout() {
                     const qty = a.per === "order" ? 1 : Math.max(1, units);
                     const line = a.price * qty;
                     return (
-                      <Fragment key={a.key}>
                       <label
+                        key={a.key}
                         className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition ${
                           checked
                             ? "border-brand-orange bg-brand-orange/5 shadow-[0_0_0_1px_hsl(var(--brand-orange)/0.35)]"
@@ -685,54 +621,6 @@ function Checkout() {
 
                         </div>
                       </label>
-                      {checked && a.subs.length > 0 && (
-                        <div className="ml-6 mt-1 mb-2 space-y-1.5 border-l-2 border-brand-orange/30 pl-3">
-                          <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                            Complementos para “{a.name}”
-                          </div>
-                          {a.subs.map((sub: any) => {
-                            const subChecked = !!selectedAddons[sub.key];
-                            const subQty = sub.per === "order" ? 1 : Math.max(1, units);
-                            const subLine = sub.price * subQty;
-                            return (
-                              <label
-                                key={sub.key}
-                                className={`flex cursor-pointer gap-2 rounded-lg border p-2 transition text-xs ${
-                                  subChecked
-                                    ? "border-brand-orange bg-brand-orange/5"
-                                    : "border-border bg-background hover:border-brand-orange/50"
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  className="mt-0.5 h-3.5 w-3.5 accent-brand-orange"
-                                  checked={subChecked}
-                                  onChange={(e) =>
-                                    setSelectedAddons((prev) => ({ ...prev, [sub.key]: e.target.checked }))
-                                  }
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                    <span className="font-semibold">{sub.name}</span>
-                                    <span className="font-bold text-brand-orange">
-                                      + {formatBRL(subLine)}
-                                      {sub.per !== "order" && subQty > 1 && (
-                                        <span className="ml-1 font-normal text-muted-foreground">
-                                          ({formatBRL(sub.price)} × {subQty})
-                                        </span>
-                                      )}
-                                    </span>
-                                  </div>
-                                  {sub.description && (
-                                    <p className="mt-0.5 text-muted-foreground">{sub.description}</p>
-                                  )}
-                                </div>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      )}
-                      </Fragment>
                     );
                   })}
                 </div>
@@ -1096,24 +984,11 @@ function Checkout() {
                     const units = isPerUnit ? adults : (adults + children);
                     const qty = a.per === "order" ? 1 : Math.max(1, units);
                     return (
-                      <Fragment key={a.key}>
-                        <SummaryLine
-                          label={`+ ${a.name}${a.per !== "order" && qty > 1 ? ` × ${qty}` : ""}`}
-                          value={formatBRL(a.price * qty)}
-                        />
-                        {a.subs
-                          .filter((sub: any) => selectedAddons[sub.key])
-                          .map((sub: any) => {
-                            const sQty = sub.per === "order" ? 1 : Math.max(1, units);
-                            return (
-                              <SummaryLine
-                                key={sub.key}
-                                label={`  └ ${sub.name}${sub.per !== "order" && sQty > 1 ? ` × ${sQty}` : ""}`}
-                                value={formatBRL(sub.price * sQty)}
-                              />
-                            );
-                          })}
-                      </Fragment>
+                      <SummaryLine
+                        key={a.key}
+                        label={`+ ${a.name}${a.per !== "order" && qty > 1 ? ` × ${qty}` : ""}`}
+                        value={formatBRL(a.price * qty)}
+                      />
                     );
                   })}
                 {payment === "pix" && pixDiscountValue > 0 && (
