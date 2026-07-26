@@ -1410,6 +1410,7 @@ function PackageEditorModal({
         price_per_person: p.price_per_person ?? null,
         image_url: p.image_url ?? null,
         destination: p.destination ?? null,
+        services: (p.services ?? null) as PackageServices | null,
       }));
   }, [allPackages, editing.id, editing.destination]);
 
