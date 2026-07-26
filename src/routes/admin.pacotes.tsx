@@ -3033,6 +3033,107 @@ function AddonsEditor({
   );
 }
 
+type AddonSubOption = NonNullable<NonNullable<PackageServices["addons"]>[number]["sub_options"]>[number];
+
+function SubOptionsEditor({
+  value,
+  onChange,
+  inpClass,
+  parentName,
+}: {
+  value: AddonSubOption[];
+  onChange: (next: AddonSubOption[]) => void;
+  inpClass: string;
+  parentName: string;
+}) {
+  const subs = value ?? [];
+  const enabled = subs.length > 0;
+  const patchSub = (idx: number, p: Partial<AddonSubOption>) =>
+    onChange(subs.map((s, i) => (i === idx ? { ...s, ...p } : s)));
+  return (
+    <div className="rounded-lg border border-brand-orange/20 bg-brand-orange/[0.03] p-2">
+      <div className="flex items-center justify-between">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            className="h-3.5 w-3.5 accent-brand-orange"
+            checked={enabled}
+            onChange={(e) =>
+              onChange(e.target.checked ? [{ name: "", description: "", price: 0, per: "unit" }] : [])
+            }
+          />
+          Sub-opções (aparecem quando o cliente marca “{parentName || "este opcional"}”)
+        </label>
+        {enabled && (
+          <button
+            type="button"
+            className="text-xs text-brand-orange hover:underline"
+            onClick={() => onChange([...subs, { name: "", description: "", price: 0, per: "unit" }])}
+          >
+            + Nova sub-opção
+          </button>
+        )}
+      </div>
+      {enabled && (
+        <div className="mt-2 space-y-2">
+          {subs.map((s, idx) => (
+            <div key={idx} className="rounded-md border border-border bg-background p-2 space-y-2">
+              <div className="grid gap-2 sm:grid-cols-[1fr_120px_120px_auto]">
+                <input
+                  className={inpClass}
+                  placeholder="Nome (ex.: Fast Pass 1 dia)"
+                  value={s.name ?? ""}
+                  onChange={(e) => patchSub(idx, { name: e.target.value })}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className={inpClass}
+                  placeholder="Preço"
+                  value={s.price ?? 0}
+                  onChange={(e) => patchSub(idx, { price: Number(e.target.value) || 0 })}
+                />
+                <select
+                  className={inpClass}
+                  value={s.per ?? "unit"}
+                  onChange={(e) => patchSub(idx, { per: e.target.value as "unit" | "order" })}
+                >
+                  <option value="unit">por pessoa</option>
+                  <option value="order">por reserva</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => onChange(subs.filter((_, i) => i !== idx))}
+                  className="rounded-md border border-border px-2 hover:bg-muted"
+                  aria-label="Remover sub-opção"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <input
+                className={inpClass}
+                placeholder="Descrição curta (opcional)"
+                value={s.description ?? ""}
+                onChange={(e) => patchSub(idx, { description: e.target.value })}
+              />
+              <label className="inline-flex items-center gap-2 text-[11px] text-emerald-700 dark:text-emerald-400 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="accent-emerald-600"
+                  checked={!!s.recommended}
+                  onChange={(e) => patchSub(idx, { recommended: e.target.checked })}
+                />
+                Recomendada
+              </label>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // (marker) 
 
 type WeekdayTier = NonNullable<NonNullable<PackageServices["addons"]>[number]["price_by_weekday"]>[number];
