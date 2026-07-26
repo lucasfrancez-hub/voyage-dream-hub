@@ -103,7 +103,10 @@ function IngressosPage() {
   });
 
   const list = items ?? [];
-  const [activeEvent, setActiveEvent] = useState<string>("");
+  const { evento: activeEvent } = Route.useSearch();
+  const navigate = useNavigate({ from: "/ingressos" });
+  const setActiveEvent = (key: string) =>
+    navigate({ search: (prev) => ({ ...prev, evento: key }), replace: true });
 
   // Contagem por categoria — só mostra chip se houver ao menos 1 item
   const eventCounts = useMemo(() => {
