@@ -1414,59 +1414,49 @@ function PackageEditorModal({
       }));
   }, [allPackages, editing.id, editing.destination]);
 
-  // Mantém os ingressos sugeridos sincronizados com seus cadastros de origem.
-  // Cada ingresso é o opcional principal; Express/Fast Pass são sub-opções e
-  // preservam integralmente suas faixas de preço por dia da semana.
+  // Atualiza somente os ingressos que já foram escolhidos. As sugestões nunca
+  // entram automaticamente: o usuário decide quais adicionar no editor abaixo.
   useEffect(() => {
     if (editing.kind !== "package" || addonSuggestions.length === 0) return;
     const current = (editing.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
+    if (current.length === 0) return;
     const suggestionsById = new Map(addonSuggestions.map((suggestion) => [suggestion.id, suggestion]));
     const suggestionsByName = new Map(
       addonSuggestions.map((suggestion) => [suggestion.title.trim().toLowerCase(), suggestion]),
     );
-    const legacyExtraNames = new Set(
-      addonSuggestions.flatMap((suggestion) =>
-        (suggestion.services?.addons ?? []).flatMap((extra) => [
-          (extra.name ?? "").trim().toLowerCase(),
-          `${suggestion.title} — ${extra.name ?? ""}`.trim().toLowerCase(),
-        ]),
-      ),
-    );
+    const suggestionsByLegacyExtraName = new Map<string, AddonSuggestion>();
+    addonSuggestions.forEach((suggestion) => {
+      (suggestion.services?.addons ?? []).forEach((extra) => {
+        const extraName = (extra.name ?? "").trim().toLowerCase();
+        if (extraName) suggestionsByLegacyExtraName.set(extraName, suggestion);
+        const prefixedName = `${suggestion.title} — ${extra.name ?? ""}`.trim().toLowerCase();
+        if (extraName) suggestionsByLegacyExtraName.set(prefixedName, suggestion);
+      });
+    });
     const representedSourceIds = new Set<string>();
     const normalizedCurrent = current.flatMap((addon) => {
       const normalizedName = (addon.name ?? "").trim().toLowerCase();
       const suggestion =
         (addon.source_package_id ? suggestionsById.get(addon.source_package_id) : undefined) ??
-        suggestionsByName.get(normalizedName);
+        suggestionsByName.get(normalizedName) ??
+        suggestionsByLegacyExtraName.get(normalizedName);
 
-      // Sempre reconstrói o ingresso a partir da origem. Isso corrige registros
-      // antigos que tinham apenas o ingresso pai, sem subs ou sem price_by_weekday.
+      // Reconstrói apenas o ingresso selecionado a partir da origem. Assim ele
+      // recebe os Express/Fast Pass como subs, com todas as faixas semanais.
       if (suggestion) {
-        // Versões anteriores criavam um opcional principal para cada Express/Fast
-        // Pass, todos com o mesmo source_package_id. Consolida tudo em um único
-        // ingresso pai para não exibir quatro ingressos iguais como selecionados.
         if (representedSourceIds.has(suggestion.id)) return [];
         representedSourceIds.add(suggestion.id);
         return [ticketSuggestionToAddon(suggestion)];
       }
-
-      // Remove o formato legado em que Express/Fast Pass foi salvo como opcional
-      // principal, pois agora ele pertence às sub-opções do ingresso correspondente.
-      if (!addon.source_package_id && legacyExtraNames.has(normalizedName)) return [];
       return [addon];
     });
-    const missing = addonSuggestions
-      .filter((suggestion) => !representedSourceIds.has(suggestion.id))
-      .map(ticketSuggestionToAddon);
-    const nextAddons = [...normalizedCurrent, ...missing];
 
-    // Evita renderizações em ciclo quando a estrutura já está sincronizada.
-    if (JSON.stringify(current) === JSON.stringify(nextAddons)) return;
+    if (JSON.stringify(current) === JSON.stringify(normalizedCurrent)) return;
     setEditing({
       ...editing,
       services: {
         ...(editing.services ?? {}),
-        addons: nextAddons,
+        addons: normalizedCurrent,
       },
     });
   }, [addonSuggestions, editing, setEditing]);
@@ -3082,6 +3072,9 @@ function AddonsEditor({
             <div className="flex flex-wrap gap-1.5">
               {remaining.map((s) => {
                 const extrasCount = (s.services?.addons ?? []).length;
+                const variableExtrasCount = (s.services?.addons ?? []).filter(
+                  (extra) => (extra.price_by_weekday ?? []).length > 0,
+                ).length;
                 return (
                   <button
                     key={s.id}
@@ -3097,7 +3090,10 @@ function AddonsEditor({
                     + {s.title}
                     {extrasCount > 0 ? (
                       <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                        {extrasCount} extra{extrasCount === 1 ? "" : "s"}
+                        {extrasCount} sub{extrasCount === 1 ? "" : "s"}
+                        {variableExtrasCount > 0
+                          ? ` · ${variableExtrasCount} com valor semanal`
+                          : ""}
                       </span>
                     ) : (
                       s.price_per_person != null && s.price_per_person > 0 && (
