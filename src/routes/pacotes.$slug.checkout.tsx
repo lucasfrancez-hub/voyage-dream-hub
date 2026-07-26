@@ -138,14 +138,43 @@ function Checkout() {
     setTravelers((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
   }
 
+  // Data usada para determinar o preço por dia da semana dos opcionais.
+  const addonWeekday = useMemo<number | null>(() => {
+    const raw = preferredDate || (pkg as any)?.going_date || "";
+    if (!raw) return null;
+    // aceita YYYY-MM-DD ou ISO — usa parts para evitar timezone shift
+    const m = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) {
+      const t = Date.parse(String(raw));
+      if (!Number.isFinite(t)) return null;
+      return new Date(t).getDay();
+    }
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay();
+  }, [preferredDate, pkg]);
+
   const addonsList = useMemo(() => {
     const raw = ((pkg as any)?.services?.addons ?? []) as Array<{
       id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order";
+      price_by_weekday?: Array<{ label?: string; days: number[]; price: number }>;
     }>;
     return raw
       .filter((a) => a && a.name && Number(a.price) > 0)
-      .map((a, i) => ({ ...a, key: a.id || `${a.name}-${i}`, per: a.per ?? "unit", price: Number(a.price) }));
-  }, [pkg]);
+      .map((a, i) => {
+        const tier =
+          addonWeekday != null
+            ? (a.price_by_weekday ?? []).find((t) => (t.days ?? []).includes(addonWeekday))
+            : null;
+        const price = tier ? Number(tier.price) : Number(a.price);
+        return {
+          ...a,
+          key: a.id || `${a.name}-${i}`,
+          per: a.per ?? "unit",
+          price,
+          tierLabel: tier?.label ?? null,
+          hasWeekdayPricing: (a.price_by_weekday?.length ?? 0) > 0,
+        };
+      });
+  }, [pkg, addonWeekday]);
 
   const addonsTotal = useMemo(() => {
     const units = isPerUnit ? adults : (adults + children);
@@ -155,6 +184,7 @@ function Checkout() {
       return sum + a.price * qty;
     }, 0);
   }, [addonsList, selectedAddons, adults, children, isPerUnit]);
+
 
   const subtotalPrice = useMemo(() => {
     if (!pkg) return 0;
