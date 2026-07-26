@@ -423,8 +423,8 @@ function TicketCard({ pkg: p, eager = false }: { pkg: any; eager?: boolean }) {
 
       {/* PICOTE tipo ingresso — borda acompanha o semicírculo */}
       <div className="relative h-4 bg-card">
-        <div className="absolute -left-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-background border-r border-border group-hover:border-brand-orange/60 transition-colors" />
-        <div className="absolute -right-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-background border-l border-border group-hover:border-brand-orange/60 transition-colors" />
+        <div className="absolute -left-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-background border-r border-border group-hover:border-brand-orange/60 group-hover:shadow-[-10px_0_30px_-10px_hsl(var(--brand-orange-rgb,24_90%_53%)/0.5)] transition-all" />
+        <div className="absolute -right-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-background border-l border-border group-hover:border-brand-orange/60 group-hover:shadow-[10px_0_30px_-10px_hsl(var(--brand-orange-rgb,24_90%_53%)/0.5)] transition-all" />
         <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 border-t border-dashed border-border" />
       </div>
 
