@@ -1070,14 +1070,17 @@ function PreCheckoutDialog({
                       <div className="flex items-start gap-4 pr-14">
                         <div
                           className={cn(
-                            "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all",
-                            isSel
-                              ? "bg-gradient-to-br from-brand-orange to-amber-500 shadow-[0_0_15px_rgba(242,107,31,0.35)]"
-                              : "bg-muted",
+                            "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-muted border border-border/60 transition-colors",
                           )}
                         >
-                          <Icon className={cn("h-5 w-5", isSel ? "text-white" : "text-muted-foreground")} />
+                          <Icon
+                            className={cn(
+                              "h-5 w-5 transition-colors",
+                              isSel ? "text-brand-orange" : "text-muted-foreground",
+                            )}
+                          />
                         </div>
+
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-bold text-foreground break-words leading-tight">
                             {a.name}
