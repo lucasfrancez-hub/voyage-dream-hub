@@ -1001,7 +1001,7 @@ function PreCheckoutDialog({
         <div className="flex-1 overflow-y-auto px-5">
           {/* Calendário compacto */}
           {isFlexibleDate && (
-            <div className="mb-5 bg-muted/30 rounded-xl p-2 border border-border/50">
+            <div className="mb-5 bg-muted/30 rounded-xl p-3 border border-border/50 flex justify-center">
               <CalendarUI
                 mode="single"
                 locale={ptBR}
@@ -1015,7 +1015,7 @@ function PreCheckoutDialog({
                 }}
                 disabled={{ before: new Date() }}
                 initialFocus
-                className={cn("p-0 pointer-events-auto w-full [&_.rdp-day]:h-8 [&_.rdp-day]:w-8 [&_.rdp-day]:text-xs [&_.rdp-head_cell]:text-[10px]")}
+                className={cn("p-0 pointer-events-auto")}
               />
             </div>
           )}
@@ -1079,7 +1079,12 @@ function PreCheckoutDialog({
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-bold text-foreground truncate">{a.name}</div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                          {a.description && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
+                              {a.description}
+                            </p>
+                          )}
+                          <div className="text-[11px] text-muted-foreground mt-1">
                             {priceIsAssumed ? "A partir de " : ""}
                             <span className="text-foreground font-semibold">{formatBRL(a.price)}</span>
                             <span> {a.per === "order" ? "por reserva" : `× ${units}`}</span>
