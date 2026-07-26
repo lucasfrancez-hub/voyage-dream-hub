@@ -211,20 +211,19 @@ export function IngressosCarousel({
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
 
-                  <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-brand-orange px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-black/30 ring-1 ring-white/20">
-                    <Ticket className="h-2.5 w-2.5 text-white" />
-                    Ingresso
-                  </div>
-
-                  {p.destination && (
-                    <div
-                      className="absolute top-2.5 right-2.5 inline-flex items-start gap-1 rounded-2xl bg-black/60 backdrop-blur px-2 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-white ring-1 ring-white/10 text-right leading-tight"
-                      style={{ maxWidth: "55%", wordBreak: "break-word" }}
-                    >
-                      <MapPin className="h-2.5 w-2.5 shrink-0 mt-[1px]" />
-                      <span className="line-clamp-2">{p.destination}</span>
+                  <div className="absolute inset-x-2.5 top-2.5 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2">
+                    <div className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-orange px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-black/30 ring-1 ring-white/20">
+                      <Ticket className="h-2.5 w-2.5 text-white" />
+                      Ingresso
                     </div>
-                  )}
+
+                    {p.destination && (
+                      <div className="ml-auto inline-flex min-w-0 max-w-full items-start gap-1 rounded-2xl bg-black/60 px-2 py-1 text-right text-[9px] font-bold uppercase leading-tight tracking-[0.1em] text-white ring-1 ring-white/10 backdrop-blur">
+                        <MapPin className="mt-px h-2.5 w-2.5 shrink-0" />
+                        <span className="line-clamp-2 min-w-0 break-words">{p.destination}</span>
+                      </div>
+                    )}
+                  </div>
 
                   {dateBlock ? (
                     <div className="absolute bottom-[92px] left-2.5 rounded-xl bg-background/95 backdrop-blur px-2.5 py-1.5 shadow-xl border border-border">
