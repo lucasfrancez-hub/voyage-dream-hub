@@ -421,18 +421,34 @@ function Checkout() {
 
       setSuccess(true);
 
-      if (payment === "credit_card" || payment === "boleto") {
-        // Modal grande de agradecimento (ver render abaixo)
-      } else {
-        const message = `Olá! Reservei o pacote *${pkg.title}* (${adults} adulto${
-          adults > 1 ? "s" : ""
-        }${children ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}) — Total ${formatBRL(
-          totalPrice,
-        )}. Quero pagar via Pix.\nPedido: ${orderNumber}\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
-        setTimeout(() => {
-          window.open(whatsappUrl(message), "_blank");
-        }, 400);
+      if (payment === "pix") {
+        // Não abre WhatsApp: notifica admin por e-mail e mostra tela de sucesso.
+        const kindLabel =
+          (pkg as any)?.kind === "cruise"
+            ? "Cruzeiro"
+            : (pkg as any)?.kind === "service"
+              ? "Ingresso / Serviço"
+              : "Pacote";
+        try {
+          await notifyPix({
+            data: {
+              orderNumber,
+              productKind: kindLabel,
+              productTitle: pkg.title,
+              adults,
+              children,
+              totalPrice: formatBRL(totalPrice),
+              customerName: primary.full_name,
+              customerEmail: primary.email,
+              customerPhone: primary.phone,
+              notes: notes || undefined,
+            },
+          });
+        } catch (err) {
+          console.error("[checkout] pix notify falhou", err);
+        }
       }
+
 
     } catch (err) {
       console.error(err);
@@ -727,7 +743,7 @@ function Checkout() {
                   onClick={() => setPayment("pix")}
                   icon={QrCode}
                   title="Pix"
-                  desc="Finalize via WhatsApp com nosso consultor."
+                  desc="Realize o pagamento via Pix. Nosso time envia a chave/QR Code por e-mail em seguida."
                   badge="-5% de desconto"
                 />
                 {!isService && (
