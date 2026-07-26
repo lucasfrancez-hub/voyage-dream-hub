@@ -1022,25 +1022,24 @@ function PreCheckoutDialog({
           {hasAddons && (
             <div className="space-y-2">
               <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
-                Serviços adicionais {isFlexibleDate && !date ? "(escolha a data para ver os preços)" : "(opcional)"}
+                Serviços adicionais (opcional)
               </label>
               <div className="space-y-2">
                 {addons.map((a) => {
                   const isSel = !!selected[a.key];
                   const units = a.per === "order" ? 1 : Math.max(1, qty);
                   const line = a.price * units;
-                  const pricingUnavailable = a.hasWeekdayPricing && weekday == null;
+                  const priceIsAssumed = a.hasWeekdayPricing && weekday == null;
                   return (
                     <button
                       key={a.key}
                       type="button"
-                      disabled={pricingUnavailable}
                       onClick={() => setSelected((s) => ({ ...s, [a.key]: !s[a.key] }))}
                       className={`w-full text-left rounded-2xl border p-4 transition ${
                         isSel
                           ? "border-brand-orange bg-brand-orange/5"
                           : "border-border bg-card hover:border-brand-orange/40"
-                      } ${pricingUnavailable ? "opacity-50 cursor-not-allowed" : ""}`}
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -1053,14 +1052,17 @@ function PreCheckoutDialog({
                               {a.tierLabel}
                             </div>
                           )}
-                          {pricingUnavailable && (
-                            <div className="mt-1 text-[10px] text-yellow-500">
-                              Preço varia por data — escolha a data
+                          {priceIsAssumed && (
+                            <div className="mt-1 text-[10px] text-muted-foreground">
+                              O valor final depende do dia da semana escolhido.
                             </div>
                           )}
                         </div>
                         <div className="text-right shrink-0">
-                          <div className="font-bold text-sm">{formatBRL(line)}</div>
+                          <div className="font-bold text-sm">
+                            {priceIsAssumed && <span className="text-[10px] font-normal text-muted-foreground mr-1">a partir de</span>}
+                            {formatBRL(line)}
+                          </div>
                           <div className="text-[10px] text-muted-foreground">
                             {a.per === "order" ? "por reserva" : `${formatBRL(a.price)} × ${units}`}
                           </div>
