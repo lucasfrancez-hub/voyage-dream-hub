@@ -905,7 +905,7 @@ function CalendarMonthNav({
   };
   return (
     <div className="relative w-full">
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-50 flex h-[--cell-size] items-center justify-between">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-[--cell-size] items-center justify-between">
         <Button
           type="button"
           variant="default"
