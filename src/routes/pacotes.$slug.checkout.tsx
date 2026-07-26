@@ -89,6 +89,7 @@ function Checkout() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [preferredDate, setPreferredDate] = useState("");
   const [pickupPoint, setPickupPoint] = useState("");
+  const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
 
   const isService = (pkg as any)?.kind === "service";
   const isPerUnit = (pkg as any)?.pricing_mode === "per_unit" || isService;
@@ -137,6 +138,24 @@ function Checkout() {
     setTravelers((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
   }
 
+  const addonsList = useMemo(() => {
+    const raw = ((pkg as any)?.services?.addons ?? []) as Array<{
+      id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order";
+    }>;
+    return raw
+      .filter((a) => a && a.name && Number(a.price) > 0)
+      .map((a, i) => ({ ...a, key: a.id || `${a.name}-${i}`, per: a.per ?? "unit", price: Number(a.price) }));
+  }, [pkg]);
+
+  const addonsTotal = useMemo(() => {
+    const units = isPerUnit ? adults : (adults + children);
+    return addonsList.reduce((sum, a) => {
+      if (!selectedAddons[a.key]) return sum;
+      const qty = a.per === "order" ? 1 : Math.max(1, units);
+      return sum + a.price * qty;
+    }, 0);
+  }, [addonsList, selectedAddons, adults, children, isPerUnit]);
+
   const subtotalPrice = useMemo(() => {
     if (!pkg) return 0;
     const units = isPerUnit ? adults : (adults + children);
@@ -147,7 +166,7 @@ function Checkout() {
   const taxesAmount = Number(pkg?.taxes ?? 0);
   const pixDiscountBase = Math.max(0, subtotalPrice - taxesAmount);
   const pixDiscountValue = payment === "pix" ? pixDiscountBase * PIX_DISCOUNT : 0;
-  const totalPrice = subtotalPrice - pixDiscountValue;
+  const totalPrice = subtotalPrice - pixDiscountValue + addonsTotal;
 
   const baseOccupancy = pkg?.base_occupancy ?? 2;
   const occupancyMismatch = !isPerUnit && !!pkg && adults + children !== baseOccupancy;
@@ -244,6 +263,14 @@ function Checkout() {
             pricing_mode: (pkg as any).pricing_mode ?? "per_occupancy",
             preferred_date: isFlexibleDate ? preferredDate : null,
             pickup_point: pickupPoint || null,
+            addons_selected: addonsList
+              .filter((a) => selectedAddons[a.key])
+              .map((a) => {
+                const units = isPerUnit ? adults : (adults + children);
+                const qty = a.per === "order" ? 1 : Math.max(1, units);
+                return { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null };
+              }),
+            addons_total: addonsTotal,
 
             nights: pkg.nights ?? null,
             price_per_person: pkg.price_per_person,
@@ -439,6 +466,59 @@ function Checkout() {
                 </p>
               </Card>
 
+            )}
+            {addonsList.length > 0 && (
+              <Card title="Serviços adicionais">
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Selecione o que deseja incluir na sua reserva. O valor é somado ao total automaticamente.
+                </p>
+                <div className="space-y-2">
+                  {addonsList.map((a) => {
+                    const checked = !!selectedAddons[a.key];
+                    const units = isPerUnit ? adults : (adults + children);
+                    const qty = a.per === "order" ? 1 : Math.max(1, units);
+                    const line = a.price * qty;
+                    return (
+                      <label
+                        key={a.key}
+                        className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition ${
+                          checked
+                            ? "border-brand-orange bg-brand-orange/5 shadow-[0_0_0_1px_hsl(var(--brand-orange)/0.35)]"
+                            : "border-border bg-background hover:border-brand-orange/50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4 accent-brand-orange"
+                          checked={checked}
+                          onChange={(e) =>
+                            setSelectedAddons((prev) => ({ ...prev, [a.key]: e.target.checked }))
+                          }
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <span className="text-sm font-semibold">{a.name}</span>
+                            <span className="text-sm font-bold text-brand-orange">
+                              + {formatBRL(line)}
+                              {a.per !== "order" && qty > 1 && (
+                                <span className="ml-1 text-[11px] font-normal text-muted-foreground">
+                                  ({formatBRL(a.price)} × {qty})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          {a.description && (
+                            <p className="mt-1 text-xs text-muted-foreground">{a.description}</p>
+                          )}
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            {a.per === "order" ? "Valor único por reserva" : "Por pessoa/ingresso"}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </Card>
             )}
             {/* Viajantes / quantidade */}
             <Card title={isPerUnit ? "Quantidade" : "Quantos viajantes?"}>
@@ -792,6 +872,19 @@ function Checkout() {
                     value={formatBRL(Number(pkg.taxes))}
                   />
                 )}
+                {addonsList
+                  .filter((a) => selectedAddons[a.key])
+                  .map((a) => {
+                    const units = isPerUnit ? adults : (adults + children);
+                    const qty = a.per === "order" ? 1 : Math.max(1, units);
+                    return (
+                      <SummaryLine
+                        key={a.key}
+                        label={`+ ${a.name}${a.per !== "order" && qty > 1 ? ` × ${qty}` : ""}`}
+                        value={formatBRL(a.price * qty)}
+                      />
+                    );
+                  })}
                 {payment === "pix" && pixDiscountValue > 0 && (
                   <SummaryLine
                     label="Desconto Pix (-5%)"

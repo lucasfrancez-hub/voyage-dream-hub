@@ -2840,11 +2840,111 @@ function ServicesEditor({
           </div>
         </div>
         )}
+
+        {/* Serviços adicionais (opcionais no checkout) */}
+        <AddonsEditor
+          value={(v.addons ?? []) as NonNullable<PackageServices["addons"]>}
+          onChange={(next) => patch({ addons: next })}
+          inpClass={inpClass}
+          kind={kind}
+        />
       </div>
 
     </div>
   );
 }
+
+function AddonsEditor({
+  value,
+  onChange,
+  inpClass,
+  kind,
+}: {
+  value: NonNullable<PackageServices["addons"]>;
+  onChange: (next: NonNullable<PackageServices["addons"]>) => void;
+  inpClass: string;
+  kind: PackageKind;
+}) {
+  const addons = value ?? [];
+  const patchAt = (idx: number, p: Partial<NonNullable<PackageServices["addons"]>[number]>) => {
+    const next = addons.map((a, i) => (i === idx ? { ...a, ...p } : a));
+    onChange(next);
+  };
+  return (
+    <div className="sm:col-span-2 rounded-xl border border-dashed border-brand-orange/40 bg-brand-orange/5 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-brand-orange" />
+          <span className="text-sm font-medium">Serviços adicionais (opcionais)</span>
+          <span className="text-[11px] text-muted-foreground">
+            — o cliente marca no checkout e o valor soma no total
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            onChange([...addons, { name: "", description: "", price: 0, per: kind === "service" ? "unit" : "order" }])
+          }
+          className="text-xs text-brand-orange hover:underline"
+        >
+          + Adicionar opcional
+        </button>
+      </div>
+      {addons.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          Ex.: fura-fila, foto oficial, refeição extra, upgrade de assento. Ficam ocultos se não houver nenhum.
+        </p>
+      )}
+      <div className="space-y-2">
+        {addons.map((a, idx) => (
+          <div key={idx} className="rounded-lg border border-border bg-background p-2 space-y-2">
+            <div className="grid gap-2 sm:grid-cols-[1fr_140px_140px_auto]">
+              <input
+                className={inpClass}
+                placeholder="Nome (ex.: Fura-fila Universal)"
+                value={a.name ?? ""}
+                onChange={(e) => patchAt(idx, { name: e.target.value })}
+              />
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className={inpClass}
+                placeholder="Preço (R$)"
+                value={a.price ?? 0}
+                onChange={(e) => patchAt(idx, { price: Number(e.target.value) || 0 })}
+              />
+              <select
+                className={inpClass}
+                value={a.per ?? "unit"}
+                onChange={(e) => patchAt(idx, { per: e.target.value as "unit" | "order" })}
+              >
+                <option value="unit">por pessoa/ingresso</option>
+                <option value="order">por reserva</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => onChange(addons.filter((_, i) => i !== idx))}
+                className="rounded-lg border border-border px-2 hover:bg-muted"
+                aria-label="Remover"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <input
+              className={inpClass}
+              placeholder="Descrição curta (opcional) — ex.: acesso preferencial em todas as atrações"
+              value={a.description ?? ""}
+              onChange={(e) => patchAt(idx, { description: e.target.value })}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// (marker) 
 
 function CruiseEditor({
   value,
