@@ -643,11 +643,8 @@ function TicketDetailsView({
                 <h1 className="font-display text-3xl md:text-4xl font-extrabold leading-tight mb-4">
                   {pkg.title}
                 </h1>
-                {pkg.summary && (
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-5 whitespace-pre-line">
-                    {pkg.summary}
-                  </p>
-                )}
+                {/* resumo removido — aparece apenas em "Sobre o ingresso" */}
+
                 <div className="flex flex-wrap gap-2">
                   {eventDateLabel && (
                     <div className="bg-muted/40 border border-border px-3 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold">
