@@ -908,20 +908,30 @@ function PreCheckoutDialog({
 
   const addons = useMemo(() => {
     return rawAddons
-      .filter((a: any) => a && a.name && Number(a.price) > 0)
+      .filter((a: any) => {
+        if (!a || !a.name) return false;
+        const tiers = (a.price_by_weekday ?? []) as any[];
+        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0);
+      })
       .map((a: any, i: number) => {
+        const tiers = (a.price_by_weekday ?? []) as any[];
         const tier =
           weekday != null
-            ? (a.price_by_weekday ?? []).find((t: any) => (t.days ?? []).includes(weekday))
+            ? tiers.find((t: any) => (t.days ?? []).includes(weekday))
             : null;
-        const price = tier ? Number(tier.price) : Number(a.price);
+        // Preço assumido quando a data ainda não foi escolhida:
+        // usa o preço base se >0, senão o menor preço configurado nas faixas.
+        const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
+        const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
+        const price = tier ? Number(tier.price) : assumed;
         return {
           ...a,
           key: a.id || `${a.name}-${i}`,
           per: (a.per ?? "unit") as "unit" | "order",
           price,
           tierLabel: tier?.label ?? null,
-          hasWeekdayPricing: (a.price_by_weekday?.length ?? 0) > 0,
+          hasWeekdayPricing: tiers.length > 0,
+          assumedFromMin: !tier && Number(a.price) <= 0 && tierPrices.length > 0,
         };
       });
   }, [rawAddons, weekday]);
