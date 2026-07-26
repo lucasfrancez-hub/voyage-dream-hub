@@ -1224,6 +1224,7 @@ function AdminPackages() {
           switchDraft={switchDraft}
           closeCurrentDraft={closeCurrentDraft}
           nextNumber={pendingNumbers?.[draftIndex] ?? pendingNumbers?.[0] ?? null}
+          allPackages={packages ?? []}
         />
       )}
     </div>
