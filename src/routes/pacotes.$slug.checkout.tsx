@@ -138,9 +138,6 @@ function Checkout() {
     setTravelers((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
   }
 
-  const subtotalPrice = useMemo(() => {
-    if (!pkg) return 0;
-    const units = isPerUnit ? adults : (adults + children);
   const addonsList = useMemo(() => {
     const raw = ((pkg as any)?.services?.addons ?? []) as Array<{
       id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order";
