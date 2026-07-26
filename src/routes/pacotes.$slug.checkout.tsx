@@ -112,12 +112,14 @@ function Checkout() {
   useEffect(() => {
     if (!pkg) return;
     if ((pkg as any).pricing_mode === "per_unit" || (pkg as any).kind === "service") {
-      setAdults(1);
+      const cap = Math.min(9, Math.max(1, Number((pkg as any).max_units) || 9));
+      setAdults(Math.min(cap, Math.max(1, qtyFromSearch ?? 1)));
       setChildren(0);
     } else if (pkg.base_occupancy) {
-      setAdults(pkg.base_occupancy);
+      setAdults(qtyFromSearch ?? pkg.base_occupancy);
     }
-  }, [pkg?.id]);
+  }, [pkg?.id, qtyFromSearch]);
+
 
   // Grow / shrink the travelers list. Per-unit uses adults=qty as one adult per unit.
   useEffect(() => {
