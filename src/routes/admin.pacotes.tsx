@@ -2463,16 +2463,28 @@ function FormField({
   );
 }
 
+export type AddonSuggestion = {
+  id: string;
+  title: string;
+  price_per_person: number | null;
+  image_url: string | null;
+  destination: string | null;
+};
+
 function ServicesEditor({
   value,
   onChange,
   inpClass,
   kind = "package",
+  destination,
+  suggestions,
 }: {
   value: PackageServices;
   onChange: (next: PackageServices) => void;
   inpClass: string;
   kind?: PackageKind;
+  destination?: string | null;
+  suggestions?: AddonSuggestion[];
 }) {
   const v = value ?? {};
   const seguro = v.seguro ?? {};
