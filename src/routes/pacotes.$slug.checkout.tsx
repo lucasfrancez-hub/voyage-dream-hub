@@ -17,7 +17,13 @@ import { TermsModal } from "@/components/TermsModal";
 
 export const Route = createFileRoute("/pacotes/$slug/checkout")({
   component: Checkout,
+  validateSearch: (s: Record<string, unknown>) => {
+    const raw = Number(s?.qty);
+    const qty = Number.isFinite(raw) && raw > 0 ? Math.min(9, Math.floor(raw)) : undefined;
+    return { qty };
+  },
 });
+
 
 type PaymentMethod = "credit_card" | "pix" | "boleto";
 
@@ -27,7 +33,9 @@ const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
   const { slug } = Route.useParams();
+  const { qty: qtyFromSearch } = Route.useSearch();
   const navigate = useNavigate();
+
 
   const { data: pkg, isLoading } = useQuery({
     queryKey: ["package", slug],
@@ -104,12 +112,14 @@ function Checkout() {
   useEffect(() => {
     if (!pkg) return;
     if ((pkg as any).pricing_mode === "per_unit" || (pkg as any).kind === "service") {
-      setAdults(1);
+      const cap = Math.min(9, Math.max(1, Number((pkg as any).max_units) || 9));
+      setAdults(Math.min(cap, Math.max(1, qtyFromSearch ?? 1)));
       setChildren(0);
     } else if (pkg.base_occupancy) {
-      setAdults(pkg.base_occupancy);
+      setAdults(qtyFromSearch ?? pkg.base_occupancy);
     }
-  }, [pkg?.id]);
+  }, [pkg?.id, qtyFromSearch]);
+
 
   // Grow / shrink the travelers list. Per-unit uses adults=qty as one adult per unit.
   useEffect(() => {
