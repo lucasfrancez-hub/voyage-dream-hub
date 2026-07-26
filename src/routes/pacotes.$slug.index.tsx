@@ -235,14 +235,7 @@ function PackageDetails() {
         {/* Left: content */}
         <div className="space-y-10">
           <section className="grid sm:grid-cols-3 gap-4">
-            {pkg.origin && (
-              <InfoTile icon={Plane} label="Saindo de" value={pkg.origin} />
-            )}
-            <InfoTile icon={Calendar} label="Período" value={formatDateRange(pkg.going_date, pkg.return_date)} />
-            {pkg.nights != null && (
-              <InfoTile icon={Calendar} label="Duração" value={`${pkg.nights} noites`} />
-            )}
-          <section className="grid sm:grid-cols-3 gap-4">
+
             {!isTicket && pkg.origin && (
               <InfoTile icon={Plane} label="Saindo de" value={pkg.origin} />
             )}
