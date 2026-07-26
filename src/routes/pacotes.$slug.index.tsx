@@ -30,6 +30,7 @@ import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 import { HotelDetailsDialog } from "@/components/HotelDetailsDialog";
+import { WhatsAppText } from "@/lib/wa-format";
 
 function cleanHotelDetail(value: string | null | undefined) {
   const cleaned = value
