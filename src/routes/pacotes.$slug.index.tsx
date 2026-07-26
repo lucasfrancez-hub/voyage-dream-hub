@@ -1091,13 +1091,8 @@ function PreCheckoutDialog({
                             {a.tierLabel && (
                               <span className="ml-1 text-brand-orange font-semibold">• {a.tierLabel}</span>
                             )}
-                          </div>
-                          {isFeatured && (
-                            <div className="mt-1.5 inline-flex items-center gap-1 bg-amber-400/10 border border-amber-400/25 px-1.5 py-0.5 rounded text-[9px] font-bold text-amber-500 uppercase tracking-wider">
-                              <Star className="h-2.5 w-2.5 fill-current" />
-                              Mais vendido
-                            </div>
-                          )}
+                        </div>
+
                         </div>
 
                         {/* Toggle */}
