@@ -1023,6 +1023,9 @@ function PreCheckoutDialog({
                 }}
                 disabled={{ before: new Date() }}
                 initialFocus
+                captionLayout="dropdown"
+                fromYear={new Date().getFullYear()}
+                toYear={new Date().getFullYear() + 3}
                 className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
                 classNames={{ root: "w-full", months: "w-full", month: "w-full flex flex-col gap-4" }}
               />
