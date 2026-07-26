@@ -571,7 +571,7 @@ function Checkout() {
             {/* Pagamento */}
             <Card title="Pagamento">
               <p className="text-sm text-muted-foreground mb-4">Como prefere pagar?</p>
-              <div className="grid sm:grid-cols-3 gap-3">
+              <div className={`grid gap-3 ${isService ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
                 <PaymentOption
                   active={payment === "credit_card"}
                   onClick={() => setPayment("credit_card")}
@@ -587,13 +587,15 @@ function Checkout() {
                   desc="Finalize via WhatsApp com nosso consultor."
                   badge="-5% de desconto"
                 />
-                <PaymentOption
-                  active={payment === "boleto"}
-                  onClick={() => setPayment("boleto")}
-                  icon={FileText}
-                  title="Boleto bancário"
-                  desc="Parcelamos em até 10x sem juros no boleto. Finalização feita via WhatsApp com nosso consultor."
-                />
+                {!isService && (
+                  <PaymentOption
+                    active={payment === "boleto"}
+                    onClick={() => setPayment("boleto")}
+                    icon={FileText}
+                    title="Boleto bancário"
+                    desc="Parcelamos em até 10x sem juros no boleto. Finalização feita via WhatsApp com nosso consultor."
+                  />
+                )}
               </div>
 
               {payment === "boleto" && (
