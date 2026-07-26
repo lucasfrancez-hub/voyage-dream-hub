@@ -211,7 +211,11 @@ function countServices(services?: PackageServices | null): number {
   return n;
 }
 
-function detectIncludes(list: string[] | null | undefined, services?: PackageServices | null) {
+function detectIncludes(
+  list: string[] | null | undefined,
+  services?: PackageServices | null,
+  kind?: "package" | "service" | "cruise" | null,
+) {
   const s = (list ?? []).map((x) => norm(x)).join(" | ");
   const svcCount = countServices(services);
   const groupServices = svcCount >= 2;
@@ -219,16 +223,18 @@ function detectIncludes(list: string[] | null | undefined, services?: PackageSer
   const transferOn = !!services?.transfer?.enabled;
   const ticketsOn = !!services?.tickets?.enabled && (services?.tickets?.parks ?? []).some((p) => p && p.trim());
   const passeiosOn = normalizePasseios(services).length > 0;
+  const isService = kind === "service";
   return {
-    aereo: /aereo|voo|passag|avia/.test(s),
-    hotel: /hotel|hospedagem|resort|pousada|acomoda/.test(s),
-    cafeDaManha: /cafe da manha|cafe|breakfast|acm|map|fap|all inclusive|meia pensao|pensao completa|tudo incluso/.test(s),
-    bagagem23kg: /bagagem|despachad|23\s*kg|23kg/.test(s),
+    // Ingresso não tem aéreo / hotel / café / bagagem por padrão
+    aereo: isService ? false : /aereo|voo|passag|avia/.test(s),
+    hotel: isService ? false : /hotel|hospedagem|resort|pousada|acomoda/.test(s),
+    cafeDaManha: isService ? false : /cafe da manha|cafe|breakfast|acm|map|fap|all inclusive|meia pensao|pensao completa|tudo incluso/.test(s),
+    bagagem23kg: isService ? false : /bagagem|despachad|23\s*kg|23kg/.test(s),
     transfer: groupServices ? false : (transferOn || /transfer|traslado/.test(s)),
     seguroViagem: groupServices ? false : (seguroOn || /seguro/.test(s)),
-    esimInternacional: /esim|chip|internet/.test(s),
-    ingressos: ticketsOn,
-    passeios: passeiosOn, // sempre exibe quando houver
+    esimInternacional: isService ? false : /esim|chip|internet/.test(s),
+    ingressos: ticketsOn || isService,
+    passeios: passeiosOn,
     maisServicos: groupServices,
   };
 }
