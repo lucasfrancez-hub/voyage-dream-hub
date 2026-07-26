@@ -1055,15 +1055,31 @@ function PreCheckoutDialog({
   const isFirstStep = stepIdx === 0;
   const isLastStep = stepIdx >= steps.length - 1;
 
+  const missingAddonDates = useMemo(
+    () => selectedAddons.filter((a) => !addonDates[a.key]),
+    [selectedAddons, addonDates],
+  );
+
   const canAdvance = useMemo(() => {
-    if (currentStep === "date") return !!date;
+    if (currentStep === "date") {
+      if (isFlexibleDate && !date) return false;
+      if (missingAddonDates.length > 0) return false;
+    }
     return true;
-  }, [currentStep, date]);
+  }, [currentStep, date, isFlexibleDate, missingAddonDates]);
 
   function handleNext() {
-    if (currentStep === "date" && !date) {
-      toast.error("Escolha uma data para continuar");
-      return;
+    if (currentStep === "date") {
+      if (isFlexibleDate && !date) {
+        toast.error("Escolha a data do pacote");
+        return;
+      }
+      if (missingAddonDates.length > 0) {
+        toast.error("Escolha a data de cada adicional", {
+          description: missingAddonDates.map((a) => a.name).join(", "),
+        });
+        return;
+      }
     }
     setStepIdx((i) => Math.min(i + 1, steps.length - 1));
   }
@@ -1076,10 +1092,19 @@ function PreCheckoutDialog({
       toast.error("Escolha uma data para continuar");
       return;
     }
+    const missing = selectedAddons.filter((a) => !addonDates[a.key]);
+    if (missing.length > 0) {
+      toast.error("Escolha a data de cada adicional", {
+        description: missing.map((a) => a.name).join(", "),
+      });
+      return;
+    }
     const selectedKeys: string[] = [];
+    const datePairs: string[] = [];
     for (const a of addons) {
       if (!selected[a.key]) continue;
       selectedKeys.push(a.key);
+      if (addonDates[a.key]) datePairs.push(`${a.key}:${addonDates[a.key]}`);
       for (const sub of a.subs) {
         if (selected[sub.key]) selectedKeys.push(sub.key);
       }
@@ -1091,9 +1116,11 @@ function PreCheckoutDialog({
         qty,
         ...(date ? { date } : {}),
         ...(selectedKeys.length ? { addons: selectedKeys.join(",") } : {}),
+        ...(datePairs.length ? { addonDates: datePairs.join(",") } : {}),
       },
     });
   }
+
 
   const weekdayShortName = useMemo(() => {
     if (weekday == null) return null;
