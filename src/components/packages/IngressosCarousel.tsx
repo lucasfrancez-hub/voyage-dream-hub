@@ -217,8 +217,12 @@ export function IngressosCarousel({
                   </div>
 
                   {p.destination && (
-                    <div className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/60 backdrop-blur px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white ring-1 ring-white/10">
-                      <MapPin className="h-2.5 w-2.5" /> {p.destination}
+                    <div
+                      className="absolute top-2.5 right-2.5 inline-flex items-start gap-1 rounded-2xl bg-black/60 backdrop-blur px-2 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-white ring-1 ring-white/10 text-right leading-tight"
+                      style={{ maxWidth: "55%", wordBreak: "break-word" }}
+                    >
+                      <MapPin className="h-2.5 w-2.5 shrink-0 mt-[1px]" />
+                      <span className="line-clamp-2">{p.destination}</span>
                     </div>
                   )}
 
