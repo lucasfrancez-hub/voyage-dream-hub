@@ -350,14 +350,14 @@ const OrcamentoTokenRoute = OrcamentoTokenRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesIndexRoute = PacotesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PacotesRoute,
+  id: '/pacotes/',
+  path: '/pacotes/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesAdminRoute = PacotesAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => PacotesRoute,
+  id: '/pacotes/admin',
+  path: '/pacotes/admin',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProtocoloProtocoloIdRoute = ProtocoloProtocoloIdRouteImport.update({
   id: '/protocolo/$protocoloId',
@@ -445,14 +445,14 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesSlugIndexRoute = PacotesSlugIndexRouteImport.update({
-  id: '/$slug/',
-  path: '/$slug/',
-  getParentRoute: () => PacotesRoute,
+  id: '/pacotes/$slug/',
+  path: '/pacotes/$slug/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
-  id: '/$slug/checkout',
-  path: '/$slug/checkout',
-  getParentRoute: () => PacotesRoute,
+  id: '/pacotes/$slug/checkout',
+  path: '/pacotes/$slug/checkout',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicBpIdRoute = ApiPublicBpIdRouteImport.update({
   id: '/api/public/bp/$id',
@@ -1073,8 +1073,10 @@ export interface RootRouteChildren {
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
+  PacotesAdminRoute: typeof PacotesAdminRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   WSlugRoute: typeof WSlugRoute
+  PacotesIndexRoute: typeof PacotesIndexRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
@@ -1085,6 +1087,8 @@ export interface RootRouteChildren {
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  PacotesSlugCheckoutRoute: typeof PacotesSlugCheckoutRoute
+  PacotesSlugIndexRoute: typeof PacotesSlugIndexRoute
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
   ApiPublicHooksAutoSuggestionsRoute: typeof ApiPublicHooksAutoSuggestionsRoute
   ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
@@ -1461,17 +1465,17 @@ declare module '@tanstack/react-router' {
     }
     '/pacotes/': {
       id: '/pacotes/'
-      path: '/'
+      path: '/pacotes'
       fullPath: '/pacotes/'
       preLoaderRoute: typeof PacotesIndexRouteImport
-      parentRoute: typeof PacotesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/pacotes/admin': {
       id: '/pacotes/admin'
-      path: '/admin'
+      path: '/pacotes/admin'
       fullPath: '/pacotes/admin'
       preLoaderRoute: typeof PacotesAdminRouteImport
-      parentRoute: typeof PacotesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/protocolo/$protocoloId': {
       id: '/protocolo/$protocoloId'
@@ -1587,17 +1591,17 @@ declare module '@tanstack/react-router' {
     }
     '/pacotes/$slug/': {
       id: '/pacotes/$slug/'
-      path: '/$slug'
+      path: '/pacotes/$slug'
       fullPath: '/pacotes/$slug/'
       preLoaderRoute: typeof PacotesSlugIndexRouteImport
-      parentRoute: typeof PacotesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/pacotes/$slug/checkout': {
       id: '/pacotes/$slug/checkout'
-      path: '/$slug/checkout'
+      path: '/pacotes/$slug/checkout'
       fullPath: '/pacotes/$slug/checkout'
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
-      parentRoute: typeof PacotesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/bp/$id': {
       id: '/api/public/bp/$id'
@@ -1808,8 +1812,10 @@ const rootRouteChildren: RootRouteChildren = {
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
+  PacotesAdminRoute: PacotesAdminRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   WSlugRoute: WSlugRoute,
+  PacotesIndexRoute: PacotesIndexRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
@@ -1820,6 +1826,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  PacotesSlugCheckoutRoute: PacotesSlugCheckoutRoute,
+  PacotesSlugIndexRoute: PacotesSlugIndexRoute,
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
   ApiPublicHooksAutoSuggestionsRoute: ApiPublicHooksAutoSuggestionsRoute,
   ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
@@ -1839,13 +1847,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
