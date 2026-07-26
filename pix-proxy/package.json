@@ -1,0 +1,16 @@
+{
+  "name": "viaair-pix-proxy",
+  "version": "1.0.0",
+  "description": "Proxy mTLS entre VIA AIR (Lovable) e API Pix do Itaú",
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

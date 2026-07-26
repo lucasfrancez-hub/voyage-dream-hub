@@ -2520,6 +2520,71 @@ export type Database = {
           },
         ]
       }
+      pix_cobrancas: {
+        Row: {
+          created_at: string
+          e2eid: string | null
+          expira_em: string
+          id: string
+          order_id: string | null
+          pago_em: string | null
+          payer_document: string | null
+          payer_name: string | null
+          qr_code: string
+          qr_code_image: string | null
+          raw_response: Json | null
+          status: string
+          txid: string
+          updated_at: string
+          valor: number
+          webhook_payload: Json | null
+        }
+        Insert: {
+          created_at?: string
+          e2eid?: string | null
+          expira_em: string
+          id?: string
+          order_id?: string | null
+          pago_em?: string | null
+          payer_document?: string | null
+          payer_name?: string | null
+          qr_code: string
+          qr_code_image?: string | null
+          raw_response?: Json | null
+          status?: string
+          txid: string
+          updated_at?: string
+          valor: number
+          webhook_payload?: Json | null
+        }
+        Update: {
+          created_at?: string
+          e2eid?: string | null
+          expira_em?: string
+          id?: string
+          order_id?: string | null
+          pago_em?: string | null
+          payer_document?: string | null
+          payer_name?: string | null
+          qr_code?: string
+          qr_code_image?: string | null
+          raw_response?: Json | null
+          status?: string
+          txid?: string
+          updated_at?: string
+          valor?: number
+          webhook_payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_cobrancas_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

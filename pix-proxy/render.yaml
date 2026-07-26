@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: viaair-pix-proxy
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: ITAU_ENV
+        value: production
+      - key: ITAU_CLIENT_ID
+        sync: false
+      - key: ITAU_CLIENT_SECRET
+        sync: false
+      - key: ITAU_API_KEY
+        sync: false
+      - key: ITAU_CERT_PEM
+        sync: false
+      - key: ITAU_KEY_PEM
+        sync: false
+      - key: PROXY_SECRET
+        sync: false
+      - key: LOVABLE_WEBHOOK_URL
+        sync: false

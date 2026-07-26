@@ -73,6 +73,7 @@ import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
+import { Route as ApiPublicItauPixWebhookRouteImport } from './routes/api/public/itau-pix-webhook'
 import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/public/nfse-atendenet-test'
 import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/public/test-flight-alert'
 import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
@@ -416,6 +417,11 @@ const ApiPublicInstagramWebhookRoute =
     path: '/api/public/instagram-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicItauPixWebhookRoute = ApiPublicItauPixWebhookRouteImport.update({
+  id: '/api/public/itau-pix-webhook',
+  path: '/api/public/itau-pix-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicNfseAtendenetTestRoute =
   ApiPublicNfseAtendenetTestRouteImport.update({
     id: '/api/public/nfse-atendenet-test',
@@ -594,6 +600,7 @@ export interface FileRoutesByFullPath {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
+  '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -679,6 +686,7 @@ export interface FileRoutesByTo {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
+  '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -766,6 +774,7 @@ export interface FileRoutesById {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
+  '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -854,6 +863,7 @@ export interface FileRouteTypes {
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
+    | '/api/public/itau-pix-webhook'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -939,6 +949,7 @@ export interface FileRouteTypes {
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
+    | '/api/public/itau-pix-webhook'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -1025,6 +1036,7 @@ export interface FileRouteTypes {
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
+    | '/api/public/itau-pix-webhook'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -1078,6 +1090,7 @@ export interface RootRouteChildren {
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
+  ApiPublicItauPixWebhookRoute: typeof ApiPublicItauPixWebhookRoute
   ApiPublicNfseAtendenetTestRoute: typeof ApiPublicNfseAtendenetTestRoute
   ApiPublicTestFlightAlertRoute: typeof ApiPublicTestFlightAlertRoute
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
@@ -1548,6 +1561,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInstagramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/itau-pix-webhook': {
+      id: '/api/public/itau-pix-webhook'
+      path: '/api/public/itau-pix-webhook'
+      fullPath: '/api/public/itau-pix-webhook'
+      preLoaderRoute: typeof ApiPublicItauPixWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/nfse-atendenet-test': {
       id: '/api/public/nfse-atendenet-test'
       path: '/api/public/nfse-atendenet-test'
@@ -1830,6 +1850,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
+  ApiPublicItauPixWebhookRoute: ApiPublicItauPixWebhookRoute,
   ApiPublicNfseAtendenetTestRoute: ApiPublicNfseAtendenetTestRoute,
   ApiPublicTestFlightAlertRoute: ApiPublicTestFlightAlertRoute,
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
