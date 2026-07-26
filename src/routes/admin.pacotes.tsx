@@ -2527,6 +2527,8 @@ export type AddonSuggestion = {
   price_per_person: number | null;
   image_url: string | null;
   destination: string | null;
+  /** Serviços do próprio ingresso (ingressos podem ter variantes/Fast Pass como addons com weekday+sub_options). */
+  services?: PackageServices | null;
 };
 
 function ServicesEditor({
