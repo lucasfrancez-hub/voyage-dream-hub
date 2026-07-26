@@ -106,8 +106,8 @@ function Checkout() {
   const [pickupPoint, setPickupPoint] = useState("");
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
   const addonDates = useMemo(() => {
-    const entries = (addonDatesFromSearch ?? "").split(",").filter(Boolean);
-    const pairs = entries.flatMap((entry) => {
+    const entries: string[] = (addonDatesFromSearch ?? "").split(",").filter(Boolean);
+    const pairs = entries.flatMap((entry: string) => {
       const match = entry.match(/^(.*):(\d{4}-\d{2}-\d{2})$/);
       return match ? [[match[1], match[2]] as const] : [];
     });
