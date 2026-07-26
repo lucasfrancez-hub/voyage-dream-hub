@@ -1471,6 +1471,19 @@ function PreCheckoutDialog({
             today.setHours(0, 0, 0, 0);
             const maxDate = new Date(today);
             maxDate.setMonth(maxDate.getMonth() + 11);
+            const parseYMD = (s?: string | null) => {
+              const m = s?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+              return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+            };
+            const tripStart = parseYMD(date) || parseYMD(pkg.going_date);
+            let tripEnd = parseYMD(pkg.return_date);
+            if (tripStart && !tripEnd && pkg.nights != null) {
+              tripEnd = new Date(tripStart);
+              tripEnd.setDate(tripEnd.getDate() + Number(pkg.nights));
+            }
+            const isAddonSlot = active.key !== "__pkg";
+            const calFrom = isAddonSlot && tripStart ? tripStart : today;
+            const calTo = isAddonSlot && tripEnd ? tripEnd : maxDate;
             const activeWd = (() => {
               const m = active.value.match(/^(\d{4})-(\d{2})-(\d{2})/);
               if (!m) return null;
