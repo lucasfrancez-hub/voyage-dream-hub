@@ -167,20 +167,27 @@ function Checkout() {
       price_by_weekday?: Array<{ label?: string; days: number[]; price: number }>;
     }>;
     return raw
-      .filter((a) => a && a.name && Number(a.price) > 0)
+      .filter((a) => {
+        if (!a || !a.name) return false;
+        const tiers = (a.price_by_weekday ?? []) as any[];
+        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0);
+      })
       .map((a, i) => {
+        const tiers = (a.price_by_weekday ?? []) as any[];
         const tier =
           addonWeekday != null
-            ? (a.price_by_weekday ?? []).find((t) => (t.days ?? []).includes(addonWeekday))
+            ? tiers.find((t: any) => (t.days ?? []).includes(addonWeekday))
             : null;
-        const price = tier ? Number(tier.price) : Number(a.price);
+        const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
+        const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
+        const price = tier ? Number(tier.price) : assumed;
         return {
           ...a,
           key: a.id || `${a.name}-${i}`,
           per: a.per ?? "unit",
           price,
           tierLabel: tier?.label ?? null,
-          hasWeekdayPricing: (a.price_by_weekday?.length ?? 0) > 0,
+          hasWeekdayPricing: tiers.length > 0,
         };
       });
   }, [pkg, addonWeekday]);
