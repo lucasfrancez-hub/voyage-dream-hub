@@ -1,6 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
+
 import {
   MapPin,
   Plane,
@@ -792,13 +794,21 @@ function TicketDetailsView({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setQty((n) => Math.min(maxUnits, n + 1))}
-                  disabled={qty >= maxUnits}
-                  className="w-11 h-11 flex items-center justify-center bg-brand-orange text-primary-foreground hover:opacity-90 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    if (qty >= maxUnits) {
+                      toast.warning("Limite por pedido", {
+                        description: `Máximo de ${maxUnits} por pedido — para mais, faça um novo pedido.`,
+                      });
+                      return;
+                    }
+                    setQty((n) => Math.min(maxUnits, n + 1));
+                  }}
+                  className="w-11 h-11 flex items-center justify-center bg-brand-orange text-primary-foreground hover:opacity-90 rounded-xl transition-all"
                   aria-label="Aumentar quantidade"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
+
               </div>
               <p className="text-[11px] text-muted-foreground text-center">
                 Total: <strong className="text-foreground">{(price * qty).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
