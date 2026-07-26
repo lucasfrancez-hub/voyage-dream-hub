@@ -811,7 +811,7 @@ function TicketDetailsView({
             <Link
               to="/pacotes/$slug/checkout"
               params={{ slug: pkg.slug }}
-              search={{ qty }}
+              
               className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-orange px-6 py-4 font-bold uppercase tracking-widest text-sm text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition group"
             >
               Reservar agora
