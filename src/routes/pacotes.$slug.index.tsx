@@ -1165,11 +1165,24 @@ function PreCheckoutDialog({
         <div className="flex-1 overflow-y-auto p-6 md:p-10">
           {currentStep === "addons" && (
             <div className="animate-fade-in">
-              <div className="mb-6">
-                <h3 className="text-white text-lg md:text-xl font-bold">Escolha seus opcionais</h3>
-                <p className="text-white/50 text-sm mt-1">Selecione o que quer incluir. Você escolhe as datas no próximo passo.</p>
+              <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h3 className="text-white text-lg md:text-xl font-bold">Escolha seus opcionais</h3>
+                  <p className="text-white/50 text-sm mt-1">Selecione o que quer incluir. Você escolhe as datas no próximo passo.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelected({});
+                    setStepIdx((i) => Math.min(i + 1, steps.length - 1));
+                  }}
+                  className="text-xs md:text-sm text-white/60 hover:text-white underline underline-offset-4 decoration-white/30 hover:decoration-white transition-colors whitespace-nowrap"
+                >
+                  Não quero adicionais →
+                </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
                 {addons.map((a) => {
                   const isSel = !!selected[a.key];
                   const units = a.per === "order" ? 1 : Math.max(1, qty);
