@@ -1371,15 +1371,39 @@ function PackageEditorModal({
   const addonSuggestions = useMemo<AddonSuggestion[]>(() => {
     const destKey = destinationKey(editing.destination ?? "");
     if (!destKey || !allPackages?.length) return [];
+    // Mapa de cidades-hub → palavras-chave que aparecem no destino dos ingressos
+    // (ex.: pacote "Orlando" deve sugerir ingressos cadastrados como "Disney",
+    // "Universal", "SeaWorld", "Beto Carrero", etc.).
+    const HUBS: Record<string, string[]> = {
+      orlando: ["orlando", "disney", "universal", "seaworld", "sea world", "epic", "magic kingdom", "epcot", "hollywood studios", "animal kingdom", "islands of adventure", "volcano bay", "busch gardens", "kennedy"],
+      "sao paulo": ["sao paulo", "interlagos"],
+      "rio de janeiro": ["rio de janeiro", "cidade do rock", "rock in rio"],
+      paris: ["paris", "disneyland paris", "eurodisney"],
+      "los angeles": ["los angeles", "disneyland", "universal studios hollywood"],
+      tokyo: ["tokyo", "toquio", "tokyo disney", "disneysea"],
+      "hong kong": ["hong kong", "hong kong disneyland"],
+      shanghai: ["shanghai", "xangai", "shanghai disney"],
+      cancun: ["cancun", "xcaret", "xel-ha", "xelha", "xplor"],
+      "punta cana": ["punta cana", "scape park"],
+      "penha": ["penha", "beto carrero", "beto carreiro"],
+      "balneario camboriu": ["balneario camboriu", "beto carrero", "beto carreiro", "unipraias"],
+    };
+    const keywords = HUBS[destKey] ?? [destKey];
+    const matches = (svcDest: string) => {
+      const k = destinationKey(svcDest);
+      if (!k) return false;
+      if (k === destKey) return true;
+      return keywords.some((kw) => k.includes(kw) || kw.includes(k));
+    };
     return allPackages
       .filter(
         (p) =>
           p.id !== editing.id &&
           p.is_active !== false &&
           (p as any).kind === "service" &&
-          destinationKey(p.destination ?? "") === destKey,
+          matches(p.destination ?? ""),
       )
-      .slice(0, 12)
+      .slice(0, 24)
       .map((p) => ({
         id: p.id,
         title: p.title ?? "",
