@@ -233,6 +233,8 @@ function Checkout() {
             date_mode: (pkg as any).date_mode ?? "fixed",
             pricing_mode: (pkg as any).pricing_mode ?? "per_occupancy",
             preferred_date: isFlexibleDate ? preferredDate : null,
+            pickup_point: pickupPoint || null,
+
             nights: pkg.nights ?? null,
             price_per_person: pkg.price_per_person,
             taxes: pkg.taxes,
