@@ -195,12 +195,14 @@ function Checkout() {
     const raw = ((pkg as any)?.services?.addons ?? []) as Array<{
       id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order";
       price_by_weekday?: Array<{ label?: string; days: number[]; price: number }>;
+      sub_options?: Array<{ id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order" }>;
     }>;
     return raw
       .filter((a) => {
         if (!a || !a.name) return false;
         const tiers = (a.price_by_weekday ?? []) as any[];
-        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0);
+        const subs = (a.sub_options ?? []) as any[];
+        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0) || subs.some((s) => Number(s?.price) > 0);
       })
       .map((a, i) => {
         const tiers = (a.price_by_weekday ?? []) as any[];
@@ -211,13 +213,23 @@ function Checkout() {
         const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
         const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
         const price = tier ? Number(tier.price) : assumed;
+        const key = a.id || `${a.name}-${i}`;
+        const subs = ((a.sub_options ?? []) as any[])
+          .filter((s) => s && s.name)
+          .map((s, j) => ({
+            ...s,
+            key: `${key}::${s.id || `${s.name}-${j}`}`,
+            price: Number(s.price) || 0,
+            per: (s.per ?? "unit") as "unit" | "order",
+          }));
         return {
           ...a,
-          key: a.id || `${a.name}-${i}`,
+          key,
           per: a.per ?? "unit",
           price,
           tierLabel: tier?.label ?? null,
           hasWeekdayPricing: tiers.length > 0,
+          subs,
         };
       });
   }, [pkg, addonWeekday]);
@@ -227,9 +239,16 @@ function Checkout() {
     return addonsList.reduce((sum, a) => {
       if (!selectedAddons[a.key]) return sum;
       const qty = a.per === "order" ? 1 : Math.max(1, units);
-      return sum + a.price * qty;
+      let s = sum + a.price * qty;
+      for (const sub of a.subs) {
+        if (!selectedAddons[sub.key]) continue;
+        const subQty = sub.per === "order" ? 1 : Math.max(1, units);
+        s += sub.price * subQty;
+      }
+      return s;
     }, 0);
   }, [addonsList, selectedAddons, adults, children, isPerUnit]);
+
 
 
   const subtotalPrice = useMemo(() => {
