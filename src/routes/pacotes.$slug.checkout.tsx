@@ -863,6 +863,7 @@ function Checkout() {
                     label="Já com taxas inclusas de"
                     value={formatBRL(Number(pkg.taxes))}
                   />
+                )}
                 {addonsList
                   .filter((a) => selectedAddons[a.key])
                   .map((a) => {
