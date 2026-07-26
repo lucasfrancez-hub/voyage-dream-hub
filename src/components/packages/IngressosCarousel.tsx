@@ -165,7 +165,7 @@ export function IngressosCarousel({
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-[12px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_8px_20px_rgba(242,107,31,0.35)] transition hover:brightness-110 order-2 ml-auto"
           >
-            Ver todos os ingressos
+            Ver todos ingressos e experiências
             <ArrowRight className="h-3.5 w-3.5" />
           </a>
         )}
