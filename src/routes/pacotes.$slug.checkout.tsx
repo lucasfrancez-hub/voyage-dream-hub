@@ -863,7 +863,19 @@ function Checkout() {
                     label="Já com taxas inclusas de"
                     value={formatBRL(Number(pkg.taxes))}
                   />
-                )}
+                {addonsList
+                  .filter((a) => selectedAddons[a.key])
+                  .map((a) => {
+                    const units = isPerUnit ? adults : (adults + children);
+                    const qty = a.per === "order" ? 1 : Math.max(1, units);
+                    return (
+                      <SummaryLine
+                        key={a.key}
+                        label={`+ ${a.name}${a.per !== "order" && qty > 1 ? ` × ${qty}` : ""}`}
+                        value={formatBRL(a.price * qty)}
+                      />
+                    );
+                  })}
                 {payment === "pix" && pixDiscountValue > 0 && (
                   <SummaryLine
                     label="Desconto Pix (-5%)"
