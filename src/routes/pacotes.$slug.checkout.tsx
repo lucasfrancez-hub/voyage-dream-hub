@@ -123,7 +123,12 @@ function Checkout() {
     } else if (pkg.base_occupancy) {
       setAdults(qtyFromSearch ?? pkg.base_occupancy);
     }
-  }, [pkg?.id, qtyFromSearch]);
+    if (dateFromSearch) setPreferredDate(dateFromSearch);
+    if (addonsFromSearch) {
+      const keys = addonsFromSearch.split(",").filter(Boolean);
+      setSelectedAddons(Object.fromEntries(keys.map((k) => [k, true])));
+    }
+  }, [pkg?.id, qtyFromSearch, dateFromSearch, addonsFromSearch]);
 
 
   // Grow / shrink the travelers list. Per-unit uses adults=qty as one adult per unit.
