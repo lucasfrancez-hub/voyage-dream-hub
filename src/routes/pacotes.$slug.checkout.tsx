@@ -126,7 +126,7 @@ function Checkout() {
     if (dateFromSearch) setPreferredDate(dateFromSearch);
     if (addonsFromSearch) {
       const keys = addonsFromSearch.split(",").filter(Boolean);
-      setSelectedAddons(Object.fromEntries(keys.map((k) => [k, true])));
+      setSelectedAddons(Object.fromEntries(keys.map((k: string) => [k, true])));
     }
   }, [pkg?.id, qtyFromSearch, dateFromSearch, addonsFromSearch]);
 
