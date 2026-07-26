@@ -2937,6 +2937,11 @@ function AddonsEditor({
               value={a.description ?? ""}
               onChange={(e) => patchAt(idx, { description: e.target.value })}
             />
+            <WeekdayPricingEditor
+              tiers={a.price_by_weekday ?? []}
+              onChange={(next) => patchAt(idx, { price_by_weekday: next })}
+              inpClass={inpClass}
+            />
           </div>
         ))}
       </div>
