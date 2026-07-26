@@ -1081,7 +1081,7 @@ function PreCheckoutDialog({
                 today.setHours(0, 0, 0, 0);
                 const maxDate = new Date(today);
                 maxDate.setMonth(maxDate.getMonth() + 11);
-                void maxDate;
+                
                 return (
               <CalendarMonthNav>
                 {(month, setMonth) => (
