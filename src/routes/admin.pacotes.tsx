@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Plus,
   Pencil,
+  ExternalLink,
   Trash2,
   Copy,
   EyeOff,
@@ -1434,6 +1435,7 @@ function PackageEditorModal({
       });
     });
     const representedSourceIds = new Set<string>();
+    let changed = false;
     const normalizedCurrent = current.flatMap((addon) => {
       const normalizedName = (addon.name ?? "").trim().toLowerCase();
       const suggestion =
@@ -1444,22 +1446,30 @@ function PackageEditorModal({
       // Reconstrói apenas o ingresso selecionado a partir da origem. Assim ele
       // recebe os Express/Fast Pass como subs, com todas as faixas semanais.
       if (suggestion) {
-        if (representedSourceIds.has(suggestion.id)) return [];
+        if (representedSourceIds.has(suggestion.id)) {
+          changed = true;
+          return [];
+        }
         representedSourceIds.add(suggestion.id);
-        return [ticketSuggestionToAddon(suggestion)];
+        const hydrated = ticketSuggestionToAddon(suggestion);
+        if (JSON.stringify(addon) !== JSON.stringify(hydrated)) changed = true;
+        return [hydrated];
       }
       return [addon];
     });
 
-    if (JSON.stringify(current) === JSON.stringify(normalizedCurrent)) return;
-    setEditing({
-      ...editing,
-      services: {
-        ...(editing.services ?? {}),
-        addons: normalizedCurrent,
-      },
+    if (!changed) return;
+    setEditing((latest) => {
+      if (!latest || latest.id !== editing.id) return latest;
+      return {
+        ...latest,
+        services: {
+          ...(latest.services ?? {}),
+          addons: normalizedCurrent,
+        },
+      };
     });
-  }, [addonSuggestions, editing, setEditing]);
+  }, [addonSuggestions, editing.services?.addons]);
 
 
   // Auto-fill empty fields when derived values become available
@@ -2467,6 +2477,15 @@ function PackageEditorModal({
                   kind={kind}
                   destination={editing.destination ?? null}
                   suggestions={addonSuggestions}
+                  onEditSource={(sourceId) => {
+                    const source = allPackages?.find((pkg) => pkg.id === sourceId);
+                    if (!source) {
+                      toast.error("Ingresso original não encontrado");
+                      return;
+                    }
+                    setEditing({ ...source });
+                    setTab("extras");
+                  }}
                 />
 
 
@@ -2613,6 +2632,14 @@ function ticketSuggestionToAddon(
   };
 }
 
+function sourcePackageIdFromAddonId(addonId?: string) {
+  if (!addonId?.startsWith("ticket-")) return undefined;
+  const candidate = addonId.slice("ticket-".length);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
+    ? candidate
+    : undefined;
+}
+
 function ServicesEditor({
   value,
   onChange,
@@ -2620,6 +2647,7 @@ function ServicesEditor({
   kind = "package",
   destination,
   suggestions,
+  onEditSource,
 }: {
   value: PackageServices;
   onChange: (next: PackageServices) => void;
@@ -2627,6 +2655,7 @@ function ServicesEditor({
   kind?: PackageKind;
   destination?: string | null;
   suggestions?: AddonSuggestion[];
+  onEditSource?: (sourceId: string) => void;
 }) {
   const v = value ?? {};
   const seguro = v.seguro ?? {};
@@ -3012,6 +3041,7 @@ function ServicesEditor({
           kind={kind}
           destination={destination ?? null}
           suggestions={suggestions ?? []}
+          onEditSource={onEditSource}
         />
       </div>
 
@@ -3026,6 +3056,7 @@ function AddonsEditor({
   kind,
   destination,
   suggestions,
+  onEditSource,
 }: {
   value: NonNullable<PackageServices["addons"]>;
   onChange: (next: NonNullable<PackageServices["addons"]>) => void;
@@ -3033,6 +3064,7 @@ function AddonsEditor({
   kind: PackageKind;
   destination?: string | null;
   suggestions?: AddonSuggestion[];
+  onEditSource?: (sourceId: string) => void;
 }) {
   const addons = value ?? [];
   const patchAt = (idx: number, p: Partial<NonNullable<PackageServices["addons"]>[number]>) => {
@@ -3082,7 +3114,10 @@ function AddonsEditor({
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => onChange([...addons, ticketSuggestionToAddon(s)])}
+                    onClick={() => {
+                      const selected = ticketSuggestionToAddon(s);
+                      onChange([...addons, selected]);
+                    }}
                     className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:border-emerald-500 hover:bg-emerald-500/10 transition"
                     title={
                       extrasCount > 0
@@ -3120,6 +3155,22 @@ function AddonsEditor({
       <div className="space-y-2">
         {addons.map((a, idx) => (
           <div key={idx} className="rounded-lg border border-border bg-background p-2 space-y-2">
+            {(() => {
+              const sourceId = a.source_package_id ?? sourcePackageIdFromAddonId(a.id);
+              return sourceId && onEditSource ? (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => onEditSource(sourceId)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-brand-orange/30 px-2 py-1 text-[11px] font-medium text-brand-orange hover:bg-brand-orange/10"
+                    title="Abrir o ingresso original para editar preços e subopções"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Editar ingresso original
+                  </button>
+                </div>
+              ) : null;
+            })()}
             <div className="grid gap-2 sm:grid-cols-[1fr_140px_140px_auto]">
               <input
                 className={inpClass}
