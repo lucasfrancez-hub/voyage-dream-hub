@@ -643,11 +643,8 @@ function TicketDetailsView({
                 <h1 className="font-display text-3xl md:text-4xl font-extrabold leading-tight mb-4">
                   {pkg.title}
                 </h1>
-                {pkg.summary && (
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-5 whitespace-pre-line">
-                    {pkg.summary}
-                  </p>
-                )}
+                {/* resumo removido — aparece apenas em "Sobre o ingresso" */}
+
                 <div className="flex flex-wrap gap-2">
                   {eventDateLabel && (
                     <div className="bg-muted/40 border border-border px-3 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold">
@@ -818,20 +815,14 @@ function TicketDetailsView({
               <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Link>
 
-            <div className="mt-8 pt-6 border-t border-border space-y-3">
-              <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-semibold">
-                <div className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-emerald-500">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                Ambiente seguro e criptografado
-              </div>
-              <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-semibold">
-                <div className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-brand-orange">
-                  <Zap className="w-4 h-4" />
-                </div>
-                Confirmação por e-mail e WhatsApp
-              </div>
-            </div>
+            <p className="mt-3 text-[11px] text-muted-foreground text-center leading-relaxed">
+              Você preenche seus dados e finaliza o pagamento na próxima etapa.
+            </p>
+
+            <p className="mt-4 pt-4 border-t border-border text-[11px] text-muted-foreground/80 text-center">
+              Sujeito à disponibilidade.
+            </p>
+
           </div>
         </aside>
       </div>
