@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import {
   Ticket,
   Calendar as CalendarIcon,
@@ -18,7 +21,12 @@ import { whatsappUrl } from "@/lib/checkout-config";
 import { TopBar } from "@/components/TopBar";
 import { ContactFooter } from "@/components/ContactFooter";
 
+const searchSchema = z.object({
+  evento: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/ingressos")({
+  validateSearch: zodValidator(searchSchema),
   head: () => {
     const url = "https://pedidos.viaair.tur.br/ingressos";
     const desc =
@@ -37,6 +45,24 @@ export const Route = createFileRoute("/ingressos")({
   },
   component: IngressosPage,
 });
+
+const EVENT_CATEGORIES: { key: string; label: string; match: RegExp }[] = [
+  { key: "rock-in-rio", label: "Rock in Rio", match: /rock\s*in\s*rio|cidade do rock/i },
+  { key: "disney", label: "Disney", match: /disney|magic kingdom|epcot|hollywood studios|animal kingdom/i },
+  { key: "universal", label: "Universal", match: /universal|islands of adventure|epic universe|volcano bay/i },
+  { key: "seaworld", label: "SeaWorld", match: /sea\s*world|busch gardens|aquatica/i },
+  { key: "lollapalooza", label: "Lollapalooza", match: /lollapalooza|lolla/i },
+];
+
+function detectEvent(p: any): string | null {
+  const hay = [p.title, p.destination, ...(p.services?.tickets?.parks ?? [])]
+    .filter(Boolean)
+    .join(" | ");
+  for (const cat of EVENT_CATEGORIES) {
+    if (cat.match.test(hay)) return cat.key;
+  }
+  return null;
+}
 
 const MONTH_ABBR = [
   "JAN", "FEV", "MAR", "ABR", "MAI", "JUN",
