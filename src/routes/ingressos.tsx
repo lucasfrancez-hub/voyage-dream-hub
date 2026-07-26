@@ -180,14 +180,54 @@ function IngressosPage() {
             </div>
           )}
 
-          {/* GRID (destaque + demais, todos 3 por linha) */}
-          {list.length > 0 && (
+          {/* FILTRO POR EVENTO */}
+          {!isLoading && list.length > 0 && availableCategories.length > 0 && (
+            <div className="mb-6 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveEvent("")}
+                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
+                  activeEvent === ""
+                    ? "bg-brand-orange text-primary-foreground shadow-lg"
+                    : "border border-border bg-card text-muted-foreground hover:border-brand-orange/60 hover:text-foreground"
+                }`}
+              >
+                Todos <span className="opacity-70">({list.length})</span>
+              </button>
+              {availableCategories.map((cat) => (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setActiveEvent(cat.key)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
+                    activeEvent === cat.key
+                      ? "bg-brand-orange text-primary-foreground shadow-lg"
+                      : "border border-border bg-card text-muted-foreground hover:border-brand-orange/60 hover:text-foreground"
+                  }`}
+                >
+                  <Sparkles className="h-3 w-3" /> {cat.label}{" "}
+                  <span className="opacity-70">({eventCounts[cat.key]})</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* GRID */}
+          {list.length > 0 && filteredList.length > 0 && (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {list.map((p, idx) => (
+              {filteredList.map((p, idx) => (
                 <TicketCard key={p.id} pkg={p} eager={idx < 3} />
               ))}
             </div>
           )}
+
+          {list.length > 0 && filteredList.length === 0 && (
+            <div className="rounded-2xl border border-border bg-card p-10 text-center">
+              <p className="text-muted-foreground">Nenhum ingresso nesta categoria por enquanto.</p>
+            </div>
+          )}
+
+
 
         </section>
       </main>
