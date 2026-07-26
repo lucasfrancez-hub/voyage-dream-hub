@@ -212,17 +212,17 @@ function IngressosPage() {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Evento
+                  Destino
                 </label>
                 <Select
                   value={activeEvent || "all"}
                   onValueChange={(v) => setActiveEvent(v === "all" ? "" : v)}
                 >
                   <SelectTrigger className="h-10 w-[220px] bg-background">
-                    <SelectValue placeholder="Todos os eventos" />
+                    <SelectValue placeholder="Todos os destinos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos os eventos ({list.length})</SelectItem>
+                    <SelectItem value="all">Todos os destinos ({list.length})</SelectItem>
                     {availableCategories.map((cat) => (
                       <SelectItem key={cat.key} value={cat.key}>
                         {cat.label} ({eventCounts[cat.key]})
