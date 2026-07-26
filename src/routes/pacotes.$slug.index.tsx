@@ -985,7 +985,7 @@ function PreCheckoutDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-4xl p-0 gap-0 overflow-hidden border-border bg-card shadow-2xl rounded-3xl flex flex-col max-h-[92vh]">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-4xl p-0 gap-0 overflow-hidden border-border bg-card/80 backdrop-blur-2xl shadow-2xl rounded-3xl flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="px-6 py-5 shrink-0 border-b border-border/60 flex items-start justify-between gap-4">
           <DialogHeader className="text-left space-y-1">
