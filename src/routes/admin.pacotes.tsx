@@ -2367,7 +2367,10 @@ function PackageEditorModal({
                   onChange={(next) => setEditing({ ...editing, services: next })}
                   inpClass={inp}
                   kind={kind}
+                  destination={editing.destination ?? null}
+                  suggestions={addonSuggestions}
                 />
+
 
 
                 <div className="sm:col-span-2">
