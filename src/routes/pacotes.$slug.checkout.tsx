@@ -17,7 +17,13 @@ import { TermsModal } from "@/components/TermsModal";
 
 export const Route = createFileRoute("/pacotes/$slug/checkout")({
   component: Checkout,
+  validateSearch: (s: Record<string, unknown>) => {
+    const raw = Number(s?.qty);
+    const qty = Number.isFinite(raw) && raw > 0 ? Math.min(9, Math.floor(raw)) : undefined;
+    return { qty };
+  },
 });
+
 
 type PaymentMethod = "credit_card" | "pix" | "boleto";
 
