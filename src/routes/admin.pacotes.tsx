@@ -1442,6 +1442,10 @@ function PackageEditorModal({
       // Sempre reconstrói o ingresso a partir da origem. Isso corrige registros
       // antigos que tinham apenas o ingresso pai, sem subs ou sem price_by_weekday.
       if (suggestion) {
+        // Versões anteriores criavam um opcional principal para cada Express/Fast
+        // Pass, todos com o mesmo source_package_id. Consolida tudo em um único
+        // ingresso pai para não exibir quatro ingressos iguais como selecionados.
+        if (representedSourceIds.has(suggestion.id)) return [];
         representedSourceIds.add(suggestion.id);
         return [ticketSuggestionToAddon(suggestion)];
       }
