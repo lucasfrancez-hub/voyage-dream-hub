@@ -600,8 +600,8 @@ function Checkout() {
                     const qty = a.per === "order" ? 1 : Math.max(1, units);
                     const line = a.price * qty;
                     return (
+                      <Fragment key={a.key}>
                       <label
-                        key={a.key}
                         className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition ${
                           checked
                             ? "border-brand-orange bg-brand-orange/5 shadow-[0_0_0_1px_hsl(var(--brand-orange)/0.35)]"
