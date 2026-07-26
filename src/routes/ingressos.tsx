@@ -376,10 +376,10 @@ function TicketCard({ pkg: p, eager = false }: { pkg: any; eager?: boolean }) {
     <Link
       to="/pacotes/$slug"
       params={{ slug: p.slug }}
-      className="group relative flex flex-col rounded-2xl overflow-hidden border border-border bg-card hover:border-brand-orange/60 hover:shadow-[0_20px_60px_-20px_hsl(var(--brand-orange-rgb,24_90%_53%)/0.4)] transition-all"
+      className="group relative flex flex-col rounded-2xl bg-card hover:shadow-[0_20px_60px_-20px_hsl(var(--brand-orange-rgb,24_90%_53%)/0.4)] transition-all"
     >
       {/* IMAGEM */}
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl border border-b-0 border-border group-hover:border-brand-orange/60 transition-colors">
         {p.image_url ? (
           <img
             src={p.image_url}
@@ -421,15 +421,15 @@ function TicketCard({ pkg: p, eager = false }: { pkg: any; eager?: boolean }) {
         ) : null}
       </div>
 
-      {/* PICOTE tipo ingresso */}
+      {/* PICOTE tipo ingresso — borda acompanha o semicírculo */}
       <div className="relative h-4 bg-card">
-        <div className="absolute -left-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-background border-r border-border" />
-        <div className="absolute -right-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-background border-l border-border" />
+        <div className="absolute -left-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-background border-r border-border group-hover:border-brand-orange/60 transition-colors" />
+        <div className="absolute -right-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-background border-l border-border group-hover:border-brand-orange/60 transition-colors" />
         <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 border-t border-dashed border-border" />
       </div>
 
       {/* CORPO */}
-      <div className="p-5 flex flex-col gap-3 flex-1">
+      <div className="p-5 flex flex-col gap-3 flex-1 rounded-b-2xl border border-t-0 border-border group-hover:border-brand-orange/60 transition-colors">
         <h2 className="font-semibold text-lg leading-snug line-clamp-2">{p.title}</h2>
         {chips.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
