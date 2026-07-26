@@ -2937,6 +2937,11 @@ function AddonsEditor({
               value={a.description ?? ""}
               onChange={(e) => patchAt(idx, { description: e.target.value })}
             />
+            <WeekdayPricingEditor
+              tiers={a.price_by_weekday ?? []}
+              onChange={(next) => patchAt(idx, { price_by_weekday: next })}
+              inpClass={inpClass}
+            />
           </div>
         ))}
       </div>
@@ -2945,6 +2950,122 @@ function AddonsEditor({
 }
 
 // (marker) 
+
+type WeekdayTier = NonNullable<NonNullable<PackageServices["addons"]>[number]["price_by_weekday"]>[number];
+
+const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function WeekdayPricingEditor({
+  tiers,
+  onChange,
+  inpClass,
+}: {
+  tiers: WeekdayTier[];
+  onChange: (next: WeekdayTier[]) => void;
+  inpClass: string;
+}) {
+  const enabled = tiers.length > 0;
+  const patchTier = (idx: number, p: Partial<WeekdayTier>) =>
+    onChange(tiers.map((t, i) => (i === idx ? { ...t, ...p } : t)));
+  const toggleDay = (idx: number, day: number) => {
+    const cur = new Set(tiers[idx].days ?? []);
+    if (cur.has(day)) cur.delete(day);
+    else {
+      // remove esse dia de qualquer outra faixa (um dia só numa faixa)
+      tiers.forEach((t, i) => {
+        if (i !== idx) t.days = (t.days ?? []).filter((d) => d !== day);
+      });
+      cur.add(day);
+    }
+    const next = tiers.map((t, i) =>
+      i === idx ? { ...t, days: Array.from(cur).sort() } : { ...t, days: t.days ?? [] },
+    );
+    onChange(next);
+  };
+  return (
+    <div className="rounded-lg bg-muted/40 p-2">
+      <div className="flex items-center justify-between">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            className="h-3.5 w-3.5 accent-brand-orange"
+            checked={enabled}
+            onChange={(e) =>
+              onChange(e.target.checked ? [{ label: "", days: [], price: 0 }] : [])
+            }
+          />
+          Variar preço por dia da semana
+        </label>
+        {enabled && (
+          <button
+            type="button"
+            className="text-xs text-brand-orange hover:underline"
+            onClick={() => onChange([...tiers, { label: "", days: [], price: 0 }])}
+          >
+            + Nova faixa
+          </button>
+        )}
+      </div>
+      {enabled && (
+        <div className="mt-2 space-y-2">
+          {tiers.map((t, idx) => (
+            <div key={idx} className="rounded-md border border-border bg-background p-2">
+              <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto]">
+                <input
+                  className={inpClass}
+                  placeholder="Rótulo (ex.: Sábado, Dom–Ter, Qua–Sex)"
+                  value={t.label ?? ""}
+                  onChange={(e) => patchTier(idx, { label: e.target.value })}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className={inpClass}
+                  placeholder="Preço (R$)"
+                  value={t.price ?? 0}
+                  onChange={(e) => patchTier(idx, { price: Number(e.target.value) || 0 })}
+                />
+                <button
+                  type="button"
+                  onClick={() => onChange(tiers.filter((_, i) => i !== idx))}
+                  className="rounded-md border border-border px-2 hover:bg-muted"
+                  aria-label="Remover faixa"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {WEEKDAY_LABELS.map((wl, day) => {
+                  const active = (t.days ?? []).includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleDay(idx, day)}
+                      className={`rounded-md border px-2 py-1 text-[11px] transition ${
+                        active
+                          ? "border-brand-orange bg-brand-orange text-white"
+                          : "border-border bg-background hover:border-brand-orange/50"
+                      }`}
+                    >
+                      {wl}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          <p className="text-[11px] text-muted-foreground">
+            Se a data escolhida no checkout cair em um dos dias marcados, esse preço substitui o valor base.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 
 function CruiseEditor({
   value,

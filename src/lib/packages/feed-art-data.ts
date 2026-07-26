@@ -129,6 +129,12 @@ export type PackageServices = {
     price: number;
     /** 'unit' = multiplica pelo número de ingressos/viajantes; 'order' = valor fixo por reserva. */
     per?: "unit" | "order";
+    /** Faixas de preço por dia da semana (0=domingo, 6=sábado). Se a data selecionada bater, sobrepõe `price`. */
+    price_by_weekday?: Array<{
+      label?: string;
+      days: number[];
+      price: number;
+    }>;
   }>;
 };
 
