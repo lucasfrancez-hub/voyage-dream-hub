@@ -409,6 +409,27 @@ function Checkout() {
                 </p>
               </Card>
             )}
+            {pickupOptions.length > 0 && (
+              <Card title="Ponto de saída do transfer">
+                <Field label="De onde você quer sair? *">
+                  <select
+                    required
+                    value={pickupPoint}
+                    onChange={(e) => setPickupPoint(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">Selecione o ponto de saída…</option>
+                    {pickupOptions.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </Field>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  O transfer sai do local escolhido em direção ao evento.
+                </p>
+              </Card>
+
+            )}
             {/* Viajantes / quantidade */}
             <Card title={isPerUnit ? "Quantidade" : "Quantos viajantes?"}>
               {isPerUnit ? (
