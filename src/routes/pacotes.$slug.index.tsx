@@ -1011,13 +1011,24 @@ function PreCheckoutDialog({
         const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
         const price = tier ? Number(tier.price) : assumed;
         const subs = ((a.sub_options ?? []) as any[])
-          .filter((s) => s && s.name && Number(s.price) >= 0)
-          .map((s, j) => ({
-            ...s,
-            key: `${key}::${s.id || `${s.name}-${j}`}`,
-            price: Number(s.price) || 0,
-            per: (s.per ?? "unit") as "unit" | "order",
-          }));
+          .filter((s) => {
+            const subTiers = (s?.price_by_weekday ?? []) as any[];
+            return s && s.name && (Number(s.price) >= 0 || subTiers.some((t) => Number(t?.price) > 0));
+          })
+          .map((s, j) => {
+            const subTiers = (s.price_by_weekday ?? []) as any[];
+            const subTier = wd != null ? subTiers.find((t: any) => (t.days ?? []).includes(wd)) : null;
+            const subTierPrices = subTiers.map((t) => Number(t?.price)).filter((n) => n > 0);
+            const subAssumed = Number(s.price) > 0 ? Number(s.price) : (subTierPrices.length ? Math.min(...subTierPrices) : 0);
+            return {
+              ...s,
+              key: `${key}::${s.id || `${s.name}-${j}`}`,
+              price: subTier ? Number(subTier.price) : subAssumed,
+              per: (s.per ?? "unit") as "unit" | "order",
+              tierLabel: subTier?.label ?? null,
+              hasWeekdayPricing: subTiers.length > 0,
+            };
+          });
         return {
           ...a,
           key,
