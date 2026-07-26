@@ -1057,28 +1057,36 @@ function Checkout() {
         </form>
       </div>
       {termsOpen && <TermsModal onClose={() => setTermsOpen(false)} />}
-      {success && (payment === "credit_card" || payment === "boleto" || payment === "pix") && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-2xl">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
-              <Check className="h-9 w-9 text-emerald-500" />
-            </div>
-            <h2 className="font-display text-2xl font-bold text-foreground">
-              Muito obrigado <span className="text-brand-orange">pela compra!</span>
-            </h2>
-            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-              Seu pedido foi enviado com sucesso. Nossa equipe entrará em contato em breve para confirmar sua reserva.
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/pacotes" })}
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
-            >
-              Continuar
-            </button>
-          </div>
-        </div>
+      {success && payment === "pix" && pixInfo && !pixPaid && (
+        <PixQrOverlay
+          qrCode={pixInfo.qrCode}
+          valor={pixInfo.valor}
+          expiraEm={pixInfo.expiraEm}
+          onClose={() => navigate({ to: "/pacotes" })}
+        />
       )}
+      {success && payment === "pix" && pixPaid && (
+        <SuccessOverlay
+          title="Pagamento aprovado!"
+          message="Recebemos seu Pix. Nossa equipe já foi notificada e vai começar a organizar sua viagem."
+          onClose={() => navigate({ to: "/pacotes" })}
+        />
+      )}
+      {success && (payment === "credit_card" || payment === "boleto") && (
+        <SuccessOverlay
+          title="Muito obrigado pela compra!"
+          message="Seu pedido foi enviado com sucesso. Nossa equipe entrará em contato em breve para confirmar sua reserva."
+          onClose={() => navigate({ to: "/pacotes" })}
+        />
+      )}
+      {success && payment === "pix" && !pixInfo && (
+        <SuccessOverlay
+          title="Pedido registrado!"
+          message="Nossa equipe vai enviar o QR Pix por e-mail em instantes."
+          onClose={() => navigate({ to: "/pacotes" })}
+        />
+      )}
+
       <ContactFooter whatsappMessage={`Olá! Preciso de ajuda para finalizar minha reserva.`} />
     </div>
   );
