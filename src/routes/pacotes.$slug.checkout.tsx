@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CreditCard, QrCode, FileText, Loader2, Check, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, formatDateRange, maskCPF } from "@/lib/format";
+import { formatBRL, formatDateBR, formatDateRange, maskCPF } from "@/lib/format";
 import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/components/BoletoForm";
@@ -749,7 +749,9 @@ function Checkout() {
                 <div className="text-muted-foreground text-xs">
                   {isFlexibleDate
                     ? (preferredDate ? `Data desejada: ${preferredDate.split("-").reverse().join("/")}` : "Data à escolher")
-                    : formatDateRange(pkg.going_date, pkg.return_date)}
+                    : isService
+                      ? (pkg.going_date ? `Data do evento: ${formatDateBR(pkg.going_date)}` : "")
+                      : formatDateRange(pkg.going_date, pkg.return_date)}
                 </div>
               </div>
               <div className="mt-5 space-y-2 text-sm border-t border-border pt-4">

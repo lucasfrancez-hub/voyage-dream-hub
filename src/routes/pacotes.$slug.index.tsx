@@ -166,7 +166,7 @@ function PackageDetails() {
     queryKey: ["package", slug, preview ? "preview" : "public"],
     queryFn: async () => {
       const slugs = slug.includes("#") ? [slug, slug.replace(/#/g, "-")] : [slug];
-      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos").in("slug", slugs);
+      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services").in("slug", slugs);
       if (!preview) query = query.eq("is_active", true);
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
@@ -187,6 +187,14 @@ function PackageDetails() {
   }
 
   const baseOccupancy = pkg.base_occupancy ?? 2;
+  const isTicket = (pkg as any).kind === "service";
+  const isPerUnit = (pkg as any).pricing_mode === "per_unit";
+  const isFlexibleDate = (pkg as any).date_mode === "flexible";
+  const eventDateLabel = isFlexibleDate
+    ? "Data à escolher"
+    : pkg.going_date
+      ? formatDateBR(pkg.going_date)
+      : null;
 
   const hotelDetails = Array.from(
     new Map(
@@ -227,11 +235,20 @@ function PackageDetails() {
         {/* Left: content */}
         <div className="space-y-10">
           <section className="grid sm:grid-cols-3 gap-4">
-            {pkg.origin && (
+
+            {!isTicket && pkg.origin && (
               <InfoTile icon={Plane} label="Saindo de" value={pkg.origin} />
             )}
-            <InfoTile icon={Calendar} label="Período" value={formatDateRange(pkg.going_date, pkg.return_date)} />
-            {pkg.nights != null && (
+            <InfoTile
+              icon={Calendar}
+              label={isTicket ? "Data do evento" : "Período"}
+              value={
+                isTicket
+                  ? eventDateLabel ?? "—"
+                  : formatDateRange(pkg.going_date, pkg.return_date)
+              }
+            />
+            {!isTicket && pkg.nights != null && (
               <InfoTile icon={Calendar} label="Duração" value={`${pkg.nights} noites`} />
             )}
           </section>
@@ -386,10 +403,12 @@ function PackageDetails() {
         <aside className="lg:sticky lg:top-6 h-fit">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
             <div className="text-xs text-muted-foreground">
-              Preço para {baseOccupancy === 1 ? "1 pessoa" : `${baseOccupancy} pessoas`}
+              {isPerUnit
+                ? "Preço por ingresso"
+                : `Preço para ${baseOccupancy === 1 ? "1 pessoa" : `${baseOccupancy} pessoas`}`}
             </div>
             <div className="mt-1 text-3xl font-display font-bold text-brand-orange">
-              {formatBRL(Number(pkg.price_per_person) * baseOccupancy)}
+              {formatBRL(Number(pkg.price_per_person) * (isPerUnit ? 1 : baseOccupancy))}
             </div>
             {pkg.taxes ? (
               <div className="text-xs text-muted-foreground mt-1">
@@ -399,28 +418,36 @@ function PackageDetails() {
 
             <dl className="mt-6 space-y-3 text-sm">
               <Row label="Destino" value={pkg.destination} />
-              {pkg.origin && <Row label="Origem" value={pkg.origin} />}
-              {pkg.going_date && <Row label="Ida" value={formatDateBR(pkg.going_date)} />}
-              {pkg.return_date && <Row label="Volta" value={formatDateBR(pkg.return_date)} />}
-              {pkg.nights != null && <Row label="Noites" value={String(pkg.nights)} />}
+              {isTicket ? (
+                eventDateLabel && <Row label="Data do evento" value={eventDateLabel} />
+              ) : (
+                <>
+                  {pkg.origin && <Row label="Origem" value={pkg.origin} />}
+                  {pkg.going_date && <Row label="Ida" value={formatDateBR(pkg.going_date)} />}
+                  {pkg.return_date && <Row label="Volta" value={formatDateBR(pkg.return_date)} />}
+                  {pkg.nights != null && <Row label="Noites" value={String(pkg.nights)} />}
+                </>
+              )}
             </dl>
 
-            <div className="mt-5 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-              Este pacote foi montado para{" "}
-              <span className="text-foreground font-medium">
-                {pkg.base_occupancy ?? 2} adulto{(pkg.base_occupancy ?? 2) > 1 ? "s" : ""}
-              </span>
-              . Precisa de outra quantidade de viajantes?{" "}
-              <a
-                href={customQuoteWhatsappUrl(pkg.title)}
-                target="_blank"
-                rel="noreferrer"
-                className="text-brand-orange hover:underline font-medium"
-              >
-                Fale no WhatsApp
-              </a>
-              .
-            </div>
+            {!isPerUnit && (
+              <div className="mt-5 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Este pacote foi montado para{" "}
+                <span className="text-foreground font-medium">
+                  {pkg.base_occupancy ?? 2} adulto{(pkg.base_occupancy ?? 2) > 1 ? "s" : ""}
+                </span>
+                . Precisa de outra quantidade de viajantes?{" "}
+                <a
+                  href={customQuoteWhatsappUrl(pkg.title)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brand-orange hover:underline font-medium"
+                >
+                  Fale no WhatsApp
+                </a>
+                .
+              </div>
+            )}
 
             <Link
               to="/pacotes/$slug/checkout"

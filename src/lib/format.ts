@@ -23,6 +23,7 @@ export function formatDateRange(a?: string | null, b?: string | null): string {
   if (A === "—" && B === "—") return "—";
   if (A === "—") return B;
   if (B === "—") return A;
+  if (A === B) return A;
   return `${A} → ${B}`;
 }
 
