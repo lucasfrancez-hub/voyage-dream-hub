@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, MessageCircle, Ticket, Ship, Package as PackageIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { ArrowLeft, MessageCircle, Ticket, Ship, Package as PackageIcon, Menu } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { WHATSAPP_PHONE } from "@/lib/checkout-config";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 type TopBarProps = {
   backHref?: string;
@@ -28,6 +29,7 @@ export function TopBar({
   backLabel = "Voltar ao site",
   whatsappMessage = "Olá! Vim pelo site da Via Air e gostaria de ajuda.",
 }: TopBarProps) {
+  const [open, setOpen] = useState(false);
   const waUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(whatsappMessage)}`;
 
   const backEl = backTo ? (
@@ -49,10 +51,71 @@ export function TopBar({
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/50">
-      <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between gap-6">
-        <a href="https://viaair.tur.br" className="flex items-center gap-3 shrink-0">
-          <img src={viaAirLogo.url} alt="Via Air" className="h-9 w-auto" />
-        </a>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center justify-between gap-3 sm:gap-6">
+        <div className="flex items-center gap-2 min-w-0">
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger
+              className="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-full border border-border/60 bg-background/60 text-foreground hover:text-brand-orange hover:border-brand-orange/50 transition shrink-0"
+              aria-label="Abrir menu"
+            >
+              <Menu className="h-5 w-5" />
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[85%] max-w-sm p-0">
+              <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/60">
+                <SheetTitle className="flex items-center gap-3">
+                  <img src={viaAirLogo.url} alt="Via Air" className="h-8 w-auto" />
+                </SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col p-3">
+                <Link
+                  to="/ingressos"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
+                >
+                  <Ticket className="h-4 w-4" /> Ingressos
+                </Link>
+                <Link
+                  to="/cruzeiros"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
+                >
+                  <Ship className="h-4 w-4" /> Cruzeiros
+                </Link>
+                <Link
+                  to="/pacotes"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
+                >
+                  <PackageIcon className="h-4 w-4" /> Pacotes
+                </Link>
+                <div className="my-2 h-px bg-border/60" />
+                {NAV_ITEMS.map((item) => (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="rounded-xl px-4 py-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition"
+                  >
+                    {item.label}
+                  </a>
+                ))}
+                <div className="my-2 h-px bg-border/60" />
+                <a
+                  href={waUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl bg-brand-orange px-4 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition"
+                >
+                  <MessageCircle className="h-4 w-4" /> WhatsApp
+                </a>
+              </nav>
+            </SheetContent>
+          </Sheet>
+          <a href="https://viaair.tur.br" className="flex items-center gap-3 shrink-0">
+            <img src={viaAirLogo.url} alt="Via Air" className="h-9 w-auto" />
+          </a>
+        </div>
 
         <nav className="hidden lg:flex items-center gap-6">
           <Link to="/ingressos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
