@@ -266,7 +266,7 @@ function PackageDetails() {
           {pkg.summary && (
             <section>
               <h2 className="text-xl font-semibold">Sobre o pacote</h2>
-              <p className="mt-3 text-muted-foreground leading-relaxed">{pkg.summary}</p>
+              <p className="mt-3 text-muted-foreground leading-relaxed whitespace-pre-line">{pkg.summary}</p>
             </section>
           )}
 
