@@ -985,15 +985,15 @@ function PreCheckoutDialog({
         return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0) || hasSubPrice;
       })
       .map((a: any, i: number) => {
+        const key = a.id || `${a.name}-${i}`;
         const tiers = (a.price_by_weekday ?? []) as any[];
-        const tier =
-          weekday != null
-            ? tiers.find((t: any) => (t.days ?? []).includes(weekday))
-            : null;
+        const addonDateStr = addonDates[key] || date || pkg?.going_date || "";
+        const m = String(addonDateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        const wd = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay() : null;
+        const tier = wd != null ? tiers.find((t: any) => (t.days ?? []).includes(wd)) : null;
         const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
         const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
         const price = tier ? Number(tier.price) : assumed;
-        const key = a.id || `${a.name}-${i}`;
         const subs = ((a.sub_options ?? []) as any[])
           .filter((s) => s && s.name && Number(s.price) >= 0)
           .map((s, j) => ({
@@ -1010,11 +1010,13 @@ function PreCheckoutDialog({
           tierLabel: tier?.label ?? null,
           hasWeekdayPricing: tiers.length > 0,
           assumedFromMin: !tier && Number(a.price) <= 0 && tierPrices.length > 0,
+          addonDate: addonDates[key] || "",
           subs,
         };
       })
       .sort((a: any, b: any) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
-  }, [rawAddons, weekday]);
+  }, [rawAddons, weekday, addonDates, date, pkg]);
+
 
   const addonsTotal = useMemo(() => {
     return addons.reduce((sum, a) => {
