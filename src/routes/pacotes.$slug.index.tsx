@@ -21,6 +21,12 @@ import {
   Crown,
   Home,
   DoorOpen,
+  Ticket,
+  Bus,
+  Minus,
+  Plus,
+  ShieldCheck,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
