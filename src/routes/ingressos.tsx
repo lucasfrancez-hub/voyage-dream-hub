@@ -143,17 +143,15 @@ function IngressosPage() {
             </div>
           )}
 
-          {/* DESTAQUE */}
-          {featured && <FeaturedTicket pkg={featured} />}
-
-          {/* GRID */}
-          {rest.length > 0 && (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {rest.map((p, idx) => (
-                <TicketCard key={p.id} pkg={p} eager={idx === 0} />
+          {/* GRID (destaque + demais, todos 3 por linha) */}
+          {list.length > 0 && (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {list.map((p, idx) => (
+                <TicketCard key={p.id} pkg={p} eager={idx < 3} />
               ))}
             </div>
           )}
+
         </section>
       </main>
       <ContactFooter />
