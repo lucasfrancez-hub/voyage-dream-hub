@@ -33,7 +33,9 @@ const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
   const { slug } = Route.useParams();
+  const { qty: qtyFromSearch } = Route.useSearch();
   const navigate = useNavigate();
+
 
   const { data: pkg, isLoading } = useQuery({
     queryKey: ["package", slug],
