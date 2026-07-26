@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
-import { z } from "zod";
+import { useMemo, useState } from "react";
 import {
   Ticket,
   Calendar as CalendarIcon,
@@ -21,12 +19,7 @@ import { whatsappUrl } from "@/lib/checkout-config";
 import { TopBar } from "@/components/TopBar";
 import { ContactFooter } from "@/components/ContactFooter";
 
-const searchSchema = z.object({
-  evento: fallback(z.string(), "").default(""),
-});
-
 export const Route = createFileRoute("/ingressos")({
-  validateSearch: zodValidator(searchSchema),
   head: () => {
     const url = "https://pedidos.viaair.tur.br/ingressos";
     const desc =
