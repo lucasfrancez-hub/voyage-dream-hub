@@ -215,6 +215,10 @@ function PackageDetails() {
     ).values(),
   );
 
+  if (isTicket) {
+    return <TicketDetailsView pkg={pkg} eventDateLabel={eventDateLabel} />;
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopBar backTo="/pacotes" backLabel="Todos os pacotes" />
