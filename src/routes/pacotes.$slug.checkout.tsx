@@ -183,6 +183,12 @@ function Checkout() {
       return;
     }
 
+    if (pickupOptions.length > 0 && !pickupPoint) {
+      toast.error("Escolha o ponto de saída do transfer.");
+      return;
+    }
+
+
 
     if (payment === "boleto") {
       const err = validateBoleto(boleto, isThirdPartyFinancier);
