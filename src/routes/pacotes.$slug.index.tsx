@@ -670,7 +670,7 @@ function TicketDetailsView({
           {pkg.summary && (
             <section>
               <SectionHeader>Sobre o ingresso</SectionHeader>
-              <p className="text-muted-foreground leading-relaxed">{pkg.summary}</p>
+              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{pkg.summary}</p>
             </section>
           )}
 
