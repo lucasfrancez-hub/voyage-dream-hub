@@ -113,7 +113,16 @@ export type PackageServices = {
   transfer?: { enabled?: boolean; sentido?: "in" | "out" | "in_out" | null; pickup_points?: string | null };
   city_tour?: { enabled?: boolean; detalhe?: string | null };
   passeios?: string[] | null;
-  tickets?: { enabled?: boolean; parks?: string[] | null };
+  tickets?: {
+    enabled?: boolean;
+    parks?: string[] | null;
+    /** Faixas de preço do ingresso por dia da semana (0=domingo, 6=sábado). */
+    price_by_weekday?: Array<{
+      label?: string;
+      days: number[];
+      price: number;
+    }>;
+  };
   cruise?: {
     company?: string | null;
     ship?: string | null;
