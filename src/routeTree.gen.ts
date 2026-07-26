@@ -350,14 +350,14 @@ const OrcamentoTokenRoute = OrcamentoTokenRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesIndexRoute = PacotesIndexRouteImport.update({
-  id: '/pacotes/',
-  path: '/pacotes/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => PacotesRoute,
 } as any)
 const PacotesAdminRoute = PacotesAdminRouteImport.update({
-  id: '/pacotes/admin',
-  path: '/pacotes/admin',
-  getParentRoute: () => rootRouteImport,
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => PacotesRoute,
 } as any)
 const ProtocoloProtocoloIdRoute = ProtocoloProtocoloIdRouteImport.update({
   id: '/protocolo/$protocoloId',
@@ -1073,10 +1073,8 @@ export interface RootRouteChildren {
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
-  PacotesAdminRoute: typeof PacotesAdminRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   WSlugRoute: typeof WSlugRoute
-  PacotesIndexRoute: typeof PacotesIndexRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
@@ -1465,17 +1463,17 @@ declare module '@tanstack/react-router' {
     }
     '/pacotes/': {
       id: '/pacotes/'
-      path: '/pacotes'
+      path: '/'
       fullPath: '/pacotes/'
       preLoaderRoute: typeof PacotesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PacotesRoute
     }
     '/pacotes/admin': {
       id: '/pacotes/admin'
-      path: '/pacotes/admin'
+      path: '/admin'
       fullPath: '/pacotes/admin'
       preLoaderRoute: typeof PacotesAdminRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PacotesRoute
     }
     '/protocolo/$protocoloId': {
       id: '/protocolo/$protocoloId'
@@ -1812,10 +1810,8 @@ const rootRouteChildren: RootRouteChildren = {
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
-  PacotesAdminRoute: PacotesAdminRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   WSlugRoute: WSlugRoute,
-  PacotesIndexRoute: PacotesIndexRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
@@ -1847,3 +1843,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
