@@ -82,9 +82,9 @@ function Checkout() {
   const [preferredDate, setPreferredDate] = useState("");
   const [pickupPoint, setPickupPoint] = useState("");
 
-  const isPerUnit = (pkg as any)?.pricing_mode === "per_unit";
-  const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
   const isService = (pkg as any)?.kind === "service";
+  const isPerUnit = (pkg as any)?.pricing_mode === "per_unit" || isService;
+  const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
   const transferSvc = (pkg as any)?.services?.transfer ?? {};
   const pickupOptions: string[] = isService && transferSvc?.enabled
     ? String(transferSvc.pickup_points ?? "")
