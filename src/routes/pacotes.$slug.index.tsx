@@ -1125,6 +1125,7 @@ function PreCheckoutDialog({
                   const units = a.per === "order" ? 1 : Math.max(1, qty);
                   const priceIsAssumed = a.hasWeekdayPricing && weekday == null;
                   const Icon = pickIcon(a.name);
+                  const isRecommended = !!a.recommended;
                   return (
                     <button
                       key={a.key}
@@ -1134,9 +1135,17 @@ function PreCheckoutDialog({
                         "relative w-full p-4 rounded-2xl text-left transition-all bg-card border",
                         isSel
                           ? "border-brand-orange/60 ring-1 ring-brand-orange/40 shadow-[0_8px_24px_-12px_rgba(242,107,31,0.45)]"
-                          : "border-border/70 hover:border-border",
+                          : isRecommended
+                            ? "border-emerald-500/50 ring-1 ring-emerald-500/20 hover:border-emerald-500/70"
+                            : "border-border/70 hover:border-border",
                       )}
                     >
+                      {isRecommended && (
+                        <div className="absolute -top-2 left-4 flex items-center gap-1 rounded-full bg-emerald-500 text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-md">
+                          <Sparkles className="h-3 w-3" />
+                          Recomendado
+                        </div>
+                      )}
                       <div className="flex items-start gap-4 pr-14">
                         <div
                           className={cn(
@@ -1146,7 +1155,7 @@ function PreCheckoutDialog({
                           <Icon
                             className={cn(
                               "h-5 w-5 transition-colors",
-                              isSel ? "text-brand-orange" : "text-muted-foreground",
+                              isSel ? "text-brand-orange" : isRecommended ? "text-emerald-600" : "text-muted-foreground",
                             )}
                           />
                         </div>
@@ -1158,6 +1167,12 @@ function PreCheckoutDialog({
                           {a.description && (
                             <p className="text-[11px] text-muted-foreground mt-1 leading-snug whitespace-pre-line break-words">
                               {a.description}
+                            </p>
+                          )}
+                          {isRecommended && a.recommended_reason && (
+                            <p className="mt-2 inline-flex items-start gap-1 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2 py-1 text-[11px] font-medium leading-snug">
+                              <Sparkles className="h-3 w-3 mt-[2px] shrink-0" />
+                              <span className="break-words">{a.recommended_reason}</span>
                             </p>
                           )}
 

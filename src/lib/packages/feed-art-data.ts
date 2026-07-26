@@ -129,6 +129,10 @@ export type PackageServices = {
     price: number;
     /** 'unit' = multiplica pelo número de ingressos/viajantes; 'order' = valor fixo por reserva. */
     per?: "unit" | "order";
+    /** Marca o opcional como recomendado (destacado em verde no checkout). */
+    recommended?: boolean;
+    /** Texto curto explicando por que é recomendado (ex.: "Combo 2 parques sai mais barato"). */
+    recommended_reason?: string | null;
     /** Faixas de preço por dia da semana (0=domingo, 6=sábado). Se a data selecionada bater, sobrepõe `price`. */
     price_by_weekday?: Array<{
       label?: string;
