@@ -21,7 +21,12 @@ import { whatsappUrl } from "@/lib/checkout-config";
 import { TopBar } from "@/components/TopBar";
 import { ContactFooter } from "@/components/ContactFooter";
 
+const searchSchema = z.object({
+  evento: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/ingressos")({
+  validateSearch: zodValidator(searchSchema),
   head: () => {
     const url = "https://pedidos.viaair.tur.br/ingressos";
     const desc =
