@@ -1435,6 +1435,7 @@ function PackageEditorModal({
       });
     });
     const representedSourceIds = new Set<string>();
+    let changed = false;
     const normalizedCurrent = current.flatMap((addon) => {
       const normalizedName = (addon.name ?? "").trim().toLowerCase();
       const suggestion =
@@ -1445,14 +1446,19 @@ function PackageEditorModal({
       // Reconstrói apenas o ingresso selecionado a partir da origem. Assim ele
       // recebe os Express/Fast Pass como subs, com todas as faixas semanais.
       if (suggestion) {
-        if (representedSourceIds.has(suggestion.id)) return [];
+        if (representedSourceIds.has(suggestion.id)) {
+          changed = true;
+          return [];
+        }
         representedSourceIds.add(suggestion.id);
-        return [ticketSuggestionToAddon(suggestion)];
+        const hydrated = ticketSuggestionToAddon(suggestion);
+        if (JSON.stringify(addon) !== JSON.stringify(hydrated)) changed = true;
+        return [hydrated];
       }
       return [addon];
     });
 
-    if (JSON.stringify(current) === JSON.stringify(normalizedCurrent)) return;
+    if (!changed) return;
     setEditing((latest) => {
       if (!latest || latest.id !== editing.id) return latest;
       return {
@@ -1463,7 +1469,7 @@ function PackageEditorModal({
         },
       };
     });
-  }, [addonSuggestions]);
+  }, [addonSuggestions, editing.services?.addons]);
 
 
   // Auto-fill empty fields when derived values become available
