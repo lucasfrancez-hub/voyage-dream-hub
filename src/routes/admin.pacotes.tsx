@@ -1414,6 +1414,39 @@ function PackageEditorModal({
       }));
   }, [allPackages, editing.id, editing.destination]);
 
+  // Pacotes novos/importados já recebem todos os ingressos relacionados ao destino.
+  // Cada ingresso é o opcional principal; Express/Fast Pass cadastrados nele são sub-opções.
+  useEffect(() => {
+    if (editing.id || editing.kind !== "package" || addonSuggestions.length === 0) return;
+    const current = (editing.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
+    const sourceIds = new Set(current.map((a) => a.source_package_id).filter(Boolean));
+    const currentNames = new Set(current.map((a) => (a.name ?? "").trim().toLowerCase()));
+    const legacyExtraNames = new Set(
+      addonSuggestions.flatMap((suggestion) =>
+        (suggestion.services?.addons ?? []).flatMap((extra) => [
+          (extra.name ?? "").trim().toLowerCase(),
+          `${suggestion.title} — ${extra.name ?? ""}`.trim().toLowerCase(),
+        ]),
+      ),
+    );
+    const missing = addonSuggestions
+      .filter((suggestion) => !sourceIds.has(suggestion.id) && !currentNames.has(suggestion.title.trim().toLowerCase()))
+      .map(ticketSuggestionToAddon);
+    if (missing.length === 0) return;
+    // Remove o formato legado incorreto, em que Express/Fast Pass entrava como
+    // opcional principal, antes de inserir o ingresso pai com esses itens aninhados.
+    const normalizedCurrent = current.filter(
+      (addon) => addon.source_package_id || !legacyExtraNames.has((addon.name ?? "").trim().toLowerCase()),
+    );
+    setEditing({
+      ...editing,
+      services: {
+        ...(editing.services ?? {}),
+        addons: [...normalizedCurrent, ...missing],
+      },
+    });
+  }, [addonSuggestions, editing, setEditing]);
+
 
   // Auto-fill empty fields when derived values become available
   useEffect(() => {
@@ -2531,6 +2564,35 @@ export type AddonSuggestion = {
   services?: PackageServices | null;
 };
 
+function ticketSuggestionToAddon(
+  suggestion: AddonSuggestion,
+): NonNullable<PackageServices["addons"]>[number] {
+  const ticketExtras = (suggestion.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
+  const ticketLabel = suggestion.services?.tickets?.parks?.filter(Boolean).join(" • ") || null;
+  return {
+    id: `ticket-${suggestion.id}`,
+    source_package_id: suggestion.id,
+    name: suggestion.title,
+    description: ticketLabel,
+    price: Number(suggestion.price_per_person ?? 0),
+    per: "unit",
+    sub_options: ticketExtras.map((extra, index) => ({
+      id: extra.id || `ticket-${suggestion.id}-extra-${index}`,
+      name: extra.name,
+      description: extra.description ?? null,
+      price: Number(extra.price ?? 0),
+      per: extra.per ?? "unit",
+      recommended: !!extra.recommended,
+      recommended_reason: extra.recommended_reason ?? null,
+      price_by_weekday: (extra.price_by_weekday ?? []).map((tier) => ({
+        label: tier.label ?? "",
+        days: [...(tier.days ?? [])],
+        price: Number(tier.price ?? 0),
+      })),
+    })),
+  };
+}
+
 function ServicesEditor({
   value,
   onChange,
@@ -2970,16 +3032,9 @@ function AddonsEditor({
       </div>
       {suggestions && suggestions.length > 0 && (() => {
         const existingNames = new Set(addons.map((a) => (a.name ?? "").trim().toLowerCase()));
+        const existingSourceIds = new Set(addons.map((a) => a.source_package_id).filter(Boolean));
         const remaining = suggestions.filter((s) => {
-          const inner = (s.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
-          if (inner.length > 0) {
-            // já adicionou pelo menos uma variante do ingresso? esconde a sugestão
-            return !inner.some((a) =>
-              existingNames.has(`${s.title} — ${(a.name ?? "").trim()}`.toLowerCase()) ||
-              existingNames.has((a.name ?? "").trim().toLowerCase()),
-            );
-          }
-          return !existingNames.has((s.title ?? "").trim().toLowerCase());
+          return !existingSourceIds.has(s.id) && !existingNames.has((s.title ?? "").trim().toLowerCase());
         });
         if (remaining.length === 0) return null;
         return (
@@ -2990,46 +3045,23 @@ function AddonsEditor({
             </div>
             <div className="flex flex-wrap gap-1.5">
               {remaining.map((s) => {
-                const inner = (s.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
-                const variantCount = inner.length;
+                const extrasCount = (s.services?.addons ?? []).length;
                 return (
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => {
-                      if (variantCount > 0) {
-                        // Cada variante do ingresso (ex.: "1 dia | 1 parque", "4 dias | 4 parques")
-                        // vira um opcional individual, mantendo preço por dia da semana e sub-opções
-                        // (Fast Pass, Express Pass). Prefixa o nome com o título do ingresso pra
-                        // evitar duplicidade quando houver vários ingressos do mesmo hub.
-                        const expanded = inner.map((a) => ({
-                          ...a,
-                          name: `${s.title} — ${a.name ?? ""}`.trim().replace(/\s+—\s*$/, ""),
-                        }));
-                        onChange([...addons, ...expanded]);
-                      } else {
-                        onChange([
-                          ...addons,
-                          {
-                            name: s.title,
-                            description: null,
-                            price: Number(s.price_per_person ?? 0),
-                            per: "unit",
-                          },
-                        ]);
-                      }
-                    }}
+                    onClick={() => onChange([...addons, ticketSuggestionToAddon(s)])}
                     className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:border-emerald-500 hover:bg-emerald-500/10 transition"
                     title={
-                      variantCount > 0
-                        ? `Adicionar ${variantCount} variante${variantCount === 1 ? "" : "s"} de "${s.title}" (com Fast Pass e preço por dia da semana)`
+                      extrasCount > 0
+                        ? `Adicionar "${s.title}" com ${extrasCount} opcional${extrasCount === 1 ? "" : "is"} (Express/Fast Pass)`
                         : `Adicionar "${s.title}" como opcional`
                     }
                   >
                     + {s.title}
-                    {variantCount > 0 ? (
+                    {extrasCount > 0 ? (
                       <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                        {variantCount} var.
+                        {extrasCount} extra{extrasCount === 1 ? "" : "s"}
                       </span>
                     ) : (
                       s.price_per_person != null && s.price_per_person > 0 && (
@@ -3221,6 +3253,11 @@ function SubOptionsEditor({
                 />
                 Recomendada
               </label>
+              <WeekdayPricingEditor
+                tiers={s.price_by_weekday ?? []}
+                onChange={(next) => patchSub(idx, { price_by_weekday: next })}
+                inpClass={inpClass}
+              />
             </div>
           ))}
         </div>

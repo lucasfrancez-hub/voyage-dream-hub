@@ -148,7 +148,15 @@ export type PackageServices = {
       per?: "unit" | "order";
       recommended?: boolean;
       recommended_reason?: string | null;
+      /** Faixas próprias do complemento (ex.: Express Pass muda conforme o dia escolhido para o ingresso). */
+      price_by_weekday?: Array<{
+        label?: string;
+        days: number[];
+        price: number;
+      }>;
     }>;
+    /** ID do ingresso cadastrado que originou este opcional. */
+    source_package_id?: string;
   }>;
 };
 

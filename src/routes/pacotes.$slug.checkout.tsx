@@ -43,7 +43,7 @@ const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
   const { slug } = Route.useParams();
-  const { qty: qtyFromSearch, date: dateFromSearch, addons: addonsFromSearch } = Route.useSearch();
+  const { qty: qtyFromSearch, date: dateFromSearch, addons: addonsFromSearch, addonDates: addonDatesFromSearch } = Route.useSearch();
   const navigate = useNavigate();
   const notifyPix = useServerFn(notifyPixOrder);
 
@@ -105,6 +105,14 @@ function Checkout() {
   const [preferredDate, setPreferredDate] = useState("");
   const [pickupPoint, setPickupPoint] = useState("");
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
+  const addonDates = useMemo(() => {
+    const entries: string[] = (addonDatesFromSearch ?? "").split(",").filter(Boolean);
+    const pairs = entries.flatMap((entry: string) => {
+      const match = entry.match(/^(.*):(\d{4}-\d{2}-\d{2})$/);
+      return match ? [[match[1], match[2]] as const] : [];
+    });
+    return Object.fromEntries(pairs) as Record<string, string>;
+  }, [addonDatesFromSearch]);
 
   // Polling de status do Pix — verifica a cada 5s se o pagamento caiu
   useEffect(() => {
@@ -198,7 +206,7 @@ function Checkout() {
     const raw = ((pkg as any)?.services?.addons ?? []) as Array<{
       id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order";
       price_by_weekday?: Array<{ label?: string; days: number[]; price: number }>;
-      sub_options?: Array<{ id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order" }>;
+      sub_options?: Array<{ id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order"; price_by_weekday?: Array<{ label?: string; days: number[]; price: number }> }>;
     }>;
     return raw
       .filter((a) => {
@@ -208,23 +216,34 @@ function Checkout() {
         return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0) || subs.some((s) => Number(s?.price) > 0);
       })
       .map((a, i) => {
+        const key = a.id || `${a.name}-${i}`;
+        const ownDate = addonDates[key] || preferredDate || (pkg as any)?.going_date || "";
+        const ownMatch = String(ownDate).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        const ownWeekday = ownMatch ? new Date(Number(ownMatch[1]), Number(ownMatch[2]) - 1, Number(ownMatch[3])).getDay() : addonWeekday;
         const tiers = (a.price_by_weekday ?? []) as any[];
         const tier =
-          addonWeekday != null
-            ? tiers.find((t: any) => (t.days ?? []).includes(addonWeekday))
+          ownWeekday != null
+            ? tiers.find((t: any) => (t.days ?? []).includes(ownWeekday))
             : null;
         const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
         const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
         const price = tier ? Number(tier.price) : assumed;
-        const key = a.id || `${a.name}-${i}`;
         const subs = ((a.sub_options ?? []) as any[])
           .filter((s) => s && s.name)
-          .map((s, j) => ({
-            ...s,
-            key: `${key}::${s.id || `${s.name}-${j}`}`,
-            price: Number(s.price) || 0,
-            per: (s.per ?? "unit") as "unit" | "order",
-          }));
+          .map((s, j) => {
+            const subTiers = (s.price_by_weekday ?? []) as any[];
+            const subTier = ownWeekday != null ? subTiers.find((t: any) => (t.days ?? []).includes(ownWeekday)) : null;
+            const subTierPrices = subTiers.map((t) => Number(t?.price)).filter((n) => n > 0);
+            const subAssumed = Number(s.price) > 0 ? Number(s.price) : (subTierPrices.length ? Math.min(...subTierPrices) : 0);
+            return {
+              ...s,
+              key: `${key}::${s.id || `${s.name}-${j}`}`,
+              price: subTier ? Number(subTier.price) : subAssumed,
+              per: (s.per ?? "unit") as "unit" | "order",
+              tierLabel: subTier?.label ?? null,
+              hasWeekdayPricing: subTiers.length > 0,
+            };
+          });
         return {
           ...a,
           key,
@@ -235,7 +254,7 @@ function Checkout() {
           subs,
         };
       });
-  }, [pkg, addonWeekday]);
+  }, [pkg, addonWeekday, addonDates, preferredDate]);
 
   const addonsTotal = useMemo(() => {
     const units = isPerUnit ? adults : (adults + children);
@@ -366,7 +385,7 @@ function Checkout() {
               .flatMap((a) => {
                 const units = isPerUnit ? adults : (adults + children);
                 const qty = a.per === "order" ? 1 : Math.max(1, units);
-                const parent = { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null };
+                const parent = { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null, date: addonDates[a.key] ?? null };
                 const subs = a.subs
                   .filter((sub: any) => selectedAddons[sub.key])
                   .map((sub: any) => {
