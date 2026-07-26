@@ -993,7 +993,8 @@ function Checkout() {
                     <Check className="h-4 w-4" /> Reserva enviada
                   </>
                 ) : payment === "pix" ? (
-                  <>Fazer pedido e falar no WhatsApp</>
+                  <>Realizar pagamento</>
+
                 ) : (
                   <>Fazer pedido</>
                 )}
@@ -1019,7 +1020,7 @@ function Checkout() {
         </form>
       </div>
       {termsOpen && <TermsModal onClose={() => setTermsOpen(false)} />}
-      {success && (payment === "credit_card" || payment === "boleto") && (
+      {success && (payment === "credit_card" || payment === "boleto" || payment === "pix") && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-2xl">
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
