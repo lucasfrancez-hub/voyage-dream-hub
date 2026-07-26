@@ -963,7 +963,10 @@ function PreCheckoutDialog({
   const navigate = useNavigate();
   const [date, setDate] = useState<string>(isFlexibleDate ? "" : (pkg.going_date ?? ""));
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [addonDates, setAddonDates] = useState<Record<string, string>>({});
+  const [activeDateKey, setActiveDateKey] = useState<string>("__pkg");
   const [stepIdx, setStepIdx] = useState(0);
+
 
   const weekday = useMemo<number | null>(() => {
     const raw = date || pkg?.going_date || "";
