@@ -687,7 +687,7 @@ function Checkout() {
                           })}
                         </div>
                       )}
-                      </React.Fragment>
+                      </Fragment>
                     );
                   })}
                 </div>
