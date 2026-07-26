@@ -166,7 +166,7 @@ function IngressosPage() {
               </h1>
               <p className="mt-5 max-w-xl text-base md:text-lg text-muted-foreground leading-relaxed">
                 Rock in Rio, Disney, Universal, parques, festivais e eventos exclusivos —
-                com transfer, hospedagem e atendimento humano da Via Air.
+                tudo em um só lugar, com a facilidade e o atendimento humano da Via Air.
               </p>
             </div>
           </div>
