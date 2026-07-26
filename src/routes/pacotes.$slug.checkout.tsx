@@ -360,10 +360,25 @@ function Checkout() {
             pickup_point: pickupPoint || null,
             addons_selected: addonsList
               .filter((a) => selectedAddons[a.key])
-              .map((a) => {
+              .flatMap((a) => {
                 const units = isPerUnit ? adults : (adults + children);
                 const qty = a.per === "order" ? 1 : Math.max(1, units);
-                return { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null };
+                const parent = { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null };
+                const subs = a.subs
+                  .filter((sub: any) => selectedAddons[sub.key])
+                  .map((sub: any) => {
+                    const sQty = sub.per === "order" ? 1 : Math.max(1, units);
+                    return {
+                      name: `${a.name} — ${sub.name}`,
+                      price: sub.price,
+                      per: sub.per,
+                      qty: sQty,
+                      subtotal: sub.price * sQty,
+                      description: sub.description ?? null,
+                      parent: a.name,
+                    };
+                  });
+                return [parent, ...subs];
               }),
             addons_total: addonsTotal,
 
