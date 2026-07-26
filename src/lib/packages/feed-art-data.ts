@@ -290,22 +290,36 @@ export type FeedInputPkg = {
   services?: PackageServices | null;
   meal_plan?: string | null;
   supplier_name?: string | null;
+  kind?: "package" | "service" | "cruise" | null;
+  date_mode?: "fixed" | "flexible" | null;
+  pricing_mode?: "per_occupancy" | "per_unit" | null;
+  title?: string | null;
 };
 
 
 export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> {
   if (!pkg.image_url) throw new Error("Cadastre a URL da imagem de capa para gerar a arte.");
 
+  const isService = pkg.kind === "service";
+
   const [bg, tagline] = await Promise.all([
     toDataUrl(pkg.image_url),
     generatePackageTagline({ data: { destination: pkg.destination } })
       .then((r) => r.text)
-      .catch(() => `Descubra ${pkg.destination}.`),
+      .catch(() => `Viva ${pkg.destination}.`),
   ]);
 
-  const pessoas = Math.max(1, Number(pkg.base_occupancy) || 2);
+  // Para ingressos: preço por unidade, base 1. Para pacotes: preço x ocupação.
+  const pessoas = isService ? 1 : Math.max(1, Number(pkg.base_occupancy) || 2);
   const isCativa = /cativa/i.test(pkg.supplier_name ?? "");
+  const parks = (pkg.services?.tickets?.parks ?? [])
+    .map((p) => String(p ?? "").trim())
+    .filter(Boolean);
+
   return {
+    kind: (pkg.kind ?? "package") as "package" | "service" | "cruise",
+    dateMode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
+    title: pkg.title ?? "",
     backgroundDataUrl: bg,
     estado: deriveState(pkg.destination, pkg.tripadvisor_address),
     destino: pkg.destination,
@@ -317,20 +331,15 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     hotel: pkg.hotel_name || "",
     estrelas: pkg.hotel_stars,
     quantidadePessoas: pessoas,
-    apartamento: APT_LABEL[pessoas] || `de ${pessoas} pessoas`,
+    apartamento: isService ? "" : (APT_LABEL[pessoas] || `de ${pessoas} pessoas`),
     parcelas: isCativa ? 15 : 10,
     isCativa,
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
 
-    inclusos: detectIncludes(pkg.includes, pkg.services ?? null),
+    inclusos: detectIncludes(pkg.includes, pkg.services ?? null, pkg.kind ?? null),
     mealPlanLabel: deriveMealPlanLabel(pkg.meal_plan, pkg.includes),
-    ticketsLabel: (pkg.services?.tickets?.parks ?? [])
-      .map((p) => String(p ?? "").trim())
-      .filter(Boolean)
-      .join(" · ") || null,
-    ticketsParks: (pkg.services?.tickets?.parks ?? [])
-      .map((p) => String(p ?? "").trim())
-      .filter(Boolean),
+    ticketsLabel: parks.join(" · ") || null,
+    ticketsParks: parks,
     passeiosList: normalizePasseios(pkg.services ?? null),
   };
 }
