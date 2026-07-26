@@ -256,28 +256,58 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
               <div className="vfeed-info glass-panel">
                 <div className="vfeed-info-col">
                   <div className="vfeed-info-icon">{I.calendar}</div>
-                  <p className="vfeed-info-strong">{data.dataIda}</p>
-                  <p className="vfeed-info-mid">até {data.dataVolta}</p>
-                  {data.noites ? <p className="vfeed-info-small">{data.noites} noites</p> : null}
+                  {data.dateMode === "flexible" || !data.dataIda ? (
+                    <>
+                      <p className="vfeed-info-strong">Data flexível</p>
+                      <p className="vfeed-info-mid">você escolhe</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="vfeed-info-strong">{data.dataIda}</p>
+                      {data.dataVolta && data.dataVolta !== data.dataIda ? (
+                        <p className="vfeed-info-mid">até {data.dataVolta}</p>
+                      ) : null}
+                      {data.noites ? <p className="vfeed-info-small">{data.noites} noites</p> : null}
+                    </>
+                  )}
                 </div>
                 <div className="vfeed-info-div" />
-                <div className="vfeed-info-col vfeed-info-col-plane">
-                  <div className="vfeed-info-icon">{I.plane}</div>
-                  <p className="vfeed-info-mid">Saída de</p>
-                  <p className="vfeed-info-strong">{data.origem}</p>
-                </div>
-                <div className="vfeed-info-div" />
-                <div className="vfeed-info-col vfeed-info-col-hotel">
-                  <div className="vfeed-info-icon">{I.building}</div>
-                  <p className="vfeed-info-hotel">{data.hotel}</p>
-                  {stars > 0 ? (
-                    <div className="vfeed-stars">
-                      {Array.from({ length: stars }).map((_, i) => (
-                        <span key={i}>{I.star}</span>
-                      ))}
+                {data.kind === "service" ? (
+                  <>
+                    <div className="vfeed-info-col vfeed-info-col-plane">
+                      <div className="vfeed-info-icon">{I.ticket}</div>
+                      <p className="vfeed-info-mid">Ingresso</p>
+                      <p className="vfeed-info-strong">
+                        {(data.ticketsParks?.[0] || data.title || "Oficial").slice(0, 40)}
+                      </p>
                     </div>
-                  ) : null}
-                </div>
+                    <div className="vfeed-info-div" />
+                    <div className="vfeed-info-col vfeed-info-col-hotel">
+                      <div className="vfeed-info-icon">{I.mapPin}</div>
+                      <p className="vfeed-info-hotel">{data.destino}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="vfeed-info-col vfeed-info-col-plane">
+                      <div className="vfeed-info-icon">{I.plane}</div>
+                      <p className="vfeed-info-mid">Saída de</p>
+                      <p className="vfeed-info-strong">{data.origem}</p>
+                    </div>
+                    <div className="vfeed-info-div" />
+                    <div className="vfeed-info-col vfeed-info-col-hotel">
+                      <div className="vfeed-info-icon">{I.building}</div>
+                      <p className="vfeed-info-hotel">{data.hotel}</p>
+                      {stars > 0 ? (
+                        <div className="vfeed-stars">
+                          {Array.from({ length: stars }).map((_, i) => (
+                            <span key={i}>{I.star}</span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Divisor "O pacote inclui" */}
