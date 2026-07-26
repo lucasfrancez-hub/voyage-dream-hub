@@ -1,54 +1,153 @@
-## O que vai mudar
+# Integração Pix Itaú (QR Code no checkout)
 
-### 1. Classificar cada registro por tipo
-Adiciono uma coluna `kind` na tabela `packages` com três valores:
-- `package` — pacote completo (o que já existe)
-- `service` — serviço/ingresso (Rock in Rio, transfers, etc.), pode ter hotel opcional
-- `cruise` — cruzeiro
+## Visão geral
 
-Migração: adiciona a coluna com default `package`, backfill em todos os registros atuais como `package`.
+Cliente escolhe Pix no checkout → nosso servidor pede um QR pro Itaú → mostra QR + copia-e-cola na tela de sucesso e manda por e-mail → quando o cliente paga, o Itaú avisa nosso webhook → pedido vira "pago" automaticamente.
 
-### 2. Botão "+" no admin de pacotes
-O botão + vira um menu dropdown com três opções:
-- **Pacote** (fluxo atual, aéreo + hotel)
-- **Serviço / Ingresso** (destino como cidade/evento, imagem, preço, descrição, hotel opcional, transfers/ingressos via `services`; sem aéreo obrigatório)
-- **Cruzeiro** (navio, cabine, porto embarque/desembarque, noites — reaproveita `hotel_name`/`destination` como navio/porto por enquanto, com rótulos ajustados no formulário)
+O único obstáculo é que o Itaú exige certificado digital (mTLS) em toda chamada, e o servidor do Lovable não aceita esse tipo de certificado. Solução: um mini-servidor externo (proxy) que segura o certificado e repassa as chamadas.
 
-Cada opção abre o mesmo `PackageEditor` com o `kind` já definido e campos irrelevantes ocultos.
+---
 
-### 3. Filtro por tipo na listagem admin
-Na lista `/admin/pacotes`, adiciono abas rápidas: **Pacotes** · **Ingressos** · **Cruzeiros**. Cada aba filtra por `kind`.
+## O que você (usuário) precisa fazer
 
-### 4. Duas páginas públicas novas, bem-feitas
+**1. Reunir credenciais do Itaú** (já tem na maioria):
+- `client_id` e `client_secret` — planilha `Token.xlsx`
+- `x-itau-apikey` — planilha `Token.xlsx`
+- Certificado emitido: arquivos `.crt` (público) e `.key` (privado)
+- Chave Pix cadastrada no Itaú PJ (CNPJ, e-mail, celular ou aleatória)
 
-**`/ingressos`** — vitrine exclusiva de serviços/ingressos
-- Layout tipo grid de cards, hero destacando "Ingressos e experiências"
-- Cada card: imagem grande, título do evento/serviço, cidade, data, "a partir de R$ X", botão "Reservar"
-- Clique leva para `/pacotes/[slug]` (fluxo de checkout já existe e funciona com qualquer pacote)
+**Se ainda não gerou o certificado:** o processo é CSR → Itaú aprova → CRT. Uso as coleções Postman que você mandou pra te guiar passo a passo (uma vez só).
 
-**`/cruzeiros`** — vitrine exclusiva de cruzeiros
-- Layout mais imersivo (foto grande do navio, chips com noites/porto/cabine)
-- Cards: imagem do navio, nome do cruzeiro, porto de embarque → desembarque, noites a bordo, "a partir de R$ X"
-- Clique leva para `/pacotes/[slug]`
+**2. Criar conta no Render** (grátis pra começar, ~US$7/mês depois):
+- render.com → sign up com GitHub
+- Vou entregar o código do proxy pronto num repositório
+- Clique em "Deploy" e cole as credenciais nos campos indicados
 
-Ambas com `head()` próprio (title/description/og) e responsivas.
+**3. Cadastrar a URL do webhook no Itaú** (te passo o link exato depois do deploy):
+- Portal Itaú Devportal → sua aplicação Pix → Webhook → colar URL
 
-### 5. Página `/pacotes` continua igual
-Mostra apenas `kind = 'package'`. Ingressos e cruzeiros saem daqui e ganham suas próprias vitrines. O carrossel embed e a busca da IA (Camila) continuam considerando só pacotes por enquanto — se depois quiser incluir, é fácil.
+Depois disso não precisa mexer em mais nada. Todas as alterações futuras (mensagens, expiração, layout do QR) faço direto no Lovable.
 
-### 6. Menu de navegação
-No header público adiciono links **Pacotes · Ingressos · Cruzeiros** para os clientes acharem as novas páginas.
+---
 
-## Detalhes técnicos
+## O que eu vou construir
 
-- Reuso `packages` (não crio tabelas novas) — mais simples de manter, e o checkout/pedido já funciona
-- Campos escondidos por tipo no editor:
-  - `service`: some aéreo obrigatório e categoria de quarto; mantém hotel opcional
-  - `cruise`: rótulos de "hotel" viram "navio/cabine", "destino" vira "porto"
-- Vitrines novas usam o mesmo query hook, filtrando por `kind` no lado do cliente
-- Slugs continuam únicos entre todos os tipos
+### Parte A — Proxy mTLS externo (repositório separado)
 
-## O que fica fora deste passo (podemos fazer depois se quiser)
-- Widget embed separado para ingressos/cruzeiros no WordPress
-- Broadcast/IA reconhecer ingressos e cruzeiros como categoria diferente
-- Campos 100% dedicados a cruzeiro (companhia marítima, itinerário porto a porto por dia)
+Mini servidor Node/Express (~150 linhas) que fica entre nosso app e o Itaú:
+
+- 3 endpoints internos protegidos por chave compartilhada:
+  - `POST /pix/cobranca` — cria QR imediato
+  - `GET /pix/status/:txid` — consulta se foi pago
+  - `POST /pix/webhook-config` — registra webhook (roda uma vez)
+- Anexa certificado `.crt/.key` em toda chamada pro Itaú via `https.Agent`
+- Cache do OAuth token (renova a cada 55min)
+- Logs estruturados
+- README com instruções de deploy no Render (5 cliques)
+
+### Parte B — Backend do Lovable (dentro deste projeto)
+
+1. **Server function `criarCobrancaPix`** (`src/lib/pix.functions.ts`)
+   - Recebe `orderId` + `valor` + dados do pagador
+   - Chama o proxy → recebe `qr_code_string` + `qr_code_imagem_base64` + `txid` + `expira_em`
+   - Salva na tabela `pix_cobrancas` (nova)
+   - Retorna QR pro frontend
+
+2. **Rota webhook pública** (`src/routes/api/public/itau-pix-webhook.ts`)
+   - Recebe callback do Itaú quando alguém paga
+   - Valida assinatura mTLS via header do proxy
+   - Atualiza `orders.status = 'paid'`
+   - Dispara e-mails: confirmação pro cliente + notificação pro admin
+
+3. **Migração de banco:**
+   ```sql
+   CREATE TABLE public.pix_cobrancas (
+     txid text PRIMARY KEY,
+     order_id uuid REFERENCES orders(id),
+     valor numeric(10,2) NOT NULL,
+     qr_code text NOT NULL,
+     status text NOT NULL DEFAULT 'ativa',  -- ativa|concluida|expirada|removida
+     expira_em timestamptz NOT NULL,
+     pago_em timestamptz,
+     e2eid text,  -- ID único do pagamento no Bacen
+     raw_response jsonb,
+     created_at timestamptz DEFAULT now()
+   );
+   -- + GRANT + RLS (admin lê tudo; ninguém escreve pelo client)
+   ```
+
+4. **Secrets no Lovable Cloud:**
+   - `PIX_PROXY_URL` — URL do Render (ex.: `https://viaair-pix-proxy.onrender.com`)
+   - `PIX_PROXY_SECRET` — chave compartilhada gerada pelo próprio Lovable
+   - `PIX_CHAVE` — sua chave Pix cadastrada no Itaú
+
+### Parte C — Frontend (checkout)
+
+Substituir a tela de sucesso atual do Pix (`src/routes/pacotes.$slug.checkout.tsx`) por uma tela dedicada:
+
+```text
+┌──────────────────────────────────────┐
+│  ✓ Pedido criado — pague via Pix     │
+│                                      │
+│      [QR CODE 240×240px]             │
+│                                      │
+│  Total: R$ 12.480,00                 │
+│  Expira em: 29:47 (contador)         │
+│                                      │
+│  ┌────────────────────────────────┐  │
+│  │ 00020126360014BR.GOV...       │  │
+│  │              [Copiar código]  │  │
+│  └────────────────────────────────┘  │
+│                                      │
+│  Assim que pagar, você recebe        │
+│  confirmação por e-mail.             │
+│                                      │
+│  ⟳ Verificando pagamento...          │
+└──────────────────────────────────────┘
+```
+
+- Contador regressivo de expiração
+- Polling do status a cada 5s (backup do webhook)
+- Ao confirmar pagamento: modal "Pagamento aprovado" + redireciona pra minhas reservas
+- Se expirar: botão "Gerar novo QR"
+
+### Parte D — E-mail com QR pro cliente
+
+Novo template `src/lib/email-templates/pix-qr-cliente.tsx`:
+- QR embutido como imagem inline
+- Código copia-e-cola formatado
+- Valor + prazo de expiração
+- Botão "Voltar pro pedido"
+
+E ajuste no template `pedido-pix-admin` (já existe) pra incluir o `txid`.
+
+---
+
+## Decisões já tomadas (baseado nas suas respostas)
+
+- ✅ **Cobrança imediata** com expiração
+- ⏱️ **Expira em 30 min** (padrão de mercado) — configurável depois
+- 🔔 **Confirmação automática via webhook** + polling de segurança
+
+---
+
+## Ordem de execução
+
+1. Migração da tabela `pix_cobrancas` + secrets
+2. Código do proxy mTLS (repo separado que eu entrego)
+3. Server function `criarCobrancaPix` + webhook público
+4. Tela nova do QR no checkout
+5. Template de e-mail
+6. Você faz deploy do proxy no Render + cadastra webhook no Itaú
+7. Teste em sandbox → testa em produção com R$ 0,01
+
+---
+
+## O que fica pra fora deste plano
+
+- **Pix com vencimento** (cobv) — só imediato por enquanto
+- **Devolução automática** (estorno) — se precisar cancelar, faz manual pelo app do Itaú
+- **Reconciliação de extrato bancário** — o webhook cobre 99% dos casos
+- **Split de pagamento** (marketplace) — não é caso aqui
+
+Se aprovar, começo pela migração e proxy em paralelo.
