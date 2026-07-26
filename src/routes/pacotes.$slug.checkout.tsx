@@ -94,6 +94,10 @@ function Checkout() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [pixInfo, setPixInfo] = useState<{ txid: string; qrCode: string; expiraEm: string; valor: number } | null>(null);
+  const [pixPaid, setPixPaid] = useState(false);
+  const criarPix = useServerFn(criarPixCobranca);
+  const consultarPix = useServerFn(consultarPixCobranca);
   const [termsOpen, setTermsOpen] = useState(false);
   const [preferredDate, setPreferredDate] = useState("");
   const [pickupPoint, setPickupPoint] = useState("");
