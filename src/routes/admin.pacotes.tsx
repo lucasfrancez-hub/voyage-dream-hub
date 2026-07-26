@@ -1136,7 +1136,6 @@ function AdminPackages() {
                             id: undefined,
                             slug: "",
                             title: p.title,
-                            active: p.active ?? true,
                           } as any);
                           toast.info("Duplicando pacote — ajuste as datas e salve.");
                         }}
