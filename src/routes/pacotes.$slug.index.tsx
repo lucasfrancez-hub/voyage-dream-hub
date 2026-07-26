@@ -1079,7 +1079,12 @@ function PreCheckoutDialog({
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-bold text-foreground truncate">{a.name}</div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                          {a.description && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
+                              {a.description}
+                            </p>
+                          )}
+                          <div className="text-[11px] text-muted-foreground mt-1">
                             {priceIsAssumed ? "A partir de " : ""}
                             <span className="text-foreground font-semibold">{formatBRL(a.price)}</span>
                             <span> {a.per === "order" ? "por reserva" : `× ${units}`}</span>
