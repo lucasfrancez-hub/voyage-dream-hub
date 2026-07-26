@@ -1441,79 +1441,161 @@ function PreCheckoutDialog({
             </div>
           )}
 
-          {currentStep === "date" && (
-            <div className="animate-fade-in">
-              <div className="mb-6">
-                <h3 className="text-white text-lg md:text-xl font-bold">Escolha a data</h3>
-                <p className="text-white/50 text-sm mt-1">
-                  {anySelectedNeedsDate
-                    ? "O preço de alguns opcionais varia conforme o dia da semana."
-                    : "Selecione o dia da sua visita."}
-                </p>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-4 md:p-6">
-                  {(() => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const maxDate = new Date(today);
-                    maxDate.setMonth(maxDate.getMonth() + 11);
-                    return (
-                      <CalendarMonthNav>
-                        {(month, setMonth) => (
-                          <CalendarUI
-                            mode="single"
-                            locale={ptBR}
-                            month={month}
-                            onMonthChange={setMonth}
-                            selected={date ? new Date(date + "T00:00:00") : undefined}
-                            onDayClick={(d, mods) => {
-                              if (mods?.disabled) return;
-                              if (d > maxDate) {
-                                toast.error("Data indisponível", { description: "Só aceitamos reservas com até 11 meses de antecedência." });
-                                return;
-                              }
-                              const y = d.getFullYear();
-                              const m = String(d.getMonth() + 1).padStart(2, "0");
-                              const day = String(d.getDate()).padStart(2, "0");
-                              setDate(`${y}-${m}-${day}`);
-                            }}
-                            disabled={{ before: new Date() }}
-                            modifiers={{ tooFar: { after: maxDate } }}
-                            modifiersClassNames={{ tooFar: "text-destructive line-through opacity-70 hover:!bg-destructive/10" }}
-                            initialFocus
-                            captionLayout="dropdown"
-                            fromYear={today.getFullYear()}
-                            toYear={today.getFullYear() + 3}
-                            className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
-                            classNames={{ root: "w-full", months: "w-full", month: "w-full flex flex-col gap-4", nav: "hidden", button_previous: "hidden", button_next: "hidden" }}
-                          />
-                        )}
-                      </CalendarMonthNav>
-                    );
-                  })()}
+          {currentStep === "date" && (() => {
+            const slots: { key: string; label: string; sub: string; value: string; setValue: (v: string) => void; needsWeekday: boolean }[] = [];
+            if (isFlexibleDate) {
+              slots.push({
+                key: "__pkg",
+                label: pkg.title || pkg.name || "Pacote",
+                sub: "Data principal",
+                value: date,
+                setValue: setDate,
+                needsWeekday: false,
+              });
+            }
+            for (const a of selectedAddons) {
+              slots.push({
+                key: a.key,
+                label: a.name,
+                sub: a.hasWeekdayPricing ? "Preço varia por dia" : "Adicional",
+                value: addonDates[a.key] || "",
+                setValue: (v: string) => setAddonDates((prev) => ({ ...prev, [a.key]: v })),
+                needsWeekday: a.hasWeekdayPricing,
+              });
+            }
+            const activeKey = slots.find((s) => s.key === activeDateKey) ? activeDateKey : slots[0]?.key ?? "__pkg";
+            const active = slots.find((s) => s.key === activeKey) ?? slots[0];
+            if (!active) return null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const maxDate = new Date(today);
+            maxDate.setMonth(maxDate.getMonth() + 11);
+            const activeWd = (() => {
+              const m = active.value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+              if (!m) return null;
+              return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay();
+            })();
+            const activeWdLabel = activeWd == null ? null : ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"][activeWd];
+
+            return (
+              <div className="animate-fade-in">
+                <div className="mb-6">
+                  <h3 className="text-white text-lg md:text-xl font-bold">Escolha as datas</h3>
+                  <p className="text-white/50 text-sm mt-1">
+                    {slots.length > 1
+                      ? "Cada adicional pode ter uma data diferente. Selecione abaixo e escolha o dia."
+                      : "Selecione o dia da sua visita."}
+                  </p>
                 </div>
-                <div className="space-y-3">
-                  <div className="bg-white/5 border border-white/10 rounded-3xl p-5">
-                    <div className="text-white/40 text-[10px] uppercase tracking-widest">Data selecionada</div>
-                    <div className="text-white text-xl font-bold mt-1">
-                      {date ? format(new Date(date + "T00:00:00"), "dd 'de' MMMM", { locale: ptBR }) : "—"}
+
+                {slots.length > 1 && (
+                  <div className="mb-5 flex flex-wrap gap-2">
+                    {slots.map((s) => {
+                      const isActive = s.key === activeKey;
+                      const filled = !!s.value;
+                      return (
+                        <button
+                          key={s.key}
+                          type="button"
+                          onClick={() => setActiveDateKey(s.key)}
+                          className={cn(
+                            "group flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl border text-left transition-all",
+                            isActive
+                              ? "bg-brand-orange/15 border-brand-orange/60 shadow-[0_0_20px_rgba(242,107,31,0.15)]"
+                              : filled
+                                ? "bg-white/5 border-emerald-500/40 hover:border-emerald-500/60"
+                                : "bg-white/5 border-white/10 hover:border-white/25",
+                          )}
+                        >
+                          <div className={cn(
+                            "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
+                            isActive ? "bg-brand-orange text-black" : filled ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10 text-white/50",
+                          )}>
+                            {filled ? <Check className="h-4 w-4" strokeWidth={3} /> : <CalendarIcon className="h-3.5 w-3.5" />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-white text-xs font-bold leading-tight truncate max-w-[180px]">{s.label}</div>
+                            <div className="text-[10px] text-white/50 leading-tight mt-0.5">
+                              {filled ? format(new Date(s.value + "T00:00:00"), "dd 'de' MMM", { locale: ptBR }) : s.sub}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+                  <div className="bg-white/5 border border-white/10 rounded-3xl p-4 md:p-6">
+                    <div className="mb-3 text-white/60 text-xs uppercase tracking-widest font-bold">
+                      Data de: <span className="text-brand-orange">{active.label}</span>
                     </div>
-                    {weekdayShortName && (
-                      <span className="mt-2 inline-block px-2 py-0.5 bg-brand-orange/15 text-brand-orange text-[10px] font-bold rounded-full uppercase tracking-wider">
-                        {weekdayShortName}
-                      </span>
+                    <CalendarMonthNav>
+                      {(month, setMonth) => (
+                        <CalendarUI
+                          key={active.key}
+                          mode="single"
+                          locale={ptBR}
+                          month={month}
+                          onMonthChange={setMonth}
+                          selected={active.value ? new Date(active.value + "T00:00:00") : undefined}
+                          onDayClick={(d, mods) => {
+                            if (mods?.disabled) return;
+                            if (d > maxDate) {
+                              toast.error("Data indisponível", { description: "Só aceitamos reservas com até 11 meses de antecedência." });
+                              return;
+                            }
+                            const y = d.getFullYear();
+                            const m = String(d.getMonth() + 1).padStart(2, "0");
+                            const day = String(d.getDate()).padStart(2, "0");
+                            active.setValue(`${y}-${m}-${day}`);
+                            // Auto-advance to next empty slot
+                            const nextEmpty = slots.find((s) => s.key !== active.key && !s.value && s.key !== active.key);
+                            if (nextEmpty && slots.length > 1) {
+                              setTimeout(() => setActiveDateKey(nextEmpty.key), 200);
+                            }
+                          }}
+                          disabled={{ before: new Date() }}
+                          modifiers={{ tooFar: { after: maxDate } }}
+                          modifiersClassNames={{ tooFar: "text-destructive line-through opacity-70 hover:!bg-destructive/10" }}
+                          initialFocus
+                          captionLayout="dropdown"
+                          fromYear={today.getFullYear()}
+                          toYear={today.getFullYear() + 3}
+                          className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
+                          classNames={{ root: "w-full", months: "w-full", month: "w-full flex flex-col gap-4", nav: "hidden", button_previous: "hidden", button_next: "hidden" }}
+                        />
+                      )}
+                    </CalendarMonthNav>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="bg-white/5 border border-white/10 rounded-3xl p-5">
+                      <div className="text-white/40 text-[10px] uppercase tracking-widest">Data para {active.label}</div>
+                      <div className="text-white text-xl font-bold mt-1">
+                        {active.value ? format(new Date(active.value + "T00:00:00"), "dd 'de' MMMM", { locale: ptBR }) : "—"}
+                      </div>
+                      {activeWdLabel && (
+                        <span className="mt-2 inline-block px-2 py-0.5 bg-brand-orange/15 text-brand-orange text-[10px] font-bold rounded-full uppercase tracking-wider">
+                          {activeWdLabel}
+                        </span>
+                      )}
+                    </div>
+                    {missingAddonDates.length > 0 && (
+                      <div className="bg-amber-500/5 border border-amber-500/20 rounded-3xl p-4 text-xs text-white/70 leading-relaxed">
+                        Falta escolher a data de: <span className="text-white font-semibold">{missingAddonDates.map((a) => a.name).join(", ")}</span>
+                      </div>
+                    )}
+                    {anySelectedNeedsDate && missingAddonDates.length === 0 && (
+                      <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-4 text-xs text-white/70 leading-relaxed">
+                        Todas as datas foram escolhidas. Você pode avançar.
+                      </div>
                     )}
                   </div>
-                  {anySelectedNeedsDate && (
-                    <div className="bg-brand-orange/5 border border-brand-orange/20 rounded-3xl p-4 text-xs text-white/70 leading-relaxed">
-                      Ao confirmar a data, você poderá escolher <span className="text-white font-semibold">complementos</span> como Fast Pass no próximo passo.
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
+
 
           {currentStep === "subs" && (
             <div className="animate-fade-in space-y-6">
