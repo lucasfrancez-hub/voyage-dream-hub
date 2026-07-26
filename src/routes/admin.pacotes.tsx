@@ -44,6 +44,7 @@ import {
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { formatBRL } from "@/lib/format";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
