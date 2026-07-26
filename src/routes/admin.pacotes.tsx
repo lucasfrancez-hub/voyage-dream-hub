@@ -2477,9 +2477,7 @@ function PackageEditorModal({
                       toast.error("Ingresso original não encontrado");
                       return;
                     }
-                    setDrafts(null);
-                    setDraftIndex(0);
-                    setEditingState({ ...source });
+                    setEditing({ ...source });
                     setTab("extras");
                   }}
                 />
