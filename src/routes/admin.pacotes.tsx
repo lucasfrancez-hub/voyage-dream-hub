@@ -1414,13 +1414,16 @@ function PackageEditorModal({
       }));
   }, [allPackages, editing.id, editing.destination]);
 
-  // Pacotes novos/importados já recebem todos os ingressos relacionados ao destino.
-  // Cada ingresso é o opcional principal; Express/Fast Pass cadastrados nele são sub-opções.
+  // Mantém os ingressos sugeridos sincronizados com seus cadastros de origem.
+  // Cada ingresso é o opcional principal; Express/Fast Pass são sub-opções e
+  // preservam integralmente suas faixas de preço por dia da semana.
   useEffect(() => {
-    if (editing.id || editing.kind !== "package" || addonSuggestions.length === 0) return;
+    if (editing.kind !== "package" || addonSuggestions.length === 0) return;
     const current = (editing.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
-    const sourceIds = new Set(current.map((a) => a.source_package_id).filter(Boolean));
-    const currentNames = new Set(current.map((a) => (a.name ?? "").trim().toLowerCase()));
+    const suggestionsById = new Map(addonSuggestions.map((suggestion) => [suggestion.id, suggestion]));
+    const suggestionsByName = new Map(
+      addonSuggestions.map((suggestion) => [suggestion.title.trim().toLowerCase(), suggestion]),
+    );
     const legacyExtraNames = new Set(
       addonSuggestions.flatMap((suggestion) =>
         (suggestion.services?.addons ?? []).flatMap((extra) => [
@@ -1429,20 +1432,41 @@ function PackageEditorModal({
         ]),
       ),
     );
+    const representedSourceIds = new Set<string>();
+    const normalizedCurrent = current.flatMap((addon) => {
+      const normalizedName = (addon.name ?? "").trim().toLowerCase();
+      const suggestion =
+        (addon.source_package_id ? suggestionsById.get(addon.source_package_id) : undefined) ??
+        suggestionsByName.get(normalizedName);
+
+      // Sempre reconstrói o ingresso a partir da origem. Isso corrige registros
+      // antigos que tinham apenas o ingresso pai, sem subs ou sem price_by_weekday.
+      if (suggestion) {
+        // Versões anteriores criavam um opcional principal para cada Express/Fast
+        // Pass, todos com o mesmo source_package_id. Consolida tudo em um único
+        // ingresso pai para não exibir quatro ingressos iguais como selecionados.
+        if (representedSourceIds.has(suggestion.id)) return [];
+        representedSourceIds.add(suggestion.id);
+        return [ticketSuggestionToAddon(suggestion)];
+      }
+
+      // Remove o formato legado em que Express/Fast Pass foi salvo como opcional
+      // principal, pois agora ele pertence às sub-opções do ingresso correspondente.
+      if (!addon.source_package_id && legacyExtraNames.has(normalizedName)) return [];
+      return [addon];
+    });
     const missing = addonSuggestions
-      .filter((suggestion) => !sourceIds.has(suggestion.id) && !currentNames.has(suggestion.title.trim().toLowerCase()))
+      .filter((suggestion) => !representedSourceIds.has(suggestion.id))
       .map(ticketSuggestionToAddon);
-    if (missing.length === 0) return;
-    // Remove o formato legado incorreto, em que Express/Fast Pass entrava como
-    // opcional principal, antes de inserir o ingresso pai com esses itens aninhados.
-    const normalizedCurrent = current.filter(
-      (addon) => addon.source_package_id || !legacyExtraNames.has((addon.name ?? "").trim().toLowerCase()),
-    );
+    const nextAddons = [...normalizedCurrent, ...missing];
+
+    // Evita renderizações em ciclo quando a estrutura já está sincronizada.
+    if (JSON.stringify(current) === JSON.stringify(nextAddons)) return;
     setEditing({
       ...editing,
       services: {
         ...(editing.services ?? {}),
-        addons: [...normalizedCurrent, ...missing],
+        addons: nextAddons,
       },
     });
   }, [addonSuggestions, editing, setEditing]);
@@ -2569,6 +2593,13 @@ function ticketSuggestionToAddon(
 ): NonNullable<PackageServices["addons"]>[number] {
   const ticketExtras = (suggestion.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
   const ticketLabel = suggestion.services?.tickets?.parks?.filter(Boolean).join(" • ") || null;
+  const ticketWeekdayPrices = (
+    (suggestion.services?.tickets as { price_by_weekday?: NonNullable<PackageServices["addons"]>[number]["price_by_weekday"] } | undefined)
+      ?.price_by_weekday ??
+    (suggestion.services as PackageServices & { price_by_weekday?: NonNullable<PackageServices["addons"]>[number]["price_by_weekday"] } | null)
+      ?.price_by_weekday ??
+    []
+  );
   return {
     id: `ticket-${suggestion.id}`,
     source_package_id: suggestion.id,
@@ -2576,6 +2607,11 @@ function ticketSuggestionToAddon(
     description: ticketLabel,
     price: Number(suggestion.price_per_person ?? 0),
     per: "unit",
+    price_by_weekday: ticketWeekdayPrices.map((tier) => ({
+      label: tier.label ?? "",
+      days: (tier.days ?? []).map(Number).filter(Number.isFinite),
+      price: Number(tier.price ?? 0),
+    })),
     sub_options: ticketExtras.map((extra, index) => ({
       id: extra.id || `ticket-${suggestion.id}-extra-${index}`,
       name: extra.name,
@@ -2586,7 +2622,7 @@ function ticketSuggestionToAddon(
       recommended_reason: extra.recommended_reason ?? null,
       price_by_weekday: (extra.price_by_weekday ?? []).map((tier) => ({
         label: tier.label ?? "",
-        days: [...(tier.days ?? [])],
+        days: (tier.days ?? []).map(Number).filter(Number.isFinite),
         price: Number(tier.price ?? 0),
       })),
     })),
