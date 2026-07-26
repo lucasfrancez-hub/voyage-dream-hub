@@ -1,5 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useMemo, useState } from "react";
 import {
   Ticket,
@@ -19,7 +21,12 @@ import { whatsappUrl } from "@/lib/checkout-config";
 import { TopBar } from "@/components/TopBar";
 import { ContactFooter } from "@/components/ContactFooter";
 
+const searchSchema = z.object({
+  evento: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/ingressos")({
+  validateSearch: zodValidator(searchSchema),
   head: () => {
     const url = "https://pedidos.viaair.tur.br/ingressos";
     const desc =
@@ -96,7 +103,10 @@ function IngressosPage() {
   });
 
   const list = items ?? [];
-  const [activeEvent, setActiveEvent] = useState<string>("");
+  const { evento: activeEvent } = Route.useSearch();
+  const navigate = useNavigate({ from: "/ingressos" });
+  const setActiveEvent = (key: string) =>
+    navigate({ search: (prev: { evento: string }) => ({ ...prev, evento: key }), replace: true });
 
   // Contagem por categoria — só mostra chip se houver ao menos 1 item
   const eventCounts = useMemo(() => {
