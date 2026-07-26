@@ -103,6 +103,28 @@ function Checkout() {
   const [pickupPoint, setPickupPoint] = useState("");
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
 
+  // Polling de status do Pix — verifica a cada 5s se o pagamento caiu
+  useEffect(() => {
+    if (!pixInfo?.txid || pixPaid) return;
+    let stopped = false;
+    const tick = async () => {
+      try {
+        const res = await consultarPix({ data: { txid: pixInfo.txid } });
+        if (!stopped && res?.status === "concluida") {
+          setPixPaid(true);
+        }
+      } catch {
+        // silencioso — retenta no próximo tick
+      }
+    };
+    const id = setInterval(tick, 5000);
+    tick();
+    return () => {
+      stopped = true;
+      clearInterval(id);
+    };
+  }, [pixInfo?.txid, pixPaid, consultarPix]);
+
   const isService = (pkg as any)?.kind === "service";
   const isPerUnit = (pkg as any)?.pricing_mode === "per_unit" || isService;
   const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
