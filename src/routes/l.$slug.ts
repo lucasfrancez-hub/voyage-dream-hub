@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/l/$slug")({
   server: {
     handlers: {
-      GET: async ({ params, request }) => {
+      GET: async ({ params }) => {
         const slug = String(params.slug || "").toLowerCase();
         if (!/^[a-z0-9-]{1,60}$/.test(slug)) {
           return new Response("Link inválido", { status: 404 });
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/l/$slug")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data, error } = await supabaseAdmin
           .from("short_links")
-          .select("target_url")
+          .select("target_url, click_count")
           .eq("slug", slug)
           .maybeSingle();
 
@@ -24,31 +24,15 @@ export const Route = createFileRoute("/l/$slug")({
           });
         }
 
-        // best-effort click tracking (não bloqueia)
-        void supabaseAdmin.rpc("increment_short_link_click", { p_slug: slug }).then(
-          async ({ error: rpcErr }: { error: unknown }) => {
-            if (!rpcErr) return;
-            // fallback: update direto se a RPC não existir
-            try {
-              const { data: cur } = await supabaseAdmin
-                .from("short_links")
-                .select("click_count")
-                .eq("slug", slug)
-                .maybeSingle();
-              await supabaseAdmin
-                .from("short_links")
-                .update({
-                  click_count: (cur?.click_count ?? 0) + 1,
-                  last_click_at: new Date().toISOString(),
-                })
-                .eq("slug", slug);
-            } catch {
-              /* noop */
-            }
-          },
-        );
+        // best-effort click tracking (não bloqueia o redirect)
+        void supabaseAdmin
+          .from("short_links")
+          .update({
+            click_count: (data.click_count ?? 0) + 1,
+            last_click_at: new Date().toISOString(),
+          })
+          .eq("slug", slug);
 
-        const url = new URL(request.url);
         return new Response(null, {
           status: 302,
           headers: {
@@ -56,7 +40,6 @@ export const Route = createFileRoute("/l/$slug")({
             "cache-control": "no-store",
             "x-robots-tag": "noindex, nofollow",
             "referrer-policy": "no-referrer",
-            "x-short-origin": url.origin,
           },
         });
       },
