@@ -18,7 +18,6 @@ import { Route as EmbedTesteRouteImport } from './routes/embed-teste'
 import { Route as ExclusaoDeDadosRouteImport } from './routes/exclusao-de-dados'
 import { Route as IngressosRouteImport } from './routes/ingressos'
 import { Route as MinhasReservasRouteImport } from './routes/minhas-reservas'
-import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
@@ -138,11 +137,6 @@ const IngressosRoute = IngressosRouteImport.update({
 const MinhasReservasRoute = MinhasReservasRouteImport.update({
   id: '/minhas-reservas',
   path: '/minhas-reservas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PacotesRoute = PacotesRouteImport.update({
-  id: '/pacotes',
-  path: '/pacotes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PagarRoute = PagarRouteImport.update({
@@ -356,14 +350,14 @@ const OrcamentoTokenRoute = OrcamentoTokenRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesIndexRoute = PacotesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PacotesRoute,
+  id: '/pacotes/',
+  path: '/pacotes/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesAdminRoute = PacotesAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => PacotesRoute,
+  id: '/pacotes/admin',
+  path: '/pacotes/admin',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProtocoloProtocoloIdRoute = ProtocoloProtocoloIdRouteImport.update({
   id: '/protocolo/$protocoloId',
@@ -451,14 +445,14 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesSlugIndexRoute = PacotesSlugIndexRouteImport.update({
-  id: '/$slug/',
-  path: '/$slug/',
-  getParentRoute: () => PacotesRoute,
+  id: '/pacotes/$slug/',
+  path: '/pacotes/$slug/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
-  id: '/$slug/checkout',
-  path: '/$slug/checkout',
-  getParentRoute: () => PacotesRoute,
+  id: '/pacotes/$slug/checkout',
+  path: '/pacotes/$slug/checkout',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicBpIdRoute = ApiPublicBpIdRouteImport.update({
   id: '/api/public/bp/$id',
@@ -546,7 +540,6 @@ export interface FileRoutesByFullPath {
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
-  '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
@@ -720,7 +713,6 @@ export interface FileRoutesById {
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
-  '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
@@ -809,7 +801,6 @@ export interface FileRouteTypes {
     | '/exclusao-de-dados'
     | '/ingressos'
     | '/minhas-reservas'
-    | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
     | '/politica-de-privacidade'
@@ -982,7 +973,6 @@ export interface FileRouteTypes {
     | '/exclusao-de-dados'
     | '/ingressos'
     | '/minhas-reservas'
-    | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
     | '/politica-de-privacidade'
@@ -1070,7 +1060,6 @@ export interface RootRouteChildren {
   ExclusaoDeDadosRoute: typeof ExclusaoDeDadosRoute
   IngressosRoute: typeof IngressosRoute
   MinhasReservasRoute: typeof MinhasReservasRoute
-  PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
   PagarBoletoRoute: typeof PagarBoletoRoute
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
@@ -1084,8 +1073,10 @@ export interface RootRouteChildren {
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
+  PacotesAdminRoute: typeof PacotesAdminRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   WSlugRoute: typeof WSlugRoute
+  PacotesIndexRoute: typeof PacotesIndexRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
@@ -1096,6 +1087,8 @@ export interface RootRouteChildren {
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  PacotesSlugCheckoutRoute: typeof PacotesSlugCheckoutRoute
+  PacotesSlugIndexRoute: typeof PacotesSlugIndexRoute
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
   ApiPublicHooksAutoSuggestionsRoute: typeof ApiPublicHooksAutoSuggestionsRoute
   ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
@@ -1174,13 +1167,6 @@ declare module '@tanstack/react-router' {
       path: '/minhas-reservas'
       fullPath: '/minhas-reservas'
       preLoaderRoute: typeof MinhasReservasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pacotes': {
-      id: '/pacotes'
-      path: '/pacotes'
-      fullPath: '/pacotes'
-      preLoaderRoute: typeof PacotesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pagar': {
@@ -1479,17 +1465,17 @@ declare module '@tanstack/react-router' {
     }
     '/pacotes/': {
       id: '/pacotes/'
-      path: '/'
+      path: '/pacotes'
       fullPath: '/pacotes/'
       preLoaderRoute: typeof PacotesIndexRouteImport
-      parentRoute: typeof PacotesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/pacotes/admin': {
       id: '/pacotes/admin'
-      path: '/admin'
+      path: '/pacotes/admin'
       fullPath: '/pacotes/admin'
       preLoaderRoute: typeof PacotesAdminRouteImport
-      parentRoute: typeof PacotesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/protocolo/$protocoloId': {
       id: '/protocolo/$protocoloId'
@@ -1605,17 +1591,17 @@ declare module '@tanstack/react-router' {
     }
     '/pacotes/$slug/': {
       id: '/pacotes/$slug/'
-      path: '/$slug'
+      path: '/pacotes/$slug'
       fullPath: '/pacotes/$slug/'
       preLoaderRoute: typeof PacotesSlugIndexRouteImport
-      parentRoute: typeof PacotesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/pacotes/$slug/checkout': {
       id: '/pacotes/$slug/checkout'
-      path: '/$slug/checkout'
+      path: '/pacotes/$slug/checkout'
       fullPath: '/pacotes/$slug/checkout'
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
-      parentRoute: typeof PacotesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/bp/$id': {
       id: '/api/public/bp/$id'
@@ -1803,23 +1789,6 @@ const ChatRouteChildren: ChatRouteChildren = {
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
 
-interface PacotesRouteChildren {
-  PacotesAdminRoute: typeof PacotesAdminRoute
-  PacotesIndexRoute: typeof PacotesIndexRoute
-  PacotesSlugCheckoutRoute: typeof PacotesSlugCheckoutRoute
-  PacotesSlugIndexRoute: typeof PacotesSlugIndexRoute
-}
-
-const PacotesRouteChildren: PacotesRouteChildren = {
-  PacotesAdminRoute: PacotesAdminRoute,
-  PacotesIndexRoute: PacotesIndexRoute,
-  PacotesSlugCheckoutRoute: PacotesSlugCheckoutRoute,
-  PacotesSlugIndexRoute: PacotesSlugIndexRoute,
-}
-
-const PacotesRouteWithChildren =
-  PacotesRoute._addFileChildren(PacotesRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -1830,7 +1799,6 @@ const rootRouteChildren: RootRouteChildren = {
   ExclusaoDeDadosRoute: ExclusaoDeDadosRoute,
   IngressosRoute: IngressosRoute,
   MinhasReservasRoute: MinhasReservasRoute,
-  PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
   PagarBoletoRoute: PagarBoletoRoute,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
@@ -1844,8 +1812,10 @@ const rootRouteChildren: RootRouteChildren = {
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
+  PacotesAdminRoute: PacotesAdminRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   WSlugRoute: WSlugRoute,
+  PacotesIndexRoute: PacotesIndexRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
@@ -1856,6 +1826,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  PacotesSlugCheckoutRoute: PacotesSlugCheckoutRoute,
+  PacotesSlugIndexRoute: PacotesSlugIndexRoute,
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
   ApiPublicHooksAutoSuggestionsRoute: ApiPublicHooksAutoSuggestionsRoute,
   ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
