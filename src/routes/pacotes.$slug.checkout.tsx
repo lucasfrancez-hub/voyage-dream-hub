@@ -459,6 +459,59 @@ function Checkout() {
               </Card>
 
             )}
+            {addonsList.length > 0 && (
+              <Card title="Serviços adicionais">
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Selecione o que deseja incluir na sua reserva. O valor é somado ao total automaticamente.
+                </p>
+                <div className="space-y-2">
+                  {addonsList.map((a) => {
+                    const checked = !!selectedAddons[a.key];
+                    const units = isPerUnit ? adults : (adults + children);
+                    const qty = a.per === "order" ? 1 : Math.max(1, units);
+                    const line = a.price * qty;
+                    return (
+                      <label
+                        key={a.key}
+                        className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition ${
+                          checked
+                            ? "border-brand-orange bg-brand-orange/5 shadow-[0_0_0_1px_hsl(var(--brand-orange)/0.35)]"
+                            : "border-border bg-background hover:border-brand-orange/50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4 accent-brand-orange"
+                          checked={checked}
+                          onChange={(e) =>
+                            setSelectedAddons((prev) => ({ ...prev, [a.key]: e.target.checked }))
+                          }
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <span className="text-sm font-semibold">{a.name}</span>
+                            <span className="text-sm font-bold text-brand-orange">
+                              + {formatBRL(line)}
+                              {a.per !== "order" && qty > 1 && (
+                                <span className="ml-1 text-[11px] font-normal text-muted-foreground">
+                                  ({formatBRL(a.price)} × {qty})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          {a.description && (
+                            <p className="mt-1 text-xs text-muted-foreground">{a.description}</p>
+                          )}
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            {a.per === "order" ? "Valor único por reserva" : "Por pessoa/ingresso"}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
             {/* Viajantes / quantidade */}
             <Card title={isPerUnit ? "Quantidade" : "Quantos viajantes?"}>
               {isPerUnit ? (
