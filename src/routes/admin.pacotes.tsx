@@ -1257,6 +1257,7 @@ type PackageEditorModalProps = {
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
   nextNumber?: number | null;
+  allPackages?: PackageRow[];
 };
 
 type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
