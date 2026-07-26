@@ -6,6 +6,7 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Copy,
   EyeOff,
   Loader2,
   X,
