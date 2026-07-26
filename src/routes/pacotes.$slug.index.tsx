@@ -10,6 +10,8 @@ import {
   Hotel,
   Check,
   ArrowLeft,
+  AlertTriangle,
+
   ArrowRight,
   Star,
   MessageCircle,
@@ -794,16 +796,9 @@ function TicketDetailsView({
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (qty >= maxUnits) {
-                      toast.warning("Limite por pedido", {
-                        description: `Máximo de ${maxUnits} por pedido — para mais, faça um novo pedido.`,
-                      });
-                      return;
-                    }
-                    setQty((n) => Math.min(maxUnits, n + 1));
-                  }}
-                  className="w-11 h-11 flex items-center justify-center bg-brand-orange text-primary-foreground hover:opacity-90 rounded-xl transition-all"
+                  onClick={() => setQty((n) => Math.min(maxUnits, n + 1))}
+                  disabled={qty >= maxUnits}
+                  className="w-11 h-11 flex items-center justify-center bg-brand-orange text-primary-foreground hover:opacity-90 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Aumentar quantidade"
                 >
                   <Plus className="w-4 h-4" />
@@ -813,6 +808,13 @@ function TicketDetailsView({
               <p className="text-[11px] text-muted-foreground text-center">
                 Total: <strong className="text-foreground">{(price * qty).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
               </p>
+              {qty >= maxUnits && (
+                <div className="mt-2 flex items-start gap-2 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-[11px] text-yellow-200">
+                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>Limite por pedido — para mais, faça um novo pedido.</span>
+                </div>
+              )}
+
             </div>
 
             <Link
