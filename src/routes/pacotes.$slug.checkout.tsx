@@ -749,7 +749,9 @@ function Checkout() {
                 <div className="text-muted-foreground text-xs">
                   {isFlexibleDate
                     ? (preferredDate ? `Data desejada: ${preferredDate.split("-").reverse().join("/")}` : "Data à escolher")
-                    : formatDateRange(pkg.going_date, pkg.return_date)}
+                    : isService
+                      ? (pkg.going_date ? `Data do evento: ${formatDateBR(pkg.going_date)}` : "")
+                      : formatDateRange(pkg.going_date, pkg.return_date)}
                 </div>
               </div>
               <div className="mt-5 space-y-2 text-sm border-t border-border pt-4">
