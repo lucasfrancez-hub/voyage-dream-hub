@@ -1023,7 +1023,8 @@ function PreCheckoutDialog({
                 }}
                 disabled={{ before: new Date() }}
                 initialFocus
-                className={cn("p-0 pointer-events-auto mx-auto")}
+                className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
+                classNames={{ root: "w-full", months: "w-full", month: "w-full flex flex-col gap-4" }}
               />
               <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">
                 * Preços podem variar de acordo com a data selecionada
