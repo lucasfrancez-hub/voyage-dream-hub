@@ -990,7 +990,8 @@ function PreCheckoutDialog({
           hasWeekdayPricing: tiers.length > 0,
           assumedFromMin: !tier && Number(a.price) <= 0 && tierPrices.length > 0,
         };
-      });
+      })
+      .sort((a: any, b: any) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
   }, [rawAddons, weekday]);
 
   const addonsTotal = useMemo(() => {
