@@ -607,7 +607,9 @@ function TicketDetailsView({
   const maxUnits = Math.max(1, Math.min(9, Number(pkg.max_units) || 9));
   const isFlexibleDate = pkg?.date_mode === "flexible";
   const rawAddons: any[] = Array.isArray(services?.addons) ? services.addons : [];
-  const hasAddons = rawAddons.some((a) => a && a.name && Number(a.price) > 0);
+  const hasAddons = rawAddons.some(
+    (a) => a && a.name && (Number(a.price) > 0 || (a.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0)),
+  );
   const [preOpen, setPreOpen] = useState(false);
 
   return (
