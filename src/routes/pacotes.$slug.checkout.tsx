@@ -89,6 +89,7 @@ function Checkout() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [preferredDate, setPreferredDate] = useState("");
   const [pickupPoint, setPickupPoint] = useState("");
+  const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
 
   const isService = (pkg as any)?.kind === "service";
   const isPerUnit = (pkg as any)?.pricing_mode === "per_unit" || isService;
