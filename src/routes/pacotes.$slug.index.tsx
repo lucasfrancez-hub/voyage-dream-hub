@@ -981,12 +981,41 @@ function PreCheckoutDialog({
               <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                 Data desejada
               </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3 py-3 text-sm"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      "w-full flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3 text-sm text-left hover:border-brand-orange/60 transition",
+                      !date && "text-muted-foreground",
+                    )}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-brand-orange" />
+                      {date
+                        ? format(new Date(date + "T00:00:00"), "PPP", { locale: ptBR })
+                        : "Selecione uma data"}
+                    </span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarUI
+                    mode="single"
+                    locale={ptBR}
+                    selected={date ? new Date(date + "T00:00:00") : undefined}
+                    onSelect={(d) => {
+                      if (!d) return;
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, "0");
+                      const day = String(d.getDate()).padStart(2, "0");
+                      setDate(`${y}-${m}-${day}`);
+                    }}
+                    disabled={{ before: new Date() }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
