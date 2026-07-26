@@ -60,6 +60,7 @@ const EVENT_CATEGORIES: { key: string; label: string; match: RegExp }[] = [
   { key: "disney", label: "Disney", match: /disney|magic kingdom|epcot|hollywood studios|animal kingdom/i },
   { key: "universal", label: "Universal", match: /universal|islands of adventure|epic universe|volcano bay/i },
   { key: "seaworld", label: "SeaWorld", match: /sea\s*world|busch gardens|aquatica/i },
+  { key: "beto-carrero", label: "Beto Carrero", match: /beto\s*carr?ero/i },
   { key: "lollapalooza", label: "Lollapalooza", match: /lollapalooza|lolla/i },
 ];
 
