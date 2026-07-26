@@ -245,9 +245,7 @@ function PackageDetails() {
           {pkg.itinerary && (
             <section>
               <h2 className="text-xl font-semibold">Roteiro</h2>
-              <pre className="mt-3 whitespace-pre-wrap font-sans text-sm text-muted-foreground leading-relaxed">
-                {pkg.itinerary}
-              </pre>
+              <WhatsAppText className="mt-3">{pkg.itinerary}</WhatsAppText>
             </section>
           )}
 
