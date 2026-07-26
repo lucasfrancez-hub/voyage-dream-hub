@@ -2613,17 +2613,25 @@ function ServicesEditor({
               }
             />
             <Bus className="h-4 w-4 text-brand-orange" />
-            <span className="text-sm font-medium">Transfer aeroporto ↔ hotel</span>
+            <span className="text-sm font-medium">
+              {kind === "service" ? "Transfer hotel ↔ evento" : "Transfer aeroporto ↔ hotel"}
+            </span>
           </label>
           {transfer.enabled && (
             <div className="mt-2 space-y-2">
               <div className="flex flex-wrap gap-2">
                 {(
-                  [
-                    { id: "in", label: "Só ida (IN)" },
-                    { id: "out", label: "Só volta (OUT)" },
-                    { id: "in_out", label: "Ida e volta (IN/OUT)" },
-                  ] as const
+                  kind === "service"
+                    ? ([
+                        { id: "in", label: "Só ida (hotel → evento)" },
+                        { id: "out", label: "Só volta (evento → hotel)" },
+                        { id: "in_out", label: "Ida e volta" },
+                      ] as const)
+                    : ([
+                        { id: "in", label: "Só ida (IN)" },
+                        { id: "out", label: "Só volta (OUT)" },
+                        { id: "in_out", label: "Ida e volta (IN/OUT)" },
+                      ] as const)
                 ).map((opt) => {
                   const active = (transfer.sentido ?? "in_out") === opt.id;
                   return (
@@ -2646,7 +2654,9 @@ function ServicesEditor({
               </div>
               <div>
                 <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                  Pontos de saída / embarque (um por linha)
+                  {kind === "service"
+                    ? "Pontos de saída (um por linha) — o cliente escolhe no checkout"
+                    : "Pontos de saída / embarque (um por linha)"}
                 </label>
                 <textarea
                   rows={3}
@@ -2654,16 +2664,23 @@ function ServicesEditor({
                   onChange={(e) =>
                     patch({ transfer: { ...transfer, enabled: true, pickup_points: e.target.value } })
                   }
-                  placeholder={"Ex.:\nSão Paulo — Terminal Tietê\nCampinas — Shopping Iguatemi\nRio de Janeiro — Barra Shopping"}
+                  placeholder={
+                    kind === "service"
+                      ? "Ex.:\nHotel Copacabana Palace\nWindsor Barra\nHotel Nacional RJ"
+                      : "Ex.:\nSão Paulo — Terminal Tietê\nCampinas — Shopping Iguatemi\nRio de Janeiro — Barra Shopping"
+                  }
                   className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-y"
                 />
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Útil quando o transfer sai de vários locais (ex.: Rock in Rio, shows, eventos).
+                  {kind === "service"
+                    ? "O cliente vai selecionar um destes pontos no checkout do ingresso."
+                    : "Útil quando o transfer sai de vários locais (ex.: Rock in Rio, shows, eventos)."}
                 </p>
               </div>
             </div>
           )}
         </div>
+
 
         {/* City tour */}
         {showCityTour && (
