@@ -9,6 +9,9 @@ import { template as viagemConfirmadaTemplate } from './viagem-confirmada'
 import { template as alteracaoVooAdminTemplate } from './alteracao-voo-admin'
 import { template as cartaoEmbarqueTemplate } from './cartao-embarque'
 import { template as loginCodeTemplate } from './login-code'
+import { template as pedidoPixAdminTemplate } from './pedido-pix-admin'
+
+
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -29,4 +32,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'alteracao-voo-admin': alteracaoVooAdminTemplate,
   'cartao-embarque': cartaoEmbarqueTemplate,
   'login-code': loginCodeTemplate,
+  'pedido-pix-admin': pedidoPixAdminTemplate,
 }

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange, maskCPF } from "@/lib/format";
 import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
+import { useServerFn } from "@tanstack/react-start";
+import { notifyPixOrder } from "@/lib/pix-notify.functions";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/components/BoletoForm";
 import { DateBRInput } from "@/components/DateBRInput";
@@ -39,6 +41,7 @@ function Checkout() {
   const { slug } = Route.useParams();
   const { qty: qtyFromSearch, date: dateFromSearch, addons: addonsFromSearch } = Route.useSearch();
   const navigate = useNavigate();
+  const notifyPix = useServerFn(notifyPixOrder);
 
 
   const { data: pkg, isLoading } = useQuery({
@@ -418,18 +421,34 @@ function Checkout() {
 
       setSuccess(true);
 
-      if (payment === "credit_card" || payment === "boleto") {
-        // Modal grande de agradecimento (ver render abaixo)
-      } else {
-        const message = `Olá! Reservei o pacote *${pkg.title}* (${adults} adulto${
-          adults > 1 ? "s" : ""
-        }${children ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}) — Total ${formatBRL(
-          totalPrice,
-        )}. Quero pagar via Pix.\nPedido: ${orderNumber}\nNome: ${primary.full_name}\nE-mail: ${primary.email}\nTelefone: ${primary.phone}`;
-        setTimeout(() => {
-          window.open(whatsappUrl(message), "_blank");
-        }, 400);
+      if (payment === "pix") {
+        // Não abre WhatsApp: notifica admin por e-mail e mostra tela de sucesso.
+        const kindLabel =
+          (pkg as any)?.kind === "cruise"
+            ? "Cruzeiro"
+            : (pkg as any)?.kind === "service"
+              ? "Ingresso / Serviço"
+              : "Pacote";
+        try {
+          await notifyPix({
+            data: {
+              orderNumber,
+              productKind: kindLabel,
+              productTitle: pkg.title,
+              adults,
+              children,
+              totalPrice: formatBRL(totalPrice),
+              customerName: primary.full_name,
+              customerEmail: primary.email,
+              customerPhone: primary.phone,
+              notes: notes || undefined,
+            },
+          });
+        } catch (err) {
+          console.error("[checkout] pix notify falhou", err);
+        }
       }
+
 
     } catch (err) {
       console.error(err);
@@ -724,7 +743,7 @@ function Checkout() {
                   onClick={() => setPayment("pix")}
                   icon={QrCode}
                   title="Pix"
-                  desc="Finalize via WhatsApp com nosso consultor."
+                  desc="Realize o pagamento via Pix. Nosso time envia a chave/QR Code por e-mail em seguida."
                   badge="-5% de desconto"
                 />
                 {!isService && (
@@ -974,7 +993,8 @@ function Checkout() {
                     <Check className="h-4 w-4" /> Reserva enviada
                   </>
                 ) : payment === "pix" ? (
-                  <>Fazer pedido e falar no WhatsApp</>
+                  <>Realizar pagamento</>
+
                 ) : (
                   <>Fazer pedido</>
                 )}
@@ -1000,7 +1020,7 @@ function Checkout() {
         </form>
       </div>
       {termsOpen && <TermsModal onClose={() => setTermsOpen(false)} />}
-      {success && (payment === "credit_card" || payment === "boleto") && (
+      {success && (payment === "credit_card" || payment === "boleto" || payment === "pix") && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-2xl">
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
