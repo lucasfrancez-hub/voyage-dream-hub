@@ -725,7 +725,7 @@ function TicketDetailsView({
                 {pkg.itinerary && (
                   <div>
                     <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-3">
-                      Detalhes do transfer
+                      Detalhes do serviço
                     </h3>
                     <WhatsAppText className="text-sm text-muted-foreground leading-relaxed">
                       {pkg.itinerary}
