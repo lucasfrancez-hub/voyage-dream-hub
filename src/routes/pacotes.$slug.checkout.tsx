@@ -41,6 +41,7 @@ function Checkout() {
   const { slug } = Route.useParams();
   const { qty: qtyFromSearch, date: dateFromSearch, addons: addonsFromSearch } = Route.useSearch();
   const navigate = useNavigate();
+  const notifyPix = useServerFn(notifyPixOrder);
 
 
   const { data: pkg, isLoading } = useQuery({
