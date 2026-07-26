@@ -18,7 +18,8 @@ import {
   Check,
   ArrowLeft,
   AlertTriangle,
-
+  ChevronLeft,
+  ChevronRight,
   ArrowRight,
   Star,
   MessageCircle,
