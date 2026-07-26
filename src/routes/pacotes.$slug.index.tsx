@@ -904,29 +904,30 @@ function CalendarMonthNav({
     setMonth(next);
   };
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between gap-2 mb-2">
+    <div className="relative w-full">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-50 flex h-[--cell-size] items-center justify-between">
         <Button
           type="button"
-          variant="outline"
+          variant="default"
           size="icon"
-          className="h-9 w-9 rounded-full border-border/70"
+          className="pointer-events-auto h-10 w-10 rounded-full shadow-md"
           onClick={() => go(-1)}
           disabled={!canGoBack}
           aria-label="Mês anterior"
+          title="Mês anterior"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-6 w-6" strokeWidth={3} />
         </Button>
-        <div className="flex-1" />
         <Button
           type="button"
-          variant="outline"
+          variant="default"
           size="icon"
-          className="h-9 w-9 rounded-full border-border/70"
+          className="pointer-events-auto h-10 w-10 rounded-full shadow-md"
           onClick={() => go(1)}
           aria-label="Próximo mês"
+          title="Próximo mês"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-6 w-6" strokeWidth={3} />
         </Button>
       </div>
       {children(month, setMonth)}
