@@ -34,7 +34,7 @@ function Checkout() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units,services")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle();
@@ -80,9 +80,19 @@ function Checkout() {
   const [success, setSuccess] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [preferredDate, setPreferredDate] = useState("");
+  const [pickupPoint, setPickupPoint] = useState("");
 
   const isPerUnit = (pkg as any)?.pricing_mode === "per_unit";
   const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
+  const isService = (pkg as any)?.kind === "service";
+  const transferSvc = (pkg as any)?.services?.transfer ?? {};
+  const pickupOptions: string[] = isService && transferSvc?.enabled
+    ? String(transferSvc.pickup_points ?? "")
+        .split("\n")
+        .map((s: string) => s.trim())
+        .filter(Boolean)
+    : [];
+
   const maxUnits = Math.min(9, Math.max(1, Number((pkg as any)?.max_units) || 9));
 
   function patchBoleto(patch: Partial<BoletoData>) {
@@ -173,6 +183,12 @@ function Checkout() {
       return;
     }
 
+    if (pickupOptions.length > 0 && !pickupPoint) {
+      toast.error("Escolha o ponto de saída do transfer.");
+      return;
+    }
+
+
 
     if (payment === "boleto") {
       const err = validateBoleto(boleto, isThirdPartyFinancier);
@@ -217,6 +233,8 @@ function Checkout() {
             date_mode: (pkg as any).date_mode ?? "fixed",
             pricing_mode: (pkg as any).pricing_mode ?? "per_occupancy",
             preferred_date: isFlexibleDate ? preferredDate : null,
+            pickup_point: pickupPoint || null,
+
             nights: pkg.nights ?? null,
             price_per_person: pkg.price_per_person,
             taxes: pkg.taxes,
@@ -390,6 +408,27 @@ function Checkout() {
                   Nosso time confirma a disponibilidade para essa data ao processar a reserva.
                 </p>
               </Card>
+            )}
+            {pickupOptions.length > 0 && (
+              <Card title="Ponto de saída do transfer">
+                <Field label="De onde você quer sair? *">
+                  <select
+                    required
+                    value={pickupPoint}
+                    onChange={(e) => setPickupPoint(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">Selecione o ponto de saída…</option>
+                    {pickupOptions.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </Field>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  O transfer sai do local escolhido em direção ao evento.
+                </p>
+              </Card>
+
             )}
             {/* Viajantes / quantidade */}
             <Card title={isPerUnit ? "Quantidade" : "Quantos viajantes?"}>
