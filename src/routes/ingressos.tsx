@@ -175,10 +175,19 @@ function chipsFor(p: any) {
   if (!isTicket && p.hotel_name) chips.push({ icon: Building2, label: p.hotel_name });
   if (!isTicket && p.origin) chips.push({ icon: Plane, label: `Aéreo de ${p.origin}` });
   if (isTicket && p.hotel_name) chips.push({ icon: Building2, label: p.hotel_name });
+  if (svc?.tickets?.enabled) {
+    const parks = (svc.tickets.parks ?? []).filter((x: any) => String(x ?? "").trim());
+    if (parks.length) {
+      for (const park of parks) chips.push({ icon: Ticket, label: `Ingresso: ${park}` });
+    } else {
+      chips.push({ icon: Ticket, label: "Ingresso incluso" });
+    }
+  }
   if (svc?.transfer?.enabled) chips.push({ icon: Bus, label: "Transfer" });
   if (svc?.insurance?.enabled) chips.push({ icon: Shield, label: "Seguro" });
   return chips;
 }
+
 
 function FeaturedTicket({ pkg: p }: { pkg: any }) {
   const dateBlock = parseDateBlock(p.going_date);
