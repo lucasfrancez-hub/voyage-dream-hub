@@ -166,7 +166,7 @@ function PackageDetails() {
     queryKey: ["package", slug, preview ? "preview" : "public"],
     queryFn: async () => {
       const slugs = slug.includes("#") ? [slug, slug.replace(/#/g, "-")] : [slug];
-      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos").in("slug", slugs);
+      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services").in("slug", slugs);
       if (!preview) query = query.eq("is_active", true);
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
@@ -187,6 +187,14 @@ function PackageDetails() {
   }
 
   const baseOccupancy = pkg.base_occupancy ?? 2;
+  const isTicket = (pkg as any).kind === "service";
+  const isPerUnit = (pkg as any).pricing_mode === "per_unit";
+  const isFlexibleDate = (pkg as any).date_mode === "flexible";
+  const eventDateLabel = isFlexibleDate
+    ? "Data à escolher"
+    : pkg.going_date
+      ? formatDateBR(pkg.going_date)
+      : null;
 
   const hotelDetails = Array.from(
     new Map(
@@ -232,6 +240,22 @@ function PackageDetails() {
             )}
             <InfoTile icon={Calendar} label="Período" value={formatDateRange(pkg.going_date, pkg.return_date)} />
             {pkg.nights != null && (
+              <InfoTile icon={Calendar} label="Duração" value={`${pkg.nights} noites`} />
+            )}
+          <section className="grid sm:grid-cols-3 gap-4">
+            {!isTicket && pkg.origin && (
+              <InfoTile icon={Plane} label="Saindo de" value={pkg.origin} />
+            )}
+            <InfoTile
+              icon={Calendar}
+              label={isTicket ? "Data do evento" : "Período"}
+              value={
+                isTicket
+                  ? eventDateLabel ?? "—"
+                  : formatDateRange(pkg.going_date, pkg.return_date)
+              }
+            />
+            {!isTicket && pkg.nights != null && (
               <InfoTile icon={Calendar} label="Duração" value={`${pkg.nights} noites`} />
             )}
           </section>
