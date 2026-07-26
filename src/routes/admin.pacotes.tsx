@@ -1329,6 +1329,7 @@ function PackageEditorModal({
   switchDraft,
   closeCurrentDraft,
   nextNumber,
+  allPackages,
 }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
