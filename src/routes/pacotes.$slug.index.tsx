@@ -600,6 +600,10 @@ function TicketDetailsView({
 
   const [qty, setQty] = useState(1);
   const maxUnits = Math.max(1, Math.min(9, Number(pkg.max_units) || 9));
+  const isFlexibleDate = pkg?.date_mode === "flexible";
+  const rawAddons: any[] = Array.isArray(services?.addons) ? services.addons : [];
+  const hasAddons = rawAddons.some((a) => a && a.name && Number(a.price) > 0);
+  const [preOpen, setPreOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
