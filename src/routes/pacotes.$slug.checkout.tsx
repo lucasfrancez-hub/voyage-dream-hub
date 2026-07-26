@@ -82,9 +82,9 @@ function Checkout() {
   const [preferredDate, setPreferredDate] = useState("");
   const [pickupPoint, setPickupPoint] = useState("");
 
-  const isPerUnit = (pkg as any)?.pricing_mode === "per_unit";
-  const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
   const isService = (pkg as any)?.kind === "service";
+  const isPerUnit = (pkg as any)?.pricing_mode === "per_unit" || isService;
+  const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
   const transferSvc = (pkg as any)?.services?.transfer ?? {};
   const pickupOptions: string[] = isService && transferSvc?.enabled
     ? String(transferSvc.pickup_points ?? "")
@@ -103,7 +103,7 @@ function Checkout() {
   // Defaults: base occupancy for packages, single unit for per-unit tickets.
   useEffect(() => {
     if (!pkg) return;
-    if ((pkg as any).pricing_mode === "per_unit") {
+    if ((pkg as any).pricing_mode === "per_unit" || (pkg as any).kind === "service") {
       setAdults(1);
       setChildren(0);
     } else if (pkg.base_occupancy) {
@@ -447,7 +447,7 @@ function Checkout() {
                     />
                   </Field>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Cada ingresso é individual. Preencha os dados de cada pessoa abaixo.
+                    Cada ingresso é individual. Preencha os dados de cada pessoa abaixo. Máximo de {maxUnits} por pedido — para mais, faça um novo pedido.
                   </p>
                 </>
               ) : (
