@@ -976,7 +976,9 @@ function PreCheckoutDialog({
       .filter((a: any) => {
         if (!a || !a.name) return false;
         const tiers = (a.price_by_weekday ?? []) as any[];
-        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0);
+        const subs = (a.sub_options ?? []) as any[];
+        const hasSubPrice = subs.some((s) => Number(s?.price) > 0);
+        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0) || hasSubPrice;
       })
       .map((a: any, i: number) => {
         const tiers = (a.price_by_weekday ?? []) as any[];
@@ -984,19 +986,27 @@ function PreCheckoutDialog({
           weekday != null
             ? tiers.find((t: any) => (t.days ?? []).includes(weekday))
             : null;
-        // Preço assumido quando a data ainda não foi escolhida:
-        // usa o preço base se >0, senão o menor preço configurado nas faixas.
         const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
         const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
         const price = tier ? Number(tier.price) : assumed;
+        const key = a.id || `${a.name}-${i}`;
+        const subs = ((a.sub_options ?? []) as any[])
+          .filter((s) => s && s.name && Number(s.price) >= 0)
+          .map((s, j) => ({
+            ...s,
+            key: `${key}::${s.id || `${s.name}-${j}`}`,
+            price: Number(s.price) || 0,
+            per: (s.per ?? "unit") as "unit" | "order",
+          }));
         return {
           ...a,
-          key: a.id || `${a.name}-${i}`,
+          key,
           per: (a.per ?? "unit") as "unit" | "order",
           price,
           tierLabel: tier?.label ?? null,
           hasWeekdayPricing: tiers.length > 0,
           assumedFromMin: !tier && Number(a.price) <= 0 && tierPrices.length > 0,
+          subs,
         };
       })
       .sort((a: any, b: any) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
@@ -1006,7 +1016,13 @@ function PreCheckoutDialog({
     return addons.reduce((sum, a) => {
       if (!selected[a.key]) return sum;
       const units = a.per === "order" ? 1 : Math.max(1, qty);
-      return sum + a.price * units;
+      let s = sum + a.price * units;
+      for (const sub of a.subs) {
+        if (!selected[sub.key]) continue;
+        const subUnits = sub.per === "order" ? 1 : Math.max(1, qty);
+        s += sub.price * subUnits;
+      }
+      return s;
     }, 0);
   }, [addons, selected, qty]);
 
@@ -1018,7 +1034,14 @@ function PreCheckoutDialog({
       toast.error("Escolha uma data para continuar");
       return;
     }
-    const selectedKeys = Object.entries(selected).filter(([, v]) => v).map(([k]) => k);
+    const selectedKeys: string[] = [];
+    for (const a of addons) {
+      if (!selected[a.key]) continue;
+      selectedKeys.push(a.key);
+      for (const sub of a.subs) {
+        if (selected[sub.key]) selectedKeys.push(sub.key);
+      }
+    }
     navigate({
       to: "/pacotes/$slug/checkout",
       params: { slug: pkg.slug },
