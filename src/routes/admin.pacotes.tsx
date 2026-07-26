@@ -1129,6 +1129,23 @@ function AdminPackages() {
                         <Pencil className="h-[18px] w-[18px]" strokeWidth={2} />
                       </button>
                       <button
+                        onClick={() => {
+                          const { id: _id, slug: _slug, created_at: _c, updated_at: _u, ...rest } = p as any;
+                          setEditing({
+                            ...rest,
+                            id: undefined,
+                            slug: "",
+                            title: p.title,
+                            active: p.active ?? true,
+                          } as any);
+                          toast.info("Duplicando pacote — ajuste as datas e salve.");
+                        }}
+                        className="text-muted-foreground hover:text-brand-orange transition-colors"
+                        title="Duplicar"
+                      >
+                        <Copy className="h-[18px] w-[18px]" strokeWidth={2} />
+                      </button>
+                      <button
                         onClick={() => remove(p)}
                         className="text-muted-foreground/60 hover:text-red-500 transition-colors"
                         title="Excluir"
