@@ -96,6 +96,25 @@ function IngressosPage() {
   });
 
   const list = items ?? [];
+  const [activeEvent, setActiveEvent] = useState<string>("");
+
+  // Contagem por categoria — só mostra chip se houver ao menos 1 item
+  const eventCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of list) {
+      const key = detectEvent(p);
+      if (key) counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }, [list]);
+
+  const availableCategories = EVENT_CATEGORIES.filter((c) => eventCounts[c.key] > 0);
+
+  const filteredList = activeEvent
+    ? list.filter((p) => detectEvent(p) === activeEvent)
+    : list;
+
+
 
 
   return (
