@@ -1421,15 +1421,28 @@ function PackageEditorModal({
     const current = (editing.services?.addons ?? []) as NonNullable<PackageServices["addons"]>;
     const sourceIds = new Set(current.map((a) => a.source_package_id).filter(Boolean));
     const currentNames = new Set(current.map((a) => (a.name ?? "").trim().toLowerCase()));
+    const legacyExtraNames = new Set(
+      addonSuggestions.flatMap((suggestion) =>
+        (suggestion.services?.addons ?? []).flatMap((extra) => [
+          (extra.name ?? "").trim().toLowerCase(),
+          `${suggestion.title} — ${extra.name ?? ""}`.trim().toLowerCase(),
+        ]),
+      ),
+    );
     const missing = addonSuggestions
       .filter((suggestion) => !sourceIds.has(suggestion.id) && !currentNames.has(suggestion.title.trim().toLowerCase()))
       .map(ticketSuggestionToAddon);
     if (missing.length === 0) return;
+    // Remove o formato legado incorreto, em que Express/Fast Pass entrava como
+    // opcional principal, antes de inserir o ingresso pai com esses itens aninhados.
+    const normalizedCurrent = current.filter(
+      (addon) => addon.source_package_id || !legacyExtraNames.has((addon.name ?? "").trim().toLowerCase()),
+    );
     setEditing({
       ...editing,
       services: {
         ...(editing.services ?? {}),
-        addons: [...current, ...missing],
+        addons: [...normalizedCurrent, ...missing],
       },
     });
   }, [addonSuggestions, editing, setEditing]);
