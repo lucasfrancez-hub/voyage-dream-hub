@@ -447,7 +447,7 @@ function Checkout() {
                     />
                   </Field>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Cada ingresso é individual. Preencha os dados de cada pessoa abaixo.
+                    Cada ingresso é individual. Preencha os dados de cada pessoa abaixo. Máximo de {maxUnits} por pedido — para mais, faça um novo pedido.
                   </p>
                 </>
               ) : (
