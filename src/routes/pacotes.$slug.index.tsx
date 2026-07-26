@@ -976,7 +976,9 @@ function PreCheckoutDialog({
       .filter((a: any) => {
         if (!a || !a.name) return false;
         const tiers = (a.price_by_weekday ?? []) as any[];
-        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0);
+        const subs = (a.sub_options ?? []) as any[];
+        const hasSubPrice = subs.some((s) => Number(s?.price) > 0);
+        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0) || hasSubPrice;
       })
       .map((a: any, i: number) => {
         const tiers = (a.price_by_weekday ?? []) as any[];
@@ -984,19 +986,27 @@ function PreCheckoutDialog({
           weekday != null
             ? tiers.find((t: any) => (t.days ?? []).includes(weekday))
             : null;
-        // Preço assumido quando a data ainda não foi escolhida:
-        // usa o preço base se >0, senão o menor preço configurado nas faixas.
         const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
         const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
         const price = tier ? Number(tier.price) : assumed;
+        const key = a.id || `${a.name}-${i}`;
+        const subs = ((a.sub_options ?? []) as any[])
+          .filter((s) => s && s.name && Number(s.price) >= 0)
+          .map((s, j) => ({
+            ...s,
+            key: `${key}::${s.id || `${s.name}-${j}`}`,
+            price: Number(s.price) || 0,
+            per: (s.per ?? "unit") as "unit" | "order",
+          }));
         return {
           ...a,
-          key: a.id || `${a.name}-${i}`,
+          key,
           per: (a.per ?? "unit") as "unit" | "order",
           price,
           tierLabel: tier?.label ?? null,
           hasWeekdayPricing: tiers.length > 0,
           assumedFromMin: !tier && Number(a.price) <= 0 && tierPrices.length > 0,
+          subs,
         };
       })
       .sort((a: any, b: any) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
@@ -1006,7 +1016,13 @@ function PreCheckoutDialog({
     return addons.reduce((sum, a) => {
       if (!selected[a.key]) return sum;
       const units = a.per === "order" ? 1 : Math.max(1, qty);
-      return sum + a.price * units;
+      let s = sum + a.price * units;
+      for (const sub of a.subs) {
+        if (!selected[sub.key]) continue;
+        const subUnits = sub.per === "order" ? 1 : Math.max(1, qty);
+        s += sub.price * subUnits;
+      }
+      return s;
     }, 0);
   }, [addons, selected, qty]);
 
@@ -1018,7 +1034,14 @@ function PreCheckoutDialog({
       toast.error("Escolha uma data para continuar");
       return;
     }
-    const selectedKeys = Object.entries(selected).filter(([, v]) => v).map(([k]) => k);
+    const selectedKeys: string[] = [];
+    for (const a of addons) {
+      if (!selected[a.key]) continue;
+      selectedKeys.push(a.key);
+      for (const sub of a.subs) {
+        if (selected[sub.key]) selectedKeys.push(sub.key);
+      }
+    }
     navigate({
       to: "/pacotes/$slug/checkout",
       params: { slug: pkg.slug },
@@ -1161,8 +1184,8 @@ function PreCheckoutDialog({
                   const Icon = pickIcon(a.name);
                   const isRecommended = !!a.recommended;
                   return (
-                    <button
-                      key={a.key}
+                    <div key={a.key} className="space-y-2">
+                      <button
                       type="button"
                       onClick={() => setSelected((s) => ({ ...s, [a.key]: !s[a.key] }))}
                       className={cn(
@@ -1239,6 +1262,73 @@ function PreCheckoutDialog({
                         </div>
                       </div>
                     </button>
+                    {isSel && a.subs.length > 0 && (
+                      <div className="ml-4 pl-4 border-l-2 border-brand-orange/30 space-y-2">
+                        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider pt-1">
+                          Complementos para “{a.name}”
+                        </div>
+                        {a.subs.map((sub: any) => {
+                          const subSel = !!selected[sub.key];
+                          const subUnits = sub.per === "order" ? 1 : Math.max(1, qty);
+                          return (
+                            <button
+                              key={sub.key}
+                              type="button"
+                              onClick={() => setSelected((s) => ({ ...s, [sub.key]: !s[sub.key] }))}
+                              className={cn(
+                                "relative w-full p-3 rounded-xl text-left transition-all bg-card border",
+                                subSel
+                                  ? "border-brand-orange/60 ring-1 ring-brand-orange/40"
+                                  : sub.recommended
+                                    ? "border-emerald-500/40 hover:border-emerald-500/60"
+                                    : "border-border/70 hover:border-border",
+                              )}
+                            >
+                              <div className="flex items-start gap-3 pr-12">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-bold text-foreground break-words leading-tight flex items-center gap-2 flex-wrap">
+                                    {sub.name}
+                                    {sub.recommended && (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider">
+                                        <Sparkles className="h-2.5 w-2.5" /> Recomendado
+                                      </span>
+                                    )}
+                                  </div>
+                                  {sub.description && (
+                                    <p className="text-[11px] text-muted-foreground mt-1 leading-snug whitespace-pre-line break-words">
+                                      {sub.description}
+                                    </p>
+                                  )}
+                                  <div className="mt-1.5 flex items-baseline gap-1 flex-wrap">
+                                    <span className="text-xs font-bold text-foreground">{formatBRL(sub.price)}</span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {sub.per === "order" ? "por reserva" : `× ${subUnits}`}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="absolute top-3 right-3">
+                                <div
+                                  className={cn(
+                                    "w-9 h-4.5 h-[18px] rounded-full relative transition-colors",
+                                    subSel ? "bg-brand-orange" : "bg-muted border border-border",
+                                  )}
+                                  style={{ width: 36, height: 18 }}
+                                >
+                                  <div
+                                    className={cn(
+                                      "absolute top-[2px] w-3.5 h-3.5 rounded-full transition-all shadow-sm",
+                                      subSel ? "left-[calc(100%-1rem)] bg-white" : "left-[2px] bg-muted-foreground/60",
+                                    )}
+                                  />
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    </div>
                   );
                 })}
               </div>

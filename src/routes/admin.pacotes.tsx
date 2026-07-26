@@ -44,6 +44,8 @@ import {
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { formatBRL } from "@/lib/format";
+import { destinationKey } from "@/lib/packages/destination";
 import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
@@ -1223,6 +1225,7 @@ function AdminPackages() {
           switchDraft={switchDraft}
           closeCurrentDraft={closeCurrentDraft}
           nextNumber={pendingNumbers?.[draftIndex] ?? pendingNumbers?.[0] ?? null}
+          allPackages={packages ?? []}
         />
       )}
     </div>
@@ -1255,6 +1258,7 @@ type PackageEditorModalProps = {
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
   nextNumber?: number | null;
+  allPackages?: PackageRow[];
 };
 
 type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
@@ -1326,6 +1330,7 @@ function PackageEditorModal({
   switchDraft,
   closeCurrentDraft,
   nextNumber,
+  allPackages,
 }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
@@ -1361,6 +1366,29 @@ function PackageEditorModal({
     () => deriveFromFlights(editing),
     [editing.outbound_flight, editing.going_date, editing.destination, editing.origin],
   );
+
+  // Ingressos/serviços com o mesmo destino canônico — sugeridos como opcionais no editor.
+  const addonSuggestions = useMemo<AddonSuggestion[]>(() => {
+    const destKey = destinationKey(editing.destination ?? "");
+    if (!destKey || !allPackages?.length) return [];
+    return allPackages
+      .filter(
+        (p) =>
+          p.id !== editing.id &&
+          p.is_active !== false &&
+          (p as any).kind === "service" &&
+          destinationKey(p.destination ?? "") === destKey,
+      )
+      .slice(0, 12)
+      .map((p) => ({
+        id: p.id,
+        title: p.title ?? "",
+        price_per_person: p.price_per_person ?? null,
+        image_url: p.image_url ?? null,
+        destination: p.destination ?? null,
+      }));
+  }, [allPackages, editing.id, editing.destination]);
+
 
   // Auto-fill empty fields when derived values become available
   useEffect(() => {
@@ -2363,7 +2391,10 @@ function PackageEditorModal({
                   onChange={(next) => setEditing({ ...editing, services: next })}
                   inpClass={inp}
                   kind={kind}
+                  destination={editing.destination ?? null}
+                  suggestions={addonSuggestions}
                 />
+
 
 
                 <div className="sm:col-span-2">
@@ -2463,16 +2494,28 @@ function FormField({
   );
 }
 
+export type AddonSuggestion = {
+  id: string;
+  title: string;
+  price_per_person: number | null;
+  image_url: string | null;
+  destination: string | null;
+};
+
 function ServicesEditor({
   value,
   onChange,
   inpClass,
   kind = "package",
+  destination,
+  suggestions,
 }: {
   value: PackageServices;
   onChange: (next: PackageServices) => void;
   inpClass: string;
   kind?: PackageKind;
+  destination?: string | null;
+  suggestions?: AddonSuggestion[];
 }) {
   const v = value ?? {};
   const seguro = v.seguro ?? {};
@@ -2847,6 +2890,8 @@ function ServicesEditor({
           onChange={(next) => patch({ addons: next })}
           inpClass={inpClass}
           kind={kind}
+          destination={destination ?? null}
+          suggestions={suggestions ?? []}
         />
       </div>
 
@@ -2859,11 +2904,15 @@ function AddonsEditor({
   onChange,
   inpClass,
   kind,
+  destination,
+  suggestions,
 }: {
   value: NonNullable<PackageServices["addons"]>;
   onChange: (next: NonNullable<PackageServices["addons"]>) => void;
   inpClass: string;
   kind: PackageKind;
+  destination?: string | null;
+  suggestions?: AddonSuggestion[];
 }) {
   const addons = value ?? [];
   const patchAt = (idx: number, p: Partial<NonNullable<PackageServices["addons"]>[number]>) => {
@@ -2890,6 +2939,47 @@ function AddonsEditor({
           + Adicionar opcional
         </button>
       </div>
+      {suggestions && suggestions.length > 0 && (() => {
+        const existingNames = new Set(addons.map((a) => (a.name ?? "").trim().toLowerCase()));
+        const remaining = suggestions.filter((s) => !existingNames.has((s.title ?? "").trim().toLowerCase()));
+        if (remaining.length === 0) return null;
+        return (
+          <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
+            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              <Sparkles className="h-3 w-3" />
+              Ingressos em {destination ?? "este destino"} — clique para adicionar como opcional
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {remaining.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() =>
+                    onChange([
+                      ...addons,
+                      {
+                        name: s.title,
+                        description: null,
+                        price: Number(s.price_per_person ?? 0),
+                        per: "unit",
+                      },
+                    ])
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:border-emerald-500 hover:bg-emerald-500/10 transition"
+                  title={`Adicionar "${s.title}" como opcional`}
+                >
+                  + {s.title}
+                  {s.price_per_person != null && s.price_per_person > 0 && (
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                      {formatBRL(Number(s.price_per_person))}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
       {addons.length === 0 && (
         <p className="text-xs text-muted-foreground">
           Ex.: fura-fila, foto oficial, refeição extra, upgrade de assento. Ficam ocultos se não houver nenhum.
@@ -2960,9 +3050,116 @@ function AddonsEditor({
               onChange={(next) => patchAt(idx, { price_by_weekday: next })}
               inpClass={inpClass}
             />
+            <SubOptionsEditor
+              value={a.sub_options ?? []}
+              onChange={(next) => patchAt(idx, { sub_options: next })}
+              inpClass={inpClass}
+              parentName={a.name ?? ""}
+            />
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+type AddonSubOption = NonNullable<NonNullable<PackageServices["addons"]>[number]["sub_options"]>[number];
+
+function SubOptionsEditor({
+  value,
+  onChange,
+  inpClass,
+  parentName,
+}: {
+  value: AddonSubOption[];
+  onChange: (next: AddonSubOption[]) => void;
+  inpClass: string;
+  parentName: string;
+}) {
+  const subs = value ?? [];
+  const enabled = subs.length > 0;
+  const patchSub = (idx: number, p: Partial<AddonSubOption>) =>
+    onChange(subs.map((s, i) => (i === idx ? { ...s, ...p } : s)));
+  return (
+    <div className="rounded-lg border border-brand-orange/20 bg-brand-orange/[0.03] p-2">
+      <div className="flex items-center justify-between">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            className="h-3.5 w-3.5 accent-brand-orange"
+            checked={enabled}
+            onChange={(e) =>
+              onChange(e.target.checked ? [{ name: "", description: "", price: 0, per: "unit" }] : [])
+            }
+          />
+          Sub-opções (aparecem quando o cliente marca “{parentName || "este opcional"}”)
+        </label>
+        {enabled && (
+          <button
+            type="button"
+            className="text-xs text-brand-orange hover:underline"
+            onClick={() => onChange([...subs, { name: "", description: "", price: 0, per: "unit" }])}
+          >
+            + Nova sub-opção
+          </button>
+        )}
+      </div>
+      {enabled && (
+        <div className="mt-2 space-y-2">
+          {subs.map((s, idx) => (
+            <div key={idx} className="rounded-md border border-border bg-background p-2 space-y-2">
+              <div className="grid gap-2 sm:grid-cols-[1fr_120px_120px_auto]">
+                <input
+                  className={inpClass}
+                  placeholder="Nome (ex.: Fast Pass 1 dia)"
+                  value={s.name ?? ""}
+                  onChange={(e) => patchSub(idx, { name: e.target.value })}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className={inpClass}
+                  placeholder="Preço"
+                  value={s.price ?? 0}
+                  onChange={(e) => patchSub(idx, { price: Number(e.target.value) || 0 })}
+                />
+                <select
+                  className={inpClass}
+                  value={s.per ?? "unit"}
+                  onChange={(e) => patchSub(idx, { per: e.target.value as "unit" | "order" })}
+                >
+                  <option value="unit">por pessoa</option>
+                  <option value="order">por reserva</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => onChange(subs.filter((_, i) => i !== idx))}
+                  className="rounded-md border border-border px-2 hover:bg-muted"
+                  aria-label="Remover sub-opção"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <input
+                className={inpClass}
+                placeholder="Descrição curta (opcional)"
+                value={s.description ?? ""}
+                onChange={(e) => patchSub(idx, { description: e.target.value })}
+              />
+              <label className="inline-flex items-center gap-2 text-[11px] text-emerald-700 dark:text-emerald-400 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="accent-emerald-600"
+                  checked={!!s.recommended}
+                  onChange={(e) => patchSub(idx, { recommended: e.target.checked })}
+                />
+                Recomendada
+              </label>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -139,6 +139,16 @@ export type PackageServices = {
       days: number[];
       price: number;
     }>;
+    /** Sub-opções aparecem embaixo quando o pai é selecionado (ex.: Fast Pass do ingresso Universal). */
+    sub_options?: Array<{
+      id?: string;
+      name: string;
+      description?: string | null;
+      price: number;
+      per?: "unit" | "order";
+      recommended?: boolean;
+      recommended_reason?: string | null;
+    }>;
   }>;
 };
 

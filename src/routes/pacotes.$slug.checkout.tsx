@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CreditCard, QrCode, FileText, Loader2, Check, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -195,12 +195,14 @@ function Checkout() {
     const raw = ((pkg as any)?.services?.addons ?? []) as Array<{
       id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order";
       price_by_weekday?: Array<{ label?: string; days: number[]; price: number }>;
+      sub_options?: Array<{ id?: string; name: string; description?: string | null; price: number; per?: "unit" | "order" }>;
     }>;
     return raw
       .filter((a) => {
         if (!a || !a.name) return false;
         const tiers = (a.price_by_weekday ?? []) as any[];
-        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0);
+        const subs = (a.sub_options ?? []) as any[];
+        return Number(a.price) > 0 || tiers.some((t) => Number(t?.price) > 0) || subs.some((s) => Number(s?.price) > 0);
       })
       .map((a, i) => {
         const tiers = (a.price_by_weekday ?? []) as any[];
@@ -211,13 +213,23 @@ function Checkout() {
         const tierPrices = tiers.map((t) => Number(t?.price)).filter((n) => n > 0);
         const assumed = Number(a.price) > 0 ? Number(a.price) : (tierPrices.length ? Math.min(...tierPrices) : 0);
         const price = tier ? Number(tier.price) : assumed;
+        const key = a.id || `${a.name}-${i}`;
+        const subs = ((a.sub_options ?? []) as any[])
+          .filter((s) => s && s.name)
+          .map((s, j) => ({
+            ...s,
+            key: `${key}::${s.id || `${s.name}-${j}`}`,
+            price: Number(s.price) || 0,
+            per: (s.per ?? "unit") as "unit" | "order",
+          }));
         return {
           ...a,
-          key: a.id || `${a.name}-${i}`,
+          key,
           per: a.per ?? "unit",
           price,
           tierLabel: tier?.label ?? null,
           hasWeekdayPricing: tiers.length > 0,
+          subs,
         };
       });
   }, [pkg, addonWeekday]);
@@ -227,9 +239,16 @@ function Checkout() {
     return addonsList.reduce((sum, a) => {
       if (!selectedAddons[a.key]) return sum;
       const qty = a.per === "order" ? 1 : Math.max(1, units);
-      return sum + a.price * qty;
+      let s = sum + a.price * qty;
+      for (const sub of a.subs) {
+        if (!selectedAddons[sub.key]) continue;
+        const subQty = sub.per === "order" ? 1 : Math.max(1, units);
+        s += sub.price * subQty;
+      }
+      return s;
     }, 0);
   }, [addonsList, selectedAddons, adults, children, isPerUnit]);
+
 
 
   const subtotalPrice = useMemo(() => {
@@ -341,10 +360,25 @@ function Checkout() {
             pickup_point: pickupPoint || null,
             addons_selected: addonsList
               .filter((a) => selectedAddons[a.key])
-              .map((a) => {
+              .flatMap((a) => {
                 const units = isPerUnit ? adults : (adults + children);
                 const qty = a.per === "order" ? 1 : Math.max(1, units);
-                return { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null };
+                const parent = { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null };
+                const subs = a.subs
+                  .filter((sub: any) => selectedAddons[sub.key])
+                  .map((sub: any) => {
+                    const sQty = sub.per === "order" ? 1 : Math.max(1, units);
+                    return {
+                      name: `${a.name} — ${sub.name}`,
+                      price: sub.price,
+                      per: sub.per,
+                      qty: sQty,
+                      subtotal: sub.price * sQty,
+                      description: sub.description ?? null,
+                      parent: a.name,
+                    };
+                  });
+                return [parent, ...subs];
               }),
             addons_total: addonsTotal,
 
@@ -581,8 +615,8 @@ function Checkout() {
                     const qty = a.per === "order" ? 1 : Math.max(1, units);
                     const line = a.price * qty;
                     return (
+                      <Fragment key={a.key}>
                       <label
-                        key={a.key}
                         className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition ${
                           checked
                             ? "border-brand-orange bg-brand-orange/5 shadow-[0_0_0_1px_hsl(var(--brand-orange)/0.35)]"
@@ -621,6 +655,54 @@ function Checkout() {
 
                         </div>
                       </label>
+                      {checked && a.subs.length > 0 && (
+                        <div className="ml-6 mt-1 mb-2 space-y-1.5 border-l-2 border-brand-orange/30 pl-3">
+                          <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                            Complementos para “{a.name}”
+                          </div>
+                          {a.subs.map((sub: any) => {
+                            const subChecked = !!selectedAddons[sub.key];
+                            const subQty = sub.per === "order" ? 1 : Math.max(1, units);
+                            const subLine = sub.price * subQty;
+                            return (
+                              <label
+                                key={sub.key}
+                                className={`flex cursor-pointer gap-2 rounded-lg border p-2 transition text-xs ${
+                                  subChecked
+                                    ? "border-brand-orange bg-brand-orange/5"
+                                    : "border-border bg-background hover:border-brand-orange/50"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="mt-0.5 h-3.5 w-3.5 accent-brand-orange"
+                                  checked={subChecked}
+                                  onChange={(e) =>
+                                    setSelectedAddons((prev) => ({ ...prev, [sub.key]: e.target.checked }))
+                                  }
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                    <span className="font-semibold">{sub.name}</span>
+                                    <span className="font-bold text-brand-orange">
+                                      + {formatBRL(subLine)}
+                                      {sub.per !== "order" && subQty > 1 && (
+                                        <span className="ml-1 font-normal text-muted-foreground">
+                                          ({formatBRL(sub.price)} × {subQty})
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                  {sub.description && (
+                                    <p className="mt-0.5 text-muted-foreground">{sub.description}</p>
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                      </Fragment>
                     );
                   })}
                 </div>
@@ -984,11 +1066,24 @@ function Checkout() {
                     const units = isPerUnit ? adults : (adults + children);
                     const qty = a.per === "order" ? 1 : Math.max(1, units);
                     return (
-                      <SummaryLine
-                        key={a.key}
-                        label={`+ ${a.name}${a.per !== "order" && qty > 1 ? ` × ${qty}` : ""}`}
-                        value={formatBRL(a.price * qty)}
-                      />
+                      <Fragment key={a.key}>
+                        <SummaryLine
+                          label={`+ ${a.name}${a.per !== "order" && qty > 1 ? ` × ${qty}` : ""}`}
+                          value={formatBRL(a.price * qty)}
+                        />
+                        {a.subs
+                          .filter((sub: any) => selectedAddons[sub.key])
+                          .map((sub: any) => {
+                            const sQty = sub.per === "order" ? 1 : Math.max(1, units);
+                            return (
+                              <SummaryLine
+                                key={sub.key}
+                                label={`  └ ${sub.name}${sub.per !== "order" && sQty > 1 ? ` × ${sQty}` : ""}`}
+                                value={formatBRL(sub.price * sQty)}
+                              />
+                            );
+                          })}
+                      </Fragment>
                     );
                   })}
                 {payment === "pix" && pixDiscountValue > 0 && (
