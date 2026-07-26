@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import {
   Ticket,
   Calendar as CalendarIcon,
@@ -37,6 +38,24 @@ export const Route = createFileRoute("/ingressos")({
   },
   component: IngressosPage,
 });
+
+const EVENT_CATEGORIES: { key: string; label: string; match: RegExp }[] = [
+  { key: "rock-in-rio", label: "Rock in Rio", match: /rock\s*in\s*rio|cidade do rock/i },
+  { key: "disney", label: "Disney", match: /disney|magic kingdom|epcot|hollywood studios|animal kingdom/i },
+  { key: "universal", label: "Universal", match: /universal|islands of adventure|epic universe|volcano bay/i },
+  { key: "seaworld", label: "SeaWorld", match: /sea\s*world|busch gardens|aquatica/i },
+  { key: "lollapalooza", label: "Lollapalooza", match: /lollapalooza|lolla/i },
+];
+
+function detectEvent(p: any): string | null {
+  const hay = [p.title, p.destination, ...(p.services?.tickets?.parks ?? [])]
+    .filter(Boolean)
+    .join(" | ");
+  for (const cat of EVENT_CATEGORIES) {
+    if (cat.match.test(hay)) return cat.key;
+  }
+  return null;
+}
 
 const MONTH_ABBR = [
   "JAN", "FEV", "MAR", "ABR", "MAI", "JUN",
@@ -77,6 +96,25 @@ function IngressosPage() {
   });
 
   const list = items ?? [];
+  const [activeEvent, setActiveEvent] = useState<string>("");
+
+  // Contagem por categoria — só mostra chip se houver ao menos 1 item
+  const eventCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of list) {
+      const key = detectEvent(p);
+      if (key) counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }, [list]);
+
+  const availableCategories = EVENT_CATEGORIES.filter((c) => eventCounts[c.key] > 0);
+
+  const filteredList = activeEvent
+    ? list.filter((p) => detectEvent(p) === activeEvent)
+    : list;
+
+
 
 
   return (
@@ -142,14 +180,54 @@ function IngressosPage() {
             </div>
           )}
 
-          {/* GRID (destaque + demais, todos 3 por linha) */}
-          {list.length > 0 && (
+          {/* FILTRO POR EVENTO */}
+          {!isLoading && list.length > 0 && availableCategories.length > 0 && (
+            <div className="mb-6 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveEvent("")}
+                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
+                  activeEvent === ""
+                    ? "bg-brand-orange text-primary-foreground shadow-lg"
+                    : "border border-border bg-card text-muted-foreground hover:border-brand-orange/60 hover:text-foreground"
+                }`}
+              >
+                Todos <span className="opacity-70">({list.length})</span>
+              </button>
+              {availableCategories.map((cat) => (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setActiveEvent(cat.key)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
+                    activeEvent === cat.key
+                      ? "bg-brand-orange text-primary-foreground shadow-lg"
+                      : "border border-border bg-card text-muted-foreground hover:border-brand-orange/60 hover:text-foreground"
+                  }`}
+                >
+                  <Sparkles className="h-3 w-3" /> {cat.label}{" "}
+                  <span className="opacity-70">({eventCounts[cat.key]})</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* GRID */}
+          {list.length > 0 && filteredList.length > 0 && (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {list.map((p, idx) => (
+              {filteredList.map((p, idx) => (
                 <TicketCard key={p.id} pkg={p} eager={idx < 3} />
               ))}
             </div>
           )}
+
+          {list.length > 0 && filteredList.length === 0 && (
+            <div className="rounded-2xl border border-border bg-card p-10 text-center">
+              <p className="text-muted-foreground">Nenhum ingresso nesta categoria por enquanto.</p>
+            </div>
+          )}
+
+
 
         </section>
       </main>
