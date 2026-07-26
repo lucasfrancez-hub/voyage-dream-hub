@@ -2002,6 +2002,7 @@ function PackageEditorModal({
 
             {tab === "dates" && (
               <div className="grid sm:grid-cols-2 gap-3">
+                {kind !== "package" && (
                 <FormField label="Modo de data" wide>
                   <div className="flex gap-2">
                     {([
@@ -2026,6 +2027,8 @@ function PackageEditorModal({
                     })}
                   </div>
                 </FormField>
+                )}
+
                 {(editing.date_mode ?? "fixed") === "fixed" && (
                   <>
                     <FormField label="Data ida">
