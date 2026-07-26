@@ -20,7 +20,11 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
   validateSearch: (s: Record<string, unknown>) => {
     const raw = Number(s?.qty);
     const qty = Number.isFinite(raw) && raw > 0 ? Math.min(9, Math.floor(raw)) : undefined;
-    return { qty };
+    const dateRaw = typeof s?.date === "string" ? s.date : "";
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : undefined;
+    const addonsRaw = typeof s?.addons === "string" ? s.addons : "";
+    const addons = addonsRaw ? addonsRaw : undefined;
+    return { qty, date, addons };
   },
 });
 
@@ -33,7 +37,7 @@ const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
   const { slug } = Route.useParams();
-  const { qty: qtyFromSearch } = Route.useSearch();
+  const { qty: qtyFromSearch, date: dateFromSearch, addons: addonsFromSearch } = Route.useSearch();
   const navigate = useNavigate();
 
 
@@ -119,7 +123,12 @@ function Checkout() {
     } else if (pkg.base_occupancy) {
       setAdults(qtyFromSearch ?? pkg.base_occupancy);
     }
-  }, [pkg?.id, qtyFromSearch]);
+    if (dateFromSearch) setPreferredDate(dateFromSearch);
+    if (addonsFromSearch) {
+      const keys = addonsFromSearch.split(",").filter(Boolean);
+      setSelectedAddons(Object.fromEntries(keys.map((k: string) => [k, true])));
+    }
+  }, [pkg?.id, qtyFromSearch, dateFromSearch, addonsFromSearch]);
 
 
   // Grow / shrink the travelers list. Per-unit uses adults=qty as one adult per unit.

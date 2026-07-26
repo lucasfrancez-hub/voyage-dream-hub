@@ -1,7 +1,9 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 import {
   MapPin,
@@ -598,6 +600,10 @@ function TicketDetailsView({
 
   const [qty, setQty] = useState(1);
   const maxUnits = Math.max(1, Math.min(9, Number(pkg.max_units) || 9));
+  const isFlexibleDate = pkg?.date_mode === "flexible";
+  const rawAddons: any[] = Array.isArray(services?.addons) ? services.addons : [];
+  const hasAddons = rawAddons.some((a) => a && a.name && Number(a.price) > 0);
+  const [preOpen, setPreOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -817,16 +823,26 @@ function TicketDetailsView({
 
             </div>
 
-            <Link
-              to="/pacotes/$slug/checkout"
-              params={{ slug: pkg.slug }}
-              search={{ qty }}
-              className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-orange px-6 py-4 font-bold uppercase tracking-widest text-sm text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition group"
-            >
-
-              Reservar agora
-              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
+            {isFlexibleDate || hasAddons ? (
+              <button
+                type="button"
+                onClick={() => setPreOpen(true)}
+                className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-orange px-6 py-4 font-bold uppercase tracking-widest text-sm text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition group"
+              >
+                Reservar agora
+                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            ) : (
+              <Link
+                to="/pacotes/$slug/checkout"
+                params={{ slug: pkg.slug }}
+                search={{ qty }}
+                className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-orange px-6 py-4 font-bold uppercase tracking-widest text-sm text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition group"
+              >
+                Reservar agora
+                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            )}
 
             <p className="mt-3 text-[11px] text-muted-foreground text-center leading-relaxed">
               Você preenche seus dados e finaliza o pagamento na próxima etapa.
@@ -840,8 +856,201 @@ function TicketDetailsView({
         </aside>
       </div>
 
+      <PreCheckoutDialog
+        open={preOpen}
+        onOpenChange={setPreOpen}
+        pkg={pkg}
+        qty={qty}
+        basePrice={price}
+        isFlexibleDate={isFlexibleDate}
+        rawAddons={rawAddons}
+      />
+
       <ContactFooter whatsappMessage={`Olá! Tenho interesse no ingresso ${pkg.title} e quero mais informações.`} />
     </div>
+  );
+}
+
+function PreCheckoutDialog({
+  open,
+  onOpenChange,
+  pkg,
+  qty,
+  basePrice,
+  isFlexibleDate,
+  rawAddons,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  pkg: any;
+  qty: number;
+  basePrice: number;
+  isFlexibleDate: boolean;
+  rawAddons: any[];
+}) {
+  const navigate = useNavigate();
+  const [date, setDate] = useState<string>(isFlexibleDate ? "" : (pkg.going_date ?? ""));
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+
+  const weekday = useMemo<number | null>(() => {
+    const raw = date || pkg?.going_date || "";
+    const m = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return null;
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay();
+  }, [date, pkg]);
+
+  const addons = useMemo(() => {
+    return rawAddons
+      .filter((a: any) => a && a.name && Number(a.price) > 0)
+      .map((a: any, i: number) => {
+        const tier =
+          weekday != null
+            ? (a.price_by_weekday ?? []).find((t: any) => (t.days ?? []).includes(weekday))
+            : null;
+        const price = tier ? Number(tier.price) : Number(a.price);
+        return {
+          ...a,
+          key: a.id || `${a.name}-${i}`,
+          per: (a.per ?? "unit") as "unit" | "order",
+          price,
+          tierLabel: tier?.label ?? null,
+          hasWeekdayPricing: (a.price_by_weekday?.length ?? 0) > 0,
+        };
+      });
+  }, [rawAddons, weekday]);
+
+  const addonsTotal = useMemo(() => {
+    return addons.reduce((sum, a) => {
+      if (!selected[a.key]) return sum;
+      const units = a.per === "order" ? 1 : Math.max(1, qty);
+      return sum + a.price * units;
+    }, 0);
+  }, [addons, selected, qty]);
+
+  const total = basePrice * qty + addonsTotal;
+  const canContinue = !isFlexibleDate || !!date;
+
+  function handleContinue() {
+    if (isFlexibleDate && !date) {
+      toast.error("Escolha uma data para continuar");
+      return;
+    }
+    const selectedKeys = Object.entries(selected).filter(([, v]) => v).map(([k]) => k);
+    navigate({
+      to: "/pacotes/$slug/checkout",
+      params: { slug: pkg.slug },
+      search: {
+        qty,
+        ...(date ? { date } : {}),
+        ...(selectedKeys.length ? { addons: selectedKeys.join(",") } : {}),
+      },
+    });
+  }
+
+  const hasAddons = addons.length > 0;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-display text-xl">
+            Escolha sua data{hasAddons ? " e adicionais" : ""}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5 py-2 max-h-[60vh] overflow-y-auto">
+          {isFlexibleDate && (
+            <div className="space-y-2">
+              <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                Data desejada
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-3 text-sm"
+              />
+            </div>
+          )}
+
+          {hasAddons && (
+            <div className="space-y-2">
+              <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                Serviços adicionais {isFlexibleDate && !date ? "(escolha a data para ver os preços)" : "(opcional)"}
+              </label>
+              <div className="space-y-2">
+                {addons.map((a) => {
+                  const isSel = !!selected[a.key];
+                  const units = a.per === "order" ? 1 : Math.max(1, qty);
+                  const line = a.price * units;
+                  const pricingUnavailable = a.hasWeekdayPricing && weekday == null;
+                  return (
+                    <button
+                      key={a.key}
+                      type="button"
+                      disabled={pricingUnavailable}
+                      onClick={() => setSelected((s) => ({ ...s, [a.key]: !s[a.key] }))}
+                      className={`w-full text-left rounded-2xl border p-4 transition ${
+                        isSel
+                          ? "border-brand-orange bg-brand-orange/5"
+                          : "border-border bg-card hover:border-brand-orange/40"
+                      } ${pricingUnavailable ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-sm">{a.name}</div>
+                          {a.description && (
+                            <div className="text-xs text-muted-foreground mt-0.5">{a.description}</div>
+                          )}
+                          {a.tierLabel && (
+                            <div className="mt-1 inline-block text-[10px] font-bold uppercase tracking-wider text-brand-orange">
+                              {a.tierLabel}
+                            </div>
+                          )}
+                          {pricingUnavailable && (
+                            <div className="mt-1 text-[10px] text-yellow-500">
+                              Preço varia por data — escolha a data
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-bold text-sm">{formatBRL(line)}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {a.per === "order" ? "por reserva" : `${formatBRL(a.price)} × ${units}`}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="border-t border-border pt-4 flex items-center justify-between">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+              Total estimado
+            </span>
+            <span className="font-display text-2xl font-black text-brand-orange">
+              {formatBRL(total)}
+            </span>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Voltar
+          </Button>
+          <Button
+            onClick={handleContinue}
+            disabled={!canContinue}
+            className="bg-brand-orange text-primary-foreground hover:opacity-90"
+          >
+            Continuar para checkout <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
