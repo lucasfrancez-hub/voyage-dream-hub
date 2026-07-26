@@ -429,7 +429,7 @@ function TicketCard({ pkg: p, eager = false }: { pkg: any; eager?: boolean }) {
       </div>
 
       {/* CORPO */}
-      <div className="p-5 flex flex-col gap-3 flex-1">
+      <div className="p-5 flex flex-col gap-3 flex-1 rounded-b-2xl border border-t-0 border-border group-hover:border-brand-orange/60 transition-colors">
         <h2 className="font-semibold text-lg leading-snug line-clamp-2">{p.title}</h2>
         {chips.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
