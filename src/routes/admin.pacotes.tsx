@@ -2057,6 +2057,7 @@ function PackageEditorModal({
                     onChange={(e) => setEditing({ ...editing, nights: Number(e.target.value) })}
                   />
                 </FormField>
+                {kind !== "package" && (
                 <FormField label="Modo de preço" wide>
                   <div className="flex gap-2">
                     {([
@@ -2081,6 +2082,8 @@ function PackageEditorModal({
                     })}
                   </div>
                 </FormField>
+                )}
+
                 {(editing.pricing_mode ?? "per_occupancy") === "per_occupancy" ? (
                   <FormField label="Ocupação base (adultos)">
                     <input
