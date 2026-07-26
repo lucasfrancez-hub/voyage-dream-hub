@@ -103,7 +103,7 @@ function Checkout() {
   // Defaults: base occupancy for packages, single unit for per-unit tickets.
   useEffect(() => {
     if (!pkg) return;
-    if ((pkg as any).pricing_mode === "per_unit") {
+    if ((pkg as any).pricing_mode === "per_unit" || (pkg as any).kind === "service") {
       setAdults(1);
       setChildren(0);
     } else if (pkg.base_occupancy) {
