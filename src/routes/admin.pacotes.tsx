@@ -82,7 +82,11 @@ import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import { cleanRoomLabel } from "@/lib/packages/room";
 import type { PackageServices, SeguroMoeda } from "@/lib/packages/feed-art-data";
 import { formatSeguroCobertura } from "@/lib/packages/feed-art-data";
-import { importCruiseFromUrl } from "@/lib/packages/cruise-import.functions";
+import {
+  importCruiseFromUrl,
+  getFrtCredentials,
+  saveFrtCredentials,
+} from "@/lib/packages/cruise-import.functions";
 
 import { Shield, Bus, MapPin as MapPinIcon } from "lucide-react";
 
