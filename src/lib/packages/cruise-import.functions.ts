@@ -41,13 +41,11 @@ export const importCruiseFromUrl = createServerFn({ method: "POST" })
         .maybeSingle();
       cookie = (row?.cookie as string | undefined)?.trim() || undefined;
     }
-    if (!cookie) {
-      throw new Error(
-        "Cookie da FRT não configurado. Vá em Admin → Configurações da FRT pra salvar.",
-      );
-    }
+    // Cookie é opcional — algumas URLs (ex: /checkout público da FRT) não exigem sessão.
+    // O extractor só vai avisar depois se detectar tela de login.
     const { extractCruiseFromUrl } = await import("./cruise-import.server");
-    return await extractCruiseFromUrl(data.url, { cookie });
+    return await extractCruiseFromUrl(data.url, cookie ? { cookie } : undefined);
+
   });
 
 /** Lê o cookie salvo (admin) — retorna preview curto pra UI. */
