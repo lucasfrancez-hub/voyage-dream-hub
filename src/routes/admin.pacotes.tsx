@@ -3177,55 +3177,63 @@ function CruiseUrlImporter({
     <div className="mt-3 rounded-xl border border-dashed border-border bg-background/60 p-3">
       <div className="flex items-center gap-2 text-xs font-semibold text-foreground mb-2">
         <Wand2 className="h-3.5 w-3.5 text-brand-orange" />
-        Importar de URL (IA lê todas as abas)
+        Importar da FRT Operadora (Krooze)
       </div>
-      <div className="flex gap-2">
+      <div className="grid gap-2">
         <input
           type="url"
           className={inpClass}
-          placeholder="https://... link do cruzeiro"
+          placeholder="Cole aqui o link da página do cruzeiro na FRT (frtoperadora.krooze.com.br/…)"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          disabled={loading}
+        />
+        <textarea
+          className={`${inpClass} font-mono text-[11px]`}
+          rows={2}
+          placeholder="Cole aqui o Cookie da sua sessão FRT (muda a cada login — cole toda vez)"
+          value={cookie}
+          onChange={(e) => setCookie(e.target.value)}
           disabled={loading}
         />
         <button
           type="button"
           onClick={run}
-          disabled={loading || !url.trim()}
-          className="rounded-xl bg-brand-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 whitespace-nowrap flex items-center gap-2"
+          disabled={loading || !url.trim() || !cookie.trim()}
+          className="rounded-xl bg-brand-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          {loading ? "Extraindo…" : "Importar"}
+          {loading ? "Extraindo…" : "Importar cruzeiro"}
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setShowAuth((v) => !v)}
-        className="mt-2 text-[11px] font-semibold text-brand-orange hover:underline"
-      >
-        {showAuth ? "− Ocultar autenticação" : "🔒 Site pede login? Colar cookie"}
-      </button>
-
-      {showAuth && (
-        <div className="mt-2 space-y-1">
-          <textarea
-            className={`${inpClass} font-mono text-[11px]`}
-            rows={3}
-            placeholder="Cole aqui o header Cookie inteiro (ex: PHPSESSID=abc123; auth_token=xyz; ...)"
-            value={cookie}
-            onChange={(e) => setCookie(e.target.value)}
-            disabled={loading}
-          />
-          <p className="text-[11px] text-muted-foreground leading-snug">
-            <strong>Como pegar:</strong> abra a página do cruzeiro <em>já logado</em> no seu
-            navegador → F12 → aba <strong>Network</strong> → recarregue → clique na 1ª requisição da
-            página → copie o valor completo do header <code>Cookie</code>. O mesmo cookie é usado
-            pra abrir todas as abas relacionadas. Guardado só nessa sessão do navegador — não é
-            salvo em lugar nenhum.
-          </p>
-        </div>
-      )}
+      <details className="mt-2 text-[11px] text-muted-foreground leading-snug">
+        <summary className="cursor-pointer font-semibold text-brand-orange">
+          Como copiar o Cookie da FRT (passo a passo)
+        </summary>
+        <ol className="mt-2 list-decimal pl-4 space-y-1">
+          <li>Abra <code>frtoperadora.krooze.com.br</code> e faça login normalmente.</li>
+          <li>Abra a página do cruzeiro que quer importar.</li>
+          <li>Aperte <strong>F12</strong> → aba <strong>Application</strong> (ou "Aplicativo").</li>
+          <li>
+            No menu da esquerda, expanda <strong>Cookies</strong> → clique em{" "}
+            <code>https://frtoperadora.krooze.com.br</code>.
+          </li>
+          <li>
+            Selecione tudo (Ctrl/Cmd+A) na tabela de cookies, copie, ou clique com o botão direito →{" "}
+            <em>Copy all as string</em>. Cole no campo acima.
+          </li>
+        </ol>
+        <p className="mt-2">
+          <strong>Alternativa mais rápida:</strong> na aba <strong>Network</strong>, clique em
+          qualquer requisição (ex: <code>Results</code> ou <code>PriceSummaryByCruiseLine</code>) →
+          role até <strong>Request Headers</strong> → copie tudo depois de <code>Cookie:</code> e
+          cole aqui.
+        </p>
+        <p className="mt-2 italic">
+          O cookie expira quando você sai da FRT — precisa colar de novo a cada importação.
+        </p>
+      </details>
 
       {msg && (
         <p
