@@ -133,22 +133,117 @@ export const cruiseDetailsSchema = z.object({
 });
 export type CruiseDetails = z.infer<typeof cruiseDetailsSchema>;
 
+/**
+ * Parse tolerante: valida seção a seção. Item malformado é
+ * completado com defaults (id/name/port sintéticos) em vez de derrubar
+ * o payload inteiro. Isso evita que o editor apareça "vazio" quando o
+ * JSON tem quase tudo mas falta um campo em 1 item.
+ */
 export function parseCruiseDetails(raw: unknown): CruiseDetails {
-  const res = cruiseDetailsSchema.safeParse(raw ?? {});
-  if (res.success) return res.data;
+  const src = (raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}) as Record<
+    string,
+    unknown
+  >;
+  const slug = (s: string, fallback: string) =>
+    (s || fallback)
+      .toString()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || fallback;
+
+  const parseArr = <T,>(
+    input: unknown,
+    parseOne: (item: unknown, index: number) => T | null,
+  ): T[] => {
+    if (!Array.isArray(input)) return [];
+    const out: T[] = [];
+    for (let i = 0; i < input.length; i++) {
+      const v = parseOne(input[i], i);
+      if (v) out.push(v);
+    }
+    return out;
+  };
+
+  const cabin_categories = parseArr(src.cabin_categories, (item, i) => {
+    if (!item || typeof item !== "object") return null;
+    const o = item as Record<string, unknown>;
+    const name = (typeof o.name === "string" && o.name.trim()) || `Cabine ${i + 1}`;
+    const withDefaults = {
+      ...o,
+      id: (typeof o.id === "string" && o.id.trim()) || slug(name, `cabine-${i + 1}`),
+      name,
+      type: cabinTypeSchema.safeParse(o.type).success ? o.type : "interna",
+    };
+    const r = cabinCategorySchema.safeParse(withDefaults);
+    return r.success ? r.data : null;
+  });
+
+  const experiences = parseArr(src.experiences, (item, i) => {
+    if (!item || typeof item !== "object") return null;
+    const o = item as Record<string, unknown>;
+    const name = (typeof o.name === "string" && o.name.trim()) || `Experiência ${i + 1}`;
+    const r = experienceSchema.safeParse({
+      ...o,
+      id: (typeof o.id === "string" && o.id.trim()) || slug(name, `exp-${i + 1}`),
+      name,
+    });
+    return r.success ? r.data : null;
+  });
+
+  const addons = parseArr(src.addons, (item, i) => {
+    if (!item || typeof item !== "object") return null;
+    const o = item as Record<string, unknown>;
+    const name = (typeof o.name === "string" && o.name.trim()) || `Adicional ${i + 1}`;
+    const r = addonSchema.safeParse({
+      ...o,
+      id: (typeof o.id === "string" && o.id.trim()) || slug(name, `addon-${i + 1}`),
+      name,
+    });
+    return r.success ? r.data : null;
+  });
+
+  const itinerary = parseArr(src.itinerary, (item, i) => {
+    if (!item || typeof item !== "object") return null;
+    const o = item as Record<string, unknown>;
+    const port = (typeof o.port === "string" && o.port.trim()) || `Dia ${i + 1}`;
+    const day = typeof o.day === "number" && o.day > 0 ? o.day : i + 1;
+    const r = itineraryDaySchema.safeParse({ ...o, port, day });
+    return r.success ? r.data : null;
+  });
+
+  const included = Array.isArray(src.included)
+    ? src.included.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+    : [];
+  const not_included = Array.isArray(src.not_included)
+    ? src.not_included.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+    : [];
+
+  const shipRes = shipSchema.safeParse(src.ship ?? {});
+  const ship = shipRes.success ? shipRes.data : shipSchema.parse({});
+
+  const policiesRes = policySchema.safeParse(src.policies ?? {});
+  const policies = policiesRes.success ? policiesRes.data : policySchema.parse({});
+
+  const map_image =
+    typeof src.map_image === "string" && /^https?:\/\//i.test(src.map_image) ? src.map_image : "";
+  const notes = typeof src.notes === "string" ? src.notes : "";
+
   return {
-    cabin_categories: [],
-    experiences: [],
-    addons: [],
-    included: [],
-    not_included: [],
-    policies: policySchema.parse({}),
-    ship: shipSchema.parse({}),
-    itinerary: [],
-    map_image: "",
-    notes: "",
+    cabin_categories,
+    experiences,
+    addons,
+    included,
+    not_included,
+    policies,
+    ship,
+    itinerary,
+    map_image,
+    notes,
   };
 }
+
 
 export const CABIN_TYPE_LABELS: Record<CabinType, string> = {
   interna: "Interna",
