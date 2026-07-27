@@ -335,6 +335,8 @@ function PacotesList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os destinos</SelectItem>
+                <SelectItem value="__nacional">Nacional 🇧🇷</SelectItem>
+                <SelectItem value="__internacional">Internacional 🌎</SelectItem>
                 {destinations.map((d) => (
                   <SelectItem key={d.value} value={d.value}>
                     {d.flag ? `${d.label} ${d.flag}` : d.label}
