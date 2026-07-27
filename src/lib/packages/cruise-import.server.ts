@@ -85,7 +85,7 @@ async function firecrawlMap(url: string): Promise<string[]> {
     const res = await fetch(`${GATEWAY}/map`, {
       method: "POST",
       headers: firecrawlHeaders(),
-      body: JSON.stringify({ url, limit: 40, includeSubdomains: false }),
+      body: JSON.stringify({ url, limit: 120, includeSubdomains: false }),
     });
     if (!res.ok) return [];
     const data = (await res.json()) as { links?: (string | { url?: string })[] };
@@ -101,17 +101,28 @@ async function firecrawlMap(url: string): Promise<string[]> {
 
 // palavras que sugerem abas úteis do cruzeiro
 const RELEVANT = [
-  "cabin", "cabine", "stateroom", "suite", "suíte",
-  "itiner", "itiner", "roteiro",
-  "ship", "navio", "vessel",
+  "cabin", "cabine", "stateroom", "suite", "suíte", "acomoda",
+  "itiner", "roteiro", "day-by-day",
+  "ship", "navio", "vessel", "embarca",
   "deck", "plano",
   "port", "porto", "destino",
-  "gallery", "galeria", "photo",
-  "amenit", "restaurante", "dining", "entertainment",
-  "excurs",
+  "gallery", "galeria", "photo", "foto",
+  "amenit", "restaurante", "dining", "entertainment", "gastro",
+  "excurs", "passeio", "tour",
+  "adicional", "opcional", "extra", "addon", "add-on",
+  "beverage", "bebida", "drink", "bar",
+  "wifi", "internet",
+  "gorjeta", "gratuit", "service-charge",
+  "transfer", "translado",
+  "seguro", "insurance",
+  "spa", "fitness",
+  "inclui", "incluso", "included", "not-included",
+  "politica", "policy", "cancel", "reembolso", "pagamento", "payment",
+  "documento", "document",
+  "crianc", "children", "kids",
 ];
 
-function pickRelevantTabs(base: string, links: string[], max = 8): string[] {
+function pickRelevantTabs(base: string, links: string[], max = 20): string[] {
   const baseUrl = new URL(base);
   const seen = new Set<string>([base.replace(/#.*$/, "")]);
   const picked: string[] = [];
@@ -160,7 +171,7 @@ export async function extractCruiseFromUrl(
 
   // 2. Descobre + raspa abas (reutiliza o mesmo cookie/headers)
   const links = await firecrawlMap(url);
-  const tabs = pickRelevantTabs(url, links, 8);
+  const tabs = pickRelevantTabs(url, links, 20);
   const scraped: { url: string; markdown: string }[] = [{ url, markdown: main.markdown }];
   await Promise.all(
     tabs.map(async (t) => {
@@ -199,7 +210,7 @@ export async function extractCruiseFromUrl(
 
   const prompt = `Você extrai dados estruturados de páginas de cruzeiros marítimos em pt-BR.
 
-Recebi o conteúdo (markdown) da página do cruzeiro e de suas abas. Extraia TUDO que conseguir.
+Recebi o conteúdo (markdown) da página do cruzeiro e de suas abas. Extraia LITERALMENTE TUDO que conseguir — nada de resumir ou omitir.
 
 Regras package_fields (top-level do pacote):
 - title: nome curto do cruzeiro (ex: "MSC Preziosa - Caribe 7 noites").
@@ -210,22 +221,31 @@ Regras package_fields (top-level do pacote):
 - price_from: menor preço por pessoa em ocupação dupla (BRL, número).
 - supplier: operadora (ex: "MSC Cruzeiros", "Costa", "Royal Caribbean").
 
-Regras cruise_details:
-- Preços em BRL (número, sem símbolo). Se o preço for por pessoa, use pricing.occ2.per_person, occ3.per_person etc.
-- Se houver "3ª pessoa" e "4ª pessoa" com valor diferente, use campos "third" e "fourth".
-- Se houver criança com valor reduzido, use "child" (valor por criança).
-- Taxas portuárias/serviço vão em taxes_total (total por cabine, não por pessoa).
-- experiences = pacotes tipo "Free at Sea", "All Included". delta_per_person é o adicional POR PESSOA vs o pacote base.
-- itinerary: um item por dia. Use "day" numérico. arrival/departure em "HH:MM" ou vazio.
-- cabin_categories.type: "interna" | "externa" | "varanda" | "suite".
+Regras cruise_details — EXTRAIA TUDO:
+- cabin_categories: TODAS as cabines/categorias que aparecerem (interna, externa, varanda, suíte e sub-tipos). Cada uma com nome, código, capacidade, tamanho, fotos, preços por ocupação e taxas.
+  - Preços em BRL (número, sem símbolo). Se o preço for por pessoa, use pricing.occ2.per_person, occ3.per_person etc.
+  - Se houver "3ª pessoa" e "4ª pessoa" com valor diferente, use campos "third" e "fourth".
+  - Se houver criança com valor reduzido, use "child" (valor por criança).
+  - Taxas portuárias/serviço vão em taxes_total (total por cabine, não por pessoa).
+- experiences: pacotes fechados tipo "Free at Sea", "All Inclusive", "Bella", "Fantastica", "Aurea". delta_per_person é o adicional POR PESSOA vs o pacote base.
+- addons: TODOS os adicionais/opcionais avulsos que a página oferecer (pacote de bebidas, wifi, gorjetas, transfer, seguro viagem, excursões, restaurantes especialidade, spa). Cada um com nome, preço, price_unit (per_person, per_cabin, per_day, per_person_per_day, fixed) e category. NÃO confunda com experiences (que são pacotes fechados de tarifa).
+- included: lista bullet-a-bullet do que ESTÁ INCLUÍDO na tarifa (ex: "Pensão completa", "Shows", "Piscinas").
+- not_included: lista do que NÃO ESTÁ INCLUÍDO (ex: "Bebidas alcoólicas", "Gorjetas", "Excursões em terra", "Wifi").
+- policies: extraia texto integral de payment (formas/parcelamento), cancellation (regras/multas), boarding (horário de embarque/desembarque), documents (docs exigidos), children_policy, other (qualquer observação relevante).
+- ship: nome, cia, galeria de fotos, plano de decks (imagem), vídeos, atrações (com foto se houver) e ficha técnica (label/value: comprimento, largura, tonelagem, passageiros, cabines, tripulação, ano, bandeira, decks).
+- itinerary: UM item por dia (inclusive dias de navegação). day numérico, port ("Dia no mar" quando aplicável), arrival/departure em "HH:MM" ou vazio, description com o que fazer no porto.
+- map_image: URL absoluta do mapa/rota do itinerário se houver.
+- notes: qualquer observação importante que não coube nos outros campos.
+
+Regras gerais:
 - Fotos: URLs absolutas https://.
-- Se um campo não aparecer, deixe vazio/omita — NÃO invente.
-- IDs slugs curtos (ex: "cab-interna-1", "exp-free-at-sea-all").
+- Se um campo não aparecer NA PÁGINA, deixe vazio/omita — NÃO invente.
+- IDs slugs curtos (ex: "cab-interna-1", "exp-free-at-sea-all", "add-wifi-premium").
 
 Conteúdo:
 ${consolidated}
 
-Retorne JSON conforme o schema.`;
+Retorne JSON conforme o schema, com TODAS as cabines, TODOS os adicionais, TODOS os dias do itinerário.`;
 
   try {
     const { output } = await generateText({
