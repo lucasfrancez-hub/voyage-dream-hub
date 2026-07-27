@@ -112,9 +112,18 @@ function PacotesList() {
       ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59).getTime()
       : null;
 
+    const intlKeys = new Set(destinations.filter((d) => d.isInternational).map((d) => destinationKey(d.value)));
     const filtered = (packages || []).filter((p) => {
       const originMatch = originFilter === "all" || originKey(p.origin) === originKey(originFilter);
-      const destinationMatch = destinationFilter === "all" || destinationKey(p.destination) === destinationKey(destinationFilter);
+      const dkey = destinationKey(p.destination);
+      const destinationMatch =
+        destinationFilter === "all"
+          ? true
+          : destinationFilter === "__nacional"
+            ? !!p.destination && !intlKeys.has(dkey)
+            : destinationFilter === "__internacional"
+              ? intlKeys.has(dkey)
+              : dkey === destinationKey(destinationFilter);
       let monthMatch = true;
       if (monthFilter !== "all") {
         if (!p.going_date) monthMatch = false;
@@ -326,6 +335,8 @@ function PacotesList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os destinos</SelectItem>
+                <SelectItem value="__nacional">Nacional 🇧🇷</SelectItem>
+                <SelectItem value="__internacional">Internacional 🌎</SelectItem>
                 {destinations.map((d) => (
                   <SelectItem key={d.value} value={d.value}>
                     {d.flag ? `${d.label} ${d.flag}` : d.label}
