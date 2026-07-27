@@ -598,6 +598,27 @@ export type Database = {
           },
         ]
       }
+      frt_credentials: {
+        Row: {
+          cookie: string
+          id: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cookie: string
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cookie?: string
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       instagram_accounts: {
         Row: {
           access_token: string | null
