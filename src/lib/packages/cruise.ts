@@ -84,9 +84,48 @@ export const itineraryDaySchema = z.object({
 });
 export type ItineraryDay = z.infer<typeof itineraryDaySchema>;
 
+export const addonSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().default(""),
+  price: z.number().nonnegative().default(0),
+  price_unit: z
+    .enum(["per_person", "per_cabin", "per_day", "per_person_per_day", "fixed"])
+    .default("per_person"),
+  category: z
+    .enum([
+      "bebidas",
+      "wifi",
+      "gorjeta",
+      "transfer",
+      "seguro",
+      "excursao",
+      "restaurante",
+      "spa",
+      "outro",
+    ])
+    .default("outro"),
+  optional: z.boolean().default(true),
+});
+export type Addon = z.infer<typeof addonSchema>;
+
+export const policySchema = z.object({
+  payment: z.string().default(""),
+  cancellation: z.string().default(""),
+  boarding: z.string().default(""),
+  documents: z.string().default(""),
+  children_policy: z.string().default(""),
+  other: z.string().default(""),
+});
+export type Policy = z.infer<typeof policySchema>;
+
 export const cruiseDetailsSchema = z.object({
   cabin_categories: z.array(cabinCategorySchema).default([]),
   experiences: z.array(experienceSchema).default([]),
+  addons: z.array(addonSchema).default([]),
+  included: z.array(z.string()).default([]),
+  not_included: z.array(z.string()).default([]),
+  policies: policySchema.default({} as Policy),
   ship: shipSchema.default({} as Ship),
   itinerary: z.array(itineraryDaySchema).default([]),
   map_image: z.string().url().optional().or(z.literal("")).default(""),
@@ -100,6 +139,10 @@ export function parseCruiseDetails(raw: unknown): CruiseDetails {
   return {
     cabin_categories: [],
     experiences: [],
+    addons: [],
+    included: [],
+    not_included: [],
+    policies: policySchema.parse({}),
     ship: shipSchema.parse({}),
     itinerary: [],
     map_image: "",
