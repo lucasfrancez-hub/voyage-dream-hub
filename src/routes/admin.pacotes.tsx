@@ -5141,7 +5141,8 @@ function NewCruiseImportDialog({
   }) => void;
 }) {
   const [url, setUrl] = useState("");
-  const [cookie, setCookie] = useState("");
+  const [kzToken, setKzToken] = useState("");
+  const [jsessionId, setJsessionId] = useState("");
   const [savedInfo, setSavedInfo] = useState<
     { hasCookie: boolean; preview?: string; updated_at?: string } | null
   >(null);
@@ -5158,15 +5159,37 @@ function NewCruiseImportDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Aceita colar "kz-token=eyJ..." ou só "eyJ..." — tira o prefixo e ponto-e-vírgula final
+  function cleanValue(raw: string, name: string): string {
+    let v = raw.trim();
+    const prefix = new RegExp(`^${name}\\s*=\\s*`, "i");
+    v = v.replace(prefix, "");
+    v = v.replace(/;\s*$/, "");
+    return v.trim();
+  }
+
+  function buildCookieString(): string {
+    const kz = cleanValue(kzToken, "kz-token");
+    const js = cleanValue(jsessionId, "JSESSIONID");
+    const parts: string[] = [];
+    if (kz) parts.push(`kz-token=${kz}`);
+    if (js) parts.push(`JSESSIONID=${js}`);
+    return parts.join("; ");
+  }
+
+  const canSubmitCookie = Boolean(cleanValue(kzToken, "kz-token"));
+
   async function saveCookie() {
-    if (!cookie.trim()) return;
+    const cookie = buildCookieString();
+    if (!cookie) return;
     setSavingCookie(true);
     setMsg(null);
     try {
-      await saveCreds({ data: { cookie: cookie.trim() } });
+      await saveCreds({ data: { cookie } });
       const info = await getCreds();
       setSavedInfo(info);
-      setCookie("");
+      setKzToken("");
+      setJsessionId("");
       setShowCookieEditor(false);
       setMsg({ kind: "ok", text: "Cookie salvo." });
     } catch (err) {
@@ -5181,10 +5204,11 @@ function NewCruiseImportDialog({
   async function run() {
     setMsg(null);
     if (!url.trim()) return;
+    const cookie = buildCookieString();
     setLoading(true);
     try {
       const res = (await importFn({
-        data: { url: url.trim(), cookie: cookie.trim() || undefined },
+        data: { url: url.trim(), cookie: cookie || undefined },
       })) as {
         cruise_details: unknown;
         package_fields: {
