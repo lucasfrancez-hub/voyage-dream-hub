@@ -5379,7 +5379,7 @@ function NewCruiseImportDialog({
           <button
             type="button"
             onClick={run}
-            disabled={loading || !url.trim() || (!hasSaved && !cookie.trim())}
+            disabled={loading || !url.trim() || (!hasSaved && !canSubmitCookie)}
             className="w-full rounded-xl bg-brand-orange px-4 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
