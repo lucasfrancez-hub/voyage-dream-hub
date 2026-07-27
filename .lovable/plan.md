@@ -1,76 +1,37 @@
+# Cadastro de Cruzeiro — Formulário Dedicado
 
-# Repaginação da página de cruzeiros
-
-Reformar a tela do cruzeiro individual (`/pacotes/$slug` quando `kind = "cruise"`) para o formato dinâmico do BWT/Krooze: seleção de cabine + adicionais + mini-checkout ao vivo, com modal "Ver mais" (Itinerário, Cabines, O Navio, Deck Plan, Fotos, Vídeos, Ficha técnica) e pagamento Pix Itaú/orçamento já plugado.
+Hoje o cadastro de pacote é um só formulário desenhado pra pacote aéreo (voos, hotel, TripAdvisor…). Quando o `kind = cruise` a maior parte disso não faz sentido, e os campos que importam pra cruzeiro (cabines, adicionais, itinerário, navio, políticas) ficam escondidos ou não têm UI. Vamos separar.
 
 ## O que muda pro usuário
 
-1. Página do cruzeiro reorganizada em 3 colunas no desktop:
-   - **Coluna esquerda**: seletor por tipo (Interna / Externa / Varanda / Suíte) + galeria de cabines daquele tipo.
-   - **Coluna central**: bloco "Escolha uma experiência" (Free at Sea / Free at Sea Plus / Sem promoção) e adicionais opcionais.
-   - **Coluna direita (sticky)**: mini-checkout ao vivo — mostra cabine, ocupação (2 ad / 3 ad / 4 ad + criança), valores por passageiro, taxas, total, "você economiza". Nada precisa ser clicado pra aparecer.
-2. Botão discreto **"Ver mais"** no topo do bloco do navio abre um modal em tela cheia com abas laterais: Itinerário (mapa + timeline de portos), O Navio, Atrações, Cabines (galeria completa com fotos, m², capacidade, texto), Deck Plan, Fotos, Vídeos, Ficha técnica.
-3. Botão final do mini-checkout: **"Realizar pagamento"** (Pix Itaú com QR ao vivo, igual ingressos/pacotes) e **"Incluir no orçamento"** (dispara e-mail interno).
-4. Mobile: colunas empilham, mini-checkout vira barra fixa no rodapé com "ver detalhes" que expande.
+Ao criar/editar um cruzeiro, a tela abre num layout próprio, dividido em abas:
 
-## Cadastro (mínimo necessário pra funcionar)
+1. **Básico** — Título, destino (região: Caribe, Mediterrâneo…), porto de embarque, datas ida/volta, noites, operadora (FRT, MSC, Costa…), imagem de capa, resumo, ativo/inativo.
+2. **Navio** — Nome, companhia, galeria de fotos, plano de decks, vídeos, atrações (com foto), ficha técnica (comprimento, tonelagem, passageiros, cabines, ano, bandeira…).
+3. **Cabines** — Lista de categorias (interna, externa, varanda, suíte). Cada linha: nome, código, tamanho, capacidade, fotos, preços por ocupação (2/3/4 pessoas + criança), taxas portuárias. Botão "Adicionar cabine".
+4. **Experiências & Adicionais** — Dois blocos:
+   - Experiências (pacotes fechados tipo Free at Sea, Bella, Fantastica) com benefícios e delta por pessoa.
+   - Adicionais opcionais (bebidas, wifi, gorjetas, transfer, seguro, excursões) com preço + unidade (por pessoa / cabine / dia).
+5. **Itinerário** — Timeline dia-a-dia: dia, data, porto, país, chegada, partida, descrição, foto. Botão "Adicionar dia". Campo pra URL do mapa da rota.
+6. **Inclui / Não Inclui / Políticas** — Duas listas em bullet + editores de texto para pagamento, cancelamento, embarque, documentos, política de crianças, outros.
+7. **Importar da FRT** (opcional, no topo) — Botão que abre o importador atual (URL + cookie) e preenche todas as abas de uma vez. Continua funcionando pra quem quer atalho.
 
-O cadastro completo de cabines fica pra próxima leva. Nesta versão, no admin de pacotes (quando `kind = "cruise"`) libero um editor JSON estruturado (ou form simples) para preencher:
+O botão de salvar fica fixo no rodapé, valida os obrigatórios (título, datas, porto, preço a partir de) e grava em `packages` + `packages.cruise_details`.
 
-- `cabin_categories[]`: `{ id, type: interna|externa|varanda|suite, code, name, description, size_m2, capacity, photos[], categories_code[], pricing: { occ2: {per_person, third?, fourth?, child?}, occ3: {...}, occ4: {...} }, taxes_total, upgrade_from_base? }`
-- `experiences[]`: `{ id, name, description, benefits[], required_choices?, delta_per_person? }`
-- `ship`: `{ name, line, deck_plan_image, gallery[], videos[], data_sheet[] }`
-- `itinerary[]`: `{ day, date, port, country, arrival?, departure?, description?, photos[], activities[] }`
+## Fora do formulário de cruzeiro
 
-Preços já vêm em BRL com taxas separadas. O mini-checkout usa: `total = per_person × occ + child_price × children + taxes_total + soma(experiências)`.
+O formulário atual (aéreos ida/volta, TripAdvisor, tipo de quarto, meal plan, addons de pacote) **continua igual** pra `kind = package` e `service`. Nada muda pra pacotes aéreos.
 
-## Fluxo de pagamento
+## Detalhes técnicos
 
-- **Pix**: reaproveita `src/lib/pix.functions.ts` + overlay `PixQrOverlay` que já usamos em `/pacotes/$slug/checkout`.
-- **Orçamento**: reaproveita `notifyPix`/template interno para disparar e-mail admin com cabine, ocupação e adicionais selecionados.
+- **Novo componente**: `src/components/admin/CruisePackageForm.tsx` — organiza as 7 abas usando `Tabs` do shadcn e sub-componentes (`CabinCategoryEditor`, `ExperienceEditor`, `AddonEditor`, `ItineraryDayEditor`, `ShipEditor`). Reaproveita `cruiseDetailsSchema` de `src/lib/packages/cruise.ts` pra validar via `react-hook-form` + `zodResolver`.
+- **Roteamento no admin**: em `src/routes/admin.pacotes.tsx`, quando o pacote em edição tem `kind === "cruise"` (ou foi criado pelo botão "+ Cruzeiro"), renderiza `CruisePackageForm` no lugar do `PackageForm` atual. O `PackageForm` existente permanece intocado.
+- **Importador FRT**: `NewCruiseImportDialog` passa a abrir o `CruisePackageForm` já preenchido em vez do form legado. Também vira um botão dentro do `CruisePackageForm` ("Importar da FRT") pra puxar/atualizar dados de uma URL sem sair da tela.
+- **Persistência**: usa a mesma `saveOrder`/`upsert` de `packages` já existente. `cruise_details` continua sendo `jsonb`. Campos irrelevantes (ex: `outbound_flight`, `tripadvisor_*`) ficam `null` pra cruzeiros.
+- **Preview**: sem mudança em `CruiseDetailsView.tsx` — ele já consome esse schema.
 
-## Arquivos afetados
+## Fora do escopo (não muda agora)
 
-```text
-src/routes/pacotes.$slug.index.tsx          alt. quando kind=cruise, renderiza <CruiseDetailsView/>
-src/components/cruise/CruiseDetailsView.tsx novo, layout 3 colunas + mini-checkout
-src/components/cruise/CabinPicker.tsx       novo, tabs de tipo + grid de cabines
-src/components/cruise/ExperiencePicker.tsx  novo, Free at Sea / Plus / sem promoção
-src/components/cruise/MiniCheckout.tsx      novo, sticky com Pix + orçamento
-src/components/cruise/CruiseMoreModal.tsx   novo, modal "Ver mais" com abas laterais
-src/components/cruise/tabs/*.tsx            novo, Itinerary/Cabins/Ship/Attractions/Deck/Photos/Videos/DataSheet
-src/lib/packages/cruise.ts                  novo, tipos + helpers de preço
-src/routes/admin.pacotes.tsx                alt. quando kind=cruise, mostra editor JSON com validação Zod
-supabase/migrations/*_cruise_details.sql    novo, coluna packages.cruise_details jsonb
-```
-
-## Passos técnicos
-
-1. Migração: `alter table packages add column cruise_details jsonb default '{}'::jsonb`. Grants já herdam.
-2. Tipos e Zod em `src/lib/packages/cruise.ts` cobrindo `cabin_categories`, `experiences`, `ship`, `itinerary`.
-3. Componentes novos em `src/components/cruise/` (Tailwind, tokens semânticos, ícones lucide). Sem libs extras.
-4. Roteamento: `pacotes.$slug.index.tsx` continua o mesmo, só delega renderização pra `<CruiseDetailsView>` quando `kind === "cruise"`.
-5. Mini-checkout dispara Pix via `createPixCharge` já existente e reusa `PixQrOverlay`. "Incluir no orçamento" chama `sendInternal` com template novo `orcamento-cruzeiro-admin.tsx`.
-6. Admin: aba nova "Detalhes do cruzeiro" só aparece quando `kind = "cruise"`, editor JSON com preview e validação. Sem quebrar cadastro de pacotes/ingressos.
-7. SEO: `head()` do cruzeiro puxa `og:image` da primeira foto do navio.
-
-## Regras de negócio importantes
-
-- Criança sempre reduzida — se `pricing.occ2.child` não estiver preenchido, esconde o seletor de crianças.
-- 3º/4º hóspede: se cabine não suporta, desabilita a opção e mostra tooltip.
-- Free at Sea Plus soma delta por pessoa se preenchido.
-- Boleto NÃO aparece em cruzeiro (regra atual: só Pix pra serviços). Cartão pode aparecer em passo seguinte se você quiser depois.
-- Total exibido: `entrada + 12x sem juros` (mesma fórmula usada nos pacotes).
-
-## O que fica de fora nesta leva
-
-- Editor visual arrastar-e-soltar das cabines no admin (agora só JSON validado).
-- Sincronização automática com Krooze/BWT (é manual, você cola os dados).
-- Bloqueio de datas por cabine (todas as cabines usam a data única do cruzeiro).
-
-## Verificação antes de fechar
-
-- Build passa.
-- `/cruzeiros` continua listando normal.
-- Cruzeiro sem `cruise_details` cai no layout antigo (fallback), pra não quebrar os já cadastrados.
-- Pagamento Pix abre QR ao vivo e webhook Itaú confirma.
+- Página pública `/cruzeiros` e `/pacotes/$slug` do cruzeiro (já refeitas antes).
+- Extração via IA (`cruise-import.server.ts`) — mantém o que já foi ajustado nas últimas rodadas.
+- Fluxo de checkout e mini-checkout do cruzeiro.
