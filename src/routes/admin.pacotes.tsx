@@ -3145,10 +3145,39 @@ function CruiseUrlImporter({
 }) {
   const [url, setUrl] = useState("");
   const [cookie, setCookie] = useState("");
-  const [showAuth, setShowAuth] = useState(false);
+  const [savedInfo, setSavedInfo] = useState<
+    { hasCookie: boolean; preview?: string; updated_at?: string } | null
+  >(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [savingCookie, setSavingCookie] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const importFn = useServerFn(importCruiseFromUrl);
+  const getCreds = useServerFn(getFrtCredentials);
+  const saveCreds = useServerFn(saveFrtCredentials);
+
+  useEffect(() => {
+    getCreds().then(setSavedInfo).catch(() => setSavedInfo({ hasCookie: false }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function saveCookie() {
+    if (!cookie.trim()) return;
+    setSavingCookie(true);
+    setMsg(null);
+    try {
+      await saveCreds({ data: { cookie: cookie.trim() } });
+      const info = await getCreds();
+      setSavedInfo(info);
+      setCookie("");
+      setShowEditor(false);
+      setMsg({ kind: "ok", text: "Cookie da FRT salvo. Vai ser usado automaticamente." });
+    } catch (err) {
+      setMsg({ kind: "err", text: (err as Error).message });
+    } finally {
+      setSavingCookie(false);
+    }
+  }
 
   async function run() {
     setMsg(null);
@@ -3177,12 +3206,26 @@ function CruiseUrlImporter({
     }
   }
 
+  const hasSaved = savedInfo?.hasCookie === true;
+
   return (
     <div className="mt-3 rounded-xl border border-dashed border-border bg-background/60 p-3">
-      <div className="flex items-center gap-2 text-xs font-semibold text-foreground mb-2">
-        <Wand2 className="h-3.5 w-3.5 text-brand-orange" />
-        Importar da FRT Operadora (Krooze)
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+          <Wand2 className="h-3.5 w-3.5 text-brand-orange" />
+          Importar da FRT Operadora (Krooze)
+        </div>
+        <span
+          className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+            hasSaved
+              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+              : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+          }`}
+        >
+          {hasSaved ? "🔓 Cookie salvo" : "🔒 Sem cookie"}
+        </span>
       </div>
+
       <div className="grid gap-2">
         <input
           type="url"
@@ -3192,23 +3235,75 @@ function CruiseUrlImporter({
           onChange={(e) => setUrl(e.target.value)}
           disabled={loading}
         />
-        <textarea
-          className={`${inpClass} font-mono text-[11px]`}
-          rows={2}
-          placeholder="Cole aqui o Cookie da sua sessão FRT (muda a cada login — cole toda vez)"
-          value={cookie}
-          onChange={(e) => setCookie(e.target.value)}
-          disabled={loading}
-        />
         <button
           type="button"
           onClick={run}
-          disabled={loading || !url.trim() || !cookie.trim()}
+          disabled={loading || !url.trim() || (!hasSaved && !cookie.trim())}
           className="rounded-xl bg-brand-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
           {loading ? "Extraindo…" : "Importar cruzeiro"}
         </button>
+      </div>
+
+      <div className="mt-3 rounded-lg bg-muted/40 p-2.5 text-[11px]">
+        {hasSaved && !showEditor ? (
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-muted-foreground">
+              Cookie salvo{" "}
+              {savedInfo?.updated_at && (
+                <span className="opacity-70">
+                  em {new Date(savedInfo.updated_at).toLocaleString("pt-BR")}
+                </span>
+              )}
+              . Se der erro de login, atualize.
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowEditor(true)}
+              className="text-brand-orange font-semibold hover:underline whitespace-nowrap"
+            >
+              Atualizar cookie
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="font-semibold text-foreground">
+              {hasSaved ? "Atualizar cookie da FRT" : "Salvar cookie da FRT (uma vez)"}
+            </div>
+            <textarea
+              className={`${inpClass} font-mono text-[11px]`}
+              rows={3}
+              placeholder="Cole aqui o Cookie completo (kz-token=...; JSESSIONID=...; ...)"
+              value={cookie}
+              onChange={(e) => setCookie(e.target.value)}
+              disabled={savingCookie || loading}
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={saveCookie}
+                disabled={savingCookie || !cookie.trim()}
+                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {savingCookie ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                Salvar cookie
+              </button>
+              {hasSaved && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditor(false);
+                    setCookie("");
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <details className="mt-2 text-[11px] text-muted-foreground leading-snug">
@@ -3217,25 +3312,22 @@ function CruiseUrlImporter({
         </summary>
         <ol className="mt-2 list-decimal pl-4 space-y-1">
           <li>Abra <code>frtoperadora.krooze.com.br</code> e faça login normalmente.</li>
-          <li>Abra a página do cruzeiro que quer importar.</li>
-          <li>Aperte <strong>F12</strong> → aba <strong>Application</strong> (ou "Aplicativo").</li>
+          <li>Aperte <strong>F12</strong> → aba <strong>Network</strong> → filtro <strong>Fetch/XHR</strong>.</li>
+          <li>Recarregue a página → clique em qualquer requisição (ex: <code>Results</code>).</li>
           <li>
-            No menu da esquerda, expanda <strong>Cookies</strong> → clique em{" "}
-            <code>https://frtoperadora.krooze.com.br</code>.
+            Painel direito → <strong>Headers</strong> → role até <strong>Request Headers</strong>{" "}
+            → copie tudo depois de <code>Cookie:</code> (uma linha longa).
           </li>
-          <li>
-            Selecione tudo (Ctrl/Cmd+A) na tabela de cookies, copie, ou clique com o botão direito →{" "}
-            <em>Copy all as string</em>. Cole no campo acima.
-          </li>
+          <li>Cola aqui em cima e clica <strong>Salvar cookie</strong> — pronto.</li>
         </ol>
         <p className="mt-2">
-          <strong>Alternativa mais rápida:</strong> na aba <strong>Network</strong>, clique em
-          qualquer requisição (ex: <code>Results</code> ou <code>PriceSummaryByCruiseLine</code>) →
-          role até <strong>Request Headers</strong> → copie tudo depois de <code>Cookie:</code> e
-          cole aqui.
+          <strong>Cookies essenciais:</strong> <code>kz-token</code> (JWT do login) e{" "}
+          <code>JSESSIONID</code>. Os cookies do Google Analytics (<code>_ga</code>, <code>_gid</code>)
+          não fazem diferença — mas pode colar tudo junto que funciona.
         </p>
         <p className="mt-2 italic">
-          O cookie expira quando você sai da FRT — precisa colar de novo a cada importação.
+          O <code>kz-token</code> dura cerca de 15h. Quando expirar, o importador avisa e você
+          cola um novo (não precisa deslogar da FRT — basta um F5 pra gerar cookie fresco).
         </p>
       </details>
 
@@ -3248,10 +3340,6 @@ function CruiseUrlImporter({
           {msg.text}
         </p>
       )}
-      <p className="mt-2 text-[11px] text-muted-foreground">
-        Cola o link do cruzeiro. A IA raspa a página e as abas relevantes (cabines, itinerário,
-        deck, galeria) e preenche o JSON abaixo. Revise antes de salvar.
-      </p>
     </div>
   );
 }
