@@ -9,24 +9,12 @@ import { TopBar } from "@/components/TopBar";
 import { ContactFooter } from "@/components/ContactFooter";
 
 export const Route = createFileRoute("/cruzeiros")({
-  head: () => {
-    const url = "https://pedidos.viaair.tur.br/cruzeiros";
-    const desc =
-      "Cruzeiros marítimos com aéreo, cabines e passeios. Reserve com atendimento humano da Via Air.";
-    return {
-      meta: [
-        { title: "Cruzeiros — Via Air" },
-        { name: "description", content: desc },
-        { property: "og:title", content: "Cruzeiros — Via Air" },
-        { property: "og:description", content: desc },
-        { property: "og:url", content: url },
-        { property: "og:type", content: "website" },
-      ],
-      links: [{ rel: "canonical", href: url }],
-    };
+  beforeLoad: () => {
+    throw redirect({ to: "/pacotes" });
   },
-  component: CruzeirosPage,
+  component: () => null,
 });
+
 
 function CruzeirosPage() {
   const { data: items, isLoading } = useQuery({
