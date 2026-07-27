@@ -225,6 +225,7 @@ function AdminPackages() {
     "manual" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("manual");
   const [view, setView] = useState<"list" | "curadoria">("list");
+  const [cruiseImportOpen, setCruiseImportOpen] = useState(false);
 
   // Wrap setEditing to keep the drafts array in sync with edits.
   // Accepts a value OR an updater function (use updater to avoid stale closures
