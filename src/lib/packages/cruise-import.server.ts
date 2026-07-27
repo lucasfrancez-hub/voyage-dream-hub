@@ -24,11 +24,33 @@ function firecrawlHeaders() {
   };
 }
 
-async function firecrawlScrape(url: string): Promise<{ markdown: string; title?: string }> {
+export type ScrapeAuth = {
+  /** Header Cookie completo (ex: "PHPSESSID=abc; user=xyz"). */
+  cookie?: string;
+  /** Headers extras arbitrários (ex: Authorization, X-CSRF-Token). */
+  headers?: Record<string, string>;
+};
+
+function buildScrapeBody(url: string, auth?: ScrapeAuth) {
+  const extraHeaders: Record<string, string> = { ...(auth?.headers ?? {}) };
+  if (auth?.cookie) extraHeaders.Cookie = auth.cookie;
+  const body: Record<string, unknown> = {
+    url,
+    formats: ["markdown"],
+    onlyMainContent: true,
+  };
+  if (Object.keys(extraHeaders).length > 0) body.headers = extraHeaders;
+  return body;
+}
+
+async function firecrawlScrape(
+  url: string,
+  auth?: ScrapeAuth,
+): Promise<{ markdown: string; title?: string }> {
   const res = await fetch(`${GATEWAY}/scrape`, {
     method: "POST",
     headers: firecrawlHeaders(),
-    body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
+    body: JSON.stringify(buildScrapeBody(url, auth)),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -61,6 +83,7 @@ async function firecrawlMap(url: string): Promise<string[]> {
     return [];
   }
 }
+
 
 // palavras que sugerem abas úteis do cruzeiro
 const RELEVANT = [
@@ -96,7 +119,10 @@ function pickRelevantTabs(base: string, links: string[], max = 8): string[] {
   return picked;
 }
 
-export async function extractCruiseFromUrl(url: string): Promise<{
+export async function extractCruiseFromUrl(
+  url: string,
+  auth?: ScrapeAuth,
+): Promise<{
   cruise_details: CruiseDetails;
   sources: string[];
   warnings: string[];
@@ -107,25 +133,31 @@ export async function extractCruiseFromUrl(url: string): Promise<{
   const warnings: string[] = [];
 
   // 1. Página principal
-  const main = await firecrawlScrape(url);
+  const main = await firecrawlScrape(url, auth);
   if (!main.markdown.trim()) {
     throw new Error("Não consegui ler conteúdo dessa URL (página vazia ou bloqueada).");
   }
+  // Sinal comum de que o cookie expirou / precisa login
+  const lower = main.markdown.toLowerCase();
+  if (/(faça login|entrar na conta|sign in|log in|acesso restrito)/.test(lower) && lower.length < 4000) {
+    warnings.push("A página parece exigir login. Se os dados vierem incompletos, atualize o cookie no campo abaixo.");
+  }
 
-  // 2. Descobre + raspa abas
+  // 2. Descobre + raspa abas (reutiliza o mesmo cookie/headers)
   const links = await firecrawlMap(url);
   const tabs = pickRelevantTabs(url, links, 8);
   const scraped: { url: string; markdown: string }[] = [{ url, markdown: main.markdown }];
   await Promise.all(
     tabs.map(async (t) => {
       try {
-        const r = await firecrawlScrape(t);
+        const r = await firecrawlScrape(t, auth);
         if (r.markdown.trim()) scraped.push({ url: t, markdown: r.markdown });
       } catch (err) {
         warnings.push(`Falha ao ler ${t}: ${(err as Error).message}`);
       }
     }),
   );
+
 
   // Limita tamanho pra não estourar contexto (500k chars é seguro pro Gemini 3.6)
   const MAX = 450_000;
