@@ -1,153 +1,76 @@
-# Integração Pix Itaú (QR Code no checkout)
 
-## Visão geral
+# Repaginação da página de cruzeiros
 
-Cliente escolhe Pix no checkout → nosso servidor pede um QR pro Itaú → mostra QR + copia-e-cola na tela de sucesso e manda por e-mail → quando o cliente paga, o Itaú avisa nosso webhook → pedido vira "pago" automaticamente.
+Reformar a tela do cruzeiro individual (`/pacotes/$slug` quando `kind = "cruise"`) para o formato dinâmico do BWT/Krooze: seleção de cabine + adicionais + mini-checkout ao vivo, com modal "Ver mais" (Itinerário, Cabines, O Navio, Deck Plan, Fotos, Vídeos, Ficha técnica) e pagamento Pix Itaú/orçamento já plugado.
 
-O único obstáculo é que o Itaú exige certificado digital (mTLS) em toda chamada, e o servidor do Lovable não aceita esse tipo de certificado. Solução: um mini-servidor externo (proxy) que segura o certificado e repassa as chamadas.
+## O que muda pro usuário
 
----
+1. Página do cruzeiro reorganizada em 3 colunas no desktop:
+   - **Coluna esquerda**: seletor por tipo (Interna / Externa / Varanda / Suíte) + galeria de cabines daquele tipo.
+   - **Coluna central**: bloco "Escolha uma experiência" (Free at Sea / Free at Sea Plus / Sem promoção) e adicionais opcionais.
+   - **Coluna direita (sticky)**: mini-checkout ao vivo — mostra cabine, ocupação (2 ad / 3 ad / 4 ad + criança), valores por passageiro, taxas, total, "você economiza". Nada precisa ser clicado pra aparecer.
+2. Botão discreto **"Ver mais"** no topo do bloco do navio abre um modal em tela cheia com abas laterais: Itinerário (mapa + timeline de portos), O Navio, Atrações, Cabines (galeria completa com fotos, m², capacidade, texto), Deck Plan, Fotos, Vídeos, Ficha técnica.
+3. Botão final do mini-checkout: **"Realizar pagamento"** (Pix Itaú com QR ao vivo, igual ingressos/pacotes) e **"Incluir no orçamento"** (dispara e-mail interno).
+4. Mobile: colunas empilham, mini-checkout vira barra fixa no rodapé com "ver detalhes" que expande.
 
-## O que você (usuário) precisa fazer
+## Cadastro (mínimo necessário pra funcionar)
 
-**1. Reunir credenciais do Itaú** (já tem na maioria):
-- `client_id` e `client_secret` — planilha `Token.xlsx`
-- `x-itau-apikey` — planilha `Token.xlsx`
-- Certificado emitido: arquivos `.crt` (público) e `.key` (privado)
-- Chave Pix cadastrada no Itaú PJ (CNPJ, e-mail, celular ou aleatória)
+O cadastro completo de cabines fica pra próxima leva. Nesta versão, no admin de pacotes (quando `kind = "cruise"`) libero um editor JSON estruturado (ou form simples) para preencher:
 
-**Se ainda não gerou o certificado:** o processo é CSR → Itaú aprova → CRT. Uso as coleções Postman que você mandou pra te guiar passo a passo (uma vez só).
+- `cabin_categories[]`: `{ id, type: interna|externa|varanda|suite, code, name, description, size_m2, capacity, photos[], categories_code[], pricing: { occ2: {per_person, third?, fourth?, child?}, occ3: {...}, occ4: {...} }, taxes_total, upgrade_from_base? }`
+- `experiences[]`: `{ id, name, description, benefits[], required_choices?, delta_per_person? }`
+- `ship`: `{ name, line, deck_plan_image, gallery[], videos[], data_sheet[] }`
+- `itinerary[]`: `{ day, date, port, country, arrival?, departure?, description?, photos[], activities[] }`
 
-**2. Criar conta no Render** (grátis pra começar, ~US$7/mês depois):
-- render.com → sign up com GitHub
-- Vou entregar o código do proxy pronto num repositório
-- Clique em "Deploy" e cole as credenciais nos campos indicados
+Preços já vêm em BRL com taxas separadas. O mini-checkout usa: `total = per_person × occ + child_price × children + taxes_total + soma(experiências)`.
 
-**3. Cadastrar a URL do webhook no Itaú** (te passo o link exato depois do deploy):
-- Portal Itaú Devportal → sua aplicação Pix → Webhook → colar URL
+## Fluxo de pagamento
 
-Depois disso não precisa mexer em mais nada. Todas as alterações futuras (mensagens, expiração, layout do QR) faço direto no Lovable.
+- **Pix**: reaproveita `src/lib/pix.functions.ts` + overlay `PixQrOverlay` que já usamos em `/pacotes/$slug/checkout`.
+- **Orçamento**: reaproveita `notifyPix`/template interno para disparar e-mail admin com cabine, ocupação e adicionais selecionados.
 
----
-
-## O que eu vou construir
-
-### Parte A — Proxy mTLS externo (repositório separado)
-
-Mini servidor Node/Express (~150 linhas) que fica entre nosso app e o Itaú:
-
-- 3 endpoints internos protegidos por chave compartilhada:
-  - `POST /pix/cobranca` — cria QR imediato
-  - `GET /pix/status/:txid` — consulta se foi pago
-  - `POST /pix/webhook-config` — registra webhook (roda uma vez)
-- Anexa certificado `.crt/.key` em toda chamada pro Itaú via `https.Agent`
-- Cache do OAuth token (renova a cada 55min)
-- Logs estruturados
-- README com instruções de deploy no Render (5 cliques)
-
-### Parte B — Backend do Lovable (dentro deste projeto)
-
-1. **Server function `criarCobrancaPix`** (`src/lib/pix.functions.ts`)
-   - Recebe `orderId` + `valor` + dados do pagador
-   - Chama o proxy → recebe `qr_code_string` + `qr_code_imagem_base64` + `txid` + `expira_em`
-   - Salva na tabela `pix_cobrancas` (nova)
-   - Retorna QR pro frontend
-
-2. **Rota webhook pública** (`src/routes/api/public/itau-pix-webhook.ts`)
-   - Recebe callback do Itaú quando alguém paga
-   - Valida assinatura mTLS via header do proxy
-   - Atualiza `orders.status = 'paid'`
-   - Dispara e-mails: confirmação pro cliente + notificação pro admin
-
-3. **Migração de banco:**
-   ```sql
-   CREATE TABLE public.pix_cobrancas (
-     txid text PRIMARY KEY,
-     order_id uuid REFERENCES orders(id),
-     valor numeric(10,2) NOT NULL,
-     qr_code text NOT NULL,
-     status text NOT NULL DEFAULT 'ativa',  -- ativa|concluida|expirada|removida
-     expira_em timestamptz NOT NULL,
-     pago_em timestamptz,
-     e2eid text,  -- ID único do pagamento no Bacen
-     raw_response jsonb,
-     created_at timestamptz DEFAULT now()
-   );
-   -- + GRANT + RLS (admin lê tudo; ninguém escreve pelo client)
-   ```
-
-4. **Secrets no Lovable Cloud:**
-   - `PIX_PROXY_URL` — URL do Render (ex.: `https://viaair-pix-proxy.onrender.com`)
-   - `PIX_PROXY_SECRET` — chave compartilhada gerada pelo próprio Lovable
-   - `PIX_CHAVE` — sua chave Pix cadastrada no Itaú
-
-### Parte C — Frontend (checkout)
-
-Substituir a tela de sucesso atual do Pix (`src/routes/pacotes.$slug.checkout.tsx`) por uma tela dedicada:
+## Arquivos afetados
 
 ```text
-┌──────────────────────────────────────┐
-│  ✓ Pedido criado — pague via Pix     │
-│                                      │
-│      [QR CODE 240×240px]             │
-│                                      │
-│  Total: R$ 12.480,00                 │
-│  Expira em: 29:47 (contador)         │
-│                                      │
-│  ┌────────────────────────────────┐  │
-│  │ 00020126360014BR.GOV...       │  │
-│  │              [Copiar código]  │  │
-│  └────────────────────────────────┘  │
-│                                      │
-│  Assim que pagar, você recebe        │
-│  confirmação por e-mail.             │
-│                                      │
-│  ⟳ Verificando pagamento...          │
-└──────────────────────────────────────┘
+src/routes/pacotes.$slug.index.tsx          alt. quando kind=cruise, renderiza <CruiseDetailsView/>
+src/components/cruise/CruiseDetailsView.tsx novo, layout 3 colunas + mini-checkout
+src/components/cruise/CabinPicker.tsx       novo, tabs de tipo + grid de cabines
+src/components/cruise/ExperiencePicker.tsx  novo, Free at Sea / Plus / sem promoção
+src/components/cruise/MiniCheckout.tsx      novo, sticky com Pix + orçamento
+src/components/cruise/CruiseMoreModal.tsx   novo, modal "Ver mais" com abas laterais
+src/components/cruise/tabs/*.tsx            novo, Itinerary/Cabins/Ship/Attractions/Deck/Photos/Videos/DataSheet
+src/lib/packages/cruise.ts                  novo, tipos + helpers de preço
+src/routes/admin.pacotes.tsx                alt. quando kind=cruise, mostra editor JSON com validação Zod
+supabase/migrations/*_cruise_details.sql    novo, coluna packages.cruise_details jsonb
 ```
 
-- Contador regressivo de expiração
-- Polling do status a cada 5s (backup do webhook)
-- Ao confirmar pagamento: modal "Pagamento aprovado" + redireciona pra minhas reservas
-- Se expirar: botão "Gerar novo QR"
+## Passos técnicos
 
-### Parte D — E-mail com QR pro cliente
+1. Migração: `alter table packages add column cruise_details jsonb default '{}'::jsonb`. Grants já herdam.
+2. Tipos e Zod em `src/lib/packages/cruise.ts` cobrindo `cabin_categories`, `experiences`, `ship`, `itinerary`.
+3. Componentes novos em `src/components/cruise/` (Tailwind, tokens semânticos, ícones lucide). Sem libs extras.
+4. Roteamento: `pacotes.$slug.index.tsx` continua o mesmo, só delega renderização pra `<CruiseDetailsView>` quando `kind === "cruise"`.
+5. Mini-checkout dispara Pix via `createPixCharge` já existente e reusa `PixQrOverlay`. "Incluir no orçamento" chama `sendInternal` com template novo `orcamento-cruzeiro-admin.tsx`.
+6. Admin: aba nova "Detalhes do cruzeiro" só aparece quando `kind = "cruise"`, editor JSON com preview e validação. Sem quebrar cadastro de pacotes/ingressos.
+7. SEO: `head()` do cruzeiro puxa `og:image` da primeira foto do navio.
 
-Novo template `src/lib/email-templates/pix-qr-cliente.tsx`:
-- QR embutido como imagem inline
-- Código copia-e-cola formatado
-- Valor + prazo de expiração
-- Botão "Voltar pro pedido"
+## Regras de negócio importantes
 
-E ajuste no template `pedido-pix-admin` (já existe) pra incluir o `txid`.
+- Criança sempre reduzida — se `pricing.occ2.child` não estiver preenchido, esconde o seletor de crianças.
+- 3º/4º hóspede: se cabine não suporta, desabilita a opção e mostra tooltip.
+- Free at Sea Plus soma delta por pessoa se preenchido.
+- Boleto NÃO aparece em cruzeiro (regra atual: só Pix pra serviços). Cartão pode aparecer em passo seguinte se você quiser depois.
+- Total exibido: `entrada + 12x sem juros` (mesma fórmula usada nos pacotes).
 
----
+## O que fica de fora nesta leva
 
-## Decisões já tomadas (baseado nas suas respostas)
+- Editor visual arrastar-e-soltar das cabines no admin (agora só JSON validado).
+- Sincronização automática com Krooze/BWT (é manual, você cola os dados).
+- Bloqueio de datas por cabine (todas as cabines usam a data única do cruzeiro).
 
-- ✅ **Cobrança imediata** com expiração
-- ⏱️ **Expira em 30 min** (padrão de mercado) — configurável depois
-- 🔔 **Confirmação automática via webhook** + polling de segurança
+## Verificação antes de fechar
 
----
-
-## Ordem de execução
-
-1. Migração da tabela `pix_cobrancas` + secrets
-2. Código do proxy mTLS (repo separado que eu entrego)
-3. Server function `criarCobrancaPix` + webhook público
-4. Tela nova do QR no checkout
-5. Template de e-mail
-6. Você faz deploy do proxy no Render + cadastra webhook no Itaú
-7. Teste em sandbox → testa em produção com R$ 0,01
-
----
-
-## O que fica pra fora deste plano
-
-- **Pix com vencimento** (cobv) — só imediato por enquanto
-- **Devolução automática** (estorno) — se precisar cancelar, faz manual pelo app do Itaú
-- **Reconciliação de extrato bancário** — o webhook cobre 99% dos casos
-- **Split de pagamento** (marketplace) — não é caso aqui
-
-Se aprovar, começo pela migração e proxy em paralelo.
+- Build passa.
+- `/cruzeiros` continua listando normal.
+- Cruzeiro sem `cruise_details` cai no layout antigo (fallback), pra não quebrar os já cadastrados.
+- Pagamento Pix abre QR ao vivo e webhook Itaú confirma.

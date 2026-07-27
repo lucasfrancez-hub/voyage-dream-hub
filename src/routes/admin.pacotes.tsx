@@ -159,6 +159,7 @@ type PackageRow = {
   date_mode: "fixed" | "flexible";
   pricing_mode: "per_occupancy" | "per_unit";
   max_units: number;
+  cruise_details: unknown | null;
 };
 
 const emptyForm: Partial<PackageRow> = {
