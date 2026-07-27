@@ -199,13 +199,40 @@ export async function extractCruiseFromUrl(
   }
   const consolidated = chunks.join("");
 
-  // 3. Extração com Gemini — schema combinado (top-level + cruise_details)
+  // 3. Extração com Gemini — schema LENIENTE (evita falhas de .url()/enums)
+  //    e depois reparseamos com o schema estrito que tem defaults/coerções.
   const gateway = createLovableAiGatewayProvider(apiKey);
   const model = gateway("google/gemini-3.6-flash");
 
-  const combinedSchema = z.object({
-    package_fields: cruisePackageFieldsSchema,
-    cruise_details: cruiseDetailsSchema,
+  // Schema super permissivo pro LLM — sem .url(), sem enums estritos,
+  // tudo opcional. A validação real acontece depois via parseCruiseDetails.
+  const lenientSchema = z.object({
+    package_fields: z
+      .object({
+        title: z.string().optional(),
+        destination: z.string().optional(),
+        origin: z.string().optional(),
+        going_date: z.string().optional(),
+        return_date: z.string().optional(),
+        nights: z.number().optional(),
+        price_from: z.number().optional(),
+        supplier: z.string().optional(),
+      })
+      .optional(),
+    cruise_details: z
+      .object({
+        cabin_categories: z.array(z.any()).optional(),
+        experiences: z.array(z.any()).optional(),
+        addons: z.array(z.any()).optional(),
+        included: z.array(z.string()).optional(),
+        not_included: z.array(z.string()).optional(),
+        policies: z.any().optional(),
+        ship: z.any().optional(),
+        itinerary: z.array(z.any()).optional(),
+        map_image: z.string().optional(),
+        notes: z.string().optional(),
+      })
+      .optional(),
   });
 
   const prompt = `Você extrai dados estruturados de páginas de cruzeiros marítimos em pt-BR.
@@ -222,47 +249,76 @@ Regras package_fields (top-level do pacote):
 - supplier: operadora (ex: "MSC Cruzeiros", "Costa", "Royal Caribbean").
 
 Regras cruise_details — EXTRAIA TUDO:
-- cabin_categories: TODAS as cabines/categorias que aparecerem (interna, externa, varanda, suíte e sub-tipos). Cada uma com nome, código, capacidade, tamanho, fotos, preços por ocupação e taxas.
-  - Preços em BRL (número, sem símbolo). Se o preço for por pessoa, use pricing.occ2.per_person, occ3.per_person etc.
-  - Se houver "3ª pessoa" e "4ª pessoa" com valor diferente, use campos "third" e "fourth".
-  - Se houver criança com valor reduzido, use "child" (valor por criança).
-  - Taxas portuárias/serviço vão em taxes_total (total por cabine, não por pessoa).
-- experiences: pacotes fechados tipo "Free at Sea", "All Inclusive", "Bella", "Fantastica", "Aurea". delta_per_person é o adicional POR PESSOA vs o pacote base.
-- addons: TODOS os adicionais/opcionais avulsos que a página oferecer (pacote de bebidas, wifi, gorjetas, transfer, seguro viagem, excursões, restaurantes especialidade, spa). Cada um com nome, preço, price_unit (per_person, per_cabin, per_day, per_person_per_day, fixed) e category. NÃO confunda com experiences (que são pacotes fechados de tarifa).
-- included: lista bullet-a-bullet do que ESTÁ INCLUÍDO na tarifa (ex: "Pensão completa", "Shows", "Piscinas").
-- not_included: lista do que NÃO ESTÁ INCLUÍDO (ex: "Bebidas alcoólicas", "Gorjetas", "Excursões em terra", "Wifi").
-- policies: extraia texto integral de payment (formas/parcelamento), cancellation (regras/multas), boarding (horário de embarque/desembarque), documents (docs exigidos), children_policy, other (qualquer observação relevante).
-- ship: nome, cia, galeria de fotos, plano de decks (imagem), vídeos, atrações (com foto se houver) e ficha técnica (label/value: comprimento, largura, tonelagem, passageiros, cabines, tripulação, ano, bandeira, decks).
-- itinerary: UM item por dia (inclusive dias de navegação). day numérico, port ("Dia no mar" quando aplicável), arrival/departure em "HH:MM" ou vazio, description com o que fazer no porto.
-- map_image: URL absoluta do mapa/rota do itinerário se houver.
-- notes: qualquer observação importante que não coube nos outros campos.
+- cabin_categories: TODAS as cabines. Campos: id (slug), type ("interna"|"externa"|"varanda"|"suite"), code, name, description, size_m2, capacity (número), photos (URLs absolutas https://), category_codes, pricing { occ2/occ3/occ4: { per_person, third?, fourth?, child? } }, taxes_total (número).
+- experiences: pacotes fechados (Free at Sea, Bella, Fantastica, Aurea). { id, name, description, benefits[], delta_per_person (número), recommended (boolean) }.
+- addons: TODOS os opcionais avulsos. { id, name, description, price (número), price_unit ("per_person"|"per_cabin"|"per_day"|"per_person_per_day"|"fixed"), category ("bebidas"|"wifi"|"gorjeta"|"transfer"|"seguro"|"excursao"|"restaurante"|"spa"|"outro") }.
+- included / not_included: arrays de strings.
+- policies: { payment, cancellation, boarding, documents, children_policy, other } — strings com texto integral.
+- ship: { name, line, gallery[], deck_plan_image, videos[], attractions[{title, description, image}], data_sheet[{label, value}] }.
+- itinerary: um item por dia. { day (número), date, port, country, arrival ("HH:MM" ou ""), departure, description, photo }.
+- map_image: URL absoluta https:// do mapa, se houver.
+- notes: observações extras.
 
 Regras gerais:
-- Fotos: URLs absolutas https://.
-- Se um campo não aparecer NA PÁGINA, deixe vazio/omita — NÃO invente.
-- IDs slugs curtos (ex: "cab-interna-1", "exp-free-at-sea-all", "add-wifi-premium").
+- URLs sempre absolutas https:// — se não for, omita.
+- Se um campo não aparecer, omita — NÃO invente.
+- IDs em slug curto.
 
 Conteúdo:
 ${consolidated}
 
-Retorne JSON conforme o schema, com TODAS as cabines, TODOS os adicionais, TODOS os dias do itinerário.`;
+Retorne JSON conforme o schema.`;
 
-  try {
-    const { output } = await generateText({
-      model,
-      output: Output.object({ schema: combinedSchema }),
-      prompt,
-    });
-    return {
-      cruise_details: output.cruise_details,
-      package_fields: output.package_fields,
-      sources: scraped.map((s) => s.url),
-      warnings,
-    };
-  } catch (err) {
-    if (NoObjectGeneratedError.isInstance(err)) {
-      throw new Error(`A IA não conseguiu estruturar os dados: ${err.message}`);
+  let raw: z.infer<typeof lenientSchema> | null = null;
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 2 && !raw; attempt++) {
+    try {
+      const { output } = await generateText({
+        model,
+        output: Output.object({ schema: lenientSchema }),
+        prompt,
+      });
+      raw = output;
+    } catch (err) {
+      lastErr = err;
+      if (!NoObjectGeneratedError.isInstance(err)) throw err;
     }
-    throw err;
   }
+
+  if (!raw) {
+    const msg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+    throw new Error(`A IA não conseguiu estruturar os dados: ${msg}`);
+  }
+
+  // Sanitiza URLs inválidas (relativas, "N/A", vazias) antes do parse estrito
+  const isUrlKey = (k: string) =>
+    /photo|image|gallery|map_image|deck_plan|videos|photos/i.test(k);
+  const sanitize = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(sanitize);
+    if (v && typeof v === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+        if (typeof val === "string" && isUrlKey(k)) {
+          out[k] = /^https?:\/\//i.test(val) ? val : "";
+        } else if (Array.isArray(val) && isUrlKey(k)) {
+          out[k] = val.filter((u) => typeof u === "string" && /^https?:\/\//i.test(u));
+        } else {
+          out[k] = sanitize(val);
+        }
+      }
+      return out;
+    }
+    return v;
+  };
+
+  const cleaned = sanitize(raw) as z.infer<typeof lenientSchema>;
+  const details: CruiseDetails = cruiseDetailsSchema.parse(cleaned.cruise_details ?? {});
+  const fields: CruisePackageFields = cruisePackageFieldsSchema.parse(cleaned.package_fields ?? {});
+
+  return {
+    cruise_details: details,
+    package_fields: fields,
+    sources: scraped.map((s) => s.url),
+    warnings,
+  };
 }
