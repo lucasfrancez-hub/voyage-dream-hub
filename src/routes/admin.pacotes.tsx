@@ -1245,9 +1245,8 @@ function AdminPackages() {
         <NewCruiseImportDialog
           onClose={() => setCruiseImportOpen(false)}
           onImported={async ({ cruise_details, package_fields }) => {
-            let base: number | null = null;
             try {
-              base = await nextPackageBaseNumber();
+              const base = await nextPackageBaseNumber();
               setPendingNumbers([base]);
             } catch {
               setPendingNumbers(null);
@@ -1263,8 +1262,8 @@ function AdminPackages() {
               going_date: package_fields.going_date || emptyForm.going_date,
               return_date: package_fields.return_date || emptyForm.return_date,
               nights: package_fields.nights || emptyForm.nights,
-              price_from: package_fields.price_from || emptyForm.price_from,
-              supplier: package_fields.supplier || emptyForm.supplier,
+              price_per_person: package_fields.price_from || emptyForm.price_per_person,
+              supplier_name: package_fields.supplier || emptyForm.supplier_name,
             } as Partial<PackageRow>);
           }}
         />
