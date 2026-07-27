@@ -748,6 +748,10 @@ function AdminPackages() {
                 <DropdownMenuItem
                   key={k}
                   onSelect={async () => {
+                    if (k === "cruise") {
+                      setCruiseImportOpen(true);
+                      return;
+                    }
                     try {
                       const base = await nextPackageBaseNumber();
                       setPendingNumbers([base]);
