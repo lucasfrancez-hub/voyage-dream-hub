@@ -75,13 +75,6 @@ export function TopBar({
                   <Ticket className="h-4 w-4" /> Ingressos
                 </Link>
                 <Link
-                  to="/cruzeiros"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
-                >
-                  <Ship className="h-4 w-4" /> Cruzeiros
-                </Link>
-                <Link
                   to="/pacotes"
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
