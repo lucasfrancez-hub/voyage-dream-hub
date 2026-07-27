@@ -8,8 +8,22 @@
  *    e devolve o objeto pronto pra colar em `packages.cruise_details`.
  */
 import { generateText, Output, NoObjectGeneratedError } from "ai";
+import { z } from "zod";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { cruiseDetailsSchema, type CruiseDetails } from "@/lib/packages/cruise";
+
+/** Campos top-level do pacote (mapeáveis pra colunas de `packages`). */
+export const cruisePackageFieldsSchema = z.object({
+  title: z.string().default(""),
+  destination: z.string().default(""),
+  origin: z.string().default(""),
+  going_date: z.string().default(""),   // YYYY-MM-DD
+  return_date: z.string().default(""),  // YYYY-MM-DD
+  nights: z.number().int().nonnegative().default(0),
+  price_from: z.number().nonnegative().default(0),
+  supplier: z.string().default(""),
+});
+export type CruisePackageFields = z.infer<typeof cruisePackageFieldsSchema>;
 
 const GATEWAY = "https://connector-gateway.lovable.dev/firecrawl/v2";
 
