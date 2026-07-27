@@ -101,17 +101,28 @@ async function firecrawlMap(url: string): Promise<string[]> {
 
 // palavras que sugerem abas úteis do cruzeiro
 const RELEVANT = [
-  "cabin", "cabine", "stateroom", "suite", "suíte",
-  "itiner", "itiner", "roteiro",
-  "ship", "navio", "vessel",
+  "cabin", "cabine", "stateroom", "suite", "suíte", "acomoda",
+  "itiner", "roteiro", "day-by-day",
+  "ship", "navio", "vessel", "embarca",
   "deck", "plano",
   "port", "porto", "destino",
-  "gallery", "galeria", "photo",
-  "amenit", "restaurante", "dining", "entertainment",
-  "excurs",
+  "gallery", "galeria", "photo", "foto",
+  "amenit", "restaurante", "dining", "entertainment", "gastro",
+  "excurs", "passeio", "tour",
+  "adicional", "opcional", "extra", "addon", "add-on",
+  "beverage", "bebida", "drink", "bar",
+  "wifi", "internet",
+  "gorjeta", "gratuit", "service-charge",
+  "transfer", "translado",
+  "seguro", "insurance",
+  "spa", "fitness",
+  "inclui", "incluso", "included", "not-included",
+  "politica", "policy", "cancel", "reembolso", "pagamento", "payment",
+  "documento", "document",
+  "crianc", "children", "kids",
 ];
 
-function pickRelevantTabs(base: string, links: string[], max = 8): string[] {
+function pickRelevantTabs(base: string, links: string[], max = 20): string[] {
   const baseUrl = new URL(base);
   const seen = new Set<string>([base.replace(/#.*$/, "")]);
   const picked: string[] = [];
