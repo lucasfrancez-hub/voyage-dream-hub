@@ -240,6 +240,98 @@ export function CruiseDetailsView({ pkg }: { pkg: Pkg }) {
             </section>
           )}
 
+          {/* Adicionais opcionais */}
+          {details.addons.length > 0 && (
+            <section>
+              <h2 className="font-display text-2xl font-bold">Adicionais opcionais</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Serviços extras que você pode contratar à parte.
+              </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {details.addons.map((addon) => (
+                  <div
+                    key={addon.id}
+                    className="rounded-2xl border border-border bg-card p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-xs uppercase tracking-wider text-brand-orange font-semibold">
+                          {ADDON_CATEGORY_LABELS[addon.category] ?? "Adicional"}
+                        </div>
+                        <div className="font-semibold truncate">{addon.name}</div>
+                        {addon.description && (
+                          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                            {addon.description}
+                          </p>
+                        )}
+                      </div>
+                      {addon.price > 0 && (
+                        <div className="text-right shrink-0">
+                          <div className="font-bold text-sm">{formatBRL(addon.price)}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {ADDON_UNIT_LABELS[addon.price_unit]}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Inclui / Não inclui */}
+          {(details.included.length > 0 || details.not_included.length > 0) && (
+            <section className="grid gap-4 sm:grid-cols-2">
+              {details.included.length > 0 && (
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                  <h3 className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                    <Check className="h-4 w-4" /> Está incluído
+                  </h3>
+                  <ul className="mt-2 space-y-1 text-sm">
+                    {details.included.map((item, i) => (
+                      <li key={i} className="flex gap-2">
+                        <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {details.not_included.length > 0 && (
+                <div className="rounded-2xl border border-border bg-muted/30 p-4">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <X className="h-4 w-4 text-muted-foreground" /> Não está incluído
+                  </h3>
+                  <ul className="mt-2 space-y-1 text-sm">
+                    {details.not_included.map((item, i) => (
+                      <li key={i} className="flex gap-2">
+                        <X className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Políticas */}
+          {hasPolicies(details.policies) && (
+            <section>
+              <h2 className="font-display text-2xl font-bold">Informações importantes</h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <PolicyBlock label="Pagamento" text={details.policies.payment} />
+                <PolicyBlock label="Cancelamento" text={details.policies.cancellation} />
+                <PolicyBlock label="Embarque" text={details.policies.boarding} />
+                <PolicyBlock label="Documentos" text={details.policies.documents} />
+                <PolicyBlock label="Crianças" text={details.policies.children_policy} />
+                <PolicyBlock label="Outras informações" text={details.policies.other} />
+              </div>
+            </section>
+          )}
+
+
           {/* Fallback: sem cabines cadastradas */}
           {cabins.length === 0 && (
             <div className="rounded-3xl border border-dashed border-border bg-muted/40 p-10 text-center">
