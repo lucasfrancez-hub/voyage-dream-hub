@@ -82,6 +82,8 @@ import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import { cleanRoomLabel } from "@/lib/packages/room";
 import type { PackageServices, SeguroMoeda } from "@/lib/packages/feed-art-data";
 import { formatSeguroCobertura } from "@/lib/packages/feed-art-data";
+import { importCruiseFromUrl } from "@/lib/packages/cruise-import.functions";
+
 import { Shield, Bus, MapPin as MapPinIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pacotes")({
@@ -2185,6 +2187,10 @@ function PackageEditorModal({
                     <code>ship</code>, <code>itinerary</code> e <code>map_image</code>. Salva em{" "}
                     <code>packages.cruise_details</code>.
                   </p>
+                  <CruiseUrlImporter
+                    inpClass={inp}
+                    onImported={(details) => setEditing({ ...editing, cruise_details: details })}
+                  />
                   <textarea
                     className={`${inp} mt-2 font-mono text-xs`}
                     rows={16}
@@ -2210,6 +2216,7 @@ function PackageEditorModal({
                     placeholder='{"cabin_categories": [...], "experiences": [...], "ship": {...}, "itinerary": [...]}'
                   />
                 </details>
+
               </>
             )}
 
@@ -3125,9 +3132,88 @@ function WeekdayPricingEditor({
   );
 }
 
+function CruiseUrlImporter({
+  inpClass,
+  onImported,
+}: {
+  inpClass: string;
+  onImported: (details: unknown) => void;
+}) {
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const importFn = useServerFn(importCruiseFromUrl);
 
+  async function run() {
+    setMsg(null);
+    if (!url.trim()) return;
+    setLoading(true);
+    try {
+      const res = await importFn({ data: { url: url.trim() } });
+      onImported(res.cruise_details);
+      const parts: string[] = [];
+      const cd = res.cruise_details;
+      if (cd.cabin_categories?.length) parts.push(`${cd.cabin_categories.length} cabine(s)`);
+      if (cd.experiences?.length) parts.push(`${cd.experiences.length} experiência(s)`);
+      if (cd.itinerary?.length) parts.push(`${cd.itinerary.length} dia(s) de roteiro`);
+      setMsg({
+        kind: "ok",
+        text: `Importado de ${res.sources.length} página(s): ${parts.join(", ") || "dados básicos"}.${
+          res.warnings.length ? ` Avisos: ${res.warnings.length}` : ""
+        }`,
+      });
+    } catch (err) {
+      setMsg({ kind: "err", text: (err as Error).message });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-dashed border-border bg-background/60 p-3">
+      <div className="flex items-center gap-2 text-xs font-semibold text-foreground mb-2">
+        <Wand2 className="h-3.5 w-3.5 text-brand-orange" />
+        Importar de URL (IA lê todas as abas)
+      </div>
+      <div className="flex gap-2">
+        <input
+          type="url"
+          className={inpClass}
+          placeholder="https://... link do cruzeiro"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          disabled={loading}
+        />
+        <button
+          type="button"
+          onClick={run}
+          disabled={loading || !url.trim()}
+          className="rounded-xl bg-brand-orange px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 whitespace-nowrap flex items-center gap-2"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          {loading ? "Extraindo…" : "Importar"}
+        </button>
+      </div>
+      {msg && (
+        <p
+          className={`mt-2 text-xs ${
+            msg.kind === "ok" ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+          }`}
+        >
+          {msg.text}
+        </p>
+      )}
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Cola o link da página do cruzeiro (operadora, site do navio, etc). A IA raspa a página e as
+        abas relevantes (cabines, itinerário, deck, galeria) e preenche o JSON abaixo. Revise antes
+        de salvar.
+      </p>
+    </div>
+  );
+}
 
 function CruiseEditor({
+
   value,
   onChange,
   inpClass,
