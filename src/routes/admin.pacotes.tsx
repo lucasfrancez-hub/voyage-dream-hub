@@ -1613,7 +1613,7 @@ function PackageEditorModal({
   ];
   const tabs = allTabs.filter((t) => {
     if (kind === "service") return t.id !== "hotel" && t.id !== "flights";
-    if (kind === "cruise") return true; // hotel tab is repurposed as CRUZEIRO
+    if (kind === "cruise") return t.id !== "flights"; // cruzeiros não têm aéreo
     return true;
   });
   useEffect(() => {
