@@ -1240,6 +1240,35 @@ function AdminPackages() {
           nextNumber={pendingNumbers?.[draftIndex] ?? pendingNumbers?.[0] ?? null}
         />
       )}
+
+      {cruiseImportOpen && (
+        <NewCruiseImportDialog
+          onClose={() => setCruiseImportOpen(false)}
+          onImported={async ({ cruise_details, package_fields }) => {
+            let base: number | null = null;
+            try {
+              base = await nextPackageBaseNumber();
+              setPendingNumbers([base]);
+            } catch {
+              setPendingNumbers(null);
+            }
+            setCruiseImportOpen(false);
+            setEditing({
+              ...emptyForm,
+              kind: "cruise",
+              cruise_details: cruise_details as any,
+              title: package_fields.title || emptyForm.title,
+              destination: package_fields.destination || emptyForm.destination,
+              origin: package_fields.origin || emptyForm.origin,
+              going_date: package_fields.going_date || emptyForm.going_date,
+              return_date: package_fields.return_date || emptyForm.return_date,
+              nights: package_fields.nights || emptyForm.nights,
+              price_from: package_fields.price_from || emptyForm.price_from,
+              supplier: package_fields.supplier || emptyForm.supplier,
+            } as Partial<PackageRow>);
+          }}
+        />
+      )}
     </div>
   );
 }
