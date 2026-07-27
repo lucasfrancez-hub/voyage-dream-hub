@@ -1799,6 +1799,7 @@ export type Database = {
           base_occupancy: number
           bed_type: string | null
           created_at: string
+          cruise_details: Json
           date_mode: string
           destination: string
           going_date: string | null
@@ -1838,6 +1839,7 @@ export type Database = {
           base_occupancy?: number
           bed_type?: string | null
           created_at?: string
+          cruise_details?: Json
           date_mode?: string
           destination: string
           going_date?: string | null
@@ -1877,6 +1879,7 @@ export type Database = {
           base_occupancy?: number
           bed_type?: string | null
           created_at?: string
+          cruise_details?: Json
           date_mode?: string
           destination?: string
           going_date?: string | null

@@ -159,6 +159,7 @@ type PackageRow = {
   date_mode: "fixed" | "flexible";
   pricing_mode: "per_occupancy" | "per_unit";
   max_units: number;
+  cruise_details: unknown | null;
 };
 
 const emptyForm: Partial<PackageRow> = {
@@ -495,6 +496,7 @@ function AdminPackages() {
       date_mode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
       pricing_mode: (pkg.pricing_mode ?? "per_occupancy") as "per_occupancy" | "per_unit",
       max_units: Math.min(9, Math.max(1, Number(pkg.max_units) || 9)),
+      cruise_details: (pkg.cruise_details ?? null) as any,
     } as any;
     const savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
@@ -2168,11 +2170,47 @@ function PackageEditorModal({
             )}
 
             {tab === "hotel" && kind === "cruise" && (
-              <CruiseEditor
-                value={(editing.services ?? {}) as PackageServices}
-                onChange={(next) => setEditing({ ...editing, services: next })}
-                inpClass={inp}
-              />
+              <>
+                <CruiseEditor
+                  value={(editing.services ?? {}) as PackageServices}
+                  onChange={(next) => setEditing({ ...editing, services: next })}
+                  inpClass={inp}
+                />
+                <details className="mt-4 rounded-2xl border border-border bg-muted/30 p-4">
+                  <summary className="cursor-pointer font-semibold text-sm">
+                    Detalhes do cruzeiro (cabines, experiências, navio, itinerário) — JSON
+                  </summary>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Cole aqui o JSON completo com <code>cabin_categories</code>, <code>experiences</code>,{" "}
+                    <code>ship</code>, <code>itinerary</code> e <code>map_image</code>. Salva em{" "}
+                    <code>packages.cruise_details</code>.
+                  </p>
+                  <textarea
+                    className={`${inp} mt-2 font-mono text-xs`}
+                    rows={16}
+                    value={
+                      editing.cruise_details == null
+                        ? ""
+                        : typeof editing.cruise_details === "string"
+                          ? (editing.cruise_details as string)
+                          : JSON.stringify(editing.cruise_details, null, 2)
+                    }
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (!raw.trim()) {
+                        setEditing({ ...editing, cruise_details: null });
+                        return;
+                      }
+                      try {
+                        setEditing({ ...editing, cruise_details: JSON.parse(raw) });
+                      } catch {
+                        setEditing({ ...editing, cruise_details: raw as any });
+                      }
+                    }}
+                    placeholder='{"cabin_categories": [...], "experiences": [...], "ship": {...}, "itinerary": [...]}'
+                  />
+                </details>
+              </>
             )}
 
             {tab === "hotel" && kind !== "cruise" && (
