@@ -5120,3 +5120,239 @@ function MealPlanMismatchAlert({
     </div>
   );
 }
+
+function NewCruiseImportDialog({
+  onClose,
+  onImported,
+}: {
+  onClose: () => void;
+  onImported: (r: {
+    cruise_details: unknown;
+    package_fields: {
+      title: string;
+      destination: string;
+      origin: string;
+      going_date: string;
+      return_date: string;
+      nights: number;
+      price_from: number;
+      supplier: string;
+    };
+  }) => void;
+}) {
+  const [url, setUrl] = useState("");
+  const [cookie, setCookie] = useState("");
+  const [savedInfo, setSavedInfo] = useState<
+    { hasCookie: boolean; preview?: string; updated_at?: string } | null
+  >(null);
+  const [showCookieEditor, setShowCookieEditor] = useState(false);
+  const [savingCookie, setSavingCookie] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const importFn = useServerFn(importCruiseFromUrl);
+  const getCreds = useServerFn(getFrtCredentials);
+  const saveCreds = useServerFn(saveFrtCredentials);
+
+  useEffect(() => {
+    getCreds().then(setSavedInfo).catch(() => setSavedInfo({ hasCookie: false }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function saveCookie() {
+    if (!cookie.trim()) return;
+    setSavingCookie(true);
+    setMsg(null);
+    try {
+      await saveCreds({ data: { cookie: cookie.trim() } });
+      const info = await getCreds();
+      setSavedInfo(info);
+      setCookie("");
+      setShowCookieEditor(false);
+      setMsg({ kind: "ok", text: "Cookie salvo." });
+    } catch (err) {
+      setMsg({ kind: "err", text: (err as Error).message });
+    } finally {
+      setSavingCookie(false);
+    }
+  }
+
+  const hasSaved = savedInfo?.hasCookie === true;
+
+  async function run() {
+    setMsg(null);
+    if (!url.trim()) return;
+    setLoading(true);
+    try {
+      const res = (await importFn({
+        data: { url: url.trim(), cookie: cookie.trim() || undefined },
+      })) as {
+        cruise_details: unknown;
+        package_fields: {
+          title: string;
+          destination: string;
+          origin: string;
+          going_date: string;
+          return_date: string;
+          nights: number;
+          price_from: number;
+          supplier: string;
+        };
+      };
+      onImported(res);
+    } catch (err) {
+      setMsg({ kind: "err", text: (err as Error).message });
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={loading ? undefined : onClose}
+    >
+      <div
+        className="w-full max-w-xl rounded-2xl border border-border bg-card shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-border p-4">
+          <div className="flex items-center gap-2">
+            <Ship className="h-5 w-5 text-brand-orange" />
+            <h2 className="text-base font-bold">Novo cruzeiro — importar da FRT</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-50"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+              URL do cruzeiro na FRT
+            </label>
+            <input
+              type="url"
+              autoFocus
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              placeholder="https://frtoperadora.krooze.com.br/…"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div
+            className={`rounded-lg p-3 text-xs ${
+              hasSaved
+                ? "bg-emerald-500/10 border border-emerald-500/30"
+                : "bg-amber-500/10 border border-amber-500/30"
+            }`}
+          >
+            {hasSaved && !showCookieEditor ? (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-emerald-700 dark:text-emerald-300">
+                  🔓 Cookie da FRT salvo
+                  {savedInfo?.updated_at && (
+                    <span className="opacity-70">
+                      {" "}
+                      ({new Date(savedInfo.updated_at).toLocaleString("pt-BR")})
+                    </span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowCookieEditor(true)}
+                  className="text-brand-orange font-semibold hover:underline"
+                  disabled={loading}
+                >
+                  Atualizar
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="font-semibold text-foreground">
+                  {hasSaved ? "Atualizar cookie da FRT" : "Cole o cookie da FRT (primeira vez)"}
+                </div>
+                <textarea
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-[11px] font-mono"
+                  rows={3}
+                  placeholder="kz-token=...; JSESSIONID=...; ..."
+                  value={cookie}
+                  onChange={(e) => setCookie(e.target.value)}
+                  disabled={savingCookie || loading}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={saveCookie}
+                    disabled={savingCookie || !cookie.trim()}
+                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {savingCookie ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                    Salvar cookie
+                  </button>
+                  {hasSaved && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCookieEditor(false);
+                        setCookie("");
+                      }}
+                      className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-snug">
+                  F12 → Network → Fetch/XHR → clica em qualquer request → Headers → copia tudo
+                  depois de <code>Cookie:</code>
+                </p>
+              </div>
+            )}
+          </div>
+
+          {msg && (
+            <p
+              className={`text-xs ${
+                msg.kind === "ok"
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-destructive"
+              }`}
+            >
+              {msg.text}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={run}
+            disabled={loading || !url.trim() || (!hasSaved && !cookie.trim())}
+            className="w-full rounded-xl bg-brand-orange px-4 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Extraindo dados… (pode levar 1 min)
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                Importar e abrir cadastro
+              </>
+            )}
+          </button>
+
+          <p className="text-[11px] text-muted-foreground text-center">
+            A IA lê a página, cabines, itinerário e preços — depois abre o cadastro já preenchido.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
