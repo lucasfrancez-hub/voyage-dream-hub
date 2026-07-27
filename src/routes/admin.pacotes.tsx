@@ -5141,7 +5141,8 @@ function NewCruiseImportDialog({
   }) => void;
 }) {
   const [url, setUrl] = useState("");
-  const [cookie, setCookie] = useState("");
+  const [kzToken, setKzToken] = useState("");
+  const [jsessionId, setJsessionId] = useState("");
   const [savedInfo, setSavedInfo] = useState<
     { hasCookie: boolean; preview?: string; updated_at?: string } | null
   >(null);
@@ -5158,15 +5159,37 @@ function NewCruiseImportDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Aceita colar "kz-token=eyJ..." ou só "eyJ..." — tira o prefixo e ponto-e-vírgula final
+  function cleanValue(raw: string, name: string): string {
+    let v = raw.trim();
+    const prefix = new RegExp(`^${name}\\s*=\\s*`, "i");
+    v = v.replace(prefix, "");
+    v = v.replace(/;\s*$/, "");
+    return v.trim();
+  }
+
+  function buildCookieString(): string {
+    const kz = cleanValue(kzToken, "kz-token");
+    const js = cleanValue(jsessionId, "JSESSIONID");
+    const parts: string[] = [];
+    if (kz) parts.push(`kz-token=${kz}`);
+    if (js) parts.push(`JSESSIONID=${js}`);
+    return parts.join("; ");
+  }
+
+  const canSubmitCookie = Boolean(cleanValue(kzToken, "kz-token"));
+
   async function saveCookie() {
-    if (!cookie.trim()) return;
+    const cookie = buildCookieString();
+    if (!cookie) return;
     setSavingCookie(true);
     setMsg(null);
     try {
-      await saveCreds({ data: { cookie: cookie.trim() } });
+      await saveCreds({ data: { cookie } });
       const info = await getCreds();
       setSavedInfo(info);
-      setCookie("");
+      setKzToken("");
+      setJsessionId("");
       setShowCookieEditor(false);
       setMsg({ kind: "ok", text: "Cookie salvo." });
     } catch (err) {
@@ -5181,10 +5204,11 @@ function NewCruiseImportDialog({
   async function run() {
     setMsg(null);
     if (!url.trim()) return;
+    const cookie = buildCookieString();
     setLoading(true);
     try {
       const res = (await importFn({
-        data: { url: url.trim(), cookie: cookie.trim() || undefined },
+        data: { url: url.trim(), cookie: cookie || undefined },
       })) as {
         cruise_details: unknown;
         package_fields: {
@@ -5274,23 +5298,43 @@ function NewCruiseImportDialog({
                 </button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="font-semibold text-foreground">
-                  {hasSaved ? "Atualizar cookie da FRT" : "Cole o cookie da FRT (primeira vez)"}
+                  {hasSaved ? "Atualizar cookie da FRT" : "Cole os dois valores do FRT (primeira vez)"}
                 </div>
-                <textarea
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-[11px] font-mono"
-                  rows={3}
-                  placeholder="kz-token=...; JSESSIONID=...; ..."
-                  value={cookie}
-                  onChange={(e) => setCookie(e.target.value)}
-                  disabled={savingCookie || loading}
-                />
+
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                    kz-token <span className="opacity-60 normal-case">(obrigatório — token de login)</span>
+                  </label>
+                  <textarea
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-[11px] font-mono"
+                    rows={3}
+                    placeholder="eyJhbGciOi..."
+                    value={kzToken}
+                    onChange={(e) => setKzToken(e.target.value)}
+                    disabled={savingCookie || loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                    JSESSIONID <span className="opacity-60 normal-case">(opcional — identifica a sessão)</span>
+                  </label>
+                  <input
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-[11px] font-mono"
+                    placeholder="f90bc033ea27f172"
+                    value={jsessionId}
+                    onChange={(e) => setJsessionId(e.target.value)}
+                    disabled={savingCookie || loading}
+                  />
+                </div>
+
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={saveCookie}
-                    disabled={savingCookie || !cookie.trim()}
+                    disabled={savingCookie || !canSubmitCookie}
                     className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
                   >
                     {savingCookie ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
@@ -5301,7 +5345,8 @@ function NewCruiseImportDialog({
                       type="button"
                       onClick={() => {
                         setShowCookieEditor(false);
-                        setCookie("");
+                        setKzToken("");
+                        setJsessionId("");
                       }}
                       className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
                     >
@@ -5309,13 +5354,15 @@ function NewCruiseImportDialog({
                     </button>
                   )}
                 </div>
+
                 <p className="text-[10px] text-muted-foreground leading-snug">
-                  F12 → Network → Fetch/XHR → clica em qualquer request → Headers → copia tudo
-                  depois de <code>Cookie:</code>
+                  F12 → <b>Application</b> → Cookies → <code>frtoperadora.krooze.com.br</code> → copia só o <b>Value</b> de cada um.
+                  Pode colar com ou sem o <code>nome=</code> na frente que a gente limpa.
                 </p>
               </div>
             )}
           </div>
+
 
           {msg && (
             <p
@@ -5332,7 +5379,7 @@ function NewCruiseImportDialog({
           <button
             type="button"
             onClick={run}
-            disabled={loading || !url.trim() || (!hasSaved && !cookie.trim())}
+            disabled={loading || !url.trim() || (!hasSaved && !canSubmitCookie)}
             className="w-full rounded-xl bg-brand-orange px-4 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
