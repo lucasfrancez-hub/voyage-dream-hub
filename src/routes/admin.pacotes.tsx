@@ -2209,28 +2209,41 @@ function PackageEditorModal({
             )}
 
             {tab === "hotel" && kind === "cruise" && (
-              <>
-                <CruiseEditor
-                  value={(editing.services ?? {}) as PackageServices}
-                  onChange={(next) => setEditing({ ...editing, services: next })}
+              <div className="space-y-4">
+                {/* Importador rápido da FRT — fica no topo pra atalho */}
+                <CruiseUrlImporter
                   inpClass={inp}
+                  onImported={(details) => setEditing({ ...editing, cruise_details: details })}
                 />
-                <details className="mt-4 rounded-2xl border border-border bg-muted/30 p-4">
-                  <summary className="cursor-pointer font-semibold text-sm">
-                    Detalhes do cruzeiro (cabines, experiências, navio, itinerário) — JSON
+
+                {/* Editor estruturado dos detalhes do cruzeiro */}
+                <CruiseDetailsEditor
+                  value={editing.cruise_details}
+                  onChange={(details) => setEditing({ ...editing, cruise_details: details as any })}
+                />
+
+                {/* Serviços adicionais do pacote (transfer, seguro, etc.) — igual pacote */}
+                <details className="rounded-2xl border border-border bg-muted/30 p-4">
+                  <summary className="cursor-pointer text-sm font-semibold">
+                    Serviços extras do pacote (transfer, seguro, city tour…)
                   </summary>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Cole aqui o JSON completo com <code>cabin_categories</code>, <code>experiences</code>,{" "}
-                    <code>ship</code>, <code>itinerary</code> e <code>map_image</code>. Salva em{" "}
-                    <code>packages.cruise_details</code>.
-                  </p>
-                  <CruiseUrlImporter
-                    inpClass={inp}
-                    onImported={(details) => setEditing({ ...editing, cruise_details: details })}
-                  />
+                  <div className="mt-3">
+                    <CruiseEditor
+                      value={(editing.services ?? {}) as PackageServices}
+                      onChange={(next) => setEditing({ ...editing, services: next })}
+                      inpClass={inp}
+                    />
+                  </div>
+                </details>
+
+                {/* JSON bruto — só pra troubleshooting */}
+                <details className="rounded-2xl border border-dashed border-border bg-muted/20 p-3">
+                  <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">
+                    Ver / editar JSON bruto (avançado)
+                  </summary>
                   <textarea
-                    className={`${inp} mt-2 font-mono text-xs`}
-                    rows={16}
+                    className={`${inp} mt-2 font-mono text-[11px]`}
+                    rows={12}
                     value={
                       editing.cruise_details == null
                         ? ""
@@ -2250,12 +2263,11 @@ function PackageEditorModal({
                         setEditing({ ...editing, cruise_details: raw as any });
                       }
                     }}
-                    placeholder='{"cabin_categories": [...], "experiences": [...], "ship": {...}, "itinerary": [...]}'
                   />
                 </details>
-
-              </>
+              </div>
             )}
+
 
             {tab === "hotel" && kind !== "cruise" && (
               <div className="grid sm:grid-cols-2 gap-3">
