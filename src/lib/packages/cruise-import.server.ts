@@ -138,6 +138,7 @@ export async function extractCruiseFromUrl(
   auth?: ScrapeAuth,
 ): Promise<{
   cruise_details: CruiseDetails;
+  package_fields: CruisePackageFields;
   sources: string[];
   warnings: string[];
 }> {
@@ -173,7 +174,7 @@ export async function extractCruiseFromUrl(
   );
 
 
-  // Limita tamanho pra não estourar contexto (500k chars é seguro pro Gemini 3.6)
+  // Limita tamanho pra não estourar contexto
   const MAX = 450_000;
   let total = 0;
   const chunks: string[] = [];
@@ -187,29 +188,39 @@ export async function extractCruiseFromUrl(
   }
   const consolidated = chunks.join("");
 
-  // 3. Extração com Gemini
+  // 3. Extração com Gemini — schema combinado (top-level + cruise_details)
   const gateway = createLovableAiGatewayProvider(apiKey);
   const model = gateway("google/gemini-3.6-flash");
 
+  const combinedSchema = z.object({
+    package_fields: cruisePackageFieldsSchema,
+    cruise_details: cruiseDetailsSchema,
+  });
+
   const prompt = `Você extrai dados estruturados de páginas de cruzeiros marítimos em pt-BR.
 
-Recebi o conteúdo (markdown) da página do cruzeiro e de suas abas. Extraia TUDO que conseguir e devolva no schema JSON.
+Recebi o conteúdo (markdown) da página do cruzeiro e de suas abas. Extraia TUDO que conseguir.
 
-Regras:
-- Preços em BRL (número, sem símbolo). Se o preço for por pessoa, use pricing.occ2.per_person, occ3.per_person etc. Se for total, divida pela ocupação.
-- Se a página mostrar preço por ocupação (dupla/tripla/quádrupla), preencha occ2, occ3, occ4 respectivamente.
+Regras package_fields (top-level do pacote):
+- title: nome curto do cruzeiro (ex: "MSC Preziosa - Caribe 7 noites").
+- destination: destino principal (ex: "Caribe", "Mediterrâneo", "Fiordes"). NÃO inclua o país entre parênteses.
+- origin: porto de embarque (ex: "Santos", "Miami", "Barcelona"). Se não achar, vazio.
+- going_date / return_date: datas de embarque e desembarque no formato YYYY-MM-DD.
+- nights: número de noites do cruzeiro.
+- price_from: menor preço por pessoa em ocupação dupla (BRL, número).
+- supplier: operadora (ex: "MSC Cruzeiros", "Costa", "Royal Caribbean").
+
+Regras cruise_details:
+- Preços em BRL (número, sem símbolo). Se o preço for por pessoa, use pricing.occ2.per_person, occ3.per_person etc.
 - Se houver "3ª pessoa" e "4ª pessoa" com valor diferente, use campos "third" e "fourth".
 - Se houver criança com valor reduzido, use "child" (valor por criança).
-- Taxas portuárias/serviço vão em taxes_total (total já somado por cabine, não por pessoa).
-- experiences = pacotes tipo "Free at Sea", "All Included", "Beverage Package" etc. delta_per_person é o adicional POR PESSOA vs o pacote base (0 se já incluso).
-- itinerary: um item por dia. Use "day" numérico (1,2,3...). arrival/departure no formato "HH:MM" ou vazio.
+- Taxas portuárias/serviço vão em taxes_total (total por cabine, não por pessoa).
+- experiences = pacotes tipo "Free at Sea", "All Included". delta_per_person é o adicional POR PESSOA vs o pacote base.
+- itinerary: um item por dia. Use "day" numérico. arrival/departure em "HH:MM" ou vazio.
 - cabin_categories.type: "interna" | "externa" | "varanda" | "suite".
-- Fotos: use URLs absolutas https://.
-- map_image: se houver imagem do mapa do itinerário, coloque a URL aqui.
-- ship.gallery: fotos do navio (áreas comuns, restaurantes etc.).
-- ship.attractions: atrações destacadas (piscina, spa, teatro, restaurantes).
+- Fotos: URLs absolutas https://.
 - Se um campo não aparecer, deixe vazio/omita — NÃO invente.
-- Todos os IDs devem ser slugs curtos (ex: "cab-interna-1", "exp-free-at-sea-all").
+- IDs slugs curtos (ex: "cab-interna-1", "exp-free-at-sea-all").
 
 Conteúdo:
 ${consolidated}
@@ -219,11 +230,12 @@ Retorne JSON conforme o schema.`;
   try {
     const { output } = await generateText({
       model,
-      output: Output.object({ schema: cruiseDetailsSchema }),
+      output: Output.object({ schema: combinedSchema }),
       prompt,
     });
     return {
-      cruise_details: output,
+      cruise_details: output.cruise_details,
+      package_fields: output.package_fields,
       sources: scraped.map((s) => s.url),
       warnings,
     };
