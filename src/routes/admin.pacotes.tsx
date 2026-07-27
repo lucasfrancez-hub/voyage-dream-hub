@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { CruiseDetailsEditor } from "@/components/admin/CruiseDetailsEditor";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
