@@ -1081,3 +1081,48 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
+const ADDON_CATEGORY_LABELS: Record<string, string> = {
+  bebidas: "Bebidas",
+  wifi: "Wi-Fi",
+  gorjeta: "Gorjeta",
+  transfer: "Transfer",
+  seguro: "Seguro",
+  excursao: "Excursão",
+  restaurante: "Restaurante",
+  spa: "Spa",
+  outro: "Adicional",
+};
+
+const ADDON_UNIT_LABELS: Record<string, string> = {
+  per_person: "por pessoa",
+  per_cabin: "por cabine",
+  per_day: "por dia",
+  per_person_per_day: "por pessoa/dia",
+  fixed: "valor total",
+};
+
+function hasPolicies(p: {
+  payment: string;
+  cancellation: string;
+  boarding: string;
+  documents: string;
+  children_policy: string;
+  other: string;
+}): boolean {
+  return Boolean(
+    p.payment || p.cancellation || p.boarding || p.documents || p.children_policy || p.other,
+  );
+}
+
+function PolicyBlock({ label, text }: { label: string; text: string }) {
+  if (!text) return null;
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="text-xs uppercase tracking-wider text-brand-orange font-semibold">
+        {label}
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground whitespace-pre-line">{text}</p>
+    </div>
+  );
+}
