@@ -114,9 +114,6 @@ export function TopBar({
           <Link to="/ingressos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
             <Ticket className="h-3.5 w-3.5" /> Ingressos
           </Link>
-          <Link to="/cruzeiros" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
-            <Ship className="h-3.5 w-3.5" /> Cruzeiros
-          </Link>
           <Link to="/pacotes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
             <PackageIcon className="h-3.5 w-3.5" /> Pacotes
           </Link>
