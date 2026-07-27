@@ -82,6 +82,8 @@ import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import { cleanRoomLabel } from "@/lib/packages/room";
 import type { PackageServices, SeguroMoeda } from "@/lib/packages/feed-art-data";
 import { formatSeguroCobertura } from "@/lib/packages/feed-art-data";
+import { importCruiseFromUrl } from "@/lib/packages/cruise-import.functions";
+
 import { Shield, Bus, MapPin as MapPinIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pacotes")({
@@ -2185,6 +2187,10 @@ function PackageEditorModal({
                     <code>ship</code>, <code>itinerary</code> e <code>map_image</code>. Salva em{" "}
                     <code>packages.cruise_details</code>.
                   </p>
+                  <CruiseUrlImporter
+                    inpClass={inp}
+                    onImported={(details) => setEditing({ ...editing, cruise_details: details })}
+                  />
                   <textarea
                     className={`${inp} mt-2 font-mono text-xs`}
                     rows={16}
@@ -2210,6 +2216,7 @@ function PackageEditorModal({
                     placeholder='{"cabin_categories": [...], "experiences": [...], "ship": {...}, "itinerary": [...]}'
                   />
                 </details>
+
               </>
             )}
 
