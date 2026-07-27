@@ -208,7 +208,12 @@ function PackageDetails() {
   const baseOccupancy = pkg.base_occupancy ?? 2;
   const isTicket = (pkg as any).kind === "service";
   const isCruise = (pkg as any).kind === "cruise";
+  if (isCruise) {
+    if (typeof window !== "undefined") window.location.replace("/pacotes");
+    return null;
+  }
   const isPerUnit = (pkg as any).pricing_mode === "per_unit";
+
   const isFlexibleDate = (pkg as any).date_mode === "flexible";
   const eventDateLabel = isFlexibleDate
     ? "Data à escolher"
