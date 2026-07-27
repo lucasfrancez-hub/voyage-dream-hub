@@ -3140,6 +3140,8 @@ function CruiseUrlImporter({
   onImported: (details: unknown) => void;
 }) {
   const [url, setUrl] = useState("");
+  const [cookie, setCookie] = useState("");
+  const [showAuth, setShowAuth] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const importFn = useServerFn(importCruiseFromUrl);
@@ -3149,7 +3151,9 @@ function CruiseUrlImporter({
     if (!url.trim()) return;
     setLoading(true);
     try {
-      const res = await importFn({ data: { url: url.trim() } });
+      const res = await importFn({
+        data: { url: url.trim(), cookie: cookie.trim() || undefined },
+      });
       onImported(res.cruise_details);
       const parts: string[] = [];
       const cd = res.cruise_details;
@@ -3159,7 +3163,7 @@ function CruiseUrlImporter({
       setMsg({
         kind: "ok",
         text: `Importado de ${res.sources.length} página(s): ${parts.join(", ") || "dados básicos"}.${
-          res.warnings.length ? ` Avisos: ${res.warnings.length}` : ""
+          res.warnings.length ? ` Avisos: ${res.warnings.join(" | ")}` : ""
         }`,
       });
     } catch (err) {
@@ -3194,6 +3198,35 @@ function CruiseUrlImporter({
           {loading ? "Extraindo…" : "Importar"}
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setShowAuth((v) => !v)}
+        className="mt-2 text-[11px] font-semibold text-brand-orange hover:underline"
+      >
+        {showAuth ? "− Ocultar autenticação" : "🔒 Site pede login? Colar cookie"}
+      </button>
+
+      {showAuth && (
+        <div className="mt-2 space-y-1">
+          <textarea
+            className={`${inpClass} font-mono text-[11px]`}
+            rows={3}
+            placeholder="Cole aqui o header Cookie inteiro (ex: PHPSESSID=abc123; auth_token=xyz; ...)"
+            value={cookie}
+            onChange={(e) => setCookie(e.target.value)}
+            disabled={loading}
+          />
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            <strong>Como pegar:</strong> abra a página do cruzeiro <em>já logado</em> no seu
+            navegador → F12 → aba <strong>Network</strong> → recarregue → clique na 1ª requisição da
+            página → copie o valor completo do header <code>Cookie</code>. O mesmo cookie é usado
+            pra abrir todas as abas relacionadas. Guardado só nessa sessão do navegador — não é
+            salvo em lugar nenhum.
+          </p>
+        </div>
+      )}
+
       {msg && (
         <p
           className={`mt-2 text-xs ${
@@ -3204,13 +3237,13 @@ function CruiseUrlImporter({
         </p>
       )}
       <p className="mt-2 text-[11px] text-muted-foreground">
-        Cola o link da página do cruzeiro (operadora, site do navio, etc). A IA raspa a página e as
-        abas relevantes (cabines, itinerário, deck, galeria) e preenche o JSON abaixo. Revise antes
-        de salvar.
+        Cola o link do cruzeiro. A IA raspa a página e as abas relevantes (cabines, itinerário,
+        deck, galeria) e preenche o JSON abaixo. Revise antes de salvar.
       </p>
     </div>
   );
 }
+
 
 function CruiseEditor({
 
