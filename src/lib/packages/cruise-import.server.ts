@@ -50,8 +50,14 @@ function buildScrapeBody(url: string, auth?: ScrapeAuth) {
   if (auth?.cookie) extraHeaders.Cookie = auth.cookie;
   const body: Record<string, unknown> = {
     url,
-    formats: ["markdown"],
-    onlyMainContent: true,
+    // FRT/Krooze é SPA: precisa markdown + html renderizado, sem filtrar main
+    formats: ["markdown", "html"],
+    onlyMainContent: false,
+    // Espera hidratação do React antes de capturar
+    waitFor: 6000,
+    timeout: 60000,
+    // Simula navegador real (evita bloqueios)
+    mobile: false,
   };
   if (Object.keys(extraHeaders).length > 0) body.headers = extraHeaders;
   return body;
@@ -60,7 +66,7 @@ function buildScrapeBody(url: string, auth?: ScrapeAuth) {
 async function firecrawlScrape(
   url: string,
   auth?: ScrapeAuth,
-): Promise<{ markdown: string; title?: string }> {
+): Promise<{ markdown: string; html?: string; title?: string }> {
   const res = await fetch(`${GATEWAY}/scrape`, {
     method: "POST",
     headers: firecrawlHeaders(),
@@ -72,12 +78,38 @@ async function firecrawlScrape(
   }
   const data = (await res.json()) as {
     markdown?: string;
-    data?: { markdown?: string; metadata?: { title?: string } };
+    html?: string;
+    data?: { markdown?: string; html?: string; metadata?: { title?: string } };
     metadata?: { title?: string };
   };
   const markdown = data.markdown ?? data.data?.markdown ?? "";
+  const html = data.html ?? data.data?.html ?? "";
   const title = data.metadata?.title ?? data.data?.metadata?.title;
-  return { markdown, title };
+  // Se o markdown veio muito curto (SPA sem hidratar), converte HTML pra texto útil
+  const combined = markdown.length < 500 && html
+    ? `${markdown}\n\n<!-- HTML fallback -->\n${htmlToText(html)}`
+    : markdown;
+  return { markdown: combined, html, title };
+}
+
+// Reduz HTML a texto legível (strip tags, mantém alt/src pra fotos)
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<img[^>]*src="([^"]+)"[^>]*(?:alt="([^"]*)")?[^>]*>/gi, (_, src, alt) => ` [IMG ${alt || ""} ${src}] `)
+    .replace(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, text) => ` ${text} (${href}) `)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|tr|h[1-6])>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 async function firecrawlMap(url: string): Promise<string[]> {
