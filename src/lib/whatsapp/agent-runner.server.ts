@@ -288,6 +288,22 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       console.warn(`[agent:${agent.slug}] resposta vazia`);
       return;
     }
+    // GUARDA ANTI-LIXO: nunca mandar pro cliente respostas que sejam só código de
+    // erro / eco técnico do gateway (ex.: "(502)", "Bad Gateway", "AI_APICallError").
+    const junk =
+      /^[\s(]*\d{3}[\s)]*$/.test(rawText) ||
+      /(bad gateway|ai_apicallerror|service unavailable|internal server error|\b50[0-9]\b\s*$)/i.test(
+        rawText,
+      );
+    if (junk || rawText.length < 2) {
+      console.warn(`[agent:${agent.slug}] resposta descartada (lixo técnico): ${rawText}`);
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ ai_debounce_until: new Date(Date.now() + 60 * 1000).toISOString() })
+        .eq("id", conv.id);
+      return;
+    }
+
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
     const clientFirst = extractFirstName(conv.display_name);
