@@ -2262,7 +2262,11 @@ function PackageEditorModal({
                   packageId={editing.id}
                   modalities={(editing as any).tour_modalities ?? []}
                   pendingRows={(editing as any).__pendingPrices ?? []}
+                  onRowsChange={(rows) =>
+                    setEditing((prev: any) => ({ ...prev, __pendingPrices: rows }))
+                  }
                 />
+
               </div>
             )}
 
