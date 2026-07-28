@@ -28,7 +28,7 @@ import {
   Ticket,
   Ship,
   Package as PackageIcon,
-  Database,
+  MapPin,
 } from "lucide-react";
 import {
   Select,
