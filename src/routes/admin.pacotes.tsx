@@ -523,6 +523,31 @@ function AdminPackages() {
       cruise_details:
         (pkg.kind ?? "package") === "cruise" ? ((pkg.cruise_details ?? {}) as any) : null,
     } as any;
+    // Isolamento por tipo: pacote, ingresso/serviço e cruzeiro não compartilham campos.
+    const payloadKind: PackageKind = payload.kind;
+    if (payloadKind === "service") {
+      // Ingresso/serviço: sem hospedagem, sem aéreo, sem cruzeiro
+      payload.hotel_name = null;
+      payload.hotel_stars = null;
+      payload.meal_plan = null;
+      payload.room_type = null;
+      payload.room_category = null;
+      payload.bed_type = null;
+      payload.nights = null;
+      payload.outbound_flight = null;
+      payload.return_flight = null;
+      payload.tripadvisor_location_id = null;
+      payload.tripadvisor_url = null;
+      payload.tripadvisor_address = null;
+      payload.cruise_details = null;
+    } else if (payloadKind === "cruise") {
+      // Cruzeiro: sem aéreo
+      payload.outbound_flight = null;
+      payload.return_flight = null;
+    } else {
+      // Pacote: sem dados de cruzeiro
+      payload.cruise_details = null;
+    }
     const savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
       : await supabase.from("packages").insert(payload).select("id").single();
@@ -721,8 +746,14 @@ function AdminPackages() {
         </div>
         <div className="flex items-center gap-2">
           <MultiPackageImportButton
-            onExtracted={async (list) => {
-              if (!list.length) return;
+            onExtracted={async (raw) => {
+              if (!raw.length) return;
+              // Importador de PACOTES: nunca cria ingresso nem cruzeiro
+              const list = raw.map((d) => ({
+                ...d,
+                kind: "package" as PackageKind,
+                cruise_details: null,
+              }));
               try {
                 const base = await nextPackageBaseNumber();
                 setPendingNumbers(list.map((_, i) => base + i));
