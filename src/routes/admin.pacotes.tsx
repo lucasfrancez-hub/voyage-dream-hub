@@ -1772,13 +1772,36 @@ function PackageEditorModal({
             </button>
           </div>
           <div className="space-y-4 p-6">
-            <TourHtmlImporter
-              destination={editing.destination}
-              onApply={(patch) => {
-                setEditing({ ...editing, ...patch } as any);
-                setTourImportDone(true);
-              }}
-            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setTourBulkMode(false)}
+                className={`rounded-full px-4 py-1.5 text-xs font-bold ${!tourBulkMode ? "bg-brand-orange text-white" : "bg-muted text-muted-foreground"}`}
+              >
+                Um passeio
+              </button>
+              <button
+                type="button"
+                onClick={() => setTourBulkMode(true)}
+                className={`rounded-full px-4 py-1.5 text-xs font-bold ${tourBulkMode ? "bg-brand-orange text-white" : "bg-muted text-muted-foreground"}`}
+              >
+                Importar múltiplos
+              </button>
+            </div>
+            {tourBulkMode ? (
+              <TourBulkImporter
+                destination={editing.destination}
+                onDone={() => closeCurrentDraft?.()}
+              />
+            ) : (
+              <TourHtmlImporter
+                destination={editing.destination}
+                onApply={(patch) => {
+                  setEditing({ ...editing, ...patch } as any);
+                  setTourImportDone(true);
+                }}
+              />
+            )}
             <button
               type="button"
               onClick={() => setTourImportDone(true)}
