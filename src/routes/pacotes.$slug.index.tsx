@@ -194,6 +194,22 @@ function PackageDetails() {
     },
   });
 
+  const { data: datePrices = [] } = useQuery({
+    queryKey: ["package-date-prices", pkg?.id],
+    enabled: !!pkg?.id && (pkg as any)?.kind === "tour",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("package_date_prices")
+        .select("date,price_per_person,taxes,seats,is_available")
+        .eq("package_id", (pkg as any).id)
+        .eq("is_available", true)
+        .gte("date", new Date().toISOString().slice(0, 10))
+        .order("date");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const [hotelDialogOpen, setHotelDialogOpen] = useState(false);
   const [dialogPhotoIndex, setDialogPhotoIndex] = useState(0);
 
@@ -206,7 +222,8 @@ function PackageDetails() {
   }
 
   const baseOccupancy = pkg.base_occupancy ?? 2;
-  const isTicket = (pkg as any).kind === "service";
+  const isTour = (pkg as any).kind === "tour";
+  const isTicket = (pkg as any).kind === "service" || isTour;
   const isCruise = (pkg as any).kind === "cruise";
   if (isCruise) {
     if (typeof window !== "undefined") window.location.replace("/pacotes");
@@ -239,7 +256,14 @@ function PackageDetails() {
   }
 
   if (isTicket) {
-    return <TicketDetailsView pkg={pkg} eventDateLabel={eventDateLabel} />;
+    return (
+      <TicketDetailsView
+        pkg={pkg}
+        eventDateLabel={isTour ? null : eventDateLabel}
+        isTour={isTour}
+        datePrices={datePrices as any[]}
+      />
+    );
   }
 
   return (
@@ -595,10 +619,17 @@ function chipIconForInclude(text: string): LucideIcon {
 function TicketDetailsView({
   pkg,
   eventDateLabel,
+  isTour = false,
+  datePrices = [],
 }: {
   pkg: any;
   eventDateLabel: string | null;
+  isTour?: boolean;
+  datePrices?: any[];
 }) {
+  const tourFrom = datePrices.length
+    ? Math.min(...datePrices.map((d) => Number(d.price_per_person) || 0))
+    : 0;
   const services = (pkg.services ?? {}) as any;
   const transferSvc = services.transfer ?? {};
   const insuranceSvc = services.insurance ?? {};
@@ -611,13 +642,15 @@ function TicketDetailsView({
           .filter(Boolean)
       : [];
 
-  const dateBlock = parseEventDate(pkg.going_date);
-  const price = Number(pkg.price_per_person) || 0;
+  const dateBlock = isTour ? null : parseEventDate(pkg.going_date);
+  const price = isTour
+    ? tourFrom || Number(pkg.price_per_person) || 0
+    : Number(pkg.price_per_person) || 0;
   const includes: string[] = Array.isArray(pkg.includes) ? pkg.includes : [];
 
   const [qty, setQty] = useState(1);
   const maxUnits = Math.max(1, Math.min(9, Number(pkg.max_units) || 9));
-  const isFlexibleDate = pkg?.date_mode === "flexible";
+  const isFlexibleDate = isTour || pkg?.date_mode === "flexible";
   const rawAddons: any[] = Array.isArray(services?.addons) ? services.addons : [];
   const hasAddons = rawAddons.some(
     (a) => a && a.name && (Number(a.price) > 0 || (a.price_by_weekday ?? []).some((t: any) => Number(t?.price) > 0)),
@@ -626,7 +659,10 @@ function TicketDetailsView({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <TopBar backTo="/ingressos" backLabel="Todos os ingressos" />
+      <TopBar
+        backTo={isTour ? "/passeios" : "/ingressos"}
+        backLabel={isTour ? "Todos os passeios" : "Todos os ingressos"}
+      />
 
       <div className="mx-auto max-w-6xl w-full px-4 md:px-6 py-8 md:py-12 flex flex-col lg:flex-row gap-8">
         {/* Main column */}
@@ -645,7 +681,7 @@ function TicketDetailsView({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent md:bg-gradient-to-r md:from-transparent md:to-card/40" />
                 <div className="absolute top-5 left-5 flex flex-wrap gap-2">
                   <span className="inline-flex items-center gap-1.5 bg-brand-orange text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
-                    <Ticket className="h-3 w-3" /> Ingresso
+                    <Ticket className="h-3 w-3" /> {isTour ? "Passeio" : "Ingresso"}
                   </span>
                   {pkg.destination && (
                     <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-white/10">
@@ -695,7 +731,7 @@ function TicketDetailsView({
           {/* Sobre o ingresso */}
           {pkg.summary && (
             <section>
-              <SectionHeader>Sobre o ingresso</SectionHeader>
+              <SectionHeader>{isTour ? "Sobre o passeio" : "Sobre o ingresso"}</SectionHeader>
               <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{pkg.summary}</p>
             </section>
           )}
@@ -787,7 +823,7 @@ function TicketDetailsView({
           <div className="lg:sticky lg:top-6 bg-card border border-border p-7 md:p-8 rounded-[2rem] shadow-[var(--shadow-card)]">
             <div className="mb-6">
               <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em] mb-2">
-                Preço por ingresso
+                {isTour ? "A partir de (por pessoa)" : "Preço por ingresso"}
               </p>
               <div className="flex items-baseline gap-2">
                 <span className="text-brand-orange text-2xl font-bold">R$</span>
@@ -883,6 +919,7 @@ function TicketDetailsView({
         basePrice={price}
         isFlexibleDate={isFlexibleDate}
         rawAddons={rawAddons}
+        datePrices={isTour ? datePrices : undefined}
       />
 
       <ContactFooter whatsappMessage={`Olá! Tenho interesse no ingresso ${pkg.title} e quero mais informações.`} />
@@ -962,6 +999,7 @@ function PreCheckoutDialog({
   basePrice,
   isFlexibleDate,
   rawAddons,
+  datePrices,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -970,6 +1008,7 @@ function PreCheckoutDialog({
   basePrice: number;
   isFlexibleDate: boolean;
   rawAddons: any[];
+  datePrices?: any[];
 }) {
   const navigate = useNavigate();
   const [date, setDate] = useState<string>(isFlexibleDate ? "" : (pkg.going_date ?? ""));
@@ -1021,7 +1060,13 @@ function PreCheckoutDialog({
     }, 0);
   }, [addons, selected, qty]);
 
-  const total = basePrice * qty + addonsTotal;
+  const priceByDate = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const d of datePrices ?? []) map.set(String(d.date), Number(d.price_per_person) || 0);
+    return map;
+  }, [datePrices]);
+  const unitPrice = (date && priceByDate.get(date)) || basePrice;
+  const total = unitPrice * qty + addonsTotal;
   const canContinue = !isFlexibleDate || !!date;
 
   function handleContinue() {
@@ -1104,6 +1149,13 @@ function PreCheckoutDialog({
                     selected={date ? new Date(date + "T00:00:00") : undefined}
                     onDayClick={(d, mods) => {
                       if (mods?.disabled) return;
+                      const isoKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                      if (priceByDate.size > 0 && !priceByDate.has(isoKey)) {
+                        toast.error("Data sem disponibilidade", {
+                          description: "Escolha uma das datas destacadas no calendário.",
+                        });
+                        return;
+                      }
                       if (d > maxDate) {
                         toast.error("Data indisponível", {
                           description: "Só aceitamos reservas com até 11 meses de antecedência.",
@@ -1116,9 +1168,20 @@ function PreCheckoutDialog({
                       setDate(`${y}-${m}-${day}`);
                     }}
                     disabled={{ before: new Date() }}
-                    modifiers={{ tooFar: { after: maxDate } }}
+                    modifiers={{
+                      tooFar: { after: maxDate },
+                      ...(priceByDate.size > 0
+                        ? {
+                            hasPrice: [...priceByDate.keys()].map(
+                              (k) => new Date(`${k}T00:00:00`),
+                            ),
+                          }
+                        : {}),
+                    }}
                     modifiersClassNames={{
                       tooFar: "text-destructive line-through opacity-70 hover:!bg-destructive/10",
+                      hasPrice:
+                        "font-bold text-brand-orange ring-1 ring-brand-orange/40 rounded-md",
                     }}
                     initialFocus
                     captionLayout="dropdown"
@@ -1138,6 +1201,30 @@ function PreCheckoutDialog({
               </CalendarMonthNav>
                 );
               })()}
+
+              {priceByDate.size > 0 && (
+                <div className="mt-4 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm">
+                  {date && priceByDate.has(date) ? (
+                    <>
+                      <span className="text-muted-foreground">
+                        {new Date(`${date}T00:00:00`).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "long",
+                        })}
+                        {" · "}
+                      </span>
+                      <strong className="text-brand-orange">
+                        {formatBRL(priceByDate.get(date) ?? 0)}
+                      </strong>{" "}
+                      por pessoa
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      Selecione uma das datas destacadas para ver o valor.
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">
                 * Preços podem variar de acordo com a data selecionada
