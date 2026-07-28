@@ -143,6 +143,24 @@ export function TourHtmlImporter({
           : {}),
         ...(parsed.includes.length ? { includes: parsed.includes } : {}),
         ...(parsed.modalities.length ? { tour_modalities: parsed.modalities } : {}),
+        meeting_point:
+          ai?.meeting_point ||
+          "Embarque livre: não há ponto de encontro fixo — apresente o voucher ao embarcar na parada mais próxima.",
+        ...(ai?.times?.length ? { tour_times: ai.times } : { tour_times: [] }),
+        ...(!ai?.times?.length && ai?.hours_note
+          ? {
+              ai_summary: [
+                ai?.summary
+                  ? ai.notes
+                    ? `${ai.summary}\n\n*Informações importantes*\n${ai.notes}`
+                    : ai.summary
+                  : "",
+                `*Horário*\n${ai.hours_note}`,
+              ]
+                .filter(Boolean)
+                .join("\n\n"),
+            }
+          : {}),
         ...(minPrice ? { price_per_person: minPrice } : {}),
         date_mode: "flexible",
         pricing_mode: "per_unit",
