@@ -44,10 +44,14 @@ export function TourHtmlImporter({
   packageId,
   destination,
   onApply,
+  onPrices,
 }: {
   packageId?: string;
   destination?: string | null;
   onApply: (patch: TourImportPatch) => void;
+  onPrices?: (
+    rows: { date: string; modality: string; price_per_person: number }[],
+  ) => void;
 }) {
   const qc = useQueryClient();
   const summarize = useServerFn(summarizeTourInfo);
