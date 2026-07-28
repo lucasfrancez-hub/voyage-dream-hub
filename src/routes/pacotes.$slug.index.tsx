@@ -1054,8 +1054,9 @@ function PreCheckoutDialog({
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const tourModalities: string[] = Array.isArray(pkg?.tour_modalities) ? pkg.tour_modalities : [];
   const tourTimes: string[] = Array.isArray(pkg?.tour_times) ? pkg.tour_times : [];
-  const [modality, setModality] = useState<string>(tourModalities[0] ?? "");
+  const [modality, setModality] = useState<string>("");
   const [time, setTime] = useState<string>(tourTimes[0] ?? "");
+
 
   const weekday = useMemo<number | null>(() => {
     const raw = date || pkg?.going_date || "";
