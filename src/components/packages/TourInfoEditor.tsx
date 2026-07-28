@@ -114,27 +114,8 @@ export function TourInfoEditor({
         </label>
       </div>
 
-      <div className="space-y-2 rounded-lg border border-dashed border-border bg-muted/20 p-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Colar o texto de “Ver detalhes do serviço” e resumir com IA
-        </span>
-        <textarea
-          rows={4}
-          className={inp}
-          value={raw}
-          onChange={(e) => setRaw(e.target.value)}
-          placeholder="Cole aqui todo o texto do portal da operadora…"
-        />
-        <button
-          type="button"
-          onClick={runAi}
-          disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
-        >
-          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-          Resumir com IA
-        </button>
-      </div>
+
+
 
       <label className="block space-y-1">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
