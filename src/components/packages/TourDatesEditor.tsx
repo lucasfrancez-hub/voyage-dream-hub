@@ -64,9 +64,12 @@ const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
 export function TourDatesEditor({
   packageId,
   modalities = [],
+  pendingRows = [],
 }: {
   packageId?: string;
   modalities?: string[];
+  /** Preços importados ainda não salvos (passeio novo). */
+  pendingRows?: { date: string; modality: string; price_per_person: number }[];
 }) {
   const qc = useQueryClient();
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -89,7 +92,21 @@ export function TourDatesEditor({
     },
   });
 
-  const list = rows ?? data ?? [];
+  const pending = useMemo<Row[]>(
+    () =>
+      pendingRows.map((p) => ({
+        date: p.date,
+        modality: p.modality ?? "",
+        price_per_person: p.price_per_person,
+        taxes: 0,
+        seats: null,
+        is_available: true,
+      })),
+    [pendingRows],
+  );
+
+  const saved = packageId ? (data ?? []) : [];
+  const list = rows ?? (saved.length ? saved : pending);
 
   /** Modalidades vindas do cadastro + as que existem nos preços salvos. */
   const allModalities = useMemo(() => {
@@ -97,6 +114,7 @@ export function TourDatesEditor({
     for (const r of list) if (r.modality) set.add(r.modality);
     return [...set];
   }, [modalities, list]);
+
 
   useEffect(() => {
     if (modality && (allModalities.includes(modality) || modality === "")) return;
