@@ -364,7 +364,7 @@ function PasseiosPage() {
                 <TourCard
                   key={t.id}
                   tour={t}
-                  minPrice={minPriceByTour.get(t.id) ?? Number(t.price_per_person) || 0}
+                  minPrice={minPriceByTour.get(t.id) ?? (Number(t.price_per_person) || 0)}
                   eager={idx < 3}
                 />
               ))}
