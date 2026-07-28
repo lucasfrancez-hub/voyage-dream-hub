@@ -170,7 +170,12 @@ type PackageRow = {
   pricing_mode: "per_occupancy" | "per_unit";
   max_units: number;
   cruise_details: unknown | null;
+  meeting_point: string | null;
+  tour_times: string[] | null;
+  tour_modalities: string[] | null;
+  ai_summary: string | null;
 };
+
 
 const emptyForm: Partial<PackageRow> = {
   slug: "",
