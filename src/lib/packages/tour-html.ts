@@ -10,6 +10,7 @@ export type ParsedTourPrice = {
 export type ParsedTour = {
   title: string;
   image_url: string;
+  gallery: string[];
   description: string;
   includes: string[];
   not_includes: string[];
@@ -67,10 +68,33 @@ export function parseTourHtml(html: string): ParsedTour {
 
   const title = cleanText(doc.querySelector(".servico-titulo")?.textContent ?? "");
 
-  const img =
-    doc.querySelector<HTMLImageElement>("img.img-servico") ??
-    doc.querySelector<HTMLImageElement>("img");
-  const image_url = img?.getAttribute("src") ?? "";
+  const BAD_IMG = /(logo|icon|sprite|placeholder|bandeira|flag|avatar|spacer|pixel)/i;
+  const absolutize = (src: string) => {
+    const s = (src || "").trim();
+    if (!s || s.startsWith("data:")) return "";
+    if (s.startsWith("//")) return `https:${s}`;
+    if (/^https?:\/\//i.test(s)) return s;
+    return "";
+  };
+  const gallery: string[] = [];
+  for (const el of [...doc.querySelectorAll("img")]) {
+    const src = absolutize(
+      el.getAttribute("src") ||
+        el.getAttribute("data-src") ||
+        el.getAttribute("data-original") ||
+        "",
+    );
+    if (!src || BAD_IMG.test(src)) continue;
+    if (!gallery.includes(src)) gallery.push(src);
+  }
+  const preferred = absolutize(
+    doc.querySelector("img.img-servico")?.getAttribute("src") ??
+      (doc.querySelector('meta[property="og:image"]') as HTMLMetaElement | null)?.content ??
+      "",
+  );
+  const image_url = (preferred && !BAD_IMG.test(preferred) ? preferred : gallery[0]) ?? "";
+  if (image_url && !gallery.includes(image_url)) gallery.unshift(image_url);
+
 
   const descNode =
     doc.querySelector('[class*="pnlServico-"]') ??
@@ -126,6 +150,7 @@ export function parseTourHtml(html: string): ParsedTour {
   return {
     title,
     image_url,
+    gallery: gallery.slice(0, 12),
     description,
     includes,
     not_includes,
