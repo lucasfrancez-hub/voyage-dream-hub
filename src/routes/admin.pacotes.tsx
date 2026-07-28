@@ -580,9 +580,11 @@ function AdminPackages() {
           await persistPackage(list[i], numbering);
           ok += 1;
         } catch (e) {
-          const msg = e instanceof Error ? e.message : "Erro";
-          errors.push(`#${i + 1}: ${msg}`);
+          console.error("[packages] falha ao salvar draft", i + 1, e);
+          const label = list[i].title?.trim() || list[i].destination?.trim() || `#${i + 1}`;
+          errors.push(`${label}: ${errMsg(e)}`);
         }
+
       }
       if (ok > 0) toast.success(`${ok} pacote(s) salvo(s)`);
       if (errors.length > 0) toast.error(errors.join(" • "));
