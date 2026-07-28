@@ -366,7 +366,7 @@ function PasseiosPage() {
                 <div className="grid gap-3">
                   {results.map((r: any) => {
                     const tour = tourById.get(r.package_id) as any;
-                    const unit = Number(r.price_per_person) || 0;
+                    const unit = (Number(r.price_per_person) || 0) + (Number(r.taxes) || 0);
                     return (
                       <button
                         key={`${r.package_id}-${r.date}-${r.modality ?? ""}`}
