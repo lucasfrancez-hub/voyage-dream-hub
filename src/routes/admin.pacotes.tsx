@@ -451,11 +451,11 @@ function AdminPackages() {
       if (matches.length > 0) {
         const list = matches
           .slice(0, 3)
-          .map((r: any) => `• ${r.title}${r.hotel_name ? ` — ${r.hotel_name}` : ""}`)
+          .map((r: any) => `• ${r.title}${r.origin ? ` — saindo de ${r.origin}` : ""}${r.hotel_name ? ` — ${r.hotel_name}` : ""}`)
           .join("\n");
         const proceed = await confirm({
           title: "Pacote duplicado?",
-          description: `Já existe ${matches.length === 1 ? "1 pacote" : `${matches.length} pacotes`} com o mesmo destino, datas${hotelTrim ? " e hotel" : ""}:\n\n${list}\n\nSalvar mesmo assim?`,
+          description: `Já existe ${matches.length === 1 ? "1 pacote" : `${matches.length} pacotes`} com a mesma origem, destino e datas${hotelTrim ? " (e hotel)" : ""}:\n\n${list}\n\nSalvar mesmo assim?`,
           confirmText: "Salvar mesmo assim",
           cancelText: "Cancelar",
           destructive: true,
