@@ -270,25 +270,29 @@ export function TourDatesEditor({
             const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
             const min = prices.length ? Math.min(...prices) : 0;
             const max = prices.length ? Math.max(...prices) : 0;
+            const taxSet = new Set(mRows.map((r) => Number(r.taxes) || 0));
+            const modTax = taxSet.size === 1 ? [...taxSet][0] : 0;
             const isOpen = expanded && (modality ?? "") === m;
             return (
               <div key={m || "default"}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isOpen) {
-                      setExpanded(false);
-                      return;
-                    }
-                    setModality(m);
-                    setExpanded(true);
-                    setSelectedDate(null);
-                  }}
-                  className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition ${
+                <div
+                  className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 transition ${
                     isOpen ? "bg-brand-orange/10" : "hover:bg-muted/40"
                   }`}
                 >
-                  <span className="flex items-center gap-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isOpen) {
+                        setExpanded(false);
+                        return;
+                      }
+                      setModality(m);
+                      setExpanded(true);
+                      setSelectedDate(null);
+                    }}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  >
                     <ChevronRight
                       className={`h-4 w-4 shrink-0 text-brand-orange transition-transform ${isOpen ? "rotate-90" : ""}`}
                     />
@@ -296,18 +300,42 @@ export function TourDatesEditor({
                     <span className="shrink-0 text-[11px] text-muted-foreground">
                       · {mRows.length} data(s)
                     </span>
-                  </span>
+                  </button>
+                  <label
+                    className="flex shrink-0 items-center gap-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                      Taxas
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={modTax || ""}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const v = Number(e.target.value) || 0;
+                        setRows(
+                          list.map((r) =>
+                            (r.modality ?? "") === m ? { ...r, taxes: v } : r,
+                          ),
+                        );
+                      }}
+                      className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-brand-orange"
+                    />
+                  </label>
                   <span className="shrink-0 text-right">
                     <span className="block text-xs font-bold text-brand-orange">
-                      base {brl(avg)}
+                      base {brl(avg + modTax)}
                     </span>
                     {max > min && (
                       <span className="block text-[10px] text-muted-foreground">
-                        {brl(min)} – {brl(max)}
+                        {brl(min + modTax)} – {brl(max + modTax)}
                       </span>
                     )}
                   </span>
-                </button>
+                </div>
+
                 {isOpen && (
                   <div className="border-t border-border bg-background/50 p-3">
                     {renderCalendar()}

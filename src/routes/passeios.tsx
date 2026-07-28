@@ -118,7 +118,7 @@ function PasseiosPage() {
     const map = new Map<string, number>();
     for (const p of prices as any[]) {
       const cur = map.get(p.package_id);
-      const v = Number(p.price_per_person) || 0;
+      const v = (Number(p.price_per_person) || 0) + (Number(p.taxes) || 0);
       if (cur == null || v < cur) map.set(p.package_id, v);
     }
     return map;
@@ -366,7 +366,7 @@ function PasseiosPage() {
                 <div className="grid gap-3">
                   {results.map((r: any) => {
                     const tour = tourById.get(r.package_id) as any;
-                    const unit = Number(r.price_per_person) || 0;
+                    const unit = (Number(r.price_per_person) || 0) + (Number(r.taxes) || 0);
                     return (
                       <button
                         key={`${r.package_id}-${r.date}-${r.modality ?? ""}`}

@@ -74,7 +74,11 @@ function Checkout() {
         const { data: dpRows } = await dpQuery.order("price_per_person").limit(1);
         const dp = dpRows?.[0];
         if (dp) {
-          return { ...data, price_per_person: dp.price_per_person, taxes: dp.taxes } as typeof data;
+          return {
+            ...data,
+            price_per_person: (Number(dp.price_per_person) || 0) + (Number(dp.taxes) || 0),
+            taxes: dp.taxes,
+          } as typeof data;
         }
       }
       return data;

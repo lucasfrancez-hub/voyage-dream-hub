@@ -628,7 +628,9 @@ function TicketDetailsView({
   datePrices?: any[];
 }) {
   const tourFrom = datePrices.length
-    ? Math.min(...datePrices.map((d) => Number(d.price_per_person) || 0))
+    ? Math.min(
+        ...datePrices.map((d) => (Number(d.price_per_person) || 0) + (Number(d.taxes) || 0)),
+      )
     : 0;
   const services = (pkg.services ?? {}) as any;
   const transferSvc = services.transfer ?? {};
@@ -1106,7 +1108,7 @@ function PreCheckoutDialog({
     for (const d of datePrices ?? []) {
       const mod = String(d.modality ?? "");
       if (tourModalities.length && modality && mod && mod !== modality) continue;
-      const price = Number(d.price_per_person) || 0;
+      const price = (Number(d.price_per_person) || 0) + (Number(d.taxes) || 0);
       const prev = map.get(String(d.date));
       if (prev == null || price < prev) map.set(String(d.date), price);
     }
