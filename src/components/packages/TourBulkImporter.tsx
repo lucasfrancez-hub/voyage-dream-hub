@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Code2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DestinationInput } from "@/components/packages/DestinationInput";
 import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
-import { summarizeTourInfo } from "@/lib/packages/ai.functions";
 
 function slugify(input: string): string {
   return input
@@ -26,12 +24,10 @@ export function TourBulkImporter({
   onDone?: () => void;
 }) {
   const qc = useQueryClient();
-  const summarize = useServerFn(summarizeTourInfo);
   const [html, setHtml] = useState("");
   const [destination, setDestination] = useState(initialDestination ?? "");
   const [tours, setTours] = useState<ParsedTour[]>([]);
   const [selected, setSelected] = useState<Record<number, boolean>>({});
-  const [useAi, setUseAi] = useState(true);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
 
@@ -70,33 +66,10 @@ export function TourBulkImporter({
         while (used.has(slug)) slug = `${slugify(t.title)}-${n++}`;
         used.add(slug);
 
-        let ai: Awaited<ReturnType<typeof summarize>> | null = null;
-        if (useAi && t.description.length >= 20) {
-          try {
-            ai = await summarize({
-              data: {
-                raw: t.description.slice(0, 55000),
-                title: t.title,
-                destination: destination.trim(),
-              },
-            });
-          } catch {
-            ai = null;
-          }
-        }
-
         const minPrice = t.prices.reduce(
           (m, p) => (m === 0 ? p.price_per_person : Math.min(m, p.price_per_person)),
           0,
         );
-        const aiSummary = ai?.summary
-          ? [
-              ai.notes ? `${ai.summary}\n\n*Informações importantes*\n${ai.notes}` : ai.summary,
-              !ai.times?.length && ai.hours_note ? `*Horário*\n${ai.hours_note}` : "",
-            ]
-              .filter(Boolean)
-              .join("\n\n")
-          : null;
 
         const { data: inserted, error } = await supabase
           .from("packages")
@@ -105,14 +78,13 @@ export function TourBulkImporter({
             title: t.title,
             destination: destination.trim(),
             image_url: t.image_url || null,
-            summary: ai?.short || null,
-            ai_summary: aiSummary,
+            summary: null,
+            ai_summary: null,
             includes: t.includes,
             tour_modalities: t.modalities,
-            tour_times: ai?.times ?? [],
-            meeting_point:
-              ai?.meeting_point ||
-              "Embarque livre: não há ponto de encontro fixo — apresente o voucher ao embarcar na parada mais próxima.",
+            tour_times: [],
+            meeting_point: null,
+            services: t.description ? { raw_description: t.description.slice(0, 55000) } : {},
             price_per_person: minPrice || 0,
             taxes: 0,
             kind: "tour",
@@ -123,6 +95,7 @@ export function TourBulkImporter({
           } as any)
           .select("id")
           .single();
+
         if (error) {
           toast.error(`${t.title}: ${error.message}`);
           continue;
@@ -182,15 +155,11 @@ export function TourBulkImporter({
             className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs normal-case"
           />
         </label>
-        <label className="flex items-end gap-2 text-xs font-bold text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={useAi}
-            onChange={(e) => setUseAi(e.target.checked)}
-            className="mb-2.5"
-          />
-          <span className="mb-2">Resumir cada passeio com IA</span>
-        </label>
+        <p className="text-[11px] text-muted-foreground sm:col-span-2">
+          A descrição de cada passeio é gravada como texto do operador — depois é só abrir o
+          passeio e clicar em <strong>Gerar descrição com IA</strong>.
+        </p>
+
       </div>
 
       <button

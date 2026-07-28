@@ -1,4 +1,8 @@
-import { MapPin, Clock, Layers, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { MapPin, Clock, Layers, Sparkles, Wand2, Loader2 } from "lucide-react";
+import { summarizeTourInfo } from "@/lib/packages/ai.functions";
 
 const inp =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand-orange";
@@ -10,7 +14,9 @@ export type TourInfoValue = {
   tour_times?: string[] | null;
   tour_modalities?: string[] | null;
   ai_summary?: string | null;
+  summary?: string | null;
   includes?: string[] | null;
+  services?: any;
 };
 
 function listToText(v?: string[] | null) {
@@ -30,6 +36,62 @@ export function TourInfoEditor({
   value: TourInfoValue;
   onChange: (patch: Partial<TourInfoValue>) => void;
 }) {
+  const summarize = useServerFn(summarizeTourInfo);
+  const [raw, setRaw] = useState<string>(value.services?.raw_description ?? "");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setRaw(value.services?.raw_description ?? "");
+    // só quando troca de passeio
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.title]);
+
+  async function gerar() {
+    const text = raw.trim();
+    if (text.length < 20) {
+      toast.error("Cole o texto completo da descrição do operador primeiro.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const ai = await summarize({
+        data: {
+          raw: text.slice(0, 55000),
+          title: value.title || undefined,
+          destination: value.destination || undefined,
+        },
+      });
+      const base = ai?.summary
+        ? ai.notes
+          ? `${ai.summary}\n\n*Informações importantes*\n${ai.notes}`
+          : ai.summary
+        : "";
+      const withHours =
+        !ai?.times?.length && ai?.hours_note
+          ? [base, `*Horário*\n${ai.hours_note}`].filter(Boolean).join("\n\n")
+          : base;
+
+      onChange({
+        ...(withHours ? { ai_summary: withHours } : {}),
+        ...(ai?.short ? { summary: ai.short } : {}),
+        ...(ai?.meeting_point ? { meeting_point: ai.meeting_point } : {}),
+        ...(ai?.times?.length ? { tour_times: ai.times } : {}),
+        ...(ai?.modalities?.length && !(value.tour_modalities ?? []).length
+          ? { tour_modalities: ai.modalities }
+          : {}),
+        ...(ai?.includes?.length && !(value.includes ?? []).length
+          ? { includes: ai.includes }
+          : {}),
+        services: { ...(value.services ?? {}), raw_description: text },
+      });
+      toast.success("Descrição gerada pela IA.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-4 rounded-xl border border-border bg-card/60 p-4">
       <h3 className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -76,8 +138,33 @@ export function TourInfoEditor({
         </label>
       </div>
 
-
-
+      {/* Texto do operador + geração por IA */}
+      <div className="space-y-2 rounded-xl border border-dashed border-brand-orange/40 bg-brand-orange/5 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-orange">
+            Texto completo do operador
+          </span>
+          <button
+            type="button"
+            onClick={gerar}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-1.5 text-xs font-bold text-white disabled:opacity-60"
+          >
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+            Gerar descrição com IA
+          </button>
+        </div>
+        <textarea
+          rows={6}
+          className={inp}
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          placeholder="Cole aqui a descrição completa do serviço (portal da operadora)…"
+        />
+        <p className="text-[10px] text-muted-foreground">
+          A IA gera a descrição do cliente, ponto de encontro, horários e itens inclusos.
+        </p>
+      </div>
 
       <label className="block space-y-1">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
