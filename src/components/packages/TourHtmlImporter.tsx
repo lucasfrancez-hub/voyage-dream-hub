@@ -84,6 +84,13 @@ export function TourHtmlImporter({
     try {
       const res = parseTourHtml(html);
       setParsed(res);
+      onPrices?.(
+        res.prices.map((p) => ({
+          date: p.date,
+          modality: p.modality,
+          price_per_person: p.price_per_person,
+        })),
+      );
       setImageUrl(res.image_url || "");
       setStep(2);
       toast.success(
