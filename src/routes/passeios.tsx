@@ -59,11 +59,15 @@ function fmtDayLabel(iso: string) {
 
 function PasseiosPage() {
   const navigate = useNavigate();
-  const [destination, setDestination] = useState("all");
+  const [destQuery, setDestQuery] = useState("");
+  const [destOpen, setDestOpen] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [pax, setPax] = useState(2);
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
+  const [infants, setInfants] = useState(0);
   const [searched, setSearched] = useState(false);
+  const pax = adults + children;
 
   const { data: tours = [], isLoading } = useQuery({
     queryKey: ["tours", "active"],
