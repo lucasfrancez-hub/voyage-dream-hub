@@ -1247,6 +1247,7 @@ Responda SOMENTE o JSON, sem markdown.`;
       summary: String(parsed.summary ?? "").trim(),
       short: String(parsed.short ?? "").trim().slice(0, 140),
       meeting_point: String(parsed.meeting_point ?? "").trim(),
+      hours_note: String(parsed.hours_note ?? "").trim(),
       times: arr(parsed.times),
       modalities: arr(parsed.modalities),
       includes: arr(parsed.includes),
