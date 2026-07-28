@@ -813,15 +813,11 @@ function AdminPackages() {
                 { k: "package", label: "Pacote", Icon: PackageIcon },
                 { k: "service", label: "Ingresso / Serviço", Icon: Ticket },
                 { k: "tour", label: "Passeio", Icon: MapPin },
-                { k: "cruise", label: "Cruzeiro", Icon: Ship },
               ] as { k: PackageKind; label: string; Icon: typeof PackageIcon }[]).map(({ k, label, Icon }) => (
                 <DropdownMenuItem
                   key={k}
                   onSelect={async () => {
-                    if (k === "cruise") {
-                      setCruiseImportOpen(true);
-                      return;
-                    }
+
                     try {
                       const base = await nextPackageBaseNumber();
                       setPendingNumbers([base]);
@@ -1456,6 +1452,7 @@ function PackageEditorModal({
   nextNumber,
 }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
+  const [tourImportDone, setTourImportDone] = useState(false);
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
   const [aiLoading, setAiLoading] = useState(false);
   const [imgOpen, setImgOpen] = useState(false);
@@ -1739,6 +1736,50 @@ function PackageEditorModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind]);
 
+  const kindLabel =
+    kind === "service" ? "ingresso ou serviço" : kind === "tour" ? "passeio" : kind === "cruise" ? "cruzeiro" : "pacote";
+  const dialogTitle = `${editing.id ? "Editar" : "Novo"} ${kindLabel}`;
+
+  // Passeio novo: primeiro a tela de importação por HTML, depois o formulário
+  const showTourGate = kind === "tour" && !editing.id && !tourImportDone;
+  if (showTourGate) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-card/70 backdrop-blur-2xl border border-border shadow-2xl">
+          <div className="flex items-center justify-between gap-4 border-b border-border px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="w-1.5 h-8 bg-brand-orange rounded-full" />
+              <h2 className="text-xl sm:text-2xl font-display font-bold">Novo passeio</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => closeCurrentDraft?.()}
+              className="rounded-full p-2 hover:bg-muted"
+              aria-label="Fechar"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="space-y-4 p-6">
+            <TourHtmlImporter
+              destination={editing.destination}
+              onApply={(patch) => {
+                setEditing({ ...editing, ...patch } as any);
+                setTourImportDone(true);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setTourImportDone(true)}
+              className="text-xs font-bold text-muted-foreground underline"
+            >
+              Pular importação e preencher manualmente
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1747,10 +1788,9 @@ function PackageEditorModal({
         <div className="flex items-center justify-between gap-4 border-b border-border px-6 sm:px-8 py-5 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-1.5 h-8 bg-brand-orange rounded-full" />
-            <h2 className="text-xl sm:text-2xl font-display font-bold">
-              {editing.id ? "Editar pacote" : "Novo pacote"}
-            </h2>
+            <h2 className="text-xl sm:text-2xl font-display font-bold">{dialogTitle}</h2>
           </div>
+
           <div className="flex items-center gap-2">
             <PackageImportButton
               onImported={(patch: Partial<PackageRow>) => {
