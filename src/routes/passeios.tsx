@@ -14,12 +14,10 @@ import {
 } from "lucide-react";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
@@ -61,11 +59,15 @@ function fmtDayLabel(iso: string) {
 
 function PasseiosPage() {
   const navigate = useNavigate();
-  const [destination, setDestination] = useState("all");
+  const [destQuery, setDestQuery] = useState("");
+  const [destOpen, setDestOpen] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [pax, setPax] = useState(2);
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
+  const [infants, setInfants] = useState(0);
   const [searched, setSearched] = useState(false);
+  const pax = adults + children;
 
   const { data: tours = [], isLoading } = useQuery({
     queryKey: ["tours", "active"],
@@ -122,27 +124,39 @@ function PasseiosPage() {
     return map;
   }, [prices]);
 
+  const destMatch = (t: any) => {
+    const q = destQuery.trim().toLowerCase();
+    if (!q) return true;
+    const hay = `${t.destination ?? ""} ${t.title ?? ""} ${t.origin ?? ""}`.toLowerCase();
+    return q.split(/[,\s]+/).filter(Boolean).some((w) => hay.includes(w));
+  };
+
+  const destSuggestions = useMemo(() => {
+    const q = destQuery.trim().toLowerCase();
+    if (!q) return [];
+    return (destinations as string[])
+      .filter((d) => d.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [destQuery, destinations]);
+
   const results = useMemo(() => {
     if (!searched) return [];
     return (prices as any[])
       .filter((p) => {
         const tour = tourById.get(p.package_id) as any;
         if (!tour) return false;
-        if (destination !== "all" && tour.destination !== destination) return false;
+        if (!destMatch(tour)) return false;
         if (from && p.date < from) return false;
         if (to && p.date > to) return false;
         if (p.seats != null && p.seats < pax) return false;
         return true;
       })
       .slice(0, 120);
-  }, [searched, prices, tourById, destination, from, to, pax]);
+  }, [searched, prices, tourById, destQuery, from, to, pax]);
 
   const catalog = useMemo(
-    () =>
-      (tours as any[]).filter(
-        (t) => destination === "all" || t.destination === destination,
-      ),
-    [tours, destination],
+    () => (tours as any[]).filter(destMatch),
+    [tours, destQuery],
   );
 
   return (
@@ -179,23 +193,42 @@ function PasseiosPage() {
             {/* MOTOR DE BUSCA */}
             <div className="mt-8 rounded-3xl border border-border bg-card/80 p-4 backdrop-blur-xl shadow-[var(--shadow-card)] md:p-5">
               <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_auto_auto]">
-                <div className="flex flex-col gap-1">
+                <div className="relative flex flex-col gap-1">
                   <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Destino
                   </label>
-                  <Select value={destination} onValueChange={setDestination}>
-                    <SelectTrigger className="h-11 bg-background">
-                      <SelectValue placeholder="Todos os destinos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os destinos</SelectItem>
-                      {destinations.map((d) => (
-                        <SelectItem key={d as string} value={d as string}>
-                          {d as string}
-                        </SelectItem>
+                  <div className="flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-3">
+                    <MapPin className="h-4 w-4 shrink-0 text-brand-orange" />
+                    <input
+                      value={destQuery}
+                      onChange={(e) => {
+                        setDestQuery(e.target.value);
+                        setDestOpen(true);
+                      }}
+                      onFocus={() => setDestOpen(true)}
+                      onBlur={() => setTimeout(() => setDestOpen(false), 150)}
+                      placeholder="Ex.: Lisboa, Portugal ou Orlando"
+                      className="w-full bg-transparent text-sm outline-none"
+                    />
+                  </div>
+                  {destOpen && destSuggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+                      {destSuggestions.map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setDestQuery(d);
+                            setDestOpen(false);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                        >
+                          <MapPin className="h-3.5 w-3.5 text-brand-orange" /> {d}
+                        </button>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -223,21 +256,76 @@ function PasseiosPage() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Pessoas
+                    Passageiros
                   </label>
-                  <div className="flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-3">
-                    <Users className="h-4 w-4 text-brand-orange" />
-                    <input
-                      type="number"
-                      min={1}
-                      max={9}
-                      value={pax}
-                      onChange={(e) =>
-                        setPax(Math.max(1, Math.min(9, Number(e.target.value) || 1)))
-                      }
-                      className="w-12 bg-transparent text-sm outline-none"
-                    />
-                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm"
+                      >
+                        <Users className="h-4 w-4 text-brand-orange" />
+                        {adults + children + infants}{" "}
+                        {adults + children + infants === 1 ? "Passageiro" : "Passageiros"}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-72 p-3">
+                      {[
+                        {
+                          label: "Adulto",
+                          hint: "18+",
+                          value: adults,
+                          set: setAdults,
+                          min: 1,
+                        },
+                        {
+                          label: "Criança",
+                          hint: "2 a 17 anos",
+                          value: children,
+                          set: setChildren,
+                          min: 0,
+                        },
+                        {
+                          label: "Bebê",
+                          hint: "0 a 2 anos — não paga",
+                          value: infants,
+                          set: setInfants,
+                          min: 0,
+                        },
+                      ].map((row) => (
+                        <div
+                          key={row.label}
+                          className="flex items-center justify-between py-2"
+                        >
+                          <div>
+                            <div className="text-sm font-medium">{row.label}</div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {row.hint}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={row.value <= row.min}
+                              onClick={() => row.set(row.value - 1)}
+                              className="h-7 w-7 rounded-md border border-border text-sm disabled:opacity-40"
+                            >
+                              −
+                            </button>
+                            <span className="w-5 text-center text-sm">{row.value}</span>
+                            <button
+                              type="button"
+                              disabled={adults + children >= 9}
+                              onClick={() => row.set(row.value + 1)}
+                              className="h-7 w-7 rounded-md border border-border text-sm disabled:opacity-40"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <button
                   type="button"
