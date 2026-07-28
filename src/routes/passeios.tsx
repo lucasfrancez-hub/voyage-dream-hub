@@ -89,7 +89,7 @@ function PasseiosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("package_date_prices")
-        .select("package_id,date,price_per_person,taxes,seats,is_available")
+        .select("package_id,date,modality,price_per_person,taxes,seats,is_available")
         .in(
           "package_id",
           tours.map((t: any) => t.id),
@@ -281,13 +281,17 @@ function PasseiosPage() {
                     const unit = Number(r.price_per_person) || 0;
                     return (
                       <button
-                        key={`${r.package_id}-${r.date}`}
+                        key={`${r.package_id}-${r.date}-${r.modality ?? ""}`}
                         type="button"
                         onClick={() =>
                           navigate({
                             to: "/pacotes/$slug/checkout",
                             params: { slug: tour.slug },
-                            search: { qty: pax, date: r.date },
+                            search: {
+                              qty: pax,
+                              date: r.date,
+                              ...(r.modality ? { modality: r.modality } : {}),
+                            },
                           })
                         }
                         className="group flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-3 text-left transition hover:border-brand-orange/60"

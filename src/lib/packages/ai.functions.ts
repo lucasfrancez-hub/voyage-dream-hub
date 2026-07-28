@@ -1180,3 +1180,74 @@ Retorne SÓ o JSON.`;
 
     return { packages: arr };
   });
+
+/** Resume o texto gigante do portal da operadora num conteúdo legível pro cliente. */
+export const summarizeTourInfo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        raw: z.string().min(20).max(30000),
+        title: z.string().max(300).optional(),
+        destination: z.string().max(200).optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
+
+    const system = `Você organiza descrições de passeios turísticos para a agência VIA AIR, em português do Brasil.
+Receberá um texto bruto copiado do portal da operadora (bagunçado, sem parágrafos).
+Produza um JSON com estes campos:
+- "summary": resumo atraente e legível para o cliente, 3 a 5 parágrafos curtos separados por \\n\\n. Use *negrito no estilo WhatsApp* em no máximo 4 termos importantes. Nada de clichê, nada de preço, nada de "assessoria".
+- "meeting_point": endereço/ponto de encontro exato citado no texto (string vazia se não houver).
+- "times": array de horários de saída/entrada citados, formato "HH:MM".
+- "modalities": array com os nomes das modalidades/opções distintas (ex.: "Harmonização com pastel de nata"). Vazio se só existir uma.
+- "includes": array curto do que está incluso.
+- "not_includes": array curto do que NÃO está incluso.
+- "notes": observações importantes (políticas, horários especiais, mínimo de pax) em texto curto, com quebras \\n.
+Responda SOMENTE o JSON, sem markdown.`;
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-3.1-flash",
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: system },
+          {
+            role: "user",
+            content: `Passeio: ${data.title ?? ""} — ${data.destination ?? ""}\n\nTexto bruto:\n${data.raw}`,
+          },
+        ],
+      }),
+    });
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => "");
+      if (resp.status === 429) throw new Error("Limite de uso da IA atingido. Tente em instantes.");
+      if (resp.status === 402) throw new Error("Créditos de IA esgotados.");
+      throw new Error(`Falha IA (${resp.status}): ${txt.slice(0, 200)}`);
+    }
+    const json = (await resp.json()) as any;
+    const content = String(json?.choices?.[0]?.message?.content ?? "").trim();
+    let parsed: any = {};
+    try {
+      parsed = JSON.parse(content.replace(/^```json\s*|\s*```$/g, ""));
+    } catch {
+      throw new Error("A IA não retornou um resumo válido. Tente novamente.");
+    }
+    const arr = (v: unknown) =>
+      Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean).slice(0, 30) : [];
+    return {
+      summary: String(parsed.summary ?? "").trim(),
+      meeting_point: String(parsed.meeting_point ?? "").trim(),
+      times: arr(parsed.times),
+      modalities: arr(parsed.modalities),
+      includes: arr(parsed.includes),
+      not_includes: arr(parsed.not_includes),
+      notes: String(parsed.notes ?? "").trim(),
+    };
+  });

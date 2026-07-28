@@ -7,6 +7,7 @@ import { Loader2, Plus, Trash2, CalendarRange } from "lucide-react";
 type Row = {
   id?: string;
   date: string;
+  modality: string;
   price_per_person: number;
   taxes: number;
   seats: number | null;
@@ -21,7 +22,7 @@ function brl(n: number) {
 }
 
 /** Converte "15/03/2026 350" | "15/03 350,00" | "2026-03-15;350;90" em linhas. */
-function parseBulk(text: string, fallbackYear: number): Row[] {
+function parseBulk(text: string, fallbackYear: number, modality: string): Row[] {
   const out: Row[] = [];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
@@ -44,6 +45,7 @@ function parseBulk(text: string, fallbackYear: number): Row[] {
     if (!nums.length) continue;
     out.push({
       date,
+      modality,
       price_per_person: nums[0] ?? 0,
       taxes: nums[1] ?? 0,
       seats: nums[2] != null ? Math.round(nums[2]) : null,
@@ -53,10 +55,17 @@ function parseBulk(text: string, fallbackYear: number): Row[] {
   return out;
 }
 
-export function TourDatesEditor({ packageId }: { packageId?: string }) {
+export function TourDatesEditor({
+  packageId,
+  modalities = [],
+}: {
+  packageId?: string;
+  modalities?: string[];
+}) {
   const qc = useQueryClient();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [bulk, setBulk] = useState("");
+  const [bulkModality, setBulkModality] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -65,7 +74,7 @@ export function TourDatesEditor({ packageId }: { packageId?: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("package_date_prices")
-        .select("id,date,price_per_person,taxes,seats,is_available")
+        .select("id,date,modality,price_per_person,taxes,seats,is_available")
         .eq("package_id", packageId!)
         .order("date");
       if (error) throw error;
@@ -95,18 +104,33 @@ export function TourDatesEditor({ packageId }: { packageId?: string }) {
   }
 
   function addRow() {
-    setRows([...list, { date: "", price_per_person: 0, taxes: 0, seats: null, is_available: true }]);
+    setRows([
+      ...list,
+      {
+        date: "",
+        modality: bulkModality || modalities[0] || "",
+        price_per_person: 0,
+        taxes: 0,
+        seats: null,
+        is_available: true,
+      },
+    ]);
   }
 
   function applyBulk() {
-    const parsed = parseBulk(bulk, new Date().getFullYear());
+    const parsed = parseBulk(bulk, new Date().getFullYear(), bulkModality);
     if (!parsed.length) {
       toast.error("Não consegui ler nenhuma data. Use: 15/03/2026 350");
       return;
     }
-    const map = new Map(list.map((r) => [r.date, r]));
-    for (const p of parsed) map.set(p.date, { ...map.get(p.date), ...p });
-    setRows([...map.values()].sort((a, b) => a.date.localeCompare(b.date)));
+    const key = (r: Row) => `${r.date}|${r.modality ?? ""}`;
+    const map = new Map(list.map((r) => [key(r), r]));
+    for (const p of parsed) map.set(key(p), { ...map.get(key(p)), ...p });
+    setRows(
+      [...map.values()].sort(
+        (a, b) => a.date.localeCompare(b.date) || (a.modality ?? "").localeCompare(b.modality ?? ""),
+      ),
+    );
     setBulk("");
     toast.success(`${parsed.length} data(s) carregada(s) — clique em salvar datas.`);
   }
@@ -118,10 +142,12 @@ export function TourDatesEditor({ packageId }: { packageId?: string }) {
     try {
       const { data: current } = await supabase
         .from("package_date_prices")
-        .select("id,date")
+        .select("id,date,modality")
         .eq("package_id", packageId);
-      const keep = new Set(valid.map((r) => r.date));
-      const toDelete = (current ?? []).filter((c) => !keep.has(c.date)).map((c) => c.id);
+      const keep = new Set(valid.map((r) => `${r.date}|${r.modality ?? ""}`));
+      const toDelete = (current ?? [])
+        .filter((c) => !keep.has(`${c.date}|${c.modality ?? ""}`))
+        .map((c) => c.id);
       if (toDelete.length) {
         await supabase.from("package_date_prices").delete().in("id", toDelete);
       }
@@ -130,12 +156,13 @@ export function TourDatesEditor({ packageId }: { packageId?: string }) {
           valid.map((r) => ({
             package_id: packageId,
             date: r.date,
+            modality: r.modality ?? "",
             price_per_person: Number(r.price_per_person) || 0,
             taxes: Number(r.taxes) || 0,
             seats: r.seats == null || Number.isNaN(r.seats) ? null : Number(r.seats),
             is_available: r.is_available !== false,
           })),
-          { onConflict: "package_id,date" },
+          { onConflict: "package_id,date,modality" },
         );
         if (error) throw error;
       }
@@ -194,6 +221,20 @@ export function TourDatesEditor({ packageId }: { packageId?: string }) {
           value={bulk}
           onChange={(e) => setBulk(e.target.value)}
         />
+        {modalities.length > 0 && (
+          <select
+            className={inp}
+            value={bulkModality}
+            onChange={(e) => setBulkModality(e.target.value)}
+          >
+            <option value="">Sem modalidade / padrão</option>
+            {modalities.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           type="button"
           onClick={applyBulk}
@@ -222,8 +263,8 @@ export function TourDatesEditor({ packageId }: { packageId?: string }) {
                 const idx = list.indexOf(r);
                 return (
                   <div
-                    key={r.id ?? `${r.date}-${idx}`}
-                    className="grid grid-cols-2 items-end gap-2 rounded-lg border border-border bg-background p-2 sm:grid-cols-[repeat(5,minmax(0,1fr))_auto]"
+                    key={r.id ?? `${r.date}-${r.modality}-${idx}`}
+                    className="grid grid-cols-2 items-end gap-2 rounded-lg border border-border bg-background p-2 sm:grid-cols-[repeat(6,minmax(0,1fr))_auto]"
                   >
                     <input
                       type="date"
@@ -231,6 +272,27 @@ export function TourDatesEditor({ packageId }: { packageId?: string }) {
                       value={r.date}
                       onChange={(e) => update(idx, { date: e.target.value })}
                     />
+                    {modalities.length > 0 ? (
+                      <select
+                        className={inp}
+                        value={r.modality ?? ""}
+                        onChange={(e) => update(idx, { modality: e.target.value })}
+                      >
+                        <option value="">Padrão</option>
+                        {modalities.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className={inp}
+                        placeholder="Modalidade"
+                        value={r.modality ?? ""}
+                        onChange={(e) => update(idx, { modality: e.target.value })}
+                      />
+                    )}
                     <input
                       type="number"
                       step="0.01"

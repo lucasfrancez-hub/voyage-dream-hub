@@ -31,6 +31,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
+import { TourInfoEditor } from "@/components/packages/TourInfoEditor";
 import {
   Select,
   SelectContent,
@@ -169,7 +170,12 @@ type PackageRow = {
   pricing_mode: "per_occupancy" | "per_unit";
   max_units: number;
   cruise_details: unknown | null;
+  meeting_point: string | null;
+  tour_times: string[] | null;
+  tour_modalities: string[] | null;
+  ai_summary: string | null;
 };
+
 
 const emptyForm: Partial<PackageRow> = {
   slug: "",
@@ -522,6 +528,10 @@ function AdminPackages() {
       tripadvisor_photos:
         pkg.tripadvisor_photos && pkg.tripadvisor_photos.length > 0 ? pkg.tripadvisor_photos : null,
       services: (pkg.services ?? {}) as any,
+      meeting_point: pkg.meeting_point || null,
+      tour_times: Array.isArray(pkg.tour_times) ? pkg.tour_times : [],
+      tour_modalities: Array.isArray(pkg.tour_modalities) ? pkg.tour_modalities : [],
+      ai_summary: pkg.ai_summary || null,
       kind: (pkg.kind ?? "package") as PackageKind,
       date_mode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
       pricing_mode: (pkg.pricing_mode ?? "per_occupancy") as "per_occupancy" | "per_unit",
@@ -2135,8 +2145,15 @@ function PackageEditorModal({
             )}
 
             {tab === "dates" && kind === "tour" && (
-              <div className="mb-4">
-                <TourDatesEditor packageId={editing.id} />
+              <div className="mb-4 space-y-4">
+                <TourInfoEditor
+                  value={editing as any}
+                  onChange={(patch) => setEditing({ ...editing, ...patch } as any)}
+                />
+                <TourDatesEditor
+                  packageId={editing.id}
+                  modalities={(editing as any).tour_modalities ?? []}
+                />
               </div>
             )}
 

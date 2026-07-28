@@ -27,7 +27,9 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : undefined;
     const addonsRaw = typeof s?.addons === "string" ? s.addons : "";
     const addons = addonsRaw ? addonsRaw : undefined;
-    return { qty, date, addons };
+    const modality = typeof s?.modality === "string" && s.modality ? s.modality : undefined;
+    const time = typeof s?.time === "string" && s.time ? s.time : undefined;
+    return { qty, date, addons, modality, time };
   },
 });
 
@@ -40,29 +42,37 @@ const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
   const { slug } = Route.useParams();
-  const { qty: qtyFromSearch, date: dateFromSearch, addons: addonsFromSearch } = Route.useSearch();
+  const {
+    qty: qtyFromSearch,
+    date: dateFromSearch,
+    addons: addonsFromSearch,
+    modality: modalityFromSearch,
+    time: timeFromSearch,
+  } = Route.useSearch();
   const navigate = useNavigate();
   const notifyPix = useServerFn(notifyPixOrder);
 
 
   const { data: pkg, isLoading } = useQuery({
-    queryKey: ["package", slug, dateFromSearch ?? ""],
+    queryKey: ["package", slug, dateFromSearch ?? "", modalityFromSearch ?? ""],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units,services")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units,services,meeting_point,tour_times,tour_modalities,ai_summary")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle();
       if (error) throw error;
       if (!data) throw notFound();
       if ((data as any).kind === "tour" && dateFromSearch) {
-        const { data: dp } = await supabase
+        let dpQuery = supabase
           .from("package_date_prices")
-          .select("price_per_person,taxes")
+          .select("price_per_person,taxes,modality")
           .eq("package_id", data.id)
-          .eq("date", dateFromSearch)
-          .maybeSingle();
+          .eq("date", dateFromSearch);
+        if (modalityFromSearch) dpQuery = dpQuery.eq("modality", modalityFromSearch);
+        const { data: dpRows } = await dpQuery.order("price_per_person").limit(1);
+        const dp = dpRows?.[0];
         if (dp) {
           return { ...data, price_per_person: dp.price_per_person, taxes: dp.taxes } as typeof data;
         }
@@ -355,6 +365,9 @@ function Checkout() {
             pricing_mode: (pkg as any).pricing_mode ?? "per_occupancy",
             preferred_date: isFlexibleDate ? preferredDate : null,
             pickup_point: pickupPoint || null,
+            meeting_point: (pkg as any).meeting_point ?? null,
+            tour_modality: modalityFromSearch ?? null,
+            tour_time: timeFromSearch ?? null,
             addons_selected: addonsList
               .filter((a) => selectedAddons[a.key])
               .map((a) => {

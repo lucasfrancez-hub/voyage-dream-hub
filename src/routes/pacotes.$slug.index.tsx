@@ -185,7 +185,7 @@ function PackageDetails() {
     queryKey: ["package", slug, preview ? "preview" : "public"],
     queryFn: async () => {
       const slugs = slug.includes("#") ? [slug, slug.replace(/#/g, "-")] : [slug];
-      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services,cruise_details").in("slug", slugs);
+      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services,cruise_details,meeting_point,tour_times,tour_modalities,ai_summary").in("slug", slugs);
       if (!preview) query = query.eq("is_active", true);
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
@@ -200,7 +200,7 @@ function PackageDetails() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("package_date_prices")
-        .select("date,price_per_person,taxes,seats,is_available")
+        .select("date,modality,price_per_person,taxes,seats,is_available")
         .eq("package_id", (pkg as any).id)
         .eq("is_available", true)
         .gte("date", new Date().toISOString().slice(0, 10))
@@ -729,10 +729,47 @@ function TicketDetailsView({
           </div>
 
           {/* Sobre o ingresso */}
-          {pkg.summary && (
+          {(pkg.ai_summary || pkg.summary) && (
             <section>
               <SectionHeader>{isTour ? "Sobre o passeio" : "Sobre o ingresso"}</SectionHeader>
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{pkg.summary}</p>
+              {pkg.ai_summary ? (
+                <WhatsAppText className="text-muted-foreground leading-relaxed">
+                  {pkg.ai_summary}
+                </WhatsAppText>
+              ) : (
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                  {pkg.summary}
+                </p>
+              )}
+            </section>
+          )}
+
+          {(pkg.meeting_point || (pkg.tour_times ?? []).length > 0) && (
+            <section>
+              <SectionHeader>Ponto de encontro e horários</SectionHeader>
+              <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
+                {pkg.meeting_point && (
+                  <div className="flex items-start gap-3 text-sm">
+                    <MapPin className="h-4 w-4 mt-0.5 text-brand-orange shrink-0" />
+                    <span className="leading-relaxed">{pkg.meeting_point}</span>
+                  </div>
+                )}
+                {(pkg.tour_times ?? []).length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      Horários de saída
+                    </span>
+                    {(pkg.tour_times as string[]).map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-full bg-brand-orange/10 px-3 py-1 text-xs font-bold text-brand-orange"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
@@ -1013,6 +1050,10 @@ function PreCheckoutDialog({
   const navigate = useNavigate();
   const [date, setDate] = useState<string>(isFlexibleDate ? "" : (pkg.going_date ?? ""));
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const tourModalities: string[] = Array.isArray(pkg?.tour_modalities) ? pkg.tour_modalities : [];
+  const tourTimes: string[] = Array.isArray(pkg?.tour_times) ? pkg.tour_times : [];
+  const [modality, setModality] = useState<string>(tourModalities[0] ?? "");
+  const [time, setTime] = useState<string>(tourTimes[0] ?? "");
 
   const weekday = useMemo<number | null>(() => {
     const raw = date || pkg?.going_date || "";
@@ -1062,9 +1103,15 @@ function PreCheckoutDialog({
 
   const priceByDate = useMemo(() => {
     const map = new Map<string, number>();
-    for (const d of datePrices ?? []) map.set(String(d.date), Number(d.price_per_person) || 0);
+    for (const d of datePrices ?? []) {
+      const mod = String(d.modality ?? "");
+      if (tourModalities.length && modality && mod && mod !== modality) continue;
+      const price = Number(d.price_per_person) || 0;
+      const prev = map.get(String(d.date));
+      if (prev == null || price < prev) map.set(String(d.date), price);
+    }
     return map;
-  }, [datePrices]);
+  }, [datePrices, modality, tourModalities.length]);
   const unitPrice = (date && priceByDate.get(date)) || basePrice;
   const total = unitPrice * qty + addonsTotal;
   const canContinue = !isFlexibleDate || !!date;
@@ -1081,6 +1128,8 @@ function PreCheckoutDialog({
       search: {
         qty,
         ...(date ? { date } : {}),
+        ...(modality ? { modality } : {}),
+        ...(time ? { time } : {}),
         ...(selectedKeys.length ? { addons: selectedKeys.join(",") } : {}),
       },
     });
@@ -1222,6 +1271,47 @@ function PreCheckoutDialog({
                     <span className="text-muted-foreground">
                       Selecione uma das datas destacadas para ver o valor.
                     </span>
+                  )}
+                </div>
+              )}
+
+              {(tourModalities.length > 0 || tourTimes.length > 0) && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {tourModalities.length > 0 && (
+                    <label className="block space-y-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Modalidade
+                      </span>
+                      <select
+                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-orange"
+                        value={modality}
+                        onChange={(e) => setModality(e.target.value)}
+                      >
+                        {tourModalities.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {tourTimes.length > 0 && (
+                    <label className="block space-y-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Horário de saída
+                      </span>
+                      <select
+                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-orange"
+                        value={time}
+                        onChange={(e) => setTime(e.target.value)}
+                      >
+                        {tourTimes.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   )}
                 </div>
               )}
