@@ -1,0 +1,1 @@
+ALTER TABLE public.packages ALTER COLUMN cruise_details DROP NOT NULL;
