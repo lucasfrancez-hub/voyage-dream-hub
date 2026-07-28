@@ -746,8 +746,14 @@ function AdminPackages() {
         </div>
         <div className="flex items-center gap-2">
           <MultiPackageImportButton
-            onExtracted={async (list) => {
-              if (!list.length) return;
+            onExtracted={async (raw) => {
+              if (!raw.length) return;
+              // Importador de PACOTES: nunca cria ingresso nem cruzeiro
+              const list = raw.map((d) => ({
+                ...d,
+                kind: "package" as PackageKind,
+                cruise_details: null,
+              }));
               try {
                 const base = await nextPackageBaseNumber();
                 setPendingNumbers(list.map((_, i) => base + i));
