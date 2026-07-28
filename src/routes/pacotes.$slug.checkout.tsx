@@ -46,7 +46,7 @@ function Checkout() {
 
 
   const { data: pkg, isLoading } = useQuery({
-    queryKey: ["package", slug],
+    queryKey: ["package", slug, dateFromSearch ?? ""],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
@@ -56,6 +56,17 @@ function Checkout() {
         .maybeSingle();
       if (error) throw error;
       if (!data) throw notFound();
+      if ((data as any).kind === "tour" && dateFromSearch) {
+        const { data: dp } = await supabase
+          .from("package_date_prices")
+          .select("price_per_person,taxes")
+          .eq("package_id", data.id)
+          .eq("date", dateFromSearch)
+          .maybeSingle();
+        if (dp) {
+          return { ...data, price_per_person: dp.price_per_person, taxes: dp.taxes } as typeof data;
+        }
+      }
       return data;
     },
   });
@@ -125,7 +136,8 @@ function Checkout() {
     };
   }, [pixInfo?.txid, pixPaid, consultarPix]);
 
-  const isService = (pkg as any)?.kind === "service";
+  const isTour = (pkg as any)?.kind === "tour";
+  const isService = (pkg as any)?.kind === "service" || isTour;
   const isPerUnit = (pkg as any)?.pricing_mode === "per_unit" || isService;
   const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
   const transferSvc = (pkg as any)?.services?.transfer ?? {};
@@ -146,7 +158,11 @@ function Checkout() {
   // Defaults: base occupancy for packages, single unit for per-unit tickets.
   useEffect(() => {
     if (!pkg) return;
-    if ((pkg as any).pricing_mode === "per_unit" || (pkg as any).kind === "service") {
+    if (
+      (pkg as any).pricing_mode === "per_unit" ||
+      (pkg as any).kind === "service" ||
+      (pkg as any).kind === "tour"
+    ) {
       const cap = Math.min(9, Math.max(1, Number((pkg as any).max_units) || 9));
       setAdults(Math.min(cap, Math.max(1, qtyFromSearch ?? 1)));
       setChildren(0);
