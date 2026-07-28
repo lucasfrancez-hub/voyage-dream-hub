@@ -384,6 +384,20 @@ function AdminPackages() {
     setPage(1);
   }, [originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
 
+  function errMsg(e: unknown): string {
+    if (!e) return "Erro desconhecido";
+    if (e instanceof Error) return e.message;
+    if (typeof e === "string") return e;
+    const o = e as { message?: string; details?: string; hint?: string; code?: string };
+    const parts = [o.message, o.details, o.hint].filter(Boolean) as string[];
+    if (parts.length > 0) return `${parts.join(" — ")}${o.code ? ` (${o.code})` : ""}`;
+    try {
+      return JSON.stringify(e);
+    } catch {
+      return "Erro desconhecido";
+    }
+  }
+
   async function nextPackageBaseNumber(): Promise<number> {
     const { count, error } = await supabase
       .from("packages")
@@ -391,6 +405,7 @@ function AdminPackages() {
     if (error) throw error;
     return (count ?? 0) + 1;
   }
+
 
   async function persistPackage(
     pkg: Partial<PackageRow>,
