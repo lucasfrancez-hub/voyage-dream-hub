@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Code2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DestinationInput } from "@/components/packages/DestinationInput";
 import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
-import { summarizeTourInfo } from "@/lib/packages/ai.functions";
 
 function slugify(input: string): string {
   return input
@@ -26,12 +24,10 @@ export function TourBulkImporter({
   onDone?: () => void;
 }) {
   const qc = useQueryClient();
-  const summarize = useServerFn(summarizeTourInfo);
   const [html, setHtml] = useState("");
   const [destination, setDestination] = useState(initialDestination ?? "");
   const [tours, setTours] = useState<ParsedTour[]>([]);
   const [selected, setSelected] = useState<Record<number, boolean>>({});
-  const [useAi, setUseAi] = useState(true);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
 
