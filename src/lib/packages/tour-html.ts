@@ -150,6 +150,7 @@ export function parseTourHtml(html: string): ParsedTour {
   return {
     title,
     image_url,
+    gallery: gallery.slice(0, 12),
     description,
     includes,
     not_includes,
