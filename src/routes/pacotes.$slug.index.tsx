@@ -1054,8 +1054,9 @@ function PreCheckoutDialog({
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const tourModalities: string[] = Array.isArray(pkg?.tour_modalities) ? pkg.tour_modalities : [];
   const tourTimes: string[] = Array.isArray(pkg?.tour_times) ? pkg.tour_times : [];
-  const [modality, setModality] = useState<string>(tourModalities[0] ?? "");
+  const [modality, setModality] = useState<string>("");
   const [time, setTime] = useState<string>(tourTimes[0] ?? "");
+
 
   const weekday = useMemo<number | null>(() => {
     const raw = date || pkg?.going_date || "";
@@ -1103,26 +1104,53 @@ function PreCheckoutDialog({
     }, 0);
   }, [addons, selected, qty]);
 
-  const priceByDate = useMemo(() => {
-    const map = new Map<string, number>();
+  const norm = (s: any) => String(s ?? "").trim().toLowerCase();
+
+  // preço por modalidade -> por data
+  const pricesByModality = useMemo(() => {
+    const map = new Map<string, Map<string, number>>();
     for (const d of datePrices ?? []) {
-      const mod = String(d.modality ?? "");
-      if (tourModalities.length && modality && mod && mod !== modality) continue;
+      const mod = norm(d.modality);
       const price = (Number(d.price_per_person) || 0) + (Number(d.taxes) || 0);
-      const prev = map.get(String(d.date));
-      if (prev == null || price < prev) map.set(String(d.date), price);
+      if (!map.has(mod)) map.set(mod, new Map());
+      const inner = map.get(mod)!;
+      const key = String(d.date);
+      const prev = inner.get(key);
+      if (prev == null || price < prev) inner.set(key, price);
     }
     return map;
-  }, [datePrices, modality, tourModalities.length]);
+  }, [datePrices]);
+
+  const priceByDate = useMemo(() => {
+    if (tourModalities.length && modality) {
+      return pricesByModality.get(norm(modality)) ?? new Map<string, number>();
+    }
+    const all = new Map<string, number>();
+    for (const inner of pricesByModality.values()) {
+      for (const [k, v] of inner) {
+        const prev = all.get(k);
+        if (prev == null || v < prev) all.set(k, v);
+      }
+    }
+    return all;
+  }, [pricesByModality, modality, tourModalities.length]);
+
   const unitPrice = (date && priceByDate.get(date)) || basePrice;
   const total = unitPrice * qty + addonsTotal;
-  const canContinue = !isFlexibleDate || !!date;
+  const needsModality = tourModalities.length > 0;
+  const canContinue = (!isFlexibleDate || !!date) && (!needsModality || !!modality);
+
 
   function handleContinue() {
     if (isFlexibleDate && !date) {
       toast.error("Escolha uma data para continuar");
       return;
     }
+    if (needsModality && !modality) {
+      toast.error("Escolha a modalidade para continuar");
+      return;
+    }
+
     const selectedKeys = Object.entries(selected).filter(([, v]) => v).map(([k]) => k);
     navigate({
       to: "/pacotes/$slug/checkout",
@@ -1175,14 +1203,15 @@ function PreCheckoutDialog({
         <div
           className={cn(
             "flex-1 overflow-y-auto grid grid-cols-1",
-            isFlexibleDate && hasAddons
+            isFlexibleDate && (hasAddons || needsModality || tourTimes.length > 0)
               ? "lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border/60"
               : "",
           )}
         >
           {/* Left: Calendar */}
           {isFlexibleDate && (
-            <div className="p-6 lg:p-8 flex flex-col">
+            <div className="p-5 lg:p-6 flex flex-col">
+
               {(() => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -1238,7 +1267,7 @@ function PreCheckoutDialog({
                     captionLayout="dropdown"
                     fromYear={today.getFullYear()}
                     toYear={today.getFullYear() + 3}
-                    className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
+                    className={cn("p-0 pointer-events-auto w-full [--cell-size:2.1rem] sm:[--cell-size:2.4rem]")}
                     classNames={{
                       root: "w-full",
                       months: "w-full",
@@ -1277,52 +1306,114 @@ function PreCheckoutDialog({
                 </div>
               )}
 
-              {(tourModalities.length > 0 || tourTimes.length > 0) && (
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {tourModalities.length > 0 && (
-                    <label className="block space-y-1.5">
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                        Modalidade
-                      </span>
-                      <select
-                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-orange"
-                        value={modality}
-                        onChange={(e) => setModality(e.target.value)}
-                      >
-                        {tourModalities.map((m) => (
-                          <option key={m} value={m}>
-                            {m}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  {tourTimes.length > 0 && (
-                    <label className="block space-y-1.5">
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                        Horário de saída
-                      </span>
-                      <select
-                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-orange"
-                        value={time}
-                        onChange={(e) => setTime(e.target.value)}
-                      >
-                        {tourTimes.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                </div>
-              )}
-
               <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">
                 * Preços podem variar de acordo com a data selecionada
               </div>
             </div>
           )}
+
+          {/* Right: Modalidades / horários */}
+          {(needsModality || tourTimes.length > 0) && (
+            <div className="p-5 lg:p-6 bg-background/40 space-y-5">
+              {needsModality && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                      Modalidade
+                    </h3>
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider",
+                        modality
+                          ? "bg-brand-orange/10 text-brand-orange"
+                          : "bg-destructive/10 text-destructive",
+                      )}
+                    >
+                      {modality ? "Selecionada" : "Obrigatório"}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {tourModalities.map((m) => {
+                      const inner = pricesByModality.get(norm(m));
+                      const priceForDate = date ? inner?.get(date) : undefined;
+                      const min = inner && inner.size ? Math.min(...inner.values()) : undefined;
+                      const isSel = norm(modality) === norm(m);
+                      const unavailable = !!date && inner != null && inner.size > 0 && priceForDate == null;
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setModality(m)}
+                          className={cn(
+                            "w-full p-4 rounded-2xl text-left transition-all bg-card border",
+                            isSel
+                              ? "border-brand-orange/60 ring-1 ring-brand-orange/40 shadow-[0_8px_24px_-12px_rgba(242,107,31,0.45)]"
+                              : "border-border/70 hover:border-brand-orange/40",
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="text-sm font-semibold leading-snug">{m}</span>
+                            <span className="text-right shrink-0">
+                              {priceForDate != null ? (
+                                <>
+                                  <span className="block text-sm font-bold text-brand-orange">
+                                    {formatBRL(priceForDate)}
+                                  </span>
+                                  <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
+                                    por pessoa
+                                  </span>
+                                </>
+                              ) : unavailable ? (
+                                <span className="text-[11px] text-muted-foreground">
+                                  Sem preço nesta data
+                                </span>
+                              ) : min != null ? (
+                                <>
+                                  <span className="block text-sm font-bold text-brand-orange">
+                                    {formatBRL(min)}
+                                  </span>
+                                  <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
+                                    a partir de
+                                  </span>
+                                </>
+                              ) : null}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {tourTimes.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                    Horário de saída
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {tourTimes.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTime(t)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
+                          time === t
+                            ? "border-brand-orange/60 bg-brand-orange/10 text-brand-orange"
+                            : "border-border/70 text-muted-foreground hover:border-brand-orange/40",
+                        )}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+
 
 
           {/* Right: Addons */}
