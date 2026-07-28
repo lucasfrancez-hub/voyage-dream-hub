@@ -45,7 +45,7 @@ export const Route = createFileRoute("/admin/catalogo")({
   }),
 });
 
-const PORTAL_URL = "https://www.infotravel.com.br/infotravel/admin/main.xhtml";
+const PORTAL_URL = "https://frt.infotravel.com.br/infotravel/admin/main.xhtml";
 
 function CatalogoPage() {
   const qc = useQueryClient();
