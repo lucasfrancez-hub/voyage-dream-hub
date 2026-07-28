@@ -583,6 +583,25 @@ function AdminPackages() {
       : await supabase.from("packages").insert(payload).select("id").single();
     const { error } = savedPackage;
     if (error) throw error;
+    // Passeio novo: grava o calendário importado que ainda estava só na prévia.
+    const pendingPrices = (pkg as any).__pendingPrices as
+      | { date: string; modality: string; price_per_person: number }[]
+      | undefined;
+    if (payloadKind === "tour" && pendingPrices?.length && savedPackage.data?.id) {
+      const { error: priceErr } = await supabase.from("package_date_prices").upsert(
+        pendingPrices.map((r) => ({
+          package_id: savedPackage.data.id,
+          date: r.date,
+          modality: r.modality ?? "",
+          price_per_person: Number(r.price_per_person) || 0,
+          taxes: 0,
+          seats: null,
+          is_available: true,
+        })),
+        { onConflict: "package_id,date,modality" },
+      );
+      if (priceErr) console.error("[packages] falha ao gravar calendário do passeio", priceErr);
+    }
     const sourcePhotos: string[] = (payload as any).tripadvisor_photos ?? [];
     if (
       sourcePhotos.length > 0 &&
@@ -1802,6 +1821,9 @@ function PackageEditorModal({
                   setEditing({ ...editing, ...patch } as any);
                   setTourImportDone(true);
                 }}
+                onPrices={(rows) =>
+                  setEditing({ ...(editing as any), __pendingPrices: rows } as any)
+                }
               />
             )}
             <button
@@ -2227,6 +2249,9 @@ function PackageEditorModal({
                   packageId={editing.id}
                   destination={editing.destination}
                   onApply={(patch) => setEditing({ ...editing, ...patch } as any)}
+                  onPrices={(rows) =>
+                    setEditing({ ...(editing as any), __pendingPrices: rows } as any)
+                  }
                 />
                 <TourInfoEditor
                   value={editing as any}
@@ -2235,6 +2260,7 @@ function PackageEditorModal({
                 <TourDatesEditor
                   packageId={editing.id}
                   modalities={(editing as any).tour_modalities ?? []}
+                  pendingRows={(editing as any).__pendingPrices ?? []}
                 />
               </div>
             )}

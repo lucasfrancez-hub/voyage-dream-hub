@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, CalendarRange } from "lucide-react";
+import { Loader2, Plus, Trash2, CalendarRange, ChevronRight } from "lucide-react";
 
 type Row = {
   id?: string;
@@ -64,9 +64,12 @@ const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
 export function TourDatesEditor({
   packageId,
   modalities = [],
+  pendingRows = [],
 }: {
   packageId?: string;
   modalities?: string[];
+  /** Preços importados ainda não salvos (passeio novo). */
+  pendingRows?: { date: string; modality: string; price_per_person: number }[];
 }) {
   const qc = useQueryClient();
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -74,6 +77,7 @@ export function TourDatesEditor({
   const [saving, setSaving] = useState(false);
   const [modality, setModality] = useState<string>(modalities[0] ?? "");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["package-date-prices", packageId],
@@ -89,7 +93,21 @@ export function TourDatesEditor({
     },
   });
 
-  const list = rows ?? data ?? [];
+  const pending = useMemo<Row[]>(
+    () =>
+      pendingRows.map((p) => ({
+        date: p.date,
+        modality: p.modality ?? "",
+        price_per_person: p.price_per_person,
+        taxes: 0,
+        seats: null,
+        is_available: true,
+      })),
+    [pendingRows],
+  );
+
+  const saved = packageId ? (data ?? []) : [];
+  const list = rows ?? (saved.length ? saved : pending);
 
   /** Modalidades vindas do cadastro + as que existem nos preços salvos. */
   const allModalities = useMemo(() => {
@@ -97,6 +115,7 @@ export function TourDatesEditor({
     for (const r of list) if (r.modality) set.add(r.modality);
     return [...set];
   }, [modalities, list]);
+
 
   useEffect(() => {
     if (modality && (allModalities.includes(modality) || modality === "")) return;
@@ -208,13 +227,7 @@ export function TourDatesEditor({
     }
   }
 
-  if (!packageId) {
-    return (
-      <div className="rounded-xl border border-dashed border-border bg-muted/20 p-5 text-sm text-muted-foreground">
-        Salve o passeio primeiro para cadastrar o calendário de datas e valores.
-      </div>
-    );
-  }
+  const unsaved = !packageId;
 
   return (
     <div className="space-y-4 rounded-xl border border-border bg-card/60 p-4">
@@ -233,7 +246,8 @@ export function TourDatesEditor({
           <button
             type="button"
             onClick={saveDates}
-            disabled={saving}
+            disabled={saving || unsaved}
+            title={unsaved ? "Salve o passeio para gravar o calendário" : undefined}
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
           >
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Salvar datas
@@ -241,40 +255,85 @@ export function TourDatesEditor({
         </div>
       </div>
 
-      {/* Modalidades — clique para conferir o calendário de cada uma */}
-      {allModalities.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+      {unsaved && (
+        <p className="rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
+          Prévia do que foi importado — o calendário é gravado junto quando você salvar o passeio.
+        </p>
+      )}
+
+      {/* Modalidades — uma por linha, clique para abrir o calendário */}
+      {allModalities.length > 0 ? (
+        <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
           {allModalities.map((m) => {
-            const count = list.filter((r) => (r.modality ?? "") === m).length;
-            const active = (modality ?? "") === m;
+            const mRows = list.filter((r) => (r.modality ?? "") === m);
+            const prices = mRows.map((r) => Number(r.price_per_person) || 0).filter((n) => n > 0);
+            const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+            const min = prices.length ? Math.min(...prices) : 0;
+            const max = prices.length ? Math.max(...prices) : 0;
+            const isOpen = expanded && (modality ?? "") === m;
             return (
-              <button
-                key={m || "default"}
-                type="button"
-                onClick={() => {
-                  setModality(m);
-                  setSelectedDate(null);
-                }}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                  active
-                    ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
-                    : "border-border text-muted-foreground hover:border-brand-orange/50"
-                }`}
-              >
-                {m || "Padrão"} <span className="opacity-60">· {count}</span>
-              </button>
+              <div key={m || "default"}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isOpen) {
+                      setExpanded(false);
+                      return;
+                    }
+                    setModality(m);
+                    setExpanded(true);
+                    setSelectedDate(null);
+                  }}
+                  className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition ${
+                    isOpen ? "bg-brand-orange/10" : "hover:bg-muted/40"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <ChevronRight
+                      className={`h-4 w-4 shrink-0 text-brand-orange transition-transform ${isOpen ? "rotate-90" : ""}`}
+                    />
+                    <span className="truncate text-sm font-semibold">{m || "Padrão"}</span>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      · {mRows.length} data(s)
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="block text-xs font-bold text-brand-orange">
+                      base {brl(avg)}
+                    </span>
+                    {max > min && (
+                      <span className="block text-[10px] text-muted-foreground">
+                        {brl(min)} – {brl(max)}
+                      </span>
+                    )}
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="border-t border-border bg-background/50 p-3">
+                    {renderCalendar()}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
-      )}
-
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
-      ) : months.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nenhuma data cadastrada para esta modalidade ainda.
-        </p>
       ) : (
+        <p className="text-sm text-muted-foreground">
+          Nenhuma modalidade encontrada. Importe o HTML do serviço ou adicione datas manualmente.
+        </p>
+      )}
+    </div>
+  );
+
+  function renderCalendar() {
+    return isLoading ? (
+      <p className="text-sm text-muted-foreground">Carregando…</p>
+    ) : months.length === 0 ? (
+      <p className="text-sm text-muted-foreground">
+        Nenhuma data cadastrada para esta modalidade ainda.
+      </p>
+    ) : (
+      <div className="space-y-3">
         <div className="grid gap-4 md:grid-cols-2">
           {months.map((month) => {
             const first = new Date(`${month}-01T00:00:00`);
@@ -333,7 +392,8 @@ export function TourDatesEditor({
             );
           })}
         </div>
-      )}
+
+
 
       {selected && (
         <div className="space-y-3 rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-3">
@@ -432,6 +492,8 @@ export function TourDatesEditor({
           </button>
         </div>
       </details>
-    </div>
-  );
+      </div>
+    );
+  }
 }
+
