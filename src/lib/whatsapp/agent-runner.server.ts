@@ -244,21 +244,44 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
 
   const gateway = createLovableAiGatewayProvider(key);
-  const model = gateway("google/gemini-3.5-flash");
   const tools = buildCamilaTools(conv);
   const cleanTools: Record<string, unknown> = { ...tools };
   delete cleanTools._meta;
 
+  // Cadeia de modelos: se o gateway devolver 502/503 (Bad Gateway) num modelo,
+  // espera um pouco e tenta o próximo antes de desistir.
+  const MODEL_CHAIN = [
+    "google/gemini-3.5-flash",
+    "google/gemini-3.6-flash",
+    "google/gemini-2.5-flash",
+  ];
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
   try {
-    const result = await generateText({
-      model,
-      system: buildSystemPrompt(agent, conv, protocolo, isNewProtocolo),
-      messages,
-      tools: cleanTools as never,
-      toolsContext: undefined as never,
-      stopWhen: stepCountIs(10),
-      temperature: 0.6,
-    });
+    const system = buildSystemPrompt(agent, conv, protocolo, isNewProtocolo);
+    let result: Awaited<ReturnType<typeof generateText>> | null = null;
+    let lastErr: unknown = null;
+    for (let i = 0; i < MODEL_CHAIN.length; i++) {
+      try {
+        result = await generateText({
+          model: gateway(MODEL_CHAIN[i]),
+          system,
+          messages,
+          tools: cleanTools as never,
+          toolsContext: undefined as never,
+          stopWhen: stepCountIs(10),
+          temperature: 0.6,
+        });
+        break;
+      } catch (e) {
+        lastErr = e;
+        const m = e instanceof Error ? e.message : String(e);
+        console.warn(`[agent:${agent.slug}] modelo ${MODEL_CHAIN[i]} falhou: ${m}`);
+        if (i < MODEL_CHAIN.length - 1) await sleep(1500 * (i + 1));
+      }
+    }
+    if (!result) throw lastErr ?? new Error("Falha ao gerar resposta");
+
 
     const rawText = result.text?.trim();
     if (!rawText) {
