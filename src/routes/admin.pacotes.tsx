@@ -431,20 +431,23 @@ function AdminPackages() {
       normalized.slug = `${cleanSlug}-${n}`;
     }
 
-    // Duplicate detection: só é duplicado quando ORIGEM + DESTINO + DATAS batem.
-    // Origens diferentes (ex.: Chapecó x Curitiba) nunca são duplicidade.
+    // Duplicate detection: só é duplicado quando ORIGEM + DESTINO + DATAS + VALOR batem.
+    // Origens diferentes (ex.: Chapecó x Curitiba) ou valores diferentes (mesmo pacote
+    // com benefícios distintos) nunca são duplicidade.
     if (pkg.going_date && pkg.return_date && normalized.destination) {
       const { data: dupRows } = await supabase
         .from("packages")
-        .select("id, title, hotel_name, going_date, return_date, destination, origin")
+        .select("id, title, hotel_name, going_date, return_date, destination, origin, price_per_person")
         .ilike("destination", normalized.destination.trim())
         .eq("going_date", pkg.going_date)
         .eq("return_date", pkg.return_date);
       const hotelTrim = (pkg.hotel_name || "").trim().toLowerCase();
       const originTrim = originKey((pkg as any).origin);
+      const priceKey = Math.round(Number((pkg as any).price_per_person) || 0);
       const matches = (dupRows ?? []).filter((r: any) => {
         if (pkg.id && r.id === pkg.id) return false;
         if (originKey(r.origin) !== originTrim) return false;
+        if (Math.round(Number(r.price_per_person) || 0) !== priceKey) return false;
         if (!hotelTrim) return true;
         return (r.hotel_name || "").trim().toLowerCase() === hotelTrim;
       });
@@ -455,7 +458,7 @@ function AdminPackages() {
           .join("\n");
         const proceed = await confirm({
           title: "Pacote duplicado?",
-          description: `Já existe ${matches.length === 1 ? "1 pacote" : `${matches.length} pacotes`} com a mesma origem, destino e datas${hotelTrim ? " (e hotel)" : ""}:\n\n${list}\n\nSalvar mesmo assim?`,
+          description: `Já existe ${matches.length === 1 ? "1 pacote" : `${matches.length} pacotes`} com a mesma origem, destino, datas e valor${hotelTrim ? " (e hotel)" : ""}:\n\n${list}\n\nSalvar mesmo assim?`,
           confirmText: "Salvar mesmo assim",
           cancelText: "Cancelar",
           destructive: true,
