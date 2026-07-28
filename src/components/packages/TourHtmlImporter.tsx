@@ -2,7 +2,15 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Code2, Image as ImageIcon, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  Code2,
+  CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
+  RotateCcw,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { summarizeTourInfo } from "@/lib/packages/ai.functions";
 import { parseTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
@@ -26,6 +34,8 @@ export type TourImportPatch = {
   pricing_mode?: string;
 };
 
+const STEPS = ["HTML do serviço", "Texto complementar", "Pronto"];
+
 export function TourHtmlImporter({
   packageId,
   destination,
@@ -37,6 +47,7 @@ export function TourHtmlImporter({
 }) {
   const qc = useQueryClient();
   const summarize = useServerFn(summarizeTourInfo);
+  const [step, setStep] = useState(0);
   const [html, setHtml] = useState("");
   const [extra, setExtra] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -64,7 +75,8 @@ export function TourHtmlImporter({
     try {
       const res = parseTourHtml(html);
       setParsed(res);
-      if (!imageUrl && res.image_url) setImageUrl(res.image_url);
+      setImageUrl(res.image_url || "");
+      setStep(1);
       toast.success(
         `${res.modalities.length} modalidade(s) e ${res.prices.length} preço(s) encontrados.`,
       );
@@ -73,7 +85,35 @@ export function TourHtmlImporter({
     }
   }
 
-  async function handleAiAndApply() {
+  async function savePrices(p: ParsedTour, silent = false) {
+    if (!p.prices.length || !packageId) return false;
+    setSavingPrices(true);
+    try {
+      const rows = p.prices.map((x) => ({
+        package_id: packageId,
+        date: x.date,
+        modality: x.modality,
+        price_per_person: x.price_per_person,
+        taxes: 0,
+        seats: null,
+        is_available: true,
+      }));
+      const { error } = await supabase
+        .from("package_date_prices")
+        .upsert(rows, { onConflict: "package_id,date,modality" });
+      if (error) throw error;
+      await qc.invalidateQueries({ queryKey: ["package-date-prices", packageId] });
+      if (!silent) toast.success(`${rows.length} preço(s) gravado(s) no calendário.`);
+      return true;
+    } catch (e) {
+      toast.error((e as Error).message);
+      return false;
+    } finally {
+      setSavingPrices(false);
+    }
+  }
+
+  async function handleGenerate() {
     if (!parsed) return;
     setLoading(true);
     try {
@@ -93,7 +133,11 @@ export function TourHtmlImporter({
         ...(imageUrl ? { image_url: imageUrl } : {}),
         ...(ai?.short ? { summary: ai.short } : {}),
         ...(ai?.summary
-          ? { ai_summary: ai.notes ? `${ai.summary}\n\n*Informações importantes*\n${ai.notes}` : ai.summary }
+          ? {
+              ai_summary: ai.notes
+                ? `${ai.summary}\n\n*Informações importantes*\n${ai.notes}`
+                : ai.summary,
+            }
           : {}),
         ...(parsed.includes.length ? { includes: parsed.includes } : {}),
         ...(parsed.modalities.length ? { tour_modalities: parsed.modalities } : {}),
@@ -101,7 +145,13 @@ export function TourHtmlImporter({
         date_mode: "flexible",
         pricing_mode: "per_unit",
       });
-      toast.success("Dados aplicados no formulário — revise e salve.");
+      const saved = await savePrices(parsed, true);
+      setStep(2);
+      toast.success(
+        saved
+          ? "Tudo preenchido e calendário de preços gravado."
+          : "Dados aplicados no formulário — revise e salve.",
+      );
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -109,129 +159,95 @@ export function TourHtmlImporter({
     }
   }
 
-  async function savePrices() {
-    if (!parsed?.prices.length) return;
-    if (!packageId) {
-      toast.error("Salve o passeio primeiro para gravar o calendário de preços.");
-      return;
-    }
-    setSavingPrices(true);
-    try {
-      const rows = parsed.prices.map((p) => ({
-        package_id: packageId,
-        date: p.date,
-        modality: p.modality,
-        price_per_person: p.price_per_person,
-        taxes: 0,
-        seats: null,
-        is_available: true,
-      }));
-      const { error } = await supabase
-        .from("package_date_prices")
-        .upsert(rows, { onConflict: "package_id,date,modality" });
-      if (error) throw error;
-      await qc.invalidateQueries({ queryKey: ["package-date-prices", packageId] });
-      toast.success(`${rows.length} preço(s) gravado(s) no calendário.`);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setSavingPrices(false);
-    }
+  function reset() {
+    setStep(0);
+    setHtml("");
+    setExtra("");
+    setImageUrl("");
+    setParsed(null);
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-brand-orange/30 bg-brand-orange/[0.04] p-4">
-      <h3 className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-orange">
-        <Code2 className="h-4 w-4" /> Importar passeio por HTML
-      </h3>
-
-      <label className="block space-y-1">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          HTML do serviço (copie o bloco do portal)
+    <div className="space-y-4 rounded-xl border border-brand-orange/30 bg-brand-orange/[0.04] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-orange">
+          <Code2 className="h-4 w-4" /> Importar passeio por HTML
+        </h3>
+        <span className="text-[11px] font-semibold text-muted-foreground">
+          Etapa {step + 1} de 3
         </span>
-        <textarea
-          rows={5}
-          className={`${inp} font-mono text-[11px]`}
-          value={html}
-          onChange={(e) => setHtml(e.target.value)}
-          placeholder='<div id="frmResultadoProduto...'
-        />
-      </label>
-
-      <label className="block space-y-1">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Texto complementar (descrição completa / detalhes do serviço)
-        </span>
-        <textarea
-          rows={4}
-          className={inp}
-          value={extra}
-          onChange={(e) => setExtra(e.target.value)}
-          placeholder="Cole aqui o textão da operadora…"
-        />
-      </label>
-
-      <label className="block space-y-1">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          <ImageIcon className="h-3.5 w-3.5" /> URL da imagem
-        </span>
-        <input
-          className={inp}
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-          placeholder="https://…jpg"
-        />
-      </label>
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={handleParse}
-          className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold"
-        >
-          Ler HTML
-        </button>
-        <button
-          type="button"
-          onClick={handleAiAndApply}
-          disabled={!parsed || loading}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
-        >
-          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-          Gerar resumo e preencher
-        </button>
-        <button
-          type="button"
-          onClick={savePrices}
-          disabled={!parsed?.prices.length || savingPrices}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/50 px-3 py-1.5 text-xs font-bold text-brand-orange disabled:opacity-60"
-        >
-          {savingPrices ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          )}
-          Gravar calendário de preços
-        </button>
       </div>
 
-      {parsed && (
-        <div className="space-y-2 rounded-lg border border-border bg-background/70 p-3 text-xs">
-          <div className="font-bold">{parsed.title || "(sem título)"}</div>
-          <div className="text-muted-foreground">
-            {parsed.dates.length} data(s) · {parsed.modalities.length} modalidade(s) ·{" "}
-            {parsed.prices.length} preço(s)
-            {parsed.dates.length
-              ? ` · ${parsed.dates[0]} → ${parsed.dates[parsed.dates.length - 1]}`
-              : ""}
+      {/* Stepper */}
+      <div className="flex items-center gap-2">
+        {STEPS.map((s, i) => (
+          <div key={s} className="flex flex-1 items-center gap-2">
+            <div
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                i < step
+                  ? "bg-brand-orange text-white"
+                  : i === step
+                    ? "border-2 border-brand-orange text-brand-orange"
+                    : "border border-border text-muted-foreground"
+              }`}
+            >
+              {i < step ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
+            </div>
+            <span
+              className={`truncate text-[11px] font-semibold ${
+                i === step ? "text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {s}
+            </span>
+            {i < STEPS.length - 1 && <div className="h-px flex-1 bg-border" />}
           </div>
-          {parsed.image_url && (
-            <img
-              src={imageUrl || parsed.image_url}
-              alt={parsed.title}
-              className="h-24 w-40 rounded-lg object-cover"
+        ))}
+      </div>
+
+      {step === 0 && (
+        <div className="space-y-3">
+          <label className="block space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Cole o bloco HTML do serviço (portal da operadora)
+            </span>
+            <textarea
+              rows={7}
+              className={`${inp} font-mono text-[11px]`}
+              value={html}
+              onChange={(e) => setHtml(e.target.value)}
+              placeholder='<div id="frmResultadoProduto...'
             />
-          )}
+          </label>
+          <button
+            type="button"
+            onClick={handleParse}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-white"
+          >
+            Continuar <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {step === 1 && parsed && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-background/70 p-3">
+            {(imageUrl || parsed.image_url) && (
+              <img
+                src={imageUrl || parsed.image_url}
+                alt={parsed.title}
+                className="h-14 w-20 shrink-0 rounded-lg object-cover"
+              />
+            )}
+            <div className="min-w-0 text-xs">
+              <div className="truncate font-bold">{parsed.title || "(sem título)"}</div>
+              <div className="text-muted-foreground">
+                {parsed.dates.length} data(s) · {parsed.modalities.length} modalidade(s) ·{" "}
+                {parsed.prices.length} preço(s)
+              </div>
+            </div>
+          </div>
+
           {parsed.gallery.length > 1 && (
             <div className="flex flex-wrap gap-2">
               {parsed.gallery.map((g) => (
@@ -251,22 +267,98 @@ export function TourHtmlImporter({
               ))}
             </div>
           )}
-          <ul className="space-y-1">
-            {byModality.map(([m, v]) => (
-              <li key={m} className="flex items-center justify-between gap-3">
-                <span className="truncate">{m}</span>
-                <span className="shrink-0 font-bold text-brand-orange">
-                  {v.min === v.max ? brl(v.min) : `${brl(v.min)} – ${brl(v.max)}`}{" "}
-                  <span className="font-normal text-muted-foreground">({v.count} datas)</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          {parsed.includes.length > 0 && (
-            <div className="text-muted-foreground">
-              <strong>Inclusos:</strong> {parsed.includes.join(" · ")}
+
+          <label className="block space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Texto complementar (descrição completa da operadora)
+            </span>
+            <textarea
+              rows={6}
+              className={inp}
+              value={extra}
+              onChange={(e) => setExtra(e.target.value)}
+              placeholder="Cole aqui o textão da operadora…"
+            />
+          </label>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setStep(0)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Voltar
+            </button>
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={loading || savingPrices}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
+            >
+              {loading || savingPrices ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              Gerar e preencher tudo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && parsed && (
+        <div className="space-y-3">
+          <div className="space-y-2 rounded-lg border border-border bg-background/70 p-3 text-xs">
+            <div className="inline-flex items-center gap-1.5 font-bold text-brand-orange">
+              <CheckCircle2 className="h-4 w-4" /> Formulário preenchido
             </div>
-          )}
+            <ul className="space-y-1">
+              {byModality.map(([m, v]) => (
+                <li key={m} className="flex items-center justify-between gap-3">
+                  <span className="truncate">{m}</span>
+                  <span className="shrink-0 font-bold text-brand-orange">
+                    {v.min === v.max ? brl(v.min) : `${brl(v.min)} – ${brl(v.max)}`}{" "}
+                    <span className="font-normal text-muted-foreground">({v.count} datas)</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {parsed.includes.length > 0 && (
+              <div className="text-muted-foreground">
+                <strong>Inclusos:</strong> {parsed.includes.join(" · ")}
+              </div>
+            )}
+            {!packageId && parsed.prices.length > 0 && (
+              <div className="text-muted-foreground">
+                Salve o passeio para gravar o calendário de {parsed.prices.length} preço(s).
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {packageId && parsed.prices.length > 0 && (
+              <button
+                type="button"
+                onClick={() => savePrices(parsed)}
+                disabled={savingPrices}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/50 px-3 py-2 text-xs font-bold text-brand-orange disabled:opacity-60"
+              >
+                {savingPrices ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                )}
+                Regravar calendário
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Importar outro
+            </button>
+          </div>
         </div>
       )}
     </div>
