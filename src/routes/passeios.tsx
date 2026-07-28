@@ -14,12 +14,10 @@ import {
 } from "lucide-react";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
