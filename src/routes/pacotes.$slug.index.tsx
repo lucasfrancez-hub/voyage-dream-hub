@@ -1103,20 +1103,42 @@ function PreCheckoutDialog({
     }, 0);
   }, [addons, selected, qty]);
 
-  const priceByDate = useMemo(() => {
-    const map = new Map<string, number>();
+  const norm = (s: any) => String(s ?? "").trim().toLowerCase();
+
+  // preço por modalidade -> por data
+  const pricesByModality = useMemo(() => {
+    const map = new Map<string, Map<string, number>>();
     for (const d of datePrices ?? []) {
-      const mod = String(d.modality ?? "");
-      if (tourModalities.length && modality && mod && mod !== modality) continue;
+      const mod = norm(d.modality);
       const price = (Number(d.price_per_person) || 0) + (Number(d.taxes) || 0);
-      const prev = map.get(String(d.date));
-      if (prev == null || price < prev) map.set(String(d.date), price);
+      if (!map.has(mod)) map.set(mod, new Map());
+      const inner = map.get(mod)!;
+      const key = String(d.date);
+      const prev = inner.get(key);
+      if (prev == null || price < prev) inner.set(key, price);
     }
     return map;
-  }, [datePrices, modality, tourModalities.length]);
+  }, [datePrices]);
+
+  const priceByDate = useMemo(() => {
+    if (tourModalities.length && modality) {
+      return pricesByModality.get(norm(modality)) ?? new Map<string, number>();
+    }
+    const all = new Map<string, number>();
+    for (const inner of pricesByModality.values()) {
+      for (const [k, v] of inner) {
+        const prev = all.get(k);
+        if (prev == null || v < prev) all.set(k, v);
+      }
+    }
+    return all;
+  }, [pricesByModality, modality, tourModalities.length]);
+
   const unitPrice = (date && priceByDate.get(date)) || basePrice;
   const total = unitPrice * qty + addonsTotal;
-  const canContinue = !isFlexibleDate || !!date;
+  const needsModality = tourModalities.length > 0;
+  const canContinue = (!isFlexibleDate || !!date) && (!needsModality || !!modality);
+
 
   function handleContinue() {
     if (isFlexibleDate && !date) {
