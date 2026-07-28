@@ -10,6 +10,7 @@ export type ParsedTourPrice = {
 export type ParsedTour = {
   title: string;
   image_url: string;
+  gallery: string[];
   description: string;
   includes: string[];
   not_includes: string[];
