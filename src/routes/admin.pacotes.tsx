@@ -4731,8 +4731,6 @@ function DuplicatePackagesAlert({
         originKey(p.origin),
         String(p.going_date),
         String(p.return_date),
-        norm(p.hotel_name),
-        Math.round(Number(p.price_per_person) || 0),
       ].join("|");
       const arr = map.get(key) || [];
       arr.push(p);
