@@ -1,8 +1,4 @@
-import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
-import { Loader2, MapPin, Clock, Layers, Sparkles } from "lucide-react";
-import { summarizeTourInfo } from "@/lib/packages/ai.functions";
+import { MapPin, Clock, Layers, Sparkles } from "lucide-react";
 
 const inp =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand-orange";
@@ -34,40 +30,6 @@ export function TourInfoEditor({
   value: TourInfoValue;
   onChange: (patch: Partial<TourInfoValue>) => void;
 }) {
-  const summarize = useServerFn(summarizeTourInfo);
-  const [raw, setRaw] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function runAi() {
-    if (raw.trim().length < 20) {
-      toast.error("Cole o texto do 'Ver detalhes do serviço' primeiro.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await summarize({
-        data: {
-          raw: raw.trim(),
-          title: value.title ?? undefined,
-          destination: value.destination ?? undefined,
-        },
-      });
-      const patch: Partial<TourInfoValue> = { ai_summary: res.summary };
-      if (res.meeting_point && !value.meeting_point) patch.meeting_point = res.meeting_point;
-      if (res.times.length && !(value.tour_times ?? []).length) patch.tour_times = res.times;
-      if (res.modalities.length && !(value.tour_modalities ?? []).length)
-        patch.tour_modalities = res.modalities;
-      if (res.includes.length && !(value.includes ?? []).length) patch.includes = res.includes;
-      if (res.notes) patch.ai_summary = `${res.summary}\n\n*Informações importantes*\n${res.notes}`;
-      onChange(patch);
-      toast.success("Resumo gerado pela IA — revise e salve.");
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <div className="space-y-4 rounded-xl border border-border bg-card/60 p-4">
       <h3 className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
