@@ -118,7 +118,7 @@ function PasseiosPage() {
     const map = new Map<string, number>();
     for (const p of prices as any[]) {
       const cur = map.get(p.package_id);
-      const v = Number(p.price_per_person) || 0;
+      const v = (Number(p.price_per_person) || 0) + (Number(p.taxes) || 0);
       if (cur == null || v < cur) map.set(p.package_id, v);
     }
     return map;
