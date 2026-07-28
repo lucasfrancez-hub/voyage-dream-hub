@@ -252,8 +252,8 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   // espera um pouco e tenta o próximo antes de desistir.
   const MODEL_CHAIN = [
     "google/gemini-2.5-flash",
-    "google/gemini-2.5-flash",
-    "google/gemini-2.5-flash",
+    "google/gemini-2.5-pro",
+    "google/gemini-2.5-flash-lite",
   ];
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
