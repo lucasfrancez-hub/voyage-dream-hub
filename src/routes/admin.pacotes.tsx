@@ -4847,6 +4847,104 @@ function DuplicatePackagesAlert({
   );
 }
 
+function MissingSupplierAlert({
+  packages,
+  onOpen,
+}: {
+  packages: PackageRow[];
+  onOpen: (p: PackageRow) => void;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const missing = useMemo(
+    () => (packages || []).filter((p) => p.is_active && !String(p.supplier_name ?? "").trim()),
+    [packages],
+  );
+  if (dismissed || missing.length === 0) return null;
+
+  if (!expanded) {
+    return (
+      <div className="mb-3 flex items-center gap-2 bg-[#1C252E] border border-slate-800 rounded-full pl-2 pr-2 py-1.5 shadow-xl shadow-black/20">
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shrink-0">
+            {missing.length}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase truncate">
+            Pacote(s) sem fornecedor
+          </span>
+          <ChevronDown className="w-4 h-4 text-slate-500 hover:text-white transition-colors shrink-0" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1 hover:bg-slate-700/50 rounded-full transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-3.5 h-3.5 text-slate-500" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3 bg-[#1C252E] border border-slate-800 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
+      <div className="flex items-center justify-between p-4 pb-2">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="flex items-center gap-3 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shadow-lg shadow-[#F26B1F]/20">
+            {missing.length}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase">
+            Pacote(s) sem fornecedor
+          </span>
+          <ChevronDown className="w-4 h-4 text-[#F26B1F] rotate-180 transition-transform" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-4 h-4 text-slate-500" />
+        </button>
+      </div>
+      <div className="px-4 pb-5 space-y-4">
+        <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+          Abra o pacote e preencha o campo <span className="text-[#F26B1F] font-semibold">Fornecedor</span> — ele
+          define regras de parcelamento e o controle interno.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {missing.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onOpen(p)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all cursor-pointer group"
+              title={`${p.title} — abrir para editar`}
+            >
+              <Building2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#F26B1F]" />
+              <span className="text-[11px] font-medium text-slate-300 max-w-[220px] truncate">
+                {p.title}
+              </span>
+              <span className="text-slate-600">·</span>
+              <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
+                {p.destination}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MissingIncludesAlert({
   packages,
   onOpen,
