@@ -381,11 +381,17 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[agent:${agent.slug}] erro:`, msg);
+    // Reagenda: o cron tenta de novo em ~1min em vez de deixar o cliente sem resposta.
+    await supabaseAdmin
+      .from("wa_conversations")
+      .update({ ai_debounce_until: new Date(Date.now() + 60 * 1000).toISOString() })
+      .eq("id", conv.id)
+      .catch?.(() => {});
     await saveMessage({
       conversation_id: conv.id,
       direction: "outbound",
       sender: "system",
-      content: `[erro ${agent.slug}] ${msg}`,
+      content: `⚠️ nota interna: falha temporária da IA (${msg}). Nova tentativa em 1 min.`,
     });
   }
 }
