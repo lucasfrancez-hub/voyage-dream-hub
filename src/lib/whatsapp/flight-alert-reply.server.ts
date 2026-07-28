@@ -71,7 +71,7 @@ async function generateContextualReply(input: {
 
     const gateway = createLovableAiGatewayProvider(key);
     const { text } = await generateText({
-      model: gateway("google/gemini-3.5-flash"),
+      model: gateway("google/gemini-2.5-flash"),
       system,
       messages: [...messages, { role: "user", content: user }],
     });

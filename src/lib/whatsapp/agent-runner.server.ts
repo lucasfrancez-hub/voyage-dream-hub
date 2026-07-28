@@ -251,9 +251,9 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   // Cadeia de modelos: se o gateway devolver 502/503 (Bad Gateway) num modelo,
   // espera um pouco e tenta o próximo antes de desistir.
   const MODEL_CHAIN = [
-    "google/gemini-3.5-flash",
-    "google/gemini-3.6-flash",
     "google/gemini-2.5-flash",
+    "google/gemini-2.5-pro",
+    "google/gemini-2.5-flash-lite",
   ];
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

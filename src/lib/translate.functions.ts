@@ -14,7 +14,7 @@ export const translateText = createServerFn({ method: "POST" })
 
     const targetLabel = data.target === "en" ? "English" : "Portuguese (pt-BR)";
     const body = {
-      model: "google/gemini-3-flash-preview",
+      model: "google/gemini-2.5-flash",
       messages: [
         {
           role: "system",

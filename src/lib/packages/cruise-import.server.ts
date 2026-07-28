@@ -234,7 +234,7 @@ export async function extractCruiseFromUrl(
   // 3. Extração com Gemini — schema LENIENTE (evita falhas de .url()/enums)
   //    e depois reparseamos com o schema estrito que tem defaults/coerções.
   const gateway = createLovableAiGatewayProvider(apiKey);
-  const model = gateway("google/gemini-3.6-flash");
+  const model = gateway("google/gemini-2.5-flash");
 
   // Schema super permissivo pro LLM — sem .url(), sem enums estritos,
   // tudo opcional. A validação real acontece depois via parseCruiseDetails.
