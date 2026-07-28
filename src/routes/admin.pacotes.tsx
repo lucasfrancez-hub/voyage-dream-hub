@@ -1452,6 +1452,7 @@ function PackageEditorModal({
   nextNumber,
 }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
+  const [tourImportDone, setTourImportDone] = useState(false);
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
   const [aiLoading, setAiLoading] = useState(false);
   const [imgOpen, setImgOpen] = useState(false);
@@ -1752,7 +1753,7 @@ function PackageEditorModal({
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => closeCurrentDraft?.()}
               className="rounded-full p-2 hover:bg-muted"
               aria-label="Fechar"
             >
