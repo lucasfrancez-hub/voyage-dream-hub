@@ -115,6 +115,23 @@ export function TourDatesEditor({
   const saved = packageId ? (data ?? []) : [];
   const list = rows ?? (saved.length ? saved : pending);
 
+  // Mantém o formulário do pacote sincronizado com as edições (inclui taxas),
+  // para que "Salvar pacote" grave o calendário mesmo sem "Salvar datas".
+  useEffect(() => {
+    if (!onRowsChange || !rows) return;
+    onRowsChange(
+      rows
+        .filter((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.date))
+        .map((r) => ({
+          date: r.date,
+          modality: r.modality ?? "",
+          price_per_person: Number(r.price_per_person) || 0,
+          taxes: Number(r.taxes) || 0,
+        })),
+    );
+  }, [rows]);
+
+
   /** Modalidades vindas do cadastro + as que existem nos preços salvos. */
   const allModalities = useMemo(() => {
     const set = new Set<string>(modalities.filter(Boolean));
