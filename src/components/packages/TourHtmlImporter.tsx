@@ -232,6 +232,25 @@ export function TourHtmlImporter({
               className="h-24 w-40 rounded-lg object-cover"
             />
           )}
+          {parsed.gallery.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              {parsed.gallery.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setImageUrl(g)}
+                  className={`h-12 w-16 overflow-hidden rounded-md border-2 ${
+                    (imageUrl || parsed.image_url) === g
+                      ? "border-brand-orange"
+                      : "border-transparent"
+                  }`}
+                  title="Usar esta imagem"
+                >
+                  <img src={g} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
           <ul className="space-y-1">
             {byModality.map(([m, v]) => (
               <li key={m} className="flex items-center justify-between gap-3">
