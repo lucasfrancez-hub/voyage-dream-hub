@@ -164,6 +164,14 @@ export function TourBulkImporter({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-xs font-bold uppercase text-muted-foreground sm:col-span-2">
+          Cidade de destino (digite e escolha)
+          <DestinationInput
+            value={destination}
+            onChange={setDestination}
+            className="mt-1"
+          />
+        </label>
+        <label className="text-xs font-bold uppercase text-muted-foreground sm:col-span-2">
           Cole o HTML da lista inteira de serviços
           <textarea
             value={html}
@@ -171,15 +179,6 @@ export function TourBulkImporter({
             rows={6}
             placeholder='<div id="frmResultadoProduto...'
             className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs normal-case"
-          />
-        </label>
-        <label className="text-xs font-bold uppercase text-muted-foreground">
-          Destino
-          <input
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            placeholder="Orlando"
-            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
           />
         </label>
         <label className="flex items-end gap-2 text-xs font-bold text-muted-foreground">
