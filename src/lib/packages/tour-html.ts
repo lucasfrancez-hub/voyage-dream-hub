@@ -147,6 +147,10 @@ export function parseTourHtml(html: string): ParsedTour {
 
   const rawText = cleanText(doc.body?.textContent ?? "");
 
+  // Ignora datas e modalidades sem nenhum valor ("-" / vazio no portal)
+  const datesWithPrice = dates.filter((d) => d && prices.some((p) => p.date === d));
+  const modalitiesWithPrice = modalities.filter((m) => prices.some((p) => p.modality === m));
+
   return {
     title,
     image_url,
@@ -154,8 +158,8 @@ export function parseTourHtml(html: string): ParsedTour {
     description,
     includes,
     not_includes,
-    modalities,
-    dates: dates.filter(Boolean),
+    modalities: modalitiesWithPrice,
+    dates: datesWithPrice,
     prices,
     rawText,
   };
