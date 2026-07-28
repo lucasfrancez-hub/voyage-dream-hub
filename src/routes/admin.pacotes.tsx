@@ -2243,7 +2243,7 @@ function PackageEditorModal({
                 </FormField>
                 )}
 
-                {(editing.date_mode ?? "fixed") === "fixed" && (
+                {kind !== "tour" && (editing.date_mode ?? "fixed") === "fixed" && (
                   kind === "service" || kind === "tour" ? (
                     <FormField label="Data do evento / uso">
                       <input
