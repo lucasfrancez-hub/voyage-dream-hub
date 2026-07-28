@@ -391,7 +391,8 @@ export function TourDatesEditor({
             );
           })}
         </div>
-      )}
+        </div>
+
 
       {selected && (
         <div className="space-y-3 rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-3">
