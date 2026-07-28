@@ -2346,6 +2346,7 @@ export type Database = {
           date: string
           id: string
           is_available: boolean
+          modality: string
           note: string | null
           package_id: string
           price_per_person: number
@@ -2358,6 +2359,7 @@ export type Database = {
           date: string
           id?: string
           is_available?: boolean
+          modality?: string
           note?: string | null
           package_id: string
           price_per_person?: number
@@ -2370,6 +2372,7 @@ export type Database = {
           date?: string
           id?: string
           is_available?: boolean
+          modality?: string
           note?: string | null
           package_id?: string
           price_per_person?: number
@@ -2389,6 +2392,7 @@ export type Database = {
       }
       packages: {
         Row: {
+          ai_summary: string | null
           base_occupancy: number
           bed_type: string | null
           created_at: string
@@ -2406,6 +2410,7 @@ export type Database = {
           kind: string
           max_units: number
           meal_plan: string | null
+          meeting_point: string | null
           nights: number | null
           origin: string | null
           outbound_flight: Json | null
@@ -2422,6 +2427,8 @@ export type Database = {
           supplier_name: string | null
           taxes: number | null
           title: string
+          tour_modalities: string[]
+          tour_times: string[]
           tripadvisor_address: string | null
           tripadvisor_location_id: string | null
           tripadvisor_photos: Json | null
@@ -2429,6 +2436,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_summary?: string | null
           base_occupancy?: number
           bed_type?: string | null
           created_at?: string
@@ -2446,6 +2454,7 @@ export type Database = {
           kind?: string
           max_units?: number
           meal_plan?: string | null
+          meeting_point?: string | null
           nights?: number | null
           origin?: string | null
           outbound_flight?: Json | null
@@ -2462,6 +2471,8 @@ export type Database = {
           supplier_name?: string | null
           taxes?: number | null
           title: string
+          tour_modalities?: string[]
+          tour_times?: string[]
           tripadvisor_address?: string | null
           tripadvisor_location_id?: string | null
           tripadvisor_photos?: Json | null
@@ -2469,6 +2480,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_summary?: string | null
           base_occupancy?: number
           bed_type?: string | null
           created_at?: string
@@ -2486,6 +2498,7 @@ export type Database = {
           kind?: string
           max_units?: number
           meal_plan?: string | null
+          meeting_point?: string | null
           nights?: number | null
           origin?: string | null
           outbound_flight?: Json | null
@@ -2502,6 +2515,8 @@ export type Database = {
           supplier_name?: string | null
           taxes?: number | null
           title?: string
+          tour_modalities?: string[]
+          tour_times?: string[]
           tripadvisor_address?: string | null
           tripadvisor_location_id?: string | null
           tripadvisor_photos?: Json | null
