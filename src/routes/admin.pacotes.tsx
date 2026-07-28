@@ -431,29 +431,31 @@ function AdminPackages() {
       normalized.slug = `${cleanSlug}-${n}`;
     }
 
-    // Duplicate detection: same destination + going_date + return_date (and hotel_name, when informado).
-    // Só dispara pra pacotes com data preenchida.
+    // Duplicate detection: só é duplicado quando ORIGEM + DESTINO + DATAS batem.
+    // Origens diferentes (ex.: Chapecó x Curitiba) nunca são duplicidade.
     if (pkg.going_date && pkg.return_date && normalized.destination) {
       const { data: dupRows } = await supabase
         .from("packages")
-        .select("id, title, hotel_name, going_date, return_date, destination")
+        .select("id, title, hotel_name, going_date, return_date, destination, origin")
         .ilike("destination", normalized.destination.trim())
         .eq("going_date", pkg.going_date)
         .eq("return_date", pkg.return_date);
       const hotelTrim = (pkg.hotel_name || "").trim().toLowerCase();
+      const originTrim = originKey((pkg as any).origin);
       const matches = (dupRows ?? []).filter((r: any) => {
         if (pkg.id && r.id === pkg.id) return false;
+        if (originKey(r.origin) !== originTrim) return false;
         if (!hotelTrim) return true;
         return (r.hotel_name || "").trim().toLowerCase() === hotelTrim;
       });
       if (matches.length > 0) {
         const list = matches
           .slice(0, 3)
-          .map((r: any) => `• ${r.title}${r.hotel_name ? ` — ${r.hotel_name}` : ""}`)
+          .map((r: any) => `• ${r.title}${r.origin ? ` — saindo de ${r.origin}` : ""}${r.hotel_name ? ` — ${r.hotel_name}` : ""}`)
           .join("\n");
         const proceed = await confirm({
           title: "Pacote duplicado?",
-          description: `Já existe ${matches.length === 1 ? "1 pacote" : `${matches.length} pacotes`} com o mesmo destino, datas${hotelTrim ? " e hotel" : ""}:\n\n${list}\n\nSalvar mesmo assim?`,
+          description: `Já existe ${matches.length === 1 ? "1 pacote" : `${matches.length} pacotes`} com a mesma origem, destino e datas${hotelTrim ? " (e hotel)" : ""}:\n\n${list}\n\nSalvar mesmo assim?`,
           confirmText: "Salvar mesmo assim",
           cancelText: "Cancelar",
           destructive: true,
@@ -890,11 +892,16 @@ function AdminPackages() {
             packages={(packages || []) as PackageRow[]}
             onOpen={(p) => setEditingState(p)}
           />
+          <MissingSupplierAlert
+            packages={(packages || []) as PackageRow[]}
+            onOpen={(p) => setEditingState(p)}
+          />
           <DuplicatePackagesAlert
             packages={(packages || []) as PackageRow[]}
             onOpen={(p) => setEditingState(p)}
             onDelete={(p) => remove(p)}
           />
+
 
           <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-end">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:pb-2.5">
@@ -4729,8 +4736,6 @@ function DuplicatePackagesAlert({
         originKey(p.origin),
         String(p.going_date),
         String(p.return_date),
-        norm(p.hotel_name),
-        Math.round(Number(p.price_per_person) || 0),
       ].join("|");
       const arr = map.get(key) || [];
       arr.push(p);
@@ -4798,7 +4803,8 @@ function DuplicatePackagesAlert({
       </div>
       <div className="px-4 pb-5 space-y-4">
         <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-          Mesma origem, destino, datas, hotel e preço. Abra e exclua as cópias que não quiser
+          Mesma origem, mesmo destino e mesmas datas. Abra e exclua as cópias que não quiser
+
           manter.
         </p>
         <div className="space-y-3">
@@ -4839,6 +4845,104 @@ function DuplicatePackagesAlert({
                 ))}
               </div>
             </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MissingSupplierAlert({
+  packages,
+  onOpen,
+}: {
+  packages: PackageRow[];
+  onOpen: (p: PackageRow) => void;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const missing = useMemo(
+    () => (packages || []).filter((p) => p.is_active && !String(p.supplier_name ?? "").trim()),
+    [packages],
+  );
+  if (dismissed || missing.length === 0) return null;
+
+  if (!expanded) {
+    return (
+      <div className="mb-3 flex items-center gap-2 bg-[#1C252E] border border-slate-800 rounded-full pl-2 pr-2 py-1.5 shadow-xl shadow-black/20">
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shrink-0">
+            {missing.length}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase truncate">
+            Pacote(s) sem fornecedor
+          </span>
+          <ChevronDown className="w-4 h-4 text-slate-500 hover:text-white transition-colors shrink-0" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1 hover:bg-slate-700/50 rounded-full transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-3.5 h-3.5 text-slate-500" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3 bg-[#1C252E] border border-slate-800 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
+      <div className="flex items-center justify-between p-4 pb-2">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="flex items-center gap-3 text-left"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#F26B1F] text-white text-[11px] font-bold shadow-lg shadow-[#F26B1F]/20">
+            {missing.length}
+          </span>
+          <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase">
+            Pacote(s) sem fornecedor
+          </span>
+          <ChevronDown className="w-4 h-4 text-[#F26B1F] rotate-180 transition-transform" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+          title="Ocultar"
+        >
+          <X className="w-4 h-4 text-slate-500" />
+        </button>
+      </div>
+      <div className="px-4 pb-5 space-y-4">
+        <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+          Abra o pacote e preencha o campo <span className="text-[#F26B1F] font-semibold">Fornecedor</span> — ele
+          define regras de parcelamento e o controle interno.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {missing.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onOpen(p)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 border border-slate-700/50 rounded-full hover:border-[#F26B1F]/50 transition-all cursor-pointer group"
+              title={`${p.title} — abrir para editar`}
+            >
+              <Building2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#F26B1F]" />
+              <span className="text-[11px] font-medium text-slate-300 max-w-[220px] truncate">
+                {p.title}
+              </span>
+              <span className="text-slate-600">·</span>
+              <span className="text-[#F26B1F]/80 uppercase text-[10px] font-bold">
+                {p.destination}
+              </span>
+            </button>
           ))}
         </div>
       </div>
