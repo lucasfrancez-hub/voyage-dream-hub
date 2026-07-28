@@ -628,7 +628,9 @@ function TicketDetailsView({
   datePrices?: any[];
 }) {
   const tourFrom = datePrices.length
-    ? Math.min(...datePrices.map((d) => Number(d.price_per_person) || 0))
+    ? Math.min(
+        ...datePrices.map((d) => (Number(d.price_per_person) || 0) + (Number(d.taxes) || 0)),
+      )
     : 0;
   const services = (pkg.services ?? {}) as any;
   const transferSvc = services.transfer ?? {};
