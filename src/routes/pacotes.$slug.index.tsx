@@ -1146,6 +1146,11 @@ function PreCheckoutDialog({
       toast.error("Escolha uma data para continuar");
       return;
     }
+    if (needsModality && !modality) {
+      toast.error("Escolha a modalidade para continuar");
+      return;
+    }
+
     const selectedKeys = Object.entries(selected).filter(([, v]) => v).map(([k]) => k);
     navigate({
       to: "/pacotes/$slug/checkout",
