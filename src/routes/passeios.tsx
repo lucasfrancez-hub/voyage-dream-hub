@@ -287,7 +287,7 @@ function PasseiosPage() {
                         },
                         {
                           label: "Bebê",
-                          hint: "0 a 2 anos — não paga",
+                          hint: "0 a 2 anos",
                           value: infants,
                           set: setInfants,
                           min: 0,
