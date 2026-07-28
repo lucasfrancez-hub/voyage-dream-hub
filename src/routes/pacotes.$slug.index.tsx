@@ -1203,14 +1203,15 @@ function PreCheckoutDialog({
         <div
           className={cn(
             "flex-1 overflow-y-auto grid grid-cols-1",
-            isFlexibleDate && hasAddons
+            isFlexibleDate && (hasAddons || needsModality || tourTimes.length > 0)
               ? "lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border/60"
               : "",
           )}
         >
           {/* Left: Calendar */}
           {isFlexibleDate && (
-            <div className="p-6 lg:p-8 flex flex-col">
+            <div className="p-5 lg:p-6 flex flex-col">
+
               {(() => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
