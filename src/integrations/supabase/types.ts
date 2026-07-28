@@ -134,6 +134,531 @@ export type Database = {
           },
         ]
       }
+      catalog_availabilities: {
+        Row: {
+          available: boolean
+          created_at: string
+          details: Json
+          id: string
+          period_end: string
+          period_start: string
+          product_id: string
+          searched_at: string
+          updated_at: string
+        }
+        Insert: {
+          available?: boolean
+          created_at?: string
+          details?: Json
+          id?: string
+          period_end: string
+          period_start: string
+          product_id: string
+          searched_at?: string
+          updated_at?: string
+        }
+        Update: {
+          available?: boolean
+          created_at?: string
+          details?: Json
+          id?: string
+          period_end?: string
+          period_start?: string
+          product_id?: string
+          searched_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_availabilities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_categories: {
+        Row: {
+          created_at: string
+          external_code: string | null
+          id: string
+          name: string
+          operator_id: string | null
+          subcategory: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_code?: string | null
+          id?: string
+          name: string
+          operator_id?: string | null
+          subcategory?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_code?: string | null
+          id?: string
+          name?: string
+          operator_id?: string | null
+          subcategory?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_categories_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_destinations: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string
+          external_code: string | null
+          id: string
+          name: string
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          external_code?: string | null
+          id?: string
+          name: string
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          external_code?: string | null
+          id?: string
+          name?: string
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_import_logs: {
+        Row: {
+          context: Json
+          created_at: string
+          id: string
+          level: string
+          message: string
+          run_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: string
+          level?: string
+          message: string
+          run_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: string
+          level?: string
+          message?: string
+          run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_import_logs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_import_runs: {
+        Row: {
+          category: string | null
+          config: Json
+          created_at: string
+          created_by: string | null
+          destination: string | null
+          finished_at: string | null
+          id: string
+          operator_slug: string | null
+          progress: Json
+          report: Json
+          started_at: string
+          status: string
+          total_errors: number
+          total_found: number
+          total_new: number
+          total_updated: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          destination?: string | null
+          finished_at?: string | null
+          id?: string
+          operator_slug?: string | null
+          progress?: Json
+          report?: Json
+          started_at?: string
+          status?: string
+          total_errors?: number
+          total_found?: number
+          total_new?: number
+          total_updated?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          destination?: string | null
+          finished_at?: string | null
+          id?: string
+          operator_slug?: string | null
+          progress?: Json
+          report?: Json
+          started_at?: string
+          status?: string
+          total_errors?: number
+          total_found?: number
+          total_new?: number
+          total_updated?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_operators: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          portal: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          portal?: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          portal?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_product_history: {
+        Row: {
+          change_type: string
+          created_at: string
+          id: string
+          product_id: string
+          run_id: string | null
+          snapshot: Json
+        }
+        Insert: {
+          change_type?: string
+          created_at?: string
+          id?: string
+          product_id: string
+          run_id?: string | null
+          snapshot?: Json
+        }
+        Update: {
+          change_type?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          run_id?: string | null
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_product_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_product_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_product_images: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          product_id: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position?: number
+          product_id: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          product_id?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_products: {
+        Row: {
+          available_days: Json
+          cancellation_policy: string | null
+          category_id: string | null
+          change_policy: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          currency: string | null
+          departure_place: string | null
+          description: string | null
+          destination_id: string | null
+          destination_label: string | null
+          duration: string | null
+          external_code: string
+          fingerprint: string | null
+          highlights: Json
+          id: string
+          important_info: string | null
+          imported_at: string
+          includes: Json
+          internal_code: string | null
+          language: string | null
+          last_seen_at: string
+          meeting_point: string | null
+          name: string
+          not_includes: Json
+          notes: string | null
+          operator_id: string
+          price: number | null
+          product_url: string | null
+          raw: Json
+          requirements: string | null
+          return_place: string | null
+          schedules: Json
+          service_type: string | null
+          state: string | null
+          status: string
+          subtitle: string | null
+          summary: string | null
+          supplier: string | null
+          updated_at: string
+        }
+        Insert: {
+          available_days?: Json
+          cancellation_policy?: string | null
+          category_id?: string | null
+          change_policy?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          departure_place?: string | null
+          description?: string | null
+          destination_id?: string | null
+          destination_label?: string | null
+          duration?: string | null
+          external_code: string
+          fingerprint?: string | null
+          highlights?: Json
+          id?: string
+          important_info?: string | null
+          imported_at?: string
+          includes?: Json
+          internal_code?: string | null
+          language?: string | null
+          last_seen_at?: string
+          meeting_point?: string | null
+          name: string
+          not_includes?: Json
+          notes?: string | null
+          operator_id: string
+          price?: number | null
+          product_url?: string | null
+          raw?: Json
+          requirements?: string | null
+          return_place?: string | null
+          schedules?: Json
+          service_type?: string | null
+          state?: string | null
+          status?: string
+          subtitle?: string | null
+          summary?: string | null
+          supplier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          available_days?: Json
+          cancellation_policy?: string | null
+          category_id?: string | null
+          change_policy?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          departure_place?: string | null
+          description?: string | null
+          destination_id?: string | null
+          destination_label?: string | null
+          duration?: string | null
+          external_code?: string
+          fingerprint?: string | null
+          highlights?: Json
+          id?: string
+          important_info?: string | null
+          imported_at?: string
+          includes?: Json
+          internal_code?: string | null
+          language?: string | null
+          last_seen_at?: string
+          meeting_point?: string | null
+          name?: string
+          not_includes?: Json
+          notes?: string | null
+          operator_id?: string
+          price?: number | null
+          product_url?: string | null
+          raw?: Json
+          requirements?: string | null
+          return_place?: string | null
+          schedules?: Json
+          service_type?: string | null
+          state?: string | null
+          status?: string
+          subtitle?: string | null
+          summary?: string | null
+          supplier?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_destinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_rates: {
+        Row: {
+          amount: number | null
+          availability_id: string | null
+          created_at: string
+          currency: string
+          details: Json
+          id: string
+          label: string | null
+          product_id: string
+          rate_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          availability_id?: string | null
+          created_at?: string
+          currency?: string
+          details?: Json
+          id?: string
+          label?: string | null
+          product_id: string
+          rate_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          availability_id?: string | null
+          created_at?: string
+          currency?: string
+          details?: Json
+          id?: string
+          label?: string | null
+          product_id?: string
+          rate_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_rates_availability_id_fkey"
+            columns: ["availability_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_availabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_rates_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checkin_training_scripts: {
         Row: {
           airline: string
