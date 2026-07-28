@@ -431,18 +431,20 @@ function AdminPackages() {
       normalized.slug = `${cleanSlug}-${n}`;
     }
 
-    // Duplicate detection: same destination + going_date + return_date (and hotel_name, when informado).
-    // Só dispara pra pacotes com data preenchida.
+    // Duplicate detection: só é duplicado quando ORIGEM + DESTINO + DATAS batem.
+    // Origens diferentes (ex.: Chapecó x Curitiba) nunca são duplicidade.
     if (pkg.going_date && pkg.return_date && normalized.destination) {
       const { data: dupRows } = await supabase
         .from("packages")
-        .select("id, title, hotel_name, going_date, return_date, destination")
+        .select("id, title, hotel_name, going_date, return_date, destination, origin")
         .ilike("destination", normalized.destination.trim())
         .eq("going_date", pkg.going_date)
         .eq("return_date", pkg.return_date);
       const hotelTrim = (pkg.hotel_name || "").trim().toLowerCase();
+      const originTrim = originKey((pkg as any).origin);
       const matches = (dupRows ?? []).filter((r: any) => {
         if (pkg.id && r.id === pkg.id) return false;
+        if (originKey(r.origin) !== originTrim) return false;
         if (!hotelTrim) return true;
         return (r.hotel_name || "").trim().toLowerCase() === hotelTrim;
       });
