@@ -469,9 +469,11 @@ function Checkout() {
         const kindLabel =
           (pkg as any)?.kind === "cruise"
             ? "Cruzeiro"
-            : (pkg as any)?.kind === "service"
-              ? "Ingresso / Serviço"
-              : "Pacote";
+            : (pkg as any)?.kind === "tour"
+              ? "Passeio"
+              : (pkg as any)?.kind === "service"
+                ? "Ingresso / Serviço"
+                : "Pacote";
         try {
           await notifyPix({
             data: {
@@ -971,7 +973,7 @@ function Checkout() {
               <div className="mt-5 space-y-2 text-sm border-t border-border pt-4">
                 {isPerUnit ? (
                   <SummaryLine
-                    label={`Ingressos × ${adults}`}
+                    label={`${isTour ? "Passeios" : "Ingressos"} × ${adults}`}
                     value={formatBRL(Number(pkg.price_per_person) * adults)}
                   />
                 ) : (
