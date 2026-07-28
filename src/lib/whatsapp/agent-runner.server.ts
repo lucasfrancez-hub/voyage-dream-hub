@@ -259,7 +259,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   try {
     const system = buildSystemPrompt(agent, conv, protocolo, isNewProtocolo);
-    let result: Awaited<ReturnType<typeof generateText>> | null = null;
+    let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
     for (let i = 0; i < MODEL_CHAIN.length; i++) {
       try {
