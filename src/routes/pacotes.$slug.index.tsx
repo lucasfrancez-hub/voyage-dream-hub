@@ -1267,7 +1267,7 @@ function PreCheckoutDialog({
                     captionLayout="dropdown"
                     fromYear={today.getFullYear()}
                     toYear={today.getFullYear() + 3}
-                    className={cn("p-0 pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]")}
+                    className={cn("p-0 pointer-events-auto w-full [--cell-size:2.1rem] sm:[--cell-size:2.4rem]")}
                     classNames={{
                       root: "w-full",
                       months: "w-full",
