@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import { TourInfoEditor } from "@/components/packages/TourInfoEditor";
+import { TourHtmlImporter } from "@/components/packages/TourHtmlImporter";
 import {
   Select,
   SelectContent,
@@ -2146,6 +2147,11 @@ function PackageEditorModal({
 
             {tab === "dates" && kind === "tour" && (
               <div className="mb-4 space-y-4">
+                <TourHtmlImporter
+                  packageId={editing.id}
+                  destination={editing.destination}
+                  onApply={(patch) => setEditing({ ...editing, ...patch } as any)}
+                />
                 <TourInfoEditor
                   value={editing as any}
                   onChange={(patch) => setEditing({ ...editing, ...patch } as any)}

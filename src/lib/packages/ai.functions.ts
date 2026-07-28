@@ -1187,7 +1187,7 @@ export const summarizeTourInfo = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z
       .object({
-        raw: z.string().min(20).max(30000),
+        raw: z.string().min(20).max(60000),
         title: z.string().max(300).optional(),
         destination: z.string().max(200).optional(),
       })
@@ -1207,6 +1207,7 @@ Produza um JSON com estes campos:
 - "modalities": array com os nomes das modalidades/opções distintas (ex.: "Harmonização com pastel de nata"). Vazio se só existir uma.
 - "includes": array curto do que está incluso.
 - "not_includes": array curto do que NÃO está incluso.
+- "short": chamada curta de 1 frase (máx. 90 caracteres) no estilo "Viva a experiência de ... em Orlando". Sem preço.
 - "notes": observações importantes (políticas, horários especiais, mínimo de pax) em texto curto, com quebras \\n.
 Responda SOMENTE o JSON, sem markdown.`;
 
@@ -1243,6 +1244,7 @@ Responda SOMENTE o JSON, sem markdown.`;
       Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean).slice(0, 30) : [];
     return {
       summary: String(parsed.summary ?? "").trim(),
+      short: String(parsed.short ?? "").trim().slice(0, 140),
       meeting_point: String(parsed.meeting_point ?? "").trim(),
       times: arr(parsed.times),
       modalities: arr(parsed.modalities),
