@@ -729,10 +729,47 @@ function TicketDetailsView({
           </div>
 
           {/* Sobre o ingresso */}
-          {pkg.summary && (
+          {(pkg.ai_summary || pkg.summary) && (
             <section>
               <SectionHeader>{isTour ? "Sobre o passeio" : "Sobre o ingresso"}</SectionHeader>
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{pkg.summary}</p>
+              {pkg.ai_summary ? (
+                <WhatsAppText className="text-muted-foreground leading-relaxed">
+                  {pkg.ai_summary}
+                </WhatsAppText>
+              ) : (
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                  {pkg.summary}
+                </p>
+              )}
+            </section>
+          )}
+
+          {(pkg.meeting_point || (pkg.tour_times ?? []).length > 0) && (
+            <section>
+              <SectionHeader>Ponto de encontro e horários</SectionHeader>
+              <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
+                {pkg.meeting_point && (
+                  <div className="flex items-start gap-3 text-sm">
+                    <MapPin className="h-4 w-4 mt-0.5 text-brand-orange shrink-0" />
+                    <span className="leading-relaxed">{pkg.meeting_point}</span>
+                  </div>
+                )}
+                {(pkg.tour_times ?? []).length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      Horários de saída
+                    </span>
+                    {(pkg.tour_times as string[]).map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-full bg-brand-orange/10 px-3 py-1 text-xs font-bold text-brand-orange"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
