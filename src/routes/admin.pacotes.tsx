@@ -30,6 +30,7 @@ import {
   Package as PackageIcon,
   MapPin,
 } from "lucide-react";
+import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import {
   Select,
   SelectContent,
@@ -816,7 +817,16 @@ function AdminPackages() {
                     } catch {
                       setPendingNumbers(null);
                     }
-                    setEditing({ ...emptyForm, kind: k });
+                    setEditing(
+                      k === "tour"
+                        ? {
+                            ...emptyForm,
+                            kind: k,
+                            date_mode: "flexible",
+                            pricing_mode: "per_unit",
+                          }
+                        : { ...emptyForm, kind: k },
+                    );
                   }}
                   className="gap-2"
                 >
@@ -2121,6 +2131,12 @@ function PackageEditorModal({
                     <span className="text-sm">Mostrar</span>
                   </label>
                 </div>
+              </div>
+            )}
+
+            {tab === "dates" && kind === "tour" && (
+              <div className="mb-4">
+                <TourDatesEditor packageId={editing.id} />
               </div>
             )}
 
