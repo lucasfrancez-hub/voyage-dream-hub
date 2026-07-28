@@ -4798,7 +4798,8 @@ function DuplicatePackagesAlert({
       </div>
       <div className="px-4 pb-5 space-y-4">
         <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-          Mesma origem, destino, datas, hotel e preço. Abra e exclua as cópias que não quiser
+          Mesma origem, mesmo destino e mesmas datas. Abra e exclua as cópias que não quiser
+
           manter.
         </p>
         <div className="space-y-3">
