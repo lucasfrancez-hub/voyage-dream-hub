@@ -159,15 +159,11 @@ export function TourBulkImporter({
             className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs normal-case"
           />
         </label>
-        <label className="flex items-end gap-2 text-xs font-bold text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={useAi}
-            onChange={(e) => setUseAi(e.target.checked)}
-            className="mb-2.5"
-          />
-          <span className="mb-2">Resumir cada passeio com IA</span>
-        </label>
+        <p className="text-[11px] text-muted-foreground sm:col-span-2">
+          A descrição de cada passeio é gravada como texto do operador — depois é só abrir o
+          passeio e clicar em <strong>Gerar descrição com IA</strong>.
+        </p>
+
       </div>
 
       <button
