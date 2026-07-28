@@ -1238,6 +1238,47 @@ function PreCheckoutDialog({
                 </div>
               )}
 
+              {(tourModalities.length > 0 || tourTimes.length > 0) && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {tourModalities.length > 0 && (
+                    <label className="block space-y-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Modalidade
+                      </span>
+                      <select
+                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-orange"
+                        value={modality}
+                        onChange={(e) => setModality(e.target.value)}
+                      >
+                        {tourModalities.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {tourTimes.length > 0 && (
+                    <label className="block space-y-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Horário de saída
+                      </span>
+                      <select
+                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-orange"
+                        value={time}
+                        onChange={(e) => setTime(e.target.value)}
+                      >
+                        {tourTimes.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                </div>
+              )}
+
               <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">
                 * Preços podem variar de acordo com a data selecionada
               </div>
