@@ -491,6 +491,8 @@ export function TourDatesEditor({
           </button>
         </div>
       </details>
-    </div>
-  );
+      </div>
+    );
+  }
 }
+
