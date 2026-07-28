@@ -29,6 +29,8 @@ export type TourImportPatch = {
   ai_summary?: string;
   includes?: string[];
   tour_modalities?: string[];
+  meeting_point?: string;
+  tour_times?: string[];
   price_per_person?: number;
   date_mode?: string;
   pricing_mode?: string;
