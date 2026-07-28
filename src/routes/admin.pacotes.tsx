@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { CruiseDetailsEditor } from "@/components/admin/CruiseDetailsEditor";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -28,6 +28,7 @@ import {
   Ticket,
   Ship,
   Package as PackageIcon,
+  Database,
 } from "lucide-react";
 import {
   Select,
@@ -821,6 +822,11 @@ function AdminPackages() {
                   <Icon className="h-4 w-4 text-brand-orange" /> {label}
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuItem asChild className="gap-2">
+                <Link to="/admin/catalogo">
+                  <Database className="h-4 w-4 text-brand-orange" /> Serviços importados (teste)
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
