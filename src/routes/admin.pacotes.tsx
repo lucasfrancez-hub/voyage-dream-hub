@@ -129,7 +129,7 @@ type FlightInfo = {
   segments?: FlightSegment[];
 };
 
-type PackageKind = "package" | "service" | "cruise";
+type PackageKind = "package" | "service" | "cruise" | "tour";
 
 type PackageRow = {
   id: string;
