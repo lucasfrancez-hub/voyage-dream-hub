@@ -2391,29 +2391,34 @@ function PackageEditorModal({
                   </FormField>
                 )}
                 {kind !== "tour" && (
-                  <>
-                    <FormField label="Preço por pessoa *">
-                      <input
-                        type="number"
-                        step="0.01"
-                        className={inp}
-                        value={editing.price_per_person ?? 0}
-                        onChange={(e) =>
-                          setEditing({ ...editing, price_per_person: Number(e.target.value) })
-                        }
-                      />
-                    </FormField>
-                    <FormField label="Valor das taxas inclusas (informativo)">
-                      <input
-                        type="number"
-                        step="0.01"
-                        className={inp}
-                        value={editing.taxes ?? 0}
-                        onChange={(e) => setEditing({ ...editing, taxes: Number(e.target.value) })}
-                      />
-                    </FormField>
-                  </>
+                  <FormField label="Preço por pessoa *">
+                    <input
+                      type="number"
+                      step="0.01"
+                      className={inp}
+                      value={editing.price_per_person ?? 0}
+                      onChange={(e) =>
+                        setEditing({ ...editing, price_per_person: Number(e.target.value) })
+                      }
+                    />
+                  </FormField>
                 )}
+                <FormField
+                  label={
+                    kind === "tour"
+                      ? "Valor das taxas (somado ao preço do HTML)"
+                      : "Valor das taxas inclusas (informativo)"
+                  }
+                >
+                  <input
+                    type="number"
+                    step="0.01"
+                    className={inp}
+                    value={editing.taxes ?? 0}
+                    onChange={(e) => setEditing({ ...editing, taxes: Number(e.target.value) })}
+                  />
+                </FormField>
+
               </div>
             )}
 
