@@ -70,33 +70,10 @@ export function TourBulkImporter({
         while (used.has(slug)) slug = `${slugify(t.title)}-${n++}`;
         used.add(slug);
 
-        let ai: Awaited<ReturnType<typeof summarize>> | null = null;
-        if (useAi && t.description.length >= 20) {
-          try {
-            ai = await summarize({
-              data: {
-                raw: t.description.slice(0, 55000),
-                title: t.title,
-                destination: destination.trim(),
-              },
-            });
-          } catch {
-            ai = null;
-          }
-        }
-
         const minPrice = t.prices.reduce(
           (m, p) => (m === 0 ? p.price_per_person : Math.min(m, p.price_per_person)),
           0,
         );
-        const aiSummary = ai?.summary
-          ? [
-              ai.notes ? `${ai.summary}\n\n*Informações importantes*\n${ai.notes}` : ai.summary,
-              !ai.times?.length && ai.hours_note ? `*Horário*\n${ai.hours_note}` : "",
-            ]
-              .filter(Boolean)
-              .join("\n\n")
-          : null;
 
         const { data: inserted, error } = await supabase
           .from("packages")
@@ -105,14 +82,13 @@ export function TourBulkImporter({
             title: t.title,
             destination: destination.trim(),
             image_url: t.image_url || null,
-            summary: ai?.short || null,
-            ai_summary: aiSummary,
+            summary: null,
+            ai_summary: null,
             includes: t.includes,
             tour_modalities: t.modalities,
-            tour_times: ai?.times ?? [],
-            meeting_point:
-              ai?.meeting_point ||
-              "Embarque livre: não há ponto de encontro fixo — apresente o voucher ao embarcar na parada mais próxima.",
+            tour_times: [],
+            meeting_point: null,
+            services: t.description ? { raw_description: t.description.slice(0, 55000) } : {},
             price_per_person: minPrice || 0,
             taxes: 0,
             kind: "tour",
@@ -123,6 +99,7 @@ export function TourBulkImporter({
           } as any)
           .select("id")
           .single();
+
         if (error) {
           toast.error(`${t.title}: ${error.message}`);
           continue;
