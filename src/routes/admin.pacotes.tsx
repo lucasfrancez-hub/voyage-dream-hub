@@ -585,7 +585,7 @@ function AdminPackages() {
     if (error) throw error;
     // Passeio novo: grava o calendário importado que ainda estava só na prévia.
     const pendingPrices = (pkg as any).__pendingPrices as
-      | { date: string; modality: string; price_per_person: number }[]
+      | { date: string; modality: string; price_per_person: number; taxes?: number }[]
       | undefined;
     if (payloadKind === "tour" && pendingPrices?.length && savedPackage.data?.id) {
       const { error: priceErr } = await supabase.from("package_date_prices").upsert(
@@ -594,10 +594,11 @@ function AdminPackages() {
           date: r.date,
           modality: r.modality ?? "",
           price_per_person: Number(r.price_per_person) || 0,
-          taxes: 0,
+          taxes: Number(r.taxes) || 0,
           seats: null,
           is_available: true,
         })),
+
         { onConflict: "package_id,date,modality" },
       );
       if (priceErr) console.error("[packages] falha ao gravar calendário do passeio", priceErr);
@@ -2261,7 +2262,11 @@ function PackageEditorModal({
                   packageId={editing.id}
                   modalities={(editing as any).tour_modalities ?? []}
                   pendingRows={(editing as any).__pendingPrices ?? []}
+                  onRowsChange={(rows) =>
+                    setEditing((prev: any) => ({ ...prev, __pendingPrices: rows }))
+                  }
                 />
+
               </div>
             )}
 
