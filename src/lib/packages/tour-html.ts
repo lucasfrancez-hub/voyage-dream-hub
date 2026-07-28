@@ -62,6 +62,31 @@ function cleanModality(raw: string, title: string) {
   return m.trim() || cleanText(raw);
 }
 
+/** Divide um HTML com vários serviços do portal em blocos individuais. */
+export function splitTourHtmlBlocks(html: string): string[] {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const nodes = [
+    ...doc.querySelectorAll<HTMLElement>(".product-main-content, .servico-opcao-card"),
+  ].filter((el, _i, arr) => !arr.some((other) => other !== el && other.contains(el)));
+  const blocks = nodes
+    .filter((el) => el.querySelector(".servico-titulo"))
+    .map((el) => el.outerHTML);
+  return blocks.length ? blocks : [html];
+}
+
+/** Interpreta um HTML com vários passeios e devolve um ParsedTour por serviço. */
+export function parseMultipleTourHtml(html: string): ParsedTour[] {
+  return splitTourHtmlBlocks(html)
+    .map((block) => {
+      try {
+        return parseTourHtml(block);
+      } catch {
+        return null;
+      }
+    })
+    .filter((t): t is ParsedTour => !!t && !!t.title);
+}
+
 export function parseTourHtml(html: string): ParsedTour {
   const doc = new DOMParser().parseFromString(html, "text/html");
   doc.querySelectorAll("script,style").forEach((el) => el.remove());
