@@ -555,7 +555,7 @@ function AdminPackages() {
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
       qc.invalidateQueries({ queryKey: ["packages"] });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao salvar";
+      const message = errMsg(err);
       toast.error(message);
     } finally {
       setSaving(false);
