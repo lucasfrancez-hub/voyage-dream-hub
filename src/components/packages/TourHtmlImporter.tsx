@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { summarizeTourInfo } from "@/lib/packages/ai.functions";
 import { parseTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
+import { DestinationInput } from "@/components/packages/DestinationInput";
 
 const inp =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand-orange";
@@ -24,6 +25,7 @@ function brl(n: number) {
 
 export type TourImportPatch = {
   title?: string;
+  destination?: string;
   image_url?: string;
   summary?: string;
   ai_summary?: string;
@@ -36,7 +38,7 @@ export type TourImportPatch = {
   pricing_mode?: string;
 };
 
-const STEPS = ["HTML do serviço", "Texto complementar", "Pronto"];
+const STEPS = ["Destino", "HTML do serviço", "Texto complementar", "Pronto"];
 
 export function TourHtmlImporter({
   packageId,
@@ -50,6 +52,7 @@ export function TourHtmlImporter({
   const qc = useQueryClient();
   const summarize = useServerFn(summarizeTourInfo);
   const [step, setStep] = useState(0);
+  const [destCity, setDestCity] = useState(destination ?? "");
   const [html, setHtml] = useState("");
   const [extra, setExtra] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -78,7 +81,7 @@ export function TourHtmlImporter({
       const res = parseTourHtml(html);
       setParsed(res);
       setImageUrl(res.image_url || "");
-      setStep(1);
+      setStep(2);
       toast.success(
         `${res.modalities.length} modalidade(s) e ${res.prices.length} preço(s) encontrados.`,
       );
@@ -123,7 +126,7 @@ export function TourHtmlImporter({
       let ai: Awaited<ReturnType<typeof summarize>> | null = null;
       if (raw.length >= 20) {
         ai = await summarize({
-          data: { raw, title: parsed.title || undefined, destination: destination ?? undefined },
+          data: { raw, title: parsed.title || undefined, destination: destCity.trim() || destination || undefined },
         });
       }
       const minPrice = parsed.prices.reduce(
@@ -132,6 +135,7 @@ export function TourHtmlImporter({
       );
       onApply({
         ...(parsed.title ? { title: parsed.title } : {}),
+        ...(destCity.trim() ? { destination: destCity.trim() } : {}),
         ...(imageUrl ? { image_url: imageUrl } : {}),
         ...(ai?.short ? { summary: ai.short } : {}),
         ...(ai?.summary
@@ -166,7 +170,7 @@ export function TourHtmlImporter({
         pricing_mode: "per_unit",
       });
       const saved = await savePrices(parsed, true);
-      setStep(2);
+      setStep(3);
       toast.success(
         saved
           ? "Tudo preenchido e calendário de preços gravado."
@@ -194,7 +198,7 @@ export function TourHtmlImporter({
           <Code2 className="h-4 w-4" /> Importar passeio por HTML
         </h3>
         <span className="text-[11px] font-semibold text-muted-foreground">
-          Etapa {step + 1} de 3
+          Etapa {step + 1} de {STEPS.length}
         </span>
       </div>
 
@@ -229,6 +233,30 @@ export function TourHtmlImporter({
         <div className="space-y-3">
           <label className="block space-y-1">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Cidade de destino (digite e escolha)
+            </span>
+            <DestinationInput value={destCity} onChange={setDestCity} />
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              if (!destCity.trim()) {
+                toast.error("Digite a cidade de destino.");
+                return;
+              }
+              setStep(1);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-white"
+          >
+            Continuar <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="space-y-3">
+          <label className="block space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Cole o bloco HTML do serviço (portal da operadora)
             </span>
             <textarea
@@ -239,17 +267,26 @@ export function TourHtmlImporter({
               placeholder='<div id="frmResultadoProduto...'
             />
           </label>
-          <button
-            type="button"
-            onClick={handleParse}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-white"
-          >
-            Continuar <ArrowRight className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setStep(0)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Voltar
+            </button>
+            <button
+              type="button"
+              onClick={handleParse}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-white"
+            >
+              Continuar <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
-      {step === 1 && parsed && (
+      {step === 2 && parsed && (
         <div className="space-y-3">
           <div className="flex items-center gap-3 rounded-lg border border-border bg-background/70 p-3">
             {(imageUrl || parsed.image_url) && (
@@ -304,7 +341,7 @@ export function TourHtmlImporter({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setStep(0)}
+              onClick={() => setStep(1)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Voltar
@@ -326,7 +363,7 @@ export function TourHtmlImporter({
         </div>
       )}
 
-      {step === 2 && parsed && (
+      {step === 3 && parsed && (
         <div className="space-y-3">
           <div className="space-y-2 rounded-lg border border-border bg-background/70 p-3 text-xs">
             <div className="inline-flex items-center gap-1.5 font-bold text-brand-orange">
