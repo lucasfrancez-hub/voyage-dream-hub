@@ -517,8 +517,14 @@ function AdminPackages() {
       nights: pkg.nights ? Number(pkg.nights) : null,
       hotel_stars: pkg.hotel_stars ? Number(pkg.hotel_stars) : null,
       sort_order: Number(pkg.sort_order) || 0,
-      going_date: (pkg.date_mode ?? "fixed") === "flexible" ? null : (pkg.going_date || null),
-      return_date: (pkg.date_mode ?? "fixed") === "flexible" ? null : (pkg.return_date || null),
+      going_date:
+        (pkg.kind ?? "package") === "tour" || (pkg.date_mode ?? "fixed") === "flexible"
+          ? null
+          : (pkg.going_date || null),
+      return_date:
+        (pkg.kind ?? "package") === "tour" || (pkg.date_mode ?? "fixed") === "flexible"
+          ? null
+          : (pkg.return_date || null),
       base_occupancy: Number(pkg.base_occupancy) || 2,
       outbound_flight: cleanFlight(pkg.outbound_flight),
       return_flight: cleanFlight(pkg.return_flight),
@@ -534,8 +540,13 @@ function AdminPackages() {
       tour_modalities: Array.isArray(pkg.tour_modalities) ? pkg.tour_modalities : [],
       ai_summary: pkg.ai_summary || null,
       kind: (pkg.kind ?? "package") as PackageKind,
-      date_mode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
-      pricing_mode: (pkg.pricing_mode ?? "per_occupancy") as "per_occupancy" | "per_unit",
+      // Passeio: sempre cliente escolhe a data e preço individual por unidade.
+      date_mode: ((pkg.kind ?? "package") === "tour"
+        ? "flexible"
+        : (pkg.date_mode ?? "fixed")) as "fixed" | "flexible",
+      pricing_mode: ((pkg.kind ?? "package") === "tour"
+        ? "per_unit"
+        : (pkg.pricing_mode ?? "per_occupancy")) as "per_occupancy" | "per_unit",
       max_units: Math.min(9, Math.max(1, Number(pkg.max_units) || 9)),
       // cruise_details só existe em cruzeiro; pacote/ingresso nunca grava esse campo
       cruise_details:
