@@ -239,7 +239,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
                 const controller = new AbortController();
                 const t = setTimeout(() => controller.abort(), 20_000);
                 const { text } = await generateText({
-                  model: gateway("google/gemini-3.1-flash-lite"),
+                  model: gateway("google/gemini-2.5-flash-lite"),
                   abortSignal: controller.signal,
                   prompt:
                     "Resuma a conversa abaixo entre um cliente da VIA AIR e o atendimento (IA/humano). " +

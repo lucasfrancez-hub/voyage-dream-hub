@@ -108,7 +108,7 @@ export async function generateBroadcastSuggestions(userId: string | null) {
   const recentIds = new Set((recent ?? []).map((r) => r.package_id).filter(Boolean));
 
   const gateway = createLovableAiGatewayProvider(apiKey);
-  const model = gateway("google/gemini-3.6-flash");
+  const model = gateway("google/gemini-2.5-flash");
 
   const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
   let created = 0;
