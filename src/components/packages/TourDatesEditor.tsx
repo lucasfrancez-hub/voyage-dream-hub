@@ -332,7 +332,7 @@ export function TourDatesEditor({
         Nenhuma data cadastrada para esta modalidade ainda.
       </p>
     ) : (
-
+      <div className="space-y-3">
         <div className="grid gap-4 md:grid-cols-2">
           {months.map((month) => {
             const first = new Date(`${month}-01T00:00:00`);
