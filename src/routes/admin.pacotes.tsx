@@ -28,8 +28,9 @@ import {
   Ticket,
   Ship,
   Package as PackageIcon,
-  Database,
+  MapPin,
 } from "lucide-react";
+import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import {
   Select,
   SelectContent,
@@ -129,7 +130,7 @@ type FlightInfo = {
   segments?: FlightSegment[];
 };
 
-type PackageKind = "package" | "service" | "cruise";
+type PackageKind = "package" | "service" | "cruise" | "tour";
 
 type PackageRow = {
   id: string;
@@ -531,7 +532,7 @@ function AdminPackages() {
     } as any;
     // Isolamento por tipo: pacote, ingresso/serviço e cruzeiro não compartilham campos.
     const payloadKind: PackageKind = payload.kind;
-    if (payloadKind === "service") {
+    if (payloadKind === "service" || payloadKind === "tour") {
       // Ingresso/serviço: sem hospedagem, sem aéreo, sem cruzeiro
       payload.hotel_name = null;
       payload.hotel_stars = null;
@@ -800,6 +801,7 @@ function AdminPackages() {
               {([
                 { k: "package", label: "Pacote", Icon: PackageIcon },
                 { k: "service", label: "Ingresso / Serviço", Icon: Ticket },
+                { k: "tour", label: "Passeio", Icon: MapPin },
                 { k: "cruise", label: "Cruzeiro", Icon: Ship },
               ] as { k: PackageKind; label: string; Icon: typeof PackageIcon }[]).map(({ k, label, Icon }) => (
                 <DropdownMenuItem
@@ -815,18 +817,22 @@ function AdminPackages() {
                     } catch {
                       setPendingNumbers(null);
                     }
-                    setEditing({ ...emptyForm, kind: k });
+                    setEditing(
+                      k === "tour"
+                        ? {
+                            ...emptyForm,
+                            kind: k,
+                            date_mode: "flexible",
+                            pricing_mode: "per_unit",
+                          }
+                        : { ...emptyForm, kind: k },
+                    );
                   }}
                   className="gap-2"
                 >
                   <Icon className="h-4 w-4 text-brand-orange" /> {label}
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuItem asChild className="gap-2">
-                <Link to="/admin/catalogo">
-                  <Database className="h-4 w-4 text-brand-orange" /> Serviços importados (teste)
-                </Link>
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -858,6 +864,7 @@ function AdminPackages() {
             { k: "all", label: "Todos", Icon: ListIcon },
             { k: "package", label: "Pacotes", Icon: PackageIcon },
             { k: "service", label: "Ingressos", Icon: Ticket },
+            { k: "tour", label: "Passeios", Icon: MapPin },
             { k: "cruise", label: "Cruzeiros", Icon: Ship },
           ] as { k: "all" | PackageKind; label: string; Icon: typeof ListIcon }[]).map(({ k, label, Icon }) => {
             const active = kindFilter === k;
@@ -1706,13 +1713,13 @@ function PackageEditorModal({
     { id: "flights", label: "AÉREOS", icon: <Plane className="h-4 w-4" strokeWidth={1.75} /> },
     {
       id: "extras",
-      label: kind === "service" ? "SERVIÇOS DO INGRESSO" : "EXTRAS E INCLUSOS",
+      label: kind === "service" || kind === "tour" ? "SERVIÇOS INCLUSOS" : "EXTRAS E INCLUSOS",
       icon: <ListChecks className="h-4 w-4" strokeWidth={1.75} />,
     },
     { id: "about", label: "SOBRE O PACOTE", icon: <Info className="h-4 w-4" strokeWidth={1.75} /> },
   ];
   const tabs = allTabs.filter((t) => {
-    if (kind === "service") return t.id !== "hotel" && t.id !== "flights";
+    if (kind === "service" || kind === "tour") return t.id !== "hotel" && t.id !== "flights";
     if (kind === "cruise") return t.id !== "flights"; // cruzeiros não têm aéreo
     return true;
   });
@@ -2127,6 +2134,12 @@ function PackageEditorModal({
               </div>
             )}
 
+            {tab === "dates" && kind === "tour" && (
+              <div className="mb-4">
+                <TourDatesEditor packageId={editing.id} />
+              </div>
+            )}
+
             {tab === "dates" && (
               <div className="grid sm:grid-cols-2 gap-3">
                 {kind !== "package" && (
@@ -2157,7 +2170,7 @@ function PackageEditorModal({
                 )}
 
                 {(editing.date_mode ?? "fixed") === "fixed" && (
-                  kind === "service" ? (
+                  kind === "service" || kind === "tour" ? (
                     <FormField label="Data do evento / uso">
                       <input
                         type="date"
@@ -2187,7 +2200,7 @@ function PackageEditorModal({
                     </>
                   )
                 )}
-                {kind !== "service" && (
+                {kind !== "service" && kind !== "tour" && (
                   <FormField label="Noites">
                     <input
                       type="number"
@@ -2648,7 +2661,7 @@ function ServicesEditor({
   const outros = v.outros ?? [];
   const showCancelamento = kind === "package" || kind === "cruise";
   const showCityTour = kind === "package";
-  const showTickets = kind === "package" || kind === "service";
+  const showTickets = kind === "package" || kind === "service" || kind === "tour";
   const showOutros = kind !== "service";
 
 

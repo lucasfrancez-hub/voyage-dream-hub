@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, MessageCircle, Ticket, Ship, Package as PackageIcon, Menu } from "lucide-react";
+import { ArrowLeft, Compass, MessageCircle, Ticket, Ship, Package as PackageIcon, Menu } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { WHATSAPP_PHONE } from "@/lib/checkout-config";
@@ -75,6 +75,13 @@ export function TopBar({
                   <Ticket className="h-4 w-4" /> Ingressos
                 </Link>
                 <Link
+                  to="/passeios"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
+                >
+                  <Compass className="h-4 w-4" /> Passeios
+                </Link>
+                <Link
                   to="/pacotes"
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
@@ -113,6 +120,9 @@ export function TopBar({
         <nav className="hidden lg:flex items-center gap-6">
           <Link to="/ingressos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
             <Ticket className="h-3.5 w-3.5" /> Ingressos
+          </Link>
+          <Link to="/passeios" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
+            <Compass className="h-3.5 w-3.5" /> Passeios
           </Link>
           <Link to="/pacotes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
             <PackageIcon className="h-3.5 w-3.5" /> Pacotes

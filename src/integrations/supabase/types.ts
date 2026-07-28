@@ -2340,6 +2340,53 @@ export type Database = {
           },
         ]
       }
+      package_date_prices: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          is_available: boolean
+          note: string | null
+          package_id: string
+          price_per_person: number
+          seats: number | null
+          taxes: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          is_available?: boolean
+          note?: string | null
+          package_id: string
+          price_per_person?: number
+          seats?: number | null
+          taxes?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          is_available?: boolean
+          note?: string | null
+          package_id?: string
+          price_per_person?: number
+          seats?: number | null
+          taxes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_date_prices_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       packages: {
         Row: {
           base_occupancy: number

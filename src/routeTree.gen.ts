@@ -21,13 +21,13 @@ import { Route as MinhasReservasRouteImport } from './routes/minhas-reservas'
 import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
+import { Route as PasseiosRouteImport } from './routes/passeios'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
-import { Route as AdminCatalogoRouteImport } from './routes/admin.catalogo'
 import { Route as AdminCheckinTreinoRouteImport } from './routes/admin.checkin-treino'
 import { Route as AdminCheckinsRouteImport } from './routes/admin.checkins'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
@@ -71,7 +71,6 @@ import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
-import { Route as ApiPublicCatalogImportRouteImport } from './routes/api/public/catalog-import'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
@@ -157,6 +156,11 @@ const PagarBoletoRoute = PagarBoletoRouteImport.update({
   path: '/pagar-boleto',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PasseiosRoute = PasseiosRouteImport.update({
+  id: '/passeios',
+  path: '/passeios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
   id: '/politica-de-privacidade',
   path: '/politica-de-privacidade',
@@ -186,11 +190,6 @@ const ValidacaoRoute = ValidacaoRouteImport.update({
   id: '/validacao',
   path: '/validacao',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AdminCatalogoRoute = AdminCatalogoRouteImport.update({
-  id: '/catalogo',
-  path: '/catalogo',
-  getParentRoute: () => AdminRoute,
 } as any)
 const AdminCheckinTreinoRoute = AdminCheckinTreinoRouteImport.update({
   id: '/checkin-treino',
@@ -407,11 +406,6 @@ const ApiChatCamilaRoute = ApiChatCamilaRouteImport.update({
   path: '/api/chat/camila',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicCatalogImportRoute = ApiPublicCatalogImportRouteImport.update({
-  id: '/api/public/catalog-import',
-  path: '/api/public/catalog-import',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicClicksignWebhookRoute =
   ApiPublicClicksignWebhookRouteImport.update({
     id: '/api/public/clicksign-webhook',
@@ -561,13 +555,13 @@ export interface FileRoutesByFullPath {
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/passeios': typeof PasseiosRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
-  '/admin/catalogo': typeof AdminCatalogoRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -610,7 +604,6 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
-  '/api/public/catalog-import': typeof ApiPublicCatalogImportRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
@@ -649,13 +642,13 @@ export interface FileRoutesByTo {
   '/minhas-reservas': typeof MinhasReservasRoute
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/passeios': typeof PasseiosRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
-  '/admin/catalogo': typeof AdminCatalogoRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -698,7 +691,6 @@ export interface FileRoutesByTo {
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
-  '/api/public/catalog-import': typeof ApiPublicCatalogImportRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
@@ -739,13 +731,13 @@ export interface FileRoutesById {
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
+  '/passeios': typeof PasseiosRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
-  '/admin/catalogo': typeof AdminCatalogoRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -788,7 +780,6 @@ export interface FileRoutesById {
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
-  '/api/public/catalog-import': typeof ApiPublicCatalogImportRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
@@ -830,13 +821,13 @@ export interface FileRouteTypes {
     | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
+    | '/passeios'
     | '/politica-de-privacidade'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/validacao'
-    | '/admin/catalogo'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -879,7 +870,6 @@ export interface FileRouteTypes {
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
-    | '/api/public/catalog-import'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
@@ -918,13 +908,13 @@ export interface FileRouteTypes {
     | '/minhas-reservas'
     | '/pagar'
     | '/pagar-boleto'
+    | '/passeios'
     | '/politica-de-privacidade'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/validacao'
-    | '/admin/catalogo'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -967,7 +957,6 @@ export interface FileRouteTypes {
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
-    | '/api/public/catalog-import'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
@@ -1007,13 +996,13 @@ export interface FileRouteTypes {
     | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
+    | '/passeios'
     | '/politica-de-privacidade'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/validacao'
-    | '/admin/catalogo'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -1056,7 +1045,6 @@ export interface FileRouteTypes {
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
-    | '/api/public/catalog-import'
     | '/api/public/clicksign-webhook'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
@@ -1097,6 +1085,7 @@ export interface RootRouteChildren {
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
   PagarBoletoRoute: typeof PagarBoletoRoute
+  PasseiosRoute: typeof PasseiosRoute
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -1111,7 +1100,6 @@ export interface RootRouteChildren {
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   WSlugRoute: typeof WSlugRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
-  ApiPublicCatalogImportRoute: typeof ApiPublicCatalogImportRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
@@ -1222,6 +1210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PagarBoletoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/passeios': {
+      id: '/passeios'
+      path: '/passeios'
+      fullPath: '/passeios'
+      preLoaderRoute: typeof PasseiosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/politica-de-privacidade': {
       id: '/politica-de-privacidade'
       path: '/politica-de-privacidade'
@@ -1263,13 +1258,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/validacao'
       preLoaderRoute: typeof ValidacaoRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/admin/catalogo': {
-      id: '/admin/catalogo'
-      path: '/catalogo'
-      fullPath: '/admin/catalogo'
-      preLoaderRoute: typeof AdminCatalogoRouteImport
-      parentRoute: typeof AdminRoute
     }
     '/admin/checkin-treino': {
       id: '/admin/checkin-treino'
@@ -1572,13 +1560,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatCamilaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/catalog-import': {
-      id: '/api/public/catalog-import'
-      path: '/api/public/catalog-import'
-      fullPath: '/api/public/catalog-import'
-      preLoaderRoute: typeof ApiPublicCatalogImportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/clicksign-webhook': {
       id: '/api/public/clicksign-webhook'
       path: '/api/public/clicksign-webhook'
@@ -1763,7 +1744,6 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
-  AdminCatalogoRoute: typeof AdminCatalogoRoute
   AdminCheckinTreinoRoute: typeof AdminCheckinTreinoRoute
   AdminCheckinsRoute: typeof AdminCheckinsRoute
   AdminCofreRoute: typeof AdminCofreRoute
@@ -1787,7 +1767,6 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminCatalogoRoute: AdminCatalogoRoute,
   AdminCheckinTreinoRoute: AdminCheckinTreinoRoute,
   AdminCheckinsRoute: AdminCheckinsRoute,
   AdminCofreRoute: AdminCofreRoute,
@@ -1874,6 +1853,7 @@ const rootRouteChildren: RootRouteChildren = {
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
   PagarBoletoRoute: PagarBoletoRoute,
+  PasseiosRoute: PasseiosRoute,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
@@ -1888,7 +1868,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   WSlugRoute: WSlugRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
-  ApiPublicCatalogImportRoute: ApiPublicCatalogImportRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,

@@ -233,7 +233,7 @@ function countServices(services?: PackageServices | null): number {
 function detectIncludes(
   list: string[] | null | undefined,
   services?: PackageServices | null,
-  kind?: "package" | "service" | "cruise" | null,
+  kind?: "package" | "service" | "cruise" | "tour" | null,
 ) {
   const s = (list ?? []).map((x) => norm(x)).join(" | ");
   const svcCount = countServices(services);
@@ -309,7 +309,7 @@ export type FeedInputPkg = {
   services?: PackageServices | null;
   meal_plan?: string | null;
   supplier_name?: string | null;
-  kind?: "package" | "service" | "cruise" | null;
+  kind?: "package" | "service" | "cruise" | "tour" | null;
   date_mode?: "fixed" | "flexible" | null;
   pricing_mode?: "per_occupancy" | "per_unit" | null;
   title?: string | null;
@@ -336,7 +336,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     .filter(Boolean);
 
   return {
-    kind: (pkg.kind ?? "package") as "package" | "service" | "cruise",
+    kind: (pkg.kind ?? "package") as "package" | "service" | "cruise" | "tour",
     dateMode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
     title: pkg.title ?? "",
     backgroundDataUrl: bg,

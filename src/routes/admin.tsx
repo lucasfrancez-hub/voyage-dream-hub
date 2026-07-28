@@ -392,12 +392,6 @@ function CartaoNav({ pathname }: { pathname: string }) {
             <span className="text-xs text-muted-foreground">Links curtos /l/xxxxxx</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/catalogo" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Importador de catálogo</span>
-            <span className="text-xs text-muted-foreground">Serviços das operadoras (Infotravel)</span>
-          </Link>
-        </DropdownMenuItem>
 
       </DropdownMenuContent>
     </DropdownMenu>

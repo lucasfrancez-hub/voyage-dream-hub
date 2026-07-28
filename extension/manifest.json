@@ -43,12 +43,6 @@
       "match_origin_as_fallback": true
     },
     {
-      "matches": ["https://*.infotravel.com.br/*"],
-      "js": ["infotravel-catalog.js"],
-      "run_at": "document_start",
-      "all_frames": true
-    },
-    {
       "matches": [
         "https://*.lovable.app/*",
         "https://*.lovableproject.com/*",
