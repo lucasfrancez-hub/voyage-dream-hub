@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, CalendarRange } from "lucide-react";
+import { Loader2, Plus, Trash2, CalendarRange, ChevronRight } from "lucide-react";
 
 type Row = {
   id?: string;
@@ -77,6 +77,7 @@ export function TourDatesEditor({
   const [saving, setSaving] = useState(false);
   const [modality, setModality] = useState<string>(modalities[0] ?? "");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["package-date-prices", packageId],
