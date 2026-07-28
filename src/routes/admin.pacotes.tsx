@@ -384,6 +384,20 @@ function AdminPackages() {
     setPage(1);
   }, [originFilter, destinationFilter, monthFilter, sortDir, sortMode]);
 
+  function errMsg(e: unknown): string {
+    if (!e) return "Erro desconhecido";
+    if (e instanceof Error) return e.message;
+    if (typeof e === "string") return e;
+    const o = e as { message?: string; details?: string; hint?: string; code?: string };
+    const parts = [o.message, o.details, o.hint].filter(Boolean) as string[];
+    if (parts.length > 0) return `${parts.join(" — ")}${o.code ? ` (${o.code})` : ""}`;
+    try {
+      return JSON.stringify(e);
+    } catch {
+      return "Erro desconhecido";
+    }
+  }
+
   async function nextPackageBaseNumber(): Promise<number> {
     const { count, error } = await supabase
       .from("packages")
@@ -391,6 +405,7 @@ function AdminPackages() {
     if (error) throw error;
     return (count ?? 0) + 1;
   }
+
 
   async function persistPackage(
     pkg: Partial<PackageRow>,
@@ -504,7 +519,7 @@ function AdminPackages() {
       date_mode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
       pricing_mode: (pkg.pricing_mode ?? "per_occupancy") as "per_occupancy" | "per_unit",
       max_units: Math.min(9, Math.max(1, Number(pkg.max_units) || 9)),
-      cruise_details: (pkg.cruise_details ?? null) as any,
+      cruise_details: (pkg.cruise_details ?? {}) as any,
     } as any;
     const savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
@@ -540,7 +555,7 @@ function AdminPackages() {
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
       qc.invalidateQueries({ queryKey: ["packages"] });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao salvar";
+      const message = errMsg(err);
       toast.error(message);
     } finally {
       setSaving(false);
@@ -565,9 +580,11 @@ function AdminPackages() {
           await persistPackage(list[i], numbering);
           ok += 1;
         } catch (e) {
-          const msg = e instanceof Error ? e.message : "Erro";
-          errors.push(`#${i + 1}: ${msg}`);
+          console.error("[packages] falha ao salvar draft", i + 1, e);
+          const label = list[i].title?.trim() || list[i].destination?.trim() || `#${i + 1}`;
+          errors.push(`${label}: ${errMsg(e)}`);
         }
+
       }
       if (ok > 0) toast.success(`${ok} pacote(s) salvo(s)`);
       if (errors.length > 0) toast.error(errors.join(" • "));
