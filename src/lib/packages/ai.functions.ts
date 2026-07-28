@@ -1202,8 +1202,9 @@ export const summarizeTourInfo = createServerFn({ method: "POST" })
 Receberá um texto bruto copiado do portal da operadora (bagunçado, sem parágrafos).
 Produza um JSON com estes campos:
 - "summary": resumo atraente e legível para o cliente, 3 a 5 parágrafos curtos separados por \\n\\n. Use *negrito no estilo WhatsApp* em no máximo 4 termos importantes. Nada de clichê, nada de preço, nada de "assessoria".
-- "meeting_point": endereço/ponto de encontro exato citado no texto (string vazia se não houver).
-- "times": array de horários de saída/entrada citados, formato "HH:MM".
+- "meeting_point": endereço/ponto de encontro exato citado no texto. Se o texto indicar que NÃO existe ponto fixo (ex.: "pode embarcar em qualquer parada", passe hop-on hop-off, apresentar voucher ao motorista), escreva um texto de embarque livre explicando isso ao passageiro, começando com "Embarque livre: ". Só deixe vazio se realmente não houver nenhuma informação.
+- "times": array de horários FIXOS de saída, formato "HH:MM". Se o serviço funciona em faixa de horário/frequência (ex.: das 8:00 às 22:30, a cada 20-30 min) e o cliente escolhe quando embarcar, retorne array vazio e descreva a operação em "hours_note".
+- "hours_note": string curta com o funcionamento quando o horário é livre (ex.: "Horário livre — opera diariamente das 8:00 às 22:30, com saídas a cada 20 a 30 minutos"). Vazio se houver horários fixos.
 - "modalities": array com os nomes das modalidades/opções distintas (ex.: "Harmonização com pastel de nata"). Vazio se só existir uma.
 - "includes": array curto do que está incluso.
 - "not_includes": array curto do que NÃO está incluso.
