@@ -124,27 +124,39 @@ function PasseiosPage() {
     return map;
   }, [prices]);
 
+  const destMatch = (t: any) => {
+    const q = destQuery.trim().toLowerCase();
+    if (!q) return true;
+    const hay = `${t.destination ?? ""} ${t.title ?? ""} ${t.origin ?? ""}`.toLowerCase();
+    return q.split(/[,\s]+/).filter(Boolean).some((w) => hay.includes(w));
+  };
+
+  const destSuggestions = useMemo(() => {
+    const q = destQuery.trim().toLowerCase();
+    if (!q) return [];
+    return (destinations as string[])
+      .filter((d) => d.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [destQuery, destinations]);
+
   const results = useMemo(() => {
     if (!searched) return [];
     return (prices as any[])
       .filter((p) => {
         const tour = tourById.get(p.package_id) as any;
         if (!tour) return false;
-        if (destination !== "all" && tour.destination !== destination) return false;
+        if (!destMatch(tour)) return false;
         if (from && p.date < from) return false;
         if (to && p.date > to) return false;
         if (p.seats != null && p.seats < pax) return false;
         return true;
       })
       .slice(0, 120);
-  }, [searched, prices, tourById, destination, from, to, pax]);
+  }, [searched, prices, tourById, destQuery, from, to, pax]);
 
   const catalog = useMemo(
-    () =>
-      (tours as any[]).filter(
-        (t) => destination === "all" || t.destination === destination,
-      ),
-    [tours, destination],
+    () => (tours as any[]).filter(destMatch),
+    [tours, destQuery],
   );
 
   return (
