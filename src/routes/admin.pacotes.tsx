@@ -33,6 +33,7 @@ import {
 import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import { TourInfoEditor } from "@/components/packages/TourInfoEditor";
 import { TourHtmlImporter } from "@/components/packages/TourHtmlImporter";
+import { TourBulkImporter } from "@/components/packages/TourBulkImporter";
 import {
   Select,
   SelectContent,
@@ -1464,6 +1465,7 @@ function PackageEditorModal({
 }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [tourImportDone, setTourImportDone] = useState(false);
+  const [tourBulkMode, setTourBulkMode] = useState(false);
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
   const [aiLoading, setAiLoading] = useState(false);
   const [imgOpen, setImgOpen] = useState(false);
