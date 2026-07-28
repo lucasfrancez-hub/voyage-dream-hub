@@ -21,6 +21,34 @@
     // Ping do admin — respondemos com nossa versão.
     if (d.__viaair === "ping") { announce(); return; }
 
+    // Importador de catálogo (Infotravel)
+    if (d.__viaair === "catalog-start") {
+      if (!d.token) return;
+      try {
+        chrome.storage.local.set(
+          {
+            "viaair::catalog": {
+              token: d.token,
+              apiBase: d.apiBase || API_BASE,
+              config: d.config || {},
+              savedAt: Date.now(),
+            },
+            "viaair::catalog::control": "running",
+          },
+          () => window.postMessage({ __viaair: "catalog-start-ack", version: VERSION }, "*"),
+        );
+      } catch (e) {
+        window.postMessage({ __viaair: "catalog-err", error: String((e && e.message) || e) }, "*");
+      }
+      return;
+    }
+    if (d.__viaair === "catalog-control") {
+      try { chrome.storage.local.set({ "viaair::catalog::control": d.status }); } catch (e) { /* noop */ }
+      return;
+    }
+
+
+
     if (d.__viaair !== "set-token") return;
     const { token, airline } = d;
     if (!token || !airline) return;
