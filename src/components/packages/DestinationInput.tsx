@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin } from "lucide-react";
+import { MapPin, Sparkles } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { buildDestinationSuggestions } from "@/lib/destinations-catalog";
 
 export function DestinationInput({
   value,
@@ -32,11 +33,10 @@ export function DestinationInput({
     staleTime: 5 * 60 * 1000,
   });
 
-  const suggestions = useMemo(() => {
-    const q = value.trim().toLowerCase();
-    if (!q) return destinations.slice(0, 8);
-    return destinations.filter((d) => d.toLowerCase().includes(q)).slice(0, 8);
-  }, [value, destinations]);
+  const suggestions = useMemo(
+    () => buildDestinationSuggestions(value, destinations, 10),
+    [value, destinations],
+  );
 
   return (
     <div className={`relative ${className}`}>
@@ -55,19 +55,30 @@ export function DestinationInput({
         />
       </div>
       {open && suggestions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-60 overflow-auto rounded-lg border border-border bg-popover shadow-lg">
-          {suggestions.map((d) => (
+        <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-72 overflow-auto rounded-lg border border-border bg-popover shadow-lg">
+          {suggestions.map((s) => (
             <button
-              key={d}
+              key={`${s.city}-${s.country ?? ""}`}
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
-                onChange(d);
+                onChange(s.value);
                 setOpen(false);
               }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm normal-case hover:bg-muted"
             >
-              <MapPin className="h-3.5 w-3.5 text-brand-orange" /> {d}
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
+              <span className="flex-1 truncate">
+                {s.city}
+                {s.country ? (
+                  <span className="text-muted-foreground">, {s.country}</span>
+                ) : null}
+              </span>
+              {s.registered && (
+                <span className="flex shrink-0 items-center gap-1 rounded-full bg-brand-orange/15 px-2 py-0.5 text-[10px] font-medium text-brand-orange">
+                  <Sparkles className="h-3 w-3" /> disponível
+                </span>
+              )}
             </button>
           ))}
         </div>
