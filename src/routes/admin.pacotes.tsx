@@ -813,15 +813,11 @@ function AdminPackages() {
                 { k: "package", label: "Pacote", Icon: PackageIcon },
                 { k: "service", label: "Ingresso / Serviço", Icon: Ticket },
                 { k: "tour", label: "Passeio", Icon: MapPin },
-                { k: "cruise", label: "Cruzeiro", Icon: Ship },
               ] as { k: PackageKind; label: string; Icon: typeof PackageIcon }[]).map(({ k, label, Icon }) => (
                 <DropdownMenuItem
                   key={k}
                   onSelect={async () => {
-                    if (k === "cruise") {
-                      setCruiseImportOpen(true);
-                      return;
-                    }
+
                     try {
                       const base = await nextPackageBaseNumber();
                       setPendingNumbers([base]);
