@@ -48,6 +48,7 @@ export function TourHtmlImporter({
   supplier,
   onApply,
   onPrices,
+  onComplete,
 }: {
   packageId?: string;
   destination?: string | null;
@@ -56,6 +57,7 @@ export function TourHtmlImporter({
   onPrices?: (
     rows: { date: string; modality: string; price_per_person: number }[],
   ) => void;
+  onComplete?: () => void;
 }) {
   const qc = useQueryClient();
   const summarize = useServerFn(summarizeTourInfo);
@@ -182,8 +184,12 @@ export function TourHtmlImporter({
         meeting_point:
           ai?.meeting_point ||
           "Embarque livre: não há ponto de encontro fixo — apresente o voucher ao embarcar na parada mais próxima.",
-        ...(ai?.times?.length ? { tour_times: ai.times } : { tour_times: [] }),
-        ...(!ai?.times?.length && ai?.hours_note
+        ...(parsed.times.length
+          ? { tour_times: parsed.times }
+          : ai?.times?.length
+            ? { tour_times: ai.times }
+            : { tour_times: [] }),
+        ...(!parsed.times.length && !ai?.times?.length && ai?.hours_note
           ? {
               ai_summary: [
                 ai?.summary
@@ -203,6 +209,7 @@ export function TourHtmlImporter({
       });
       const saved = await savePrices(parsed, true);
       setStep(3);
+      onComplete?.();
       toast.success(
         saved
           ? "Tudo preenchido e calendário de preços gravado."
