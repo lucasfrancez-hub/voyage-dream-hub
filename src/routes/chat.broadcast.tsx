@@ -1586,7 +1586,11 @@ function CampanhaEditor({
     if (status === "agendada" && !scheduled) return toast.error("Escolha data e horário");
     setSaving(true);
     try {
-      const scheduled_at = scheduled ? new Date(scheduled).toISOString() : null;
+      // Se algum bloco tem horário próprio anterior ao geral, a campanha começa nele.
+      const horariosBlocos = blocos.map((b) => b.scheduled_at).filter(Boolean) as string[];
+      const base = scheduled ? new Date(scheduled).toISOString() : null;
+      const scheduled_at = [base, ...horariosBlocos].filter(Boolean).sort()[0] ?? null;
+
       await doSalvar({
         data: {
           id,
