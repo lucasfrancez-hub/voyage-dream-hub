@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Info, MapPin, Plus, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Plus, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { formatBRL } from "@/lib/format";
 import { detectChildTokenFee, formatChildTokenFee } from "@/lib/packages/child-fee";
