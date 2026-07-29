@@ -241,6 +241,25 @@ function AdminPackages() {
   const [view, setView] = useState<"list" | "curadoria">("list");
   const [cruiseImportOpen, setCruiseImportOpen] = useState(false);
 
+  // Cada rascunho ganha um identificador estável. Toda a sincronização é feita
+  // por esse id (nunca pelo índice da aba), senão uma atualização assíncrona
+  // (IA, debounce de digitação) grava no passeio errado depois de trocar de aba.
+  const withDraftIds = (list: Partial<PackageRow>[]) =>
+    list.map((d) => ({
+      ...d,
+      __draftId:
+        (d as any).__draftId ??
+        (globalThis.crypto?.randomUUID?.() ?? `draft-${Math.random().toString(36).slice(2)}`),
+    })) as Partial<PackageRow>[];
+
+  const openDrafts = (list: Partial<PackageRow>[]) => {
+    const withIds = withDraftIds(list);
+    setDrafts(withIds);
+    draftIndexRef.current = 0;
+    setDraftIndex(0);
+    setEditingState(withIds[0]);
+  };
+
   // Wrap setEditing to keep the drafts array in sync with edits.
   // Accepts a value OR an updater function (use updater to avoid stale closures
   // clobbering concurrent edits — e.g. auto-summary finishing after generate-includes).
@@ -260,13 +279,19 @@ function AdminPackages() {
     setEditingState((prev) => {
       const next = typeof v === "function" ? v(prev) : v;
       if (next === null) return null;
+      const nextId = (next as any).__draftId ?? (prev as any)?.__draftId;
+      const patched = nextId ? ({ ...next, __draftId: nextId } as Partial<PackageRow>) : next;
       setDrafts((prevDrafts) => {
         if (!prevDrafts) return prevDrafts;
+        const idx = nextId
+          ? prevDrafts.findIndex((d) => (d as any).__draftId === nextId)
+          : draftIndexRef.current;
+        if (idx < 0) return prevDrafts;
         const copy = prevDrafts.slice();
-        copy[draftIndex] = next;
+        copy[idx] = patched;
         return copy;
       });
-      return next;
+      return patched;
     });
   };
 
@@ -275,7 +300,13 @@ function AdminPackages() {
     if (newIdx < 0 || newIdx >= drafts.length) return;
     // persist current edits into drafts[draftIndex] first
     const snapshot = drafts.slice();
-    if (editing) snapshot[draftIndex] = editing;
+    const currentId = (editing as any)?.__draftId;
+    if (editing) {
+      const idx = currentId
+        ? snapshot.findIndex((d) => (d as any).__draftId === currentId)
+        : draftIndexRef.current;
+      if (idx >= 0) snapshot[idx] = editing;
+    }
     setDrafts(snapshot);
     draftIndexRef.current = newIdx;
     setDraftIndex(newIdx);
@@ -283,21 +314,25 @@ function AdminPackages() {
   }
 
   function updateTourDraftRows(
-    targetIndex: number,
+    targetDraftId: string,
     rows: { date: string; modality: string; price_per_person: number; taxes: number }[],
   ) {
+    if (!targetDraftId) return;
     setDrafts((currentDrafts) => {
-      if (!currentDrafts?.[targetIndex]) return currentDrafts;
+      if (!currentDrafts) return currentDrafts;
+      const idx = currentDrafts.findIndex((d) => (d as any).__draftId === targetDraftId);
+      if (idx < 0) return currentDrafts;
       const nextDrafts = currentDrafts.slice();
-      nextDrafts[targetIndex] = { ...nextDrafts[targetIndex], __pendingPrices: rows } as Partial<PackageRow>;
+      nextDrafts[idx] = { ...nextDrafts[idx], __pendingPrices: rows } as Partial<PackageRow>;
       return nextDrafts;
     });
-    if (draftIndexRef.current === targetIndex) {
-      setEditingState((current) =>
-        current ? ({ ...current, __pendingPrices: rows } as Partial<PackageRow>) : current,
-      );
-    }
+    setEditingState((current) =>
+      current && (current as any).__draftId === targetDraftId
+        ? ({ ...current, __pendingPrices: rows } as Partial<PackageRow>)
+        : current,
+    );
   }
+
 
   function closeCurrentDraft() {
     if (!drafts) {
@@ -667,7 +702,14 @@ function AdminPackages() {
     if (!drafts || drafts.length === 0) return;
     // persist current edits into the draft list before iterating
     const list = drafts.slice();
-    if (editing) list[draftIndex] = editing;
+    if (editing) {
+      const currentId = (editing as any).__draftId;
+      const idx = currentId
+        ? list.findIndex((d) => (d as any).__draftId === currentId)
+        : draftIndexRef.current;
+      if (idx >= 0) list[idx] = editing;
+    }
+
     setSaving(true);
     let ok = 0;
     const errors: string[] = [];
@@ -835,10 +877,8 @@ function AdminPackages() {
               } catch {
                 setPendingNumbers(null);
               }
-              setDrafts(list);
-              draftIndexRef.current = 0;
-              setDraftIndex(0);
-              setEditingState(list[0]);
+              openDrafts(list);
+
             }}
           />
           <IgnoredHotelsBell packages={packages || []} />
@@ -1377,10 +1417,8 @@ function AdminPackages() {
           onBulkToursImported={(savedTours) => {
             const list = savedTours as Partial<PackageRow>[];
             setPendingNumbers(null);
-            setDrafts(list);
-            draftIndexRef.current = 0;
-            setDraftIndex(0);
-            setEditingState(list[0]);
+            openDrafts(list);
+
           }}
         />
       )}
@@ -1442,9 +1480,10 @@ type PackageEditorModalProps = {
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
   updateTourDraftRows?: (
-    targetIndex: number,
+    targetDraftId: string,
     rows: { date: string; modality: string; price_per_person: number; taxes: number }[],
   ) => void;
+
   nextNumber?: number | null;
   onBulkToursImported?: (drafts: BulkImportedTourDraft[]) => void;
 };
@@ -2276,18 +2315,20 @@ function PackageEditorModal({
             {tab === "dates" && kind === "tour" && (
               <div className="mb-4 space-y-4">
                 <TourDatesEditor
-                  key={editing.id ?? `draft-${draftIndex}-${editing.slug ?? ""}`}
+                  key={editing.id ?? (editing as any).__draftId ?? `draft-${draftIndex}`}
                   packageId={editing.id}
 
                   modalities={(editing as any).tour_modalities ?? []}
                   pendingRows={(editing as any).__pendingPrices ?? []}
                   onRowsChange={(rows) => {
-                    if (drafts?.length && updateTourDraftRows) {
-                      updateTourDraftRows(draftIndex, rows);
+                    const draftId = (editing as any).__draftId as string | undefined;
+                    if (drafts?.length && updateTourDraftRows && draftId) {
+                      updateTourDraftRows(draftId, rows);
                       return;
                     }
                     setEditing((prev: any) => ({ ...prev, __pendingPrices: rows }));
                   }}
+
                 />
 
               </div>
