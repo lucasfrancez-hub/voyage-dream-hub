@@ -51,7 +51,8 @@ export function TourResultCard({
   onAdd: (item: Omit<CartItem, "key">) => void;
   onReserve: (date: string, modality: string | null, qty: number) => void;
 }) {
-  const stripRef = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(0);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [selDate, setSelDate] = useState<string | null>(null);
   const [selMod, setSelMod] = useState<string | null | undefined>(undefined);
   const sel =
