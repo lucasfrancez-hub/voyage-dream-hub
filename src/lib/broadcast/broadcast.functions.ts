@@ -94,6 +94,31 @@ export const updateDestinoTags = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ==================== Upload de mídia ====================
+
+const PUBLIC_BASE = "https://pedidos.viaair.tur.br";
+
+export const uploadBroadcastMedia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { filename: string; contentType: string; dataBase64: string }) => d)
+  .handler(async ({ context, data }) => {
+    await ensureMarketing(context);
+    const clean = data.filename.replace(/[^A-Za-z0-9._-]/g, "_").slice(-80);
+    const ext = clean.includes(".") ? clean.split(".").pop() : "bin";
+    const path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`;
+
+    const binary = Uint8Array.from(atob(data.dataBase64), (c) => c.charCodeAt(0));
+    if (binary.byteLength > 25 * 1024 * 1024) throw new Error("Arquivo maior que 25MB");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.storage
+      .from("broadcast-media")
+      .upload(path, binary, { contentType: data.contentType || "application/octet-stream", upsert: true });
+    if (error) throw new Error(error.message);
+
+    return { url: `${PUBLIC_BASE}/api/public/broadcast-media/${path}`, filename: clean };
+  });
+
 // ==================== Campanhas ====================
 
 type BlocoInput = {
@@ -103,7 +128,9 @@ type BlocoInput = {
   midia_filename?: string | null;
   midia_caption?: string | null;
   botoes?: unknown;
+  scheduled_at?: string | null;
 };
+
 
 export const listCampanhas = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -207,8 +234,10 @@ export const salvarCampanha = createServerFn({ method: "POST" })
       midia_url: m.midia_url ?? null,
       midia_filename: m.midia_filename ?? null,
       midia_caption: m.midia_caption ?? null,
+      scheduled_at: m.scheduled_at ?? null,
       botoes: (m.botoes ?? null) as never,
     }));
+
     const { error: mErr } = await supabaseAdmin.from("wa_broadcast_mensagens").insert(blocos as never);
     if (mErr) throw new Error(mErr.message);
 

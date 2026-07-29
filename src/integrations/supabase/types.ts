@@ -3551,6 +3551,7 @@ export type Database = {
           midia_filename: string | null
           midia_url: string | null
           ordem: number
+          scheduled_at: string | null
           texto: string | null
           tipo: string
           updated_at: string
@@ -3564,6 +3565,7 @@ export type Database = {
           midia_filename?: string | null
           midia_url?: string | null
           ordem?: number
+          scheduled_at?: string | null
           texto?: string | null
           tipo: string
           updated_at?: string
@@ -3577,6 +3579,7 @@ export type Database = {
           midia_filename?: string | null
           midia_url?: string | null
           ordem?: number
+          scheduled_at?: string | null
           texto?: string | null
           tipo?: string
           updated_at?: string

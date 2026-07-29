@@ -48,13 +48,18 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
             .in("id", camp.destino_ids as string[]);
 
           let ok = 0, fail = 0;
+          const now = Date.now();
+          // Mensagens com horário próprio no futuro ficam para a próxima rodada.
+          const prontas = (msgs ?? []).filter((m) => !m.scheduled_at || new Date(m.scheduled_at).getTime() <= now);
+          const pendentesFuturas = (msgs ?? []).filter((m) => m.scheduled_at && new Date(m.scheduled_at).getTime() > now);
           for (const d of destinos ?? []) {
-            for (const m of msgs ?? []) {
+            for (const m of prontas) {
               // Em canais o WhatsApp já gera preview da URL no texto — pular
               // blocos de imagem para não duplicar a arte.
               if (d.tipo === "channel" && (m.tipo === "image" || m.tipo === "video")) continue;
               // Story do Instagram só aceita bloco de imagem ou vídeo com URL.
               if (d.tipo === "instagram_story" && m.tipo !== "image") continue;
+
 
               // Idempotência: pula se já enviado (retry seguro)
               const { data: existente } = await supabaseAdmin
@@ -123,15 +128,32 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
             }
           }
 
-          const status = fail > 0 && ok === 0 ? "falhou" : "concluida";
-          await supabaseAdmin
-            .from("wa_broadcast_campanhas")
-            .update({
-              status,
-              sent_at: new Date().toISOString(),
-              metrics: { total: ok + fail, enviados: ok, falhas: fail },
-            })
-            .eq("id", camp.id);
+          if (pendentesFuturas.length > 0) {
+            // Ainda há blocos com horário futuro: volta para 'agendada' apontando
+            // para o próximo horário programado.
+            const proximo = pendentesFuturas
+              .map((m) => new Date(m.scheduled_at as string).getTime())
+              .sort((a, b) => a - b)[0];
+            await supabaseAdmin
+              .from("wa_broadcast_campanhas")
+              .update({
+                status: "agendada",
+                scheduled_at: new Date(proximo).toISOString(),
+                metrics: { total: ok + fail, enviados: ok, falhas: fail, restantes: pendentesFuturas.length },
+              })
+              .eq("id", camp.id);
+          } else {
+            const status = fail > 0 && ok === 0 ? "falhou" : "concluida";
+            await supabaseAdmin
+              .from("wa_broadcast_campanhas")
+              .update({
+                status,
+                sent_at: new Date().toISOString(),
+                metrics: { total: ok + fail, enviados: ok, falhas: fail },
+              })
+              .eq("id", camp.id);
+          }
+
 
           results.push({ id: camp.id, ok, fail });
         }

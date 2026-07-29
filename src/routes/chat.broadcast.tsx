@@ -15,6 +15,8 @@ import {
   adicionarDestinoPorLink,
   excluirDestino,
   listPacotesProntos,
+  uploadBroadcastMedia,
+
 } from "@/lib/broadcast/broadcast.functions";
 import { aprovarSuggestion, descartarSuggestion, listSuggestions } from "@/lib/broadcast/suggestions.functions";
 import { confirm } from "@/lib/confirm";
@@ -85,7 +87,9 @@ type Bloco = {
   midia_filename?: string | null;
   midia_caption?: string | null;
   botoes?: unknown;
+  scheduled_at?: string | null;
 };
+
 
 const STATUS_LABEL: Record<Campanha["status"], string> = {
   rascunho: "Rascunho",
@@ -1582,7 +1586,11 @@ function CampanhaEditor({
     if (status === "agendada" && !scheduled) return toast.error("Escolha data e horário");
     setSaving(true);
     try {
-      const scheduled_at = scheduled ? new Date(scheduled).toISOString() : null;
+      // Se algum bloco tem horário próprio anterior ao geral, a campanha começa nele.
+      const horariosBlocos = blocos.map((b) => b.scheduled_at).filter(Boolean) as string[];
+      const base = scheduled ? new Date(scheduled).toISOString() : null;
+      const scheduled_at = [base, ...horariosBlocos].filter(Boolean).sort()[0] ?? null;
+
       await doSalvar({
         data: {
           id,
@@ -1931,6 +1939,12 @@ function DestSelector({
   );
 }
 
+function toLocalInput(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 function BlocoEditor({
   idx,
   bloco,
@@ -1943,24 +1957,90 @@ function BlocoEditor({
   onRemove: () => void;
 }) {
   const isMedia = bloco.tipo !== "text" && bloco.tipo !== "buttons";
+  const [uploading, setUploading] = useState(false);
+  const doUpload = useServerFn(uploadBroadcastMedia);
+
+  const accept =
+    bloco.tipo === "image" ? "image/*" : bloco.tipo === "video" ? "video/*" : "application/pdf";
+
+  async function handleFile(file: File) {
+    setUploading(true);
+    try {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      let bin = "";
+      for (let i = 0; i < buf.length; i += 8192) {
+        bin += String.fromCharCode(...buf.subarray(i, i + 8192));
+      }
+      const r = await doUpload({
+        data: { filename: file.name, contentType: file.type || "application/octet-stream", dataBase64: btoa(bin) },
+      });
+      onChange({ midia_url: r.url, midia_filename: bloco.tipo === "document" ? r.filename : bloco.midia_filename });
+      toast.success("Arquivo enviado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha no upload");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="rounded-lg border border-border bg-card p-3">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 gap-2">
         <span className="text-xs uppercase text-muted-foreground">
           #{idx + 1} · {bloco.tipo}
         </span>
-        <button onClick={onRemove} className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-red-500">
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            <input
+              type="datetime-local"
+              value={toLocalInput(bloco.scheduled_at)}
+              onChange={(e) =>
+                onChange({ scheduled_at: e.target.value ? new Date(e.target.value).toISOString() : null })
+              }
+              title="Horário específico deste bloco (opcional)"
+              className="rounded-md border border-border bg-background px-2 py-1 text-[11px]"
+            />
+          </label>
+          <button onClick={onRemove} className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-red-500">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
       {isMedia && (
-        <input
-          type="url"
-          value={bloco.midia_url ?? ""}
-          onChange={(e) => onChange({ midia_url: e.target.value })}
-          placeholder="URL do arquivo (https://…)"
-          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm mb-2"
-        />
+        <div className="mb-2 space-y-2">
+          <div className="flex items-center gap-2">
+            <label className={`inline-flex items-center gap-1.5 text-xs rounded-full border border-border px-3 py-1.5 cursor-pointer hover:border-brand-orange ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
+              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+              {uploading ? "Enviando…" : "Enviar arquivo"}
+              <input
+                type="file"
+                accept={accept}
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (f) void handleFile(f);
+                }}
+              />
+            </label>
+            {bloco.midia_url && (
+              <a href={bloco.midia_url} target="_blank" rel="noreferrer" className="text-[11px] text-brand-orange truncate max-w-[220px] hover:underline">
+                arquivo anexado
+              </a>
+            )}
+          </div>
+          {bloco.tipo === "image" && bloco.midia_url && (
+            <img src={bloco.midia_url} alt="Prévia da mídia da campanha" className="h-24 rounded-md border border-border object-cover" />
+          )}
+          <input
+            type="url"
+            value={bloco.midia_url ?? ""}
+            onChange={(e) => onChange({ midia_url: e.target.value })}
+            placeholder="ou cole a URL do arquivo (https://…)"
+            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+          />
+        </div>
       )}
       {bloco.tipo === "document" && (
         <input
@@ -1983,4 +2063,5 @@ function BlocoEditor({
       />
     </div>
   );
+
 }

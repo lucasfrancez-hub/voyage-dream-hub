@@ -83,6 +83,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
+import { Route as ApiPublicBroadcastMediaSplatRouteImport } from './routes/api/public/broadcast-media.$'
 import { Route as ApiPublicHooksAutoSuggestionsRouteImport } from './routes/api/public/hooks/auto-suggestions'
 import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/api/public/hooks/broadcast-dispatch'
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
@@ -471,6 +472,12 @@ const ApiPublicBpIdRoute = ApiPublicBpIdRouteImport.update({
   path: '/api/public/bp/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBroadcastMediaSplatRoute =
+  ApiPublicBroadcastMediaSplatRouteImport.update({
+    id: '/api/public/broadcast-media/$',
+    path: '/api/public/broadcast-media/$',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAutoSuggestionsRoute =
   ApiPublicHooksAutoSuggestionsRouteImport.update({
     id: '/api/public/hooks/auto-suggestions',
@@ -617,6 +624,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
+  '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
@@ -704,6 +712,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
+  '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
@@ -793,6 +802,7 @@ export interface FileRoutesById {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
+  '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
@@ -883,6 +893,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
     | '/api/public/bp/$id'
+    | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/check-flight-changes'
@@ -970,6 +981,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/pacotes/$slug'
     | '/api/public/bp/$id'
+    | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/check-flight-changes'
@@ -1058,6 +1070,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
     | '/api/public/bp/$id'
+    | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/check-flight-changes'
@@ -1110,6 +1123,7 @@ export interface RootRouteChildren {
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
+  ApiPublicBroadcastMediaSplatRoute: typeof ApiPublicBroadcastMediaSplatRoute
   ApiPublicHooksAutoSuggestionsRoute: typeof ApiPublicHooksAutoSuggestionsRoute
   ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
@@ -1644,6 +1658,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBpIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/broadcast-media/$': {
+      id: '/api/public/broadcast-media/$'
+      path: '/api/public/broadcast-media/$'
+      fullPath: '/api/public/broadcast-media/$'
+      preLoaderRoute: typeof ApiPublicBroadcastMediaSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/auto-suggestions': {
       id: '/api/public/hooks/auto-suggestions'
       path: '/api/public/hooks/auto-suggestions'
@@ -1878,6 +1899,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
+  ApiPublicBroadcastMediaSplatRoute: ApiPublicBroadcastMediaSplatRoute,
   ApiPublicHooksAutoSuggestionsRoute: ApiPublicHooksAutoSuggestionsRoute,
   ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
   ApiPublicHooksCheckFlightChangesRoute: ApiPublicHooksCheckFlightChangesRoute,
