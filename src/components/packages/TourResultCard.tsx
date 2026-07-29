@@ -3,7 +3,13 @@ import { MapPin, Plus, Clock, ChevronLeft, ChevronRight, Info } from "lucide-rea
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
-import { detectChildTokenFee, formatChildTokenFee } from "@/lib/packages/child-fee";
+import {
+  detectChildTokenFee,
+  parseAgePolicy,
+  agePolicyFromText,
+  classifyChild,
+  formatAgePolicy,
+} from "@/lib/packages/child-fee";
 
 const PAGE_SIZE = 5;
 
@@ -333,7 +339,7 @@ export function TourResultCard({
             {childFee && (
               <div className="rounded-lg border border-brand-orange/30 bg-brand-orange/10 p-3">
                 <p className="text-[11px] font-medium text-brand-orange">
-                  {formatChildTokenFee(childFee)}
+                  {formatAgePolicy(childFee)}
                 </p>
               </div>
             )}
@@ -493,7 +499,7 @@ export function TourResultCard({
             {childFee && (
               <div className="rounded-lg border border-brand-orange/30 bg-brand-orange/10 p-3">
                 <p className="text-[12px] font-medium text-brand-orange">
-                  {formatChildTokenFee(childFee)}
+                  {formatAgePolicy(childFee)}
                 </p>
               </div>
             )}
