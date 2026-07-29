@@ -1783,7 +1783,8 @@ function PackageEditorModal({
   const dialogTitle = `${editing.id ? "Editar" : "Novo"} ${kindLabel}`;
 
   // Passeio novo: primeiro a tela de importação por HTML, depois o formulário
-  const showTourGate = kind === "tour" && !editing.id && !tourImportDone;
+  const showTourGate =
+    kind === "tour" && !editing.id && !tourImportDone && !(drafts && drafts.length > 0);
   if (showTourGate) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1830,12 +1831,12 @@ function PackageEditorModal({
                 destination={editing.destination}
                 supplier={editing.supplier_name}
                 onApply={(patch) => {
-                  setEditing({ ...editing, ...patch } as any);
-                  setTourImportDone(true);
+                  setEditing((prev) => ({ ...(prev ?? {}), ...patch }) as any);
                 }}
                 onPrices={(rows) =>
-                  setEditing({ ...(editing as any), __pendingPrices: rows } as any)
+                  setEditing((prev) => ({ ...(prev ?? {}), __pendingPrices: rows }) as any)
                 }
+                onComplete={() => setTourImportDone(true)}
               />
             )}
             <button
@@ -2256,14 +2257,19 @@ function PackageEditorModal({
 
             {tab === "dates" && kind === "tour" && (
               <div className="mb-4 space-y-4">
-                <TourHtmlImporter
-                  packageId={editing.id}
-                  destination={editing.destination}
-                  onApply={(patch) => setEditing({ ...editing, ...patch } as any)}
-                  onPrices={(rows) =>
-                    setEditing({ ...(editing as any), __pendingPrices: rows } as any)
-                  }
-                />
+                {!(drafts && drafts.length > 0) && (
+                  <TourHtmlImporter
+                    packageId={editing.id}
+                    destination={editing.destination}
+                    supplier={editing.supplier_name}
+                    onApply={(patch) =>
+                      setEditing((prev) => ({ ...(prev ?? {}), ...patch }) as any)
+                    }
+                    onPrices={(rows) =>
+                      setEditing((prev) => ({ ...(prev ?? {}), __pendingPrices: rows }) as any)
+                    }
+                  />
+                )}
                 <TourInfoEditor
                   value={editing as any}
                   onChange={(patch) => setEditing({ ...editing, ...patch } as any)}

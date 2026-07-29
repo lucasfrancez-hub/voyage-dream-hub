@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Code2, CheckCircle2, Pencil } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { DestinationInput } from "@/components/packages/DestinationInput";
 import { SupplierInput } from "@/components/packages/SupplierInput";
 import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
 
 export type BulkImportedTourDraft = {
-  id: string;
+  id?: string;
   slug: string;
   title: string;
   kind: "tour";
@@ -56,7 +54,6 @@ export function TourBulkImporter({
   supplier?: string | null;
   onImported?: (drafts: BulkImportedTourDraft[]) => void;
 }) {
-  const qc = useQueryClient();
   const [html, setHtml] = useState("");
   const [destination, setDestination] = useState(initialDestination ?? "");
   const [supplier, setSupplier] = useState(initialSupplier ?? "");
@@ -100,11 +97,9 @@ export function TourBulkImporter({
       return;
     }
     setRunning(true);
-    let ok = 0;
-    const savedRows: BulkImportedTourDraft[] = [];
+    const importedDrafts: BulkImportedTourDraft[] = [];
     try {
-      const { data: existing } = await supabase.from("packages").select("slug");
-      const used = new Set((existing ?? []).map((r: any) => r.slug));
+      const used = new Set<string>();
 
       const extraByTitle = new Map<string, string>();
       tours.forEach((t, i) => {
@@ -129,54 +124,7 @@ export function TourBulkImporter({
           .join("\n\n")
           .slice(0, 55000);
 
-        const { data: inserted, error } = await supabase
-          .from("packages")
-          .insert({
-            slug,
-            title: t.title,
-            destination: destination.trim(),
-            supplier_name: supplier.trim(),
-            image_url: t.image_url || null,
-            summary: null,
-            ai_summary: null,
-            includes: t.includes,
-            tour_modalities: t.modalities,
-            tour_times: t.times ?? [],
-            meeting_point: null,
-            services: rawDescription ? { raw_description: rawDescription } : {},
-            price_per_person: minPrice || 0,
-            taxes: t.tax_per_person || 0,
-            kind: "tour",
-            date_mode: "flexible",
-            pricing_mode: "per_unit",
-            max_units: 9,
-            is_active: true,
-          } as any)
-          .select("id")
-          .single();
-
-        if (error) {
-          toast.error(`${t.title}: ${error.message}`);
-          continue;
-        }
-
-        if (t.prices.length) {
-          const rows = t.prices.map((x) => ({
-            package_id: inserted.id,
-            date: x.date,
-            modality: x.modality,
-            price_per_person: x.price_per_person,
-            taxes: t.tax_per_person || 0,
-            seats: null,
-          }));
-          const { error: perr } = await supabase
-            .from("package_date_prices")
-            .upsert(rows, { onConflict: "package_id,date,modality" });
-          if (perr) toast.error(`${t.title} (preços): ${perr.message}`);
-        }
-        ok += 1;
-        savedRows.push({
-          id: inserted.id,
+        importedDrafts.push({
           slug,
           title: t.title,
           kind: "tour",
@@ -205,11 +153,11 @@ export function TourBulkImporter({
           })),
         });
       }
-      await qc.invalidateQueries({ queryKey: ["admin-packages"] });
-      await qc.invalidateQueries({ queryKey: ["packages"] });
-      toast.success(`${ok} passeio(s) importado(s).`);
-      if (ok > 0) {
-        onImported?.(savedRows);
+      toast.success(
+        `${importedDrafts.length} passeio(s) importado(s) — revise cada um nas abas antes de salvar.`,
+      );
+      if (importedDrafts.length > 0) {
+        onImported?.(importedDrafts);
       }
     } catch (e) {
       toast.error((e as Error).message);
@@ -435,7 +383,7 @@ export function TourBulkImporter({
             )}
             {running
               ? progress || "Importando..."
-              : `Confirmar e cadastrar ${Object.values(selected).filter(Boolean).length} passeio(s)`}
+              : `Concluir importação e revisar ${Object.values(selected).filter(Boolean).length} passeio(s)`}
           </button>
         </div>
       )}
