@@ -163,7 +163,7 @@ function Checkout() {
   const isPerUnit = (pkg as any)?.pricing_mode === "per_unit" || isService;
   const isFlexibleDate =
     (pkg as any)?.date_mode === "flexible" || !!(pkg as any)?.flexible_dates;
-  const nightsCount = Number((pkg as any)?.nights) || 0;
+  const nightsCount = Number(nightsFromSearch) || Number((pkg as any)?.nights) || 0;
   const checkoutDate = (() => {
     if (!preferredDate || !nightsCount) return "";
     const m = preferredDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -201,6 +201,7 @@ function Checkout() {
       setAdults(qtyFromSearch ?? pkg.base_occupancy);
     }
     if (dateFromSearch) setPreferredDate(dateFromSearch);
+    if (birthdayFromSearch) setIsBirthday(true);
     if (addonsFromSearch) {
       const keys = addonsFromSearch.split(",").filter(Boolean);
       setSelectedAddons(Object.fromEntries(keys.map((k: string) => [k, true])));
