@@ -116,7 +116,15 @@ export function TourResultCard({
   const unitOf = (r?: PriceRow) =>
     r ? (Number(r.price_per_person) || 0) + (Number(r.taxes) || 0) : null;
 
-  const visible = dates.slice(offset, offset + PAGE);
+  const activeDate = selDate ?? dates[0] ?? null;
+  const minUnitOnDate = (d: string) =>
+    rows
+      .filter((r) => r.date === d)
+      .reduce<number | null>((acc, r) => {
+        const v = unitOf(r)!;
+        return acc == null || v < acc ? v : acc;
+      }, null);
+
 
   const selected = sel ? cell(sel.modality ?? "", sel.date) : undefined;
   const selUnit = unitOf(selected);
