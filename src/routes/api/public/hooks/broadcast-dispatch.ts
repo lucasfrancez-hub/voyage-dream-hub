@@ -128,15 +128,32 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
             }
           }
 
-          const status = fail > 0 && ok === 0 ? "falhou" : "concluida";
-          await supabaseAdmin
-            .from("wa_broadcast_campanhas")
-            .update({
-              status,
-              sent_at: new Date().toISOString(),
-              metrics: { total: ok + fail, enviados: ok, falhas: fail },
-            })
-            .eq("id", camp.id);
+          if (pendentesFuturas.length > 0) {
+            // Ainda há blocos com horário futuro: volta para 'agendada' apontando
+            // para o próximo horário programado.
+            const proximo = pendentesFuturas
+              .map((m) => new Date(m.scheduled_at as string).getTime())
+              .sort((a, b) => a - b)[0];
+            await supabaseAdmin
+              .from("wa_broadcast_campanhas")
+              .update({
+                status: "agendada",
+                scheduled_at: new Date(proximo).toISOString(),
+                metrics: { total: ok + fail, enviados: ok, falhas: fail, restantes: pendentesFuturas.length },
+              })
+              .eq("id", camp.id);
+          } else {
+            const status = fail > 0 && ok === 0 ? "falhou" : "concluida";
+            await supabaseAdmin
+              .from("wa_broadcast_campanhas")
+              .update({
+                status,
+                sent_at: new Date().toISOString(),
+                metrics: { total: ok + fail, enviados: ok, falhas: fail },
+              })
+              .eq("id", camp.id);
+          }
+
 
           results.push({ id: camp.id, ok, fail });
         }
