@@ -29,6 +29,7 @@ export type CartItem = {
   title: string;
   date: string;
   modality: string | null;
+  time?: string | null;
   unit: number;
   qty: number;
 };
