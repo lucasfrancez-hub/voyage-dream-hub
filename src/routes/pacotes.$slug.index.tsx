@@ -299,11 +299,13 @@ function PackageDetails() {
             )}
             <InfoTile
               icon={Calendar}
-              label={isTicket ? "Data do evento" : "Período"}
+              label={isTicket ? "Data do evento" : flexibleDates ? "Datas" : "Período"}
               value={
                 isTicket
                   ? eventDateLabel ?? "—"
-                  : formatDateRange(pkg.going_date, pkg.return_date)
+                  : flexibleDates
+                    ? "Você escolhe a data"
+                    : formatDateRange(pkg.going_date, pkg.return_date)
               }
             />
             {!isTicket && pkg.nights != null && (
