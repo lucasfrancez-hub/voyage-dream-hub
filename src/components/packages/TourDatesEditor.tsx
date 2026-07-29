@@ -88,10 +88,11 @@ export function TourDatesEditor({
     queryKey: ["package-date-prices", packageId],
     enabled: !!packageId,
     queryFn: async () => {
+      if (!packageId) return [];
       const { data, error } = await supabase
         .from("package_date_prices")
         .select("id,date,modality,price_per_person,taxes,seats,is_available")
-        .eq("package_id", packageId!)
+        .eq("package_id", packageId)
         .order("date");
       if (error) throw error;
       return (data ?? []) as Row[];
