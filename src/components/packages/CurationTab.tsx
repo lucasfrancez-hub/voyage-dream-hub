@@ -41,6 +41,7 @@ type Pkg = {
   tripadvisor_address?: string | null;
   services?: import("@/lib/packages/feed-art-data").PackageServices | null;
   supplier_name?: string | null;
+  flexible_dates?: boolean | null;
 };
 
 type Group = {
@@ -515,6 +516,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
             price_per_person: Number(pkg.price_per_person), base_occupancy: pkg.base_occupancy ?? 2,
             hotel_name: pkg.hotel_name, hotel_stars: pkg.hotel_stars, meal_plan: pkg.meal_plan, slug: pkg.slug,
             supplier_name: pkg.supplier_name ?? null,
+            flexible_dates: !!pkg.flexible_dates,
             services: (pkg.services ?? null) as any,
           }],
           baseUrl,
@@ -576,6 +578,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
         meal_plan: (pkg as { meal_plan?: string | null }).meal_plan ?? null,
         services: (pkg as { services?: unknown }).services ?? null,
         supplier_name: (pkg as { supplier_name?: string | null }).supplier_name ?? null,
+        flexible_dates: !!pkg.flexible_dates,
       };
 
 
@@ -630,10 +633,13 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
             </h3>
             <p className="text-xs sm:text-sm text-slate-400 font-light flex flex-wrap items-center gap-1.5">
               <span>{pkg.destination}</span>
-              {pkg.going_date && <>
+              {pkg.flexible_dates ? <>
+                <span className="w-1 h-1 rounded-full bg-white/20"></span>
+                <span>Datas flexíveis</span>
+              </> : pkg.going_date ? <>
                 <span className="w-1 h-1 rounded-full bg-white/20"></span>
                 <span>{dfmt(pkg.going_date)}{pkg.return_date ? ` a ${dfmt(pkg.return_date)}` : ""}</span>
-              </>}
+              </> : null}
               {pkg.nights ? <>
                 <span className="w-1 h-1 rounded-full bg-white/20"></span>
                 <span>{pkg.nights} {pkg.nights === 1 ? "noite" : "noites"}</span>
